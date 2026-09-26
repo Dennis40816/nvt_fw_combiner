@@ -222,8 +222,9 @@ public sealed class LocalStateSaveNoticeTests
 
     /// <summary>
     /// The notice keeps the approved reference hierarchy in the Merge page status row: warning strip aligned
-    /// with the content, icon, bold title, separator, one-line detail and a round icon-only Retry, with the
-    /// startup status row's geometry and 13 px text; both status rows stack without overlap.
+    /// with the content, icon, bold title, separator, one-line detail and a round icon-only Retry with the
+    /// reference refresh glyph and hover state, with the startup status row's geometry and 13 px text; both
+    /// status rows stack without overlap.
     /// </summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
@@ -321,10 +322,38 @@ public sealed class LocalStateSaveNoticeTests
             Assert.Equal(
                 Assert.IsType<ISolidColorBrush>(retry.Foreground, exactMatch: false).Color,
                 Assert.IsType<ISolidColorBrush>(refresh.Stroke, exactMatch: false).Color);
+            AssertApprovedRefreshGlyph(refresh);
             // Sample inside the round button's ring (the 16 px icon area) and inside the 18 px warning icon.
             Assert.True(CountInkPixels(window, retry, inset: 9) >= 20, "The Retry icon did not render.");
             Assert.True(CountInkPixels(window, icon, inset: 1) >= 20, "The warning icon did not render.");
             Save(chinese ? "zh" : "en", dark ? "dark" : "light", "single");
+
+            // The reference's hover state is the shared secondary hover: accent surface and border, an accent
+            // refresh icon and the bilingual tooltip centred above the strip, clear of the button so the hover
+            // state persists while the tooltip is open; leaving restores the resting icon.
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            window.MouseMove(Bounds(retry, window).Center, RawInputModifiers.None);
+            await WaitUntilAsync(() => ToolTip.GetIsOpen(retry), TimeSpan.FromSeconds(5));
+            Render(window);
+            Assert.True(retry.IsPointerOver);
+            AssertBrush(retry, retryPresenter.Background, "NfcAccentSurfaceBrush");
+            AssertBrush(retry, retryPresenter.BorderBrush, "NfcAccentBorderBrush");
+            AssertBrush(retry, refresh.Stroke, "NfcAccentStrongBrush");
+            Assert.Equal(chinese ? "重試" : "Retry", ToolTip.GetTip(retry));
+            ToolTip tip = Assert.Single(window.GetVisualDescendants().OfType<ToolTip>());
+            Rect tipBounds = Bounds(tip, window);
+            Assert.True(tipBounds.Bottom <= strip.Top, $"The Retry tooltip {tipBounds} covers the strip {strip}.");
+            Assert.Equal(Bounds(retry, window).Center.X, tipBounds.Center.X, tolerance: 1);
+            await WaitUntilAsync(() =>
+            {
+                Render(window);
+                return tip.Opacity >= 1;
+            });
+            Assert.True(retry.IsPointerOver);
+            Save(chinese ? "zh" : "en", dark ? "dark" : "light", "hover");
+            window.MouseMove(new Point(4, 4), RawInputModifiers.None);
+            await WaitUntilAsync(() => !retry.IsPointerOver);
+            AssertBrush(retry, refresh.Stroke, "NfcTextBrush");
 
             // With the startup status also present, both rows stack in the same status area without overlap.
             preloadHost.IsVisible = true;
@@ -588,6 +617,38 @@ public sealed class LocalStateSaveNoticeTests
     {
         Point origin = control.TranslatePoint(default, window)!.Value;
         return new Rect(origin, control.Bounds.Size);
+    }
+
+    /// <summary>
+    /// The approved reference's refresh glyph fills the 16 px icon: a ring open on its right side between the free
+    /// end at the lower right and a right-angle arrowhead whose corner sits on the ring at the upper right.
+    /// </summary>
+    private static void AssertApprovedRefreshGlyph(ShapePath refresh)
+    {
+        Geometry glyph = Assert.IsType<Geometry>(refresh.Data, exactMatch: false);
+        var pen = new Pen(Brushes.Black, refresh.StrokeThickness, lineCap: refresh.StrokeLineCap,
+            lineJoin: refresh.StrokeJoin);
+        Rect extent = glyph.GetRenderBounds(pen);
+        Assert.Equal(new Size(16, 16), new Size(refresh.Width, refresh.Height));
+        Assert.InRange(extent.Width, 14, 16.5);
+        Assert.InRange(extent.Height, 14, 16.5);
+        Assert.True(extent.Left >= -0.25 && extent.Top >= -0.25 && extent.Right <= 16.25 && extent.Bottom <= 16.25,
+            $"The refresh glyph {extent} leaves its 16 px icon.");
+        (Point Anchor, bool IsInked, string Part)[] anatomy =
+        [
+            (new Point(1.5, 8), true, "ring at 9 o'clock"),
+            (new Point(8, 1.5), true, "ring at 12 o'clock"),
+            (new Point(8, 14.5), true, "ring at 6 o'clock"),
+            (new Point(14.3, 6.3), true, "arrowhead corner on the ring at the upper right"),
+            (new Point(14.3, 2), true, "arrowhead arm rising from the corner"),
+            (new Point(10, 6.3), true, "arrowhead arm running left from the corner"),
+            (new Point(14.6, 8.6), false, "ring opening at 3 o'clock"),
+            (new Point(8, 8), false, "hollow centre"),
+        ];
+        foreach ((Point anchor, bool isInked, string part) in anatomy)
+        {
+            Assert.True(glyph.StrokeContains(pen, anchor) == isInked, $"Refresh glyph {part} at {anchor}.");
+        }
     }
 
     private static void AssertBrush(Control control, IBrush? actual, string resourceKey)

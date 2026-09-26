@@ -521,15 +521,17 @@
             Classes="semanticAction secondary iconButton"
             AutomationProperties.Name="{ReflectionBinding RetryLabel}"
             Command="{ReflectionBinding RetryCommand}"
-            ToolTip.Tip="{ReflectionBinding RetryLabel}">
+            ToolTip.Placement="Top"
+            ToolTip.Tip="{ReflectionBinding RetryLabel}"
+            ToolTip.VerticalOffset="-16">
           <Path
               Width="16"
               Height="16"
-              Data="M12.68 5.9A5.4 5.4 0 1 1 8.94 3.28 M8.48 1.27L10.12 3.49L7.82 5.01"
-              Stroke="{Binding $parent[Button].Foreground}"
+              Data="M12.6 12.6A6.5 6.5 0 1 1 14.28 6.32M14.28 1.32V6.32H9.28"
+              Stroke="{Binding $self.(TextElement.Foreground)}"
               StrokeJoin="Round"
               StrokeLineCap="Round"
-              StrokeThickness="1.7" />
+              StrokeThickness="1.8" />
         </Button>
       </Grid>
     </Border>
