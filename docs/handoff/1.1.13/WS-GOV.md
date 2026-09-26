@@ -77,6 +77,18 @@ The board allocated ADR number 0080 to the governance draft.
   procedures), F-7's remaining sentence, and the API readings (the
   personal-repository permission UI, `do_not_enforce_on_create`, and marking
   every fact not verified locally); run the structure check; then stop.
+- **G0 third review revision (commander, 2026-09-26).** The third review of
+  `205a45ec4..b102135a5` rejected the checklist again, on a narrower scope:
+  F-11, F-12, F-8, F-7 and the API readings closed, decision 77 faithfully
+  recorded, no new owner decision needed. Revise only the WS-GOV documents:
+  F-13 (C3 freezes the whole ruleset scope, restores whatever the push did,
+  keeps the freeze if restoring fails, and lifts it only after the rules and
+  bypass list are verified), F-6 (D6 split into C2 and C3; helper checks split
+  by app and machine account), F-5 (freeze `main` and the trunk from pinning
+  the SHAs to the post-merge check; `--match-head-commit` only), F-14 (every
+  step names its operator and GitHub identity, citing decision 65), and two
+  WS-TEST items: reference ADR 0079's amendment of ADR 0027, and use the joint
+  `prose` definition, revised in G2 with its checker and document list.
 
 ## Ported from 1.1.12
 
@@ -289,6 +301,30 @@ required-status-checks rule at creation, with RS-2's example now creating the
 trunk; and a new checklist table lists every platform fact not verified
 locally with the step of G0 that confirms it.
 
+## G0 checklist third review 2026-09-26
+
+Reviewer `codex/gpt-6-astra`, range `205a45ec4..b102135a5`; read-only.
+Verdict: **REJECT**, one P1 and three P2 left; closed: F-11, F-12, F-8, F-7
+and the API readings; decision 77 found faithfully recorded, decision 78's
+direction recorded but its procedure incomplete. No new owner decision.
+
+| Finding | Severity | Taken in |
+| --- | --- | --- |
+| F-13 the pause froze only the target branch and had no failure path | P1 | Checklist C3: the freeze covers every branch the ruleset covers and starts before it is disabled; the ruleset is exported first and set Active again whatever the push did; a failed restore or a passed window keeps the freeze until you have restored and verified it; the freeze lifts only after Active, rules and bypass list are verified; ADR item 8 |
+| F-6 verification of the accepted fallback | P2 | Checklist D6 split into D6-C2 and D6-C3; D6-C3 freezes every `*.*.x` branch, `1.1.x` included, and records the disable and restore times, the export and the push actor without expecting a bypass evaluation; C2 step 6 checks the agent path separately for the app and the machine account |
+| F-5 the base could still move | P2 | Checklist "After G0": `main` and the trunk frozen from pinning the SHAs to the post-merge check; your approval of the head; only `gh pr merge --match-head-commit`; the browser path removed there and in D5 |
+| F-14 operator and identity per step | P2 | Checklist "Operators and identities" (decision 65): you operate accounts, the conversion, keys, tokens, PATs and other secrets, rulesets and repository settings, local credential and identity settings, the bypass and the pause; an agent operates the App-identity pushes, pull requests, merges and verification cleanup; every step carries **operator → identity** |
+
+WS-TEST items, from its design review: the ADR draft now names ADR 0079 as
+related (it amends ADR 0027's evidence-sharded CI section and replaces its
+300-second clause on acceptance, board decision 72), makes item 13's
+pull-request tier wait for that amendment, and uses the joint `prose`
+definition ("not an input to any product test or other semantic
+verification; only listed generic document-structure checks may read it"),
+with G2 revising the wording, its checker and the list of document checks to
+migrate in one batch; document assertions are decided test by test (board
+decision 71).
+
 ## Conflicts with other work
 
 - CI failure evidence (R3): owns `ci.yml` and `scripts/verify.py`; G2, the
@@ -305,6 +341,9 @@ locally with the step of G0 that confirms it.
   system now; each follows the ADR's transition table if G1-B lands first.
 - WS-AI port: edits the same governed paths as G1-B (`AGENTS.md`, skills,
   validator frontmatter rules); same batch, one writer.
+- WS-TEST (ADR 0079): depends on this ADR's authority map (item 4) and CI
+  tiers (item 13), shares the `prose` definition, and lands its R3 parts
+  (workflow and required-check changes) through G2.
 - Rolling parity P-2 and release batch R-1 both edit
   `scripts/v0916_parity_certification.py`; the board gives it one writer at a
   time (the batch admitted first).
@@ -450,6 +489,15 @@ TMPDIR set to `<test-area>/temp`, at `ba0227cdd` -> `structure=PASS`, 306.5 s;
 documents passed before the commit.
 Open: the re-review (commander).
 Next: stop.
+
+### 2026-09-26 Revision after the G0 third review
+State: local
+Commits: the commit carrying this entry, on `b102135a5`
+Evidence: F-5, F-6, F-13 and F-14 of the third review and the two WS-TEST
+items are taken in (table above). Verification of this commit is recorded in
+the next entry.
+Open: the re-review (commander).
+Next: structure check of this commit, then stop.
 
 ## Owner decisions in risk order
 

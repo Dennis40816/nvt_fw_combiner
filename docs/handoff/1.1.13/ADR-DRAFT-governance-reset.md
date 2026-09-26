@@ -21,6 +21,11 @@
   ADR 0071; consolidates the three ADR 0021 files.
 - Amends: ADR 0033 through the [release workflow cleanup
   design](DESIGN-release-workflow-cleanup.md).
+- Related: ADR 0079 (test architecture, WS-TEST, drafted on
+  `feature/1.1.13/test-architecture`) owns test selection and partitions; on
+  its acceptance it amends ADR 0027's 2026-08-12 evidence-sharded CI section,
+  including the replacement of its 300-second acceptance clause (board
+  decision 72). Item 13's pull-request tier depends on it.
 - Ports: the unmerged 1.1.12 draft
   `feature/1.1.12/governance-reset:docs/handoff/1.1.12/ADR-DRAFT-governance-reset.md`
   and the owner's WS-GOV decisions 1-10 of 2026-09-25 (carried in the
@@ -206,8 +211,12 @@ conflicts or other release failures.
      pins, `scripts/validate_repository.py`, `scripts/verify.py` and the other
      scripts.
    - `code` (R1): the rest of `src/`, `tests/` and `eng/`.
-   - `prose` (R0): an explicit allowlist of ordinary prose that no test or
-     script reads (initially `docs/handoff/` Markdown).
+   - `prose` (R0): an explicit list of files that are not an input to any
+     product test or other semantic verification; only listed generic
+     document-structure checks may read them (Markdown links and anchors, the
+     line ceiling, encoding and file-name rules). A document that a topic test
+     still reads is not prose. This is the joint definition with WS-TEST
+     (ADR 0079); initially `docs/handoff/` Markdown.
    - `unclassified`: any path the map does not match.
    The authority check diffs the pull request base against its head (two
    points; deletions and both sides of a rename count). It fails when the
@@ -285,11 +294,13 @@ conflicts or other release failures.
    release artifacts are never rewritten. It does not bypass the tag ruleset,
    the protected `release` environment or the release workflow's checks. If
    this repository cannot name the admin role as a bypass actor, the ruleset
-   is paused for the push instead, for a bounded window with every agent's
-   related writes and releases stopped, and protection is restored and
-   verified afterwards (board decision 78). The exact parameters and both
-   procedures are in the [G0 owner checklist](G0-owner-checklist.md),
-   part C.
+   is paused for the push instead, for a bounded window (board decision 78):
+   writes and releases stop on every branch the ruleset covers, not only the
+   target; the ruleset is set Active again whatever the push did; if restoring
+   fails or the window passes, the freeze stays until the owner has restored
+   the ruleset, and it ends only after the ruleset is verified Active with its
+   rules and bypass list complete. The exact parameters and both procedures
+   are in the [G0 owner checklist](G0-owner-checklist.md), part C.
 9. **No gate goes before its replacement.** The record gate stays active until
    the rulesets of item 8 and the checks of items 4, 6 and 7 are in force and
    have passed on at least one real pull request. The migration splits G1
@@ -334,22 +345,30 @@ conflicts or other release failures.
     release boundaries keep their P0/P1 check.
 13. **CI tiers** (1.1.12 WS-GOV decision 4, corrected):
     - Every pull request runs the structure lane: links, frozen pins, contracts
-      and schemas, the authority check, and the document checks that today
-      live in `Architecture.Tests` (the 2,500-line ceiling over
-      `docs/**/*.md`, which failed the 1.1.12 roadmap edit, and the roadmap
-      assertions). They move into the structure lane or stay mapped to the
-      documents they read.
-    - Only `prose`-class paths skip product tests. Every other change runs the
-      test projects mapped from its paths; a change the mapping cannot classify
-      runs the full suite.
+      and schemas, the authority check, and the generic document checks. Of
+      the document checks that today live in `Architecture.Tests` (for example
+      the 2,500-line ceiling over `docs/**/*.md`, which failed the 1.1.12
+      roadmap edit, and the roadmap assertions), each moves into the structure
+      lane, stays mapped to the documents it reads, or is deleted, decided test
+      by test with the owner (board decision 71).
+    - Only `prose`-class paths skip product tests, and only once the generic
+      document checks, the line ceiling included, run in the structure lane;
+      until then those paths keep the Architecture tests. Every other change
+      runs the test projects that ADR 0079's selection map assigns to its
+      paths; a change the map cannot classify runs the full suite. G2 revises
+      the `prose` wording, its checker and the list of document checks to
+      migrate in the same batch.
     - The full suite with Golden runs when a release branch is cut, on the
       release pull request into `main`, on every push to `main` (release
       admission requires that run), weekly on the trunk when it changed, and on
       manual dispatch. Test shards reuse one build.
     - Each required check comes from an always-run aggregator that passes only
-      when every required producer succeeded or the mapping declared it not
-      applicable for that exact head; a missing, failed, cancelled or
-      unexpectedly skipped producer fails it.
+      when every required producer succeeded or was found not applicable by
+      the finalizer recomputing the same selection for the exact base and head
+      (ADR 0079 item 9); a missing, failed, cancelled or unexpectedly skipped
+      producer fails it. The pull-request tier therefore waits for ADR 0079's
+      amendment of ADR 0027: until it is accepted, every project runs
+      unfiltered as ADR 0027 requires.
     - Negative tests cover changed-path mapping, deletions and renames on both
       sides, cross-layer dependencies, an unclassified path, and a cancelled or
       skipped producer.
@@ -402,6 +421,7 @@ conflicts or other release failures.
 | Branch model, rulesets, naming, release closure and recovery | `docs/governance/branch-version-and-release-governance.md` |
 | Frozen evidence pins | `scripts/validate_repository.py` (one constant per frozen path) |
 | Size policy | this ADR and `scripts/code_size_policy.py` |
+| Test selection, partitions, categories | ADR 0079 (test architecture) |
 | Release contract | `docs/ci/release-package.md`, ADR 0033 as amended |
 | Version allocation, parity schedule | `docs/architecture/nfc_roadmap.md` |
 | Skill inventory and routing | `.agents/skills/manifest.json`, `docs/governance/agent-skill-routing.md` |
@@ -477,7 +497,9 @@ conflicts or other release failures.
      approval-authority parts are R3.
    - **G2 (R3):** CI tiers and the required-check rename, after the CI
      failure-evidence change merges (it owns `ci.yml` and `scripts/verify.py`
-     now).
+     now). G2 also carries the R3 parts of ADR 0079 that change workflows or
+     what a required check accepts, and revises the `prose` wording, its
+     checker and the list of document checks to migrate together.
    - The release workflow batches follow their design.
 2. **G1-B admission (board decision 50).** The owner gives an explicit,
    one-time written cutover authorization that names the base SHA and the
