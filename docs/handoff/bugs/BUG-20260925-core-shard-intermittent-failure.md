@@ -19,3 +19,24 @@ then success). Candidate area, not confirmed: process and pipe tests under
 Owner: unassigned (triage in 1.1.13 unless it blocks the 1.1.12 release again)
 Resolution: not fixed. 2026-09-25: rerunning the failed jobs of run `36115221320` passed
 every check at the same commit, confirming the intermittency; PR #447 merged.
+
+H1 local R1 admission (2026-09-26, bounded local R1 path of ADR 0070; recorded
+before the implementation commit):
+- Authority: owner decision 28 in [the 1.1.12 board](../1.1.12.md) and the
+  "CI follow-up" row of [the 1.1.13 board](../1.1.13.md). Base `a600b7cbb` on
+  `feature/1.1.13/ci-evidence`; implementer Claude Code.
+- Exact path: `tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/FileSystemVersionManagerWriteLeaseTests.cs`.
+  The owner is that test's lease-holder helper; the production writer lease
+  (`FileSystemVersionManagerWriteLease`) is unchanged.
+- Acceptance: starting the PowerShell child (until it prints `STARTED`) gets its
+  own bounded budget; readiness after `STARTED` keeps the 10 s deadline. A slow
+  start followed by fast readiness passes. Readiness beyond its deadline, a
+  start beyond its budget, and an exit before `STARTED` or before readiness
+  still fail with the child diagnostics, and the child is always reaped.
+- Narrow tests: `FileSystemVersionManagerWriteLeaseTests` in
+  `NvtFwCombiner.Infrastructure.Tests`, then `NvtFwCombiner.Architecture.Tests`.
+- No JSON capability-reuse record: the validator rejects a record whose only
+  path is a test file ("auxiliary evidence requires a governed path"), and a
+  test-only change needs no governed integration coverage.
+- Residual: the fix is confirmed only by later CI core-shard runs; H2-H5 and the
+  failure-evidence upload are separate items.
