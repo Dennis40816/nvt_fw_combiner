@@ -58,9 +58,16 @@ became the main cost and failure source of the development flow.
   back into a diverged `1.1.x` lists every record finalized on the trunk since
   the release cut against the `main` parent, so the audit fails at every
   release, not only after a stopped one (board, "Release re-run analysis").
-  Board decision 23 contains it for now: the trunk is rebased, never merged,
-  onto `main`, and fast-forwarded to `main` after each release before anything
-  is finalized again. In effect the trunk cannot finalize during a release.
+  Board decision 23 contains it for now: the trunk's first push is rebased,
+  never merged, onto `main`, and after every release pull request the trunk is
+  fast-forwarded to `main` before anything is finalized again. In effect the
+  trunk cannot finalize during a release.
+- **Trunk merged into a working branch, 2026-09-26.** `feature/1.1.13/wave2`
+  merged `1.1.x` after #457 sealed `CLI-REPORT-BUNDLE-GUARD-1113-01`
+  (`beb32b930`). Wave 2 had documentation-only commits of its own, so the merge
+  tree equals neither parent: the audit reports the byte-identical record as
+  changed, and every descendant fails the structure gate
+  ([bug](../bugs/BUG-20260926-trunk-merge-flags-sealed-record.md)).
 - **Parallel work serializes on one checkpoint.** Each merged pull request that
   seals records creates a new evidence checkpoint (after #457: `84b084dd8`).
   An admission must name the latest checkpoint; one made on an older checkpoint
@@ -69,7 +76,8 @@ became the main cost and failure source of the development flow.
   workstreams in flight to realign.
 - **Cost that grows with history.** Structure validation replays the whole
   record history: 82 s median in CI and 150-240 s locally for
-  documentation-only changes (2026-09-25). On 2026-09-01 the history scan used
+  documentation-only changes (2026-09-25), and 268 s locally for this draft's
+  documentation-only commit (2026-09-26). On 2026-09-01 the history scan used
   the whole 600-second lane limit, and v1.1.0 shipped under waiver
   `REL-110-FULL-VERIFY-OWNER-WAIVER-01`.
 - **Ceremony that is red by design.** A reviewed head fails the final gate
@@ -319,8 +327,9 @@ a self-check, which does not replace the independent review.
   adding, changing, deleting or renaming a frozen file fails; a clean tree
   passes.
 - Scratch-repository topology tests pass structure validation: the 1.1.12
-  re-run (`main` merged into a release branch after a later finalization) and a
-  trunk merge-back with new commits on both sides.
+  re-run (`main` merged into a release branch after a later finalization), a
+  trunk merge-back with new commits on both sides, and the trunk merged into a
+  working branch after a seal (the `beb32b930` shape).
 - Contract references still resolve: canonical Golden validation and the
   capability policy load unchanged, and no contract or Golden byte changes.
 - Structure validation time is recorded before and after on the same machine.

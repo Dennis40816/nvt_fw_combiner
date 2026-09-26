@@ -191,10 +191,34 @@ interview: O-1, O-2, RO-1 and RO-5.
 
 ### 2026-09-26 Design drafts ready for review
 State: local
-Commits: the commit carrying this entry (ADR draft, release design, this log,
-one bug record, two board rows)
+Commits: `c2b9c1468` (ADR draft, release design, this log, the promote-condition
+bug, two board rows)
 Evidence: read-only inspection only; no product test is needed for these
 documents. Verification of the committed head is recorded in the next entry.
 Open: the owner decisions above (commander to schedule the interview); the
 independent design review of both drafts (commander).
 Next: structure check of the committed head, then stop.
+
+### 2026-09-26 Structure check: pre-existing wave 2 failure
+State: local (verification blocked by a pre-existing failure)
+Commits: the commit carrying this entry (this entry, the new bug, two ADR
+context bullets and one verification bullet)
+Evidence: `python scripts/verify.py --structure-only` with TEMP, TMP and
+TMPDIR set to `<test-area>/temp`, at `c2b9c1468` -> `structure=FAIL`, 268.4 s;
+`sync_derived` changed 0 files; the only error is `final-complete
+capability-reuse record changed in commit history:
+docs/governance/change-records/CLI-REPORT-BUNDLE-GUARD-1113-01.json`, with no
+Markdown link or other error. Cause, from Git: the record's blob is identical
+at `84b084dd8` and `HEAD`; on `rev-list --ancestry-path 84b084dd8..HEAD`,
+`diff-tree -m` lists it for `9b2a7369e` (tree equals parent 2, parent 1 is its
+ancestor: exempt under ADR 0061) and for `beb32b930` (tree equals neither
+parent: not exempt). `beb32b930` is wave 2's merge of `1.1.x`, so wave 2 at
+`8682dd269` fails the same way; this branch adds only `docs/handoff/` files.
+Recorded as `BUG-20260926-trunk-merge-flags-sealed-record` (P1). The targeted
+link check of the five changed documents passed before the commit.
+Open: **commander** — wave 2 must be rebuilt without that merge before it can
+pass `policy / polytail` or merge into `1.1.x` (proposed workaround in the
+bug); this branch then needs the same rebase. The follow-up commit changes
+prose and adds links only to existing files; its links were checked the same
+way, and the known blocker was not rerun.
+Next: stop; independent design review (commander).

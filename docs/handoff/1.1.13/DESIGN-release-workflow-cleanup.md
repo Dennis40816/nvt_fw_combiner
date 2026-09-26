@@ -189,7 +189,9 @@ this requirement disappear together.
 ## 5. Release re-run conflict
 
 Causes: (a) the validator's history replay and ADR 0061's single containment
-exception; (b) review-thread and approval gates are first evaluated after the
+exception, which on 2026-09-26 also failed wave 2 after a trunk merge
+([bug](../bugs/BUG-20260926-trunk-merge-flags-sealed-record.md)); (b)
+review-thread and approval gates are first evaluated after the
 release pull request merged, so a finding leaves `main` ahead of every tag and
 forces new pull requests into `main`. Main's ruleset also requires up-to-date
 branches, so every release pull request must contain `main`.
