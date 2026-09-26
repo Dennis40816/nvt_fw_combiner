@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "F07-RESIDUALS-1113-01",
+  "capability": "Retain the latest-output shortcut for a committed Build output whose report is unavailable, and publish a generated report completely or not at all",
+  "integrationBase": "dc677115653658c33a5d61274b1294ee6f45d548",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BuildResultViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunContracts.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.RunProgress.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "1.1.12 CHANGELOG limitation: a desktop result whose report is unavailable does not offer the latest-output shortcut. CompositionRunPresentationViewModel.PublishCommittedResultWithoutReport publishes the committed receipt but never reaches BuildResultViewModel, whose TryShow is the only writer of LatestCommittedOutputPath.",
+    "F07-REVIEW-FIXES-1112-01 final review: partial LoadedReport or history mutation on publication failure remains the tracked 1.1.13 residual. ReportPresentationViewModel.PublishGeneratedReport assigns LoadedReport, LoadedReportJson and a history entry before the toast text and the optional ShowReport can fail.",
+    "rg -n 'LatestCommittedOutputPath|TryShowBuildCompleted|CompositionRunStateBindings|PublishGeneratedReport' src tests: BuildResultViewModel owns the latest committed output, CompositionRunStateBindings is the run owner's only shell callback surface, and ReportPresentationViewModel is the only generated-report publisher."
+  ],
+  "semanticOwner": "BuildResultViewModel remains the only owner of the latest committed output and the Build Completed modal; CompositionRunPresentationViewModel remains the only run-result projection owner and reaches the shell only through CompositionRunStateBindings; ReportPresentationViewModel remains the only owner of the loaded report, report history and report toast.",
+  "terminalContract": "After a Build output commits and its report is unavailable (a cancellation or a handled report failure), the committed output path becomes the latest committed output, so the latest-output shortcut appears on the composition pages without opening the Build Completed modal; the run result keeps the path, size and SHA-256. A generated-report publication that fails leaves the loaded report, its JSON, the report history and the report toast as they were before the attempt and rethrows, so a report-unavailable result is never accompanied by that report; a successful publication is unchanged. Behavior before the output commits, the normal success path, every output byte, name and range, and the loose-delivery handling are unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 correction of two residuals recorded at the 1.1.12 release (the CHANGELOG shortcut limitation and the F07-REVIEW-FIXES-1112-01 final review); reviewed in the 1.1.13 fixed-head final review."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
