@@ -1,11 +1,12 @@
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Contracts.Bundles;
-using NvtFwCombiner.Contracts.Firmware;
-using NvtFwCombiner.Contracts.Profiles;
 
 namespace NvtFwCombiner.Infrastructure.Bundles;
 
-/// <summary>Source-generated strict JSON metadata for canonical bundle document roots.</summary>
+/// <summary>
+/// Source-generated strict JSON metadata for the canonical bundle manifest root. Family and profile documents bind
+/// through their one metadata owner, <see cref="Profiles.V2.ProfileBundleSemanticJsonContext"/>.
+/// </summary>
 [JsonSourceGenerationOptions(
     AllowOutOfOrderMetadataProperties = true,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
@@ -13,8 +14,6 @@ namespace NvtFwCombiner.Infrastructure.Bundles;
     UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
     GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(ProfileBundleDocument))]
-[JsonSerializable(typeof(FirmwareFamilyDocument))]
-[JsonSerializable(typeof(CompositionProfileDocument))]
 internal sealed partial class ProfileBundleJsonContext : JsonSerializerContext
 {
 }
