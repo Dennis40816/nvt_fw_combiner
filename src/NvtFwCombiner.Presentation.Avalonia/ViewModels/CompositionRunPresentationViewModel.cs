@@ -287,7 +287,10 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         return false;
     }
 
-    /// <summary>Keeps the committed output receipt visible when its report cannot be delivered.</summary>
+    /// <summary>
+    /// Keeps the committed output receipt and the latest-output shortcut visible when its report cannot be
+    /// delivered, without opening the Build Completed modal.
+    /// </summary>
     private void PublishCommittedResultWithoutReport(
         CompositionRunContext context,
         CompositionRunResult result,
@@ -301,6 +304,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             committedOutputId,
             succeeded: false), context);
         OnPropertyChanged(nameof(LastRunResult));
+        _stateBindings.RetainLatestCommittedOutput(committedOutputId);
         CompositionProgress.MarkReportUnavailable();
     }
 
