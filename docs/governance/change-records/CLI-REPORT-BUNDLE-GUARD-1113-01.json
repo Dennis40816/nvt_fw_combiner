@@ -5,7 +5,7 @@
   "integrationBase": "ef751a14f5f005b72bf7826cf7a827de3bb73b3a",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs",
     "tests/NvtFwCombiner.Bootstrap.Tests/CliReportReceiptTests.cs"
@@ -26,12 +26,15 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 correction of the existing post-commit CLI report guard, found by the PR #457 automatic review, with no Application, profile, firmware byte, range or contract change."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "a0b1681aeb26596ff784e2bacadb5ebaa6e75d11",
+  "reviewedHead": "a0b1681aeb26596ff784e2bacadb5ebaa6e75d11",
+  "pathStateDigest": "e65508c3935abaf28beb43d46182b16051ed95117a033c6da1977d26c487dd9b",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent final review by codex/gpt-6-sol: APPROVED. Independent read-only review of exact head a0b1681aeb26596ff784e2bacadb5ebaa6e75d11 against ef751a14f5f005b72bf7826cf7a827de3bb73b3a found no P0-P3 issues. The existing post-commit report guard now protects the primary output, every artifact in the actual promoted bundle receipt, and every committed additional delivery path, including the loose path. The bundle writer commits no unlisted sidecar. Regressions compare delivered bytes with the receipt hashes for a source copy and bundled additional delivery; the loose additional delivery path is covered by code only because the CLI cannot produce it. The terminal contract and mutable paths match the diff; no firmware byte, range, CRC, naming, or profile behavior changed. Implementer tests: Bootstrap 1908/1908, Architecture 269/269, and 2 of 22 receipt tests fail on the previous guard (reported, not rerun by the read-only reviewer). Resolves the automated P1 review thread on pull request #457."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs"
+  ]
 }
