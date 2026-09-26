@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Json.Schema;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
@@ -237,7 +238,7 @@ public sealed class PredecessorComparisonSchemaContractTests
             [new("/entries/1/differences", Differences(Difference(), "null"))]),
         ["output-outcome-with-issue-codes"] = new(
             "declaration-every-kind",
-            [new("/entries/0/expected/baseline/issueCodes", "[\"input.address-space.truncated\"]")]),
+            [new("/entries/0/expected/baseline/issueCodes", $"[\"{CompositionIssueCodes.InputAddressSpaceTruncated}\"]")]),
         ["precursor-difference-without-precursor-identity"] = new(
             "declaration-precursor-only",
             [new("/entries/0/expected/candidate/precursor", "null")]),
@@ -510,7 +511,7 @@ public sealed class PredecessorComparisonSchemaContractTests
             {
               "status": "output",
               "stoppedAt": null,
-              "issues": [{ "code": "input.address-space.truncated", "severity": "warning", "source": "report" }],
+              "issues": [{ "code": "{{CompositionIssueCodes.InputAddressSpaceTruncated}}", "severity": "warning", "source": "report" }],
               "precursor": {{precursor}},
               "output": {{Artifact(outputSha256)}},
               "processes": [{{Process("preview", "0", ShaF)}}, {{Process("build", "0", Sha0)}}]
