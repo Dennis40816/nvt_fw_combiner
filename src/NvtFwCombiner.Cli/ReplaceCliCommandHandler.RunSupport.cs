@@ -66,13 +66,22 @@ internal static partial class ReplaceCliCommandHandler
         string? automaticOutputDirectory = build && !bundleBuild && !hasExplicitOutput
             ? outputTarget.OutputDirectory
             : null;
-        CompositionRunResult result = await run(
-                outputPath,
-                automaticOutputDirectory,
-                outputBundle,
-                build,
-                cancellationToken)
-            .ConfigureAwait(false);
+        CompositionRunResult result;
+        try
+        {
+            result = await run(
+                    outputPath,
+                    automaticOutputDirectory,
+                    outputBundle,
+                    build,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (CompositionPreRunRefusalException refusal)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, refusal.Issues).ConfigureAwait(false);
+            return CompositionFailed;
+        }
 
         string? reportPath = options.Values.GetValueOrDefault("--report");
         await CliCompositionRunSupport.WriteReportJsonAsync(

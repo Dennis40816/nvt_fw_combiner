@@ -151,22 +151,31 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        CompositionRunResult result = await services.Execution.ExecuteAsync(
-            new AcceptedCompositionExecutionRequest(
-                prepared.AcceptedSession!,
-                new Dictionary<string, string>(StringComparer.Ordinal),
-                action == "build",
-                outputPath: bundleBuild ? null : outputPath,
-                automaticOutputDirectory:
-                    action == "build" && !hasExplicitOutput && !bundleBuild
-                        ? outputTarget.OutputDirectory
+        CompositionRunResult result;
+        try
+        {
+            result = await services.Execution.ExecuteAsync(
+                new AcceptedCompositionExecutionRequest(
+                    prepared.AcceptedSession!,
+                    new Dictionary<string, string>(StringComparer.Ordinal),
+                    action == "build",
+                    outputPath: bundleBuild ? null : outputPath,
+                    automaticOutputDirectory:
+                        action == "build" && !hasExplicitOutput && !bundleBuild
+                            ? outputTarget.OutputDirectory
+                            : null,
+                    reportPath: action == "build"
+                        ? options.Values.GetValueOrDefault("--report")
                         : null,
-                reportPath: action == "build"
-                    ? options.Values.GetValueOrDefault("--report")
-                    : null,
-                outputBundle: outputBundle),
-            new CompositionRunProgressFeed(),
-            cancellationToken).ConfigureAwait(false);
+                    outputBundle: outputBundle),
+                new CompositionRunProgressFeed(),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (CompositionPreRunRefusalException refusal)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, refusal.Issues).ConfigureAwait(false);
+            return CompositionFailed;
+        }
         bool reportWritten = options.Values.TryGetValue("--report", out string? requestedReportPath);
         await CliCompositionRunSupport.WriteReportJsonAsync(
                 result,

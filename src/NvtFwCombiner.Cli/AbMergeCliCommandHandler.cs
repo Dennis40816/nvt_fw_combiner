@@ -284,9 +284,11 @@ internal static class AbMergeCliCommandHandler
                 cancellationToken)
                 .ConfigureAwait(false);
         }
-        catch (InvalidOperationException exception)
+        catch (CompositionPreRunRefusalException refusal)
         {
-            await error.WriteLineAsync($"error: {exception.Message}").ConfigureAwait(false);
+            // Only the typed pre-run refusal is an expected outcome; any other exception is a program
+            // error and propagates (decision 68).
+            await error.WriteLineAsync($"error: {refusal.Message}").ConfigureAwait(false);
             return CompositionFailed;
         }
         await CliCompositionRunSupport.WriteReportJsonAsync(

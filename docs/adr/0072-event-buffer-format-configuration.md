@@ -153,6 +153,59 @@ publication never overwrites LastSaved; Settings edits and Discard remain drafts
 This supersedes the missing-file behavior in the historical implementation
 account below; the current persistence contract defines the effective rules.
 
+## 2026-09-26 amendment: execution admission refusal (decision 68)
+
+Owner decision 68 (`CLI-EXEC-REFUSAL-1113-01`) extends the pre-run refusal
+boundary of this ADR from the AB format admission to every accepted execution:
+Standard, AB and General Merge, CtrlRAM and General Replace.
+
+- **Capture boundary.** Application admits a run once, before destination
+  preparation, and that one admission fixes both the compilation and the tool
+  state. For a processor-backed route (CtrlRAM, AB) the processor lease is
+  acquired at that point, and `AcceptedSessionCompositionExecution.Admit`
+  captures the immutable execution inputs, requires the catalog to still
+  publish the accepted compilation and requires the lease to be the current
+  runtime generation the action readiness checked. The admitted run carries the
+  inputs and the processor; execution uses only them and reads neither the live
+  catalog nor a new lease, so a reload after admission affects only the next run.
+- **Refusal.** A catalog reload before admission, or a tool-configuration
+  reload that left the lease with another generation, without a runtime, or with
+  a generation that is no longer current, refuses the run with
+  `CompositionPreRunRefusalException` and one
+  `capability.readiness.runtime-snapshot-stale` issue that states the known
+  reason (the generation changed from one value to another, the checked runtime
+  is no longer available, or the acquired generation is no longer valid). No
+  destination is prepared and no output or report is written. Owners that
+  check currency earlier keep their own issues: the AB format admission, for
+  example, refuses an AB catalog reload with `AB_FORMAT_SESSION_STALE` before
+  this admission is reached.
+- **Classification order.** Before admission, an invalid or self-contradictory
+  request is rejected as an `InvalidOperationException`: for a processor-backed
+  run a missing readiness, a readiness belonging to another session
+  publication, an action the readiness marks unavailable or an available action
+  without a positive generation; in the admission itself a session that does
+  not retain the accepted capability or inputs without accepted bytes. Only
+  then does the admission refuse a catalog that no longer publishes the
+  compilation and a lease that is not the current checked runtime. Filesystem
+  and processor failures after admission remain run failures.
+- **UI.** The refusal shows as Preview or Build blocked with the issue code and
+  message and `No output`. It loads no new report and leaves the loaded report
+  and the report history unchanged. The other failures the run surface handles
+  (invariant, I/O, access and argument exceptions) keep the failed path and its
+  error report.
+- **CLI.** Preview and Build routes print the refusal's issues and exit 1. For
+  Standard Merge this is a new, explicit classification; its other exit-70
+  failures are unchanged. The AB handler narrows its execution catch to the
+  refusal and keeps its `error: <message>` rendering. A non-refusal
+  `InvalidOperationException` from the execution call is therefore not turned
+  into exit 1 by these new or narrowed catches; the existing outer mappings
+  (for example `CliApplication.RunAsync` returning 70 for cancellation, I/O,
+  access and argument exceptions) are unchanged.
+- **General Replace limitation.** General Replace compiles only DP routes and
+  does not admit a processor-backed plan: its execution rejects one as an
+  invariant instead of acquiring a processor outside the lease admission. Such
+  a plan must join the same lease admission before it can be supported.
+
 ## Implementation and verification boundary
 
 First unit: Application's EventBufferFormatConfiguration and its admission

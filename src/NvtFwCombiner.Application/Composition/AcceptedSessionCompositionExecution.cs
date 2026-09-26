@@ -1,3 +1,4 @@
+using System.Globalization;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Ports;
@@ -7,23 +8,52 @@ using NvtFwCombiner.Domain.Firmware;
 namespace NvtFwCombiner.Application.Composition;
 
 /// <summary>
+/// The processor lease a processor-backed run acquired at its admission point, with the runtime
+/// generation its valid action readiness checked and the predicate that says whether a generation
+/// is still the published runtime.
+/// </summary>
+internal sealed record ProcessorLeaseAdmission(
+    long ReadinessGeneration,
+    CompositionExternalProcessorLease Lease,
+    Func<long, bool> GenerationIsCurrent);
+
+/// <summary>
 /// Executes one exact accepted authoring session through the shared composition
 /// service without reopening an operator-selected input path.
 /// </summary>
 internal static class AcceptedSessionCompositionExecution
 {
-    internal static async ValueTask<CompositionRunResult> ExecuteAsync(
+    /// <summary>
+    /// Admits one accepted run at a single point before any destination is prepared (ADR 0072,
+    /// 2026-09-26 amendment). It captures the immutable inputs, requires the catalog to still publish
+    /// the accepted compilation and, for a processor-backed run, requires the lease acquired for this
+    /// admission to be the current runtime its readiness checked. The admitted run carries the inputs
+    /// and the processor; execution uses only them and reads neither the live catalog nor a new lease.
+    /// </summary>
+    internal static AcceptedSessionExecutionInputs Admit(
         ICanonicalCapabilityQuery capabilities,
-        string runId,
         ActiveSessionSnapshot acceptedSession,
         ResolvedCapability acceptedCapability,
         IReadOnlyList<InputArtifactBinding> bindings,
         IReadOnlyDictionary<string, byte[]> acceptedArtifacts,
+        ProcessorLeaseAdmission? processorLease)
+    {
+        return AcceptedSessionExecutionInputs.Create(
+            capabilities,
+            acceptedSession,
+            acceptedCapability,
+            bindings,
+            acceptedArtifacts,
+            processorLease);
+    }
+
+    internal static async ValueTask<CompositionRunResult> ExecuteAsync(
+        AcceptedSessionExecutionInputs inputs,
+        string runId,
         string outputFileName,
         bool build,
         ISystemClock clock,
         ICompositionOutputWriter? outputWriter,
-        IExternalProcessor? externalProcessor,
         ICompositionDeliveryWriter? deliveryWriter,
         IcNumberSelection? icNumberSelection,
         bool outputFileNameIsOverride,
@@ -36,17 +66,12 @@ internal static class AcceptedSessionCompositionExecution
         CancellationToken cancellationToken,
         AbMergeFormatRunSummary? abMergeFormat = null)
     {
+        ArgumentNullException.ThrowIfNull(inputs);
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(progress);
-        var inputs = AcceptedSessionExecutionInputs.Create(
-            capabilities,
-            acceptedSession,
-            acceptedCapability,
-            bindings,
-            acceptedArtifacts);
         AcceptedOutputNamingPublication? outputNaming =
-            AcceptedOutputNamingInspection.TryAcceptForCompiledRenderer(acceptedSession);
+            AcceptedOutputNamingInspection.TryAcceptForCompiledRenderer(inputs.Session);
         var request = new CompositionRunRequest(
             runId,
             inputs.Capability.CompiledComposition,
@@ -70,7 +95,7 @@ internal static class AcceptedSessionCompositionExecution
             inputs.Reader,
             clock,
             outputWriter,
-            externalProcessor,
+            inputs.Processor,
             deliveryWriter);
         return await service
             .PreviewOrBuildAsync(request, build, progress, cancellationToken)
@@ -78,7 +103,10 @@ internal static class AcceptedSessionCompositionExecution
     }
 }
 
-/// <summary>Application-owned immutable inputs admitted for one accepted execution.</summary>
+/// <summary>
+/// One admitted run: the Application-owned immutable inputs and, for a processor-backed run, the
+/// processor its admission fixed.
+/// </summary>
 internal sealed class AcceptedSessionExecutionInputs
 {
     private static readonly StringComparer ArtifactLocatorComparer = OperatingSystem.IsWindows()
@@ -86,14 +114,24 @@ internal sealed class AcceptedSessionExecutionInputs
         : StringComparer.Ordinal;
 
     private AcceptedSessionExecutionInputs(
+        ActiveSessionSnapshot session,
         ResolvedCapability capability,
         IReadOnlyList<InputArtifactBinding> bindings,
-        IArtifactReader reader)
+        IArtifactReader reader,
+        IExternalProcessor? processor)
     {
+        Session = session;
         Capability = capability;
         Bindings = bindings;
         Reader = reader;
+        Processor = processor;
     }
+
+    /// <summary>The accepted session this admission belongs to.</summary>
+    internal ActiveSessionSnapshot Session { get; }
+
+    /// <summary>The processor of the lease this admission fixed; null for a run without a processor.</summary>
+    internal IExternalProcessor? Processor { get; }
 
     internal ResolvedCapability Capability { get; }
 
@@ -412,7 +450,8 @@ internal sealed class AcceptedSessionExecutionInputs
         ActiveSessionSnapshot acceptedSession,
         ResolvedCapability acceptedCapability,
         IReadOnlyList<InputArtifactBinding> bindings,
-        IReadOnlyDictionary<string, byte[]> acceptedArtifacts)
+        IReadOnlyDictionary<string, byte[]> acceptedArtifacts,
+        ProcessorLeaseAdmission? processorLease)
     {
         ArgumentNullException.ThrowIfNull(capabilities);
         ArgumentNullException.ThrowIfNull(acceptedSession);
@@ -420,17 +459,10 @@ internal sealed class AcceptedSessionExecutionInputs
         ArgumentNullException.ThrowIfNull(bindings);
         ArgumentNullException.ThrowIfNull(acceptedArtifacts);
         CompiledComposition composition = acceptedCapability.CompiledComposition;
-        ResolvedCapability current = capabilities.ResolveCurrentCompilation(
-                composition,
-                acceptedCapability) ??
-            throw new InvalidOperationException(
-                "Execution requires the exact accepted compilation to remain current.");
-        if (!ReferenceEquals(current, acceptedCapability))
-        {
-            throw new InvalidOperationException(
-                "Execution requires the catalog to retain the exact accepted capability.");
-        }
 
+        // An invalid or self-contradictory request is an invariant failure and is checked first; the
+        // live catalog and the processor lease are checked only afterwards, together, at this one
+        // admission point (ADR 0072, 2026-09-26 amendment).
         if (!ReferenceEquals(acceptedSession.ExactCapability, acceptedCapability))
         {
             throw new InvalidOperationException(
@@ -475,10 +507,68 @@ internal sealed class AcceptedSessionExecutionInputs
             }
         }
 
+        // A catalog or tool-configuration reload since acceptance is an expected concurrent change, not
+        // an invariant: it refuses the run before any destination is prepared.
+        if (!ReferenceEquals(
+                capabilities.ResolveCurrentCompilation(composition, acceptedCapability),
+                acceptedCapability))
+        {
+            throw CreateStaleRefusal(
+                acceptedSession,
+                "The capability catalog was reloaded after this run was accepted, so its compilation is no longer published; the run was not started.");
+        }
+
+        IExternalProcessor? processor = processorLease is null
+            ? null
+            : AdmitProcessorLease(processorLease, acceptedSession);
         return new AcceptedSessionExecutionInputs(
-            current,
+            acceptedSession,
+            acceptedCapability,
             Array.AsReadOnly(copiedBindings),
-            new AcceptedArtifactReader(copiedArtifacts));
+            new AcceptedArtifactReader(copiedArtifacts),
+            processor);
+    }
+
+    /// <summary>
+    /// Fixes the processor of a lease that is still the current runtime its readiness checked. A lease
+    /// of another generation (a reload after the readiness check, or no runtime at all after a
+    /// tool-configuration change) or a lease whose own generation is no longer current refuses the run.
+    /// </summary>
+    private static IExternalProcessor? AdmitProcessorLease(
+        ProcessorLeaseAdmission admission,
+        ActiveSessionSnapshot acceptedSession)
+    {
+        long checkedGeneration = admission.ReadinessGeneration;
+        long leaseGeneration = admission.Lease.Generation;
+        string? reason = leaseGeneration != checkedGeneration
+            ? leaseGeneration < 1
+                ? string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"The external tool runtime generation {checkedGeneration} that the action readiness checked is no longer available because the tool configuration changed; the run was not started.")
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"The external tool runtime generation changed from {checkedGeneration} to {leaseGeneration} after the action readiness was checked; the run was not started.")
+            : !admission.GenerationIsCurrent(leaseGeneration)
+                ? string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"The external tool runtime generation {leaseGeneration} acquired for this run is no longer valid; the run was not started.")
+                : null;
+        return reason is null
+            ? admission.Lease.Processor
+            : throw CreateStaleRefusal(acceptedSession, reason);
+    }
+
+    private static CompositionPreRunRefusalException CreateStaleRefusal(
+        ActiveSessionSnapshot acceptedSession,
+        string reason)
+    {
+        return new CompositionPreRunRefusalException(
+        [
+            new CompositionIssue(
+                CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
+                reason,
+                acceptedSession.WorkflowId),
+        ]);
     }
 
     private sealed class AcceptedArtifactReader(
