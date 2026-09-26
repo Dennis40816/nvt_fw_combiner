@@ -13,7 +13,8 @@ public static class FirmwareConfigMetadataReader
 
     /// <summary>
     /// Reads FWConfig facts from an absolute address for evidence and inspection only.
-    /// Runtime consumers must use <see cref="TryReadBackup(ReadOnlySpan{byte}, out FirmwareConfigMetadata)"/>.
+    /// Runtime consumers must use
+    /// <see cref="TryReadBackup(ReadOnlySpan{byte}, FirmwareNvtEndFlagResolution, out FirmwareConfigMetadata, out int)"/>.
     /// </summary>
     public static bool TryReadAtAbsoluteAddress(
         ReadOnlySpan<byte> image,
@@ -73,6 +74,8 @@ public static class FirmwareConfigMetadataReader
     /// <summary>
     /// Reads the canonical FWConfig Backup located at the unique NVT End Flag terminal byte minus
     /// <c>0xFFF</c>. Multiple complete exact NVT markers are rejected to avoid selecting an ambiguous source.
+    /// Migration-only whole-image compatibility read (NVT-END-FLAG-1113-01); runtime consumers must use
+    /// <see cref="TryReadBackup(ReadOnlySpan{byte}, FirmwareNvtEndFlagResolution, out FirmwareConfigMetadata, out int)"/>.
     /// </summary>
     public static bool TryReadBackup(ReadOnlySpan<byte> image, out FirmwareConfigMetadata metadata)
     {
