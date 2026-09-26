@@ -89,6 +89,17 @@ The board allocated ADR number 0080 to the governance draft.
   step names its operator and GitHub identity, citing decision 65), and two
   WS-TEST items: reference ADR 0079's amendment of ADR 0027, and use the joint
   `prose` definition, revised in G2 with its checker and document list.
+- **G0 scripts (commander, 2026-09-27).** The owner-run G0 scripts of board
+  decisions 80 and 82 passed their fourth independent security review (G0SR4,
+  ACCEPT). Copy the reviewed folder unchanged into
+  `docs/handoff/1.1.13/g0-scripts/`, checking every file's SHA-256 against the
+  source; rewrite the G0 checklist so that A1 and A2 use
+  `New-NfcGitHubApp.ps1` (manifest, conversion, the key in DPAPI and
+  Bitwarden), the ruleset steps and the rollback use `Set-NfcRulesets.ps1`
+  (item-by-item approval, transaction record, restore), and the helper and
+  wrapper steps use `nfc-app-token-helper.ps1` and `Invoke-NfcGh.ps1`; list
+  the G0SR4 owner notes at the top; label every setup-script step owner →
+  owner; run the structure check; no push; then stop.
 
 ## Ported from 1.1.12
 
@@ -509,6 +520,22 @@ TMPDIR set to `<test-area>/temp`, at `878f4b1a7` -> `structure=PASS`, 264.0 s;
 documents passed before the commit.
 Open: the re-review (commander).
 Next: stop.
+
+### 2026-09-27 G0 scripts added; checklist rewritten around them
+State: local
+Commits: `90ed39c92` (the scripts) and the commit carrying this entry
+Evidence: each of the 11 copied files has the SHA-256 of its reviewed source
+(listed at the top of the checklist); `tests/NfcG0.Tests.ps1` also matches
+the hash named in G0SR4. The nested `.gitattributes` keeps the bytes on
+checkout: four files deleted and checked out again kept their hashes. The
+wrapper's parameter binding was tried locally with a copy of its parameter
+block (PowerShell 7.6, no GitHub): some `gh` options are refused or dropped
+before they reach `gh`, recorded in checklist A6 as a usage limit. The
+scripts are unchanged, so two points are left to their author: that limit,
+and the README sentence that still describes the scripts as kept outside the
+repository. Verification of this commit is recorded in the next entry.
+Open: the final review (commander).
+Next: structure check of this commit, then stop.
 
 ## Owner decisions in risk order
 

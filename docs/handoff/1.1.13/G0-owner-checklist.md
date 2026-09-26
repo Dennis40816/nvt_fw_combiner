@@ -1,20 +1,85 @@
 # G0 owner checklist: agent GitHub identity and rulesets
 
-Status: fourth version, 2026-09-26, revised after the third independent
-review (REJECT; findings F-5, F-6, F-13 and F-14); for re-review, and not to
-be executed before that re-review passes. It implements board decisions 49
-and 56 (agents get their own GitHub identity, a GitHub App first and a machine
+Status: fifth version, 2026-09-27, rewritten around the owner-run setup
+scripts of decisions 80 and 82 after they passed their fourth independent
+security review (G0SR4, ACCEPT): the App, its key, the rulesets and their
+rollback are now done with the reviewed scripts in
+[`g0-scripts/`](g0-scripts/README.md). For the final review, and not to be
+executed before that review passes. It implements board decisions 49 and 56
+(agents get their own GitHub identity, a GitHub App first and a machine
 account as fallback, created by the owner), the G0 step of decision 50,
 decision 65 (key custody, and agents obtaining installation tokens through the
 helper), decision 66 (trunk catch-up and an owner-only force-push means),
 decision 67 (O-3, for RS-1g), decision 77 (a standing owner-only bypass on
-`main`, the trunk and release branches, never a review or release exemption)
-and decision 78 (pausing a ruleset when an admin bypass cannot be set).
-Design: [governance ADR draft](ADR-DRAFT-governance-reset.md), items 7 to 11;
-log: [WS-GOV](WS-GOV.md). Nothing here is done until its operator does it.
+`main`, the trunk and release branches, never a review or release exemption),
+decision 78 (pausing a ruleset when an admin bypass cannot be set), decision
+80 (the owner runs reviewed scripts for the App, its key, the rulesets and the
+token helper) and decision 82 (the key is stored twice, a DPAPI file for the
+helper and a Bitwarden backup; only the owner runs the setup scripts, and the
+installed helper and `gh` wrapper are the decision 65 interface through which
+agents act as the App). Design: [governance ADR draft](ADR-DRAFT-governance-reset.md),
+items 7 to 11; log: [WS-GOV](WS-GOV.md). Nothing here is done until its
+operator does it.
 
 `<owner>/<repo>` stands for this repository's full name, as listed in
 [`agent-issue-tracker.md`](../../governance/agent-issue-tracker.md).
+
+## Owner notes from the security review (G0SR4)
+
+The fourth security review accepted the scripts for your use with these
+notes. Read them before you start.
+
+1. **Decision 65 is a rule, not a technical boundary.** The agents run under
+   your Windows user, so nothing isolates the DPAPI key file, an unlocked
+   Bitwarden vault, your browser session, your Git settings or the helper
+   from an agent process. Agents act as the App only through the helper (which
+   Git calls) and the `gh` wrapper that you installed. They never read the
+   key, the DPAPI file, the vault, a credential store or a token, and never
+   call the helper on their own (its token mode prints a token).
+2. **Recording the scripts cannot detect.** The scripts stop, with no
+   override, when PowerShell script-block, module or transcription logging is
+   switched on by policy or configuration. They cannot detect a manual
+   transcript (`Start-Transcript`), a screen recorder, other external
+   recording or memory capture: before each run that handles a secret, you
+   confirm that none is active. PowerShell cannot guarantee that strings are
+   erased from memory; close the terminal when such a run ends.
+3. **What only the GitHub UI shows you.** The scripts neither decide nor check
+   whether this repository offers "Repository admin" as a bypass actor (you
+   look, then pass `-AdminBypassAvailable Yes` or `No`, C1), that the App is
+   installed on this repository only (A3), or the resulting rulesets, the
+   effective protection of each branch and the rest of the evidence (part D).
+   You confirm these yourself.
+4. **Operating limits.** Windows with PowerShell 7.4 or later. The key is
+   stored in both DPAPI and Bitwarden (decision 82), and your private backups
+   ("Before you start") come first. A ruleset apply or restore is not atomic
+   and never rolls back by itself, and nobody changes the repository's
+   rulesets while one runs (C1). When a conversion, a key store or a remote
+   write ends with an unknown outcome, check GitHub and your stores and clean
+   up first; only then decide whether to run again.
+
+## The reviewed scripts
+
+[`g0-scripts/`](g0-scripts/README.md) is a byte-exact copy of the reviewed
+files, kept here for review and traceability;
+[`.gitattributes`](.gitattributes) turns off line-ending conversion for it, so
+a checkout keeps these bytes. Their README still describes them as kept
+outside the repository, as they were when reviewed; they are left unchanged so
+that the hashes below remain those of the review. You run them only from your
+own copy outside every repository and worktree.
+
+| File | Used in | Operator → GitHub identity | SHA-256 |
+| --- | --- | --- | --- |
+| `New-NfcGitHubApp.ps1` | A1, A2: manifest, local callback, conversion, key saved to DPAPI and Bitwarden | owner → owner | `6d9cc3b509b59d6e71bea60bc22494a6e1b003a4c1302cdbdb9dd703ab22f0d2` |
+| `Set-NfcRulesets.ps1` | C1 and rollback: backup, item-by-item approval, transaction record, restore | owner → owner | `cff4633a4cdc0f857d322723e464198683a87f991e35004b2e96a4a5e4aca815` |
+| `rulesets/RS-1a-to-1k.json` | C1: the values proposed for `main` | (data) | `14fdd532b024dd55545c10c35c9a32a751f1c964775ac7e026f932770f4467ac` |
+| `rulesets/RS-2.json` | C1: the new trunk ruleset | (data) | `360aff370f725ea5e913bfdd1a5453ffe5d3e2a5d8f128725a0f877a563f142e` |
+| `rulesets/RS-3.json` | C1: the new release-branch ruleset | (data) | `59bca0cad48739cfdc8e635851611908ca20af780862f6b225d7ec01e47d4762` |
+| `rulesets/RS-4.json` | C1: what the tag ruleset must already be | (data) | `2896cc49e313cc14a93305e6eccdce3fe527f4255a6f8616946f11cb90968f14` |
+| `nfc-app-token-helper.ps1` | A6: an installation token for Git | agent → App, after you install it | `17fc16ba844bfcd25eba416dc742eecc2a175f1e286cff6d22912f5fc8660b82` |
+| `Invoke-NfcGh.ps1` | A6: one `gh` call with an installation token | agent → App, after you install it | `b26088a795b659f0d34f88e9bec09908a9e45f18c683cae306233dfa6b227afb` |
+| `NfcG0.Common.ps1` | shared functions the scripts load | (loaded by the others) | `c711299fa2a5fb02874fc58ef5b347da5cec972bfacf6c92f1e9fe32459fdc3d` |
+| `tests/NfcG0.Tests.ps1` | offline tests with fake secrets; 38 of 38 passed in the commander's independent run (G0SR4) | none | `08af82fa30822daeb1edcf69fe91585b2335fd52632d6f755e214576738e7eff` |
+| `README.md` | the scripts' own instructions | (text) | `12b27fcb03b6dd095893ffc0f38134ede20339f133b508d44d11974071bff84a` |
 
 ## What G0 changes
 
@@ -36,37 +101,46 @@ in R-3, not by G0.
 Every step starts with **operator → GitHub identity**: who does it (you, the
 owner, or an agent) and which GitHub identity the step authenticates as: the
 **App**, the **machine account** (fallback only), **owner** (your account,
-in the browser or through the owner push path of C2), or **none** (local work,
-or a public read that needs no login).
+in the browser, through `gh` signed in as you, or through the owner push path
+of C2), or **none** (local work, or a public read that needs no login). The
+setup scripts (`New-NfcGitHubApp.ps1` and `Set-NfcRulesets.ps1`) are run only
+by you (decision 82), and every step that runs one is labeled **owner →
+owner**, its offline preview included.
 
-- **You operate** every step that creates an account or an app, runs the
-  manifest conversion, handles a key, a token, a PAT or any other secret,
-  changes a ruleset or another repository setting, changes a local credential
-  or identity setting, or uses the owner bypass or the C3 pause.
+- **You operate** every step that creates an account or an app, runs a setup
+  script or the manifest conversion, handles a key, a token, a PAT or any
+  other secret (`BW_SESSION` included), changes a ruleset or another
+  repository setting, installs or configures the helper and the wrapper,
+  changes a local credential or identity setting, or uses the owner bypass or
+  the C3 pause.
 - **An agent may operate** the ordinary Git and pull-request steps that
-  authenticate as the App through the helper, because decision 65 lets agents
-  obtain one-hour installation tokens that way: pushes, pull requests, merges
-  and the cleanup of the verification. With the machine-account fallback the
-  same steps authenticate as the machine account. An agent also prepares
-  non-secret material, reads public or non-secret results, and writes the
-  board and the log.
+  authenticate as the App through the helper and the wrapper you installed,
+  because decisions 65 and 82 let agents obtain one-hour installation tokens
+  that way: pushes, pull requests, merges and the cleanup of the
+  verification. With the machine-account fallback the same steps
+  authenticate as the machine account. An agent also prepares non-secret
+  material, reads public or non-secret results, and writes the board and the
+  log.
 
-Agents never create accounts or apps; never read the private key, your
-password manager, DPAPI-protected data, credential stores or credential
-settings you have not confirmed as non-secret; never read or copy any
-long-lived token or your credentials; never modify the helper; never change
-settings or rulesets; never approve pull requests or environments; and never
-use a bypass.
+Agents never create accounts or apps; never run the setup scripts; never call
+the helper directly, pass a token on a command line, or switch on tracing or
+debug output of Git or `gh`; never read the private key, the DPAPI key file,
+your Bitwarden vault or other password manager, credential stores, or
+credential settings you have not confirmed as non-secret; never read or copy
+any long-lived token or your credentials; never modify the helper, the
+wrapper or their configuration; never change settings or rulesets; never
+approve pull requests or environments; and never use a bypass.
 
 **This is a rule, not a technical boundary (decision 65).** Agents run under
 your Windows user. Everything that user can open is technically within reach
-of an agent process: the App private key in your store, an unlocked password
-manager, DPAPI-protected files, Windows Credential Manager, Git credential
-settings, the token helper and its configuration, your signed-in browser
-session, and any login of yours in `gh` or Git Credential Manager. Decision 65
-accepts a procedural constraint: agents do not read, copy or use them, except
-through the helper's token interface. A technical boundary, such as a separate
-Windows account or service that holds the key, was not adopted.
+of an agent process: the App private key in its DPAPI file, an unlocked
+Bitwarden vault or other password manager, Windows Credential Manager, Git
+credential settings, the helper, the wrapper and their configuration, your
+signed-in browser session, and any login of yours in `gh` or Git Credential
+Manager. Decision 65 accepts a procedural constraint: agents do not read, copy
+or use them, except through the helper's and the wrapper's token interface. A
+technical boundary, such as a separate Windows account or service that holds
+the key, was not adopted.
 
 ## Platform facts not verified locally
 
@@ -77,13 +151,15 @@ hold, stop and tell the commander.
 
 | Fact | Used in | Confirmed by |
 | --- | --- | --- |
-| The manifest conversion `POST /app-manifests/{code}/conversions` needs no token, works once within one hour and returns `pem` with the other credentials | A2 | the conversion succeeding |
-| An app name has at most 34 characters | A2 | the app form |
-| A Windows Credential Manager secret is limited to 2,560 bytes | A4 | your store's own check |
-| Installation tokens expire after one hour; `/installation/repositories` accepts only installation tokens | A6, D3a | D3a |
-| A personal repository offers "Repository admin" in a ruleset bypass list; the API form is `RepositoryRole` with `actor_id` 5 and `bypass_mode` `always`, which also permits direct and force pushes | C1, C2 | the ruleset page and its saved JSON; D6 |
+| The manifest flow redirects to the manifest's `redirect_url` (here `http://127.0.0.1:<port>/callback`) with `code` and the `state` given in the form's address | A2 | the script accepting the callback |
+| The manifest conversion `POST /app-manifests/{code}/conversions` needs no token, works once within one hour and returns `pem` with the other credentials | A2 | the script's summary after the conversion |
+| An app name has at most 34 characters | A2 | the script (it refuses a longer name) and the app form |
+| `bw create item` with an encoded secure-note item creates it and returns its ID | A2, A4 | the script's confirmation and your look at the vault (A4) |
+| Installation tokens expire after one hour; `POST /app/installations/{id}/access_tokens` accepts `repositories` and `permissions` and returns a token limited to them; `/installation/repositories` accepts only installation tokens | A6, D3a | D3a (the helper also refuses a reply that is not limited that way) |
+| `gh` uses `GH_TOKEN` from its environment before any stored login | A6, D3a | D3a |
+| A personal repository offers "Repository admin" in a ruleset bypass list; the API form is `RepositoryRole` with `actor_id` 5 and `bypass_mode` `always`, which also permits direct and force pushes | C1, C2 | your check in C1 step 1 and the saved ruleset JSON; D6 |
 | `do_not_enforce_on_create` only exempts the required-status-checks rule when a branch is created; it skips no other rule, and the pull-request rule does not block creating a branch | RS-2, RS-3, D2 | the ruleset page's help text; D2 |
-| The UI settings of C1 have the API names given there (`dismiss_stale_reviews_on_push` and the others) | C1 | the saved ruleset JSON |
+| The UI settings of C1 have the API names given there (`dismiss_stale_reviews_on_push` and the others) | C1 | the readbacks the script saves (`after-<id>.json`) |
 | Rule insights list bypassed evaluations with actor and ref; the repository activity view lists pushes and force pushes with their actor | C2, C3, D5, D6 | D5 and D6 |
 | On a personal repository a collaborator gets fixed access; the Collaborators page may offer no role selector | part B | that page |
 | `gh pr merge --match-head-commit <sha>` refuses to merge when the head moved | after G0 | its first use |
@@ -101,21 +177,36 @@ hold, stop and tell the commander.
 - [ ] **owner → owner.** Save the complete current `main` ruleset (22009240) so
       RS-1 can be restored: its JSON as an admin sees it (the ruleset page's
       export, or the API in your own session; the bypass list is visible only
-      to an admin), and your screenshot of every section. **agent → none:** an
-      agent may save the public JSON read-only as a cross-check.
+      to an admin), and your screenshot of every section. `Set-NfcRulesets.ps1`
+      also saves every ruleset in its backup directory (C1); this copy is
+      yours, independent of the script. **agent → none:** an agent may save the
+      public JSON read-only as a cross-check.
 - [ ] **owner → none.** Credential settings: in your own terminal, not recorded
       or logged, run `git config --show-origin --get-regexp "^credential\."`
       inside this repository (it covers the system, global and repository
       scopes) and save the raw output where only you keep it. Check it for
       secrets, such as a password or a helper command that embeds a token.
       Then give the agent only what you confirm as non-secret, per scope and
-      in order: whether `credential.helper` and
-      `credential.https://github.com.helper` exist, their values, and any
-      `credential.*.username`. Anything secret-bearing stays with you.
+      in order: whether `credential.helper`,
+      `credential.https://github.com.helper` and any `useHttpPath` setting
+      exist, their values, and any `credential.*.username`. Anything
+      secret-bearing stays with you.
 - [ ] **agent → none.** An agent saves the repository's `user.name` and
       `user.email` settings (`git config --local --get-regexp "^user\."`) and
       your confirmed summary to a local file outside every repository, for the
       rollback.
+- [ ] **owner → none.** Tools, installed and checked by you: Windows with
+      PowerShell 7.4 or later (`pwsh`), the GitHub CLI (`gh`) and the
+      Bitwarden CLI (`bw`) with your vault.
+- [ ] **owner → none.** Choose, outside every repository and worktree: a
+      private folder for your copy of the scripts (the helper and the wrapper
+      run from it, A6); an existing private directory for the DPAPI key file,
+      with a file name that does not exist yet; and a place for the ruleset
+      backup directories (every preview and every apply needs a new one).
+- [ ] **owner → none.** Copy [`g0-scripts/`](g0-scripts/README.md) into that
+      folder and compare every file with the table above
+      (`Get-FileHash -Algorithm SHA256 <file>`; case does not matter). Stop on
+      any difference.
 - [ ] You have 30 to 60 minutes; GitHub settings pages open in a browser
       signed in as you, with two-factor authentication.
 
@@ -123,8 +214,10 @@ hold, stop and tell the commander.
 
 ### A1. The manifest
 
-The manifest asks for the smallest permission set G0 needs. It contains no
-secret and no `workflows` permission.
+`New-NfcGitHubApp.ps1` builds the manifest itself (`New-NfcManifest` in
+`NfcG0.Common.ps1`). It asks for the smallest permission set G0 needs and
+contains no secret and no `workflows` permission. `<port>` is the local port
+the script picks when it runs:
 
 ```json
 {
@@ -136,7 +229,7 @@ secret and no `workflows` permission.
     "url": "https://example.com/nfc-agent-webhook-unused",
     "active": false
   },
-  "redirect_url": "https://github.com/<owner>/<repo>",
+  "redirect_url": "http://127.0.0.1:<port>/callback",
   "request_oauth_on_install": false,
   "default_permissions": {
     "metadata": "read",
@@ -162,112 +255,172 @@ permission on the installation, just before the first authorized batch that
 edits `.github/workflows/`, release batch R-1), administration, secrets,
 variables, environments, deployments, issues (the bug ledger lives in the
 repository, and GitHub issue writes need separate authorization), members,
-pages and packages. The webhook is inactive and subscribes to no event.
+pages and packages. The webhook is inactive and subscribes to no event. The
+helper requests exactly this permission set for every token and refuses a
+token with any other, so granting `workflows` on the installation is not
+enough for R-1: the helper's permission set needs an owner-reviewed change
+first.
 
-### A2. Create the app: manifest flow with conversion
+- [ ] **owner → owner.** Optional preview, which contacts no GitHub: in your
+      script folder run
+      `pwsh -NoProfile -File .\New-NfcGitHubApp.ps1 -Owner <owner> -Repo <repo> -AppName nfc-agent-<owner> -DryRun`.
+      It writes `nfc-manifest.dry-run.json` and `nfc-manifest.dry-run.html`
+      to the current folder with a placeholder port; it opens no listener or
+      browser, converts nothing and stores no key. Compare the manifest with
+      the one above, then delete both files. The name has at most 34
+      characters; choose another if GitHub reports it taken.
 
-- [ ] **owner → none.** Replace `<owner>` and `<repo>` (pick another name if
-      GitHub reports it taken; at most 34 characters), and save the HTML below
-      as a local file outside every repository and worktree, with the
-      manifest pasted where marked:
+### A2. Create the app and store its key (decisions 80 and 82)
 
-      ```html
-      <form action="https://github.com/settings/apps/new?state=nfc-g0" method="post">
-        <input type="hidden" name="manifest" id="manifest">
-        <input type="submit" value="Create the agent GitHub App">
-      </form>
-      <script>
-        document.getElementById("manifest").value = JSON.stringify(
-          /* paste the manifest object here */
-        );
-      </script>
-      ```
-
-- [ ] **owner → owner.** Open the file in your browser and press the button.
-      GitHub shows the app form, filled in: check the name, the permissions
-      above and that the webhook is inactive, then press **Create GitHub App**.
-- [ ] **owner → none.** GitHub redirects to the repository page with
-      `?code=<code>&state=nfc-g0` in the address bar. The code works once, for
-      one hour. Within that hour, in your own terminal (not an agent session,
-      and not a terminal whose output is logged or recorded), complete the
-      conversion:
+- [ ] **owner → none.** Prepare your own terminal: not an agent session, and
+      with no transcript, screen recorder or other recording (G0SR4 note 2).
+      Unlock Bitwarden yourself (`bw unlock`) and make the `BW_SESSION` it
+      gives you available in this terminal only; `BW_SESSION` is a secret.
+- [ ] **owner → owner.** From your script folder, run:
 
       ```powershell
-      $conversion = Invoke-RestMethod -Method Post -Headers @{ Accept = 'application/vnd.github+json' } -Uri 'https://api.github.com/app-manifests/<code>/conversions'
+      pwsh -NoProfile -File .\New-NfcGitHubApp.ps1 -Owner <owner> -Repo <repo> -AppName nfc-agent-<owner> -KeyStore Both -DpapiPath '<private-directory>\app-key.dpapi'
       ```
 
-      Do not print `$conversion`: it holds the app's `id`, `slug`,
-      `client_id`, `client_secret`, `webhook_secret` and `pem` (the private
-      key).
-- [ ] **owner → none.** Put `$conversion.pem` into your password manager or
-      store (A4). Note `id`, `slug` and `client_id` for A5; they are not
-      secret. The client secret and the webhook secret are not used; do not
-      keep them anywhere an agent can read (they can be regenerated in the app
-      settings). Then run `Remove-Variable conversion`, clear the clipboard and
-      close the terminal. The conversion response never enters an agent
-      transcript, Git or a general log. The command line itself holds only the
-      used code.
-- [ ] **owner → owner.** If the hour passes before the conversion, delete the
-      app (app settings, **Advanced**, **Delete GitHub App**) and start again.
-      Generating a key in the app settings later is for key rotation, not a
-      substitute for the conversion.
+      In order, the script:
+      1. checks, before anything opens: Windows, PowerShell 7.4 or later and
+         the .NET functions it needs; no detectable recording policy (one
+         found stops it, with no override); `-KeyStore Both` (decision 82: a
+         live run with `Dpapi` or `Bitwarden` alone stops); a DPAPI file that
+         does not exist yet, in an existing directory; `bw` present and
+         unlocked. It warns that manual transcripts and screen recording
+         cannot be detected and asks `Continue? Type YES`: type `YES` only if
+         nothing records this terminal or your screen;
+      2. listens on `127.0.0.1` at a random port and opens a local page at a
+         random path in your browser. Press **Create the agent GitHub App**.
+         GitHub shows the app form, filled in: check the name, the
+         permissions of A1 and that the webhook is inactive, then press
+         **Create GitHub App**. The local page and the listener do not prove
+         that it is you (any process of your Windows user could reach them),
+         so do this at once;
+      3. accepts GitHub's redirect to `http://127.0.0.1:<port>/callback` once,
+         only with the expected random state, stops listening and completes
+         the conversion. It waits for the callback at most `-TimeoutMinutes`
+         (default 10);
+      4. saves the key first to the DPAPI file (encrypted for your Windows
+         user, with file access limited to your account) and then to
+         Bitwarden, as a secure note named `NFC GitHub App <owner>/<repo>`;
+         and prints only non-secret values: the App ID, Client ID, slug, App
+         URL and installation URL. The key is never shown or logged; the
+         client secret and the webhook secret are not kept (they can be
+         regenerated in the app settings).
+- [ ] **owner → none.** Note the App ID, Client ID and slug for A5. Lock
+      Bitwarden (`bw lock`) and close the terminal (strings may remain in its
+      memory).
+- [ ] **owner → owner.** If the script stops, act on its message; never run it
+      again blindly. A new run needs a DPAPI file name that does not exist.
+
+      | Message | State | What you do |
+      | --- | --- | --- |
+      | "App setup did not complete" (shown for every stop before the conversion, including a missing requirement, an answer other than `YES` and a wait for the callback that ran out) | No conversion was sent; if you had pressed **Create GitHub App**, an app may exist without its key | Check the requirements listed in item 1 of the run above, and your answer. If you had pressed **Create GitHub App**, check your GitHub Apps (Settings, Developer settings) and delete such an app (**Advanced**, **Delete GitHub App**) before running again |
+      | "App conversion outcome is unknown" | The conversion was sent; an app and a key may exist | Check GitHub for the app and its keys, revoke or delete any key and delete the app, then decide whether to create a new one. Never retry the conversion |
+      | "App conversion succeeded, but no protected key copy was confirmed" | The app exists; no stored copy of the key is confirmed | Revoke or delete the app's key (or delete the app) before starting again |
+      | "App setup stopped after DPAPI save" | The DPAPI file exists (its path is in the message); Bitwarden may or may not hold the note (a timeout does not prove that none was created) | Inspect the vault. If the note is there with the key, both copies exist: continue with A3. If not, copy the DPAPI key into Bitwarden with a separately reviewed local step, or remove the DPAPI file and revoke or delete the app's key before starting again |
 
 ### A3. Install it on this repository only
 
-- [ ] **owner → owner.** On the app page, choose **Install App**, then your
-      account; choose **Only select repositories**, select this repository,
-      install; note the installation ID from the address bar
-      (`.../settings/installations/<id>`).
+- [ ] **owner → owner.** Open the installation URL the script printed (or the
+      app page, **Install App**), choose your account, choose **Only select
+      repositories**, select this repository only and install. Note the
+      installation ID from the address bar (`.../settings/installations/<id>`)
+      and check on that page that only this repository is listed (G0SR4
+      note 3).
 
-### A4. Key custody (decision 65)
+### A4. Key custody (decisions 65 and 82)
 
-- [ ] **owner → none.** Keep the key in your own password manager or store.
-      Windows Credential Manager limits a stored secret to 2,560 bytes: check
-      the stored size of your key, since a key of about 1.7 KB fits as UTF-8
-      but not as UTF-16.
-- [ ] Agents must not read the key, your password manager, DPAPI-protected
-      data or credential stores. As stated above, this is a rule, not a
-      technical boundary.
-- [ ] **owner → owner.** If the key ever leaks, delete it in the app settings
-      and generate a new one; uninstalling the app cuts access at once.
+- [ ] **owner → none.** The key exists twice: the DPAPI file, which the helper
+      reads for everyday use and which only your Windows user can decrypt,
+      and the Bitwarden secure note, the backup. The helper never reads
+      Bitwarden. Confirm yourself that both exist, and keep no other copy
+      (clipboard, file or message).
+- [ ] Agents must not read the key, the DPAPI file, your Bitwarden vault or
+      other password manager, or credential stores. As stated above, this is
+      a rule, not a technical boundary.
+- [ ] **owner → owner**, then **owner → none.** If the key may have leaked:
+      delete it in the app settings, and uninstall or suspend the app if
+      needed (uninstalling cuts access at once); then remove the DPAPI file
+      and the Bitwarden note. The setup script stores only the key of its own
+      conversion: storing a key generated later in the app settings needs its
+      own reviewed step.
 
 ### A5. Non-secret values
 
-- [ ] **owner → none.** Keep these in the helper's local configuration (not in
-      Git): App ID and Client ID, installation ID (A3), the bot login
-      `<app-slug>[bot]` and its user ID (**agent → none:** an agent looks the
-      user ID up through the public API).
+- [ ] **owner → none.** Keep these in your own local configuration, not in
+      Git: the App ID, Client ID, slug, installation ID (A3), the DPAPI file's
+      path, and the bot login `<app-slug>[bot]` with its user ID (**agent →
+      none:** an agent looks the user ID up through the public API). The
+      helper command (A6) needs the Client ID, the installation ID and the
+      DPAPI path.
 
-### A6. Token helper (may run under the same Windows user, decision 65)
+### A6. Token helper and `gh` wrapper (decisions 65 and 82)
 
-- [ ] **agent → none.** An agent drafts the helper. The draft contains no
-      secret. Its contract:
-  - read the key from your store (A4) into memory only; never print or log it;
-  - sign a JSON Web Token (RS256; issuer = Client ID; issued 60 seconds in
-    the past; expires within 10 minutes);
-  - call `POST /app/installations/<installation-id>/access_tokens`, limited
-    to this repository and to the A1 permissions, and return only the token,
-    which expires after one hour;
-  - for Git, answer the credential-helper `get` request with
-    `username=x-access-token` and `password=<token>`, and ignore `store` and
-    `erase`;
-  - for `gh`, a wrapper sets `GH_TOKEN` from the helper for one `gh`
-    invocation.
-- [ ] **owner → none.** You review the draft and install it in a folder outside
-      every repository and worktree. Agents use only its token interface: they
-      never open the key store, change the helper or its configuration, or run
-      the key-reading part on its own (the rule of decision 65).
+- [ ] **owner → none.** Install: `nfc-app-token-helper.ps1`, `Invoke-NfcGh.ps1`
+      and `NfcG0.Common.ps1` stay together in your script folder, outside
+      every repository and worktree, with the hashes of the table (the wrapper
+      starts the helper from its own folder, and both load
+      `NfcG0.Common.ps1` from there). Agents never change these files or
+      their configuration. What they do:
+  - The helper, in Git mode, answers only `get`, and only for an HTTPS
+    request to `github.com` whose path is exactly `<owner>/<repo>` or
+    `<owner>/<repo>.git`; any other request gets no credential, and the key is
+    not read. `store` and `erase` save nothing.
+  - It reads the DPAPI copy into memory only, signs a JSON Web Token (RS256;
+    issuer = Client ID; issued 60 seconds in the past; valid for 9 minutes),
+    and requests an installation token limited to this repository and to the
+    A1 permissions, refusing a reply that is not limited that way. The token
+    expires after one hour and is not cached on disk. Git receives
+    `username=x-access-token` and the token through the credential-helper
+    protocol. The helper stops when it detects a recording policy.
+  - The wrapper runs the helper in token mode as a separate process, gives
+    `GH_TOKEN` to one `gh` process only (not to its caller's environment), and
+    replaces the exact token in `gh`'s output before passing the output on. A
+    process that `gh` itself starts may inherit `GH_TOKEN`.
 - [ ] **owner → none.** Wire Git to the helper at the repository scope (all
-      worktrees share it; an agent prepares the exact commands):
+      worktrees share it; an agent prepares the exact lines for your shell
+      from the A5 values):
 
       ```text
       git config --local --replace-all credential.https://github.com.helper ""
-      git config --local --add credential.https://github.com.helper "!<helper command> git"
+      git config --local --add credential.https://github.com.helper "!<helper command>"
+      git config --local credential.https://github.com.useHttpPath true
       ```
 
-      The empty first entry stops Git from using the helpers of the system
-      and global scopes, and so your stored credentials, for this repository.
-      C2 explains how you push as yourself despite it.
+      `<helper command>` is `pwsh -NoProfile -File "<script folder>/nfc-app-token-helper.ps1" -Mode git -Owner <owner> -Repo <repo> -ClientId <client-id> -InstallationId <installation-id> -DpapiPath "<DPAPI file>"`
+      (the form of the scripts' README, section 3), with no token or key in
+      it. Git runs it as a shell command and appends `get`, `store` or
+      `erase`. The empty first entry stops Git from using the helpers of the
+      system and global scopes, and so your stored credentials, for this
+      repository; `useHttpPath` makes Git pass the repository path, without
+      which the helper returns nothing. C2 explains how you push as yourself
+      despite it.
+- [ ] **owner → none.** Check the result:
+      `git config --local --get-all credential.https://github.com.helper`
+      shows the empty entry and then the helper command, and
+      `git config --local --get credential.https://github.com.useHttpPath`
+      shows `true`.
+- [ ] **agent → App.** From here on, Git pushes and fetches call the helper by
+      themselves; for `gh`, an agent runs the wrapper:
+
+      ```text
+      pwsh -NoProfile -File "<script folder>/Invoke-NfcGh.ps1" -Owner <owner> -Repo <repo> -ClientId <client-id> -InstallationId <installation-id> -DpapiPath "<DPAPI file>" <gh arguments>
+      ```
+
+      "Through the wrapper" below means this form. The first use is D3a.
+      PowerShell binds the wrapper's own parameters before the rest reaches
+      `gh`, so a `gh` option that it reads as one of them or as a common
+      parameter never reaches `gh`: `-R`/`--repo`, `--owner`, `-c`, `-d`,
+      `-i`, `-o` and `-r` (in either case) are refused as duplicates, `-e`,
+      `-p` and `-w` as ambiguous, and `-v`, `--verbose` and `--debug` are
+      dropped silently. Use long options that match none of them, as this
+      checklist does (`--json`, `--jq`, `--base`, `--head`, `--title`,
+      `--body`, `--merge`, `--match-head-commit`); `gh` finds the repository
+      from the working directory. (Observed locally with the wrapper's
+      parameter block on PowerShell 7.6, without GitHub.)
 
 ### A7. Agent commit identity
 
@@ -280,21 +433,25 @@ pages and packages. The webhook is inactive and subscribes to no event.
 
 - [ ] **owner → owner.** Sign your account out of `gh` on this machine
       (`gh auth logout --hostname github.com --user <your-login>`) and remove
-      your GitHub entry from Git Credential Manager (Windows Credential
-      Manager, the `git:https://github.com` entries). This removes the easiest
-      path to your credentials; it creates no boundary.
+      your GitHub entries from Git Credential Manager (in Windows Credential
+      Manager, those whose name starts with `git:https://github.com`). This
+      removes the easiest path to your credentials; it creates no boundary.
 - [ ] **owner → owner.** Do owner actions in the browser: approvals, merges
       you make yourself, release dispatch and approval, settings. A signed-in
       browser session is also reachable by processes of your Windows user; it
       too is covered by the rule only.
-- [ ] **owner → owner.** When you need your own command-line access (C2 and
-      C3), sign in for that task only, through the owner push path of C2, and
-      sign out afterwards.
+- [ ] **owner → owner.** When you need your own command-line access (the
+      ruleset script of C1 and its restore, C2 and C3), sign in for that task
+      only, in your own terminal: `gh auth login` for `gh` (answer no if it
+      offers to set up Git with your credentials), the owner push path of C2
+      for Git. Sign out afterwards.
 
 ## Part B: machine account (fallback, decision 56)
 
 Use this only if the app does not work for you. GitHub's terms allow a
-machine account that you control and use only for automation.
+machine account that you control and use only for automation. The App
+scripts (`New-NfcGitHubApp.ps1`, the helper and the wrapper) are not used on
+this path; C1 still uses `Set-NfcRulesets.ps1`.
 
 In this path agents work with a **long-lived token**: Git Credential Manager
 and `gh` hold it, and every agent Git or `gh` call uses it. That contradicts
@@ -334,13 +491,74 @@ Steps:
 
 ## Part C: rulesets, bypass and pause
 
-### C1. Ruleset changes, each for your approval
+### C1. Ruleset changes with `Set-NfcRulesets.ps1`, each for your approval
 
-**owner → owner** for every change. Settings, **Rules**, **Rulesets**. The UI
-takes branch-name patterns; the API takes full ref patterns, so both are
-listed. RS-2 and RS-3 are new rulesets. The API values are from the
+Every step is **owner → owner**: only you run the script (decision 82), and it
+works through `gh` signed in as you. The table lists every change. The
+script's approval prompts carry its IDs (for example `RS-1c approvals` or
+`RS-2 do_not_enforce_on_create`), and its proposed values come from the
+templates in [`g0-scripts/rulesets/`](g0-scripts/rulesets/); the UI column is
+for comparing on the settings page. The API values are from the
 documentation (see the list of facts not verified locally); the JSON GitHub
-saves is the record.
+returns, which the script saves, is the record.
+
+1. **owner → owner.** Bypass availability: under Settings, **Rules**,
+   **Rulesets**, open the `main` ruleset and check whether its bypass list
+   offers "Repository admin"; change nothing there. If it is offered, use
+   `-AdminBypassAvailable Yes`, and C2 is your bypass procedure. If not, use
+   `No`: every branch bypass list ends up empty (the current list of `main`
+   included) and the pause procedure C3 replaces the bypass (decision 78).
+2. **owner → owner.** In your own unrecorded terminal, with `GH_TOKEN` and
+   `GITHUB_TOKEN` unset, sign `gh` in as yourself (A8). The script stops
+   unless `gh api user` returns `<owner>`.
+3. **owner → owner.** Preview, from your script folder, with a new backup
+   directory:
+
+   ```powershell
+   pwsh -NoProfile -File .\Set-NfcRulesets.ps1 -Owner <owner> -Repo <repo> -BackupDirectory '<backup-place>\g0-preview' -AdminBypassAvailable Yes -WhatIf
+   ```
+
+   It reads GitHub and fills the new directory (`repository.json`,
+   `rulesets-list.json`, `ruleset-<id>.json` for every ruleset, and
+   `index.json`); checks that the ruleset list is complete and did not change
+   while it read, that `main` (22009240) targets `main` or the default branch
+   and has exactly one required-checks rule with three contexts, each with its
+   source, that RS-4 matches exactly, and that no ruleset named "trunk" or
+   "release branches" exists; and prints every item of the table with its
+   current and proposed value. It writes nothing to GitHub and asks for no
+   approval. Compare every item with the table, and stop on any difference.
+4. **owner → owner.** Apply, with another new backup directory:
+
+   ```powershell
+   pwsh -NoProfile -File .\Set-NfcRulesets.ps1 -Owner <owner> -Repo <repo> -BackupDirectory '<backup-place>\g0-apply' -AdminBypassAvailable Yes
+   ```
+
+   It repeats the backup and the checks, then asks for each item in turn
+   (`Type YES`), starting with the confirmation of the unchanged RS-4. Every
+   approval comes before the first write; any other answer stops it with
+   nothing written. It then checks that no ruleset changed since the backup,
+   updates `main` (22009240) and creates RS-2 and RS-3, checking the live
+   rulesets again before each write and comparing each readback with the
+   requested body. `index.json` records every write: `pending` before it is
+   sent, then `applied` with the ruleset ID and its saved readback
+   (`after-<id>.json`).
+5. **owner → owner.** If the script stops before its first write, nothing
+   changed on GitHub: fix the cause and run again with a new backup
+   directory. If it stops after a write started, it does not roll back: an
+   entry still `pending` has an unknown outcome, and a failed request does not
+   prove that GitHub changed nothing. Compare the live rulesets with
+   `index.json` and the saved files, tell the commander the state (these files
+   hold no secret), and then restore what was applied (Rollback) or decide
+   with the commander how to complete it. Do not re-run the apply as it is:
+   it stops when RS-2 or RS-3 already exists.
+6. **owner → none.** Keep every backup directory, private and outside every
+   repository; the rollback needs the apply directory's `index.json`.
+
+From the preview until the apply has ended, and during a restore, nobody
+changes this repository's rulesets: you edit none in the browser, and the
+commander runs no other ruleset work (agents cannot change rulesets anyway).
+The script stops on a change it sees, but its read, check and write sequence
+is not atomic (G0SR4 note 4). D1 then verifies the effective rules.
 
 | ID | Ruleset | Setting | UI input | API value |
 | --- | --- | --- | --- | --- |
@@ -353,19 +571,22 @@ saves is the record.
 | RS-1f | `main` | Require approval of the most recent reviewable push | on | `require_last_push_approval: true` |
 | RS-1g | `main` | Require conversation resolution before merging (O-3, decision 67) | on | `required_review_thread_resolution: true` |
 | RS-1h | `main` | Allowed merge methods | Merge only | `allowed_merge_methods: ["merge"]` |
-| RS-1i | `main` | Block force pushes; Restrict deletions | on; on | rules `non_fast_forward`, `deletion` |
+| RS-1i | `main` | Block force pushes; Restrict deletions | on; on | rules `non_fast_forward`, `deletion` (added only if missing) |
 | RS-1j | `main` | Require status checks to pass | unchanged: the saved checks with their sources, "Require branches to be up to date" and "Do not require status checks on creation" exactly as saved | unchanged: `required_status_checks` (each `context` with its `integration_id`), `strict_required_status_checks_policy`, `do_not_enforce_on_create` as saved |
-| RS-1k | `main` | Bypass list (decision 77) | Repository admin, Always allow | `[{"actor_type": "RepositoryRole", "actor_id": 5, "bypass_mode": "always"}]` |
+| RS-1k | `main` | Bypass list (decision 77) | Repository admin, Always allow (`-AdminBypassAvailable Yes`); empty with `No` | `[{"actor_type": "RepositoryRole", "actor_id": 5, "bypass_mode": "always"}]`, or `[]` with `No` |
 | RS-2 | new "trunk" | Target branches | Include by pattern: `*.*.x` | `"include": ["refs/heads/*.*.x"], "exclude": []` |
 | RS-2 | "trunk" | Rules | RS-1b to RS-1i; required checks: the same three contexts with the same sources as RS-1j, "up to date" off, "Do not require status checks on creation" on | as RS-1b to RS-1i; `required_status_checks` copied from RS-1j, `strict_required_status_checks_policy: false`, `do_not_enforce_on_create: true` |
 | RS-2 | "trunk" | Bypass list (decisions 66 and 77) | as RS-1k | as RS-1k |
 | RS-3 | new "release branches" | Target branches | Include by pattern: `*.*.*`; Exclude by pattern: `*.*.x` | `"include": ["refs/heads/*.*.*"], "exclude": ["refs/heads/*.*.x"]` |
 | RS-3 | "release branches" | Rules | RS-1b to RS-1h; Block force pushes on; **deletion allowed** (release closure deletes the branch after its tag); required checks as RS-2 | as RS-2 without `deletion` |
 | RS-3 | "release branches" | Bypass list (decisions 66 and 77) | as RS-1k | as RS-1k |
-| RS-4 | tag ruleset `refs/tags/v*` (existing) | Everything | confirm only: update and deletion restricted, bypass list **empty** | unchanged; the release policy requires an empty bypass list |
+| RS-4 | tag ruleset `refs/tags/v*` (existing) | Everything | confirm only: Active, the pattern `refs/tags/v*` with no exclusion, update and deletion restricted and no other rule, bypass list **empty** | unchanged; the release policy requires an empty bypass list. The script stops if RS-4 differs in any of these and never repairs it |
 
 Notes:
 
+- The script keeps every other rule `main` already has and its target; it
+  replaces only the pull-request rule and the bypass list, and adds
+  `non_fast_forward` and `deletion` if missing.
 - "Do not require status checks on creation" (`do_not_enforce_on_create`) only
   lets a new branch be created although its commit lacks the required checks.
   It skips no other rule and does not promise that any branch can be
@@ -375,10 +596,10 @@ Notes:
   "Require linear history" rule (merge commits are required), no
   signed-commit or deployment rule, and no other ruleset adding rules.
 - The bypass actor is the Repository admin role, which on this personal
-  repository is only you; the app and the machine account never are. The
-  page may not offer that role: confirm it when you edit RS-1. If it is not
-  offered, leave every bypass list empty and use the pause procedure (C3,
-  decision 78) instead of the bypass.
+  repository is only you; the app and the machine account never are. Step 1
+  checks whether the page offers that role before the script runs; if it does
+  not, every bypass list stays empty and the pause procedure (C3, decision 78)
+  replaces the bypass.
 - Not part of G0: the branch-name allowlist and automatic branch deletion
   (checklist A-5, approved item by item under decision 24); if you approve the
   allowlist later, it must let the agent identity create `feature/*.*.*/**`
@@ -444,9 +665,11 @@ After:
 6. The agent path is unchanged, checked in two steps:
    - 6a. **agent → none.** Local settings: with the app,
      `git config --local --get-all credential.https://github.com.helper`
-     still shows the empty entry and the App helper; with the machine
-     account, `git config --local --get credential.https://github.com.username`
-     still shows its login.
+     still shows the empty entry and the App helper, and
+     `credential.https://github.com.useHttpPath` is still `true`; with the
+     machine account,
+     `git config --local --get credential.https://github.com.username` still
+     shows its login.
    - 6b. **agent → App** (app path): the `gh` wrapper still reaches
      `/installation/repositories`; or **agent → machine account** (fallback):
      `gh api user --jq .login` still returns its login.
@@ -504,7 +727,8 @@ After:
 8. **owner → owner.** If step 6 or 7 fails, or the window passes before the
    ruleset is Active again: stop. The freeze stays, nothing else happens, and
    you restore the ruleset from the export (re-enable, or re-create it by
-   importing the export) until step 7 passes.
+   importing the export) until step 7 passes. A re-created ruleset has a new
+   ID, so the script's restore (Rollback) no longer covers it.
 9. **owner → owner.** Confirm the actor of the push in the repository's
    activity view. A push made while the ruleset was disabled is not a bypass,
    so no bypass evaluation is expected.
@@ -538,11 +762,11 @@ to its rule, in the WS-GOV log; you confirm.
       (deletion restricted); a force push to `9.9.9` is rejected.
 - [ ] **D3a App identity through real writes. agent → App.** The agent pushes
       `feature/1.1.13/g0-check` (a one-line change under `docs/handoff/`)
-      through the helper and opens a pull request into `9.9.x`: the pull
-      request author and the pusher in its timeline are `<app-slug>[bot]`,
-      and `gh api /installation/repositories` through the wrapper succeeds
-      (only an installation token can call it) and lists only this
-      repository. A successful public read alone proves no identity.
+      through the helper and opens a pull request into `9.9.x` through the
+      wrapper: the pull request author and the pusher in its timeline are
+      `<app-slug>[bot]`, and `gh api /installation/repositories` through the
+      wrapper succeeds (only an installation token can call it) and lists only
+      this repository. A successful public read alone proves no identity.
 - [ ] **D3b Machine-account identity (fallback only). agent → machine
       account**, then **owner → machine account.** The same push and pull
       request: the author and the pusher are the machine account, and `gh api
@@ -579,9 +803,34 @@ to its rule, in the WS-GOV log; you confirm.
 
 ## Rollback
 
-- [ ] **owner → owner.** GitHub: set RS-2 and RS-3 to Disabled (or delete them),
-      restore RS-1 from your saved export and screenshots, and uninstall or
-      suspend the app (or remove the machine account's access).
+- [ ] **owner → owner.** Rulesets, with `Set-NfcRulesets.ps1` and the apply's
+      backup directory, `gh` signed in as you (A8) and no concurrent ruleset
+      changes:
+
+      ```powershell
+      pwsh -NoProfile -File .\Set-NfcRulesets.ps1 -Restore -Owner <owner> -Repo <repo> -BackupDirectory '<backup-place>\g0-apply' -WhatIf
+      pwsh -NoProfile -File .\Set-NfcRulesets.ps1 -Restore -Owner <owner> -Repo <repo> -BackupDirectory '<backup-place>\g0-apply'
+      ```
+
+      The first line only shows the plan. The restore acts only on what
+      `index.json` records as applied: it puts back the body of `main` saved
+      before the apply (its bypass list included) and sets the RS-2 and RS-3
+      that this apply created to Disabled, without deleting them; it leaves
+      RS-4 and every other ruleset alone. It refuses to start while any entry
+      is pending (reconcile it first, C1 step 5), and it stops if a ruleset no
+      longer equals its saved readback, for example after any later edit or a
+      C3 re-creation: then you restore by hand from your own export and
+      screenshots ("Before you start"). Each item needs your `YES`; it checks
+      the live ruleset again before each write, verifies the readback, and
+      records `restore_pending` and then `restored` in `index.json`. Like the
+      apply, it is not atomic and does not roll back by itself. Afterwards
+      compare the effective rules with your pre-G0 export, and delete the
+      disabled RS-2 and RS-3 in the browser if you no longer want them.
+- [ ] **owner → owner**, then **owner → none.** The app: uninstall or suspend
+      it (uninstalling cuts access at once) or delete it, and delete its key
+      in the app settings; then remove the DPAPI file and the Bitwarden note
+      yourself, and check both, especially after a partial storage failure
+      (A2). On the machine-account path, remove the account's access instead.
 - [ ] **owner → none.** Repository-scope Git settings, which are the only Git
       settings G0 changed; an agent prepares the commands from the non-secret
       facts you confirmed:
@@ -591,10 +840,14 @@ to its rule, in the WS-GOV log; you confirm.
      in their original order, each with `git config --local --add
      credential.https://github.com.helper "<value>"`, including an empty
      entry where one was. If it had none, leave it unset.
-  3. `user.name` and `user.email`: set them back to the saved values, or
+  3. `git config --local --unset credential.https://github.com.useHttpPath`,
+     or set it back to its value from before G0 if it had one at the
+     repository scope.
+  4. `user.name` and `user.email`: set them back to the saved values, or
      unset them if they did not exist at the repository scope before.
-  4. Machine-account path: the same for `credential.https://github.com.username`.
-  5. Stop using the `gh` wrapper.
+  5. Machine-account path: the same for `credential.https://github.com.username`.
+  6. Stop using the `gh` wrapper; you may remove the helper and the wrapper
+     from your script folder once nothing uses them.
 - [ ] **owner → none.** Settings your backup marked secret-bearing: you restore
       them yourself, and compare the result with your raw backup in your own
       terminal (`git config --show-origin --get-regexp "^credential\."`).
@@ -619,7 +872,7 @@ today's state.
      `main` and `1.1.x`, and every release, from step 2 until step 7 is
      complete.
   2. **agent → App.** Record the pull request's base SHA (the trunk head) and
-     head SHA (the `main` head): `gh pr view <n> --json
+     head SHA (the `main` head) through the wrapper: `gh pr view <n> --json
      baseRefOid,headRefOid`.
   3. **agent → App.** Fetch GitHub's test merge `refs/pull/<n>/merge` and
      confirm that its two parents are exactly those SHAs.
@@ -631,8 +884,8 @@ today's state.
   5. **owner → owner.** You approve the pull request's head.
   6. **agent → App.** Read both SHAs again; if either changed, return to
      step 3. Then merge only with `gh pr merge <n> --merge
-     --match-head-commit <head-sha>`, on your go-ahead for this merge; no
-     other merge path is used.
+     --match-head-commit <head-sha>` through the wrapper, on your go-ahead for
+     this merge; no other merge path is used.
   7. **agent → none.** Confirm that the merge commit's parents are the
      recorded SHAs and that its tree equals both parent trees, and run the
      structure check on the new trunk head.
