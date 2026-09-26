@@ -168,6 +168,62 @@ public sealed class CliReportAtomicWriteTests
     }
 
     /// <summary>
+    /// A staging name that names the report itself, directly or after case folding, path normalization,
+    /// an alternate data stream or Unicode normalization, is refused before any file is created, so a
+    /// missing report is never written directly instead of being renamed into place.
+    /// </summary>
+    [Theory]
+    [InlineData("same-name")]
+    [InlineData("different-case")]
+    [InlineData("trailing-dot")]
+    [InlineData("alternate-data-stream")]
+    [InlineData("unicode-decomposed")]
+    public async Task StagingNameThatNamesTheReportIsRefusedBeforeAnyWrite(string alias)
+    {
+        (string reportName, string stagingName, bool windowsAliasOnly) = alias switch
+        {
+            "same-name" => ("report.json", "report.json", false),
+            "different-case" => ("report.json", "REPORT.JSON", false),
+            "trailing-dot" => ("report.json", "report.json.", true),
+            "alternate-data-stream" => ("report.json", "report.json:stream", true),
+            "unicode-decomposed" => (
+                (char)0x00FC + "bersicht.json",
+                "u" + (char)0x0308 + "bersicht.json",
+                false),
+            _ => throw new ArgumentOutOfRangeException(nameof(alias), alias, "Unknown staging alias."),
+        };
+        if (windowsAliasOnly && !OperatingSystem.IsWindows())
+        {
+            Assert.Skip("Only Windows path normalization makes this staging name alias the report.");
+            return;
+        }
+
+        using var workspace = TempWorkspace.Create("nfc-cli-report-atomic-alias");
+        string reportDirectory = workspace.PathFor("reports");
+        _ = Directory.CreateDirectory(reportDirectory);
+        string reportPath = Path.Combine(reportDirectory, reportName);
+        bool contentWritten = false;
+        using var output = new StringWriter(CultureInfo.InvariantCulture);
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() =>
+            CliCompositionRunSupport.WriteReportJsonAsync(
+                reportPath,
+                ReportJson,
+                output,
+                stagingName,
+                (stream, content, token) =>
+                {
+                    contentWritten = true;
+                    return stream.WriteAsync(content, token);
+                },
+                TestContext.Current.CancellationToken));
+
+        Assert.False(contentWritten);
+        Assert.Empty(Directory.GetFileSystemEntries(reportDirectory));
+        Assert.Empty(output.ToString());
+    }
+
+    /// <summary>
     /// A staging name that already belongs to another file fails the write before any report byte is
     /// written, and neither that file nor the earlier report is deleted or changed.
     /// </summary>

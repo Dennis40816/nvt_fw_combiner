@@ -81,6 +81,7 @@ internal static class CliCompositionRunSupport
     /// Writes one report as described above through the staging file named
     /// <paramref name="stagingFileName"/> in the destination directory;
     /// <paramref name="writeStagingContent"/> writes the complete report bytes into the open staging file.
+    /// The staging name must be a plain file name that does not name the report itself.
     /// </summary>
     internal static async Task WriteReportJsonAsync(
         string reportPath,
@@ -93,13 +94,6 @@ internal static class CliCompositionRunSupport
         ArgumentNullException.ThrowIfNull(output);
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingFileName);
         ArgumentNullException.ThrowIfNull(writeStagingContent);
-        if (!StringComparer.Ordinal.Equals(Path.GetFileName(stagingFileName), stagingFileName))
-        {
-            throw new ArgumentException(
-                "The staging file must be a plain file name in the report directory.",
-                nameof(stagingFileName));
-        }
-
         string fullPath = Path.GetFullPath(reportPath);
         string? directory = Path.GetDirectoryName(fullPath);
         if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(Path.GetFileName(fullPath)))
@@ -107,10 +101,10 @@ internal static class CliCompositionRunSupport
             throw new ArgumentException("Report path must resolve to a file path.", nameof(reportPath));
         }
 
+        string stagingPath = ResolveStagingPath(directory, fullPath, stagingFileName);
         byte[] content = ReportEncoding.GetBytes(reportJson);
         cancellationToken.ThrowIfCancellationRequested();
         _ = Directory.CreateDirectory(directory);
-        string stagingPath = Path.Combine(directory, stagingFileName);
         bool stagingCreated = false;
         try
         {
@@ -142,6 +136,48 @@ internal static class CliCompositionRunSupport
         }
 
         await output.WriteLineAsync($"Report: {fullPath}").ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Resolves the staging file as a new direct child of the report directory. A name that is not a plain
+    /// file name, or that names the report itself after path normalization (for example trailing dots),
+    /// case folding or Unicode normalization, would let the write skip the rename, so it is refused.
+    /// </summary>
+    private static string ResolveStagingPath(
+        string directory,
+        string reportFullPath,
+        string stagingFileName)
+    {
+        string stagingPath = Path.GetFullPath(Path.Combine(directory, stagingFileName));
+        return stagingFileName.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 &&
+            IsEquivalentPath(Path.GetDirectoryName(stagingPath), directory) &&
+            !IsEquivalentPath(stagingPath, reportFullPath)
+                ? stagingPath
+                : throw new ArgumentException(
+                    "The staging file must be a plain file name in the report directory that does not name the report.",
+                    nameof(stagingFileName));
+    }
+
+    private static bool IsEquivalentPath(string? left, string right)
+    {
+        return left is not null &&
+            string.Equals(
+                NormalizeForComparison(left),
+                NormalizeForComparison(right),
+                StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeForComparison(string path)
+    {
+        try
+        {
+            return path.Normalize(NormalizationForm.FormC);
+        }
+        catch (ArgumentException)
+        {
+            // A path that is not valid Unicode is compared as written.
+            return path;
+        }
     }
 
     private static void DeleteStagingFile(string stagingPath)
