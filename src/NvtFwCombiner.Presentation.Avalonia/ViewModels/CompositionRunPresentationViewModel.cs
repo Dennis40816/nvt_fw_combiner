@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Capabilities;
 
@@ -195,10 +196,16 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         }
         catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })
         {
-            if (!TryPublishCommittedResultWithoutReport(context, completedResult, build, "Cancelled after output commit."))
+            if (!TryGetCommittedBuildOutput(completedResult, build, out string? committedOutputId))
             {
                 return null;
             }
+
+            PublishCommittedResultWithoutReport(
+                context,
+                completedResult,
+                committedOutputId,
+                _stateBindings.Text().CommittedOutputCancelledReportFailure);
         }
         catch (CompositionPreRunRefusalException exception)
         {
@@ -210,13 +217,15 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
                 succeeded: false), context);
             OnPropertyChanged(nameof(LastRunResult));
         }
+        catch (Exception exception) when (
+            TryGetCommittedBuildOutput(completedResult, build, out string? committedOutputId) &&
+            (exception is IOException or UnauthorizedAccessException ||
+                ReportPresentationViewModel.IsReportMaterializationException(exception)))
+        {
+            PublishCommittedResultWithoutReport(context, completedResult, committedOutputId, exception.Message);
+        }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
-            if (TryPublishCommittedResultWithoutReport(context, completedResult, build, exception.Message))
-            {
-                return context.Owner.LastRunResult;
-            }
-
             string action = build ? "Build" : "Preview";
             context.Owner.Publish(new UiRunResultViewModel(
                 $"{action} failed",
@@ -260,26 +269,39 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         return context.Owner.LastRunResult;
     }
 
-    private bool TryPublishCommittedResultWithoutReport(
-        CompositionRunContext context,
-        CompositionRunResult? result,
+    /// <summary>True only after a successful Build has committed its output BIN.</summary>
+    private static bool TryGetCommittedBuildOutput(
+        [NotNullWhen(true)] CompositionRunResult? result,
         bool build,
-        string reason)
+        [NotNullWhen(true)] out string? committedOutputId)
     {
-        if (!build || result is not { Succeeded: true, Report.Output.Committed: true } ||
-            string.IsNullOrWhiteSpace(result.CommittedOutputId))
+        if (build &&
+            result is { Succeeded: true, Report.Output.Committed: true, CommittedOutputId: { } outputId } &&
+            !string.IsNullOrWhiteSpace(outputId))
         {
-            return false;
+            committedOutputId = outputId;
+            return true;
         }
 
+        committedOutputId = null;
+        return false;
+    }
+
+    /// <summary>Keeps the committed output receipt visible when its report cannot be delivered.</summary>
+    private void PublishCommittedResultWithoutReport(
+        CompositionRunContext context,
+        CompositionRunResult result,
+        string committedOutputId,
+        string reportFailure)
+    {
+        ShellTextResources text = _stateBindings.Text();
         context.Owner.Publish(new UiRunResultViewModel(
-            "Build output committed; report unavailable",
-            $"{result.OutputSize} bytes / SHA-256 {result.OutputSha256}. Report unavailable: {reason}",
-            result.CommittedOutputId,
+            text.CommittedOutputReportUnavailableTitle,
+            text.FormatCommittedOutputReportUnavailableDetail(result.OutputSize, result.OutputSha256, reportFailure),
+            committedOutputId,
             succeeded: false), context);
         OnPropertyChanged(nameof(LastRunResult));
-        _ = _stateBindings.TryShowBuildCompleted(result, build);
-        return true;
+        CompositionProgress.MarkReportUnavailable();
     }
 
     internal async Task ShowDiagnosticPreviewAsync(CompositionRunContext context, CompositionRunReport report)
@@ -415,18 +437,17 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             result.Succeeded ? result.CommittedOutputId ?? result.OutputFileName : "No output",
             deliveryComplete), context);
         OnPropertyChanged(nameof(LastRunResult));
-        _ = _stateBindings.TryShowBuildCompleted(result, build);
-
-        if (!publishReport)
+        if (publishReport)
         {
-            return;
+            _stateBindings.Reports().PublishGeneratedReport(
+                report,
+                reportJson,
+                action,
+                show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
         }
 
-        _stateBindings.Reports().PublishGeneratedReport(
-            report,
-            reportJson,
-            action,
-            show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
+        // A report-publication failure reaches the committed-output fallback before any success modal opens.
+        _ = _stateBindings.TryShowBuildCompleted(result, build);
     }
 
     private async Task ObserveRunProgressAsync(

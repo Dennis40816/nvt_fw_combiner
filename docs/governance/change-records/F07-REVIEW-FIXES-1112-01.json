@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "taskId": "F07-REVIEW-FIXES-1112-01",
+  "capability": "Complete the F07 committed-output recovery: every report-materialization failure, localized text, no success modal and a terminal progress state",
+  "integrationBase": "6b31408279b326cb8043a7a8a36cbf496964aa82",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.RunProgress.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.RunProgress.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Pull request #448 review (P1): JsonException, FormatException and OverflowException, which ReportPresentationViewModel classifies as report-materialization failures, escape the committed-output fallback of CompositionRunPresentationViewModel after the BIN is committed.",
+    "Pull request #448 review (P1): the committed-output-without-report title and detail are English-only; ShellTextResources owns bilingual run text.",
+    "Pull request #448 review (P2): the fallback opens the ordinary Build Completed modal, and progress stays at 'preparing report' because only the normal path calls MarkReportReady."
+  ],
+  "semanticOwner": "CompositionRunPresentationViewModel remains the only run-result projection owner; ReportPresentationViewModel keeps the only report-materialization exception classification; ShellTextResources owns the text; CompositionRunProgressViewModel owns delivery state.",
+  "terminalContract": "After a Build output commits, a cancellation or any report-materialization failure classified by ReportPresentationViewModel publishes the committed output's path, size and SHA-256 without a report, in the selected shell language; the Build Completed success modal is not opened for that result; the progress projection reaches a terminal report-unavailable state instead of staying at report preparation. Behavior before the output commits, the normal success path, every output byte, name and range, and the loose-delivery handling are unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 correction of review findings on pull requests #448 and #449; reviewed with the batch in the fixed-head final review."
+  },
+  "implementationHead": "f19d4156f3ab8d7a150ff44be5d0b339e34961f6",
+  "reviewedHead": "f19d4156f3ab8d7a150ff44be5d0b339e34961f6",
+  "pathStateDigest": "6495acddc98f1d871a95a265e4100d98d98608af5b4ce9b0e9599b4a8ec10b57",
+  "finalReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only final review by codex/gpt-6-sol: APPROVED, findings incorporated, at exact head f19d4156f3ab8d7a150ff44be5d0b339e34961f6. Its tree is identical to the previously reviewed ee634de0cbba04b4d0a5dfd286ca88c736372d10 tree, so that approval carries forward. Findings F-1 through F-4 were incorporated: generated-report publication precedes the Build Completed modal; regressions cover publication failures, post-commit projection failures, unchanged pre-commit handling, and both languages. The prior review recorded UiSmoke 1666/1666 and Architecture 269/269 at ee634de0c; those checks were not rerun for this review. Partial LoadedReport or history mutation on publication failure remains the tracked 1.1.13 residual."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.RunProgress.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"
+  ]
+}

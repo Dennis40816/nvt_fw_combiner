@@ -43,6 +43,39 @@ internal sealed partial class ShellTextResources
             : "Report ready";
     }
 
+    /// <summary>Returns the localized terminal label when a committed output has no reviewable report.</summary>
+    public string GetCompositionReportUnavailableLabel()
+    {
+        return SelectLanguage(
+            "Output ready; report unavailable",
+            "輸出已就緒，報告無法使用");
+    }
+
+    /// <summary>Gets the run-result title for a committed Build output whose report is unavailable.</summary>
+    internal string CommittedOutputReportUnavailableTitle => SelectLanguage(
+        "Build output committed; report unavailable",
+        "Build 輸出已寫入，報告無法使用");
+
+    /// <summary>Gets the report failure shown when cancellation arrives after the output commit.</summary>
+    internal string CommittedOutputCancelledReportFailure => SelectLanguage(
+        "Cancelled after output commit.",
+        "輸出寫入後已取消。");
+
+    /// <summary>Formats the committed output receipt that remains visible without its report.</summary>
+    internal string FormatCommittedOutputReportUnavailableDetail(
+        long outputSize,
+        string outputSha256,
+        string reportFailure)
+    {
+        return SelectLanguage(
+            string.Create(
+                CultureInfo.CurrentCulture,
+                $"{outputSize} bytes / SHA-256 {outputSha256}. Report unavailable: {reportFailure}"),
+            string.Create(
+                CultureInfo.CurrentCulture,
+                $"{outputSize} 位元組 / SHA-256 {outputSha256}。報告無法使用：{reportFailure}"));
+    }
+
     /// <summary>Formats the lifecycle ordinal without presenting it as byte completion.</summary>
     public string FormatCompositionRunStepOrdinal(int currentStep, int stepCount)
     {

@@ -210,8 +210,13 @@ public static class CompiledInputArtifactInspectionService
         CompiledInputSlotRequirement slot,
         CompiledInputArtifactInspectionResult inspection)
     {
-        return details.Provenance.Context is not ResolvedMapV2CompilationContext
-        { SourceEnvelope: { } envelope } ||
+        SourceEnvelopeExtent? envelope = details.Provenance.Context switch
+        {
+            ResolvedMapV2CompilationContext resolved => resolved.SourceEnvelope,
+            RuntimeReferenceReplaceV2CompilationContext runtime => runtime.SourceEnvelope,
+            _ => null,
+        };
+        return envelope is null ||
             !StringComparer.Ordinal.Equals(slot.SlotId, envelope.SourceSlotId) ||
             inspection.Severity != CompiledInputArtifactInspectionSeverity.Valid ||
             envelope.ExpectedOuterLengths.Contains(inspection.ActualLength)
