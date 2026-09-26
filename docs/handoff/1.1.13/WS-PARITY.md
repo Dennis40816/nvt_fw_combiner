@@ -461,10 +461,13 @@ checkpoint `38b85b15b861027972a9ca6945411f57220c4c47` is the `integrationBase`
 of both records. The branch starts from `feature/1.1.13/wave2` `b7249de8f`;
 this one commit carries the handoff documents of
 `feature/1.1.13/rolling-parity` (`828745211` to `120201287`) and this log.
-Between `120201287` and `b7249de8f` only capability fingerprints, projection
-digests and an NT51950 metadata search range changed in the policy, manifest
-and NT51950 profiles; no route id, case, artifact or region the P-1 documents
-bind changed. The P-2 drafts stay uncommitted outside this branch.
+Between `120201287` and `b7249de8f` the policy, manifest and NT51950
+profiles changed capability fingerprints, projection digests and an NT51950
+metadata search range; the NVT end-flag work also replaced four
+synthetic-oracle `expectedSha256` values (owner decision 48, attested) and
+changed AB metadata declarations and map bindings. The plan, case and
+artifact, region and historical output identities the P-1 documents bind did
+not change (independent final review, 2026-09-27). The P-2 drafts stay uncommitted outside this branch.
 Open: the fixed-head final review (commander); the owner's 1.1.13 approval
 of the 11 candidate-route gaps; the R3 firmware-owner attestation at
 finalization.
