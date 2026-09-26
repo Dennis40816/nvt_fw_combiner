@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "NVT-END-FLAG-RELEASE-PIN-1113-01",
+  "capability": "Synchronize the release package and smoke pins of the canonical capability policy and the package trust index with the bytes NVT-END-FLAG-1113-01 re-issues",
+  "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
+  "risk": "R3",
+  "kind": "release",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/package.ps1",
+    "scripts/smoke-release.ps1",
+    "tests/scripts/test_release_package_policy.py"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "NVT-END-FLAG-1113-01 re-issues docs/contracts/canonical-capability-policy-v1.json (23 NT51950/NT51951 capabilityFingerprints) and profiles/built-in/package-trust-index.json (five bundle content hashes), so their LF-byte SHA-256 values change in the same batch.",
+    "Current release projections of those digests (git ls-files scan): scripts/package.ps1 pins the policy SHA-256; scripts/smoke-release.ps1 pins the policy SHA-256 and ApprovedPackageTrustIndexSha256; tests/scripts/test_release_package_policy.py pins the policy SHA-256 fixture. The runtime policy pin in BuiltInCanonicalCapabilityPolicy.cs stays with NVT-END-FLAG-1113-01, which re-issues the policy.",
+    "scripts/package.ps1 and scripts/smoke-release.ps1 are R3 release scripts (CAPABILITY_REUSE_R3_SCRIPTS); AGENTS.md requires release-owner and release-policy evidence for them, and an attestation carries one authorityType per taskId, so the firmware record cannot also hold the release-owner gate (independent design review F-2).",
+    "Precedent RELEASE-CAPABILITY-POLICY-PIN-112-01: a digest-only release pin record with a release-owner attestation, keeping historical projections (the 2026-08-22 audit, the v0.9.16 parity certification) at their old values."
+  ],
+  "semanticOwner": "docs/contracts/canonical-capability-policy-v1.json and profiles/built-in/package-trust-index.json remain the canonical owners, re-issued only by NVT-END-FLAG-1113-01; scripts/package.ps1 and scripts/smoke-release.ps1 remain their existing release projections and tests/scripts/test_release_package_policy.py their existing executable assertion owner.",
+  "terminalContract": "Change only the canonical-capability-policy SHA-256 scalar in scripts/package.ps1 and scripts/smoke-release.ps1, the package-trust-index SHA-256 scalar in scripts/smoke-release.ps1, and the matching policy fixture constant in tests/scripts/test_release_package_policy.py, each to the authoritative LF-byte SHA-256 of the file NVT-END-FLAG-1113-01 produces at the same reviewed head. Historical projections keep their recorded values. Do not change the policy or trust-index bytes, runtime, profiles, Golden or BIN data, the package allowlist, asset roles or counts, workflows or permissions, package or smoke semantics, cleanup behavior, release assets, or firmware semantics. This record and NVT-END-FLAG-1113-01 are admitted, reviewed and finalized in one batch with disjoint paths; this record requires a release-owner attestation and NVT-END-FLAG-1113-01 a firmware-owner attestation, both at the exact final-evidence head. The release-package policy tests, the frozen-candidate full verifier, protected CI and release gates remain mandatory.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "findings-incorporated",
+    "evidence": "codex/gpt-6-astra independently reviewed the release companion together with patch revision 3, SHA-256 26d851227d9544760696c09bc2e1cf82530994c819bf63890486888b999f9b27, against source HEAD 8682dd269a88bd9c162724e6087ad3db641b28fa and integration base 84b084dd8fd218730ce75adb93b5dc2c456dd3c6. F-2 is incorporated: this R3 release record exclusively owns three release-projection paths, disjoint from the firmware record, and limits changes to four digest scalars derived from authoritative LF bytes at the same reviewed head. Both records must be finalized in one batch, with separate release-owner and firmware-owner attestations at the exact final-evidence head. Historical projections, release semantics, permissions and protected gates remain unchanged. Verdict: ACCEPT; findings-incorporated. Digest edits are planned and are not present in revision 3. No build or tests were run; release-policy verification and final owner evidence remain required. The reviewed source 8682dd269a88bd9c162724e6087ad3db641b28fa is tree-identical to the rebuilt base 04369b738c938b7bdfc6d3277f7c4a6420a36f62."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
