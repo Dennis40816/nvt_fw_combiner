@@ -1,14 +1,20 @@
-# ADR 00XX (draft): Test architecture: selection groups, categories, class size and UI smoke scheduling
+# ADR 0079 (draft): Test architecture: selection groups, categories, class size and UI smoke scheduling
 
-- Status: **Proposed** — design draft; not implementation authority.
-- Date: 2026-09-26 (revised the same day after the independent design review)
+- Status: **Proposed** — the owner decided every open question on 2026-09-26
+  (board decisions 69 to 76, recorded in the 1.1.12 board on
+  `feature/1.1.13/wave2` at `dbc96c268`); this draft enters `docs/adr/` through
+  the T1 admission and is not implementation authority before it is accepted
+  there.
+- Date: 2026-09-26 (revised the same day after the independent design review,
+  then for the owner decisions)
 - Owners: repository owner (test, CI and release policy); drafted by Claude
   Code (Opus 5.5) for WS-TEST ([log](WS-TEST.md), [1.1.13 board](../1.1.13.md)).
 - Review: independent design review by `codex/gpt-6-astra` at `87ac3d6c1`,
-  ACCEPT-WITH-CHANGES (P1 F-1 to F-3, P2 F-4 to F-6). This revision takes in
-  every finding ([log](WS-TEST.md#design-review-2026-09-26)).
-- Number: placeholder. The commander assigns it at integration; 0074 to 0077
-  are taken, and the WS-GOV governance draft also uses a placeholder.
+  ACCEPT-WITH-CHANGES (P1 F-1 to F-3, P2 F-4 to F-6). The revision at
+  `20dbfcdc3` takes in every finding ([log](WS-TEST.md#design-review-2026-09-26)).
+- Number: 0079, allocated by the board (0077 pre-built profile catalog, 0078
+  predecessor comparison, 0080 governance reset); the number stays with this
+  topic even if another ADR is admitted first.
 - Risk: R2 (test and CI contract; `docs/adr/` is governed). Every part that
   changes `.github/workflows/` or what a required check accepts (including the
   CI evidence finalizer, whose verdict release admission relies on) is R3 and
@@ -16,7 +22,7 @@
 - Amends (on acceptance): [ADR 0027](../../adr/0027-evidence-preserving-performance-remediation.md),
   section "2026-08-12 evidence-sharded .NET CI amendment", only as stated in
   decision item 9.
-- Depends on: the WS-GOV governance draft
+- Depends on: the WS-GOV governance draft, ADR 0080
   (`feature/1.1.13/ws-gov:docs/handoff/1.1.13/ADR-DRAFT-governance-reset.md`:
   authority path map, item 4; CI tiers, item 13) and the CI failure-evidence
   change (`CI-FAILURE-EVIDENCE-1113-01` on `feature/1.1.13/ci-evidence`, R3).
@@ -250,7 +256,7 @@ Declaring categories:
    and add a class trait only where a runner filters by it.** Selected.
 
 Size policy: extend WS-GOV's hotspot growth block to test classes (selected,
-owner decision D-3); an advisory report only (the 1.1.12 WS-GOV evidence shows
+board decision 75); an advisory report only (the 1.1.12 WS-GOV evidence shows
 advisory reports did not stop growth); or a split deadline (forces splits into
 classes that active work is editing).
 
@@ -268,7 +274,9 @@ files) is a later refinement, once each module's inputs are declared.
 
 ### 2. Execution categories and Golden membership
 
-Each test class has exactly one execution category:
+Board decision 76 (D-8): a label is added only where a tool reads it, and
+Golden membership stays with the canonical manifest. Each test class has
+exactly one execution category:
 
 | Category | Meaning | Declared by | How it runs |
 | --- | --- | --- | --- |
@@ -292,7 +300,8 @@ Rules:
 - A class has one execution category. A class whose tests need different
   categories is split, not labeled per method. Existing mixed classes
   (Architecture topic files that also read documents; the mixed UiSmoke classes
-  of item 10) are resolved through D-4 and option U2a, not by relabeling.
+  of item 10) are resolved through board decision 71 (document assertions,
+  test by test with the owner) and option U2a, not by relabeling.
 - A `Category` trait is added at class level only when a runner must filter by
   it (first candidates: a separate process-test invocation with hang
   detection, and a UiSmoke partition). A structure check then rejects unknown
@@ -353,7 +362,11 @@ product test or other semantic verification; only listed generic
 document-structure checks may read it (Markdown links and anchors, the line
 ceiling, encoding and file-name rules). Documents that topic tests still read
 (for example the ADRs, UI and architecture documents asserted by
-Architecture.Tests) are not prose and keep their row 11 mapping. WS-GOV's
+Architecture.Tests) are not prose and keep their row 11 mapping. Which
+document assertions move into the structure lane, stay mapped to their
+documents or are deleted is decided test by test with the owner (board
+decision 71): a check that protects a fact stays, and only checks the owner
+confirms freeze wording and nothing else are deleted. WS-GOV's
 current wording ("no test or script reads") would stay false even after the
 move, because the structure lane reads every document; G2 changes the wording,
 its checker and the list of document checks to migrate together (commander
@@ -373,9 +386,10 @@ consumers: a local report (`which groups does my diff need, and why`) that
 replaces the narrow-test table, and WS-GOV G2's pull-request tier. Coverage can
 add groups to the selection (item 4).
 
-### 4. Coverage on pull requests (D-1)
+### 4. Coverage on pull requests (board decision 69)
 
-Two questions are answered separately.
+Board decision 69 (D-1) takes the revised option B below. Two questions are
+answered separately.
 
 1. **Which product modules must be checked:** every product module that any
    selected test group executes in-process. This covers a change to product
@@ -396,10 +410,9 @@ that reaches product code or .NET tests in practice keeps today's full
 coverage; the saving is for pull requests that reach no product module
 (documents, scripts, tools, Architecture-only changes).
 
-This is D-1 option B. Until it is built and verified, every pull request that
-reaches a product module keeps today's full coverage; there is no automatic
-fallback. Coverage only at full runs (D-1 option A) lowers today's protection
-and is valid only with the owner's separate, explicit acceptance. A later
+Until B is built and verified, today's full coverage rule stays unchanged.
+Coverage only at full runs (option A, rejected by decision 69) is not a
+fallback: lowering today's protection would need a new owner decision. A later
 refinement may reuse the exact base's full-run reports for contributors whose
 inputs are provably unchanged.
 
@@ -453,11 +466,11 @@ checks do not change.
   the new version. An observation the new version cannot re-evaluate (for
   example because a base object is gone) no longer counts.
 
-**Exit and activation.** Selection is enabled only when all of these hold,
-and then only by the owner's explicit decision:
+**Exit and activation** (board decision 70). Selection is enabled only when
+all of these hold, and then only by the owner's explicit decision:
 
-- the window (D-2; proposal: 20 distinct pull requests or two weeks, whichever
-  is longer) has no `miss` and no open `unresolved`;
+- the window, at least 20 distinct pull requests with complete full-run
+  evidence over at least two weeks, has no `miss` and no open `unresolved`;
 - a case matrix passes, each case with its expected selection checked on a
   synthetic diff and, where one exists, on a real pull request: cross-layer
   changes (Domain; a Presentation-only change); linked inputs (TestSupport
@@ -478,9 +491,10 @@ them.
 - Size is measured per class aggregate: nonblank lines over all partial files
   and test methods.
 - Test aggregates of at least 2,000 nonblank lines join the hotspot list of
-  WS-GOV item 17 and leave it below 1,500 (owner decision D-3). A listed
-  aggregate may not grow; new tests go into a feature-scoped class that keeps
-  the isolation and collection contract of the tests it joins.
+  WS-GOV item 17 and leave it below 1,500 (board decision 75: the product-code
+  size rule applies to test classes too). A listed aggregate may not grow; new
+  tests go into a feature-scoped class that keeps the isolation and collection
+  contract of the tests it joins.
 - A test file's name is `<Class>.cs` or `<Class>.<Topic>.cs` for the class it
   declares. Existing mismatches are fixed when their class is split or next
   touched, in a rename-only commit.
@@ -527,7 +541,8 @@ Split rules:
   state with its owner and initialization count, background work and its
   cleanup, collection membership and any order dependence. Any difference
   other than the declared class names is explained.
-- **S10.** A size limit is never a reason to remove serialization.
+- **S10.** A size limit is never a reason to remove serialization (board
+  decision 75).
 
 ### 8. Stability rules
 
@@ -573,12 +588,16 @@ the pull request tier a group that the selection excluded counts as "not
 applicable" only when the finalizer recomputes the same selection for the exact
 base and head (G2).
 
-The 300-second acceptance clause and its "rather than adding shards" stop rule
-remain in force until this ADR is accepted. Past runs over 300 seconds did not
-void them. If the owner takes D-5 A, this ADR replaces both clauses from the
-day it is accepted, and the duration targets that take their place are set
-from the U0 measurement and recorded here; a shard is added only on U0 and U4
-evidence.
+Board decision 72 (D-5): this ADR replaces the 300-second acceptance clause
+and its "rather than adding shards" stop rule explicitly, effective on the day
+this ADR is accepted, with measured targets. Until then both clauses stand;
+past runs over 300 seconds did not void them. The measured targets are
+recorded here before acceptance, from a window of recent CI runs measured as in
+the context above and refreshed at the T1 final review (median and about p90
+per job and for the whole run). They are monitoring targets, not timing gates
+(ADR 0027 prefers counts and work units over wall-clock gates); U0 explains
+where the time goes and informs later targets. A shard is added only after U0
+and shared builds (U4).
 
 ### 10. UiSmoke
 
@@ -608,9 +627,9 @@ elsewhere are upper bounds, not waits.
 | U0 | Measure: per-class and per-test time from the TRX of a green CI UI shard (kept three days), the phase split from its shard log, and one local run on a quiet machine | Shows where the 479 s go; prerequisite for U2 to U5 | about an hour; none | an artifact download |
 | U1 | Diagnostics: hang detection without memory dumps (item 8), failing test names in the log (CI evidence change), per-test timeouts on UI waits | Faster diagnosis; no speed change | R3 sub-item of the CI evidence contract for the hang attachment | CI evidence change merged; `verify.py` owner |
 | U2 | In-project fixes guided by U0. U2a: split the four mixed classes in two changes (S4): first a mechanical move that keeps every file in `UiAvaloniaRuntime`, then a separate change that takes out only the files whose S9 review shows no direct or indirect UI, global-resource, background or process-wide use. U2b: replace fixed sleeps with waits on the observed event. U2c: where U2a multiplies Bootstrap group fixtures, measure the cost and apply S5 | U2a is the largest expected in-project gain (size known only after U0); U2b is for stability | R1 test-only; each new class adds a Bootstrap fixture; unclear files stay serialized; conflicts with F08 and the navigation work in the same classes | U0; write locks clear |
-| U3 | Less coverage work on pull requests | Under D-1 A, no instrumentation on pull requests; under D-1 B, unchanged for pull requests that reach product code | A lowers protection (item 4); a coverage policy and finalizer change | G2 (R3); owner decision D-1 |
+| U3 | Less coverage work on pull requests | Decided by board decision 69 (revised B): unchanged for pull requests that reach product code; none for those that reach no product module | a coverage policy and finalizer change (item 4) | G2 (R3) |
 | U4 | Build once; test shards reuse the Release build | Removes the per-shard restore and build from every shard | artifact transfer; build-output custody (hash checks exist) | G2 (R3) |
-| U5 | Partition UiSmoke over two runners (item 9) | Roughly halves the UI test-execution part | one more runner; partition evidence; amends ADR 0027 | U0, U4, G2; owner decision D-5 |
+| U5 | Partition UiSmoke over two runners (item 9) | Roughly halves the UI test-execution part | one more runner; partition evidence; allowed by this ADR's amendment of ADR 0027 once accepted (decision 72) | U0, U4, G2 |
 | U6 | Move tests that build no Avalonia control into a new, fully parallel project | Largest structural gain for UI | hundreds of moved tests; a ninth project changes the closed inventory (R3) | only if U2 to U5 are not enough |
 | U7 | Skip UiSmoke by path | Helps prose, script and non-UI leaf changes only; UiSmoke references almost every `src/` project | none beyond item 3 | selector |
 
@@ -641,9 +660,10 @@ serial Infrastructure run inside `core` (batch T5).
 - A path-selected pull request can miss a cross-group interaction until the
   next full run; shadow mode, its case matrix and weekly full runs bound that
   risk.
-- With D-1 B, pull requests that reach product code keep full coverage, so
-  their .NET run does not get shorter; only D-1 A would shorten it, at the cost
-  of finding some coverage drops after merge. Golden cases run on a pull
+- Under decision 69, pull requests that reach product code keep full coverage,
+  so their .NET run does not get shorter; only the rejected option A would
+  have shortened it, at the cost of finding some coverage drops after merge.
+  Golden cases run on a pull
   request only when a change can reach them; every full run and release still
   runs all of them.
 - The map, the selector and the shadow-mode records are new governance-class
@@ -670,21 +690,25 @@ serial Infrastructure run inside `core` (batch T5).
 | Batch | Content | Risk | Evidence and review | Depends on |
 | --- | --- | --- | --- | --- |
 | T0 | This draft, the pilot plan, the log | R0 (a non-binding draft) | independent design review of `87ac3d6c1` done (ACCEPT-WITH-CHANGES); this revision takes in its findings | - |
-| T1 | The ADR into `docs/adr/` with its number; reciprocal "Amended by" line in ADR 0027; one pointer each in `tests/README.md` and `tests/AGENTS.md` | R2 | before WS-GOV G1-B: a capability-reuse record, exact-head review and owner acceptance; after G1-B: the pull request fields, review and owner approval | T0 review, owner decisions |
-| T2a | Pilot mechanical move of `RepositoryBoundaryTests`, serialization unchanged | R1, tests only | pilot evidence E1 to E7 and independent review; no capability-reuse record (the validator rejects a record whose only path is a test file, as for the H1 fix) | owner decision D-6; mapping recomputed at the branch point; write locks clear |
+| T1 | The ADR into `docs/adr/` as ADR 0079 with its measured targets (item 9); reciprocal "Amended by" line in ADR 0027; a pointer in `tests/README.md`; the pointer in `tests/AGENTS.md` only while no other batch holds that file (G1-B and WS-AI also edit `AGENTS.md` files) | R2 | before WS-GOV G1-B: a capability-reuse record, exact-head review and owner acceptance; after G1-B: the pull request fields, review and owner approval | T0 review, owner decisions |
+| T2a | Pilot mechanical move of `RepositoryBoundaryTests`, serialization unchanged | R1, tests only | pilot evidence E1 to E7 and independent review; no capability-reuse record (the validator rejects a record whose only path is a test file, as for the H1 fix) | board decision 74; mapping recomputed at the branch point; write locks clear |
 | T2b | Pilot de-serialization: remove the shared collection, process batch in its own serialized collection | R1, tests only | S9 review, repeated parallel runs, timing; separate review | T2a merged |
 | T3 | Selection map, selector with its resolution rules, declared-input and structure checks, local report; the runbook's narrow-test table becomes a pointer | R2; any part that changes what a required check accepts is R3 | record or pull request fields as in T1, review | CI evidence merged (`verify.py` has one writer); G1-A (authority map); the runbook edit goes through G1-B's writer |
 | T4a | Shadow mode in CI: selection computed and recorded on every pull request; full suite and required checks unchanged | R3 (workflow path) | inside WS-GOV G2: release-owner approval, negative tests | T3, G2 |
-| T4b | Activation: "not applicable" producers, coverage per D-1, document checks in the structure lane, ADR 0027 amendment in force | R3 | the exit criteria of item 6, the owner's explicit enablement | T4a evidence |
+| T4b | Activation: "not applicable" producers, coverage per decision 69, document checks in the structure lane, ADR 0027 amendment in force | R3 | the exit criteria of item 6 (decision 70), the owner's explicit enablement | T4a evidence |
 | T5 | U0 and U2; U1 as an R3 sub-item of the CI evidence contract; Infrastructure: only process classes serialized, after measurement; further mechanical splits of listed classes; U5 if decided | R1 to R3 by item | per item | measurements; write locks |
 
-Order: the CI evidence change merges first. T0's review and the owner
-decisions run in parallel with it, and T2a and T2b may land independently of
-both (test files only). T1 lands before or with T3. G1-A precedes T3; T3
-precedes G2, which carries T4a and then T4b. T5 items follow their
-measurements. Nothing in WS-TEST edits `ci.yml` or `verify.py` before the CI
-evidence change merges, and no WS-TEST branch merges the trunk (rebase only,
-board working rules).
+Order: the CI evidence change merges first; T2a and T2b may land
+independently of it (test files only). T1 lands before or with T3. G1-A
+precedes T3; T3 precedes G2, which carries T4a and then T4b. T5 items follow
+their measurements. Nothing in WS-TEST edits `ci.yml` or `verify.py` before the
+CI evidence change merges, and no WS-TEST branch merges the trunk (rebase
+only, board working rules).
+
+Version allocation (board decision 73, D-7): 1.1.13 carries T1, T2a, T2b and
+U0; T3 joins 1.1.13 only if WS-GOV G1-A lands in 1.1.13; T4b has no version
+deadline and happens when its evidence is complete. The roadmap owns the
+allocation text.
 
 ## Verification
 
@@ -702,14 +726,20 @@ board working rules).
   suite; a producer that is selected but missing fails the aggregator.
 - UiSmoke: U0's table before and after each U2 change, on the same runner type.
 
-## Open owner decisions
+## Owner decisions
 
-Listed in plain words, highest risk first, in the
-[log](WS-TEST.md#owner-decisions-in-risk-order); all pending. D-1 whether some
-coverage drops may surface only after merge (recommended: no, the revised B;
-full coverage stays until B exists); D-2 when to trust the selector
-(recommended: the shadow window with item 6's exit conditions); D-4 which
-document assertions protect the specification; D-5 whether to replace ADR
-0027's 300-second rule explicitly; D-7 what 1.1.13 commits to; D-6 the pilot
-class; D-3 a growth block for large test classes; D-8 category labels only
-where a tool reads them.
+Decided on 2026-09-26, each as recommended. The authoritative text is in the
+1.1.12 board (`docs/handoff/1.1.12.md` on `feature/1.1.13/wave2` at
+`dbc96c268`, decisions 69 to 76); the questions with the options not taken are
+in the [log](WS-TEST.md#owner-decisions-in-risk-order):
+
+| Question | Board decision | Where it applies |
+| --- | --- | --- |
+| D-1 coverage on selected runs | 69: revised B; full coverage until B exists; A is not a fallback | item 4 |
+| D-2 trusting the test selection | 70: A with the exit conditions | item 6 |
+| D-4 document assertions | 71: decided test by test with the owner | item 3 |
+| D-5 ADR 0027's 300-second rule | 72: replaced by this ADR on acceptance, with measured targets | item 9 |
+| D-7 1.1.13 commitment | 73: T1, T2a, T2b and U0; T3 only with G1-A; T4b without a version deadline | migration |
+| D-6 split pilot | 74: `RepositoryBoundaryTests`, with the S9 review, the list recomputed at the branch point, write locks respected | item 7, pilot plan |
+| D-3 large test classes | 75: the product-code size rule applies to test classes | item 7 |
+| D-8 category labels | 76: only where a tool reads them; Golden stays with the manifest | item 2 |

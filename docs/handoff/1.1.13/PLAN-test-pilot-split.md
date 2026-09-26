@@ -1,8 +1,11 @@
 # Pilot split plan: `RepositoryBoundaryTests` (WS-TEST batches T2a and T2b)
 
-- Status: **plan for owner decision D-6**; not started. It becomes a dispatch
-  envelope when the commander schedules it. Revised on 2026-09-26 after the
-  independent design review (findings F-5 and F-6 in the [log](WS-TEST.md)).
+- Status: **approved plan, not started.** Board decision 74 (D-6) chose this
+  class, with the class, fixture and shared-state review, the file list
+  recomputed at the real branch point and active write locks respected;
+  decision 73 puts T2a and T2b in 1.1.13. It becomes a dispatch envelope when
+  the commander schedules it. Revised on 2026-09-26 after the independent
+  design review (findings F-5 and F-6 in the [log](WS-TEST.md)).
 - Rules: the split rules S1 to S10 of the
   [test architecture ADR draft](ADR-DRAFT-test-architecture.md) (decision
   item 7). Log: [WS-TEST](WS-TEST.md).
@@ -11,7 +14,8 @@
 - Two separately reviewed changes (rule S4): **T2a** moves the files and keeps
   every test in one serial collection, exactly as the single class runs today;
   **T2b** removes that serialization after its own evidence.
-- Measured at `cf4e42697` (static counts; no build or test run). Step 0
+- Measured at `cf4e42697`, whose Architecture test files are identical to the
+  trunk head `9b2a7369e` (static counts; no build or test run). Step 0
   recomputes everything at the real branch point.
 
 ## Why this class
@@ -36,8 +40,10 @@
    assertions), which WS-GOV G2 must move into the structure lane before
    prose-only pull requests may skip product tests. It also gives the
    process-heavy MSBuild batch its own class.
-5. **Few collisions.** Two files are edited by the open nvt-marker branch and
-   two are linked from the roadmap; they stay in a residual class.
+5. **Few collisions.** Two existing files are edited by open branches or
+   worktrees (a third only by a branch that looks abandoned), two are linked
+   from the roadmap, and open branches add two new files; all of them stay in
+   a residual class (see [files to avoid](#files-to-avoid)).
 6. **Cheap to measure.** Architecture.Tests runs last in the `core` CI shard
    and takes seconds to minutes locally, so before and after runs can be
    repeated on a quiet machine.
@@ -49,9 +55,9 @@ option U2a).
 Why not a UI class now: `XamlControlStyleContractTests` and the large shell
 group classes all sit in the serialized `UiAvaloniaRuntime` collection, so a
 UI split gains time only by taking files that build no control out of that
-collection (ADR option U2a). That removes serialization and needs the indirect
-use review of S9, F08 and the navigation focus work edit those classes, and
-UiSmoke timing needs the U0 measurement first. U2a is the recommended second
+collection (ADR option U2a). That removes serialization, which needs the
+indirect-use review of S9; F08 and the navigation focus work edit those
+classes; and UiSmoke timing needs the U0 measurement first. U2a is the planned second
 split, using the procedure this pilot proves. Why not the ProfileContract or
 Application aggregates: the pre-built catalog and VersionManagement work may
 edit them.
@@ -67,19 +73,22 @@ Every file keeps its topic part: `RepositoryBoundaryTests.<Topic>.cs` becomes
 | `PresentationBoundaryTests` | 11 | 1,657 | 34 | PresentationFirmwareSlotStructure, PresentationOrchestration, PresentationRunnerStructure, PresentationTokenStructure, PresentationViewModelStructure, ShellSurface, SettingsModal, LocalUiFileStores, Localization, MemoryLayoutStructure, SupportMatrixStructure |
 | `ApplicationBoundaryTests` | 19 | 1,331 | 33 | AcceptedExecutionConvergence, AdditionalDeliveryConvergence, ApplicationCompositionConvergence, ApplicationConvergence, ApplicationStructure, CompilationExecutionPhases, CompiledCompositionIdentity, CompiledCompositionProjection, V2CompiledCompositionStructure, ProcessorPlanConvergence, SingleExecutionPort, GeneralWorkflowConvergence, GeneralInspectionStructure, InputInspectionStructure, PageInspectionIsolation, DomainPreparationOutcome, FirmwareMapResolutionStructure, FamilyValidationStructure, FullImageMetadata |
 | `CanonicalCatalogBoundaryTests` | 15 | 1,568 | 37 | CanonicalAdmission, CanonicalCapabilityCatalog, CanonicalCatalogSelection, CanonicalIcNumberMode, CanonicalInputs, CanonicalOperations, CanonicalProfileDefinition, CanonicalProfileHeader, CanonicalValidations, CapabilitySelectors, CatalogTokenStructure, ClosedVocabulary, CtrlRamDiscovery, CtrlRamSnapshot, Nt51928CtrlRam |
-| `ProfileBoundaryTests` | 7 | 1,111 | 24 | ProfileStructure, ProfileSchemaTrust, ProfileMaterializerBuildTool, PostbuildStructure, ContractsStructure, RetiredIc, JsonSchemaConcurrency |
+| `ProfileBoundaryTests` | 6 | 1,053 | 23 | ProfileStructure, ProfileSchemaTrust, ProfileMaterializerBuildTool, PostbuildStructure, ContractsStructure, RetiredIc |
 | `PackageTrustBoundaryTests` | 2 | 902 | 5 | PackageTrustIndex, PackageTrustMaterializationBatch; category `process`; the two files share the driver's once-per-process guard and lazy result, so they stay in one class |
 | `BootstrapCliBoundaryTests` | 3 | 1,005 | 25 | BootstrapStructure, BootstrapCliConvergence, CliStructure |
 | `HostInfrastructureBoundaryTests` | 6 | 1,532 | 28 | InfrastructureConvergence, InfrastructureStructure, LauncherBootstrap, FirstInstallationProgress, VersionRegistry, StartupDiagnostics |
 | `RetirementBoundaryTests` | 7 | 546 | 19 | DpReplaceRetirement, LarCatalogRetirement, LarTerminalStructure, LegacyRetirementStructure, WorkbenchRetirement, WorkbenchRetirement.DpIdentity, MemoryNamingConvergence |
 | `RepositoryDocumentTests` | 2 | 251 | 9 | Roadmap, RepositoryShape (the ceiling also covers source files; G2 moves both) |
 | `RepositoryBoundaryTestSupport` (static helpers) | 2 | 367 | 0 | TestSupport and TestParallelism (both without tests), plus the helpers moved under rule S3 |
-| `RepositoryBoundaryTests` (residual) | 4 | 959 | 17 | the root file (class summary and `ArchitectureTestsRemainDependencyFree`), PresentationStructure and DesktopHostConvergence (linked from the roadmap), WorkbenchStructure (edited on nvt-marker) |
+| `RepositoryBoundaryTests` (residual) | 5 | 1,017 | 18 | the root file (class summary and `ArchitectureTestsRemainDependencyFree`), PresentationStructure and DesktopHostConvergence (linked from the roadmap), WorkbenchStructure (edited on nvt-marker and in the C-7 worktree), JsonSchemaConcurrency (edited on VersionManagement JSON) |
 | **Total** | 78 | 11,229 | 231 | |
 
 The mapping covers every file exactly once (checked by a script over the file
-list at `cf4e42697`). `RepositoryBoundaryTests.NvtEndFlagCallers.cs`, which
-nvt-marker adds, joins the residual class until a follow-up moves it. The
+list at `cf4e42697`). Two files that open branches add,
+`RepositoryBoundaryTests.NvtEndFlagCallers.cs` (nvt-marker) and
+`RepositoryBoundaryTests.JsonContextOwnership.cs` (VersionManagement JSON),
+join the residual class when they merge; they compile unchanged because the
+helpers stay reachable through the `global using static` import. The
 largest new class has 1,657 nonblank lines. The implementer may regroup
 topics if a helper dependency requires it, within these limits: no new class
 above 2,000 nonblank lines, document checks in `RepositoryDocumentTests`, the
@@ -97,6 +106,23 @@ its file becomes a partial file of the support class. Helpers shared only
 inside one target class stay where they are: `Slice` (PageInspectionIsolation
 and ApplicationStructure) and the package-trust helpers (the two
 `PackageTrustBoundaryTests` files).
+
+## Files to avoid
+
+Write locks seen on 2026-09-26: committed branch changes against the trunk head
+`9b2a7369e` and uncommitted worktree changes. The commander rechecks at the
+branch point (step 0); a new hit moves that file to the residual class.
+
+| Where | What it edits | Pilot handling |
+| --- | --- | --- |
+| `feature/1.1.13/nvt-marker` | `RepositoryBoundaryTests.WorkbenchStructure.cs`; adds `RepositoryBoundaryTests.NvtEndFlagCallers.cs` | both stay in the residual class |
+| C-7 TP SVN proposal (`<worktrees>/wt-c7-stack`, uncommitted; `<worktrees>/wt-c7-base` adds tests only elsewhere) | `RepositoryBoundaryTests.WorkbenchStructure.cs`; the rest are Application, Bootstrap, Infrastructure, ProfileContract and UiSmoke tests | residual class; no other overlap |
+| `feature/1.1.13/version-management-json` | `RepositoryBoundaryTests.JsonSchemaConcurrency.cs`; adds `RepositoryBoundaryTests.JsonContextOwnership.cs` | both stay in the residual class |
+| The roadmap | links `RepositoryBoundaryTests.PresentationStructure.cs` and `RepositoryBoundaryTests.DesktopHostConvergence.cs` | residual class until the roadmap owner updates the links |
+| F08 (`feature/1.1.13/f08-save-notice`) | UiSmoke: `LocalStateSaveNoticeTests.cs`, `ShellViewModelTests.Preferences.cs` | no overlap: the pilot touches only Architecture.Tests |
+| CLI work (`feature/1.1.13/cli-hardening`; the execution-refusal item of decision 68) | Bootstrap CLI tests, for example `CliReportAtomicWriteTests.cs` | no overlap today; recheck `RepositoryBoundaryTests.CliStructure.cs` and `RepositoryBoundaryTests.BootstrapCliConvergence.cs` at the branch point, where CLI changes usually add structure checks |
+| Rolling parity (`<worktrees>/parity`) | a new repository-script test module | no overlap |
+| `feature/1.1.x/roadmap-and-agent-workflow` | `RepositoryBoundaryTests.Roadmap.cs` | last commit 2026-09-03, not merged: the commander confirms it is abandoned; otherwise `Roadmap.cs` also stays in the residual class |
 
 ## Static review (E7), expected content
 
@@ -119,10 +145,10 @@ difference other than the class names must be explained.
 
 ## Steps
 
-0. **Preconditions.** Owner decision D-6. The commander confirms that no open
-   branch edits a file being moved (re-check the nvt-marker files and any new
-   `RepositoryBoundaryTests.*.cs`), creates `feature/<version>/test-pilot-split`
-   from the trunk and records the dispatch envelope. The implementer recomputes
+0. **Preconditions.** Board decision 74. The commander rechecks the
+   [files to avoid](#files-to-avoid) and any new `RepositoryBoundaryTests.*.cs`,
+   creates `feature/1.1.13/test-pilot-split` from the trunk and records the
+   dispatch envelope. The implementer recomputes
    the file list, the mapping table, the helper uses and the E7 table at that
    branch point B, applies the test-area setup of the root `AGENTS.md`, and
    times only on a quiet machine (no other build, test or verifier; recorded
@@ -195,7 +221,8 @@ difference other than the class names must be explained.
 ## Records and review
 
 Before each implementation commit, the WS-TEST log records the admission:
-authority (D-6), base, exact paths, acceptance, narrow tests, residual items.
+authority (board decisions 73 and 74), base, exact paths, acceptance, narrow
+tests, residual items.
 No capability-reuse record: the validator rejects a record whose only path is a
 test file, as it did for the H1 fix. Each of T2a and T2b gets an exact-head
 review by the other runtime (or a fresh session) with its evidence attached,
@@ -209,7 +236,8 @@ only.
   the MSBuild batch keeps at least twofold headroom.
 - No test body, test name, assertion, input path or product file changed.
 - Every new class is below 2,000 nonblank lines; the residual class holds only
-  the four listed files (five after nvt-marker merges).
+  the five listed files (seven after nvt-marker and VersionManagement JSON
+  merge).
 - The log records the timing result, including a slower result if that is what
   E5 shows.
 
