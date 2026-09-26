@@ -4,8 +4,10 @@ Owner: Claude Code (Opus 5.5), design drafter. Board:
 [1.1.13 board](../1.1.13.md). Protocol: [handoff README](../README.md).
 Deliverables: [governance ADR draft](ADR-DRAFT-governance-reset.md) and
 [release workflow cleanup design](DESIGN-release-workflow-cleanup.md), both
-revised after the [independent design review](#design-review-2026-09-26). The
-owner decisions are at the end, in risk order
+revised after the [independent design review](#design-review-2026-09-26), and
+the [G0 owner checklist](G0-owner-checklist.md). The owner decided every
+question on 2026-09-26 (board decisions 47 and 49 to 55; the others as
+recommended); the questions and answers are at the end
 ([owner decisions](#owner-decisions-in-risk-order)).
 
 ## Dispatch envelope (commander, 2026-09-26)
@@ -41,6 +43,17 @@ owner decisions are at the end, in risk order
   the trunk into it again. Take in every technical correction of the design
   review (F-1 to F-9), list the owner decisions in risk order, in plain words
   with a recommendation and consequences, at the end of this log, then stop.
+- **Owner decisions (commander, 2026-09-26).** The owner took every
+  recommendation (board decisions 47 and 49 to 55; O-3, O-4, RO-2, RO-3, RO-4
+  and RO-6 as recommended). Record them in the ADR draft, the release design
+  and this log with date and decision number, marking the options not taken as
+  rejected. Write `G0-owner-checklist.md`: a GitHub App as the primary agent
+  identity (machine account as fallback), a pre-filled manifest with minimal
+  permissions, the manifest flow, installation on this repository only, the
+  owner keeping the private key, short-lived installation tokens through an
+  owner-configured helper without agents reading the key, and every ruleset
+  change with its parameters for item-by-item approval. Agents never create
+  accounts or handle the owner's credentials. Then stop for the re-review.
 
 ## Ported from 1.1.12
 
@@ -68,7 +81,8 @@ which is not on the trunk; restated here so they survive branch cleanup.
    records for R3 paths only; records with a digest cache.
 2. Move the frozen history (records, attestations, trusted checkpoint,
    waiver) to `docs/governance/archive/` and rewrite the links. Rejected:
-   freezing in place; deleting. (This draft asks to revisit it: O-1.)
+   freezing in place; deleting. (Reversed on 2026-09-26 by board decision 51:
+   frozen in place.)
 3. Independent review prefers another runtime and falls back to a fresh
    session of the same runtime; the pull request states the mode; R3 needs
    owner approval; no process requires two agent products.
@@ -80,8 +94,9 @@ which is not on the trunk; restated here so they survive branch cleanup.
    approval in the pull request; leave the list below 1,500; advisory report
    otherwise; one consolidated ADR 0021.
 6. Rename `policy / polytail`; drop `python-worker / verify` from the required
-   checks until WS-FLOW F11 decides the worker. (This draft amends the second
-   half: O-4.)
+   checks until WS-FLOW F11 decides the worker. (Second half amended on
+   2026-09-26, O-4 as recommended: the repository-script aggregate stays
+   required.)
 7. 1.1.12 release workflow: remove the `0.9.17`-`0.9.19` source options;
    parallel Golden and packaging candidate jobs; keep the v0.9.16 parity jobs.
    Not implemented in 1.1.12. The parity part is superseded by board decision
@@ -285,14 +300,37 @@ longer triggers the trunk-merge failure.
 Open: the owner interview and any re-review (commander).
 Next: stop.
 
+### 2026-09-26 Owner decisions recorded; G0 checklist
+State: local
+Commits: the commit carrying this entry, on `7700a7150`
+Evidence: the ADR draft, the release design and the decision list below now
+state each owner decision with its date and board decision number (47 and 49
+to 55; O-3, O-4, RO-2, RO-3, RO-4 and RO-6 as recommended) and mark the options
+not taken as rejected. New `G0-owner-checklist.md`: GitHub App first (a
+pre-filled manifest with minimal permissions, the manifest flow, installation
+on this repository only, the owner keeping the private key, one-hour tokens
+through an owner-configured helper), the machine-account fallback, ruleset
+changes RS-1a to RS-4 with parameters for item-by-item approval, and a
+verification pull request. The release design adds one point found while
+writing it: with an agent identity, the release policy must accept only
+approvals that include the release owner's principal. The two board rows now
+equal wave 2's text, so later integration does not conflict on them.
+Verification of this commit is recorded in the next entry.
+Open: the independent re-review (commander); G0 itself is the owner's action.
+Next: structure check of this commit, then stop.
+
 ## Owner decisions in risk order
 
 One question at a time, highest risk first. Each item gives the question in
 plain words, the options with their consequences, and a recommendation. The
-review agreed with each recommendation, with the conditions stated. Items not
-listed here (O-3, O-4, RO-2, RO-3, RO-4, RO-6) follow the recommendation in the
-drafts, which the review supported; the owner confirms them with the batch
-that applies them.
+review agreed with each recommendation, with the conditions stated.
+
+**Decided 2026-09-26.** The owner took the recommendation on all nine
+questions (board decisions 47 and 49 to 55, recorded in the
+[1.1.12 board](../1.1.12.md)); each item below states its decision, and the
+options not taken are marked rejected. The items not asked (O-3, O-4, RO-2,
+RO-3, RO-4, RO-6) follow the drafts' recommendations, as the commander relayed
+on 2026-09-26; they have no separate decision number.
 
 ### 1. RO-1: Is the v0.9.16 terminal certification still owed before 2.0.0?
 
@@ -319,6 +357,10 @@ one) catches accidental changes but does not prove the old-baseline promise.
 Recommendation: C now, and choose A or B when 2.0.0 is planned. In every case
 the rolling comparison is added as an extra check, never as a replacement.
 
+**Decided 2026-09-26 (board decision 47): C.** A and B are not rejected; the
+choice between them returns when 2.0.0 is planned. Until then no 2.x release
+may be promoted without the terminal chain, and 1.x is unaffected.
+
 ### 2. O-2 and RO-5: Should agents use their own GitHub account?
 
 Today agents push and open pull requests as you. GitHub therefore cannot tell
@@ -332,7 +374,7 @@ exception", and why the 1.2.0 release would need the Codex review bot again.
   the Codex-only rule go away. Cost: a second account, its token on the
   machine, and Git and `gh` settings per worktree; agents must never use your
   token.
-- **B. Keep one shared account.** R3 approvals use an owner-only channel (a
+- **B. Keep one shared account** (rejected). R3 approvals use an owner-only channel (a
   protected-environment approval or an exact-commit approval comment that a
   check reads), and the exception stays an explicit choice at each release.
   GitHub cannot prove the approver was you; the documents say so. No setup
@@ -343,6 +385,14 @@ yourself, the required independent review becomes "a finished review of the
 exact commit by an approved reviewer account other than the author", from
 any product, instead of "the Codex bot". A requested change still blocks. The
 current Codex rule stays until the replacement is built and tested.
+
+**Decided 2026-09-26 (board decision 49): A.** The owner creates the agent
+identity and its key or token; agents never create accounts and never handle
+the owner's credentials. The self-approval exception and the Codex-only rule
+retire only after the replacement review evidence is built and tested. The
+commander added the same day, with the owner's agreement, that a GitHub App is
+the primary form and a machine account the fallback
+([G0 owner checklist](G0-owner-checklist.md)).
 
 ### 3. O-5 and O-6: How does the switch-over happen?
 
@@ -356,13 +406,16 @@ new protections are proven first.
   written authorization naming the exact base and head commits. G2: the CI
   changes, after the CI evidence work. Old protection stays until the new one
   works.
-- **B. Same, plus one extra old-style step** that seals the ADR alone before
-  G1-A. Same end state, one more round of the old ceremony.
+- **B. Same, plus one extra old-style step** (rejected) that seals the ADR
+  alone before G1-A. Same end state, one more round of the old ceremony.
 
 Recommendation: A. Timing: G1-B before the 1.1.13 release branch is cut if
 the reviews finish in time; otherwise 1.1.13 releases under the current trunk
 rule (decision 23) and G1-B follows. Until G1-B, branches never merge the
 trunk (rebase only).
+
+**Decided 2026-09-26 (board decision 50): A**, with the timing above; old
+protection stays until the new one works.
 
 ### 4. O-1: Keep the old records where they are?
 
@@ -374,11 +427,14 @@ v0.9.16 plan.
 - **A. Freeze in place.** A README marks them historical, and a pin fails any
   change. The guarantee becomes "today's content equals the frozen snapshot",
   no longer "never changed in history". Changing a pin needs your approval.
-- **B. Move them.** The capability policy and the Golden manifest must change
-  (new hash in the application: a product and Golden change), or seven files
-  stay behind and the history is split. Benefit: a tidier folder.
+- **B. Move them** (rejected). The capability policy and the Golden manifest
+  must change (new hash in the application: a product and Golden change), or
+  seven files stay behind and the history is split. Benefit: a tidier folder.
 
 Recommendation: A. It reverses your 2026-09-25 choice.
+
+**Decided 2026-09-26 (board decision 51): A**, reversing the 2026-09-25
+choice; a pin change needs owner approval.
 
 ### 5. O-7: Old and new waivers
 
@@ -389,10 +445,12 @@ Recommendation: A. It reverses your 2026-09-25 choice.
   never-waivable: firmware range safety, processor write ranges, integrity
   order, secrets and signing, release allowlists, independent Golden
   expectations.
-- **B. Keep a waiver folder** for new waivers as files: more ceremony, same
-  limits.
+- **B. Keep a waiver folder** (rejected) for new waivers as files: more
+  ceremony, same limits.
 
 Recommendation: A.
+
+**Decided 2026-09-26 (board decision 52): A.**
 
 ### 6. RO-9: Test the first release change in a throwaway repository?
 
@@ -403,10 +461,13 @@ retried under the same number.
   tries a good release, rejected versions (existing, equal, lower), recovery
   after a tag, a Release conflict, parity failures and a refused dry run.
   Cost: a few hours; deleting the scratch repository afterwards is your action.
-- **B. No.** Tests plus the first real release; a mistake may burn a version
-  number.
+- **B. No** (rejected). Tests plus the first real release; a mistake may burn
+  a version number.
 
 Recommendation: A.
+
+**Decided 2026-09-26 (board decision 53): A**; deleting the throwaway
+repository afterwards is the owner's action.
 
 ### 7. RO-10: Add four items to the cleanup list?
 
@@ -421,6 +482,8 @@ Each is approved separately; a declined item stays as it is.
 
 Recommendation: all four; each is small and removes a trap.
 
+**Decided 2026-09-26 (board decision 54): all four added.**
+
 ### 8. RO-7: Run Golden and packaging in parallel in the release candidate?
 
 Up to about 4 minutes faster, less the setup of a second job (estimate from
@@ -428,9 +491,12 @@ the 1.1.12 steps: 232 s and 332 s). Condition: both use the same commit, and
 the releasable candidate exists only after Golden passes.
 
 - **A. Yes**, in the optional speed batch after the CI evidence work.
-- **B. No**, keep them in sequence.
+- **B. No** (rejected), keep them in sequence.
 
 Recommendation: A, low priority.
+
+**Decided 2026-09-26 (board decision 55): A**, low priority, in the optional
+speed batch after the CI evidence work.
 
 ### 9. RO-8: Start the release candidate before post-merge CI finishes?
 
@@ -438,6 +504,9 @@ Today you wait about 9 minutes after the release merge before dispatching.
 The tag would still require a fresh, successful CI run on the same commit.
 
 - **A. Yes**, in the optional speed batch.
-- **B. No**, keep waiting.
+- **B. No** (rejected), keep waiting.
 
 Recommendation: A, low priority.
+
+**Decided 2026-09-26 (board decision 55): A**, low priority; the tag still
+requires fresh, successful CI on the same commit.

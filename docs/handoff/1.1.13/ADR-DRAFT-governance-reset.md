@@ -1,14 +1,17 @@
 # ADR 00XX (draft): Retire capability-reuse history replay and reset the development flow
 
-- Status: **Proposed** — revised after the independent design review; not
-  implementation authority.
+- Status: **Proposed** — revised after the independent design review, with
+  the owner's decisions of 2026-09-26 recorded; awaiting the independent
+  re-review; not implementation authority.
 - Date: 2026-09-26 (revised the same day)
 - Owners: repository owner (governance, release and firmware owner); drafted
   by Claude Code for WS-GOV ([log](WS-GOV.md), [1.1.13 board](../1.1.13.md))
 - Review: independent design review by `codex/gpt-6-astra` at `e60ba0062`,
   ACCEPT-WITH-CHANGES (P1 F-1 to F-7, P2 F-8 and F-9). This revision takes in
-  every technical correction ([log](WS-GOV.md#design-review-2026-09-26)); the
-  owner decisions are listed, in risk order, at the end of the log.
+  every technical correction ([log](WS-GOV.md#design-review-2026-09-26)).
+- Owner decisions: 2026-09-26, board decisions 49 to 52 and, for the release
+  side, 47 and 53 to 55; O-3 and O-4 as recommended
+  ([owner decisions](#owner-decisions-2026-09-26)).
 - Number: placeholder. The commander assigns it at integration; 0074 to 0077
   are taken.
 - Risk: R2 governance by path; every part that changes approval authority is
@@ -156,7 +159,8 @@ conflicts or other release failures.
    the reviewer-name comparison are deleted with their tests. No gate walks
    repository history. Path classification survives without history (item 4);
    the pull-request base check (`git merge-base --is-ancestor`) stays.
-2. The existing evidence is **frozen in place** (owner decision O-1):
+2. The existing evidence is **frozen in place** (O-1, board decision 51,
+   which reverses the 2026-09-25 choice to move it to an archive folder):
    `docs/governance/change-records/`,
    `docs/governance/external-authority-attestations/`,
    `docs/governance/waivers/` and
@@ -232,9 +236,12 @@ conflicts or other release failures.
    (including a firmware-semantic change classified manually), the release
    owner for `release`, both when both are touched. An approval counts only if
    it:
-   - is recorded by GitHub on the exact head, with its full SHA: an approving
-     review from the owner's principal, or, if O-2 keeps one shared identity,
-     the owner-only channel chosen there;
+   - is recorded by GitHub on the exact head, with its full SHA, as an
+     approving review from the owner's principal. Agents act under their own
+     GitHub identity, a GitHub App (a machine account is the fallback), which
+     the owner creates and holds the key of; agents never create accounts or
+     apps and never handle the owner's credentials (O-2, board decision 49;
+     setup in the [G0 owner checklist](G0-owner-checklist.md));
    - names its authority role and links the evidence it approves: the item 6
      review, and for `firmware` the byte and Golden evidence and the exact
      write-range audit, for `release` the release-owner evidence;
@@ -253,11 +260,13 @@ conflicts or other release failures.
    | Release pull request into `main` | the same over the whole release diff, the full suite with Golden, the release owner's approval of the exact release head, an up-to-date base |
    | Release workflow from `main` | ADR 0033 admission at the candidate, pre-tag and pre-Release boundaries; the protected `release` environment |
 
-   Rulesets on `main` and on `*.*.*` (the trunk and release branches) require
-   pull requests, the required checks, `dismiss_stale_reviews_on_push`,
-   `require_last_push_approval`, code-owner review from the derived
-   CODEOWNERS, conversation resolution, no bypass actor, and block force pushes
-   and deletion.
+   Rulesets on `main`, the trunk (`*.*.x`) and release branches (`*.*.*`
+   without `*.*.x`) require pull requests, the required checks,
+   `dismiss_stale_reviews_on_push`, `require_last_push_approval`, code-owner
+   review from the derived CODEOWNERS and conversation resolution, have no
+   bypass actor, and block force pushes; `main` and the trunk also block
+   deletion, while a release branch is deleted after its tag. The exact
+   parameters are in the [G0 owner checklist](G0-owner-checklist.md), part C.
 9. **No gate goes before its replacement.** The record gate stays active until
    the rulesets of item 8 and the checks of items 4, 6 and 7 are in force and
    have passed on at least one real pull request. The migration splits G1
@@ -291,7 +300,8 @@ conflicts or other release failures.
     pre-tag boundary. History is never rewritten, and the Release Closure
     Record lists every failed run.
 12. A pull request, including the release pull request, cannot merge with an
-    unresolved review thread (owner decision O-3), so findings do not first
+    unresolved review thread (O-3, the ruleset's conversation resolution, as
+    recommended), so findings do not first
     surface after the merge. Resolved threads do not prove that a review
     finished; the completed item 6 record on the exact head does. The three
     release boundaries keep their P0/P1 check.
@@ -316,7 +326,7 @@ conflicts or other release failures.
     - Negative tests cover changed-path mapping, deletions and renames on both
       sides, cross-layer dependencies, an unclassified path, and a cancelled or
       skipped producer.
-14. Required checks (amends 1.1.12 WS-GOV decision 6; owner decision O-4):
+14. Required checks (amends 1.1.12 WS-GOV decision 6; O-4 as recommended):
     `policy / polytail` is renamed after what it runs (for example
     `repository / structure`). `python-worker / verify` is renamed (for example
     `python / repository-scripts`) and **stays required**: it aggregates the
@@ -327,7 +337,8 @@ conflicts or other release failures.
     document that names the checks (`.github/AGENTS.md`, the workflows README,
     `docs/ci/pull-request-ci.md`, ADR 0033) change in one maintenance window,
     with no release in between.
-15. **Waivers.** A waiver is a pull request statement bound to its head SHA and
+15. **Waivers** (O-7, board decision 52). The old waivers are frozen with the
+    records. A new waiver is a pull request statement bound to its head SHA and
     scope. It names the rule or tool, scope, reason, risk, owner, issue,
     approver, creation and expiry dates and removal condition, and the
     approver is the owner of the authority waived, approving under item 7. No
@@ -396,9 +407,12 @@ conflicts or other release failures.
 
 - A same-runtime reviewer shares blind spots -> fresh session, another model,
   runtime identifier recorded.
-- Agents could act with the owner's credentials -> O-2 separates identities;
-  with one shared identity the approval rests on procedural trust, and the
-  documents say so instead of claiming separation.
+- Agents could reach the owner's credentials, because they run under the
+  owner's operating-system account -> agents use their own GitHub App
+  identity (board decision 49); the owner keeps the app's private key and
+  removes the owner's own GitHub credentials from agent-reachable stores, and
+  agents get only one-hour installation tokens through an owner-configured
+  helper (G0 checklist, A3 to A7).
 - An author under-declares risk -> the map sets a floor by path; unclassified
   and cross-class changes need a written classification; the reviewer confirms
   the byte, range, order, integrity and support impact.
@@ -408,15 +422,18 @@ conflicts or other release failures.
 
 ## Compatibility and migration
 
-1. **Sequence.**
-   - **G0 (owner, GitHub settings):** the O-2 identity arrangement and the
-     item 8 rulesets for `main` and `*.*.*`, applied in a maintenance window,
-     not during a release.
+1. **Sequence** (board decision 50). Old protection stays until the new one
+   works.
+   - **G0 (owner, GitHub settings):** the agent GitHub App (or the fallback
+     machine account), created and held by the owner, and the item 8
+     rulesets, each ruleset change approved one by one, applied in a
+     maintenance window, not during a release
+     ([G0 owner checklist](G0-owner-checklist.md)).
    - **G1-A (admitted under the current rules, with its own record):** the
      authority map and check, the review and approval checks, the derived
      CODEOWNERS and the pull request template. Both gates run side by side;
      G1-A must pass on at least one real pull request.
-   - **G1-B (the cutover, O-5):** retire record validation, add the frozen
+   - **G1-B (the cutover):** retire record validation, add the frozen
      pins, mark the record contract Historical, supersede the ADRs, move the
      rules into their owners, and land the WS-AI changes. Its
      approval-authority parts are R3.
@@ -424,8 +441,11 @@ conflicts or other release failures.
      failure-evidence change merges (it owns `ci.yml` and `scripts/verify.py`
      now).
    - The release workflow batches follow their design.
-2. **G1-B admission (O-5).** The owner gives an explicit, one-time cutover
-   authorization that binds the base SHA and the G1-B head SHA. The design and
+2. **G1-B admission (board decision 50).** The owner gives an explicit,
+   one-time written cutover authorization that names the base SHA and the
+   G1-B head SHA. G1-B lands before the 1.1.13 release branch is cut if the
+   reviews finish in time; otherwise 1.1.13 releases under board decision 23
+   and G1-B follows. The design and
    fixed-head reviews run on that head, and the base commit's validator passes
    at the base as transition evidence. That the new validator no longer reads
    records is not itself an exemption from the old rules.
@@ -470,14 +490,20 @@ conflicts or other release failures.
 - The first release after G1-B merges `main` back into the trunk without a
   conflict.
 
-## Open owner decisions
+## Owner decisions (2026-09-26)
 
-The [log](WS-GOV.md#owner-decisions-in-risk-order) lists them in risk order,
-with options and consequences. Summary: O-1 freeze in place (recommended) or
-move to an archive; O-2 separate agent identity (recommended) or one shared
-identity with procedural trust; O-3 conversation resolution as the pre-merge
-gate (recommended); O-4 keep the repository-script aggregate required
-(recommended); O-5 one-time cutover authorization for G1-B; O-6 G0, G1-A,
-G1-B and G2 in that order, with G1-B before the 1.1.13 release branch if the
-reviews finish in time; O-7 freeze the old waivers and keep the waiver limits
-of item 15.
+Decided by the owner on 2026-09-26 and recorded in the
+[1.1.12 board](../1.1.12.md) decision list; the options and consequences put
+to the owner are in the [log](WS-GOV.md#owner-decisions-in-risk-order).
+
+| Decision | Chosen | Rejected |
+| --- | --- | --- |
+| O-1 existing evidence (board decision 51) | Freeze in place with READMEs and pins; a pin change needs owner approval. Reverses the 2026-09-25 archive choice. | Moving to `docs/governance/archive/` (would change the runtime-pinned capability policy and the Golden manifest, or split the history) |
+| O-2 agent identity (board decision 49) | Agents get their own GitHub identity, a GitHub App (machine account as fallback), created and held by the owner; the owner approves agent pull requests as an ordinary reviewer. The self-approval exception and the Codex-only rule are retired only after their replacement evidence is built and tested. | One shared identity with an owner-only approval channel (procedural trust only) |
+| O-3 pre-merge thread gate (as recommended) | The ruleset's conversation resolution on `main`, the trunk and release branches | A readiness check with its own code and required check |
+| O-4 repository-script aggregate (as recommended) | Stays required, renamed in G2; only the CRC-worker lane leaves with F11 | Dropping it from the required checks |
+| O-5 and O-6 switch-over (board decision 50) | Four steps, G0, G1-A, G1-B, G2; old protection stays until the new one works; G1-B on the owner's one-time written authorization naming base and head; before the 1.1.13 release branch if the reviews finish in time, otherwise 1.1.13 releases under board decision 23 | An extra old-style step that seals this ADR alone first |
+| O-7 waivers (board decision 52) | Old waivers frozen with the records; a new waiver is a pull request statement with every current field, approved by the owner of the waived rule; the six non-waivable areas stay | A folder of new waiver files |
+
+O-3 and O-4 follow the draft's recommendation as relayed by the commander on
+2026-09-26; they have no separate board decision number.

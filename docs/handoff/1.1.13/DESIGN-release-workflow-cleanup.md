@@ -1,7 +1,10 @@
 # Release workflow cleanup: design (R3)
 
-Status: **design draft, revised after the independent design review**,
-2026-09-26. Not implementation authority. Scope: the seven-item inventory the
+Status: **design draft, revised after the independent design review, with
+the owner's decisions of 2026-09-26 recorded** (board decisions 47, 49 and 53
+to 55; RO-2, RO-3, RO-4 and RO-6 as recommended; see
+[owner decisions](#owner-decisions-2026-09-26)); awaiting the independent
+re-review. Not implementation authority. Scope: the seven-item inventory the
 owner accepted as board decision 29 ([1.1.13 board](../1.1.13.md), "Release
 workflow inventory draft"); the owner may add items, and the proposed
 additions below need that confirmation. Written for WS-GOV ([log](WS-GOV.md));
@@ -33,8 +36,8 @@ pre-tag, pre-Release) with fresh GitHub evidence; the protected `release`
 environment as the human gate; the `contents: write` job never runs candidate
 code; immutable annotated tag and Release, no clobbering; the published
 download smoked without a token; same-run recovery of a failed promotion.
-ADR 0057's terminal v0.9.16 certification obligation also stays until the
-owners decide RO-1.
+ADR 0057's terminal v0.9.16 certification obligation also stays, deferred to
+2.0.0 (board decision 47).
 
 ## Principles
 
@@ -55,11 +58,11 @@ owners decide RO-1.
 | # | Item | Proposal | Risk | Governance first | Batch |
 | --- | --- | --- | --- | --- | --- |
 | 1 | One-off 1.0.0 / 1.0.1 steps | Delete with their policy commands and `package.ps1` parameters; a release floor, checked at the candidate and pre-tag, replaces every historical version branch | R3 | ADR 0033 amendment; `release-package.md` | R-1 |
-| 2 | v0.9.16 parity jobs | Keep the terminal obligation until RO-1; fix the promote gate for every version from 2.0.0; add the rolling comparator as a separate gate | R3 | RO-1 with firmware-owner and release-owner approval; ADR 0057 amendment if it changes | R-1 (gate), R-5 |
-| 3 | Maintenance `source_branch` options | Delete; the source is always `main` (RO-2) | R3 | ADR 0033; `.github/AGENTS.md`; workflows README; template | R-1 |
-| 4 | Manual inputs | Derive commit, pull request and `published_at`; the self-approval exception stays an explicit consent or goes with O-2; product-neutral exact-head reviewer evidence | R3 | ADR 0033; release-readiness skill; O-2 and RO-5 | R-3 |
+| 2 | v0.9.16 parity jobs | Terminal obligation deferred to 2.0.0 (decision 47); promote gate for every version from 2.0.0; rolling comparator as an extra gate | R3 | Decision 47; the 2.0.0 choice with firmware-owner and release-owner approval; ADR 0057 amendment only if that choice changes it | R-1 (gate), R-5 |
+| 3 | Maintenance `source_branch` options | Delete; the source is always `main` (RO-2 as recommended) | R3 | ADR 0033; `.github/AGENTS.md`; workflows README; template | R-1 |
+| 4 | Manual inputs | Derive commit, pull request and `published_at`; the self-approval exception and the Codex-only rule retire after their replacement is built and tested (decision 49); product-neutral exact-head reviewer evidence | R3 | ADR 0033; release-readiness skill; G0 done | R-3 |
 | 5 | Re-run conflict | Root fix in the governance ADR; recovery by tag and Release state; pre-merge thread gate; rehearsal before merge | R2-R3 | Governance ADR G1-B; branch governance | R-4 |
-| 6 | `main-package` | Replace with a release rehearsal on any branch (RO-6) | R3 | ADR 0033 (main-package clause); `release-package.md` | R-2 |
+| 6 | `main-package` | Replace with a release rehearsal on any branch (RO-6 as recommended) | R3 | ADR 0033 (main-package clause); `release-package.md` | R-2 |
 | 7 | Monolithic file, repeated setup | Composite setup action; collection logic into Python; reusable comparator workflow; optional parallel candidate | R3 | Workflows README; `release-package.md` | R-2, R-3, R-6 |
 
 All workflow, release-policy and packaging changes are R3 (release owner).
@@ -144,35 +147,44 @@ canonical input (`canonicalInputAuthority.currentlyMissingRouteIds`):
 0057's condition that the 11 shortened TP-work routes stay first-class
 Supported only when their transitive proof passes, the planned 2.0.0
 "terminal pass", and the rule that the 27 routes are not relabelled Verified.
+Evidence reviewed with the owner for decision 47: of the 27 routes, 22 have
+`contract-only` evidence, 4 `synthetic-oracle` evidence and 1 none; none has
+owner-certified Golden bytes, and board decision 12 keeps them not covered by
+parity.
 
-**RO-1 options** (firmware owner and release owner decide together):
+**RO-1, decided 2026-09-26 (board decision 47): C, defer.** The terminal
+certification stays deferred to 2.0.0; the owner retains or retires it when
+2.0.0 is planned. Until then no 2.x release may be promoted without the
+terminal chain, and 1.x is unaffected. The 1.1.13 rolling comparison is an
+extra check, not a replacement. The two choices left for 2.0.0 planning,
+which the firmware owner and the release owner make together:
 
-- **A. Keep the terminal certification for 2.0.0.** ADR 0057 stands. The
-  three jobs cannot simply move to a manual workflow: they consume the same
-  run's candidate artifacts and a pinned workflow contract, so a standalone
-  certification must be redesigned and rebound to the 2.0.0 candidate. The
-  27-route debt must get canonical inputs, or an explicit owner disposition,
-  before 2.0.0.
-- **B. Retire the terminal certification.** One owner decision record, approved
-  by the firmware owner and the release owner, states which claims are
-  retained, withdrawn or deferred, disposes of each of the 27 routes, and
-  defines the new owner evidence binding for the rolling comparison (report
-  digest, candidate source SHA, previous tag, declared-difference list, and
-  who approves it). ADR 0057 is amended or superseded by that record. The
-  `firmware-parity` environment and the three secrets are deleted only after
-  the replacement gate has passed on a real release.
-- **C. Defer.** Keep the jobs; decide A or B before 2.0.0 work starts.
+- **Keep it.** ADR 0057 stands. The three jobs cannot simply move to a manual
+  workflow: they consume the same run's candidate artifacts and a pinned
+  workflow contract, so a standalone certification must be redesigned and
+  rebound to the 2.0.0 candidate. The 27-route debt gets canonical inputs, or
+  an explicit owner disposition, before 2.0.0.
+- **Retire it.** One owner decision record, approved by the firmware owner and
+  the release owner, states which claims are retained, withdrawn or deferred,
+  disposes of each of the 27 routes, and defines the new owner evidence binding
+  for the rolling comparison (report digest, candidate source SHA, previous
+  tag, declared-difference list, and who approves it). ADR 0057 is amended or
+  superseded by that record. The `firmware-parity` environment and the three
+  secrets are deleted only after the replacement gate has passed on a real
+  release.
 
-**Promote gate (R-1, whatever RO-1 becomes).** The `promote` condition (`:607`)
+Decision 47 takes neither now; the choice returns when 2.0.0 is planned.
+
+**Promote gate (R-1, board decision 47).** The `promote` condition (`:607`)
 admits only `2.0.0` with a successful parity chain or a `1.`-prefixed version
 with a skipped one; every other version skips promotion and published smoke
 while the run still ends green
 ([bug](../bugs/BUG-20260926-release-promote-skips-other-versions.md)). R-1
 replaces it with a release-eligibility job (no environment, no write
-permission): until RO-1 is decided, every version from 2.0.0 on requires the
-terminal parity chain, so skipping to 2.0.1 cannot avoid it; a version that
-requires a gate which failed, was cancelled or was skipped fails the run
-instead of ending green. `promote` needs that job.
+permission): every version from 2.0.0 on requires the terminal parity chain
+until the 2.0.0 choice is made, so skipping to 2.0.1 cannot avoid it; 1.x does
+not need it; a version that requires a gate which failed, was cancelled or was
+skipped fails the run instead of ending green. `promote` needs that job.
 
 **Rolling comparison (R-5, after the comparator and its ADR are accepted).**
 It is an additional gate in every mode. A reusable workflow
@@ -201,16 +213,13 @@ refs (to confirm with `git ls-remote` before the change). The owner decided on
 2026-09-25 that no further 0.9.x maintenance release follows (1.1.12 WS-GOV
 decision 7c).
 
-Options (RO-2):
-
-- **A, recommended:** delete maintenance support. The source is always `main`.
-  The candidate then runs protected `main` itself, so the copy of the policy
-  scripts to `RUNNER_TEMP` and `git checkout --detach` (`:133-145`) go too.
-  A future maintenance line gets its own decision, including a per-line
-  release floor.
-- B: a generic mechanism (for example a reviewed `maintenance-lines` list) for
-  a future line such as `1.1.x` fixes after 1.2.0. Choose it only if the owner
-  expects such releases.
+**RO-2, decided 2026-09-26 as recommended: delete maintenance support.** The
+source is always `main`. The candidate then runs protected `main` itself, so
+the copy of the policy scripts to `RUNNER_TEMP` and `git checkout --detach`
+(`:133-145`) go too. A future maintenance line gets its own decision,
+including a per-line release floor. Rejected: a generic maintenance mechanism
+(for example a reviewed `maintenance-lines` list) kept for a possible future
+line.
 
 ## 4. Manual inputs the workflow can derive
 
@@ -218,18 +227,22 @@ Options (RO-2):
 | --- | --- | --- |
 | `commit` | derive: `github.workflow_sha` | The policy already requires the source to equal the current protected `main` head and the workflow SHA (`validate_candidate_context`). |
 | `pull_request` | derive: `GET /repos/{repo}/commits/{sha}/pulls`, exactly one merged pull request whose merge commit is the source and whose base is `main` | Zero or several matches fail closed; the policy keeps checking merge commit, base and tree. |
-| `published_at` | derive: the pull request's `mergedAt` (RO-3) | Canonical UTC and stable across re-runs. It is merge-derived metadata, not the actual publication time, and the notes and catalog documentation say so. The Catalog contract defines only the format of `publishedAt`; the Registry contract calls its `publishedAtUtc` audit and display metadata. |
-| `owner_self_approval_exception` | removed if O-2 separates the agent identity (the owner then approves the release pull request); otherwise kept as an explicit owner consent | A review decision other than `APPROVED` only selects the policy branch; it does not show that the owner chose the exception, so the flag is never derived from it. |
+| `published_at` | derive: the pull request's `mergedAt` (RO-3, as recommended) | Canonical UTC and stable across re-runs. It is merge-derived metadata, not the actual publication time, and the notes and catalog documentation say so. The Catalog contract defines only the format of `publishedAt`; the Registry contract calls its `publishedAtUtc` audit and display metadata. |
+| `owner_self_approval_exception` | after G0 the owner approves the agent-authored release pull request, so every release dispatches it as `false`; the input and its code are removed in R-3, once the replacement reviewer evidence below is built and tested (board decision 49) | A review decision other than `APPROVED` only selects the policy branch; it does not show that the owner chose the exception, so the flag is never derived from it. |
 | `source_branch` | removed (item 3) | - |
 
 Without the derived inputs, the operator's binding moves to the approval: the
 candidate writes version, full source SHA, pull request, notes digest and
 difference summary to the job summary, which the owner reads before approving
-`release`. Optional later step (RO-4): start the candidate automatically when
-`ci` completes on a `main` merge of a release pull request (`workflow_run`),
-keeping `workflow_dispatch`.
+`release` (RO-4, as recommended). Starting the candidate automatically when
+`ci` completes on a `main` merge of a release pull request (`workflow_run`)
+stays a later, separate decision; `workflow_dispatch` remains.
 
-**Reviewer evidence for a self-approved release (RO-5).** Today the policy
+With the agent identity, the ordinary approval path also changes (R-3): the
+approvals the policy accepts must include the release owner's principal, and
+an agent principal (the app or machine account) never counts as an approval.
+
+**Reviewer evidence (RO-5, decided with O-2 in board decision 49).** Today the policy
 requires an exact-head Codex review for such a release except for versions
 from 1.0.8 up to, not including, 1.2.0 (`release_promotion_policy.py:616`,
 record `RELEASE-108-OWNER-REVIEW-DEFER-01`), so the planned 1.2.0 release would
@@ -244,13 +257,14 @@ verifiable:
 - the record keeps the runtime identifier (for example `codex/gpt-6-astra`)
   apart from the GitHub principal that posted it;
 - any `CHANGES_REQUESTED` stays fail-closed, and the author, dispatcher and
-  repository-owner constraints of the exception stay;
-- the owner's consent to the exception is recorded separately (item row
-  above), never inferred.
+  repository-owner constraints of the exception stay while it exists;
+- the owner's consent to the exception, while it exists, stays the explicit
+  dispatch input, never inferred.
 
 The Codex-only check and its version window are removed only after this
-replacement is implemented and tested; until then the current rule, including
-its 1.2.0 restoration, stands.
+replacement is implemented and tested (board decision 49); until then the
+current rule, including its 1.2.0 restoration, stands. It applies only when
+the exception is used, which G0 makes unnecessary.
 
 ## 5. Release re-run conflict and recovery
 
@@ -266,8 +280,9 @@ Proposal:
 
 - (a) The governance ADR's G1-B removes history replay. Until it lands, board
   decision 23 applies.
-- (b) A pull request cannot merge with an unresolved review thread (governance
-  O-3; the ruleset's conversation resolution), and the completed exact-head
+- (b) A pull request cannot merge with an unresolved review thread (O-3 as
+  recommended: the ruleset's conversation resolution, G0 change RS-1f), and
+  the completed exact-head
   review record shows that review finished. The three release boundaries keep
   their P0/P1 check.
 - The frozen release-branch head runs the release rehearsal (item 6) before the
@@ -300,21 +315,18 @@ promises "a dry-run path [that] produces candidate artifacts without tag or
 Release authority"; `release.yml` has none, and it runs only for a merged
 release pull request at the `main` head.
 
-Options (RO-6):
-
-- **A, recommended:** replace it with `release-rehearsal.yml`: dispatch on any
-  branch (normally the frozen release branch); run `verify.py
-  --release-golden`, the stable package build (`package.ps1` without
-  `-AllowPrerelease` works on any clean checkout whose `VERSION` matches), the
-  smoke, the notes render and the update-source handoff; upload with 3-day
-  retention. No GitHub admission, environment, secret or write permission. It
-  shares the candidate's build steps through the composite action (item 7), so
-  it exercises the release code. Its artifacts and summary state that it
-  proves the build path only: no admission, approval, promotion, tag or
-  Release path runs, and it skips the candidate manifest, which needs a real
-  review snapshot. It is also a staging aid for this cleanup.
-- B: retire `main-package` and build previews locally with `package.ps1`.
-- C: keep it and document that it is unrelated to the release.
+**RO-6, decided 2026-09-26 as recommended: replace it with
+`release-rehearsal.yml`.** Dispatch on any branch (normally the frozen release
+branch); run `verify.py --release-golden`, the stable package build
+(`package.ps1` without `-AllowPrerelease` works on any clean checkout whose
+`VERSION` matches), the smoke, the notes render and the update-source handoff;
+upload with 3-day retention. No GitHub admission, environment, secret or write
+permission. It shares the candidate's build steps through the composite action
+(item 7), so it exercises the release code. Its artifacts and summary state
+that it proves the build path only: no admission, approval, promotion, tag or
+Release path runs, and it skips the candidate manifest, which needs a real
+review snapshot. It is also a staging aid for this cleanup. Rejected: retiring
+`main-package` without a replacement, and keeping it as an unrelated preview.
 
 ## 7. One monolithic file; repeated setup
 
@@ -337,7 +349,10 @@ Proposal:
 - Policy subcommands replace the inline blocks: `collect-review-snapshot` and
   `collect-live-authority`. The workflow keeps every mutation.
 - The comparator job becomes the reusable workflow of item 2.
-- Optional (RO-7): the candidate splits into parallel read-only jobs, Golden
+- RO-7 and RO-8 were decided on 2026-09-26 (board decision 55): both are
+  adopted, low priority, in the optional speed batch R-6 after the CI evidence
+  work.
+- RO-7: the candidate splits into parallel read-only jobs, Golden
   verification and packaging (1.1.12 WS-GOV decision 7; about 232 s and 332 s
   in 1.1.12). Both bind the same source SHA and tree. The packaging job
   uploads only an intermediate artifact; the formal candidate (manifest,
@@ -345,7 +360,7 @@ Proposal:
   Golden job succeeded, so no releasable candidate exists without Golden. The
   contract sentence "missing, failed or skipped required Golden cases block
   packaging" becomes "... block the candidate manifest, upload and promotion".
-- Optional (RO-8): the candidate stops waiting for the push-to-`main` CI run.
+- RO-8: the candidate stops waiting for the push-to-`main` CI run.
   It records that run as pending (a failed run still stops it), and a pending
   snapshot is never final evidence: pre-tag and pre-Release admission keep
   requiring a fresh, same-source, successful run, with negative tests for
@@ -363,15 +378,15 @@ policy loses the 360 version-only lines and gains the moved collection.
 | Batch | Content | Depends on |
 | --- | --- | --- |
 | R-0 | This design, the owner decisions, the promote-condition bug | - |
-| R-1 | Items 1 and 3; release floor at candidate and pre-tag; release-eligibility job (terminal parity required from 2.0.0 until RO-1); `dry_run` input with non-promotable artifacts; staging runs before merge | RO-2, RO-9, RO-10; ADR 0033 amendment and doc updates in the same pull request |
-| R-2 | Item 6 rehearsal and the composite setup action for the release and rehearsal jobs | RO-6 |
-| R-3 | Item 4 derivations; self-approval per O-2; product-neutral reviewer evidence; collection moved into the policy; staging again for the changed promotion path | O-2, RO-5 |
-| R-4 | Item 5 recovery text and pre-merge gate | Governance G1-B; O-3 setting |
-| R-5 | Rolling comparison as an additional gate; terminal certification per RO-1 | Comparator item and its ADR; RO-1 with both owners' approval |
-| R-6 | Optional speed items (RO-7, RO-8); `ci.yml` adopts the composite action | CI failure-evidence change merged |
+| R-1 | Items 1 and 3 with the four additions of decision 54; release floor at candidate and pre-tag; release-eligibility job (terminal parity required from 2.0.0, decision 47); `dry_run` input with non-promotable artifacts; staging in a throwaway repository before merge (decision 53) | Re-review; ADR 0033 amendment and doc updates in the same pull request; release-owner review |
+| R-2 | Item 6 rehearsal and the composite setup action for the release and rehearsal jobs | Re-review |
+| R-3 | Item 4 derivations; approvals must include the release owner's principal; product-neutral reviewer evidence, then retirement of the exception and the Codex-only rule (decision 49); collection moved into the policy; staging again for the changed promotion path | G0 done |
+| R-4 | Item 5 recovery text and pre-merge gate | Governance G1-B; RS-1f applied in G0 |
+| R-5 | Rolling comparison as an additional gate | Comparator item and its ADR; the terminal certification choice waits for 2.0.0 planning (decision 47) |
+| R-6 | RO-7 and RO-8 (decision 55); `ci.yml` adopts the composite action | CI failure-evidence change merged |
 
-R-1 and R-2 fit 1.1.13 if the owner answers RO-2, RO-6, RO-9 and RO-10 early;
-R-3 and R-4 follow the governance ADR; R-5 follows the comparator and RO-1.
+R-1 and R-2 fit 1.1.13 after the independent re-review and the staging runs;
+R-3 follows G0; R-4 follows the governance ADR; R-5 follows the comparator.
 
 ## Verification
 
@@ -382,8 +397,9 @@ R-3 and R-4 follow the governance ADR; R-5 follows the comparator and RO-1.
   `CHANGES_REQUESTED` review. The existing workflow and policy tests
   (`tests/scripts/test_release_package_policy.py`,
   `test_release_promotion_policy.py`) are updated, not bypassed.
-- **Staging repository, from R-1 (RO-9):** a scratch repository with the same
-  rulesets and environments runs, before R-1 merges: a new version publishing;
+- **Staging repository, from R-1 (RO-9, board decision 53):** a throwaway
+  repository with the same rulesets and environments, created and later
+  deleted by the owner, runs before R-1 merges: a new version publishing;
   an existing, equal or lower version rejected at the candidate and at
   pre-tag; a promotion failing after the tag and recovering in the same run;
   recovery refused after `main` advanced; an immutable Release conflict
@@ -400,32 +416,26 @@ R-3 and R-4 follow the governance ADR; R-5 follows the comparator and RO-1.
 - **First real release** after each batch: the Release Closure Record names
   the batch and every run.
 
-## Owner decisions
+## Owner decisions (2026-09-26)
 
-The WS-GOV log lists them in risk order with plain options and consequences
-([owner decisions](WS-GOV.md#owner-decisions-in-risk-order)).
+Decided by the owner on 2026-09-26 and recorded in the
+[1.1.12 board](../1.1.12.md) decision list; the options and consequences put
+to the owner are in the [log](WS-GOV.md#owner-decisions-in-risk-order).
 
-- **RO-1 v0.9.16 terminal certification.** A keep for 2.0.0 (rebuilt and
-  rebound), B retire with a claims and debt record approved by the firmware
-  owner and the release owner, or C defer. The rolling comparison is added in
-  every case and is never presented as a replacement.
-- **RO-2 Maintenance releases.** Recommended: A (delete).
-- **RO-3 `published_at`.** Recommended: the release pull request's `mergedAt`,
-  labeled merge-derived metadata.
-- **RO-4 Commit binding and start.** Recommended: derive the commit and show
-  the full identity before approval; automatic start later, if wanted.
-- **RO-5 Self-approval exception and reviewer evidence.** Recommended: follow
-  O-2; replace the Codex-only check with the product-neutral exact-head
-  reviewer evidence of item 4, and keep an explicit owner consent while one
-  identity remains.
-- **RO-6 `main-package`.** Recommended: A (release rehearsal), labeled as not
-  proving promotion authority.
-- **RO-7 Parallel candidate**, under the conditions of item 7.
-- **RO-8 Source CI at pre-tag only**, under the conditions of item 7.
-- **RO-9 Staging** from R-1, with the failure and recovery cases above.
-- **RO-10 Inventory additions**, each approved on its own: `-ManualOnly` and
-  the historical version branches (item 1), the promote gate (item 2), the
-  1.2.0 Codex requirement (item 4), the dry-run gap (verification).
+| Decision | Chosen | Not adopted |
+| --- | --- | --- |
+| RO-1 terminal certification (board decision 47) | Deferred to 2.0.0; keep or retire it when 2.0.0 is planned; no 2.x release promoted without the terminal chain; 1.x unaffected; rolling comparison as an extra check | Deciding keep or retire now |
+| RO-2 maintenance releases (as recommended) | Delete the maintenance options | A generic maintenance mechanism |
+| RO-3 `published_at` (as recommended) | The release pull request's `mergedAt`, labeled merge-derived | The run start time; keeping the input |
+| RO-4 commit binding (as recommended) | Derive commit and pull request; show the full identity before approval | Keeping the inputs; automatic start stays a later, separate decision |
+| RO-5 reviewer evidence (board decision 49, with O-2) | Agent identity per the G0 checklist; product-neutral exact-head reviewer evidence; the exception and the Codex-only rule retire after the replacement is built and tested | An owner-only channel under one shared identity |
+| RO-6 `main-package` (as recommended) | Release rehearsal, labeled as proving no promotion authority | Retiring it without a replacement; keeping it unrelated |
+| RO-7 and RO-8 (board decision 55) | Both, low priority, in the optional speed batch after the CI evidence work | Keeping the candidate serial and waiting for post-merge CI |
+| RO-9 staging (board decision 53) | A throwaway repository tests R-1 before it merges, with the failure and recovery cases; the owner deletes it afterwards | Relying on the first real release |
+| RO-10 additions (board decision 54) | All four: retire the v1.1.0 manual-only mode and older-version rules, replace the promote condition, replace the Codex-only review rule, add a dry-run mode | - |
+
+RO-2, RO-3, RO-4 and RO-6 follow the draft's recommendation as relayed by the
+commander on 2026-09-26; they have no separate board decision number.
 
 ## Conflicts with other work
 
@@ -436,7 +446,8 @@ The WS-GOV log lists them in risk order with plain options and consequences
   stale-attempt evidence cannot return. The release keeps `overwrite: false`.
 - **Governance ADR:** the required-check rename changes
   `REQUIRED_RELEASE_CHECKS`, the ruleset and the release admission together;
-  no release may run between them. O-2 decides item 4's self-approval path.
+  no release may run between them. Board decision 49 sets item 4's
+  self-approval path, and G0 comes before R-3.
 - **Pre-built catalog (ADR 0077):** its text is not on this branch. Before
   integration, fix the ADR 0077 version and its package diff and check catalog
   generation time, allowlist, provenance, manifest and smoke together with
