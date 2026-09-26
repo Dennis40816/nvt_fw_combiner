@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CLI-REPORT-BUNDLE-GUARD-1113-01",
+  "capability": "A post-commit CLI --report never overwrites a committed file listed in the receipt: the primary output, every delivered bundle artifact and any committed additional delivery",
+  "integrationBase": "ef751a14f5f005b72bf7826cf7a827de3bb73b3a",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CliReportReceiptTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "PR #457 automatic review (P1) at src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs:137: the post-commit report guard protects only CommittedOutputId, so a bundle Build whose --report names another delivered artifact (a Standard Merge <bundle>/dp.bin source copy or an AB additional-delivery file) overwrites it after CliBundleOptions.PrintReceiptAsync printed its SHA-256, and the CLI still exits 0.",
+    "The pre-run guards cannot see those files: EnsureReportDoesNotAliasProtectedPaths compares the original input paths and skips output protection for bundles, and ProtectedCompositionDestinationProvider applies the Application's CLI report protected path to loose writers only, not to AtomicBundleCompositionOutputWriter.",
+    "The actual committed set is carried by the run result: CommittedOutputId, Report.BundleDelivery (ResolvedDirectory with every Artifacts[].DeliveredFileName, the list CliBundleOptions.PrintReceiptAsync prints) and DeliveryArtifacts[].OutputPath for each committed additional delivery, loose or bundled (CompositionRunService).",
+    "rg -n 'ResolvedDirectory|DeliveryArtifacts' src: no existing owner enumerates committed artifact paths from a run result, so the single post-commit guard admitted by CLI-REPORT-RECEIPT-1113-01 is extended rather than adding a second check.",
+    "Coverage limit: the CLI cannot produce a loose additional delivery (--include-a-flashcode requires --bundle-parent, BundleCliCommandTests.AbAdditionalDeliveryRequiresAtomicBundle, and no CLI handler sets AdditionalDeliveryOutputPath), so the loose DeliveryArtifacts[].OutputPath branch is covered by code only; the CLI regressions cover a bundle source copy (<bundle>/dp.bin) and a bundled additional delivery."
+  ],
+  "semanticOwner": "CliCompositionRunSupport's result-aware WriteReportJsonAsync remains the only post-commit CLI report guard; it derives its protected set from the actual commit result and keeps using ProtectedPathGuard.EnsureDoesNotAlias. The Application result, the bundle writer, the receipt printers and the handlers are unchanged.",
+  "terminalContract": "After a Build commits, the requested --report is refused when it resolves to any committed file of the run: the primary output (CommittedOutputId), every artifact of the promoted bundle (ResolvedDirectory with each delivered file name, as listed in the receipt) and every committed additional delivery, loose or bundled. A refused report is not written; the CLI keeps the printed receipt, prints one cli.report.failed partial-success issue on stderr, writes no Report line and exits 0, so every committed file keeps the bytes and SHA-256 its receipt printed. Reports naming other paths, uncommitted runs, output bytes, names and ranges are unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 correction of the existing post-commit CLI report guard, found by the PR #457 automatic review, with no Application, profile, firmware byte, range or contract change."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
