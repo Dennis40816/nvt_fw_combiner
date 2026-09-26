@@ -709,7 +709,7 @@
       "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
       "capabilityFingerprint": "89a5c7d20e6571a5ef2318200b3c278bf27c6c71032046bc0da1bfa13ab5959e",
       "oracleReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs",
-      "expectedSha256": "4266203f6d5e949dc6633f9dbca69d700d0cda73de0c4894d7438343c638d19a",
+      "expectedSha256": "7426263628547e127463f6e408dc869281cac90131dcb5d26ca4889158c9b24f",
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs#SyntheticInputsMatchIndependentlyConstructedDpPerspectiveOutputAcrossCapacities"
     },
     {
@@ -726,7 +726,7 @@
       "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
       "capabilityFingerprint": "3d21e6b3279eaf816fabce47cff455bd7ff1ee7bc152b85247321ba913e09153",
       "oracleReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs",
-      "expectedSha256": "51292dd980ad34ed5123b51d59447b99b43c7fcdd4638c8e4705f57e33729f63",
+      "expectedSha256": "32d6f68d4796d4253d0ca6f3fab398deda0abf8b2853de0117888635f14c6670",
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs#SyntheticInputsMatchIndependentlyConstructedDpPerspectiveOutputAcrossCapacities"
     },
     {
@@ -779,7 +779,7 @@
       "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
       "capabilityFingerprint": "9700825f380688a4dfaa92aa191443de5ddb24fe65e611c16d804cd138a26b0c",
       "oracleReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs",
-      "expectedSha256": "4266203f6d5e949dc6633f9dbca69d700d0cda73de0c4894d7438343c638d19a",
+      "expectedSha256": "7426263628547e127463f6e408dc869281cac90131dcb5d26ca4889158c9b24f",
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs#SyntheticInputsMatchIndependentlyConstructedDpPerspectiveOutputAcrossCapacities"
     },
     {
@@ -788,7 +788,7 @@
       "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
       "capabilityFingerprint": "f14a37bd88e6af4f959043fcef17c9f8ac5beb55a9da4a3c822596daea7c360f",
       "oracleReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs",
-      "expectedSha256": "983046ff9bb50f89905064429449958bd665b0a9442fdd10f9b8f8c4cd33eee5",
+      "expectedSha256": "10047d065c9f0ad0d7450787cce779768d686132a21c199feda13d021bba3ce6",
       "testReference": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951V2StandardMergeGoldenTests.cs#SyntheticInputsMatchIndependentlyConstructedDpPerspectiveOutputAcrossCapacities"
     },
     {
