@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "TEST-ARCH-ADR-1113-01",
+  "capability": "Accept ADR 0079 (test architecture): test groups as the selection unit, execution categories and Golden membership, the path-selection, coverage and shadow-mode rules for a later selector, class-size, split and stability rules, and the amendment of ADR 0027's 2026-08-12 section (verified exact partitions instead of unfiltered projects; the 300-second stop rule replaced by measured targets); decision text, the reciprocal ADR 0027 header line and one tests/README.md pointer only, with no selector, CI, test, script or product change",
+  "integrationBase": "38b85b15b861027972a9ca6945411f57220c4c47",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "docs/adr/0027-evidence-preserving-performance-remediation.md",
+    "docs/adr/0079-test-architecture.md",
+    "tests/README.md"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "rg -n -i 'unfiltered|evidence-sharded|300 seconds' docs/adr: ADR 0027's 2026-08-12 evidence-sharded .NET CI amendment is the only owner of the CI test partition (three shards over a disjoint, complete set of eight projects, each run unfiltered; a 300-second acceptance with 'one miss stops the experiment rather than adding shards'); ADR 0079 amends exactly those clauses and adds the reciprocal Amended-by line",
+    "rg -l -i 'test selection|narrow test|category trait|test categor|class size|split rule' docs/adr docs/governance docs/ci tests/AGENTS.md: the narrow-test table of docs/governance/development-execution-workflow.md owns local test selection by layer and tests/AGENTS.md owns per-test instructions; no ADR or contract owns test categories, path-based selection, coverage on selected runs, test class size or split rules, so ADR 0079 extends the CI owner instead of adding a parallel one",
+    "rg -n 'CI_DOTNET_SHARDS|REPOSITORY_SCRIPT_TEST_SHARDS|INFRASTRUCTURE_VSTEST_SETTINGS' scripts/verify.py: the verifier owns the test inventory and shard membership; ADR 0079 references it and adds no second inventory",
+    "testdata/golden/canonical/manifest.json testDisposition.evidenceRefs and scripts/verify.py release_golden_plan: the canonical manifest owns Golden membership; ADR 0079 keeps Golden a membership, not an execution category, and no split may move a referenced test without updating that contract under its authority",
+    "docs/contracts/coverage-baseline-v1.json and scripts/coverage_policy.py: the coverage policy owns the coverage verdict; ADR 0079 decides only when a pull request may compute it from a complete contributor set and keeps today's full coverage until that exists (board decision 69)",
+    "Board decisions 69 to 76 (owner, 2026-09-26): docs/handoff/1.1.12.md on feature/1.1.13/wave2, introduced by commit dbc96c26873d00cc205c03bcc1c55443cb3d7e69 and present at that branch's head 9861d800ca78599799013f54e83b3863b31378e6; the same commit allocates ADR number 0079 in docs/handoff/1.1.13.md. The decisions answer the design questions and are not the owner's acceptance of the ADR text. Batch 2a carries that board, and this admission is integrated only after batch 2a merges (batch 2b), so the ADR's relative links to the board resolve to these decisions."
+  ],
+  "semanticOwner": "ADR 0079 becomes the sole owner of test selection groups, execution categories, the path-selection, coverage-on-selection and shadow-mode rules, test class size, split and test stability rules; ADR 0027 keeps the CI sharding contract as amended by ADR 0079; scripts/verify.py keeps the test inventory and shard membership; the canonical Golden manifest keeps Golden membership; the coverage policy keeps the coverage verdict; the authority path map of the governance reset (ADR 0080, proposed) keeps authority classes; tests/AGENTS.md keeps per-test instructions; tests/README.md stays a navigation and measurement summary",
+  "terminalContract": "Add docs/adr/0079-test-architecture.md: Proposed during the design review; the owner then accepts the complete text explicitly, with its measured targets filled in before that acceptance (read-only gh run list and gh run view on 2026-09-26 at 13:47 UTC over the 60 most recent completed ci.yml runs, 34922022009 to 36225509388; final attempts, successful jobs, median and nearest-rank p90), and the implementation commit records the status as Accepted. Per board decision 72, ADR 0027's 300-second acceptance clause and its 'rather than adding shards' stop rule are replaced when the owner accepts ADR 0079 with those targets filled in; the partition, selection and coverage rules take effect only through their own admitted batches (T3, T4a) and the T4b activation. Add the reciprocal Amended-by entry to ADR 0027's header without changing its body, and one pointer paragraph to tests/README.md; both say the amendment is pending while ADR 0079 is Proposed, and the implementation commit made after the acceptance updates them to the accepted state. No script, workflow, test, profile, contract or other file changes. Later dated amendments to ADR 0079 are outside this record and are the responsibility of TEST-LOCAL-STATE-1113-01: board decision 91 (owner, 2026-09-27; docs/handoff/1.1.12.md on feature/1.1.13/wave2 at commit b7249de8f7931c4db53e9e5a3ed790e13a25da8e) records the test local-state isolation decision as a dated amendment to ADR 0079, and that task adds it in its own record. This record carries only the ADR 0079 text accepted by decision 81.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R2 design re-review by codex/gpt-6-astra, separate from implementationOwner claude-code, of T1 ADR 0079 v4 against base 3a01877aaa7a9c9bc9ce908098c0f24450429560. Reviewed proposal patch SHA-256 583740da471cc01a12d12ed8cec03b73cbe441fa6c75f76e679e167c0ee6159d and pre-review record-draft SHA-256 344c56797f686cbc88f9cece586ba991d07ddbcad2b37d10235bfdd50a6ea045. Verdict: ACCEPT. Previous findings F-1 through F-5 are incorporated. Independent recomputation confirms the measured targets and nearest-rank p90 values, including core median 379.5 seconds displayed as 380. The Cost table changes only p90 numeric values relative to v3. Targets are non-binding references, not timing gates. One non-blocking editorial suggestion is to document whole-second rounding. Supplied job data supports aggregate recomputation but omits original job timestamps. Owner acceptance of the complete ADR, checkpoint repinning after batch 2a, staged admission validation, and subsequent exact-head review remain required. Review was read-only and offline; no build, tests, or verifier were run. The owner accepted the full text as decision 81 (board decision 81, 2026-09-26, docs/handoff/1.1.12.md on feature/1.1.13/wave2 at commit 557a9ee6ae1919c344c61426b049f9f0946d8eed). The rounding suggestion is taken in. The record-draft SHA-256 above is the reviewed file's value; the review text carried it with one extra character."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
