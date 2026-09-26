@@ -3,8 +3,11 @@
 Owner: Claude Code (Opus 5.5), design drafter. Board:
 [1.1.13 board](../1.1.13.md). Protocol: [handoff README](../README.md).
 Deliverables: the [test architecture ADR draft](ADR-DRAFT-test-architecture.md)
-and the [pilot split plan](PLAN-test-pilot-split.md). The owner decisions are
-at the end, in risk order ([owner decisions](#owner-decisions-in-risk-order)).
+and the [pilot split plan](PLAN-test-pilot-split.md), both revised after the
+[independent design review](#design-review-2026-09-26). The commander's to-dos
+are listed under [coordination](#to-dos-for-the-commander); the owner
+decisions are at the end, in risk order and still pending
+([owner decisions](#owner-decisions-in-risk-order)).
 
 ## Dispatch envelope (commander, 2026-09-26)
 
@@ -38,8 +41,8 @@ at the end, in risk order ([owner decisions](#owner-decisions-in-risk-order)).
 
 | 1.1.12 item | 1.1.13 disposition |
 | --- | --- |
-| Outcome 1: ADR with feature-scoped classes, shared builders in `TestSupport`, one category trait per test (Unit, Integration, UiHeadless, Golden, Governance), naming and size guidance | ADR items 2 and 6. Changed: no trait on every test; categories reuse projects, collections and the Golden manifest, and a trait is added only where a runner filters (D-8). Golden membership stays owned by the canonical manifest. "Governance" becomes `structure` and `document`. |
-| Outcome 2: path-to-category map feeding tiered CI and the `ui` shard split | ADR items 3 to 5 (selection), 8 (partitions) and 9 (UiSmoke). The unit of selection is the test group (project), not the category. |
+| Outcome 1: ADR with feature-scoped classes, shared builders in `TestSupport`, one category trait per test (Unit, Integration, UiHeadless, Golden, Governance), naming and size guidance | ADR items 2 and 7. Changed: no trait on every test; execution categories reuse projects and collections, and a trait is added only where a runner filters (D-8). Golden is a membership owned by the canonical manifest, not an execution category. "Governance" becomes `structure` and `document`. |
+| Outcome 2: path-to-category map feeding tiered CI and the `ui` shard split | ADR items 3 to 6 (selection, coverage, declared inputs, shadow mode), 9 (partitions) and 10 (UiSmoke). The unit of selection is the test group (project), not the category. |
 | Outcome 3: pilot split of `ShellViewModelTests` with timing and identical counts | Pilot changed to `RepositoryBoundaryTests` ([plan](PLAN-test-pilot-split.md)). The 1.1.12 measurement (86 files, 24,746 lines) counted files by name prefix; commit `acc6ea039` had already split that class into twelve group classes in 2026-08. |
 | Outcome 4: review of architecture tests that assert document prose | D-4 and the pilot's `RepositoryDocumentTests`; the move into the structure lane belongs to WS-GOV G2 (F-4). |
 | Authority: R1 test changes plus an R2 ADR | Unchanged; the CI adoption (T4) is R3 inside G2. |
@@ -110,6 +113,11 @@ last column names the selection row of ADR item 3 that covers the input.
 | Architecture | all `src/**` and `tests/**` source; eight topic files read `docs/**` or root Markdown; `profiles/built-in/**`; `testdata/**` (RetiredIc); `scripts/package.ps1`, `scripts/smoke-release.ps1`, `scripts/measure-startup.ps1`, `scripts/code_size_policy.py`; `eng/**`; and, through its `dotnet msbuild` child, `Directory.Build.*`, `Directory.Packages.props`, `global.json` | 4, 5, 6, 9, 11 |
 | Repository scripts | `.github/workflows/`, `.agents/`, `AGENTS.md` files, `docs/contracts/`, `docs/governance/`, `docs/ci/`, `docs/references/`, `profiles/`, `testdata/golden/`, `src/`, the test projects' `.csproj` files, `tools/crc-worker/` (by module; from `import` lines and path literals) | 4, 6, 8 to 11 |
 
+This table is a starting inventory, not a proof of completeness: ADR item 5
+makes every new or changed run-time read update the declaration in the same
+pull request (unbounded reads at their widest prefix, or the full suite), and
+item 6's shadow mode and case matrix test it before activation.
+
 No .NET test reads `.github/`, `.agents/`, `tools/` or `third-party/`; the
 `AGENTS.md` files under `src/` and `tests/` are read only by the line ceiling.
 Compile-time links that a project-reference graph alone misses,
@@ -119,7 +127,7 @@ ProfileContract.Tests; six TestSupport files linked (not referenced) into
 Architecture, Domain, ProfileContract, Application, Bootstrap and
 Infrastructure.
 
-Parallelism facts behind ADR items 2, 7 and 9: `ReadyProbeProcessSerialGroup`
+Parallelism facts behind ADR items 2, 8 and 10: `ReadyProbeProcessSerialGroup`
 holds nine Infrastructure classes (197 methods) that start processes and change
 environment variables; `UiProcessWideObservation` holds five UiSmoke classes
 (29 methods); `UiAvaloniaRuntime` holds sixteen UiSmoke classes (502 methods);
@@ -136,15 +144,43 @@ created. The commander decides whether any of these becomes one.
 1. ADR 0027's 2026-08-12 amendment accepts sharded .NET CI only if workflow
    to finalizer takes at most 300 s ("one miss stops the experiment rather than
    adding shards"); the median successful run in the measured window took
-   577 s. Decision D-5 resolves whether the clause still binds.
+   577 s. The clause stands until an accepted ADR replaces it; past overruns
+   do not void it (D-5).
 2. 147 files under `tests/` (134 of them with tests) declare no class matching
    their name prefix, including all 86 `ShellViewModelTests.*.cs` files. No
-   rule is broken today; ADR item 6 adds one.
+   rule is broken today; ADR item 7 adds one.
 3. `NvtFwCombiner.Desktop` and `NvtFwCombiner.Launcher` are referenced by no
-   test project. The selection runs the full suite for them (row 7); whether
-   they are intentionally outside unit coverage is for their owner.
+   test project. The selection runs the full suite for them (row 7) and reports
+   the coverage gap each time; the fallback creates no tests. Whether they are
+   intentionally outside unit coverage is for their owner.
 4. The 1.1.12 WS-TEST measurement of `ShellViewModelTests` was wrong (see the
    port table); corrected here.
+
+## Design review 2026-09-26
+
+Reviewer `codex/gpt-6-astra`, implementation owner `claude-code`, range
+`cf4e42697` to `87ac3d6c1`, compared with WS-GOV at `28bc715ba` and the CI
+evidence change at `935eac2bc`; read-only (no build or test). Verdict:
+**ACCEPT-WITH-CHANGES**, 0 P0, 3 P1, 3 P2. The scoped Polytail verdict was
+FAIL because P1 findings were open, not because the approach was rejected. The
+reviewer accepted the main choices: whole-group selection with categories that
+only schedule, the union of base and head graphs, full runs for sensitive
+inputs, `RepositoryBoundaryTests` as the first pilot (it proves the procedure,
+not UI parallel safety), the batch order, and U0 before U5 with U6 deferred.
+
+| Finding | Severity | Taken in |
+| --- | --- | --- |
+| F-1 no conservative fallback when dependencies cannot be fully resolved | P1 | ADR driver 2; item 3 resolution rules (graphs evaluated at base and head, build-only references kept, an external include reaches the including project's consumers, deleted projects resolved at the base, build-time copies need declared rows, "unproven means full" for unresolvable constructs and missing base or head objects); item 5 (a new or changed run-time read updates the declaration in the same pull request, a best-effort structure check, unbounded reads declared at their widest prefix or mapped to the full suite); item 6 negative cases, including deleting a whole project |
+| F-2 D-1 B does not keep today's coverage protection | P1 | ADR item 4 (modules to check and required reports defined separately; test, fixture, data and scheduling changes covered; complete contributor sets; full coverage when completeness is unproven; full coverage stays until B exists; A only by the owner's explicit acceptance); D-1 rewritten |
+| F-3 shadow-mode exit criteria insufficient | P1 | ADR item 6 (`unresolved` blocks activation; only distinct pull requests with complete full-run evidence count; all attempts kept; observations bound to selector and map versions, base, head, run and attempt; a narrowing change restarts the window; case matrix; explicit owner enablement; a later miss returns pull requests to the full suite); T4 split into T4a (shadow) and T4b (activation); D-2 rewritten |
+| F-4 WS-GOV's prose definition stays false after the move | P2 | ADR item 3 joint definition (not an input to product tests or other semantic verification; listed generic document-structure checks allowed; documents read by topic tests keep their mapping); the WS-GOV wording, checker and migration list, and WS-GOV's citation of the ADR 0027 amendment, are commander to-dos 1 and 2 |
+| F-5 split evidence does not cover execution semantics; U2a release evidence too weak | P2 | ADR rules S4 (mechanical move and de-serialization as separate changes), S9 (class, fixture and shared-state table) and S10; item 10 U2a; pilot T2a and T2b with E7 |
+| F-6 re-run and hang-dump evidence not aligned with the CI evidence contract | P2 | ADR item 8 (a re-run never proves a fix; re-run artifacts follow the CI evidence contract and keep its pending real re-run gate; hang detection without memory dumps as an R3 sub-item with allowlist, manifest, finalizer and negative tests); pilot E6; commander to-do 4 |
+
+Risk grading as the review states it: T0 R0; T1 and T3 R2; T2 (T2a and T2b)
+R1; T4 (T4a and T4b) R3; any part of T3 that changes what a required check
+accepts is R3. T2 may proceed independently of G1-A, T3 waits for the CI
+evidence change and G1-A, and T4 goes with G2.
 
 ## Conflicts and coordination
 
@@ -152,27 +188,26 @@ created. The commander decides whether any of these becomes one.
   `.github/workflows/ci.yml` and `scripts/verify.py` until it merges; its
   implementation commit is `935eac2bc` on `feature/1.1.13/ci-evidence`.
   WS-TEST edits neither file before then. T3 and T4 build on its evidence
-  model: per-attempt artifacts, failing projects' evidence and failing test
-  names. The U0 measurement uses the TRX files it keeps.
+  model: attempt-named artifacts, the finalizer verifying each producer's
+  newest attempt (pending verification by a real re-run; until then a failed
+  run is followed by a new workflow run), failing projects' evidence and
+  failing test names. WS-TEST keeps that pending gate and adds no re-run rule
+  of its own. U1's hang detection changes its producer allowlist and
+  finalizer, so it is an R3 sub-item of that contract. The U0 measurement uses
+  the TRX files it keeps.
 - **WS-GOV G1-A.** The selector reads the authority map's `prose` and
   `unclassified` classes and never redefines them. For documents, the map
-  decides cost: a document outside every class runs the full suite (F-4), so
-  the map should classify all of `docs/**` explicitly, and a document that a
-  test reads must not be `prose` (checked by T3).
+  decides cost: a document outside every class runs the full suite, so the map
+  should classify all of `docs/**` explicitly, and a document that a test reads
+  must not be `prose` (checked by T3 for the declared list).
 - **WS-GOV G1-B.** One writer for `development-execution-workflow.md` (the
   narrow-test table becomes a pointer to the selector) and, with WS-AI, for
   `AGENTS.md` files including `tests/AGENTS.md`.
-- **WS-GOV G2.** Carries T4. Three additions for its batch: (1) ADR 0027's
-  2026-08-12 amendment ("each project is run unfiltered", "a disjoint and
-  complete set of eight test projects") conflicts with path-selected pull
-  request runs; this ADR's item 8 amends it, and the WS-GOV draft, which does
-  not list ADR 0027 today, should cite that amendment. (2) WS-GOV defines
-  `prose` as text no test or script reads, but the 2,500-line ceiling in
-  Architecture.Tests counts the lines of every `docs/**/*.md`, including
-  `docs/handoff/`; the definition becomes true only when G2 moves the ceiling
-  and the other document checks into the structure lane, so that move must
-  come before prose-only changes skip `architecture`. (3) Coverage on
-  selected runs is decided together with D-1.
+- **WS-GOV G2.** Carries T4a and T4b. It needs from this ADR: the ADR 0027
+  amendment (item 9), the joint prose definition and the move of the generic
+  document checks, including the 2,500-line ceiling, before prose-only changes
+  skip `architecture` (item 3), coverage per D-1 (item 4), and the shadow-mode
+  records and exit criteria (item 6).
 - **nvt-marker.** Edits `RepositoryBoundaryTests.WorkbenchStructure.cs` and
   adds `RepositoryBoundaryTests.NvtEndFlagCallers.cs`; both stay in the pilot's
   residual class.
@@ -183,6 +218,27 @@ created. The commander decides whether any of these becomes one.
   no U2 change before they merge.
 - **Pre-built catalog (ADR 0077) and VersionManagement JSON.** May edit the
   ProfileContract and Application aggregates; those splits wait.
+
+### To-dos for the commander
+
+These need a writer outside this workstream's lock (`docs/handoff/1.1.13/`);
+no WS-GOV or CI evidence file was changed here.
+
+1. **WS-GOV governance draft:** cite this ADR's amendment of ADR 0027's
+   2026-08-12 section (item 9) in its "Amends" list and in G2 (review F-4).
+2. **WS-GOV G2:** replace the `prose` wording ("no test or script reads") with
+   the joint definition of ADR item 3, and change the authority checker and the
+   list of document checks to migrate in the same batch (review F-4).
+3. **WS-GOV G1-A or G1-B, optional:** a pull request field "adds or changes a
+   run-time read of a repository file; declared in the selection map" (ADR
+   item 5).
+4. **CI evidence owner:** after `CI-FAILURE-EVIDENCE-1113-01` merges, plan U1's
+   hang detection (VSTest blame, dump type `none`) as an R3 sub-item of that
+   contract, with allowlist, manifest, finalizer and negative tests; no memory
+   dumps in artifacts (ADR 0027) (review F-6).
+5. **Bug ledger:** decide whether any of the four discrepancies above becomes
+   a bug file; the UI handoff document at 2,499 lines is the most urgent.
+6. **Owner interview:** D-1 to D-8 below, all pending.
 
 ## Checkpoints
 
@@ -204,128 +260,152 @@ Infrastructure tests, so the U0 measurement is left to its batch.
 Open: independent design review (commander); owner decisions D-1 to D-8.
 Next: stop.
 
+### 2026-09-26 Revision after the independent design review
+State: local
+Commits: the commit carrying this entry, on `87ac3d6c1` (the ADR draft, the
+pilot plan and this log)
+Evidence: every finding F-1 to F-6 is taken in (see the review table); the
+owner decisions are reordered and rewritten to the review's risk order and
+recommendations, and remain pending; no WS-GOV or CI evidence file changed.
+With TEMP, TMP and TMPDIR set to `<test-area>/temp`, no other test run active:
+`dotnet test tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj --filter FullyQualifiedName~RepositoryTextFilesStayBelowEmergencyCeiling`
+-> 1 passed with the revised documents in the working tree (ADR 715 lines,
+plan 253, log 409). A local link, anchor, table and private-string check of the
+three documents and `git diff --check` passed.
+Open: commander to-dos 1 to 6; owner decisions D-1 to D-8 (the commander
+asks).
+Next: stop.
+
 ## Owner decisions in risk order
 
-One question at a time, highest risk first. Each item gives the question in
-plain words, the options with their consequences, and a recommendation.
+All pending; the commander asks the owner. One question at a time, highest
+risk first, in the order and with the recommendations of the independent
+review. Each item gives the question in plain words, the options with their
+consequences, and a recommendation.
 
-### 1. D-1: How should pull requests check test coverage?
+### 1. D-1: May some coverage drops show up only after a merge?
 
 Today every pull request measures coverage over all eight test projects and
 fails if it drops below the stored baseline. Once pull requests run only the
-test projects their changes can affect, the whole-repository number cannot be
-computed on them.
+tests their changes can affect, that whole-repository number cannot be computed
+on them. Coverage can drop without touching the module that loses it: by
+removing tests, changing a fixture, or changing code in a higher layer.
 
-- **A. Coverage only on full runs** (release-branch cut, release pull request,
-  push to `main`, weekly, manual). Pull requests get faster; a coverage drop is
-  found at the next full run and fixed in a follow-up.
-- **B. Coverage of the changed code on every pull request; totals on full
-  runs.** For each product module a pull request changes, the tests that can
-  run that module's code in-process are exactly the ones the selection runs, so
-  its coverage can be checked exactly. More work in G2 (the coverage policy
-  learns a per-module mode).
-- **C. Keep today's rule.** Every pull request that touches product code runs
-  all eight projects; only documentation-only and script-only pull requests
-  get faster.
+- **B (revised). No.** Each pull request checks every product module its
+  selected tests run, using every test project that runs that module. In this
+  repository that means a pull request touching product code or .NET tests
+  still runs the complete .NET suite with coverage; only pull requests that
+  touch just documents, scripts or tools skip it. Until B is built, today's
+  rule stays exactly as it is.
+- **A. Yes.** Coverage only on full runs (release-branch cut, release pull
+  request, push to `main`, weekly, manual). Product pull requests get faster,
+  but a coverage drop is found after merge and fixed in a follow-up. This
+  lowers today's protection: it needs your separate, explicit acceptance and
+  is not a fallback if B is late.
+- **C. No change at all.** Every pull request runs all eight projects with
+  coverage, even documentation-only ones.
 
-Recommendation: B; A if G2 cannot build B in time. Decided together with
-WS-GOV G2.
+Recommendation: B; today's full coverage until B exists.
 
-### 2. D-2: How long should the new test selection run in shadow mode?
+### 2. D-2: When can CI trust the new test selection?
 
-Before CI trusts the selection, CI can still run everything and only record
-what the selection would have skipped. A failure in a skipped group caused by
-the change means the map is missing a row.
+Before trusting it, CI runs everything and only records what the selection
+would have skipped (shadow mode).
 
-- **A. 20 pull requests or two weeks, whichever is longer**, with zero misses;
-  a miss adds a row and restarts the count. Each failure outside the selection
-  is classified: caused by the change (a miss) or intermittent (a bug file).
+- **A, with exit conditions.** At least 20 different pull requests with
+  complete full-run evidence, over at least two weeks; no miss; no open
+  unexplained failure (an `unresolved` one blocks); every run attempt kept; a
+  change that narrows the selection restarts the count; a checklist of risky
+  cases passes (cross-layer changes, linked files, run-time inputs, deletions
+  and renames, prose and unclassified paths). Then you switch it on
+  explicitly. If a miss appears later, CI goes back to running everything until
+  the map is fixed.
 - **B. No shadow mode**; rely on the weekly and release full runs.
-- **C. A whole release cycle.**
+- **C. A whole release cycle** of shadow mode.
 
-Recommendation: A. Shadow mode only sees misses that coincide with a real
-failure, so it adds to, and does not replace, the inventory and the checks.
+Recommendation: A with these conditions. Without enough cases, or with an
+unexplained failure left open, shadow mode continues.
 
-### 3. D-4: What happens to Architecture tests that check document wording?
+### 3. D-4: Which document checks really protect the specification?
 
-Some Architecture tests assert exact sentences or percentages in documents
-(for example the AB progress figures in the supported IC matrix, sentences in
-ADRs, sections of the roadmap). Any wording change breaks them, and they force
-.NET tests to run for document edits.
+Some Architecture tests assert exact sentences or figures in documents (for
+example the AB progress figures in the supported IC matrix, sentences in ADRs,
+sections of the roadmap). Any wording change breaks them.
 
-- **A. Move into the structure lane only what protects a fact** (version
-  order, required sections, links, the line ceiling) as structural checks, and
-  delete assertions that only freeze wording. You approve the list, test by
-  test, in G2.
+- **A. Decide test by test with you.** Keep every check that protects a fact,
+  as a structural check in the structure lane or mapped to its documents;
+  delete only the ones you confirm freeze wording and nothing else. A check is
+  not deletable just because it compares a sentence.
 - **B. Move all of them unchanged** into the structure lane.
-- **C. Leave them in Architecture.Tests**, mapped to the documents they read;
-  then every document edit keeps running Architecture.Tests, and prose-only pull
-  requests cannot skip it.
+- **C. Leave them in Architecture.Tests**, mapped to the documents they read.
 
-Recommendation: A.
+Recommendation: A, approved item by item.
 
-### 4. D-5: Does ADR 0027's "300 seconds, no extra shards" rule still bind?
+### 4. D-5: Should ADR 0027's 300-second stop rule be formally replaced?
 
-The August 2026 decision to split .NET CI over several runners said it would
-stop, rather than add shards, if a run took longer than 300 seconds. The
-median successful run now takes about 9.6 minutes (577 s).
+In August 2026 the decision to split .NET CI over several runners said it
+would stop, rather than add shards, if a run took longer than 300 seconds. The
+median successful run now takes about 9.6 minutes (577 s). That does not by
+itself cancel the rule.
 
-- **A. Treat it as an expired experiment rule.** Allow a verified split of one
-  test project over two runners later, only after measurement and after
-  test shards reuse one build (G2).
+- **A. Replace it explicitly** in this ADR, effective when the ADR is
+  accepted, with measured targets. Adding a shard still needs the UiSmoke
+  measurement (U0) and shared builds (U4) first. Until acceptance the rule
+  stands.
 - **B. Keep it.** No extra shards; UiSmoke can only get faster inside the
   project.
 
-Recommendation: A, with the split itself decided later on measured numbers.
+Recommendation: A.
 
-### 5. D-3: Should oversized test classes be blocked from growing?
+### 5. D-7: How far does 1.1.13 commit?
 
-For product code, WS-GOV proposes: a class of at least 2,000 nonblank lines
-may not grow without your approval, and it leaves the list below 1,500. The
-same could apply to test classes (17 are on such a list today).
+The roadmap owns allocation; this is the proposal.
+
+- **A. In 1.1.13:** the ADR (T1), the pilot (T2a and T2b) and the UiSmoke
+  measurement (U0). The selector (T3) joins only if WS-GOV G1-A lands in
+  1.1.13. Switching CI to the selection (T4b) has no version deadline: it
+  happens when its evidence is complete.
+- **B. Everything in 1.1.14.**
+
+Recommendation: A.
+
+### 6. D-6: Where is the split procedure proven first?
+
+- **A. `RepositoryBoundaryTests`** (Architecture.Tests), with the class,
+  fixture and shared-state review, the file list recomputed at the real branch
+  point, and active write locks respected ([plan](PLAN-test-pilot-split.md)).
+- **B. A UI class** such as `XamlControlStyleContractTests`: the UI split
+  (U2a) may save more time, but F08 and the navigation work edit these
+  classes, removing their serialization needs stronger evidence, and the
+  UiSmoke measurement should come first. Better as the second split.
+- **C. No pilot** before the UiSmoke measurement.
+
+Recommendation: A.
+
+### 7. D-3: Should large test classes be blocked from growing?
+
+For product code, WS-GOV proposes that a class of at least 2,000 nonblank
+lines may not grow without your approval, and leaves the list below 1,500. The
+same could apply to test classes (17 would be listed today).
 
 - **A. Same rule for test classes.** New tests go into a new, feature-scoped
-  class by default, so testing is never blocked; growing a listed class needs
-  your approval in the pull request.
+  class, so testing is never blocked. A new class keeps the isolation and
+  collection rules of the tests it joins: serialization is never removed just
+  to get under the limit.
 - **B. Advisory report only.** Earlier advisory reports did not stop growth.
 - **C. No size rule for tests.**
 
 Recommendation: A.
 
-### 6. D-8: Label every test class with a category now?
+### 8. D-8: Label every test class with a category now?
 
 The 1.1.12 plan proposed one category label on every test.
 
-- **A. Label only where a tool uses the label** (first: running process tests
-  separately with hang dumps, and splitting UiSmoke); everything else is
-  described by its project, its collection or the Golden manifest.
+- **A. Label only where a tool reads the label** (first: running process tests
+  separately with hang detection, and splitting UiSmoke). Golden membership
+  stays decided by the canonical manifest; a Golden test keeps the execution
+  category of its class, so Golden is a membership, not a category.
 - **B. Label every class now.** About 900 files touched, with no tool reading
   most labels.
-
-Recommendation: A.
-
-### 7. D-6: Which class is the pilot?
-
-- **A. `RepositoryBoundaryTests`** (Architecture.Tests): the largest, safest to
-  prove the method on, cheap to time, and it separates the document checks G2
-  needs ([plan](PLAN-test-pilot-split.md)).
-- **B. A UI class** such as `XamlControlStyleContractTests`: closer to the slow
-  UI shard, and the most promising UI split (moving files that build no
-  control out of the serialized UI collection, U2a) could save more time. But
-  F08 and the navigation work edit these classes, that split removes
-  serialization and so needs extra evidence, and the UiSmoke measurement
-  should come first. Better as the second split, with the proven procedure.
-- **C. No pilot** before the UiSmoke measurement.
-
-Recommendation: A.
-
-### 8. D-7: What lands in 1.1.13?
-
-The roadmap owns allocation; this is the proposal.
-
-- **A. In 1.1.13:** the ADR (T1), the pilot (T2) and the UiSmoke measurement
-  (U0). The selector (T3) joins 1.1.13 only if WS-GOV G1-A lands in 1.1.13.
-  The CI adoption (T4) goes with G2.
-- **B. Everything in 1.1.14.**
 
 Recommendation: A.
