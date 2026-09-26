@@ -1,0 +1,197 @@
+# Pilot split plan: `RepositoryBoundaryTests` (WS-TEST batch T2)
+
+- Status: **plan for owner decision D-6**; not started. It becomes a dispatch
+  envelope when the commander schedules it.
+- Rules: the split rules S1 to S8 of the
+  [test architecture ADR draft](ADR-DRAFT-test-architecture.md) (decision
+  item 6). Log: [WS-TEST](WS-TEST.md).
+- Risk: R1, test files only (`tests/NvtFwCombiner.Architecture.Tests/`). No
+  product code, profile, script, workflow or document changes.
+- Measured at `cf4e42697` (static counts; no build or test run).
+
+## Why this class
+
+1. **Largest test aggregate.** 78 partial files, 11,229 nonblank lines and 231
+   test methods in one class. xUnit runs one class as one serial unit, so today
+   these 231 tests run one after another.
+2. **Lowest-risk place to prove the procedure.** The tests read repository
+   text and assert on it; they reference no product assembly. The one
+   exception is visible and contained: `PackageTrustMaterializationBatch`
+   starts `dotnet msbuild` once per test process (23 materialization cases in
+   temporary directories, a two-minute budget) for the five
+   `PackageTrustIndex` tests.
+3. **The split is mechanical.** Topics already live in separate files. Shared
+   helpers are concentrated: one helper file without tests is used by 72 of the
+   78 files, the root file's three helpers by 51, and six other files define
+   helpers used by one to three other files.
+4. **It feeds the other WS-TEST and WS-GOV work.** It separates document
+   checks (`RepositoryDocumentTests`: the 2,500-line ceiling and the roadmap
+   assertions), which WS-GOV G2 must move into the structure lane before
+   prose-only pull requests may skip product tests (F-4). It also gives the
+   process-heavy MSBuild batch its own serialized class.
+5. **Few collisions.** Two files are edited by the open nvt-marker branch and
+   two are linked from the roadmap; they stay in a residual class.
+6. **Cheap to measure.** Architecture.Tests runs last in the `core` CI shard
+   and takes seconds to minutes locally, so before and after runs can be
+   repeated on a quiet machine.
+
+Why not a UI class now: `XamlControlStyleContractTests` and the large shell
+group classes all sit in the serialized `UiAvaloniaRuntime` collection, so a
+UI split gains time only by taking files that build no control out of that
+collection (ADR option U2a). That removes serialization and needs extra
+evidence, F08 and the navigation focus work edit those classes, and UiSmoke
+timing needs the U0 measurement first. U2a is the recommended second split,
+using the procedure this pilot proves. Why not the ProfileContract or
+Application aggregates: the pre-built catalog and VersionManagement work may
+edit them.
+
+## Target classes
+
+Every file keeps its topic part: `RepositoryBoundaryTests.<Topic>.cs` becomes
+`<NewClass>.<Topic>.cs`. Counts are nonblank lines and test methods.
+
+| New class | Files | Lines | Methods | Topics |
+| --- | ---: | ---: | ---: | --- |
+| `PresentationBoundaryTests` | 11 | 1,657 | 34 | PresentationFirmwareSlotStructure, PresentationOrchestration, PresentationRunnerStructure, PresentationTokenStructure, PresentationViewModelStructure, ShellSurface, SettingsModal, LocalUiFileStores, Localization, MemoryLayoutStructure, SupportMatrixStructure |
+| `ApplicationBoundaryTests` | 19 | 1,331 | 33 | AcceptedExecutionConvergence, AdditionalDeliveryConvergence, ApplicationCompositionConvergence, ApplicationConvergence, ApplicationStructure, CompilationExecutionPhases, CompiledCompositionIdentity, CompiledCompositionProjection, V2CompiledCompositionStructure, ProcessorPlanConvergence, SingleExecutionPort, GeneralWorkflowConvergence, GeneralInspectionStructure, InputInspectionStructure, PageInspectionIsolation, DomainPreparationOutcome, FirmwareMapResolutionStructure, FamilyValidationStructure, FullImageMetadata |
+| `CanonicalCatalogBoundaryTests` | 15 | 1,568 | 37 | CanonicalAdmission, CanonicalCapabilityCatalog, CanonicalCatalogSelection, CanonicalIcNumberMode, CanonicalInputs, CanonicalOperations, CanonicalProfileDefinition, CanonicalProfileHeader, CanonicalValidations, CapabilitySelectors, CatalogTokenStructure, ClosedVocabulary, CtrlRamDiscovery, CtrlRamSnapshot, Nt51928CtrlRam |
+| `ProfileBoundaryTests` | 7 | 1,111 | 24 | ProfileStructure, ProfileSchemaTrust, ProfileMaterializerBuildTool, PostbuildStructure, ContractsStructure, RetiredIc, JsonSchemaConcurrency |
+| `PackageTrustBoundaryTests` | 2 | 902 | 5 | PackageTrustIndex, PackageTrustMaterializationBatch; category `process`, in a collection with parallelization disabled; the two files share the driver's once-per-process guard and lazy result, so they stay in one class |
+| `BootstrapCliBoundaryTests` | 3 | 1,005 | 25 | BootstrapStructure, BootstrapCliConvergence, CliStructure |
+| `HostInfrastructureBoundaryTests` | 6 | 1,532 | 28 | InfrastructureConvergence, InfrastructureStructure, LauncherBootstrap, FirstInstallationProgress, VersionRegistry, StartupDiagnostics |
+| `RetirementBoundaryTests` | 7 | 546 | 19 | DpReplaceRetirement, LarCatalogRetirement, LarTerminalStructure, LegacyRetirementStructure, WorkbenchRetirement, WorkbenchRetirement.DpIdentity, MemoryNamingConvergence |
+| `RepositoryDocumentTests` | 2 | 251 | 9 | Roadmap, RepositoryShape (the ceiling also covers source files; G2 moves both) |
+| `RepositoryBoundaryTestSupport` (static helpers) | 2 | 367 | 0 | TestSupport and TestParallelism (both without tests), plus the helpers moved under rule S3 |
+| `RepositoryBoundaryTests` (residual) | 4 | 959 | 17 | the root file (class summary and `ArchitectureTestsRemainDependencyFree`), PresentationStructure and DesktopHostConvergence (linked from the roadmap), WorkbenchStructure (edited on nvt-marker) |
+| **Total** | 78 | 11,229 | 231 | |
+
+The mapping covers every file exactly once (checked by a script over the file
+list at `cf4e42697`). `RepositoryBoundaryTests.NvtEndFlagCallers.cs`, which
+nvt-marker adds, joins the residual class until a follow-up moves it. The
+largest new class has 1,657 nonblank lines. The implementer may regroup
+topics if a helper dependency requires it, within these limits: no new class
+above 2,000 nonblank lines, document checks in `RepositoryDocumentTests`, the
+MSBuild batch alone in its class.
+
+Besides the two helper files, three files define private helpers that files in
+other target classes use. Under rule S3 those helpers move verbatim, with only
+`private` changed to `internal`, into `RepositoryBoundaryTestSupport`: `Root`,
+`AssertContainsAll` and `AssertDoesNotContainAny` (root file; used by 51
+files), `AssertNoProductionText` (LegacyRetirementStructure; also used by
+LarTerminalStructure, MemoryNamingConvergence and, in another class,
+PostbuildStructure) and `HasPathSegment` (RepositoryShape; also used by
+CatalogTokenStructure). TestParallelism's two assertion helpers need no move:
+its file becomes a partial file of the support class. Helpers shared only
+inside one target class stay where they are: `Slice` (PageInspectionIsolation
+and ApplicationStructure) and the package-trust helpers (the two
+`PackageTrustBoundaryTests` files).
+
+## Steps
+
+0. **Preconditions.** Owner decision D-6. The commander confirms that no open
+   branch edits a file being moved (re-check the nvt-marker files and any new
+   `RepositoryBoundaryTests.*.cs`), creates `feature/<version>/test-pilot-split`
+   from the trunk and records the dispatch envelope. The implementer applies the
+   test-area setup of the root `AGENTS.md` and runs on a quiet machine (no other
+   build, test or verifier; recorded with each timing).
+1. **Baseline at the branch point B**, Release build of the Architecture
+   project: discovery (`dotnet vstest <assembly> --ListTests`), and three
+   `dotnet test` runs with a TRX logger. Keep the discovery list, the TRX
+   files, the wall-clock times and the materialization batch duration outside
+   Git; cite their hashes.
+2. **Commit 1, support class.** Rename `RepositoryBoundaryTests.TestSupport.cs`
+   to `RepositoryBoundaryTestSupport.cs` and
+   `RepositoryBoundaryTests.TestParallelism.cs` to
+   `RepositoryBoundaryTestSupport.TestParallelism.cs`; declare both as
+   `internal static partial class RepositoryBoundaryTestSupport`; move the
+   listed helpers verbatim; add
+   `global using static NvtFwCombiner.Architecture.Tests.RepositoryBoundaryTestSupport;`
+   to `GlobalUsings.cs`. Build and run: discovery and outcomes are identical to
+   B, because no test has moved yet.
+3. **Commit 2, the moves.** For each target class: `git mv` its files, change
+   each declaration line to `public sealed partial class <NewClass>`, and add
+   one `/// <summary>` line above the declaration in the class's first file
+   (the build treats missing documentation comments as errors). For
+   `PackageTrustBoundaryTests`, add a collection attribute and, in the same
+   file, one collection definition with `DisableParallelization = true` (rule
+   S4; category `process`). Build and run.
+4. **Equivalence evidence** (all required; step 5 records them):
+   - **E1 discovery.** Same number of discovered cases at H and B. After
+     removing the class name, the multiset of test identities (method and
+     arguments) is identical, and each identity's old and new class match the
+     table above.
+   - **E2 outcomes.** Every case passes at H as at B; no new skip.
+   - **E3 mechanical diff.** `git diff --find-renames -U0 B H --
+     tests/NvtFwCombiner.Architecture.Tests` contains only: renames; class
+     declaration lines; one summary line per new class; `using` and
+     `global using` lines; `private` changed to `internal` on members of the
+     support class; helper members removed from one file and added to the
+     support class byte-identical except for that change; the collection
+     attribute and definition. Any other line fails E3.
+   - **E4 canary**, in a scratch worktree that is never committed: three
+     deliberate violations, each failing exactly the expected moved test under
+     its new class name. (a) Two reversed rows in the roadmap's release
+     sequence fail
+     `RepositoryDocumentTests.NfcRoadmapHasOneOrderedVersionAllocationEntryPoint`.
+     (b) A text that a `BootstrapCliBoundaryTests` test requires to be absent,
+     added to the CLI source file it reads, fails that test. (c) The same for
+     one `PresentationBoundaryTests` or `ApplicationBoundaryTests` test. This
+     proves the moved tests still execute and assert.
+   - **E5 timing.** Three runs at H against the three at B on the same quiet
+     machine: median wall-clock, per-class durations from the TRX files, and the
+     MSBuild batch duration with its headroom to the two-minute budget.
+   - **E6 CI.** The pull request's `core` shard passes; the finalizer's
+     discovery reconciliation passes with an unchanged Architecture case count.
+5. **Record and review.** Before the implementation commit, the WS-TEST log
+   records the admission: authority (D-6), base, exact paths, acceptance,
+   narrow tests, residual items. No capability-reuse record: the validator
+   rejects a record whose only path is a test file, as it did for the H1 fix.
+   After the commits: an exact-head review by the other runtime (or a fresh
+   session) with E1 to E6 attached; then the pull request into the trunk.
+   Narrow tests: Architecture.Tests only.
+
+## Acceptance
+
+- E1 to E6 hold at one exact head.
+- No test body, test name, assertion, input path or product file changed.
+- Every new class is below 2,000 nonblank lines; the residual class holds only
+  the four listed files (five after nvt-marker merges).
+- The log records the timing result, including a slower result if that is what
+  E5 shows.
+
+## Stop and ask
+
+- A move would need a change inside a test method, a test rename or an edited
+  assertion.
+- A case fails, changes outcome, or discovery counts differ.
+- A moved test turns out to be referenced by a contract or a document link.
+- E5 shows the project slower than B, or the MSBuild batch with less than
+  twofold headroom (more than 60 s).
+- A file to move appears in another active write lock.
+
+## Expected effect
+
+- The largest Architecture class drops from 11,229 to at most 1,657 nonblank
+  lines; each topic can be timed and reported as its own class.
+- Nine classes (and the existing `ProjectDependencyTests`) run in parallel and
+  the MSBuild batch runs alone afterwards, instead of 231 tests in one serial
+  class. The saving is at most the serial sum minus the longest class and the
+  batch; E5 gives the real number. The `core` CI shard gains the same seconds,
+  because Architecture.Tests runs last in it.
+- WS-GOV G2 receives `RepositoryDocumentTests` as the explicit set of document
+  checks to move into the structure lane. The WS-TEST log lists the other
+  files that read documents as part of topic checks; those stay mapped to the
+  `architecture` group.
+- What any test asserts does not change.
+
+## After the pilot
+
+- Put the E5 result into the ADR; if the E1 and E3 checks were run by hand,
+  decide whether later splits justify turning them into one small script
+  (governance class, R2).
+- Move the residual files when their blockers clear: the roadmap owner updates
+  the two links, and nvt-marker merges.
+- Next candidates, each scheduled by the commander under rule S7: the
+  ProfileContract and Application aggregates after the pre-built catalog and
+  VersionManagement work merge; the UI aggregates after U0 and after F08 and
+  the navigation focus work merge.
