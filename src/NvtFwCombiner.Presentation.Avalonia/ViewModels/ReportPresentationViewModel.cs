@@ -530,7 +530,8 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         return candidate.Length == 0 ? "nvt-fw-combiner-report" : candidate;
     }
 
-    private static bool IsReportMaterializationException(Exception exception)
+    /// <summary>The single classification of failures that leave a report unmaterialized.</summary>
+    internal static bool IsReportMaterializationException(Exception exception)
     {
         return exception is JsonException or
             InvalidOperationException or

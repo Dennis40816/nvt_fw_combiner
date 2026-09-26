@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "CLASSIFY-EXACT-FALLTHROUGH-1112-01",
+  "capability": "Apply the envelope-prefix Standard classification also when an exact Standard Merge capability classifies a nonstandard flash as Unknown",
+  "integrationBase": "6b31408279b326cb8043a7a8a36cbf496964aa82",
+  "risk": "R3",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Application/InputInspection/CompiledFirmwareArtifactClassifier.cs",
+    "tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamReportMetadataPlanTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Pull request #448 review (P2): when inspection carries a current Standard Merge exact capability, as reload and refresh inspection leases can, ResolveWithExactStandardCapability returns the direct classification before the envelope-prefix rule of CTRLRAM-OSD-ENVELOPE-CLASSIFY-1112-01 runs, so a nonstandard flash that classifies as Flash Code without an exact capability becomes Unknown in the active Standard workflow.",
+    "Owner decision 17 and CTRLRAM-OSD-ENVELOPE-CLASSIFY-1112-01 define the prefix rule; the owner chose on 2026-09-26 to fix this finding in 1.1.12.",
+    "A new failing test reproduced Unknown for a 0x60000 NT51950 flash with the Standard Merge envelope capability compiled for it."
+  ],
+  "semanticOwner": "FirmwareArtifactClassificationResolver.ResolveWithExactStandardCapability remains the only Standard classification owner; TryClassifyStandardEnvelopePrefix remains the only prefix rule.",
+  "terminalContract": "When an exact Standard Merge capability is supplied and its direct classification of the candidate is Unknown, Standard classification consults the existing envelope-prefix rule (CTRLRAM-OSD-ENVELOPE-CLASSIFY-1112-01) over the current published compositions and returns its Flash Code result and prefix capability when that rule applies; otherwise the direct Unknown result is returned unchanged. A direct Flash Code or TP Firmware result, classifications without an exact capability and ICs without a Standard source envelope are unchanged. The CtrlRAM length-admission rules are unchanged, but an affected nonstandard-length Base can now classify as Standard Flash instead of Unknown and so reach that existing admission. No profile, schema, public type, CRC, output byte, name, range or expected-output change.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "2026-09-26 independent read-only R3 design review by codex/gpt-6-sol. The first review rejected the change because the implementation was drafted before design admission and the CtrlRAM terminal contract was too broad. The implementation and test were removed from the worktree and the contract was revised; the second review, of the design-active record and the proposed diff only, ACCEPTED with no findings: the revised contract states that CtrlRAM length admission is unchanged while an affected nonstandard-length Base may change from Unknown to Standard Flash and reach that existing admission, and the proposal reuses the current Standard classification owner and envelope-prefix rule. The unchanged proposal is reapplied only after this admission."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
