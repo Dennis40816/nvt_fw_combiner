@@ -168,18 +168,15 @@ internal static partial class MergeCliCommandHandler
             new CompositionRunProgressFeed(),
             cancellationToken).ConfigureAwait(false);
         bool reportWritten = options.Values.TryGetValue("--report", out string? requestedReportPath);
-        if (reportWritten)
-        {
-            await CliCompositionRunSupport.WriteReportJsonAsync(
-                    requestedReportPath!,
-                    CompositionRunReportJson.Serialize(result),
-                    output,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        await PrintResultAsync(result, icId, output, error, reportWritten).ConfigureAwait(false);
-        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
+        await CliCompositionRunSupport.WriteReportJsonAsync(
+                result,
+                requestedReportPath,
+                ensureReportPathAllowed: null,
+                () => PrintResultAsync(result, icId, output, error, reportWritten),
+                output,
+                error,
+                cancellationToken)
+            .ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 }

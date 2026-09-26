@@ -289,23 +289,19 @@ internal static class AbMergeCliCommandHandler
             await error.WriteLineAsync($"error: {exception.Message}").ConfigureAwait(false);
             return CompositionFailed;
         }
-        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            reportPath,
-            bindings,
-            new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
-            build && !bundleBuild);
-        if (!string.IsNullOrWhiteSpace(reportPath))
-        {
-            await CliCompositionRunSupport.WriteReportJsonAsync(
-                    reportPath,
-                    CompositionRunReportJson.Serialize(result),
-                    output,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        await PrintResultAsync(result, profile.IcId, output, error).ConfigureAwait(false);
-        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
+        await CliCompositionRunSupport.WriteReportJsonAsync(
+                result,
+                string.IsNullOrWhiteSpace(reportPath) ? null : reportPath,
+                path => CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+                    path,
+                    bindings,
+                    new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
+                    build && !bundleBuild),
+                () => PrintResultAsync(result, profile.IcId, output, error),
+                output,
+                error,
+                cancellationToken)
+            .ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 
