@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DOC-HYGIENE-1113-PRIVATE-PATHS-01",
+  "capability": "Remove the developer's real Windows account name from governed documentation prose without changing skill behavior or ADR decisions",
+  "integrationBase": "38b85b15b861027972a9ca6945411f57220c4c47",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "design-active",
+  "mutablePaths": [
+    ".agents/skills/assess-refactor-progress/SKILL.md",
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "git grep -n -i \"C:[\\\\/]Users[\\\\/]\" over the tracked tree at 557a9ee6a (feature/1.1.13/doc-hygiene)",
+    "docs/handoff/bugs/BUG-20260926-public-tree-local-user-paths.md",
+    "scripts/validate_repository.py: _is_capability_reuse_governed_path classifies .agents/skills/** and docs/adr/** as governed, minimum R2"
+  ],
+  "semanticOwner": ".agents/skills/assess-refactor-progress/SKILL.md validate-the-skill command prose; docs/adr/0021-code-size-ratchet-system-activity-amendment.md LAUNCHER-106-UI-01 evidence-reference prose. No Domain/Application/Profile ownership, no ADR decision content, and no sealed change-record or waiver content is touched.",
+  "terminalContract": "In the skill's Validate The Skill command, replace the hard-coded `C:/Users/<real-account>/.codex/...` prefix with the `$env:USERPROFILE` PowerShell variable so the command remains runnable for any local account. In the ADR, replace the restated private LAUNCHER-106-UI-01 image path with a cross-reference to that already-sealed change record ('local file, not in the repository') instead of duplicating the path outside the sealed record. No byte output, CRC/header behavior, profile, firmware semantic, ADR decision, or sealed change-record/waiver content changes. docs/architecture/0.9.x-completion-roadmap.md, docs/references/verification-report.md, and tests/README.md carry the same class of fix but are not governed paths under _is_capability_reuse_governed_path and are tracked only in the accompanying patch, not in this record's mutablePaths.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-luna",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent review (codex/gpt-6-luna) confirmed all 6 path rewrites across the 5 changed files preserve original meaning, unchanged rules, numbers, and ADR decisions, and confirmed the governed/non-governed classification of the two R2 mutablePaths (.agents/skills/assess-refactor-progress/SKILL.md, docs/adr/0021-code-size-ratchet-system-activity-amendment.md) against scripts/validate_repository.py:1718-1724 _is_capability_reuse_governed_path. Reviewed at HEAD 557a9ee6ae1919c344c61426b049f9f0946d8eed (feature/1.1.13/doc-hygiene) against patch SHA-256 acd05e63be8e506abec13fb5fec436498e0ed45fdfbd562dd26663b25c6aa37c. Findings incorporated: implementationOwner corrected from primary-agent to claude-code, and the record moved from an invalid blocked state (non-empty mutablePaths, which the validator rejects) to design-active with this design review recorded."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
