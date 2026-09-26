@@ -146,6 +146,53 @@ class CoverageCiContractTests(unittest.TestCase):
         self.assertEqual(2, workflow.count("path: artifacts/ci-dotnet-upload/"))
         self.assertNotIn(".csproj", workflow)
 
+    def test_dotnet_evidence_artifacts_carry_their_run_attempt_to_the_finalizer(
+        self,
+    ) -> None:
+        for workflow_path in (CI_WORKFLOW, CI_WORKFLOW_TEMPLATE):
+            with self.subTest(workflow=workflow_path):
+                jobs = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))["jobs"]
+                uploads = {
+                    step["with"]["name"]: step["with"]
+                    for job_name in ("dotnet-build", "dotnet-test")
+                    for step in jobs[job_name]["steps"]
+                    if str(step.get("uses", "")).startswith("actions/upload-artifact@")
+                    and step["with"]["path"] == "artifacts/ci-dotnet-upload/"
+                }
+                self.assertEqual(
+                    {
+                        "dotnet-build-evidence-attempt-${{ github.run_attempt }}",
+                        "dotnet-test-${{ matrix.shard }}-evidence-attempt-"
+                        "${{ github.run_attempt }}",
+                    },
+                    set(uploads),
+                )
+                for name, upload in uploads.items():
+                    # Unique per attempt: an earlier attempt's artifact is never replaced.
+                    self.assertNotIn("overwrite", upload, name)
+                    self.assertEqual("error", upload["if-no-files-found"], name)
+                    self.assertEqual(3, upload["retention-days"], name)
+                steps = jobs["dotnet"]["steps"]
+                download = next(
+                    step
+                    for step in steps
+                    if str(step.get("uses", "")).startswith("actions/download-artifact@")
+                )
+                self.assertEqual("download-evidence", download["id"])
+                self.assertIs(True, download["continue-on-error"])
+                self.assertEqual("dotnet-*-evidence-attempt-*", download["with"]["pattern"])
+                self.assertNotIn("merge-multiple", download["with"])
+                self.assertNotIn("run-id", download["with"])
+                finalizer = next(
+                    step
+                    for step in steps
+                    if "--ci-dotnet-finalize" in str(step.get("run", ""))
+                )
+                self.assertEqual(
+                    "${{ steps.download-evidence.outcome }}",
+                    finalizer["env"]["NFC_CI_DOTNET_DOWNLOAD_OUTCOME"],
+                )
+
     def test_reviewed_template_preserves_draft_and_artifact_topology(self) -> None:
         workflow = CI_WORKFLOW_TEMPLATE.read_text(encoding="utf-8")
 

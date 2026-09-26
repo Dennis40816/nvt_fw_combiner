@@ -106,11 +106,22 @@ PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
     "COVERAGE_RCFILE",
     "COVERAGE_PROCESS_START",
 )
-CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 2
+CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 3
+CI_DOTNET_ARTIFACT_ATTEMPT_SEPARATOR = "-attempt-"
+CI_FAILED_TEST_REPORT_LIMIT = 50
+# Fixed public reasons; the raw exception text can hold runner or source paths.
+CI_COVERAGE_NOT_PAIRED = "coverage not uploaded: no canonical TRX and coverage pair"
+CI_COVERAGE_NOT_NORMALIZED = (
+    "coverage not uploaded: coverage failed repository-path normalization"
+)
+CI_FAILURE_EVIDENCE_REJECTED = (
+    "failure evidence not uploaded: results failed the regular-file checks"
+)
 DOTNET_PRODUCER_WINDOWS = "windows"
 DOTNET_PRODUCER_NON_WINDOWS = "non-windows"
 CI_DOTNET_PRODUCER_PLATFORM = DOTNET_PRODUCER_WINDOWS
 CI_SOURCE_SHA_PATTERN = re.compile(r"[0-9a-f]{40}")
+CI_RUN_NUMBER_PATTERN = re.compile(r"[1-9][0-9]*")
 NUGET_VERSION_PATTERN = re.compile(r"[0-9]+(?:\.[0-9]+){2}(?:[-+][0-9A-Za-z.-]+)?")
 
 
@@ -359,6 +370,20 @@ class CiDotnetProject:
     @property
     def name(self) -> str:
         return Path(self.relative_path).stem
+
+
+@dataclass(frozen=True)
+class CiFailedProjectEvidence:
+    """A failed CI project's uploadable diagnostics and what its report names.
+
+    ``omissions`` are fixed public reasons; ``diagnostics`` hold the raw
+    exception text and go only to the shard's own ``shard.log``.
+    """
+
+    paths: tuple[Path, ...]
+    failed_tests: tuple[str, ...] | None
+    omissions: tuple[str, ...] = ()
+    diagnostics: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -3769,6 +3794,36 @@ def require_ci_source_sha() -> str:
     return source_sha
 
 
+def require_ci_run_provenance() -> tuple[str, int]:
+    """Return the exact GitHub Actions run id and run attempt of this CI job."""
+
+    run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
+    run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "").strip()
+    if (
+        CI_RUN_NUMBER_PATTERN.fullmatch(run_id) is None
+        or CI_RUN_NUMBER_PATTERN.fullmatch(run_attempt) is None
+    ):
+        raise RuntimeError(
+            "GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT must name the exact CI run attempt"
+        )
+    return run_id, int(run_attempt)
+
+
+def ci_dotnet_evidence_artifact_base(owner: str) -> str:
+    """Return one producer's ci.yml evidence artifact name without its attempt suffix."""
+
+    return "dotnet-build-evidence" if owner == "build" else f"dotnet-test-{owner}-evidence"
+
+
+def ci_dotnet_evidence_artifact_name(owner: str, run_attempt: int) -> str:
+    """Return the per-attempt evidence artifact name that ci.yml uploads for one producer."""
+
+    return (
+        f"{ci_dotnet_evidence_artifact_base(owner)}"
+        f"{CI_DOTNET_ARTIFACT_ATTEMPT_SEPARATOR}{run_attempt}"
+    )
+
+
 def repository_sdk_version() -> str:
     document = json.loads((ROOT / "global.json").read_text(encoding="utf-8"))
     version = document.get("sdk", {}).get("version")
@@ -4258,6 +4313,173 @@ def collect_ci_project_evidence(
     )
 
 
+def collect_ci_failed_project_evidence(
+    project_name: str,
+    results_directory: Path,
+) -> CiFailedProjectEvidence:
+    """Keep a failed project's diagnostics under the passing-evidence rules.
+
+    Only the canonical discovery list and TRX are kept, unchanged, plus one
+    coverage pair that passes the same pairing and runner-path normalization as
+    passing evidence. Coverage that fails those rules is omitted under a fixed
+    reason; a reparse point or non-regular entry rejects the whole directory.
+    """
+
+    root = results_directory.absolute()
+    if not root.exists() and not is_reparse_point(root):
+        return CiFailedProjectEvidence((), None)
+    regular_files = enumerate_ci_regular_files(root)
+    discovery = root / "discovered-tests.txt"
+    trx_report = root / "test-results.trx"
+    paths = [path for path in (discovery, trx_report) if path in regular_files]
+    omissions: list[str] = []
+    diagnostics: list[str] = []
+    if any(
+        path.name in {"coverage.json", "coverage.cobertura.xml"} for path in regular_files
+    ):
+        reason = CI_COVERAGE_NOT_PAIRED
+        try:
+            _, json_report, cobertura_report = (
+                canonicalize_dotnet_project_reports_from_files(
+                    project_name, root, regular_files
+                )
+            )
+            reason = CI_COVERAGE_NOT_NORMALIZED
+            normalize_ci_dotnet_coverage_reports(json_report, cobertura_report)
+        except (RuntimeError, OSError) as error:
+            omissions.append(reason)
+            diagnostics.append(f"{reason}: {error}")
+        else:
+            paths.extend((json_report, cobertura_report))
+    failed_tests: tuple[str, ...] | None = None
+    if trx_report in regular_files:
+        try:
+            outcomes = parse_trx_test_outcomes(trx_report, preserve_case_identity=True)
+        except (RuntimeError, OSError):
+            pass
+        else:
+            failed_tests = tuple(sorted(outcomes["Failed"].elements()))
+    return CiFailedProjectEvidence(
+        tuple(paths), failed_tests, tuple(omissions), tuple(diagnostics)
+    )
+
+
+def append_ci_shard_diagnostics(
+    log_path: Path, project_name: str, diagnostics: Sequence[str]
+) -> None:
+    """Keep raw failure-evidence diagnostics in shard.log, out of the public report."""
+
+    if not diagnostics:
+        return
+    try:
+        with log_path.open("a", encoding="utf-8", newline="\n") as log:
+            for diagnostic in diagnostics:
+                line = re.sub(r"[\x00-\x1f\x7f]", " ", diagnostic)
+                log.write(f"{project_name} failure evidence: {line}\n")
+    except OSError:
+        print(
+            f"{project_name} failure-evidence diagnostics could not be added to shard.log",
+            file=sys.stderr,
+            flush=True,
+        )
+
+
+def append_ci_step_summary(markdown: str) -> None:
+    """Append to the GitHub step summary when the runner provides one."""
+
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
+    if not summary_path:
+        return
+    try:
+        with open(summary_path, "a", encoding="utf-8", newline="\n") as summary:
+            summary.write(markdown)
+    except OSError as error:
+        print(f"GitHub step summary could not be written: {error}", file=sys.stderr, flush=True)
+
+
+def ci_report_line(text: str) -> str:
+    """Return one report line without control characters or Markdown code fences."""
+
+    return re.sub(r"[\x00-\x1f\x7f]", " ", text).replace("`", "'")
+
+
+def report_ci_failed_tests(
+    shard: str,
+    artifact_name: str,
+    failed_projects: Sequence[tuple[str, CiFailedProjectEvidence]],
+) -> None:
+    """Name failed tests and omitted evidence in the job log and step summary.
+
+    Only TRX test names and fixed omission reasons are printed, never TRX
+    messages, test output or raw exception text.
+    """
+
+    if not failed_projects:
+        return
+    console = [f"\n.NET CI shard {shard} failed projects:"]
+    summary = [f"### .NET CI shard `{shard}` failures", ""]
+    for project_name, evidence in failed_projects:
+        identities = evidence.failed_tests or ()
+        if evidence.failed_tests is None:
+            detail = f"no readable TRX; see shard.log in {artifact_name}"
+        elif not identities:
+            detail = f"no failed test in TRX; see shard.log in {artifact_name}"
+        else:
+            detail = f"{len(identities)} failed test(s) in TRX"
+        console.append(f"  {project_name}: {detail}")
+        summary.append(f"**{project_name}**: {detail}")
+        summary.append("")
+        shown = [
+            ci_report_line(identity)
+            for identity in identities[:CI_FAILED_TEST_REPORT_LIMIT]
+        ]
+        if len(identities) > len(shown):
+            shown.append(f"... {len(identities) - len(shown)} more in the TRX")
+        notes = [
+            f"note: {ci_report_line(note)} (details in shard.log)"
+            for note in evidence.omissions
+        ]
+        if not shown and not notes:
+            continue
+        console.extend(f"    - {identity}" for identity in shown)
+        console.extend(f"    {note}" for note in notes)
+        summary.extend(("```text", *shown, *notes, "```", ""))
+    write_console_text("\n".join(console) + "\n")
+    sys.stdout.flush()
+    append_ci_step_summary("\n".join(summary) + "\n")
+
+
+def require_ci_evidence_provenance(
+    document: dict[str, object], label: str, run_id: str, attempt: int
+) -> None:
+    """Require a producer manifest to name this run and its artifact's attempt."""
+
+    run_attempt = document.get("runAttempt")
+    if (
+        document.get("runId") != run_id
+        or isinstance(run_attempt, bool)
+        or not isinstance(run_attempt, int)
+        or run_attempt != attempt
+    ):
+        raise RuntimeError(
+            f"{label} .NET CI evidence provenance does not match run {run_id} "
+            f"attempt {attempt}, the attempt its artifact name declares"
+        )
+
+
+def require_current_ci_producer_evidence(
+    document: dict[str, object], label: str, job_result: str | None, attempt: int
+) -> None:
+    """Name newest evidence that contradicts its successful producer job."""
+
+    if document.get("success") is False and job_result == "success":
+        raise RuntimeError(
+            f"{label} .NET CI evidence of run attempt {attempt}, the newest downloaded, "
+            "reports a failed producer although its producer job succeeded; the "
+            "producer's latest evidence is missing, so start a new workflow run"
+        )
+
+
 def combine_failures(
     primary: BaseException | None,
     secondary: BaseException,
@@ -4299,10 +4521,13 @@ def verify_ci_dotnet_build() -> None:
         failure = combine_failures(failure, error)
 
     file_hashes = ci_file_hashes((log_path,), evidence_root)
+    run_id, run_attempt = require_ci_run_provenance()
     document = {
         "schemaVersion": CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
         "kind": "dotnet-build",
         "sourceSha": require_ci_source_sha(),
+        "runId": run_id,
+        "runAttempt": run_attempt,
         "sdkVersion": repository_sdk_version(),
         "success": failure is None,
         "files": file_hashes,
@@ -4347,6 +4572,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
     project_rows: list[dict[str, object]] = []
     evidence_paths: list[Path] = [log_path]
     failures: list[str] = []
+    failed_projects: list[tuple[str, CiFailedProjectEvidence]] = []
     fatal_failure: BaseException | None = None
     try:
         run(
@@ -4415,6 +4641,26 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                     )
             except (subprocess.CalledProcessError, RuntimeError, ValueError) as error:
                 failures.append(f"{project.name}: {error}")
+                # Keep the failed project's diagnostics under the passing-evidence rules.
+                try:
+                    failed_evidence = collect_ci_failed_project_evidence(
+                        project.name, results_directory
+                    )
+                except (RuntimeError, OSError) as evidence_error:
+                    failures.append(
+                        f"{project.name} {CI_FAILURE_EVIDENCE_REJECTED} (see shard.log)"
+                    )
+                    failed_evidence = CiFailedProjectEvidence(
+                        (),
+                        None,
+                        (CI_FAILURE_EVIDENCE_REJECTED,),
+                        (f"{CI_FAILURE_EVIDENCE_REJECTED}: {evidence_error}",),
+                    )
+                append_ci_shard_diagnostics(
+                    log_path, project.name, failed_evidence.diagnostics
+                )
+                evidence_paths.extend(failed_evidence.paths)
+                failed_projects.append((project.name, failed_evidence))
                 continue
             project_rows.append(row)
             evidence_paths.extend(paths)
@@ -4429,10 +4675,13 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
         fatal_failure = combine_failures(fatal_failure, error)
 
     file_hashes = ci_file_hashes(evidence_paths, evidence_root)
+    run_id, run_attempt = require_ci_run_provenance()
     document = {
         "schemaVersion": CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
         "kind": "dotnet-test-shard",
         "sourceSha": require_ci_source_sha(),
+        "runId": run_id,
+        "runAttempt": run_attempt,
         "sdkVersion": repository_sdk_version(),
         "success": fatal_failure is None,
         "shard": shard,
@@ -4454,6 +4703,11 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
             error,
             secondary_label="evidence staging",
         )
+    report_ci_failed_tests(
+        shard,
+        ci_dotnet_evidence_artifact_name(shard, run_attempt),
+        failed_projects,
+    )
     if fatal_failure is not None:
         raise fatal_failure
 
@@ -4488,24 +4742,46 @@ def resolve_ci_evidence_file(evidence_root: Path, relative_path: object) -> Path
     )
 
 
-def require_ci_dotnet_artifact_roots(download_root: Path) -> dict[str, Path]:
-    expected_names = {
-        "build": "dotnet-build-evidence",
-        **{shard: f"dotnet-test-{shard}-evidence" for shard in CI_DOTNET_SHARDS},
+def require_ci_dotnet_artifact_roots(
+    download_root: Path, run_attempt: int
+) -> dict[str, tuple[Path, int]]:
+    """Select each producer's newest attempt artifact from every downloaded attempt.
+
+    A producer that "Re-run failed jobs" did not re-run keeps the artifact of its
+    earlier attempt; every re-run uploads a newer attempt that supersedes it.
+    """
+
+    owners = {
+        ci_dotnet_evidence_artifact_base(owner): owner
+        for owner in ("build", *CI_DOTNET_SHARDS)
     }
     root = download_root.absolute()
     if not root.is_dir() or is_reparse_point(root):
         raise RuntimeError(f"missing or invalid .NET CI evidence root: {download_root}")
-    entries = {path.name: path for path in root.iterdir()}
-    if set(entries) != set(expected_names.values()):
-        raise RuntimeError("missing or extra .NET CI evidence producer artifacts")
-    artifact_roots: dict[str, Path] = {}
-    for owner, name in expected_names.items():
-        artifact_root = entries[name]
-        if is_reparse_point(artifact_root) or not artifact_root.is_dir():
-            raise RuntimeError(f"invalid .NET CI producer artifact root: {name}")
-        artifact_roots[owner] = artifact_root
-    return artifact_roots
+    selected: dict[str, tuple[Path, int]] = {}
+    for entry in sorted(root.iterdir()):
+        base, separator, attempt_text = entry.name.rpartition(
+            CI_DOTNET_ARTIFACT_ATTEMPT_SEPARATOR
+        )
+        owner = owners.get(base) if separator else None
+        if owner is None or CI_RUN_NUMBER_PATTERN.fullmatch(attempt_text) is None:
+            raise RuntimeError(f"unknown .NET CI evidence artifact: {entry.name}")
+        attempt = int(attempt_text)
+        if attempt > run_attempt:
+            raise RuntimeError(
+                f".NET CI evidence artifact is newer than run attempt {run_attempt}: "
+                f"{entry.name}"
+            )
+        if is_reparse_point(entry) or not entry.is_dir():
+            raise RuntimeError(f"invalid .NET CI producer artifact root: {entry.name}")
+        if owner not in selected or attempt > selected[owner][1]:
+            selected[owner] = (entry, attempt)
+    missing = sorted(base for base, owner in owners.items() if owner not in selected)
+    if missing:
+        raise RuntimeError(
+            f"missing .NET CI evidence producer artifacts: {', '.join(missing)}"
+        )
+    return selected
 
 
 def require_manifest_keys(
@@ -4596,7 +4872,20 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         raise RuntimeError(f".NET CI build producer failed: {job_results['build']}")
     if job_results["test"] not in {None, "success"}:
         raise RuntimeError(f".NET CI test producer failed: {job_results['test']}")
-    artifact_roots = require_ci_dotnet_artifact_roots(download_root)
+    download_outcome = os.environ.get("NFC_CI_DOTNET_DOWNLOAD_OUTCOME")
+    if download_outcome != "success":
+        # A partial download could hide a producer's newest attempt artifact.
+        raise RuntimeError(
+            f".NET CI evidence download did not succeed: {download_outcome}"
+        )
+    run_id, run_attempt = require_ci_run_provenance()
+    selected_artifacts = require_ci_dotnet_artifact_roots(download_root, run_attempt)
+    artifact_roots = {
+        owner: artifact_root for owner, (artifact_root, _) in selected_artifacts.items()
+    }
+    artifact_attempts = {
+        owner: attempt for owner, (_, attempt) in selected_artifacts.items()
+    }
     manifests = {
         "build": resolve_ci_evidence_file(
             artifact_roots["build"],
@@ -4616,8 +4905,21 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
     build = load_ci_manifest(manifests["build"])
     require_manifest_keys(
         build,
-        {"schemaVersion", "kind", "sourceSha", "sdkVersion", "success", "files"},
+        {
+            "schemaVersion",
+            "kind",
+            "sourceSha",
+            "runId",
+            "runAttempt",
+            "sdkVersion",
+            "success",
+            "files",
+        },
         "build",
+    )
+    require_ci_evidence_provenance(build, "build", run_id, artifact_attempts["build"])
+    require_current_ci_producer_evidence(
+        build, "build", job_results["build"], artifact_attempts["build"]
     )
     if build != {
         **build,
@@ -4652,6 +4954,8 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                 "schemaVersion",
                 "kind",
                 "sourceSha",
+                "runId",
+                "runAttempt",
                 "sdkVersion",
                 "success",
                 "shard",
@@ -4660,6 +4964,10 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                 "files",
             },
             shard,
+        )
+        require_ci_evidence_provenance(manifest, shard, run_id, artifact_attempts[shard])
+        require_current_ci_producer_evidence(
+            manifest, shard, job_results["test"], artifact_attempts[shard]
         )
         if any(
             (
