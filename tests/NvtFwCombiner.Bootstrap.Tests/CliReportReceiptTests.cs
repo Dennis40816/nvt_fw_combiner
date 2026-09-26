@@ -125,6 +125,44 @@ public sealed class CliReportReceiptTests
         AssertReportFailedAfterCommit(result.Output, result.Error, reportPath);
     }
 
+    /// <summary>
+    /// A report path naming the automatically named committed BIN, which only exists once the commit has
+    /// created its bundle folder, is refused; the BIN keeps the printed bytes and SHA-256.
+    /// </summary>
+    [Theory]
+    [InlineData("general-merge", "nt51950-general-merge.bin")]
+    [InlineData("ctrlram-replace", "nt51926-ctrlram-replace.bin")]
+    [InlineData("general-replace", "nt51926-general-replace.bin")]
+    public async Task ReportNamingAutomaticCommittedOutputDoesNotOverwriteIt(
+        string command,
+        string automaticFileName)
+    {
+        using var workspace = TempWorkspace.Create("nfc-cli-report-receipt-alias");
+        string bundleParent = workspace.PathFor("bundles");
+        _ = Directory.CreateDirectory(bundleParent);
+        string committedPath = Path.Combine(bundleParent, "auto_bundle", automaticFileName);
+
+        CliRunResult result = await CliTestHarness.RunAsync(
+            [
+                .. CreateArguments(command, "build", workspace),
+                "--bundle-parent",
+                bundleParent,
+                "--bundle-name",
+                "auto_bundle",
+                "--report",
+                committedPath,
+            ],
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        _ = await AssertCommittedReceiptAsync(result.Output, committedPath);
+        AssertReportFailedAfterCommit(result.Output, result.Error, committedPath);
+        Assert.Contains(
+            "Report path must not overwrite committed firmware output.",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Without a committed output the report still precedes the result and its failure keeps the existing software-error exit.</summary>
     [Fact]
     public async Task PreviewReportWriteFailureKeepsPreCommitBehavior()
