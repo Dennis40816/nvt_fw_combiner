@@ -13,5 +13,6 @@ tabs look selected at the same time until the user clicks elsewhere.
 Expected: only the current page looks selected; keyboard focus is visible but distinguishable from selection.
 Options: focus the selected page's navigation button instead of always Home; and/or draw the navigation focus
 indicator as an outline instead of an underline.
-Owner: 1.1.13 triage (R1 UI).
+Owner: 1.1.13 (R1 UI), owner decision 32: only the selected tab shows the blue underline; after F08,
+which also changes `MainWindow.axaml.cs`.
 Resolution: not fixed.
