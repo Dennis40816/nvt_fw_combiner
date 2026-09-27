@@ -10,6 +10,7 @@ public sealed partial class MainWindow
     private bool _restartThroughStableLauncher;
     private bool _stableLauncherStarted;
     private bool _hasFailedStableLauncherHandoff;
+    private bool _closeAfterFailedHandoff;
 
     private async Task ReportManagedApplicationReadyAsync(CancellationToken cancellationToken)
     {
@@ -114,7 +115,10 @@ public sealed partial class MainWindow
 
     internal void RequestStableLauncherRestart()
     {
-        _restartThroughStableLauncher = true;
+        if (!_closeAfterFailedHandoff)
+        {
+            _restartThroughStableLauncher = true;
+        }
     }
 
     internal async Task<bool> TryCompleteStableLauncherHandoffAsync()
@@ -156,7 +160,6 @@ public sealed partial class MainWindow
         {
             ClosePhase = WindowClosePhase.Recovering;
         }
-        PendingActivationRecoveryStatus status = PendingActivationRecoveryStatus.Cleared;
         if (DataContext is MainWindowViewModel recoveryViewModel)
         {
             recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
@@ -168,13 +171,12 @@ public sealed partial class MainWindow
                 Task first = await Task.WhenAny(recovery, CloseDeadlineFactory(TimeSpan.FromSeconds(5)));
                 if (first == recovery)
                 {
-                    status = await recovery;
+                    _ = await recovery;
                 }
                 else
                 {
                     recoveryCancellation.Cancel();
                     recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
-                    status = PendingActivationRecoveryStatus.Unknown;
                 }
             }
             catch (Exception exception)
@@ -182,7 +184,6 @@ public sealed partial class MainWindow
                 System.Diagnostics.Trace.TraceError("Pending activation recovery failed: {0}", exception);
                 recoveryCancellation.Cancel();
                 recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
-                status = PendingActivationRecoveryStatus.Unknown;
             }
             _ = ObserveRecoveryAndDisposeAsync(recovery, recoveryCancellation);
         }
@@ -217,7 +218,10 @@ public sealed partial class MainWindow
         {
             viewModel.Settings.PublishPendingRecoveryStatus();
         }
-        _restartThroughStableLauncher = status != PendingActivationRecoveryStatus.Cleared;
+        // A later Close is an ordinary exit. Only a new Settings activation or Retry
+        // can request another launcher handoff.
+        _restartThroughStableLauncher = false;
+        _closeAfterFailedHandoff = false;
         ClosePhase = WindowClosePhase.Open;
         _finalClosePosted = false;
         if (_deferredActivationRequested)

@@ -6,6 +6,7 @@ using System.Text;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -80,6 +81,127 @@ public sealed partial class VersionManagementSettingsTests
         handoff.Release(started: true);
         await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Assert.Equal(WindowClosePhase.Closed, window.ClosePhase);
+    }
+
+    /// <summary>A failed handoff keeps pending activation; the next real Close exits without retrying.</summary>
+    [AvaloniaFact]
+    public async Task FailedHandoffSecondCloseKeepsPendingWithoutLauncherOrClear()
+    {
+        using var workspace = TempWorkspace.Create("w6a-second-close-no-dialog");
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        _ = await experience.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
+        var handoff = new RecordingStableLauncherHandoff(started: false);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", experience, handoff),
+            ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        window.RequestStableLauncherRestart();
+        window.Close();
+        using var watchdog = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (!window.IsEnabled)
+        {
+            watchdog.Token.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            await Task.Yield();
+        }
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        Assert.Equal(PendingActivationRecoveryStatus.ConfirmedKept, shell.Settings.PendingRecoveryStatus);
+        Assert.True(shell.Settings.CanRetryPendingActivation);
+        Assert.NotNull(experience.Current.State!.PendingActivation);
+        shell.ShowMergeCommand.Execute(null);
+        shell.WorkflowSession.SelectedIc = "NT51928";
+        await shell.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.MergeDp, workspace.Write("selected.bin", new byte[0x40000]),
+            TestContext.Current.CancellationToken);
+        Assert.True(shell.HasSelectedFiles);
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => _ = closed.TrySetResult();
+        window.Close();
+        Assert.False(shell.Navigation.IsExitConfirmationOpen);
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(1, handoff.Attempts);
+        Assert.NotNull(experience.Current.State!.PendingActivation);
+    }
+
+    /// <summary>Only the Settings Retry command starts another handoff after confirmed recovery.</summary>
+    [AvaloniaFact]
+    public async Task ConfirmedPendingSettingsRetryStartsOneNewHandoff()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        _ = await experience.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
+        var handoff = new RecordingStableLauncherHandoff(started: false);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", experience, handoff),
+            ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        window.RequestStableLauncherRestart();
+        window.Close();
+        using var watchdog = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (!window.IsEnabled || handoff.Attempts != 1)
+        {
+            watchdog.Token.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            await Task.Yield();
+        }
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        Assert.True(shell.Settings.CanRetryPendingActivation);
+        Assert.True(shell.Settings.RetryPendingActivationCommand.CanExecute(null));
+        await shell.Settings.RetryPendingActivationCommand.ExecuteAsync(null);
+        while (!window.IsEnabled || handoff.Attempts != 2)
+        {
+            watchdog.Token.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            await Task.Yield();
+        }
+        Assert.Equal(2, handoff.Attempts);
+        Assert.NotNull(experience.Current.State!.PendingActivation);
+    }
+
+    /// <summary>A new launcher request during the second Close cannot override the ordinary exit.</summary>
+    [AvaloniaFact]
+    public async Task ActivationRaceDuringSecondCloseDoesNotRestartLauncher()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        _ = await experience.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
+        var handoff = new RecordingStableLauncherHandoff(started: false);
+        PresentationHostServices original = PresentationTestHost.CreateServices("0.10.5", experience, handoff);
+        var held = new TaskCompletionSource<Application.Configuration.IEventBufferFormatConfigurationSession>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var services = new PresentationHostServices(
+            original.Composition, original.FileReveal, original.SupportMatrix,
+            original.SystemInformation, original.SystemDiagnosticsExporter,
+            original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
+            original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory,
+            experience, null, handoff, _ => held.Task);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        window.RequestStableLauncherRestart();
+        window.Close();
+        using var watchdog = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (!window.IsEnabled)
+        {
+            watchdog.Token.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            await Task.Yield();
+        }
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        shell.OpenSettingsCommand.Execute(null);
+        shell.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        Assert.True(shell.Settings.IsEventBufferFormatLoading);
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => _ = closed.TrySetResult();
+        window.Close();
+        Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
+        window.RequestStableLauncherRestart();
+        held.SetException(new InvalidOperationException("synthetic factory fault"));
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(1, handoff.Attempts);
     }
 
     /// <summary>Activation admitted while ordinary Close drains upgrades the terminal choice.</summary>
@@ -385,43 +507,50 @@ public sealed partial class VersionManagementSettingsTests
         }
     }
 
-    /// <summary>A pending clear that ignores cancellation cannot hold the failed-handoff window forever.</summary>
+    /// <summary>A durable read that ignores cancellation cannot hold the failed-handoff window forever.</summary>
     [AvaloniaFact]
-    public async Task FailedHandoffBoundedRecoveryReturnsOpenWindowWhileClearIsUnsettled()
+    public async Task FailedHandoffBoundedReadReturnsUnknownWithoutClearingPending()
     {
         var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
         _ = await inner.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
-        TaskCompletionSource clearEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        TaskCompletionSource<VersionManagementSnapshot> clearRelease =
+        TaskCompletionSource readEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<VersionManagementSnapshot> readRelease =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int clears = 0;
+        bool gateRead = false;
         IVersionManagementExperience experience =
             DispatchProxy.Create<IVersionManagementExperience, WindowLifetimeStorageProxy>();
         ((WindowLifetimeStorageProxy)experience).Call = (method, args) =>
         {
             if (method == nameof(IVersionManagementExperience.CancelPendingActivationAsync))
             {
-                _ = clearEntered.TrySetResult();
-                return new ValueTask<VersionManagementSnapshot>(clearRelease.Task);
+                _ = Interlocked.Increment(ref clears);
+                throw new InvalidOperationException("Recovery must not clear pending activation.");
             }
-            MethodInfo target = typeof(IVersionManagementExperience).GetMethod(method)!;
-            return target.Invoke(inner, args);
+            if (method == nameof(IVersionManagementExperience.InitializeAsync) && gateRead)
+            {
+                _ = readEntered.TrySetResult();
+                return new ValueTask<VersionManagementSnapshot>(readRelease.Task);
+            }
+            return typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
         };
         var handoff = new RecordingStableLauncherHandoff(started: false);
-        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.5", experience, handoff);
         using var window = new MainWindow(
-            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", experience, handoff),
+            ShellPreferenceSnapshot.Default);
         window.Show();
         await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        gateRead = true;
         TaskCompletionSource recoveryExpired = new(TaskCreationOptions.RunContinuationsAsynchronously);
         int deadlines = 0;
         window.CloseDeadlineFactory = _ => Interlocked.Increment(ref deadlines) == 3
             ? recoveryExpired.Task : Task.CompletedTask;
         window.RequestStableLauncherRestart();
         window.Close();
-        await clearEntered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await readEntered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Assert.False(window.IsEnabled);
         recoveryExpired.SetResult();
-
         using var watchdog = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         while (!window.IsEnabled)
         {
@@ -429,98 +558,30 @@ public sealed partial class VersionManagementSettingsTests
             Dispatcher.UIThread.RunJobs();
             await Task.Yield();
         }
-        Assert.Equal(1, handoff.Attempts);
-        Assert.Equal(3, deadlines);
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        Assert.Equal(PendingActivationRecoveryStatus.Unknown, shell.Settings.PendingRecoveryStatus);
+        Assert.False(shell.Settings.CanRetryPendingActivation);
+        Assert.False(shell.Settings.RetryPendingActivationCommand.CanExecute(null));
+        Assert.Equal(0, clears);
         Assert.NotNull(inner.Current.State!.PendingActivation);
-        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
-        Assert.Equal(PendingActivationRecoveryStatus.Unknown, shell.Settings.PendingRecoveryStatus);
-        Assert.False(shell.Settings.CanRetryPendingActivation);
-        Assert.Contains("could not be confirmed", shell.Settings.VersionOperationStatus, StringComparison.Ordinal);
-
-        clearRelease.SetResult(await inner.CancelPendingActivationAsync(TestContext.Current.CancellationToken));
-        Assert.Equal(PendingActivationRecoveryStatus.Cleared,
+        readRelease.SetResult(inner.Current);
+        Assert.Equal(PendingActivationRecoveryStatus.ConfirmedKept,
             await shell.Settings.RecheckPendingActivationStatusAsync(TestContext.Current.CancellationToken));
     }
 
-    /// <summary>A clear saved before its inventory return stays unknown until a fresh durable read confirms it.</summary>
-    [AvaloniaFact]
-    public async Task ClearSavedBeforeInventoryReturnsIsUnknownThenClearedOnRecheck()
-    {
-        var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
-        _ = await inner.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
-        TaskCompletionSource clearEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        TaskCompletionSource<VersionManagementSnapshot> inventoryReturn =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
-        IVersionManagementExperience experience =
-            DispatchProxy.Create<IVersionManagementExperience, WindowLifetimeStorageProxy>();
-        ((WindowLifetimeStorageProxy)experience).Call = (method, args) =>
-        {
-            if (method == nameof(IVersionManagementExperience.CancelPendingActivationAsync))
-            {
-                Task<VersionManagementSnapshot> saved = inner.CancelPendingActivationAsync(
-                    TestContext.Current.CancellationToken).AsTask();
-                Assert.True(saved.IsCompletedSuccessfully);
-                _ = clearEntered.TrySetResult();
-                return new ValueTask<VersionManagementSnapshot>(inventoryReturn.Task);
-            }
-            return typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
-        };
-        var handoff = new RecordingStableLauncherHandoff(started: false);
-        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.5", experience, handoff);
-        using var window = new MainWindow(
-            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
-        window.Show();
-        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
-        TaskCompletionSource recoveryExpired = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        int deadlines = 0;
-        window.CloseDeadlineFactory = _ => Interlocked.Increment(ref deadlines) == 3
-            ? recoveryExpired.Task : Task.CompletedTask;
-        window.RequestStableLauncherRestart();
-        window.Close();
-        await clearEntered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-        Assert.Null(inner.Current.State!.PendingActivation);
-        Assert.False(window.IsEnabled);
-        recoveryExpired.SetResult();
-        using var watchdog = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        while (!window.IsEnabled)
-        {
-            watchdog.Token.ThrowIfCancellationRequested();
-            Dispatcher.UIThread.RunJobs();
-            await Task.Yield();
-        }
-        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
-        Assert.Equal(PendingActivationRecoveryStatus.Unknown, shell.Settings.PendingRecoveryStatus);
-        Assert.False(shell.Settings.CanRetryPendingActivation);
-        inventoryReturn.SetResult(inner.Current);
-        Assert.Equal(PendingActivationRecoveryStatus.Cleared,
-            await shell.Settings.RecheckPendingActivationStatusAsync(TestContext.Current.CancellationToken));
-
-        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        window.Closed += (_, _) => _ = closed.TrySetResult();
-        window.Close();
-        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-        Assert.Equal(1, handoff.Attempts);
-    }
-
-    /// <summary>Version activation cannot enter while an earlier durable clear remains unsettled.</summary>
+    /// <summary>An unknown durable status fences new activation until a fresh read succeeds.</summary>
     [Fact]
-    public async Task UnsettledPendingClearFencesNewActivation()
+    public async Task UnknownPendingStatusFencesNewActivation()
     {
         var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
-        TaskCompletionSource clearEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        TaskCompletionSource<VersionManagementSnapshot> clearRelease =
+        TaskCompletionSource<VersionManagementSnapshot> readRelease =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         IVersionManagementExperience experience =
             DispatchProxy.Create<IVersionManagementExperience, WindowLifetimeStorageProxy>();
         ((WindowLifetimeStorageProxy)experience).Call = (method, args) =>
-        {
-            if (method == nameof(IVersionManagementExperience.CancelPendingActivationAsync))
-            {
-                _ = clearEntered.TrySetResult();
-                return new ValueTask<VersionManagementSnapshot>(clearRelease.Task);
-            }
-            return typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
-        };
+            method == nameof(IVersionManagementExperience.InitializeAsync)
+                ? new ValueTask<VersionManagementSnapshot>(readRelease.Task)
+                : typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
         MainWindowViewModel shell = MainWindow.CreateStartupViewModel(
             PresentationTestHost.CreateServices("0.10.5", experience),
             ShellPreferenceSnapshot.Default);
@@ -528,22 +589,54 @@ public sealed partial class VersionManagementSettingsTests
         using var expiry = new CancellationTokenSource();
         Task<PendingActivationRecoveryStatus> recovery =
             shell.Settings.HandleLauncherHandoffFailureAsync(expiry.Token);
-        await clearEntered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         expiry.Cancel();
         Assert.Equal(PendingActivationRecoveryStatus.Unknown, await recovery);
         SettingsVersionRowViewModel installed = Assert.Single(shell.Settings.VersionRows,
             row => row.Version == ManagedAppVersion.Parse("0.10.4"));
         shell.Settings.RequestVersionPrimaryActionCommand.Execute(installed);
         await shell.Settings.ConfirmVersionActionCommand.ExecuteAsync(null);
-
+        await shell.Settings.RetryPendingActivationCommand.ExecuteAsync(null);
         Assert.Empty(inner.Activations);
-        Assert.NotNull(inner.Current.State);
-        clearRelease.SetResult(inner.Current);
+        readRelease.SetResult(inner.Current);
     }
 
-    /// <summary>Launcher handoff failure clears only the unlaunched request and leaves an actionable status.</summary>
+    /// <summary>A stalled fresh read bounds Retry and never launches from an old kept snapshot.</summary>
     [Fact]
-    public async Task LauncherHandoffFailureClearsPendingActivationAndReportsOpenState()
+    public async Task SettingsRetryRequiresBoundedFreshDurableConfirmation()
+    {
+        var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        _ = await inner.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
+        var held = new TaskCompletionSource<VersionManagementSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        bool stallRead = false;
+        IVersionManagementExperience experience =
+            DispatchProxy.Create<IVersionManagementExperience, WindowLifetimeStorageProxy>();
+        ((WindowLifetimeStorageProxy)experience).Call = (method, args) =>
+            method == nameof(IVersionManagementExperience.InitializeAsync) && stallRead
+                ? new ValueTask<VersionManagementSnapshot>(held.Task)
+                : typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
+        MainWindowViewModel shell = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience),
+            ShellPreferenceSnapshot.Default);
+        Assert.Equal(PendingActivationRecoveryStatus.ConfirmedKept,
+            await shell.Settings.HandleLauncherHandoffFailureAsync(TestContext.Current.CancellationToken));
+        int activationRequests = 0;
+        shell.Settings.ActivationRequested += (_, _) => activationRequests++;
+        using var retryExpired = new CancellationTokenSource();
+        shell.Settings.RetryReadCancellationFactory = _ => retryExpired;
+        stallRead = true;
+        Task retry = shell.Settings.RetryPendingActivationCommand.ExecuteAsync(null);
+        Assert.False(retry.IsCompleted);
+        retryExpired.Cancel();
+        await retry.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(0, activationRequests);
+        Assert.Equal(PendingActivationRecoveryStatus.Unknown, shell.Settings.PendingRecoveryStatus);
+        Assert.False(shell.Settings.RetryPendingActivationCommand.CanExecute(null));
+        held.SetResult(inner.Current);
+    }
+    /// <summary>Launcher handoff failure keeps the pending switch in saved state.</summary>
+    [Fact]
+    public async Task LauncherHandoffFailureKeepsPendingActivationAndReportsOpenState()
     {
         var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
         MainWindowViewModel viewModel = MainWindow.CreateStartupViewModel(
@@ -560,14 +653,14 @@ public sealed partial class VersionManagementSettingsTests
         PendingActivationRecoveryStatus status = await viewModel.Settings.HandleLauncherHandoffFailureAsync(
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(PendingActivationRecoveryStatus.Cleared, status);
-        Assert.Null(experience.Current.State!.PendingActivation);
-        Assert.Contains("remains open", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.Equal(PendingActivationRecoveryStatus.ConfirmedKept, status);
+        Assert.NotNull(experience.Current.State!.PendingActivation);
+        Assert.Contains("remains saved", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
     }
 
-    /// <summary>A failed clear is called kept only after a fresh durable read confirms pending activation.</summary>
+    /// <summary>A failed handoff calls pending kept only after a fresh durable read confirms it.</summary>
     [AvaloniaFact]
-    public async Task HandoffAndPendingClearFailureRequireDurableKeptConfirmation()
+    public async Task HandoffRequiresDurableKeptConfirmation()
     {
         var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false))
         {
@@ -587,7 +680,7 @@ public sealed partial class VersionManagementSettingsTests
         Assert.Equal(1, handoff.Attempts);
         MainWindowViewModel viewModel = Assert.IsType<MainWindowViewModel>(window.DataContext);
         Assert.Equal(PendingActivationRecoveryStatus.ConfirmedKept, viewModel.Settings.PendingRecoveryStatus);
-        Assert.Contains("confirmed to remain", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        Assert.Contains("remains saved", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
         Assert.True(window.IsEnabled);
     }
 

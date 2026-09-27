@@ -159,12 +159,12 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        if (_hasFailedStableLauncherHandoff &&
-            DataContext is MainWindowViewModel recoveredViewModel &&
-            recoveredViewModel.Settings.PendingRecoveryStatus == PendingActivationRecoveryStatus.Cleared)
+        if (_hasFailedStableLauncherHandoff)
         {
-            _restartThroughStableLauncher = false;
+            _isExitConfirmed = true;
+            _closeAfterFailedHandoff = !_restartThroughStableLauncher;
         }
+
         if (!_isExitConfirmed && !_restartThroughStableLauncher &&
             DataContext is MainWindowViewModel selectedViewModel && selectedViewModel.HasSelectedFiles)
         {
