@@ -33,7 +33,8 @@ public static partial class CliApplication
         TextWriter output,
         TextWriter error,
         Func<string> localStateDirectory,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? versionManagerStatePath = null)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(output);
@@ -69,7 +70,7 @@ public static partial class CliApplication
                     locators => CompositionHostServices.CreateVersionManagementExperience(
                         Version,
                         managedRoot: null,
-                        statePath: null,
+                        statePath: versionManagerStatePath,
                         updateSourceRegistryPaths: locators),
                     cancellationToken).ConfigureAwait(false);
             }

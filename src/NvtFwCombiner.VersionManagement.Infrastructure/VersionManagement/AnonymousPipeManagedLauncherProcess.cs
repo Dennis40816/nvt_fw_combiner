@@ -16,7 +16,7 @@ public sealed record LauncherBootstrapLaunchOptions(string ManagedRoot, string S
         ArgumentNullException.ThrowIfNull(args);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseDirectory);
         string managedRoot = baseDirectory;
-        string statePath = JsonVersionManagerStateStore.GetDefaultPath();
+        string? statePath = null;
         for (int index = 0; index < args.Length; index++)
         {
             string option = args[index];
@@ -36,7 +36,9 @@ public sealed record LauncherBootstrapLaunchOptions(string ManagedRoot, string S
                     throw new ArgumentException("Unknown Bootstrap option.", nameof(args));
             }
         }
-        return new(Path.GetFullPath(managedRoot), Path.GetFullPath(statePath));
+        return new(
+            Path.GetFullPath(managedRoot),
+            Path.GetFullPath(statePath ?? JsonVersionManagerStateStore.GetDefaultPath()));
     }
 }
 

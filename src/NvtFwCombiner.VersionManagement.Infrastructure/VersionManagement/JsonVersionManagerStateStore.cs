@@ -12,6 +12,8 @@ public sealed class JsonVersionManagerStateStore :
 {
     /// <summary>The launcher-state file name under per-user local application data.</summary>
     public const string StateFileName = "version-manager.v1.json";
+    internal const string CurrentUserLocalStateForbiddenSwitch =
+        "NvtFwCombiner.LocalState.CurrentUserFolderForbidden";
 
     private const int LegacySchemaVersion = 1;
     private const int RegistrySchemaVersion = 2;
@@ -41,6 +43,12 @@ public sealed class JsonVersionManagerStateStore :
     /// <returns>The full default state path.</returns>
     public static string GetDefaultPath()
     {
+        if (AppContext.TryGetSwitch(CurrentUserLocalStateForbiddenSwitch, out bool forbidden) && forbidden)
+        {
+            throw new InvalidOperationException(
+                "This process forbids the current user's version-manager state path; " +
+                "supply an isolated state path.");
+        }
         string localApplicationData = Environment.GetEnvironmentVariable("LOCALAPPDATA") ??
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         ArgumentException.ThrowIfNullOrWhiteSpace(localApplicationData);

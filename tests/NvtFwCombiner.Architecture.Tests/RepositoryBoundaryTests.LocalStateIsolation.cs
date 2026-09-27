@@ -7,8 +7,8 @@ public sealed partial class RepositoryBoundaryTests
     private const string LocalStateForbiddenSwitch = "NvtFwCombiner.LocalState.CurrentUserFolderForbidden";
 
     /// <summary>
-    /// One Bootstrap owner resolves the current user's local-state folder behind a switch that every test project
-    /// declares; Presentation receives the composed directory, and test sources only inject isolated directories.
+    /// Bootstrap and version-manager state retain their separate default resolvers behind one test-process switch;
+    /// Presentation receives the composed directory, and test sources only inject isolated directories.
     /// </summary>
     [Fact]
     public void CurrentUserLocalStateHasOneGuardedOwnerThatTestsCannotReach()
@@ -19,7 +19,23 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         int resolution = owner.IndexOf("Environment.SpecialFolder.LocalApplicationData", StringComparison.Ordinal);
         Assert.True(guard >= 0 && resolution > guard);
-        Assert.Contains($"\"{LocalStateForbiddenSwitch}\"", owner, StringComparison.Ordinal);
+        string versionManager = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/JsonVersionManagerStateStore.cs");
+        Assert.Contains($"\"{LocalStateForbiddenSwitch}\"", versionManager, StringComparison.Ordinal);
+        Assert.Contains(
+            "CurrentUserLocalStateForbiddenSwitch =\n        JsonVersionManagerStateStore.CurrentUserLocalStateForbiddenSwitch;",
+            owner.Replace("\r\n", "\n", StringComparison.Ordinal),
+            StringComparison.Ordinal);
+        int versionGuard = versionManager.IndexOf(
+            "AppContext.TryGetSwitch(CurrentUserLocalStateForbiddenSwitch",
+            StringComparison.Ordinal);
+        int environmentResolution = versionManager.IndexOf(
+            "Environment.GetEnvironmentVariable(\"LOCALAPPDATA\")",
+            StringComparison.Ordinal);
+        int platformResolution = versionManager.IndexOf(
+            "Environment.SpecialFolder.LocalApplicationData",
+            StringComparison.Ordinal);
+        Assert.True(versionGuard >= 0 && environmentResolution > versionGuard && platformResolution > versionGuard);
         Assert.Equal(
             [
                 "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
