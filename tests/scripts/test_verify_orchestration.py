@@ -38,6 +38,26 @@ import validate_repository as REPOSITORY_VALIDATOR  # noqa: E402
 
 
 class VerifyOrchestrationTests(unittest.TestCase):
+    def test_all_help_describes_complete_local_suite_without_completion_claim(self) -> None:
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as raised:
+            MODULE.parse_args(["--help"])
+
+        self.assertEqual(0, raised.exception.code)
+        help_text = " ".join(output.getvalue().split())
+        self.assertIn(
+            "Run the complete local verification suite. Cannot be combined with skip flags.",
+            help_text,
+        )
+        self.assertNotIn("Run every public gate.", help_text)
+        self.assertNotIn("This is the CI/Codex completion command.", help_text)
+
+    def test_all_rejects_each_skip_flag(self) -> None:
+        for flag in ("--skip-python", "--skip-dotnet", "--skip-structure"):
+            with self.subTest(flag=flag), self.assertRaises(SystemExit) as raised:
+                MODULE.execute_verification(MODULE.parse_args(["--all", flag]))
+            self.assertEqual("--all cannot be combined with skip flags", str(raised.exception))
+
     def test_release_golden_plan_covers_every_direct_canonical_case(self) -> None:
         with patch.object(MODULE, "current_dotnet_producer_platform", return_value="windows"):
             projects, cases = MODULE.release_golden_plan()
