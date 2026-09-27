@@ -1,8 +1,10 @@
 # ADR 0081: Bounded, observed cleanup for external tool processes
 
-Status: Proposed (draft, 2026-09-27). Design review of the first revision
-rejected it (F-1 to F-7); this revision answers those findings and waits for
-re-review. Owner decisions 85 and 86 (2026-09-26) fix its product choices.
+Status: Accepted (owner decision 97, 2026-09-27)
+
+It was accepted after six rounds of independent design review: earlier rounds
+rejected it or accepted it with changes, and round 6 granted design approval.
+Its product choices come from owner decisions 85, 86 and 92.
 
 Amends: [ADR 0006](0006-external-combiner-tool-runner.md): its common host's
 "timeout/cancellation, process-tree cleanup" duty and its fail-closed list.
