@@ -1681,3 +1681,5 @@ The historical diagram retains the serial top-level baseline; current scheduling
 and source-specific lane/full-wall measurements are recorded above. The latest
 complete observation is 730.59 s, not an achieved ten-minute result. Preserve
 the v1.1.3 historical baseline rather than replacing it with current timings.
+
+<!-- G1-A acceptance case 3; never merged. -->
