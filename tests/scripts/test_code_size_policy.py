@@ -95,6 +95,24 @@ def test_global_types_and_delegates_are_measured(root):
     assert {a.name for a in policy.measure_code_size(root).type_aggregates} == {"Global", "Callback"}
 
 
+@pytest.mark.parametrize("declaration,name", [
+    ("public delegate (int X, int Y) Callback();", "Product.Callback"),
+    ("public delegate System.Func<(int X, int Y)> Callback();", "Product.Callback"),
+    ("public delegate System.Func<(T X, T Y)> Callback<T>();", "Product.Callback`1"),
+])
+def test_tuple_return_delegate_is_enrolled_by_its_declared_name(root, declaration, name):
+    write(root, "src/Product/Delegate.cs", "namespace Product;\n" + declaration + "\n" + "// body\n" * 1998)
+    aggregate, = policy.measure_code_size(root).type_aggregates
+    assert (aggregate.name, aggregate.nonblank_lines) == (name, 2000)
+    errors = policy.validate_code_size_policy(root, {})
+    assert len(errors) == 1 and name in errors[0] and "enroll" in errors[0]
+
+
+def test_anonymous_delegate_is_not_a_type(root):
+    write(root, "src/Product/Worker.cs", "namespace Product;\nclass Worker { System.Action<int> Run = delegate(int x) { }; }\n")
+    assert [a.name for a in policy.measure_code_size(root).type_aggregates] == ["Product.Worker"]
+
+
 def test_generated_and_build_directories_are_excluded(root):
     sized_type(root, 2000)
     for directory in ("obj", "bin", "generated", "Generated", "artifacts"):

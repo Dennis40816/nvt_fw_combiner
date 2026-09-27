@@ -148,6 +148,28 @@ CSHARP_NONCODE = re.compile(
 CSHARP_TOKEN = re.compile(r"@?[A-Za-z_]\w*|[{};.<>,():]")
 
 
+def _delegate_name_index(tokens: list[str], declaration: int) -> int | None:
+    """Skip the complete return type, including tuples inside generic types."""
+    angle = parentheses = 0
+    for index in range(declaration + 1, len(tokens)):
+        token = tokens[index]
+        if token in {";", "{", "}"}:
+            return None
+        if token == "(" and angle == 0 and parentheses == 0:
+            name = index - 1
+            if tokens[name] == ">":
+                depth = 1
+                name -= 1
+                while name > declaration and depth:
+                    depth += (tokens[name] == ">") - (tokens[name] == "<")
+                    name -= 1
+            if name > declaration + 1 and re.fullmatch(r"@?[A-Za-z_]\w*", tokens[name]):
+                return name
+        angle += (token == "<") - (token == ">")
+        parentheses += (token == "(") - (token == ")")
+    return None
+
+
 def _declared_types(text: str) -> set[str]:
     """Read qualified declaration identities, including nested/generic types."""
     tokens = CSHARP_TOKEN.findall(CSHARP_NONCODE.sub(" ", text))
@@ -174,20 +196,10 @@ def _declared_types(text: str) -> set[str]:
             if token == "record" and start < len(tokens) and tokens[start] in {"class", "struct"}:
                 start += 1
             if token == "delegate":
-                # The delegate name precedes its generic parameters/argument list.
-                end = start
-                while end < len(tokens) and tokens[end] not in ("(", ";", "{"):
-                    end += 1
-                if end == len(tokens) or tokens[end] != "(":
+                start = _delegate_name_index(tokens, index)
+                if start is None:
                     index += 1
                     continue
-                start = end - 1
-                if tokens[start] == ">":
-                    depth = 1
-                    start -= 1
-                    while start >= index and depth:
-                        depth += (tokens[start] == ">") - (tokens[start] == "<")
-                        start -= 1
             if start < len(tokens) and re.fullmatch(r"@?[A-Za-z_]\w*", tokens[start]):
                 end = start + 1
                 name = tokens[start].lstrip("@")
