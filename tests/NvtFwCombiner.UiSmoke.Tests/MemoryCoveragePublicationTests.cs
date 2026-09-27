@@ -171,6 +171,7 @@ public sealed class MemoryCoveragePublicationTests
         List<NotifyCollectionChangedAction> actions,
         int maxNotifications)
     {
+        Assert.NotEmpty(actions);
         Assert.All(actions, action => Assert.Equal(NotifyCollectionChangedAction.Reset, action));
         Assert.True(
             actions.Count <= maxNotifications,
