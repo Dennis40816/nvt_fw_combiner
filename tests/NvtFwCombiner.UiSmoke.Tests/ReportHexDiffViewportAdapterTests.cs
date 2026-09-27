@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Headless.XUnit;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -48,7 +49,7 @@ public sealed class ReportHexDiffViewportAdapterTests
     }
 
     /// <summary>A long range materializes only the requested bounded range-local window.</summary>
-    [Fact]
+    [AvaloniaFact]
     public void AdapterMaterializesAtMostTheNamedReportRowBudget()
     {
         byte[] before = new byte[0x200];

@@ -252,8 +252,10 @@ internal static class PresentationTestHost
     {
         var loader = new ExternalProcessorEnvironmentLoader(
             RepositoryPaths.FromRepositoryRoot("external-tools"));
-        Assert.True(((IExternalProcessorEnvironmentLoader)loader)
-            .LoadToCompletionAsync(null, CancellationToken.None)
+        // The first caller can be a headless test or a UiThreadTestContext. Loading on the thread pool
+        // keeps this blocking wait from deadlocking on that caller's single-threaded context.
+        Assert.True(Task.Run(() => ((IExternalProcessorEnvironmentLoader)loader)
+                .LoadToCompletionAsync(null, CancellationToken.None))
             .GetAwaiter().GetResult().Succeeded);
         ExternalProcessorEnvironmentLease lease = loader.AcquireCurrent();
         return new(lease.Processor, lease.ReadinessProvider, loader.Current.ManifestCount);
