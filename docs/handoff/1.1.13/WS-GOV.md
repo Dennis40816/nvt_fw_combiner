@@ -1259,3 +1259,13 @@ verified afterwards, and the board records it (G0 checklist, C3).
 - **Still open for "in force" (ADR 0080 item 9):** one real pull request other than G1-B merged under G1-A with its
   recorded pre-merge verification (planned: batch 3), and the owner's confirmation. Evidence files are in the test area
   under `evidence/g1a-activation/`.
+
+## D6 owner bypass drill (2026-09-28, C2 path)
+
+- Step 1 (board record): branch `9.9.x` (disposable, trunk pattern); old SHA
+  `e6e991af32d76d99ad156a7f86baa662947db8d9`; intended force push to its first
+  parent `54974d5ccbe7864042c244aa2d7b4617a08104cc`, then deletion; reason: D6-C2
+  drill before the G1-B merge (decision 146); recorded 2026-09-28.
+- Step 3 (freeze): nothing pushes to or merges into `9.9.x`; no open pull
+  request targets it.
+- Steps 2, 4, 5 (owner) and 6, 7, 10 (agent): results recorded below when done.
