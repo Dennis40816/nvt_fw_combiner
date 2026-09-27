@@ -102,6 +102,40 @@ public sealed class ReportHistoryPersistenceTests
             () => coordinator.Queue([CreateSnapshot("after-close.json")]));
     }
 
+    /// <summary>A resumed save keeps the original serial tail, so an older delayed write cannot win.</summary>
+    [Fact]
+    public async Task CoordinatorReopenSerializesNewSnapshotAfterDelayedOldSave()
+    {
+        TaskCompletionSource oldStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseOld = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        List<string> persisted = [];
+        LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>> coordinator =
+            CreateCoordinator(async (snapshots, _) =>
+            {
+                string name = Assert.Single(snapshots).SourceName;
+                if (name == "old.json")
+                {
+                    oldStarted.SetResult();
+                    await releaseOld.Task;
+                }
+                lock (persisted)
+                {
+                    persisted.Add(name);
+                }
+            });
+
+        coordinator.Queue([CreateSnapshot("old.json")]);
+        await oldStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+        Task sealedTail = coordinator.CompleteAsync();
+        coordinator.Reopen();
+        coordinator.Queue([CreateSnapshot("new.json")]);
+        releaseOld.SetResult();
+        await Task.WhenAll(sealedTail, coordinator.CompleteAsync())
+            .WaitAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(["old.json", "new.json"], persisted);
+    }
+
     /// <summary>An unexpected best-effort save fault is observed without poisoning later persistence.</summary>
     [Fact]
     public async Task CoordinatorRecoversAfterSaveFault()

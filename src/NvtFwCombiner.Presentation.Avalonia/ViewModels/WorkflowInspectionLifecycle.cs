@@ -49,6 +49,8 @@ internal sealed class WorkflowInspectionSet(
 /// </summary>
 internal sealed class WorkflowInspectionLifecycle
 {
+    internal WindowPublicationLease? WindowPublication { get; set; }
+
     private readonly Lock _admissionLock = new();
     private readonly Action _statusChanged;
     private Task _activeTask = Task.CompletedTask;
@@ -102,7 +104,10 @@ internal sealed class WorkflowInspectionLifecycle
         {
             SetState(WorkflowInspectionAttemptState.Cancelled);
         }
-        Loading.Complete();
+        if (WindowPublication?.CanPublish ?? true)
+        {
+            Loading.Complete();
+        }
     }
 
     internal void ApplyText(ShellTextResources text)
@@ -203,7 +208,8 @@ internal sealed class WorkflowInspectionLifecycle
         AuthoringInspectionProgress? previous;
         lock (_admissionLock)
         {
-            if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested)
+            if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested ||
+                !(WindowPublication?.CanPublish ?? true))
             {
                 throw new OperationCanceledException(requestCancellation);
             }
@@ -274,6 +280,10 @@ internal sealed class WorkflowInspectionLifecycle
             return;
         }
         SetState(state);
+        if (!(WindowPublication?.CanPublish ?? true))
+        {
+            return;
+        }
         if (state == WorkflowInspectionAttemptState.Failed)
         {
             Present();
@@ -286,6 +296,10 @@ internal sealed class WorkflowInspectionLifecycle
 
     private void Present()
     {
+        if (!(WindowPublication?.CanPublish ?? true))
+        {
+            return;
+        }
         ShellTextResources text = _request!.Text;
         if (State == WorkflowInspectionAttemptState.Failed)
         {
@@ -309,7 +323,10 @@ internal sealed class WorkflowInspectionLifecycle
     private void SetState(WorkflowInspectionAttemptState value)
     {
         State = value;
-        PresentationObserver.Invoke(_statusChanged);
+        if (WindowPublication?.CanPublish ?? true)
+        {
+            PresentationObserver.Invoke(_statusChanged);
+        }
     }
 
     private void CancelActive()

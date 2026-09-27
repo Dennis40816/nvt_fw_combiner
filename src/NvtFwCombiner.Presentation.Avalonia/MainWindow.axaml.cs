@@ -15,7 +15,6 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 /// <summary>Main desktop window for the firmware combiner UI.</summary>
 public sealed partial class MainWindow : Window, IDisposable
 {
-    private static readonly TimeSpan LocalStateCloseFlushTimeout = TimeSpan.FromSeconds(5);
     private readonly DispatcherTimer _reportToastHoldTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _reportToastFadeTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
     private readonly LatestSnapshotPersistenceCoordinator<IReadOnlyList<ReportHistorySnapshot>>
@@ -23,7 +22,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>
         _shellPreferencePersistence;
     private readonly LocalStateSaveNoticeViewModel _localStateSave;
-    private readonly CancellationTokenSource _startupLoadCancellation = new();
+    private CancellationTokenSource _startupLoadCancellation = new();
     private readonly ForegroundLoadingState _preloadLoading;
     private readonly ShellPreloadSession _preloadSession;
     private readonly PresentationHostServices _hostServices;
@@ -32,6 +31,9 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isStartupShellEnabled;
     private bool _isReportHistoryClosePending;
     private bool _isReportHistoryPersistenceComplete;
+    private bool _localStateSealed;
+    private bool _preferenceChangedWhileSealed;
+    private bool _historyChangedWhileSealed;
     private bool _isExitConfirmed;
     private bool _isDisposed;
     private bool _isStartupLoadStarted;
@@ -88,6 +90,16 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         MainWindowViewModel viewModel = CreateStartupViewModel(_hostServices, startupPreferences);
+        viewModel.Reports.WindowPublication = _windowPublication;
+        viewModel.WorkflowSession.WindowPublication = _windowPublication;
+        viewModel.Merge.WindowPublication = _windowPublication;
+        viewModel.Replace.WindowPublication = _windowPublication;
+        viewModel.Merge.InspectionLifecycles.ForEach(
+            lifecycle => lifecycle.WindowPublication = _windowPublication);
+        viewModel.Replace.InspectionLifecycles.ForEach(
+            lifecycle => lifecycle.WindowPublication = _windowPublication);
+        viewModel.Settings.SetWindowPublication(() => !_isDisposed && IsEnabled && !_isReportHistoryClosePending);
+        viewModel.RunSession.SetWindowPublication(() => !_isDisposed && !_isReportHistoryPersistenceComplete);
         _localStateSave = new(() => viewModel.Text);
         _localStateSave.Attach(LocalStateSaveTarget.ReportHistory, _reportHistoryPersistence.TryRetry);
         _localStateSave.Attach(LocalStateSaveTarget.Preferences, _shellPreferencePersistence.TryRetry);
@@ -152,6 +164,12 @@ public sealed partial class MainWindow : Window, IDisposable
 
         if (_isReportHistoryPersistenceComplete)
         {
+            if (_hasFailedStableLauncherHandoff &&
+                DataContext is MainWindowViewModel recoveredViewModel &&
+                recoveredViewModel.Settings.PendingRecoveryStatus == PendingActivationRecoveryStatus.Cleared)
+            {
+                _restartThroughStableLauncher = false;
+            }
             if (DataContext is MainWindowViewModel finalViewModel)
             {
                 finalViewModel.RunSession.CancelActiveRun();
@@ -173,11 +191,20 @@ public sealed partial class MainWindow : Window, IDisposable
                     base.OnClosing(e);
                     return;
                 }
+                if (DataContext is MainWindowViewModel handoffViewModel)
+                {
+                    handoffViewModel.RunSession.RevokeActiveRun();
+                }
+                _windowPublication.Revoke();
                 Dispatcher.UIThread.Post(Close);
                 base.OnClosing(e);
                 return;
             }
-
+            if (DataContext is MainWindowViewModel terminalViewModel)
+            {
+                terminalViewModel.RunSession.RevokeActiveRun();
+            }
+            _windowPublication.Revoke();
             base.OnClosing(e);
             return;
         }
@@ -191,28 +218,57 @@ public sealed partial class MainWindow : Window, IDisposable
 
         _isReportHistoryClosePending = true;
         IsEnabled = false;
-        if (DataContext is MainWindowViewModel viewModel)
-        {
-            viewModel.RunSession.CancelActiveRun();
-        }
-
-        var completion = Task.WhenAll(
-            _reportHistoryPersistence.CompleteAsync(),
-            _shellPreferencePersistence.CompleteAsync(),
-            _preloadSession.CancelAndDrainAsync());
+        Task runCompletion = Task.CompletedTask;
+        Task settingsCompletion = Task.CompletedTask;
         base.OnClosing(e);
         try
         {
-            await completion.WaitAsync(LocalStateCloseFlushTimeout);
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                runCompletion = viewModel.RunSession.ActiveRunCompletion;
+                settingsCompletion = viewModel.Settings.WhenOperationsIdleAsync();
+                viewModel.RunSession.CancelActiveRun();
+            }
+            _preloadSession.StopAcceptingAndRevoke();
+            var work = Task.WhenAll([runCompletion, settingsCompletion,
+                _preloadSession.AllUsersSettled, .. _sessionTasks]);
+            await WaitWithinCloseDeadlineAsync(work);
         }
-        catch (TimeoutException)
+        catch (Exception exception)
         {
-            // Report history is best-effort local state; a stalled save must not trap the application open.
+            Trace.TraceError("Window close work drain failed: {0}", exception);
+        }
+        finally
+        {
+            _windowPublication.Suspend();
+            if (!runCompletion.IsCompleted && DataContext is MainWindowViewModel timedOutViewModel)
+            {
+                timedOutViewModel.RunSession.RevokeActiveRun();
+            }
         }
 
-        _isReportHistoryPersistenceComplete = true;
-        _isReportHistoryClosePending = false;
-        Dispatcher.UIThread.Post(Close);
+        try
+        {
+            _localStateSealed = true;
+            var completion = Task.WhenAll(
+                _reportHistoryPersistence.CompleteAsync(),
+                _shellPreferencePersistence.CompleteAsync());
+            await WaitWithinCloseDeadlineAsync(completion);
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError("Window close local-state flush failed: {0}", exception);
+        }
+        finally
+        {
+            _isReportHistoryPersistenceComplete = true;
+            _isReportHistoryClosePending = false;
+            if (!_restartThroughStableLauncher)
+            {
+                _windowPublication.Revoke();
+            }
+            Dispatcher.UIThread.Post(Close);
+        }
     }
 
     /// <inheritdoc />
@@ -246,14 +302,16 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         _isDisposed = true;
+        _windowPublication.Revoke();
         _localStateSave.Detach();
-        _startupLoadCancellation.Dispose();
-        _preloadSession.Dispose();
+        _startupLoadCancellation.Cancel();
+        _preloadSession.StopAcceptingAndRevoke();
+        RetireSession(_startupLoadCancellation);
         GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc />
-    protected override async void OnOpened(EventArgs e)
+    protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
         WindowState = WindowState.Maximized;
@@ -266,8 +324,28 @@ public sealed partial class MainWindow : Window, IDisposable
         _isStartupLoadStarted = true;
         CancellationToken startupCancellation = _startupLoadCancellation.Token;
         CatalogLoadingSurfaceHost.Content = _preloadLoading;
+        StartupWork = RunStartupAfterOpenedAsync(viewModel, startupCancellation);
+        ObserveSessionTask(StartupWork);
+    }
+
+    private async Task RunStartupAfterOpenedAsync(
+        MainWindowViewModel viewModel,
+        CancellationToken startupCancellation)
+    {
         await Task.Yield();
-        await RunStartupPreloadAsync(viewModel, startupCancellation);
+        try
+        {
+            await RunStartupPreloadAsync(viewModel, startupCancellation);
+        }
+        catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
+        {
+            CompleteStartupTrace("startup-warmup.cancelled");
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceError("Startup preload failed: {0}", exception);
+            CompleteStartupTrace("startup-warmup.failed");
+        }
     }
 
     private async Task RunStartupPreloadAsync(
@@ -283,7 +361,8 @@ public sealed partial class MainWindow : Window, IDisposable
         if (startupCancellation.IsCancellationRequested) { return; }
         ReportStartupDuration(viewModel);
         await ReportManagedApplicationReadyAsync(startupCancellation);
-        _ = RunVersionDiscoveryAfterReadyAsync(startupCancellation);
+        if (startupCancellation.IsCancellationRequested) { return; }
+        ObserveSessionTask(RunVersionDiscoveryAfterReadyAsync(startupCancellation));
 
         try
         {
@@ -593,7 +672,14 @@ public sealed partial class MainWindow : Window, IDisposable
 
         if (IsShellPreferenceProperty(e.PropertyName))
         {
-            _shellPreferencePersistence.Queue(viewModel.ExportShellPreferences());
+            if (_localStateSealed)
+            {
+                _preferenceChangedWhileSealed = true;
+            }
+            else if (!_isDisposed)
+            {
+                _shellPreferencePersistence.Queue(viewModel.ExportShellPreferences());
+            }
         }
 
     }
@@ -660,7 +746,14 @@ public sealed partial class MainWindow : Window, IDisposable
 
         if (e.PropertyName == nameof(ReportPresentationViewModel.ReportHistoryCount))
         {
-            _reportHistoryPersistence.Queue(reports.ExportReportHistory());
+            if (_localStateSealed)
+            {
+                _historyChangedWhileSealed = true;
+            }
+            else if (!_isDisposed)
+            {
+                _reportHistoryPersistence.Queue(reports.ExportReportHistory());
+            }
         }
 
         if (e.PropertyName != nameof(ReportPresentationViewModel.HasReportToast))

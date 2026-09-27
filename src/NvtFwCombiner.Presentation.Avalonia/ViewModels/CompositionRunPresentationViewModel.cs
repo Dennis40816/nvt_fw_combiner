@@ -11,13 +11,21 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
     private readonly CompositionRunStateBindings _stateBindings;
     private sealed record RunAttempt(CompositionRunContext Context, Guid Id) : IDisposable
     {
+        private int _revoked;
         internal CancellationTokenSource Cancellation { get; } = new();
+        internal TaskCompletionSource Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal bool IsRevoked => Volatile.Read(ref _revoked) != 0;
+        internal void Revoke()
+        {
+            _ = Interlocked.Exchange(ref _revoked, 1);
+        }
         public void Dispose()
         {
             Cancellation.Dispose();
         }
     }
     private RunAttempt? _activeAttempt;
+    private Func<bool> _windowMayPublish = static () => true;
     private bool _activeRunIsBuild;
     public bool ActiveRunShowsNumberSelector { get; private set; }
     private string ActiveRunDeviceContextRefreshSummary { get; set; } = string.Empty;
@@ -50,6 +58,22 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
 
     /// <summary>True while one composition Preview or Build owns the external processing lifetime.</summary>
     public bool IsRunInProgress => _activeAttempt is not null;
+    internal Task ActiveRunCompletion => _activeAttempt?.Completion.Task ?? Task.CompletedTask;
+
+    internal void SetWindowPublication(Func<bool> mayPublish)
+    {
+        _windowMayPublish = mayPublish ?? throw new ArgumentNullException(nameof(mayPublish));
+    }
+
+    private bool CanPublish(RunAttempt attempt)
+    {
+        return ReferenceEquals(_activeAttempt, attempt) && !attempt.IsRevoked && _windowMayPublish();
+    }
+
+    internal void RevokeActiveRun()
+    {
+        _activeAttempt?.Revoke();
+    }
 
     public string RunProgressAccessibleLabel => _activeRunIsBuild
         ? _stateBindings.Text().BuildRunProgressAccessibleLabel
@@ -100,7 +124,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
 
     private RunAttempt? BeginRun(CompositionRunContext context, bool build)
     {
-        if (_activeAttempt is not null)
+        if (_activeAttempt is not null || !_windowMayPublish())
         {
             return null;
         }
@@ -145,13 +169,23 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
                 ActiveRunNumber = string.Empty;
                 ActiveRunMode = string.Empty;
                 ActiveRunDeviceContextRefreshSummary = string.Empty;
-                _stateBindings.RefreshCommandState();
-                NotifyActiveRunContextChanged();
+                if (!attempt.IsRevoked && _windowMayPublish())
+                {
+                    _stateBindings.RefreshCommandState();
+                    NotifyActiveRunContextChanged();
+                }
             }
         }
         finally
         {
-            attempt.Dispose();
+            try
+            {
+                attempt.Dispose();
+            }
+            finally
+            {
+                _ = attempt.Completion.TrySetResult();
+            }
         }
     }
 
@@ -187,7 +221,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         {
             progress = new CompositionRunProgressFeed();
             progressObservationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationSource.Token);
-            progressObservation = ObserveRunProgressAsync(progress, progressObservationSource.Token);
+            progressObservation = ObserveRunProgressAsync(progress, attempt, progressObservationSource.Token);
             await Task.Yield();
             completedResult = await Task.Run(
                 () => run(progress, cancellationSource.Token).AsTask(), cancellationSource.Token);
@@ -201,42 +235,54 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
                 return null;
             }
 
-            PublishCommittedResultWithoutReport(
-                context,
-                completedResult,
-                committedOutputId,
-                _stateBindings.Text().CommittedOutputCancelledReportFailure);
+            if (CanPublish(attempt))
+            {
+                PublishCommittedResultWithoutReport(
+                    context,
+                    completedResult,
+                    committedOutputId,
+                    _stateBindings.Text().CommittedOutputCancelledReportFailure);
+            }
         }
         catch (CompositionPreRunRefusalException exception)
         {
             string action = build ? "Build" : "Preview";
-            context.Owner.Publish(new UiRunResultViewModel(
-                $"{action} blocked",
-                exception.Message,
-                "No output",
-                succeeded: false), context);
-            OnPropertyChanged(nameof(LastRunResult));
+            if (CanPublish(attempt))
+            {
+                context.Owner.Publish(new UiRunResultViewModel(
+                    $"{action} blocked",
+                    exception.Message,
+                    "No output",
+                    succeeded: false), context);
+                OnPropertyChanged(nameof(LastRunResult));
+            }
         }
         catch (Exception exception) when (
             TryGetCommittedBuildOutput(completedResult, build, out string? committedOutputId) &&
             (exception is IOException or UnauthorizedAccessException ||
                 ReportPresentationViewModel.IsReportMaterializationException(exception)))
         {
-            PublishCommittedResultWithoutReport(context, completedResult, committedOutputId, exception.Message);
+            if (CanPublish(attempt))
+            {
+                PublishCommittedResultWithoutReport(context, completedResult, committedOutputId, exception.Message);
+            }
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
         {
             string action = build ? "Build" : "Preview";
-            context.Owner.Publish(new UiRunResultViewModel(
-                $"{action} failed",
-                exception.Message,
-                "No output",
-                succeeded: false), context);
-            OnPropertyChanged(nameof(LastRunResult));
-            loadErrorReport(action, exception.Message);
-            if (build)
+            if (CanPublish(attempt))
             {
-                _stateBindings.Reports().ShowReport();
+                context.Owner.Publish(new UiRunResultViewModel(
+                    $"{action} failed",
+                    exception.Message,
+                    "No output",
+                    succeeded: false), context);
+                OnPropertyChanged(nameof(LastRunResult));
+                loadErrorReport(action, exception.Message);
+                if (build)
+                {
+                    _stateBindings.Reports().ShowReport();
+                }
             }
         }
         finally
@@ -341,6 +387,10 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             string reportJson = await reportJsonTask;
             ReportReviewViewModel projected = await projectionTask;
             cancellationSource.Token.ThrowIfCancellationRequested();
+            if (!CanPublish(attempt))
+            {
+                return;
+            }
             context.Owner.Publish(new UiRunResultViewModel(
                 "Preview blocked",
                 diagnostic.Message,
@@ -369,7 +419,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         bool build)
     {
         ArgumentNullException.ThrowIfNull(readiness);
-        if (IsRunInProgress) { return; }
+        if (IsRunInProgress || !_windowMayPublish()) { return; }
         string action = build ? "Build" : "Preview";
         CapabilityActionBlocker? blocker = build
             ? readiness.Build.PrimaryBlocker
@@ -389,6 +439,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         bool build,
         CancellationToken cancellationToken)
     {
+        RunAttempt? publicationAttempt = _activeAttempt;
         ReportPresentationViewModel reports = _stateBindings.Reports();
         long reportProjectionGeneration = reports.BeginReportProjection();
         string action = build ? "Build" : "Preview";
@@ -407,6 +458,11 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         string reportJson = await reportJsonTask;
         ReportReviewViewModel report = await projectionTask;
         cancellationToken.ThrowIfCancellationRequested();
+        if (!_windowMayPublish() ||
+            (publicationAttempt is not null && !CanPublish(publicationAttempt)))
+        {
+            return;
+        }
 
         ApplyRunResult(
             context,
@@ -456,11 +512,15 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
 
     private async Task ObserveRunProgressAsync(
         CompositionRunProgressFeed progress,
+        RunAttempt attempt,
         CancellationToken cancellationToken)
     {
         await foreach (CompositionRunProgressSnapshot snapshot in progress.ReadAllAsync(cancellationToken))
         {
-            _ = CompositionProgress.TryApply(snapshot);
+            if (CanPublish(attempt))
+            {
+                _ = CompositionProgress.TryApply(snapshot);
+            }
         }
     }
 

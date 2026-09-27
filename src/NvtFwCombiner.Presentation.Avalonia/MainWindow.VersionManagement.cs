@@ -9,6 +9,7 @@ public sealed partial class MainWindow
     private bool _restartThroughStableLauncher;
     private bool _stableLauncherStarted;
     private bool _stableLauncherHandoffInProgress;
+    private bool _hasFailedStableLauncherHandoff;
 
     private async Task ReportManagedApplicationReadyAsync(CancellationToken cancellationToken)
     {
@@ -17,7 +18,8 @@ public sealed partial class MainWindow
             return;
         }
         ManagedApplicationStartupResult result = await startup.CompleteStartupAsync(cancellationToken);
-        if (DataContext is MainWindowViewModel viewModel)
+        if (!cancellationToken.IsCancellationRequested &&
+            DataContext is MainWindowViewModel viewModel)
         {
             viewModel.Settings.ApplyVersionSnapshot(result.Snapshot);
             viewModel.Settings.SetSourceChecking(result.Snapshot.State?.UpdateSource is not null);
@@ -41,12 +43,14 @@ public sealed partial class MainWindow
             }
             finally
             {
-                if (DataContext is MainWindowViewModel finalViewModel)
+                if (!cancellationToken.IsCancellationRequested &&
+                    DataContext is MainWindowViewModel finalViewModel)
                 {
                     finalViewModel.Settings.SetSourceChecking(false);
                 }
             }
-            if (DataContext is MainWindowViewModel checkedViewModel)
+            if (!cancellationToken.IsCancellationRequested &&
+                DataContext is MainWindowViewModel checkedViewModel)
             {
                 checkedViewModel.Settings.ApplyVersionSnapshot(checkedSnapshot);
                 bool authorityAvailable =
@@ -103,7 +107,16 @@ public sealed partial class MainWindow
 
     internal async Task<bool> TryCompleteStableLauncherHandoffAsync()
     {
-        bool started = await TryStartStableLauncherAsync();
+        bool started;
+        try
+        {
+            started = await TryStartStableLauncherAsync();
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Stable launcher handoff failed: {0}", exception);
+            started = false;
+        }
         if (!started)
         {
             await ReportStableLauncherHandoffFailureAsync();
@@ -126,13 +139,85 @@ public sealed partial class MainWindow
 
     private async Task ReportStableLauncherHandoffFailureAsync()
     {
+        _hasFailedStableLauncherHandoff = true;
+        PendingActivationRecoveryStatus status = PendingActivationRecoveryStatus.Cleared;
+        if (DataContext is MainWindowViewModel recoveryViewModel)
+        {
+            var recoveryCancellation = new CancellationTokenSource();
+            Task<PendingActivationRecoveryStatus> recovery =
+                recoveryViewModel.Settings.HandleLauncherHandoffFailureAsync(recoveryCancellation.Token);
+            try
+            {
+                Task first = await Task.WhenAny(recovery, CloseDeadlineFactory(TimeSpan.FromSeconds(5)));
+                if (first == recovery)
+                {
+                    status = await recovery;
+                }
+                else
+                {
+                    recoveryCancellation.Cancel();
+                    recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
+                    status = PendingActivationRecoveryStatus.Unknown;
+                }
+            }
+            catch (Exception exception)
+            {
+                System.Diagnostics.Trace.TraceError("Pending activation recovery failed: {0}", exception);
+                recoveryCancellation.Cancel();
+                recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
+                status = PendingActivationRecoveryStatus.Unknown;
+            }
+            _ = ObserveRecoveryAndDisposeAsync(recovery, recoveryCancellation);
+        }
+        CancellationTokenSource previousSession = _startupLoadCancellation;
+        previousSession.Cancel();
+        _preloadSession.StopAcceptingAndRevoke();
+        _startupLoadCancellation = new();
+        RetireSession(previousSession);
+        OptionalPreloadStatusHost.DataContext = null;
+        _reportHistoryPersistence.Reopen();
+        _shellPreferencePersistence.Reopen();
+        _localStateSealed = false;
+        if (DataContext is MainWindowViewModel dirtyViewModel)
+        {
+            if (_preferenceChangedWhileSealed)
+            {
+                _shellPreferencePersistence.Queue(dirtyViewModel.ExportShellPreferences());
+                _preferenceChangedWhileSealed = false;
+            }
+            if (_historyChangedWhileSealed)
+            {
+                _reportHistoryPersistence.Queue(dirtyViewModel.Reports.ExportReportHistory());
+                _historyChangedWhileSealed = false;
+            }
+        }
+        _isReportHistoryPersistenceComplete = false;
+        _isReportHistoryClosePending = false;
         _isExitConfirmed = false;
+        _windowPublication.Resume();
         IsEnabled = true;
-        bool activationCleared = true;
         if (DataContext is MainWindowViewModel viewModel)
         {
-            activationCleared = await viewModel.Settings.HandleLauncherHandoffFailureAsync();
+            viewModel.Settings.PublishPendingRecoveryStatus();
         }
-        _restartThroughStableLauncher = !activationCleared;
+        _restartThroughStableLauncher = status != PendingActivationRecoveryStatus.Cleared;
+    }
+
+    private static async Task ObserveRecoveryAndDisposeAsync(
+        Task<PendingActivationRecoveryStatus> recovery,
+        CancellationTokenSource cancellation)
+    {
+        try
+        {
+            _ = await recovery;
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Late pending activation recovery failed: {0}", exception);
+        }
+        finally
+        {
+            cancellation.Dispose();
+        }
     }
 }

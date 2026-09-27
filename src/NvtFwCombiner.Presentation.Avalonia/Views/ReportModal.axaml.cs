@@ -52,7 +52,7 @@ public sealed partial class ReportModal : UserControl
                 await writer.WriteAsync(reportJson);
             }
 
-            viewModel.NotifyReportSaved(destinationName);
+            await viewModel.NotifyReportSavedWhenAllowedAsync(destinationName);
         }
         catch (OperationCanceledException) when (!destinationSelected)
         {
@@ -61,7 +61,7 @@ public sealed partial class ReportModal : UserControl
         catch (Exception exception)
         {
             // Contain provider and disposal faults at this UI operation boundary.
-            viewModel.NotifyReportSaveFailed(exception.Message);
+            await viewModel.NotifyReportSaveFailedWhenAllowedAsync(exception.Message);
         }
         finally
         {

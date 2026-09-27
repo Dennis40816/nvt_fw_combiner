@@ -6,6 +6,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class MergePresentationViewModel
 {
+    internal WindowPublicationLease? WindowPublication { get; set; }
+
     private IReadOnlyList<AuthoringMappingState> _generalMergeAuthoringStates = [];
     private GeneralMergeDraftState? _generalMergeDraft;
     private GeneralAuthoringAdmissionResult? _generalMergeAdmission;
@@ -217,6 +219,13 @@ internal sealed partial class MergePresentationViewModel
                         draft,
                         cancellationToken,
                         progress);
+                if (WindowPublication is not null &&
+                    !await WindowPublication.WaitToPublishAsync(
+                        () => isCurrent() && ReferenceEquals(_generalMergeDraft, draft),
+                        cancellationToken))
+                {
+                    throw new OperationCanceledException(cancellationToken);
+                }
                 if (!isCurrent() || !ReferenceEquals(_generalMergeDraft, draft))
                 {
                     throw new OperationCanceledException(cancellationToken);

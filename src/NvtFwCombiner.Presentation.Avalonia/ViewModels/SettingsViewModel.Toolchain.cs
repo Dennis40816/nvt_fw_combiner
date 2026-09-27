@@ -39,7 +39,7 @@ internal sealed partial class SettingsViewModel
     public bool CanDiscardToolchain => CanEditToolchain && HasToolchainUnsavedChanges;
     public bool HasToolchainIssues => _toolchainIssues.Count > 0 || _toolchainInspection?.Verification == ToolchainRuntimeCandidateVerification.Rejected;
     public string ToolchainIssueText => string.Join("\n", _toolchainIssues.Select(issue => $"{issue.Code}: {issue.Message}"));
-    public string ToolchainRuntime => _toolchainInspection?.Identity is { } identity ? System.IO.Path.GetFileName(identity.Path) : "—";
+    public string ToolchainRuntime => _toolchainInspection?.Identity is { } identity ? Path.GetFileName(identity.Path) : "—";
     public string ToolchainVersion => _toolchainInspection?.Identity?.FileVersion ?? "—";
     public string ToolchainArchitecture => _toolchainInspection?.Identity?.Architecture ?? "—";
     public string ToolchainSource => IsBundledToolchainSelected ? _textProvider().ToolchainIncludedLabel : _toolchainDraft?.Path ?? "—";
@@ -58,6 +58,7 @@ internal sealed partial class SettingsViewModel
 
     private async Task LoadToolchainAsync()
     {
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         long operation = ++ToolchainOperationGeneration;
         IsToolchainBusy = true;
         try
@@ -98,6 +99,7 @@ internal sealed partial class SettingsViewModel
     private async Task SelectBundledToolchainAsync()
     {
         if (!CanEditToolchain) { return; }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         _toolchainDraft = new(ToolchainRuntimeSource.Bundled);
         _toolchainInspection = null;
         _toolchainIssues = [];
@@ -130,6 +132,7 @@ internal sealed partial class SettingsViewModel
     internal async Task InspectToolchainPathAsync(string path)
     {
         if (!CanEditToolchain) { return; }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         long operation = ++ToolchainOperationGeneration;
         long generation = _toolchainSession!.Current.Generation;
         _toolchainDraft = new(ToolchainRuntimeSource.User, path);
@@ -151,6 +154,7 @@ internal sealed partial class SettingsViewModel
     private async Task DetectToolchainAsync()
     {
         if (!CanEditToolchain) { return; }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         long operation = ++ToolchainOperationGeneration;
         long generation = _toolchainSession!.Current.Generation;
         IsToolchainBusy = true;
@@ -203,6 +207,7 @@ internal sealed partial class SettingsViewModel
     private async Task SaveToolchainAsync()
     {
         if (!CanSaveToolchain) { return; }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         long operation = ++ToolchainOperationGeneration;
         IsToolchainBusy = true;
         try
@@ -226,6 +231,7 @@ internal sealed partial class SettingsViewModel
     private async Task DiscardToolchainChangesAsync()
     {
         if (!CanDiscardToolchain) { return; }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         _toolchainDraft = _toolchainBaseline;
         _toolchainInspection = null;
         _toolchainIssues = _toolchainSession!.Current.Issues;

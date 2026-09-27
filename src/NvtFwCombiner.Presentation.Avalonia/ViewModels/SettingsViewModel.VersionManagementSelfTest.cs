@@ -13,6 +13,7 @@ internal sealed partial class SettingsViewModel
             return;
         }
 
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         IsVersionSelfTestRunning = true;
         IsSourceChecking = true;

@@ -84,6 +84,9 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
     private readonly CancellationTokenSource _cancellation = new();
     private CancellationTokenSource _optionalCancellation = new();
     private readonly ConcurrentDictionary<string, Task> _active = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<Task, byte> _acceptedTasks = new();
+    private readonly Lock _admissionGate = new();
+    private readonly TaskCompletionSource _allUsersSettled = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static long s_generation;
     private ShellTextResources _text;
     private string _accessibleStatus = string.Empty;
@@ -129,6 +132,7 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         !stage.IsRequired && stage.State is ShellPreloadStageState.Pending or
             ShellPreloadStageState.DependencyBlocked or ShellPreloadStageState.Running);
     internal long Generation { get; } = Interlocked.Increment(ref s_generation);
+    internal Task AllUsersSettled => _allUsersSettled.Task;
     internal bool CanRetryCatalog => !_cancellation.IsCancellationRequested &&
         !IsActive(CatalogStageId) && CatalogStage.State == ShellPreloadStageState.Failed;
 
@@ -148,24 +152,39 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         bool retry,
         CancellationToken cancellationToken)
     {
-        ThrowIfClosed();
-        ArgumentNullException.ThrowIfNull(loader);
-        ArgumentNullException.ThrowIfNull(apply);
-        if (retry ? !CanRetryCatalog : CatalogStage.CurrentAttempt is not null)
+        lock (_admissionGate)
         {
-            throw new InvalidOperationException("The catalog attempt cannot start in its current state.");
-        }
+            ThrowIfClosed();
+            ArgumentNullException.ThrowIfNull(loader);
+            ArgumentNullException.ThrowIfNull(apply);
+            if (retry ? !CanRetryCatalog : CatalogStage.CurrentAttempt is not null)
+            {
+                throw new InvalidOperationException("The catalog attempt cannot start in its current state.");
+            }
 
-        ShellPreloadAttemptIdentity identity = Begin(CatalogStageId, determinate: true);
-        Task<CapabilityCatalogReloadResult> task = RunCatalogCoreAsync(loader, apply, identity, cancellationToken);
-        _active[CatalogStageId] = task;
-        return task;
+            ShellPreloadAttemptIdentity identity = Begin(CatalogStageId, determinate: true);
+            Task<CapabilityCatalogReloadResult> task = RunCatalogCoreAsync(loader, apply, identity, cancellationToken);
+            _active[CatalogStageId] = task;
+            return Track(task);
+        }
     }
 
-    internal async Task RunOptionalStagesAsync(
+    internal Task RunOptionalStagesAsync(
         ShellOptionalPreloadWork work,
         CancellationToken cancellationToken)
     {
+        lock (_admissionGate)
+        {
+            ThrowIfClosed();
+            return Track(RunOptionalStagesCoreAsync(work, cancellationToken));
+        }
+    }
+
+    private async Task RunOptionalStagesCoreAsync(
+        ShellOptionalPreloadWork work,
+        CancellationToken cancellationToken)
+    {
+        await Task.Yield();
         ThrowIfClosed();
         ArgumentNullException.ThrowIfNull(work);
         if (CatalogStage.State != ShellPreloadStageState.Succeeded || _optionalWork is not null)
@@ -184,8 +203,17 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         await AwaitActiveOptionalsAsync();
     }
 
-    internal async Task<bool> TryRetryOptionalAsync(string stageId, CancellationToken cancellationToken)
+    internal Task<bool> TryRetryOptionalAsync(string stageId, CancellationToken cancellationToken)
     {
+        lock (_admissionGate)
+        {
+            return Track(TryRetryOptionalCoreAsync(stageId, cancellationToken));
+        }
+    }
+
+    private async Task<bool> TryRetryOptionalCoreAsync(string stageId, CancellationToken cancellationToken)
+    {
+        await Task.Yield();
         if (Volatile.Read(ref _closed) != 0 || _optionalWork is null ||
             !Stage(stageId).CanRetry || IsActive(stageId))
         {
@@ -241,11 +269,84 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
 
     internal async Task CancelAndDrainAsync()
     {
-        _cancellation.Cancel();
-        _optionalCancellation.Cancel();
-        InvalidateRunningAttempts(includeRequired: true);
+        StopAcceptingAndRevoke();
         await DrainAsync();
-        Close();
+    }
+
+    internal void StopAcceptingAndRevoke()
+    {
+        lock (_admissionGate)
+        {
+            if (Interlocked.Exchange(ref _closed, 1) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                _cancellation.Cancel();
+            }
+            catch (Exception exception)
+            {
+                System.Diagnostics.Trace.TraceError("Required preload cancellation failed: {0}", exception);
+            }
+            try
+            {
+                _optionalCancellation.Cancel();
+            }
+            catch (Exception exception)
+            {
+                System.Diagnostics.Trace.TraceError("Optional preload cancellation failed: {0}", exception);
+            }
+            try
+            {
+                InvalidateRunningAttempts(includeRequired: true);
+            }
+            finally
+            {
+                _ = SettleAcceptedAsync([.. _acceptedTasks.Keys]);
+            }
+        }
+    }
+
+    internal async Task DrainWithinDeadlineAsync(Task deadline)
+    {
+        ArgumentNullException.ThrowIfNull(deadline);
+        _ = await Task.WhenAny(AllUsersSettled, deadline);
+    }
+
+    private async Task SettleAcceptedAsync(Task[] accepted)
+    {
+        try
+        {
+            await Task.WhenAll(accepted);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Preload work failed during release: {0}", exception);
+        }
+        finally
+        {
+            _ = _allUsersSettled.TrySetResult();
+        }
+    }
+
+    private TTask Track<TTask>(TTask task) where TTask : Task
+    {
+        if (!task.IsCompleted)
+        {
+            _ = _acceptedTasks.TryAdd(task, 0);
+            _ = task.ContinueWith(completed =>
+            {
+                _ = _acceptedTasks.TryRemove(completed, out _);
+                _ = completed.Exception;
+            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        }
+        else
+        {
+            _ = task.Exception;
+        }
+        return task;
     }
 
     internal void Relocalize(ShellTextResources text)
@@ -288,6 +389,7 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
         ShellPreloadAttemptIdentity identity,
         CancellationToken cancellationToken)
     {
+        await Task.Yield();
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             _cancellation.Token, cancellationToken);
         CancellationToken token = linked.Token;
@@ -666,12 +768,21 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
             if ((includeRequired || !stage.IsRequired) &&
                 stage.CurrentAttempt is { State: ShellPreloadStageState.Running } attempt)
             {
-                Publish(stage with
+                ShellPreloadStageSnapshot cancelled = stage with
                 {
                     State = ShellPreloadStageState.Cancelled,
                     Detail = Detail(ShellPreloadStageState.Cancelled),
                     CurrentAttempt = attempt with { State = ShellPreloadStageState.Cancelled },
-                });
+                };
+                if (Volatile.Read(ref _closed) != 0)
+                {
+                    // Keep the owner's terminal bookkeeping even after public stage reports are revoked.
+                    _stages[index] = cancelled;
+                }
+                else
+                {
+                    Publish(cancelled);
+                }
             }
         }
     }

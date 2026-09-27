@@ -303,6 +303,7 @@ internal sealed partial class SettingsViewModel
             return;
         }
 
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsEventBufferFormatLoading = true;
         try
         {
@@ -331,6 +332,7 @@ internal sealed partial class SettingsViewModel
     private async Task ReloadEventBufferFormatAsync()
     {
         if (!CanReloadEventBufferFormat) { return; }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsEventBufferFormatBusy = true;
         try
         {
@@ -370,6 +372,7 @@ internal sealed partial class SettingsViewModel
             return;
         }
 
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsEventBufferFormatBusy = true;
         try
         {

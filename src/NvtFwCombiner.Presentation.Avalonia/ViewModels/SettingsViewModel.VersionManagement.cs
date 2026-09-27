@@ -5,12 +5,65 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+internal enum PendingActivationRecoveryStatus
+{
+    Cleared,
+    ConfirmedKept,
+    Unknown,
+}
+
 internal sealed partial class SettingsViewModel
 {
     private VersionManagementSnapshot? _versionSnapshot;
     private SettingsVersionRowViewModel? _pendingVersionRow;
     private VersionConfirmationAction _pendingConfirmation;
     private long _updateSourceBrowseGeneration;
+    private Task<VersionManagementSnapshot>? _pendingClearTask;
+    private VersionManagementSnapshot? _pendingDurableSnapshot;
+    private Func<bool> _windowMayPublish = static () => true;
+
+    internal PendingActivationRecoveryStatus PendingRecoveryStatus { get; private set; } =
+        PendingActivationRecoveryStatus.Cleared;
+    internal bool IsPendingClearUnsettled => _pendingClearTask is { IsCompleted: false };
+    internal bool CanRetryPendingActivation =>
+        !IsPendingClearUnsettled && PendingRecoveryStatus == PendingActivationRecoveryStatus.ConfirmedKept;
+
+    internal void SetWindowPublication(Func<bool> mayPublish)
+    {
+        _windowMayPublish = mayPublish ?? throw new ArgumentNullException(nameof(mayPublish));
+    }
+
+    internal void PublishPendingRecoveryStatus()
+    {
+        if (!_windowMayPublish())
+        {
+            return;
+        }
+        if (_pendingDurableSnapshot is { } durable)
+        {
+            ApplyVersionSnapshot(durable);
+        }
+        VersionOperationStatus = PendingRecoveryStatus switch
+        {
+            PendingActivationRecoveryStatus.Cleared => Localize(
+                "The stable launcher could not be started. The app remains open; verify the managed folder and try again.",
+                "無法啟動穩定啟動器。應用程式仍保持開啟；請檢查受管資料夾後重試。"),
+            PendingActivationRecoveryStatus.ConfirmedKept => Localize(
+                "The stable launcher could not be started. The pending activation is confirmed to remain in the saved setting. The app remains open; when you close it, you can retry the launcher or close anyway.",
+                "無法啟動穩定啟動器。已確認儲存的設定仍有待處理的版本啟用。應用程式仍保持開啟；關閉時可選擇重試啟動器或仍要關閉。"),
+            PendingActivationRecoveryStatus.Unknown => Localize(
+                "The stable launcher could not be started. The saved pending activation state could not be confirmed. A clear already in progress may still change it. The app remains open; close again to cancel or close anyway.",
+                "無法啟動穩定啟動器。目前無法確認已儲存的待處理版本啟用狀態；已在執行的清除作業仍可能改變設定。應用程式保持開啟；再次關閉時可取消或仍要關閉。"),
+            _ => throw new InvalidOperationException("Unknown pending activation recovery status."),
+        };
+    }
+
+    internal void MarkPendingRecoveryUnknown()
+    {
+        PendingRecoveryStatus = PendingActivationRecoveryStatus.Unknown;
+        _pendingDurableSnapshot = null;
+        PublishPendingRecoveryStatus();
+    }
 
     internal event EventHandler? UpdateSourceBrowseRequested;
 
@@ -178,6 +231,7 @@ internal sealed partial class SettingsViewModel
         {
             return;
         }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         try
         {
@@ -365,6 +419,7 @@ internal sealed partial class SettingsViewModel
         {
             return;
         }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         IsSourceChecking = true;
         try
@@ -388,6 +443,7 @@ internal sealed partial class SettingsViewModel
         {
             return;
         }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         IsSourceChecking = true;
         try
@@ -415,6 +471,7 @@ internal sealed partial class SettingsViewModel
         {
             return;
         }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         try
         {
@@ -471,12 +528,19 @@ internal sealed partial class SettingsViewModel
     [RelayCommand]
     private async Task ConfirmVersionActionAsync()
     {
+        if (IsPendingClearUnsettled || PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
+        {
+            CancelVersionConfirmation();
+            PublishPendingRecoveryStatus();
+            return;
+        }
         if (_versionManagement is null || _pendingVersionRow is not { } row)
         {
             return;
         }
         VersionConfirmationAction action = _pendingConfirmation;
         CancelVersionConfirmation();
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         try
         {
@@ -564,36 +628,105 @@ internal sealed partial class SettingsViewModel
         }
     }
 
-    internal async Task<bool> HandleLauncherHandoffFailureAsync()
+    internal async Task<PendingActivationRecoveryStatus> HandleLauncherHandoffFailureAsync(
+        CancellationToken recoveryToken)
     {
-        bool activationCleared = true;
-        if (_versionManagement is not null)
+        if (_versionManagement is null)
+        {
+            PendingRecoveryStatus = PendingActivationRecoveryStatus.Cleared;
+            PublishPendingRecoveryStatus();
+            return PendingRecoveryStatus;
+        }
+        if (_pendingClearTask is not { IsCompleted: false })
         {
             try
             {
-                VersionManagementSnapshot recovered = await _versionManagement.CancelPendingActivationAsync(
-                    CancellationToken.None);
-                ApplyVersionSnapshot(recovered);
+                _pendingClearTask = _versionManagement.CancelPendingActivationAsync(recoveryToken).AsTask();
             }
-            catch (InvalidOperationException)
+            catch (Exception exception)
             {
-                activationCleared = false;
+                _pendingClearTask = Task.FromException<VersionManagementSnapshot>(exception);
             }
         }
-        VersionOperationStatus = activationCleared
-            ? Localize(
-                "The stable launcher could not be started. The app remains open; verify the managed folder and try again.",
-                "無法啟動穩定啟動器。應用程式仍保持開啟；請檢查受管資料夾後重試。")
-            : Localize(
-                "The stable launcher could not be started, and pending activation could not be cleared. The app remains open; restore version-state access and close again to retry the launcher.",
-                "無法啟動穩定啟動器，且無法清除待處理的版本啟用。應用程式仍保持開啟；請恢復版本狀態存取後再次關閉，以重試啟動器。");
-        return activationCleared;
+
+        Task<VersionManagementSnapshot> clear = _pendingClearTask;
+        try
+        {
+            _ = await clear.WaitAsync(recoveryToken);
+        }
+        catch (OperationCanceledException) when (recoveryToken.IsCancellationRequested)
+        {
+            PendingRecoveryStatus = PendingActivationRecoveryStatus.Unknown;
+            _ = ObserveLateClearAsync(clear);
+            MarkPendingRecoveryUnknown();
+            return PendingRecoveryStatus;
+        }
+        catch (Exception)
+        {
+            // A failed clear can still have changed durable state before its terminal fault.
+        }
+        return await RecheckPendingActivationStatusAsync(recoveryToken);
     }
+
+    internal async Task<PendingActivationRecoveryStatus> RecheckPendingActivationStatusAsync(
+        CancellationToken cancellationToken)
+    {
+        if (_versionManagement is null)
+        {
+            PendingRecoveryStatus = PendingActivationRecoveryStatus.Cleared;
+        }
+        else if (IsPendingClearUnsettled)
+        {
+            PendingRecoveryStatus = PendingActivationRecoveryStatus.Unknown;
+        }
+        else
+        {
+            try
+            {
+                Task<VersionManagementSnapshot> read = _versionManagement.InitializeAsync(cancellationToken).AsTask();
+                _ = read.ContinueWith(completed => _ = completed.Exception,
+                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+                VersionManagementSnapshot durable = await read.WaitAsync(cancellationToken);
+                _pendingDurableSnapshot = durable;
+                PendingRecoveryStatus = durable.StateIssue == VersionManagerStateLoadIssue.None &&
+                    durable.State is { } state
+                    ? state.PendingActivation is null
+                        ? PendingActivationRecoveryStatus.Cleared
+                        : PendingActivationRecoveryStatus.ConfirmedKept
+                    : PendingActivationRecoveryStatus.Unknown;
+            }
+            catch (Exception)
+            {
+                PendingRecoveryStatus = PendingActivationRecoveryStatus.Unknown;
+                _pendingDurableSnapshot = null;
+            }
+        }
+        PublishPendingRecoveryStatus();
+        return PendingRecoveryStatus;
+    }
+
+    private static async Task ObserveLateClearAsync(Task<VersionManagementSnapshot> clear)
+    {
+        try
+        {
+            _ = await clear;
+        }
+        catch (Exception)
+        {
+            // The window's later durable recheck owns the visible status.
+        }
+    }
+
 
     private void BeginConfirmation(
         SettingsVersionRowViewModel row,
         VersionConfirmationAction action)
     {
+        if (IsPendingClearUnsettled || PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
+        {
+            PublishPendingRecoveryStatus();
+            return;
+        }
         _pendingVersionRow = row;
         _pendingConfirmation = action;
         IsVersionConfirmationDestructive = action is

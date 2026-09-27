@@ -3,11 +3,114 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia;
+using Avalonia.Headless.XUnit;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class BuildOutcomeTests
 {
+    /// <summary>A Build that returns during the work drain publishes its committed receipt before Closed.</summary>
+    [AvaloniaFact]
+    public async Task WindowCloseWaitsForCommittedReceiptWithinWorkDeadline()
+    {
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.5");
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        CompositionRunContext context = shell.Merge.CaptureRunContext(ExperienceIds.StandardMerge, build: true);
+        TaskCompletionSource entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource expiry = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.CloseDeadlineFactory = _ => expiry.Task;
+        Task run = shell.RunSession.RunCompositionAsync(context, true, async (_, _) =>
+        {
+            entered.SetResult();
+            await release.Task;
+            return CreateRunResult(true, "committed.bin");
+        }, (_, _) => { });
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        bool receiptAtClosed = false;
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) =>
+        {
+            receiptAtClosed = context.Owner.LastRunResult.Output == "committed.bin";
+            _ = closed.TrySetResult();
+        };
+        window.Close();
+        Assert.False(closed.Task.IsCompleted);
+        release.SetResult();
+        await Task.WhenAll(run, closed.Task).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.True(receiptAtClosed);
+    }
+
+    /// <summary>Close revokes a timed-out run without removing a committed output file.</summary>
+    [AvaloniaFact]
+    public async Task FinalCloseDiscardsLateBuildReceiptButPreservesCommittedFile()
+    {
+        using var workspace = TempWorkspace.Create("w6a-late-build-receipt");
+        string output = workspace.Write("committed.bin", [0x13, 0x37]);
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.5");
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        CompositionRunContext context = shell.Merge.CaptureRunContext(ExperienceIds.StandardMerge, build: true);
+        UiRunResultViewModel before = context.Owner.LastRunResult;
+        TaskCompletionSource entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task run = shell.RunSession.RunCompositionAsync(context, true, async (_, _) =>
+        {
+            entered.SetResult();
+            await release.Task;
+            return CreateRunResult(true, output);
+        }, (_, _) => { });
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => _ = closed.TrySetResult();
+        window.Close();
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        release.SetResult();
+        await run.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.Same(before, context.Owner.LastRunResult);
+        Assert.True(File.Exists(output));
+        Assert.Equal(new byte[] { 0x13, 0x37 }, File.ReadAllBytes(output));
+    }
+
+    /// <summary>Revocation suppresses a late committed receipt while completing run bookkeeping.</summary>
+    [Fact]
+    public async Task RevokedRunSettlesWithoutPublishingLateCommittedReceipt()
+    {
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
+        CompositionRunContext context = shell.Merge.CaptureRunContext(ExperienceIds.StandardMerge, build: true);
+        UiRunResultViewModel before = context.Owner.LastRunResult;
+        TaskCompletionSource entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task run = shell.RunSession.RunCompositionAsync(context, true, async (_, _) =>
+        {
+            entered.SetResult();
+            await release.Task;
+            return CreateRunResult(true, "primary.bin");
+        }, (_, _) => { });
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Task ownerCompletion = shell.RunSession.ActiveRunCompletion;
+        shell.RunSession.CancelActiveRun();
+        shell.RunSession.RevokeActiveRun();
+        release.SetResult();
+        await Task.WhenAll(run, ownerCompletion)
+            .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.Same(before, context.Owner.LastRunResult);
+        Assert.Null(context.Owner.ActiveAttemptId);
+        Assert.False(shell.RunSession.IsRunInProgress);
+        Assert.False(shell.BuildResult.IsOpen);
+    }
+
     /// <summary>Matching workflow, IC and authoring revision do not identify a page instance.</summary>
     [Fact]
     public async Task WorkflowRunOwnersRemainIndependentAcrossIdenticalPageInstances()

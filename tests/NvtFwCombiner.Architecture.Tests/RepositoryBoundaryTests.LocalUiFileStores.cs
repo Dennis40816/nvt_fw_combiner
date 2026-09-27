@@ -46,8 +46,17 @@ public sealed partial class RepositoryBoundaryTests
         AssertContainsAll(mainWindow, "_reportHistoryPersistence.Queue", "_shellPreferencePersistence.Queue",
             "e.Cancel = true", "IsEnabled = false", "viewModel.RunSession.CancelActiveRun();",
             "finalViewModel.RunSession.CancelActiveRun();", "Task.WhenAll(",
-            "completion.WaitAsync(LocalStateCloseFlushTimeout)", "_reportHistoryPersistence.CompleteAsync()",
+            "WaitWithinCloseDeadlineAsync(work)", "WaitWithinCloseDeadlineAsync(completion)",
+            "_reportHistoryPersistence.CompleteAsync()",
             "_shellPreferencePersistence.CompleteAsync()");
+        string lifetime = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs");
+        AssertContainsAll(lifetime, "CloseDeadlineFactory(TimeSpan.FromSeconds(5))",
+            "Task.WhenAny(work, CloseDeadlineFactory");
+        Assert.True(mainWindow.IndexOf("_preloadSession.StopAcceptingAndRevoke();", StringComparison.Ordinal) <
+            mainWindow.IndexOf("WaitWithinCloseDeadlineAsync(work)", StringComparison.Ordinal));
+        Assert.True(mainWindow.IndexOf("WaitWithinCloseDeadlineAsync(work)", StringComparison.Ordinal) <
+            mainWindow.IndexOf("_reportHistoryPersistence.CompleteAsync()", StringComparison.Ordinal));
         AssertDoesNotContainAny(mainWindow, "ShellPreferenceFileStore.LoadInto(viewModel)",
             "ReportHistoryFileStore.Save(viewModel)", "ShellPreferenceFileStore.Save(viewModel)");
         AssertContainsAll(startupFactory,

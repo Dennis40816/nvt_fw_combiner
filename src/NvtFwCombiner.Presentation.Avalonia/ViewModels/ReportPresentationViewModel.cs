@@ -14,6 +14,26 @@ internal readonly record struct ReportPublicationResult(
 
 internal sealed partial class ReportPresentationViewModel : ObservableObject
 {
+    internal WindowPublicationLease? WindowPublication { get; set; }
+
+    internal async Task NotifyReportSavedWhenAllowedAsync(string destinationName)
+    {
+        if (WindowPublication is null ||
+            await WindowPublication.WaitToPublishAsync(static () => true, CancellationToken.None))
+        {
+            NotifyReportSaved(destinationName);
+        }
+    }
+
+    internal async Task NotifyReportSaveFailedWhenAllowedAsync(string reason)
+    {
+        if (WindowPublication is null ||
+            await WindowPublication.WaitToPublishAsync(static () => true, CancellationToken.None))
+        {
+            NotifyReportSaveFailed(reason);
+        }
+    }
+
     private static readonly JsonSerializerOptions RunErrorReportJsonOptions = new() { WriteIndented = true };
     private readonly Action _beforeOpen;
     private readonly Func<ShellTextResources> _textProvider;

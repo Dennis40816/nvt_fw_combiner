@@ -17,7 +17,17 @@ public sealed partial class MainWindow
         await LoadReportJsonAsync(sender as Control, StorageProvider);
     }
 
-    internal async Task LoadReportJsonAsync(Control? trigger, IStorageProvider storageProvider)
+    internal Task LoadReportJsonAsync(Control? trigger, IStorageProvider storageProvider)
+    {
+        Task work = LoadReportJsonCoreAsync(trigger, storageProvider, _startupLoadCancellation.Token);
+        ObserveSessionTask(work);
+        return work;
+    }
+
+    private async Task LoadReportJsonCoreAsync(
+        Control? trigger,
+        IStorageProvider storageProvider,
+        CancellationToken sessionToken)
     {
         if (DataContext is not MainWindowViewModel viewModel)
         {
@@ -51,23 +61,27 @@ public sealed partial class MainWindow
                     MaximumStandaloneReportBytes,
                     token),
                 file.Name,
-                _startupLoadCancellation.Token);
+                sessionToken);
             if (result.Outcome == ReportPublicationOutcome.Published && viewModel.MessageCenter.IsOpen)
             {
                 viewModel.Reports.ShowReportCommand.Execute(null);
             }
         }
-        catch (OperationCanceledException) when (_startupLoadCancellation.IsCancellationRequested)
+        catch (OperationCanceledException) when (sessionToken.IsCancellationRequested)
         {
             // Window shutdown owns cancellation.
         }
         catch (Exception exception)
         {
-            viewModel.Reports.SetShellToast(viewModel.Text.LoadRunReportLabel, exception.Message);
+            if (!sessionToken.IsCancellationRequested)
+            {
+                viewModel.Reports.SetShellToast(viewModel.Text.LoadRunReportLabel, exception.Message);
+            }
         }
         finally
         {
-            if (trigger is { IsEffectivelyVisible: true } && !viewModel.Reports.IsReportModalOpen)
+            if (!sessionToken.IsCancellationRequested &&
+                trigger is { IsEffectivelyVisible: true } && !viewModel.Reports.IsReportModalOpen)
             {
                 _ = trigger.Focus();
             }
