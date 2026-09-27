@@ -1,7 +1,8 @@
 _INITIAL_MAIN = dict(globals())
 
 # This must remain a script bootstrap: capture interpreter-created attributes
-# before imports or definitions, and install the hook before site processing.
+# before imports or definitions. A temporary sitecustomize installs the hook
+# before inherited customization and every audited repository import.
 import collections
 import json
 import os
@@ -143,20 +144,11 @@ def install_windows_boundary():
     _winapi.CreateProcess = audited_create_process
 
 
-def bootstrap():
-    if len(sys.argv) != 5 or sys.argv[1] != "--expected" or sys.argv[3] != "--":
-        raise SystemExit("usage: structure_entry_audit.py --expected FILE -- TARGET")
-    expected = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
-    target = sys.argv[4]
-    target_abs = os.path.abspath(target)
-    checkout = Path.cwd()
-    if Path(target_abs).parent != checkout / "scripts":
-        raise AuditViolation("target must be a script in the checkout")
-    guard = LaunchGuard(checkout, expected)
-    events = 0
+def install_audit(expected):
+    guard = LaunchGuard(Path.cwd(), expected)
+    state = {"events": 0}
 
     def hook(event, arguments):
-        nonlocal events
         if not is_launch(event):
             return
         # Never record subprocess environments; they can contain credentials.
@@ -164,13 +156,28 @@ def bootstrap():
         item = {"event": event, "args": payload}
         sys.stderr.flush()
         os.write(2, ("NFC-AUDIT\t" + json.dumps(item, default=os.fsdecode) + "\n").encode())
-        events += 1
+        state["events"] += 1
         guard.observe(item)
 
     sys.addaudithook(hook)
     install_windows_boundary()
-    import site
-    site.main()
+    return state
+
+
+def bootstrap():
+    startup = sys.modules.pop("_nfc_structure_audit", None)
+    if startup is None or not hasattr(startup, "audit_state"):
+        raise AuditViolation("startup audit hook was not installed")
+    if sys.modules.get("sitecustomize") is startup.site_shim:
+        del sys.modules["sitecustomize"]
+    arguments = startup.launch_arguments
+    if len(arguments) != 5 or arguments[1] != "--expected" or arguments[3] != "--":
+        raise SystemExit("usage: structure_entry_audit.py --expected FILE -- TARGET")
+    target = arguments[4]
+    target_abs = os.path.abspath(target)
+    if Path(target_abs).parent != Path.cwd() / "scripts":
+        raise AuditViolation("target must be a script in the checkout")
+    state = startup.audit_state
     sys.argv = [target]
     sys.path[0] = os.path.dirname(target_abs)
     module = types.ModuleType("__main__")
@@ -194,7 +201,7 @@ def bootstrap():
     finally:
         sys.stdout.flush()
         sys.stderr.flush()
-        os.write(2, f"NFC-AUDIT-END\t{events}\t{status}\n".encode())
+        os.write(2, f"NFC-AUDIT-END\t{state['events']}\t{status}\n".encode())
     raise SystemExit(status)
 
 
@@ -262,7 +269,39 @@ def audit_transcript(stderr, returncode, checkout, expected, reference_stderr=No
 
 
 def entry_environment():
-    return {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
+    return os.environ.copy()
+
+
+def write_site_bootstrap(scratch, harness, contract, target, inherited_path):
+    # site imports this shim using normal interpreter flags. Remove its search
+    # path and restore the exact inherited environment before loading the real
+    # sitecustomize; site itself still runs usercustomize exactly once afterward.
+    (scratch / "sitecustomize.py").write_text(f'''import importlib.util
+import os
+import sys
+sys.path.remove({str(scratch)!r})
+inherited_path = {inherited_path!r}
+if inherited_path is None:
+    os.environ.pop("PYTHONPATH", None)
+else:
+    os.environ["PYTHONPATH"] = inherited_path
+spec = importlib.util.spec_from_file_location("_nfc_structure_audit", {str(harness)!r})
+audit = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = audit
+spec.loader.exec_module(audit)
+audit.audit_state = audit.install_audit(audit.json.loads(audit.Path({str(contract)!r}).read_text(encoding="utf-8")))
+audit.launch_arguments = sys.argv
+sys.argv = [{target!r}]
+audit.site_shim = sys.modules.pop("sitecustomize")
+try:
+    import sitecustomize
+except ModuleNotFoundError as error:
+    if error.name != "sitecustomize":
+        raise
+    # Import machinery requires its module until the shim import completes.
+    # The script bootstrap removes this placeholder when no original exists.
+    sys.modules["sitecustomize"] = audit.site_shim
+''', encoding="utf-8")
 
 
 def create_entry_checkout(source, destination):
@@ -279,9 +318,14 @@ def run_audited(checkout, expected=None, target="scripts/validate_repository.py"
     with tempfile.TemporaryDirectory(prefix="structure-audit-") as scratch:
         contract = Path(scratch) / "expected-calls.json"
         contract.write_text(json.dumps(expected), encoding="utf-8")
+        harness = Path(harness or __file__).resolve()
+        environment = entry_environment()
+        inherited_path = environment.get("PYTHONPATH")
+        write_site_bootstrap(Path(scratch), harness, contract, target, inherited_path)
+        environment["PYTHONPATH"] = scratch + (os.pathsep + inherited_path if inherited_path is not None else "")
         result = subprocess.run(
-            [sys.executable, "-S", str(harness or Path(__file__).resolve()), "--expected", str(contract), "--", target],
-            cwd=checkout, env=entry_environment(), stdin=subprocess.DEVNULL, capture_output=True,
+            [sys.executable, str(harness), "--expected", str(contract), "--", target],
+            cwd=checkout, env=environment, stdin=subprocess.DEVNULL, capture_output=True,
         )
     clean, events = audit_transcript(result.stderr, result.returncode, checkout, expected, None if reference is None else reference.stderr)
     if reference is not None:

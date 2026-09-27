@@ -14,7 +14,7 @@ import pytest
 
 from structure_entry_audit import (
     AuditViolation, LaunchGuard, audit_transcript, create_entry_checkout,
-    drop_leading_harness_frames, entry_environment, exit_status, expected_calls,
+    drop_leading_harness_frames, exit_status, expected_calls,
     run_audited,
 )
 import structure_entry_audit as audit_module
@@ -34,7 +34,22 @@ def entry_checkout():
 
 def reference_run(checkout, target):
     return subprocess.run([sys.executable, target], cwd=checkout,
-                          env=entry_environment(), stdin=subprocess.DEVNULL, capture_output=True)
+                          env=os.environ.copy(), stdin=subprocess.DEVNULL, capture_output=True)
+
+
+@pytest.fixture
+def launch_environment(tmp_path, monkeypatch):
+    configure_launch_environment(tmp_path, monkeypatch)
+
+
+def configure_launch_environment(tmp_path, monkeypatch):
+    (tmp_path / "nfc_launch_dependency.py").write_text("value = 'inherited import'\n", encoding="utf-8")
+    (tmp_path / "sitecustomize.py").write_text(
+        "import sys\nsys.nfc_launch_site = (sys.flags.no_site, sys.argv[:])\n", encoding="utf-8")
+    (tmp_path / "usercustomize.py").write_text(
+        "import sys\nsys.nfc_launch_user_site = (sys.flags.no_site, sys.argv[:])\n", encoding="utf-8")
+    inherited = os.environ.get("PYTHONPATH")
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path) + (os.pathsep + inherited if inherited is not None else ""))
 
 
 PROBE = '''initial_names = sorted(globals())
@@ -42,12 +57,17 @@ import ab_merge_fixture_validation
 import atexit
 import json
 import os
-import re
+import site
 import sys
+import nfc_launch_dependency
 print(json.dumps({
     "argv": sys.argv, "cwd": os.getcwd(), "path": sys.path,
     "executable": sys.executable, "prefix": sys.prefix,
-    "flags": re.sub(r"no_site=\\d+,? ?", "", repr(sys.flags)),
+    "flags": repr(sys.flags), "pythonpath": os.environ.get("PYTHONPATH"),
+    "inherited_import": nfc_launch_dependency.value,
+    "site": sys.nfc_launch_site,
+    "user_site": getattr(sys, "nfc_launch_user_site", None),
+    "enable_user_site": site.ENABLE_USER_SITE,
     "names": initial_names, "name": __name__, "file": __file__,
     "package": __package__, "spec": __spec__,
     "cached": globals().get("__cached__"),
@@ -67,10 +87,16 @@ def outer():
     ("try:\n    raise KeyError('cause')\nexcept KeyError as cause:\n    raise ValueError('effect') from cause", 1),
     ("", 0),
 ])
-def test_script_launch_matches_interpreter_namespace_traceback_and_shutdown(entry_checkout, ending, status):
+def test_script_launch_matches_interpreter_namespace_traceback_and_shutdown(entry_checkout, launch_environment, ending, status):
     probe = entry_checkout / "scripts/_launch_probe.py"
     probe.write_text(PROBE + ending + "\n", encoding="utf-8")
     reference = reference_run(entry_checkout, "scripts/_launch_probe.py")
+    observed = json.loads(reference.stdout.splitlines()[0])
+    assert observed["inherited_import"] == "inherited import"
+    assert observed["site"] == [0, ["scripts/_launch_probe.py"]]
+    if observed["enable_user_site"]:
+        assert observed["user_site"] == observed["site"]
+    assert observed["pythonpath"] == os.environ["PYTHONPATH"]
     audited = run_audited(entry_checkout, [], "scripts/_launch_probe.py", reference=reference)
     assert audited.returncode == status
     assert audited.stderr.endswith(f"NFC-AUDIT-END\t0\t{status}\n".encode())
@@ -84,7 +110,7 @@ def test_real_structure_entry_has_only_frozen_binding_calls(entry_checkout):
     assert len(audited.audit_events) >= len(expected_calls(entry_checkout))
 
 
-@pytest.mark.parametrize("control", ["unbounded", "system", "python", "import", "foreign", "repeated"])
+@pytest.mark.parametrize("control", ["unbounded", "system", "python", "import", "no_site", "foreign", "repeated"])
 def test_caught_launch_regressions_remain_visible_to_parent(entry_checkout, control):
     path = entry_checkout / "scripts/validate_repository.py"
     original = path.read_bytes()
@@ -97,12 +123,13 @@ def test_caught_launch_regressions_remain_visible_to_parent(entry_checkout, cont
         "system": "__import__('os').system('git rev-list HEAD')",
         "python": "subprocess.run([__import__('sys').executable, '-c', \"import subprocess; subprocess.run(['git', 'log', '--oneline'])\"])",
         "import": "subprocess.run(['git', 'rev-list', 'HEAD'])",
+        "no_site": "subprocess.run(['git', 'rev-list', 'HEAD'], capture_output=True) if not __import__('sys').flags.no_site else None",
         "foreign": f"subprocess.run({['git', *anchored[:-1], parent]!r})",
         "repeated": f"subprocess.run({['git', *anchored]!r}, capture_output=True)",
     }
     caught = f"\ntry:\n    {expressions[control]}\nexcept Exception:\n    pass\n"
     text = original.decode("utf-8")
-    if control == "import":
+    if control in {"import", "no_site"}:
         text = text.replace("import subprocess\n", "import subprocess\n" + caught, 1)
     else:
         marker = "    errors.extend(validate_code_size_policy(ROOT))"
@@ -117,15 +144,38 @@ def test_caught_launch_regressions_remain_visible_to_parent(entry_checkout, cont
         path.write_bytes(original)
 
 
+@pytest.mark.parametrize("customization", ["sitecustomize", "usercustomize"])
+def test_inherited_customization_launch_is_audited_even_when_caught(entry_checkout, tmp_path, monkeypatch, customization):
+    monkeypatch.delenv("PYTHONNOUSERSITE", raising=False)
+    (tmp_path / f"{customization}.py").write_text(
+        "import subprocess\ntry:\n    subprocess.run(['git', 'rev-list', 'HEAD'], capture_output=True)\n"
+        "except Exception:\n    pass\n", encoding="utf-8")
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path))
+    probe = entry_checkout / "scripts/_startup_probe.py"
+    probe.write_text("print('startup complete')\n", encoding="utf-8")
+    reference = reference_run(entry_checkout, "scripts/_startup_probe.py")
+    assert reference.returncode == 0
+    assert reference.stdout == (b"startup complete\r\n" if os.name == "nt" else b"startup complete\n")
+    with pytest.raises(AuditViolation, match="rev-list"):
+        run_audited(entry_checkout, [], "scripts/_startup_probe.py", reference=reference)
+
+
 @pytest.mark.parametrize("broken", ["runpy", "path", "argv"])
 def test_launch_control_rejects_broken_bootstrap(entry_checkout, tmp_path, broken):
+    # Topology controls call this test directly with its original signature.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        configure_launch_environment(tmp_path, monkeypatch)
+        check_broken_bootstrap(entry_checkout, tmp_path, broken)
+
+
+def check_broken_bootstrap(entry_checkout, tmp_path, broken):
     source = HARNESS.read_text(encoding="utf-8")
     if broken == "runpy":
         source = source.replace('exec(code, module.__dict__)', '__import__("runpy").run_path(target_abs, run_name="__main__")')
     elif broken == "path":
         source = source.replace('sys.path[0] = os.path.dirname(target_abs)', 'pass  # broken sibling import path')
     else:
-        source = source.replace('sys.argv = [target]', 'pass  # broken argv')
+        source = source.replace('sys.argv = [target]', 'sys.argv = startup.launch_arguments  # broken argv')
     broken_harness = tmp_path / "broken_bootstrap.py"
     broken_harness.write_text(source, encoding="utf-8")
     probe = entry_checkout / "scripts/_launch_probe.py"

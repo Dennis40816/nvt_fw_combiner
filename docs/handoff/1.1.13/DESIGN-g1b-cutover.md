@@ -278,13 +278,19 @@ child has `sys.argv == ["scripts/validate_repository.py"]` and `sys.path[0]`
 and `stdin=DEVNULL`:
 
 ```text
-<sys.executable> -S <checkout>/tests/scripts/structure_entry_audit.py \
+<sys.executable> <checkout>/tests/scripts/structure_entry_audit.py \
   --expected <expected-calls.json> -- scripts/validate_repository.py
 ```
 
-`-S`, the only flag and the only intended difference, defers `site` so the
-hook precedes all site and audited code; revision 3's `-I` is dropped (it
-removes `PYTHONPATH` and the user site, which the lane keeps).
+No interpreter flags are added: `site` runs normally and `sys.flags`, including
+`no_site`, equals the lane's flags. The parent preserves inherited `PYTHONPATH`
+and temporarily prepends a scratch directory containing a `sitecustomize`
+shim. The shim removes that directory from `sys.path`, restores the exact
+inherited `PYTHONPATH` (including unset versus empty), installs the hook, then
+imports the original `sitecustomize` from the restored search path. Normal
+`site` processing runs `usercustomize` afterward. Both customizations see the
+target argv; the harness retains its launch arguments separately. There is no
+second `site.main()` call and no startup flag exclusion in the positive control.
 
 **Why not `runpy`** (round 4). In the installed CPython 3.13.5 (CI also uses
 3.13, `ci.yml` setup-python), `runpy.run_path` runs the code inside
@@ -300,20 +306,24 @@ harness is itself a script started by the same interpreter, so its own initial
 
 **Bootstrap**, stdlib only before the hook:
 
-1. Take and remove its own arguments; `target = "scripts/validate_repository.py"`,
+1. The startup shim retains the harness arguments and installs the hook before
+   inherited customization or audited imports. The script later takes those
+   saved arguments; `target = "scripts/validate_repository.py"`,
    relative, exactly as the lane passes it; `target_abs =
    os.path.abspath(target)`. Before that, as the bootstrap's first statement
    (before any import or definition), record its own initial `__main__`
    attribute names and the values of `__package__`, `__spec__`, `__cached__`
    and the class of `__loader__`.
-2. `sys.addaudithook`: each process-launch event (`subprocess.Popen`,
+2. The shim calls the harness's `install_audit`, using `sys.addaudithook`:
+   each process-launch event (`subprocess.Popen`,
    `_winapi.CreateProcess`, `os.system`, `os.exec`, `os.spawn`,
    `os.posix_spawn`, `os.startfile`, `os.fork`, `os.forkpty`) and
    `ctypes.dlopen` is written at once, after `sys.stderr.flush()`, as one
    whole line `NFC-AUDIT\t<json>\n` by `os.write(2, ...)`, before any check;
    then a violation raises.
-3. `import site; site.main()`: the processing of a flagless start (`.pth`,
-   `sitecustomize`, `usercustomize`), now observed.
+3. The inherited `sitecustomize` and `usercustomize` execute under the hook,
+   with normal site behavior and flags. The script bootstrap requires the
+   startup hook's state; a missing installation fails closed.
 4. Reproduce the launch: `sys.argv = [target]` (never changed again by the
    harness); `sys.path[0]` (the harness's directory) replaced by
    `os.path.dirname(target_abs)`; `os.getcwd()` required to be the checkout.
@@ -338,7 +348,7 @@ except BaseException as error:
     status = 1
 finally:
     sys.stdout.flush(); sys.stderr.flush()
-    os.write(2, f"NFC-AUDIT-END\t{events}\t{status}\n".encode())
+    os.write(2, f"NFC-AUDIT-END\t{state['events']}\t{status}\n".encode())
 raise SystemExit(status)          # normal shutdown; atexit runs as in the lane
 ```
 
@@ -397,14 +407,17 @@ range, a SHA outside `{B, I}`, a count above the expected one.
 **Tests** (`test_structure_entry_audit.py`) run in an entry fixture, a
 shared clone at the tested head (`git clone --shared --no-checkout` into the
 test-area `TEMP`, one checkout of about 132 MB) with every canonical file, the
-parity binding history and the real validator, nothing mocked; both launches
-of every comparison run with `PYTHONPATH` removed.
+parity binding history and the real validator, nothing mocked. The reference
+inherits the real environment independently of the audit environment helper;
+the audit retains its inherited paths and restores them before customization.
 
 - **Launch positive control** (rounds 3-4): an untracked probe
   `scripts/_launch_probe.py` imports the sibling `ab_merge_fixture_validation`
   (as `:22` does) and prints `sys.argv` (at module level and again from an
   `atexit` handler), `os.getcwd()`, `sys.path`, `sys.executable`,
-  `sys.prefix`, `sys.flags` without `no_site`, and its `__main__` namespace:
+  `sys.prefix`, complete `sys.flags`, inherited `PYTHONPATH`, an imported
+  dependency available only on that path, observations from inherited
+  `sitecustomize` and enabled `usercustomize`, and its `__main__` namespace:
   attribute names and `__name__`, `__file__`, `__package__`, `__spec__`,
   `__cached__`, the loader's class and path. It leaves by `SystemExit(7)`,
   `SystemExit("message")`, a `ValueError` raised two calls deep, a
@@ -430,7 +443,9 @@ of every comparison run with `PYTHONPATH` removed.
   of steps 5-6 (round 4: absolute `argv[0]`, `runpy` namespace, extra frames);
   (7b) step 4 without the `sys.path[0]` replacement (round 3: the import of
   `:22` fails); (7c) harness arguments left in `sys.argv` (round 3: exit 2 from
-  `:4072-4078`).
+  `:4072-4078`); (8) call (1) behind `if not sys.flags.no_site` at validator
+  import; (9) call (1), with output captured and exceptions caught, from each
+  inherited `sitecustomize` and `usercustomize` before the target imports.
 - **Units**: `drop_leading_harness_frames` on a harness-rooted traceback,
   on a traceback without harness frames (unchanged) and on one whose harness
   code object appears only below the head (unchanged); `exit_status` for
@@ -441,14 +456,15 @@ of every comparison run with `PYTHONPATH` removed.
   `diff-tree -r a`, a symbolic or foreign SHA rejected; a mock test proves the
   pin check runs before the parity check.
 
-**Limits.** One interpreter lifetime from before `site`: a regression proof for
+**Limits.** One interpreter lifetime from the startup shim: a regression proof for
 reviewed validator code, not a sandbox (a native extension calling the OS or
 tampering with harness state escapes it). Launch equivalence is proven for the
-compared, controlled environment (same interpreter and environment,
-`PYTHONPATH` removed, startup customization limited to what `site.main()`
-runs); `sys.flags.no_site` stays 1 and is the one excluded field. Cost: one checkout, five full entry
-runs, seven early-failing controls; partition per ADR 0079; always run at the
-final head (6.2).
+compared environment with the same interpreter, flags, inherited paths and
+normal site processing. Interpreter initialization and `.pth` processing occur
+before `sitecustomize` and are outside this Python hook's observation; the shim
+precedes inherited customization and every audited repository import. Cost:
+one checkout plus entry/control runs; partition per ADR 0079; always run at
+the final head (6.2).
 
 **ADR sync.** ADR 0080 Verification says "The validator runs no `rev-list` or
 `diff-tree` (today every such call belongs to the record code)"
@@ -719,6 +735,28 @@ renamed or deleted; (6) the entry harness is slow and not a sandbox (2.7).
 
 Each finding is answered by the normative section named.
 
+Stage A audit-review correction admission (2026-09-27): implementation owner
+`codex/gpt-6-astra`, base `e05836be043d007b66bf12bb8b469c012c1d60db`.
+Mutable surfaces are this plan, `tests/scripts/structure_entry_audit.py` and
+`tests/scripts/test_structure_entry_audit.py`. Owner search found
+`run_audited`, `bootstrap` and `LaunchGuard` as the existing launch and audit
+owners; the structure-entry and topology tests consume that proof, while
+`scripts/verify.py` launches the validator with inherited environment and no
+interpreter flags. Disposition: `extend-owner`. Correct launch equivalence
+within section 2.7; preserve the Git multiset and firmware semantics. Retain
+the plan's R3 integration roles and independent final-head review; this local
+correction runs the three requested Stage A suites, structure-only and Polytail.
+
+Local correction verification: `python -m pytest` on
+`tests/scripts/test_structure_entry_audit.py`, `test_governance_topology.py`
+and `test_governance_retirement.py` with `-q` passed **111 tests** (64, 39
+and 8 respectively; no skips). The corrected working-tree harness audited
+entry fixtures cloned from the admission base and its three topology heads.
+`python scripts/verify.py --structure-only` passed (0 derived files changed),
+and `python scripts/polytail_check.py` passed. The scoped diff review found no
+remaining correctness issue; Polytail is `PASS-WITH-HUMAN-GATE` for this local
+correction, retaining independent final-head review and the plan's R3 approvals.
+
 | Round | Findings | Answer |
 | --- | --- | --- |
 | 1 | [P1] working tree not proven; [P2] checkpoint mode | 2.1, 2.3, 2.5 |
@@ -728,6 +766,7 @@ Each finding is answered by the normative section named.
 | 3 | [P2] harness launch (import path, argv, cwd, exit code, sentinel) | 2.7 "The structure lane, reproduced", "Launch", "Bootstrap", launch positive control, control 7 |
 | 3 | note: length | each rule stated once and linked |
 | 4 | [P2] `runpy.run_path()` makes `argv[0]` absolute and adds traceback frames | 2.7 "Why not `runpy`", "Bootstrap" steps 5-6, stderr rule, launch positive control, controls 7a-7c, units |
+| Stage A interim fixed-head review (codex/gpt-6-sol, 2026-09-27) | [P2] `-S` hides calls behind `no_site`; [P2] audit and reference drop inherited `PYTHONPATH` | Section 2.7 now uses a flagless startup shim, preserves inherited paths and runs original startup customization under the existing audit hook. The positive control compares complete flags, environment, path-only imports and startup observations. Added caught-call controls for `no_site`, `sitecustomize` and `usercustomize`; the reference environment no longer shares the audit helper. Before the harness edit, five launch comparisons and the two original review counterexamples failed (7 red cases). The Git-call multiset is unchanged. |
 | Stage A implementation clarification 1 (commander, 2026-09-27) | Windows command-line pairing, 2.7 | The running Windows CPython 3.13.5 emits `subprocess.Popen(executable, command_line, cwd, env)` and `_winapi.CreateProcess(application_name, command_line, current_directory)`. Observed native `\x02` / `\x03` are reference-count fragments: CPython v3.13.5 `Modules/_winapi.c` passes a `PyObject*` through audit format `uuu`, whose second slot expects `wchar_t*`. The harness records the actual positional-only native arguments before forwarding the identical tuple, pairs Popen -> boundary -> native once, and checks completion. Only that known runtime accepts the native nonzero control-character fragment; it never supplies argv authority. Every real argv still matches the unchanged decision-125 multiset. This clarifies implementation, not design. |
 | Stage A implementation clarification 2 (commander, 2026-09-27) | Pin error detail, 2.3 and 2.6 | HEAD-tree mismatches report the pinned path with pinned and actual mode, type and ID (or `missing`). Index and physical mismatches continue to name the changed file, since those layers compare entries. The three kept-mutation topology cases assert the complete HEAD diagnostic against independently read fixture IDs. No call is added to the three-call proof or the exact decision-125 allowlist. This clarifies implementation, not design. |
 | Stage A implementation clarification 3 (commander, 2026-09-27) | Predecessor executor/reader admission, section 3 | Added both replacement rows. Executor admission uses its own R3 pull request and the owner's exact-head last-push approval naming `firmware-owner`, retaining byte/Golden evidence and the exact write-range audit. Reader schema admission uses its own pull request with path-required reviews and role-naming last-push approvals. `pending-executor-record`, `pending-reader-record` and all other contract values stay unchanged. This clarifies implementation, not design. |
