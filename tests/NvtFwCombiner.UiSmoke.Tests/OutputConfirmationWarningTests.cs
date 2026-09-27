@@ -29,7 +29,7 @@ public sealed class OutputConfirmationWarningTests
     public async Task WarningsRemainVisibleWhenSourcesAreCollapsed(bool chineseDark, bool hasWarnings)
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-warnings");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CompositionOutputBundleProposal proposal = await PrepareAsync(host, workspace, hasWarnings);
         var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming,
             () => ShellTextResources.For(chineseDark ? ShellLanguage.ChineseTraditional : ShellLanguage.English));

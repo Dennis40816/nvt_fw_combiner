@@ -256,9 +256,14 @@ public sealed class ProjectDependencyTests
         }
     }
 
-    /// <summary>Public CLI regressions retain the real default composition root.</summary>
+    /// <summary>
+    /// CLI regressions enter through the internal CLI overload, which composes the production host graph with
+    /// its default policy and external-tool discovery; they inject only their own local-state directory (board
+    /// decision 89, amending the CLI test contract of VERIFY-111-SHADOW-ROOT-01). The public overload differs
+    /// only by resolving the current user's folder.
+    /// </summary>
     [Fact]
-    public void PublicCliTestsRetainTheDefaultProductionCompositionRoot()
+    public void CliTestsInjectOnlyTheirLocalStateDirectoryIntoTheProductionCompositionRoot()
     {
         DirectoryInfo root = FindRepositoryRoot();
         string harness = File.ReadAllText(Path.Combine(
@@ -272,10 +277,40 @@ public sealed class ProjectDependencyTests
             "NvtFwCombiner.Cli",
             "CliApplication.cs"));
 
-        Assert.Contains("CliApplication.RunAsync", harness, StringComparison.Ordinal);
+        Assert.Contains("CliApplication.RunAsync(args, output, error, () => localStateDirectory,", harness, StringComparison.Ordinal);
+        Assert.Contains("IsolatedLocalState.CreateDirectory(", harness, StringComparison.Ordinal);
+        foreach (string substitution in new[]
+                 {
+                     "CompositionHostServices.Create",
+                     "ExternalProcessorEnvironmentLoader",
+                     "CapabilityPolicy",
+                     "RepositoryPaths",
+                 })
+        {
+            Assert.DoesNotContain(substitution, harness, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("        Func<string> localStateDirectory,", application, StringComparison.Ordinal);
         Assert.Contains(
-            "var host = CompositionHostServices.Create();",
+            "var host = CompositionHostServices.Create(localStateDirectory());",
             application,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CompositionHostServices.ResolveCurrentUserLocalStateDirectory,",
+            application,
+            StringComparison.Ordinal);
+        string bootstrap = File.ReadAllText(Path.Combine(
+            root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionHostServices.cs"));
+        Assert.Contains(
+            "return Create(BuiltInCanonicalCapabilityPolicy.Load, localStateDirectory);",
+            bootstrap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "return Create(new ExternalProcessorEnvironmentLoader(session), loadPolicy, localStateDirectory,",
+            bootstrap,
             StringComparison.Ordinal);
     }
 

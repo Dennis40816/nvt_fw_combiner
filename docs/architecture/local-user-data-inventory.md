@@ -21,11 +21,24 @@ or host paths can differ; do not infer cleanup ownership from a filename alone.
 ## Coverage and implementation follow-up
 
 Source inventory searched all `src/` C# uses of `LocalApplicationData`,
-`ApplicationData`, `LOCALAPPDATA`, and the `LocalJsonDocument.GetDefaultPath`
-callers. The five persistent filenames above cover the current direct default
-writers found under this root. Version-manager's root resolver also honors the
-`LOCALAPPDATA` environment value; other listed defaults use the platform folder
-API. A future uninstaller must use each actual resolved location.
+`ApplicationData` and `LOCALAPPDATA`. The five persistent filenames above cover
+the current direct default writers found under this root. Version-manager's
+root resolver also honors the `LOCALAPPDATA` environment value; the other four
+defaults use the platform folder API. A future uninstaller must use each actual
+resolved location.
+
+Update 2026-09-27 (proposal for `BUG-20260926-tests-write-real-local-state`,
+board decisions 89 to 91): `CompositionHostServices.ResolveCurrentUserLocalStateDirectory`
+becomes the one resolver of this root for preferences, report history, Event
+Buffer format and toolchain runtime. Executable composition roots pass the
+resolved directory to the host graph and to Presentation
+(`PresentationHostServices`, `DesktopApplication.Run`), which only append their
+file names; the resolved paths are unchanged. Test projects declare the
+`NvtFwCombiner.LocalState.CurrentUserFolderForbidden` runtime switch, so that
+default resolver refuses before any local-state IO of those four files; test
+hosts inject isolated directories. The switch does not cover explicitly
+injected paths, child product processes or version-manager state, which keeps
+its separate resolver (a separate follow-up).
 
 Future uninstall work should consume and update this inventory, present settings
 and history cleanup separately from program removal, and inventory managed

@@ -459,11 +459,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Stopwatch", lifecycle, StringComparison.Ordinal);
         Assert.Contains(
             typeof(PresentationHostServices).GetConstructors(),
-                constructor => constructor.GetParameters().Length == 9 &&
-                constructor.GetParameters()[^2].ParameterType ==
+                constructor => constructor.GetParameters().Length == 10 &&
+                constructor.GetParameters()[^3].ParameterType ==
                     typeof(Application.ExternalTools.IExternalProcessorEnvironmentLoader) &&
-                constructor.GetParameters()[^1].ParameterType ==
-                    typeof(ILocalFileStore));
+                constructor.GetParameters()[^2].ParameterType ==
+                    typeof(ILocalFileStore) &&
+                constructor.GetParameters()[^1].ParameterType == typeof(string));
     }
 
     /// <summary>The clear confirmation identifies the pending route visually and to assistive technology.</summary>

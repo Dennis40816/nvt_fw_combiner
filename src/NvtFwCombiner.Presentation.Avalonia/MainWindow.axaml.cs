@@ -60,10 +60,12 @@ public sealed partial class MainWindow : Window, IDisposable
         _isStartupInputLoading = launchOptions.HasStartupInputs;
         _startupTrace = startupTrace;
         _hostServices = hostServices;
+        string reportHistoryPath = ReportHistoryFileStore.PathIn(hostServices.LocalStateDirectory);
+        string shellPreferencesPath = ShellPreferenceFileStore.PathIn(hostServices.LocalStateDirectory);
         _reportHistoryPersistence = new(
             (snapshots, cancellationToken) => ReportHistoryFileStore.SaveAsync(
                 hostServices.LocalFiles,
-                ReportHistoryFileStore.DefaultHistoryPath,
+                reportHistoryPath,
                 snapshots,
                 cancellationToken),
             snapshots => [.. snapshots],
@@ -72,7 +74,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _shellPreferencePersistence = new(
             (snapshot, cancellationToken) => ShellPreferenceFileStore.SaveAsync(
                 hostServices.LocalFiles,
-                ShellPreferenceFileStore.DefaultPreferencesPath,
+                shellPreferencesPath,
                 snapshot,
                 cancellationToken),
             static snapshot => snapshot,
@@ -295,7 +297,7 @@ public sealed partial class MainWindow : Window, IDisposable
                         viewModel.Reports.LoadReportHistoryAsync(
                             token => ReportHistoryFileStore.LoadAsync(
                                 _hostServices.LocalFiles,
-                                ReportHistoryFileStore.DefaultHistoryPath,
+                                ReportHistoryFileStore.PathIn(_hostServices.LocalStateDirectory),
                                 token),
                             cancellationToken)),
                     HasStartupReportStage(_launchOptions)

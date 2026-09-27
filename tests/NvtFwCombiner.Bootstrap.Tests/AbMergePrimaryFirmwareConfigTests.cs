@@ -108,7 +108,7 @@ public sealed class AbMergePrimaryFirmwareConfigTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-primary-authoring");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         CompiledAuthoringSessionPreparation first = await PrepareAsync(host, 0x97);

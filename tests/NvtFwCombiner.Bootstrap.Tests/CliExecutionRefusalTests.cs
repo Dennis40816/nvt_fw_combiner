@@ -60,6 +60,7 @@ public sealed class CliExecutionRefusalTests
         CompositionHostServices host = CompositionHostServices.Create(
             new ExternalProcessorEnvironmentLoader(toolchain),
             loadPolicy: null,
+            localStateDirectory: IsolatedLocalState.CreateDirectory(),
             toolchainConfiguration: toolchain);
         Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
             progress: null,
@@ -335,7 +336,7 @@ public sealed class CliExecutionRefusalTests
 
     private static async Task<CompositionHostServices> CreateLoadedHostAsync()
     {
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         _ = await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
             progress: null,
             TestContext.Current.CancellationToken);

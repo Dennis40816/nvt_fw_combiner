@@ -88,7 +88,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         WriteCmiAt(dpAb, 0x85016, major: 0x83, minor: 0x04, jira: 0x456);
 
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         byte[] tp = CreateTpImage(0x81, 0, chipCount: 3, length: 0x37000);

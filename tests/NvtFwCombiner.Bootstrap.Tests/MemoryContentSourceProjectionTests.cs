@@ -22,7 +22,7 @@ public sealed class MemoryContentSourceProjectionTests
             id => CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact => artifact.GetProperty("artifactId").GetString() == id)));
         using TempWorkspace workspace = TempWorkspace.Create("memory-content-ab");
         var environment = new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools"));
-        CompositionHostServices host = CompositionHostServices.Create(environment, loadPolicy: null,
+        CompositionHostServices host = CompositionHostServices.Create(environment, loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(),
             configurationPath: workspace.PathFor("missing-format.json"));
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",

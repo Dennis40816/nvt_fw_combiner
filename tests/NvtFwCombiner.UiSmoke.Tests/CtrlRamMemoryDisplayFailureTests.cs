@@ -35,7 +35,7 @@ public sealed class CtrlRamMemoryDisplayFailureTests
         var services = new PresentationHostServices(original.Composition.WithFirmwareInspection(inspection),
             original.FileReveal, original.SupportMatrix, original.SystemInformation,
             original.SystemDiagnosticsExporter, original.RawBinaryEditorFileSessions,
-            original.CanonicalCatalogLoader, original.ExternalEnvironmentLoader, original.LocalFiles);
+            original.CanonicalCatalogLoader, original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default)
         { Width = 1440, Height = 1040, RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light };
         window.Show();

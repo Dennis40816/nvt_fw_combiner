@@ -23,6 +23,18 @@ namespace NvtFwCombiner.Bootstrap;
 /// <summary>One explicitly constructed Bootstrap dependency graph.</summary>
 public sealed partial class CompositionHostServices
 {
+    /// <summary>
+    /// Names the runtime switch a process sets to forbid the current user's local-state folder. Every test project
+    /// sets it, so the default resolver of preferences, report history, toolchain runtime and Event Buffer format
+    /// refuses before any of their local-state IO. It does not cover explicitly injected paths, the version-manager
+    /// state resolver or child product processes.
+    /// </summary>
+    internal const string CurrentUserLocalStateForbiddenSwitch =
+        "NvtFwCombiner.LocalState.CurrentUserFolderForbidden";
+
+    private const string LocalStateFolderName = "NvtFwCombiner";
+    private const string ToolchainRuntimeFileName = "toolchain-runtime.v1.json";
+    private const string EventBufferFormatFileName = "event-buffer-format.v1.json";
     private readonly Lock _configurationGate = new();
     private readonly Func<FirmwareFamilyResolutionDefinition> _loadConfigurationFamily;
     private readonly string? _configurationPath;
@@ -35,6 +47,7 @@ public sealed partial class CompositionHostServices
         CanonicalCapabilityCompilerAdapter compiler,
         CanonicalCapabilityExperience projection,
         ExternalProcessorEnvironmentLoader externalEnvironment,
+        string localStateDirectory,
         Func<FirmwareFamilyResolutionDefinition>? loadConfigurationFamily,
         string? configurationPath,
         ILocalFileStore? localFiles = null,
@@ -43,6 +56,7 @@ public sealed partial class CompositionHostServices
         _loadConfigurationFamily = loadConfigurationFamily ??
             (() => (BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps") ??
                 throw new InvalidDataException("The declared Event Buffer configuration family is unavailable.")).GetFirmwareFamily());
+        LocalStateDirectory = localStateDirectory;
         _configurationPath = configurationPath;
         _toolchainConfiguration = toolchainConfiguration;
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -104,9 +118,28 @@ public sealed partial class CompositionHostServices
         LocalFiles = localFiles ?? new LocalFileStore();
     }
 
+    /// <summary>Gets the one directory this host graph reads and writes its per-user local-state files under.</summary>
+    public string LocalStateDirectory { get; }
+
     internal CanonicalCapabilityCatalog Catalog { get; }
 
     internal CanonicalCapabilityCompilerAdapter Compiler { get; }
+
+    /// <summary>
+    /// Resolves the current user's local-state folder, the production default for preferences, report history,
+    /// toolchain runtime and Event Buffer format files. Executable composition roots call it once; a process that
+    /// sets the <c>NvtFwCombiner.LocalState.CurrentUserFolderForbidden</c> runtime switch fails closed instead.
+    /// </summary>
+    public static string ResolveCurrentUserLocalStateDirectory()
+    {
+        return AppContext.TryGetSwitch(CurrentUserLocalStateForbiddenSwitch, out bool forbidden) && forbidden
+            ? throw new InvalidOperationException(
+                "This process forbids the current user's local-state folder; " +
+                "compose the host with an isolated local-state directory.")
+            : Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                LocalStateFolderName);
+    }
 
     internal static ICanonicalCapabilityCatalogSource
         CreateCanonicalCapabilityCatalogSource(
@@ -122,39 +155,50 @@ public sealed partial class CompositionHostServices
             BuiltInV2BundlePreload.Run);
     }
 
-    /// <summary>Creates one isolated host graph at an executable composition root.</summary>
+    /// <summary>Creates one isolated host graph over the current user's local-state folder.</summary>
     public static CompositionHostServices Create()
     {
-        return Create(BuiltInCanonicalCapabilityPolicy.Load);
+        return Create(ResolveCurrentUserLocalStateDirectory());
+    }
+
+    /// <summary>Creates the executable host graph over one explicitly composed local-state directory.</summary>
+    /// <param name="localStateDirectory">Fully qualified directory for this host's per-user local-state files.</param>
+    public static CompositionHostServices Create(string localStateDirectory)
+    {
+        return Create(BuiltInCanonicalCapabilityPolicy.Load, localStateDirectory);
     }
 
     internal static CompositionHostServices Create(
-        ExternalProcessorEnvironmentLoader externalEnvironment)
+        ExternalProcessorEnvironmentLoader externalEnvironment,
+        string localStateDirectory)
     {
-        return Create(externalEnvironment, loadPolicy: null);
+        return Create(externalEnvironment, loadPolicy: null, localStateDirectory);
     }
 
-    internal static CompositionHostServices Create(Func<CanonicalCapabilityPolicySnapshot> loadPolicy)
+    internal static CompositionHostServices Create(
+        Func<CanonicalCapabilityPolicySnapshot> loadPolicy,
+        string localStateDirectory)
     {
         ArgumentNullException.ThrowIfNull(loadPolicy);
+        ArgumentException.ThrowIfNullOrWhiteSpace(localStateDirectory);
         var files = new LocalFileStore();
-        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "NvtFwCombiner", "toolchain-runtime.v1.json");
         var session = new ToolchainRuntimeConfigurationSession(
-            new ToolchainRuntimeConfigurationStorage(files, path),
+            new ToolchainRuntimeConfigurationStorage(files, Path.Combine(localStateDirectory, ToolchainRuntimeFileName)),
             new ToolchainRuntimeCandidateInspector(files, RuntimeTrustProbeProcess.CreateDefault()));
-        return Create(new ExternalProcessorEnvironmentLoader(session), loadPolicy,
+        return Create(new ExternalProcessorEnvironmentLoader(session), loadPolicy, localStateDirectory,
             localFiles: files, toolchainConfiguration: session);
     }
 
     internal static CompositionHostServices Create(
         ExternalProcessorEnvironmentLoader externalEnvironment,
         Func<CanonicalCapabilityPolicySnapshot>? loadPolicy,
+        string localStateDirectory,
         Func<FirmwareFamilyResolutionDefinition>? loadConfigurationFamily = null,
         string? configurationPath = null,
         ILocalFileStore? localFiles = null,
         IToolchainRuntimeConfigurationSession? toolchainConfiguration = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localStateDirectory);
         var catalog = new CanonicalCapabilityCatalog(
             CreateCanonicalCapabilityCatalogSource(loadPolicy));
         var compiler = new CanonicalCapabilityCompilerAdapter(
@@ -165,6 +209,7 @@ public sealed partial class CompositionHostServices
             compiler,
             new CanonicalCapabilityExperience(catalog, catalog),
             externalEnvironment,
+            localStateDirectory,
             loadConfigurationFamily,
             configurationPath,
             localFiles,
@@ -195,9 +240,7 @@ public sealed partial class CompositionHostServices
     private async Task<IEventBufferFormatConfigurationSession> CreateEventBufferFormatConfigurationAsync()
     {
         FirmwareFamilyResolutionDefinition family = await Task.Run(_loadConfigurationFamily).ConfigureAwait(false);
-        string path = _configurationPath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "NvtFwCombiner", "event-buffer-format.v1.json");
+        string path = _configurationPath ?? Path.Combine(LocalStateDirectory, EventBufferFormatFileName);
         var session = new EventBufferFormatConfigurationSession(family,
             new EventBufferFormatConfigurationStorage(LocalFiles, path));
         try

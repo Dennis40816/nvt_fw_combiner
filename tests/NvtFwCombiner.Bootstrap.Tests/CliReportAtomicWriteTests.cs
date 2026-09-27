@@ -303,6 +303,7 @@ public sealed class CliReportAtomicWriteTests
             CreateGeneralMergeBuildArguments(workspace, reportPath),
             output,
             error,
+            () => workspace.PathFor("local-state"),
             cancellation.Token);
 
         Assert.True(cancellation.IsCancellationRequested);

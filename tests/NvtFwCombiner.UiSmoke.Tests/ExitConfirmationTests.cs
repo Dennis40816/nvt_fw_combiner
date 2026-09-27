@@ -127,7 +127,7 @@ public sealed partial class ExitConfirmationTests
             Assert.False(shell.Navigation.IsNavigationClearConfirmationOpen);
             await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Assert.Equal(page, shell.SelectedPage);
-            Assert.Contains("afterCancel", File.ReadAllText(workspace.PathFor(Path.GetFileName(ReportHistoryFileStore.DefaultHistoryPath))), StringComparison.Ordinal);
+            Assert.Contains("afterCancel", File.ReadAllText(ReportHistoryFileStore.PathIn(workspace.Root)), StringComparison.Ordinal);
         }
         finally
         {

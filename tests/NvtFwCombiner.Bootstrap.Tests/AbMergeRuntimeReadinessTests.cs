@@ -473,7 +473,7 @@ public sealed partial class AbMergeGoldenRegressionTests
     {
         CompositionHostServices host = CompositionHostServices.Create(
             new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools")),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
             null, TestContext.Current.CancellationToken)).Succeeded);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(

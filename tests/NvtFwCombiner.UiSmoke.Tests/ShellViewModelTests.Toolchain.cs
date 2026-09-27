@@ -331,7 +331,7 @@ public sealed class ToolchainSettingsTests
     public async Task ClosingTwoDirtyConfigPagesDoesNotDiscardTheSecondDraftImplicitly()
     {
         using TempWorkspace workspace = TempWorkspace.Create();
-        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null, IsolatedLocalState.CreateDirectory(),
             configurationPath: workspace.PathFor("config.json"));
         IEventBufferFormatConfigurationSession formats = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         var runtime = new ToolchainUiSession();
@@ -364,6 +364,7 @@ public sealed class ToolchainSettingsTests
         var services = new PresentationHostServices(original.Composition, original.FileReveal, original.SupportMatrix,
             original.SystemInformation, original.SystemDiagnosticsExporter, original.RawBinaryEditorFileSessions,
             original.CanonicalCatalogLoader, externalEnvironmentLoader ?? original.ExternalEnvironmentLoader, original.LocalFiles,
+            original.LocalStateDirectory,
             versionManagement: null, managedApplicationStartup: null, stableLauncherHandoff: null,
             eventBufferFormatConfigurationSessionFactory: formatSession is null ? null : _ => Task.FromResult(formatSession),
             toolchainRuntimeConfigurationSessionFactory: _ => Task.FromResult<IToolchainRuntimeConfigurationSession>(session));

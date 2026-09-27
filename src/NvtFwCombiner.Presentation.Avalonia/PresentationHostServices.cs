@@ -21,7 +21,8 @@ public sealed class PresentationHostServices
         IRawBinaryEditorFileSessionFactory rawBinaryEditorFileSessions,
         ICanonicalCapabilityCatalogLoader canonicalCatalogLoader,
         IExternalProcessorEnvironmentLoader externalEnvironmentLoader,
-        ILocalFileStore localFiles)
+        ILocalFileStore localFiles,
+        string localStateDirectory)
         : this(
             composition,
             fileReveal,
@@ -32,6 +33,7 @@ public sealed class PresentationHostServices
             canonicalCatalogLoader,
             externalEnvironmentLoader,
             localFiles,
+            localStateDirectory,
             versionManagement: null,
             managedApplicationStartup: null,
             stableLauncherHandoff: null,
@@ -50,6 +52,7 @@ public sealed class PresentationHostServices
         ICanonicalCapabilityCatalogLoader canonicalCatalogLoader,
         IExternalProcessorEnvironmentLoader externalEnvironmentLoader,
         ILocalFileStore localFiles,
+        string localStateDirectory,
         IVersionManagementExperience? versionManagement,
         IManagedApplicationStartupCoordinator? managedApplicationStartup,
         IStableLauncherHandoff? stableLauncherHandoff,
@@ -69,6 +72,8 @@ public sealed class PresentationHostServices
         ExternalEnvironmentLoader = externalEnvironmentLoader ??
             throw new ArgumentNullException(nameof(externalEnvironmentLoader));
         LocalFiles = localFiles ?? throw new ArgumentNullException(nameof(localFiles));
+        ArgumentException.ThrowIfNullOrWhiteSpace(localStateDirectory);
+        LocalStateDirectory = localStateDirectory;
         VersionManagement = versionManagement;
         ManagedApplicationStartup = managedApplicationStartup;
         StableLauncherHandoff = stableLauncherHandoff;
@@ -93,6 +98,9 @@ public sealed class PresentationHostServices
     internal IExternalProcessorEnvironmentLoader ExternalEnvironmentLoader { get; }
 
     internal ILocalFileStore LocalFiles { get; }
+
+    /// <summary>Gets the host-composed directory for report history and shell preferences.</summary>
+    internal string LocalStateDirectory { get; }
 
     internal IVersionManagementExperience? VersionManagement { get; }
 
