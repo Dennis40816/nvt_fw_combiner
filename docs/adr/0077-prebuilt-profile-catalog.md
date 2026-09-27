@@ -163,8 +163,13 @@ serializing them; that needs a new decision.
     profile entries ordinal by `entryId`, each with `entryId`, `kind`, `path`,
     `schemaId`, `contentHash`, `offset` and `length`;
   - `body`: `length`, `sha256`.
-- The body is the carried byte ranges concatenated in header order, with no
-  gap, padding or trailing byte; offsets are body-relative.
+- The body is the carried byte ranges concatenated in canonical-header bundle
+  order (`bundleDirectory`, ordinal): within each bundle, all `documents`
+  ordinal by `entryId`, then that bundle's `manifest`. There is no gap, padding
+  or trailing byte; offsets are body-relative.
+  **Amendment 2026-09-28:** fixes the body order identified by the B2a plan
+  review (`B2AREV-last.md`, `codex/gpt-6-sol`, ACCEPT-WITH-CHANGES, P2/O1).
+  Independent fixed byte vectors must pin documents-then-manifest order.
 - The file is a pure function of the trust-index bytes, the materialized
   bundle bytes and the format version. It contains no time, no machine-specific
   or absolute path (the header's `path` values are the manifests' bundle-relative
