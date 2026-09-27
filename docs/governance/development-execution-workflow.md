@@ -87,7 +87,10 @@ gate above, which stays in force until an authorized G1-B merges; it binds a
 branch once the owner has made the context required on that branch's ruleset.
 The check proves presence and form at the time it ran; the owner judges the
 evidence, and the procedures below close what the check leaves open (ADR 0080,
-safeguards P1 to P9).
+safeguards P1 to P9). Once the context is required, a pull request whose head
+predates the workflow or checker reports a failure or no context at all, and
+either blocks the merge: rebase it onto the base, then renew its review record
+and approval on the new head.
 
 **Authority block.** The description carries exactly one fenced
 `nfc-authority` JSON block (template: `.github/pull_request_template.md`):
@@ -132,10 +135,12 @@ review record with its review id, head, verdict and complete body.
    `docs/governance/authority-policy.schema.json` and
    `docs/governance/authority-policy.json` at the base tip
    (`git fetch origin <base>`, then `git rev-parse origin/<base>:<path>`) with
-   the head column of the latest run's job summary. If the pull request runs
-   older versions it does not change, rebase it (and renew the review record
-   and the approval), or run the current base checker against its head and
-   attach the result; a failure stops the merge:
+   the evaluated-head column of the latest run's job summary, whose "Checker
+   that ran" line names the checker revision and blob that produced it. If the
+   pull request runs older versions it does not change, rebase it (and renew
+   the review record and the approval), or run the current base checker
+   against its head and attach the result, whose "Checker that ran" line must
+   name the base tip; a failure stops the merge:
 
    ```text
    git worktree add --detach <tmp>/base origin/<base>

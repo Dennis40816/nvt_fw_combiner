@@ -7,8 +7,10 @@
   states, and the record-validation retirement only when an authorized G1-B
   merges. The text entered `docs/adr/` with G1-A (record
   `GOV-AUTHORITY-CHECK-1113-01`), so G1-B's list item "ADR 0080 added to
-  `docs/adr/` as Accepted" is already done; only link paths and this header
-  differ from the accepted draft.
+  `docs/adr/` as Accepted" is already done. Only link paths, this header and
+  one transition-cost bullet under Consequences (recorded at the commander's
+  direction after G1-A's fixed-head review, 2026-09-27) differ from the
+  accepted draft.
 - Date: 2026-09-26; revised 2026-09-27; accepted 2026-09-27.
 - Owners (board decision 102, three roles recorded separately, today all held
   by the repository owner): the **governance owner** (governance rules,
@@ -863,6 +865,16 @@ What G1-B removes, and what it keeps (second review):
   approval bind the final pull request head, which includes the evidence
   commit, so an R3 pull request of that period is reviewed and approved
   twice. The cost ends with G1-B.
+- In the same period every pull request that adds or finalizes a
+  capability-reuse record or an external-authority attestation changes a
+  frozen evidence path of item 4 and is therefore governance R3 for the
+  authority check: it declares `governance-owner` with its change statement,
+  and the owner's approval names that role. This is the transition cost of the
+  accepted classification, found at G1-A's fixed-head review; the check makes
+  no exception for new files there. Exempting them would change the accepted
+  classification and needs a separate owner decision and an amendment of this
+  ADR. The cost ends with G1-B, after which no new record or attestation is
+  added.
 - Keeping the WS-AI changes in G1-B (decision 101) delays the retirement: G1-B
   cannot fix its head until the WS-AI port is designed and reviewed; its
   larger diff lengthens the fixed-head review and makes a base move (rebase,

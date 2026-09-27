@@ -120,6 +120,10 @@ def entry(policy: dict[str, Any], entry_id: str) -> dict[str, Any]:
     return next(item for item in policy["entries"] if item["id"] == entry_id)
 
 
+PROFILE = "".join(
+    f'  "region{index}": {{"start": {index * 16}, "end": {index * 16 + 8}}},\n'
+    for index in range(24)
+).encode()
 CODE = change("M", "src/NvtFwCombiner.Cli/Program.cs")
 FIRMWARE = change("M", "src/NvtFwCombiner.Domain/Ranges/Range.cs")
 WORKFLOW = change("A", ".github/workflows/authority.yml")
@@ -583,7 +587,7 @@ class GitRunTests(unittest.TestCase):
         self.write(check.POLICY_PATH, POLICY)
         self.write(check.SCHEMA_PATH, SCHEMA)
         self.write("src/NvtFwCombiner.Cli/Range.cs", b"class Range {}\n")
-        self.write("profiles/built-in/p.json", b"{}\n")
+        self.write("profiles/built-in/p.json", PROFILE)
         self.base = self.commit("base")
         self.git("checkout", "-q", "-b", "feature/x")
 
@@ -683,6 +687,66 @@ class GitRunTests(unittest.TestCase):
         code, summary = self.run_main(routes)
         self.assertEqual(code, 1)
         self.assertIn("is not in this clone", summary)
+
+    def test_copy_from_an_unchanged_firmware_file_needs_the_firmware_role(self) -> None:
+        # Fixed-head review F-1: the copy source is unchanged, so only an exhaustive copy search
+        # that considers unmodified files reports it.
+        self.write("src/NvtFwCombiner.Cli/regions.json", PROFILE)
+        head = self.commit("copy")
+        changes = check.Git(self.repo).changes(self.base, head)
+        self.assertIn(
+            ("profiles/built-in/p.json", "src/NvtFwCombiner.Cli/regions.json"),
+            [item.paths for item in changes if item.status == "C"],
+        )
+        code, summary = self.run_main(self.routes(head, description(), self.reviewed(head)))
+        self.assertEqual(code, 1)
+        self.assertIn("required roles are not declared: ['firmware-owner']", summary)
+        self.assertIn("paths: profiles/built-in/p.json", summary)
+
+    def test_degraded_copy_detection_fails_closed(self) -> None:
+        for index in range(3):
+            self.write(f"src/NvtFwCombiner.Cli/New{index}.cs", f"class New{index} {{}}\n".encode())
+        head = self.commit("several")
+        with mock.patch.object(check, "COPY_DETECTION_LIMIT", 1):
+            with self.assertRaisesRegex(check.AuthorityError, "skipped part of the rename"):
+                check.Git(self.repo).changes(self.base, head)
+
+    def test_summary_names_the_checker_that_ran_when_it_is_not_the_heads(self) -> None:
+        # Fixed-head review F-3: pre-merge step 1 runs the base checker against another head.
+        self.write(check.CHECKER_PATH, b"# a different checker at the evaluated head\n")
+        head = self.commit("another checker")
+        _, summary = self.run_main(self.routes(head, description(), self.reviewed(head)))
+        ran = self.root_git("hash-object", "--", check.CHECKER_PATH)
+        revision = self.root_git("rev-parse", "HEAD")
+        evaluated = self.git("rev-parse", f"{head}:{check.CHECKER_PATH}")
+        self.assertNotEqual(ran, evaluated)
+        self.assertIn(
+            f"- Checker that ran: `{check.CHECKER_PATH}` blob `{ran}` from revision `{revision}`",
+            summary,
+        )
+        self.assertIn("not the evaluated head's checker", summary)
+        self.assertIn(f"| `{check.CHECKER_PATH}` | `{evaluated}` | `absent` |", summary)
+        self.assertNotIn("(used)", summary)
+
+    def test_summary_names_the_heads_own_checker(self) -> None:
+        self.write(check.CHECKER_PATH, (ROOT / check.CHECKER_PATH).read_bytes())
+        head = self.commit("own checker")
+        identity = check.executed_checker(self.repo / check.CHECKER_PATH)
+        blob = self.git("rev-parse", f"{head}:{check.CHECKER_PATH}")
+        expected = check.CheckerIdentity(head, check.CHECKER_PATH, blob, "matches that revision")
+        self.assertEqual(identity, expected)
+        context = check.RunContext(
+            7, head=head, head_files={check.CHECKER_PATH: blob}, checker=identity
+        )
+        self.assertIn("the evaluated head's own checker", check.render_summary(context, None, []))
+        self.write(check.CHECKER_PATH, b"# edited after the commit\n")
+        edited = check.executed_checker(self.repo / check.CHECKER_PATH)
+        self.assertEqual(edited.state, "differs from that revision")
+
+    def root_git(self, *arguments: str) -> str:
+        return subprocess.run(
+            ["git", *arguments], cwd=ROOT, check=True, capture_output=True, text=True
+        ).stdout.strip()
 
     def test_api_failure_fails_the_run(self) -> None:
         head = self.git("rev-parse", "HEAD")

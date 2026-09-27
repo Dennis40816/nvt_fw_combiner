@@ -122,7 +122,7 @@
     },
     {
       "id": "approval-authority",
-      "description": "This policy and its schema, the authority checker, every repository file it reads, its tests and workflow, CODEOWNERS, the rule owners of ADR 0080, the waiver rules, the frozen evidence paths and the G0 scripts and ruleset bodies.",
+      "description": "This policy and its schema, the authority checker, every repository file it reads, its tests and workflow, CODEOWNERS, the rule owners of ADR 0080, the waiver rules, the frozen evidence paths, the frozen-evidence pin file that G1-B adds (ADR 0080 item 2) and the G0 scripts and ruleset bodies.",
       "floor": "R3",
       "roles": ["governance-owner"],
       "patterns": [
@@ -141,6 +141,7 @@
         "docs/governance/external-authority-attestations/**",
         "docs/governance/waivers/**",
         "docs/governance/trusted-initial-capability-checkpoint.v1.json",
+        "docs/governance/frozen-evidence-pins.json",
         "docs/handoff/**/g0-scripts/**"
       ]
     },

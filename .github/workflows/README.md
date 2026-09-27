@@ -23,7 +23,8 @@ every pull request event type that can change the head or the description
 and no secret. `scripts/authority_check.py` classifies the change against
 `docs/governance/authority-policy.json` and verifies the description's
 authority block and the review records on the head; its job summary records the
-Git blob IDs of the authority files it used. The context binds a branch only
+evaluated head and base, the Git blob IDs of the authority files at both, and
+the revision and blob of the checker that ran. The context binds a branch only
 after the owner adds it to that branch's ruleset (trunk and release branches in
 G1-A, `main` in G2); until then the three checks above stay the required set.
 Procedures: `docs/governance/development-execution-workflow.md`, "Authority

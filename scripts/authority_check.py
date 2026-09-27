@@ -79,6 +79,8 @@ PER_PAGE = 100
 MAX_PAGES = 50
 API_TIMEOUT_SECONDS = 30.0
 GIT_TIMEOUT_SECONDS = 120
+# `git diff -l`: 0 means no limit on the exhaustive rename and copy search.
+COPY_DETECTION_LIMIT = 0
 
 
 class AuthorityError(Exception):
@@ -676,6 +678,11 @@ class Git:
         self.root = root
 
     def run(self, *arguments: str) -> bytes:
+        return self.run_with_warnings(*arguments)[0]
+
+    def run_with_warnings(self, *arguments: str) -> tuple[bytes, str]:
+        """Run a read-only Git command; return its output and what it wrote to stderr."""
+
         try:
             result = subprocess.run(
                 ["git", "--literal-pathspecs", "-c", "core.quotepath=off", *arguments],
@@ -691,7 +698,7 @@ class Git:
             raise AuthorityError(
                 f"git {' '.join(arguments[:2])} failed: {detail or result.returncode}"
             )
-        return result.stdout
+        return result.stdout, result.stderr.decode("utf-8", errors="replace")
 
     def commit(self, revision: str) -> str:
         return (
@@ -704,16 +711,23 @@ class Git:
         return self.run("merge-base", first, second).decode().strip()
 
     def changes(self, base: str, head: str) -> tuple[Change, ...]:
-        output = self.run(
+        # Copies from unchanged sources count too (ADR 0080 item 4: both sides of a copy), so
+        # every base file is a copy candidate and the exhaustive search is never cut short.
+        output, warnings = self.run_with_warnings(
             "diff",
             "--name-status",
             "-z",
             "--find-renames",
-            "--find-copies",
+            "--find-copies-harder",
+            f"-l{COPY_DETECTION_LIMIT}",
             "--no-ext-diff",
             base,
             head,
             "--",
+        )
+        _require(
+            "too many files" not in warnings and "renamelimit" not in warnings.casefold(),
+            f"git skipped part of the rename and copy detection: {warnings.strip()}",
         )
         values = [value.decode("utf-8") for value in output.split(b"\0") if value]
         changes: list[Change] = []
@@ -935,6 +949,35 @@ class GitHubApi:
 # --- Run --------------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class CheckerIdentity:
+    """The checker file that actually ran, which may differ from the evaluated head's."""
+
+    revision: str
+    path: str
+    blob: str
+    state: str
+
+
+def executed_checker(script: Path | None = None) -> CheckerIdentity:
+    """Identify the running checker by its own Git work tree, not by the evaluated head."""
+
+    script = (script or Path(__file__)).resolve()
+    git = Git(script.parent)
+    try:
+        path = git.run("rev-parse", "--show-prefix").decode().strip() + script.name
+        revision = git.commit("HEAD")
+        blob = git.run("hash-object", "--", script.name).decode().strip()
+        try:
+            committed = git.run("rev-parse", "--verify", f"{revision}:{path}").decode().strip()
+        except AuthorityError:
+            committed = None
+    except AuthorityError:
+        return CheckerIdentity("unknown", script.name, "unknown", "not in a Git work tree")
+    state = "matches that revision" if committed == blob else "differs from that revision"
+    return CheckerIdentity(revision, path, blob, state)
+
+
 @dataclass
 class RunContext:
     number: int
@@ -944,6 +987,7 @@ class RunContext:
     merge_base: str | None = None
     head_files: dict[str, str] = field(default_factory=dict)
     base_files: dict[str, str] = field(default_factory=dict)
+    checker: CheckerIdentity | None = None
 
 
 def collect(git: Git, api: GitHubApi, context: RunContext) -> CheckInputs:
@@ -991,9 +1035,19 @@ def collect(git: Git, api: GitHubApi, context: RunContext) -> CheckInputs:
 def render_summary(context: RunContext, verdict: Verdict | None, errors: Sequence[str]) -> str:
     lines = ["## governance / authority", "", f"- Result: **{'PASS' if not errors else 'FAIL'}**"]
     lines.append(
-        f"- Pull request #{context.number}: head `{context.head}`, base `{context.base_ref}` "
-        f"at `{context.base}`, merge base `{context.merge_base}`"
+        f"- Evaluated pull request #{context.number}: head `{context.head}`, "
+        f"base `{context.base_ref}` at `{context.base}`, merge base `{context.merge_base}`"
     )
+    checker = context.checker
+    if checker is not None:
+        own = checker.revision == context.head and checker.blob == context.head_files.get(
+            CHECKER_PATH
+        )
+        origin = "the evaluated head's own checker" if own else "not the evaluated head's checker"
+        lines.append(
+            f"- Checker that ran: `{checker.path}` blob `{checker.blob}` from revision "
+            f"`{checker.revision}` (the file {checker.state}; {origin})"
+        )
     run = {
         name: os.environ.get(name)
         for name in (
@@ -1006,11 +1060,12 @@ def render_summary(context: RunContext, verdict: Verdict | None, errors: Sequenc
     }
     if any(run.values()):
         lines.append(
-            "- Run: " + ", ".join(f"{name} `{value}`" for name, value in run.items() if value)
+            "- Workflow run that executed it: "
+            + ", ".join(f"{name} `{value}`" for name, value in run.items() if value)
         )
     lines += [
         "",
-        "| Authority file | Blob at head (used) | Blob at base tip |",
+        "| Authority file | Blob at evaluated head | Blob at base tip |",
         "| --- | --- | --- |",
     ]
     for path in AUTHORITY_FILES:
@@ -1075,6 +1130,7 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None, transport: Transport = urllib_transport) -> int:
     arguments = parse_args(argv)
     context, verdict, errors = RunContext(arguments.pull_request), None, ["the check did not run"]
+    checker = executed_checker()
     try:
         root = Path(Git(arguments.root).run("rev-parse", "--show-toplevel").decode().strip())
         token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
@@ -1086,6 +1142,7 @@ def main(argv: Sequence[str] | None = None, transport: Transport = urllib_transp
         errors = [str(error)]
     except Exception as error:  # noqa: BLE001 - any unexpected failure fails the check closed.
         errors = [f"unexpected {type(error).__name__}: {error}"]
+    context.checker = checker
     summary = render_summary(context, verdict, errors)
     print(summary)
     if verdict is not None:

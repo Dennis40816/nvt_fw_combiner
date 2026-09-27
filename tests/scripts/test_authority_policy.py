@@ -135,6 +135,20 @@ class AuthorityPolicyTests(unittest.TestCase):
         unclassified = [path for path in TRACKED if POLICY.classify(path).unclassified]
         self.assertEqual(unclassified, [])
 
+    def test_governance_paths_g1b_adds_are_classified_before_they_exist(self) -> None:
+        # Fixed-head review F-2: ADR 0080 item 2's pin file and the three historical READMEs.
+        planned = [
+            "docs/governance/frozen-evidence-pins.json",
+            "docs/governance/change-records/README.md",
+            "docs/governance/external-authority-attestations/README.md",
+            "docs/governance/waivers/README.md",
+        ]
+        for path in planned:
+            with self.subTest(path=path):
+                result = POLICY.classify(path)
+                self.assertEqual((result.floor, result.unclassified), ("R3", False))
+                self.assertIn("governance-owner", result.roles)
+
     def test_every_default_exclusion_is_matched_by_another_entry(self) -> None:
         for default in (entry for entry in POLICY.entries if entry.default):
             for path in TRACKED:
