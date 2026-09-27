@@ -586,9 +586,17 @@ class DeployUpdateSourceTests(unittest.TestCase):
             $ErrorActionPreference = 'Stop'
             Set-PSBreakpoint -Script '{script_literal}' -Line {target_line} -Action {{
                 $path = Get-Variable -Name DownloadedPath -ValueOnly -ErrorAction Stop
-                [IO.File]::WriteAllBytes(
-                    $path,
-                    [Text.Encoding]::ASCII.GetBytes('post-hash-mutation'))
+                $stream = [IO.FileStream]::new(
+                    $path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite,
+                    [IO.FileShare]::Read)
+                try {{
+                    $firstByte = $stream.ReadByte()
+                    $stream.Position = 0
+                    $stream.WriteByte([byte]($firstByte -bxor 1))
+                    $stream.Flush($true)
+                }} finally {{
+                    $stream.Dispose()
+                }}
                 Add-Content -LiteralPath '{breakpoint_log_literal}' -Value 'fired'
             }} | Out-Null
             & '{script_literal}' -Version '{self.version}' -CatalogPublishedAtUtc '{self.published_at}' -SourceRoot '{source_literal}' -Confirm:$false
