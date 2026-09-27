@@ -6483,6 +6483,17 @@ def _sync_pin(payload: bytes, pattern: bytes, replacement: str, count: int = 1) 
     return re.sub(pattern, lambda match: match[1] + replacement.encode("ascii") + match[3], payload)
 
 
+# Public entry points for the non-terminal predecessor comparator (ADR 0078).
+# Each name is the existing function itself, so the terminal chain and the
+# comparator share one implementation; the terminal behavior is unchanged.
+resolve_case = _resolve_case
+cli_selection_token = _cli_selection_token
+cli_arguments = _cli_arguments
+input_option = _input_option
+normalize_raw_operation = _normalize_raw_operation
+normalize_raw_mutation = _normalize_raw_mutation
+
+
 WORKFLOW_SYNC_INPUTS = (
     ".github/workflows/release.yml",
     "docs/contracts/v0916-parity-workflow-v1.json",

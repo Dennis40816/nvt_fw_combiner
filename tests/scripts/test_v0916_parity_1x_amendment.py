@@ -20,7 +20,8 @@ import subprocess
 import unittest
 from typing import Any
 
-from tests.scripts.v0916_parity_test_support import MODULE, ROOT
+from scripts import predecessor_validation as validation
+from tests.scripts.v0916_parity_test_support import ROOT
 
 CONTRACTS = ROOT / "docs" / "contracts"
 AMENDMENT_PATH = CONTRACTS / "v0916-parity-1x-amendment-v1.json"
@@ -47,21 +48,6 @@ def git_json(commit: str, relative: str) -> Any:
 
 def hex_offset(value: str) -> int:
     return int(value, 16)
-
-
-def plan_binding_errors(amendment: dict[str, Any], plan: dict[str, Any]) -> list[str]:
-    """The amendment binds the plan without its candidateAuthority member."""
-
-    binding = amendment["plan"]
-    without_candidate_authority = {key: value for key, value in plan.items() if key != "candidateAuthority"}
-    observed = {
-        "withoutCandidateAuthorityJcsSha256": MODULE.canonical_json_sha256(without_candidate_authority),
-        "canonicalInputAuthorityJcsSha256": MODULE.canonical_json_sha256(plan["canonicalInputAuthority"]),
-        "policySha256": plan["policyBinding"]["sha256"],
-        "baselineTagObject": plan["baseline"]["tagObject"],
-        "baselinePeeledCommit": plan["baseline"]["peeledCommit"],
-    }
-    return [f"plan binding {key} differs" for key, value in observed.items() if binding[key] != value]
 
 
 class V0916Parity1xAmendmentTests(unittest.TestCase):
@@ -226,17 +212,17 @@ class V0916Parity1xAmendmentTests(unittest.TestCase):
         return errors
 
     def test_amendment_binds_the_plan_without_its_candidate_authority(self) -> None:
-        self.assertEqual([], plan_binding_errors(self.amendment, self.plan))
+        self.assertEqual([], validation.amendment_binding_failures(self.amendment, self.plan))
         resynchronized = copy.deepcopy(self.plan)
         resynchronized["candidateAuthority"]["resynchronizedByTest"] = True
-        self.assertEqual([], plan_binding_errors(self.amendment, resynchronized))
+        self.assertEqual([], validation.amendment_binding_failures(self.amendment, resynchronized))
         changed = copy.deepcopy(self.plan)
         changed["canonicalInputAuthority"]["currentlyMissingRouteIds"].pop()
         altered = copy.deepcopy(self.amendment)
         altered["plan"]["withoutCandidateAuthorityJcsSha256"] = OTHER_SHA256
         for label, amendment, plan in (("plan-changed", self.amendment, changed), ("digest-altered", altered, self.plan)):
             with self.subTest(mutation=label):
-                self.assertNotEqual([], plan_binding_errors(amendment, plan))
+                self.assertNotEqual([], validation.amendment_binding_failures(amendment, plan))
 
     def test_recorded_evidence_is_bound_by_size_and_sha256(self) -> None:
         paths = [row["path"] for row in self.amendment["recordedEvidence"]]
