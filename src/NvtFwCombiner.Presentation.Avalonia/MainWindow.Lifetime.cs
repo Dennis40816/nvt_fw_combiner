@@ -29,12 +29,19 @@ public sealed partial class MainWindow
                 if (DataContext is MainWindowViewModel viewModel)
                 {
                     runCompletion = viewModel.RunSession.ActiveRunCompletion;
-                    Task settingsCompletion = viewModel.Settings.WhenOperationsIdleAsync();
                     viewModel.RunSession.CancelActiveRun();
                     _preloadSession.StopAcceptingAndRevoke();
-                    var work = Task.WhenAll([runCompletion, settingsCompletion,
-                        _preloadSession.AllUsersSettled, .. _sessionTasks]);
-                    await WaitWithinCloseDeadlineAsync(work);
+                    using var stopDrain = new CancellationTokenSource();
+                    try
+                    {
+                        var work = Task.WhenAll(runCompletion, _preloadSession.AllUsersSettled,
+                            DrainAdmittedWindowWorkAsync(viewModel, stopDrain.Token));
+                        await WaitWithinCloseDeadlineAsync(work);
+                    }
+                    finally
+                    {
+                        stopDrain.Cancel();
+                    }
                 }
                 else
                 {
@@ -122,6 +129,55 @@ public sealed partial class MainWindow
                 _internalFinalClose = false;
             }
         });
+    }
+
+    private async Task DrainAdmittedWindowWorkAsync(
+        MainWindowViewModel viewModel,
+        CancellationToken stopDrain)
+    {
+        while (!stopDrain.IsCancellationRequested)
+        {
+            Task[] admitted = CaptureWindowWork(viewModel);
+            Task batch = Task.WhenAll(admitted);
+            try
+            {
+                await batch.WaitAsync(stopDrain);
+            }
+            catch (OperationCanceledException) when (stopDrain.IsCancellationRequested)
+            {
+                _ = batch.ContinueWith(completed => _ = completed.Exception,
+                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+                return;
+            }
+            catch (Exception exception)
+            {
+                System.Diagnostics.Trace.TraceError("Admitted window work failed during drain: {0}", exception);
+            }
+            if (CaptureWindowWork(viewModel).All(static task => task.IsCompleted))
+            {
+                return;
+            }
+        }
+    }
+
+    private Task[] CaptureWindowWork(MainWindowViewModel viewModel)
+    {
+        var tasks = new List<Task>(_sessionTasks)
+        {
+            viewModel.Settings.WhenOperationsIdleAsync(),
+            viewModel.Reports.WhenSavesIdleAsync(),
+        };
+        viewModel.Merge.InspectionLifecycles.ForEach(lifecycle => tasks.Add(lifecycle.ActiveTask));
+        viewModel.Replace.InspectionLifecycles.ForEach(lifecycle => tasks.Add(lifecycle.ActiveTask));
+        if (viewModel.Reports.RelocalizationTask is { } relocalization)
+        {
+            tasks.Add(relocalization);
+        }
+        if (viewModel.Reports.OpenReportHistoryEntryAsyncCommand.ExecutionTask is { } history)
+        {
+            tasks.Add(history);
+        }
+        return [.. tasks];
     }
 
     private static void ObserveCloseAttempt(Task attempt)

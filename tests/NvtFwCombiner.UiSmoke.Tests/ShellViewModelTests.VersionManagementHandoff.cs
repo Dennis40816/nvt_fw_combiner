@@ -574,14 +574,23 @@ public sealed partial class VersionManagementSettingsTests
     public async Task UnknownPendingStatusFencesNewActivation()
     {
         var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        int versionWrites = 0;
         TaskCompletionSource<VersionManagementSnapshot> readRelease =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         IVersionManagementExperience experience =
             DispatchProxy.Create<IVersionManagementExperience, WindowLifetimeStorageProxy>();
         ((WindowLifetimeStorageProxy)experience).Call = (method, args) =>
-            method == nameof(IVersionManagementExperience.InitializeAsync)
+        {
+            if (method is nameof(IVersionManagementExperience.CommitUpdateSourceAsync) or
+                nameof(IVersionManagementExperience.AcknowledgeRetentionReviewAsync))
+            {
+                _ = Interlocked.Increment(ref versionWrites);
+                throw new InvalidOperationException("Unknown status must fence version writes.");
+            }
+            return method == nameof(IVersionManagementExperience.InitializeAsync)
                 ? new ValueTask<VersionManagementSnapshot>(readRelease.Task)
                 : typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
+        };
         MainWindowViewModel shell = MainWindow.CreateStartupViewModel(
             PresentationTestHost.CreateServices("0.10.5", experience),
             ShellPreferenceSnapshot.Default);
@@ -596,7 +605,12 @@ public sealed partial class VersionManagementSettingsTests
         shell.Settings.RequestVersionPrimaryActionCommand.Execute(installed);
         await shell.Settings.ConfirmVersionActionCommand.ExecuteAsync(null);
         await shell.Settings.RetryPendingActivationCommand.ExecuteAsync(null);
+        shell.Settings.BeginEditUpdateSourceCommand.Execute(null);
+        shell.Settings.UpdateSourceDraft = "C:/candidate";
+        await shell.Settings.ConfirmUpdateSourceCommand.ExecuteAsync(null);
+        await shell.Settings.KeepAllVersionsCommand.ExecuteAsync(null);
         Assert.Empty(inner.Activations);
+        Assert.Equal(0, versionWrites);
         readRelease.SetResult(inner.Current);
     }
 
@@ -656,6 +670,9 @@ public sealed partial class VersionManagementSettingsTests
         Assert.Equal(PendingActivationRecoveryStatus.ConfirmedKept, status);
         Assert.NotNull(experience.Current.State!.PendingActivation);
         Assert.Contains("remains saved", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.SelectedLanguage = "Traditional Chinese";
+        Assert.Contains("待處理的版本切換仍保存在", viewModel.Settings.VersionOperationStatus, StringComparison.Ordinal);
     }
 
     /// <summary>A failed handoff calls pending kept only after a fresh durable read confirms it.</summary>

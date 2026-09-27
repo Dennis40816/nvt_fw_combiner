@@ -31,6 +31,7 @@ public sealed partial class ReportModal : UserControl
             return;
         }
 
+        using IDisposable saveOperation = viewModel.BeginSaveOperation();
         string reportJson = viewModel.LoadedReportJson;
         string suggestedName = viewModel.ReportSaveFileName;
         bool destinationSelected = false;

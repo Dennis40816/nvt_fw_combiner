@@ -19,6 +19,7 @@ internal sealed partial class SettingsViewModel
     private VersionConfirmationAction _pendingConfirmation;
     private long _updateSourceBrowseGeneration;
     private VersionManagementSnapshot? _pendingDurableSnapshot;
+    private bool _hasFailedStableLauncherHandoff;
     private Func<bool> _windowMayPublish = static () => true;
     internal Func<TimeSpan, CancellationTokenSource> RetryReadCancellationFactory { get; set; } =
         static duration => new CancellationTokenSource(duration);
@@ -85,6 +86,7 @@ internal sealed partial class SettingsViewModel
         VersionOperationStatus = Localize(
             "Retrying through the stable launcher…",
             "正在透過穩定啟動器重試…");
+        _hasFailedStableLauncherHandoff = false;
         ActivationRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -426,6 +428,10 @@ internal sealed partial class SettingsViewModel
         {
             ApplyVersionSnapshot(_versionSnapshot);
         }
+        if (_hasFailedStableLauncherHandoff)
+        {
+            PublishPendingRecoveryStatus();
+        }
     }
 
     [RelayCommand]
@@ -451,7 +457,8 @@ internal sealed partial class SettingsViewModel
     [RelayCommand]
     private async Task ConfirmUpdateSourceAsync()
     {
-        if (_versionManagement is null || string.IsNullOrWhiteSpace(UpdateSourceDraft))
+        if (_versionManagement is null || PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown ||
+            string.IsNullOrWhiteSpace(UpdateSourceDraft))
         {
             return;
         }
@@ -519,7 +526,7 @@ internal sealed partial class SettingsViewModel
     [RelayCommand]
     private async Task KeepAllVersionsAsync()
     {
-        if (_versionManagement is null)
+        if (_versionManagement is null || PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
         {
             return;
         }
@@ -695,6 +702,7 @@ internal sealed partial class SettingsViewModel
                 return;
             }
             VersionOperationStatus = Localize("Restarting through the launcher…", "正在透過啟動器重新啟動…");
+            _hasFailedStableLauncherHandoff = false;
             ActivationRequested?.Invoke(this, EventArgs.Empty);
         }
         finally
@@ -709,6 +717,7 @@ internal sealed partial class SettingsViewModel
     internal async Task<PendingActivationRecoveryStatus> HandleLauncherHandoffFailureAsync(
         CancellationToken recoveryToken)
     {
+        _hasFailedStableLauncherHandoff = true;
         return await RecheckPendingActivationStatusAsync(recoveryToken);
     }
 

@@ -13,6 +13,47 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Real-window close and startup publication lifetime regressions.</summary>
 public sealed partial class WindowLifetimeTests
 {
+    /// <summary>A view-owned Report Save is part of the window's bounded work drain.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
+        Justification = "The modal takes ownership of the selected storage file.")]
+    [AvaloniaFact]
+    public async Task WindowCloseDrainsAdmittedReportSave()
+    {
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5"), ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        string json = ReportJsonSamples.Succeeded(runId: "drained-save");
+        shell.Reports.LoadReportJson(json, "drained-save.json");
+        var modal = new ReportModal { DataContext = shell.Reports };
+        var stream = new MemoryStream();
+        IStorageFile file = DispatchProxy.Create<IStorageFile, LifetimeReportStorageProxy>();
+        ((LifetimeReportStorageProxy)file).Call = (name, _) => name switch
+        {
+            "get_Name" => "drained-save.json",
+            "OpenWriteAsync" => Task.FromResult<Stream>(stream),
+            "Dispose" => null,
+            _ => throw new NotSupportedException(name),
+        };
+        var selected = new TaskCompletionSource<IStorageFile?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        IStorageProvider picker = DispatchProxy.Create<IStorageProvider, LifetimeReportStorageProxy>();
+        ((LifetimeReportStorageProxy)picker).Call = (name, _) => name == "SaveFilePickerAsync"
+            ? selected.Task : throw new NotSupportedException(name);
+        Task saving = modal.SaveReportAsync(picker);
+        var neverExpires = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.CloseDeadlineFactory = _ => neverExpires.Task;
+        window.RequestStableLauncherRestart();
+        window.Close();
+        Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
+        Assert.False(window.CloseAttempt.IsCompleted);
+        selected.SetResult(file);
+        await saving.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(json, Encoding.UTF8.GetString(stream.ToArray()));
+    }
+
     /// <summary>A late Settings fault settles without notifying the finally closed window.</summary>
     [AvaloniaFact]
     public async Task SettingsFaultAfterFinalCloseDoesNotPublishBusyChange()

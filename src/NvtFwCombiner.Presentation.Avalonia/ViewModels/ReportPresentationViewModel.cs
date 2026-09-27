@@ -15,6 +15,57 @@ internal readonly record struct ReportPublicationResult(
 internal sealed partial class ReportPresentationViewModel : ObservableObject
 {
     internal WindowPublicationLease? WindowPublication { get; set; }
+    private readonly Lock _saveOperationLock = new();
+    private int _saveOperationsInFlight;
+    private TaskCompletionSource _saveOperationsIdle = CompletedSaveIdleSignal();
+
+    internal Task WhenSavesIdleAsync()
+    {
+        lock (_saveOperationLock)
+        {
+            return _saveOperationsIdle.Task;
+        }
+    }
+
+    internal IDisposable BeginSaveOperation()
+    {
+        lock (_saveOperationLock)
+        {
+            if (_saveOperationsInFlight++ == 0)
+            {
+                _saveOperationsIdle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+        }
+        return new SaveOperationRegistration(this);
+    }
+
+    private static TaskCompletionSource CompletedSaveIdleSignal()
+    {
+        var idle = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        idle.SetResult();
+        return idle;
+    }
+
+    private sealed class SaveOperationRegistration(ReportPresentationViewModel owner) : IDisposable
+    {
+        private ReportPresentationViewModel? _owner = owner;
+
+        public void Dispose()
+        {
+            ReportPresentationViewModel? owner = Interlocked.Exchange(ref _owner, null);
+            if (owner is null)
+            {
+                return;
+            }
+            lock (owner._saveOperationLock)
+            {
+                if (--owner._saveOperationsInFlight == 0)
+                {
+                    _ = owner._saveOperationsIdle.TrySetResult();
+                }
+            }
+        }
+    }
 
     internal async Task NotifyReportSavedWhenAllowedAsync(string destinationName)
     {
