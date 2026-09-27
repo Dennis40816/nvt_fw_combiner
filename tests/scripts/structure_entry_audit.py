@@ -59,12 +59,11 @@ def git_arguments(arguments, checkout, expected):
 
 
 class LaunchGuard:
-    def __init__(self, checkout, expected, *, windows=None, broken_native_command=None):
+    def __init__(self, checkout, expected, *, windows=None):
         self.checkout = Path(checkout)
         self.windows = os.name == "nt" if windows is None else windows
         self.broken_native_command = (
-            sys.implementation.name == "cpython" and sys.version_info[:3] == (3, 13, 5)
-            if broken_native_command is None else broken_native_command
+            sys.implementation.name == "cpython" and sys.version_info[:3] in {(3, 13, 5), (3, 13, 15)}
         )
         self.expected = collections.Counter(map(tuple, expected))
         self.seen = collections.Counter()
@@ -102,8 +101,10 @@ class LaunchGuard:
             command = arguments[1]
             # CPython 3.13.5 passes PyObject* to the audit format's wchar_t*
             # slot (Modules/_winapi.c, "uuu"). Its control character is an
-            # ob_refcnt fragment, not argv. Only the boundary event above
-            # supplies argv authority for this specific broken runtime.
+            # ob_refcnt fragment, not argv. CI 3.13.15 shows the same malformed
+            # field, including with cwd=None (see design review response).
+            # Exact argv authority remains Popen paired with the actual native
+            # arguments above; only the two evidenced runtimes allow fragments.
             refcount_fragment = (self.broken_native_command and isinstance(command, str)
                                  and len(command) == 1 and 0 < ord(command) < 32)
             if command != pending[1] and not refcount_fragment:

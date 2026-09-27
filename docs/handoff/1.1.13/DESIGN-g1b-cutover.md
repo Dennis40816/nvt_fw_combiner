@@ -373,9 +373,9 @@ exact application, command line and cwd of the `subprocess.Popen` just before
 it, recorded by a `_winapi.CreateProcess/arguments` boundary event forwarding
 the same native-call tuple. The native `_winapi.CreateProcess` event must
 follow that boundary once, with the same application and cwd. On CPython
-3.13.5 only, its command field may be a single nonzero control character
-(the known audit-format defect); all other runtimes require the exact command
-line there too. A missing, duplicate or unrecognized event fails. Any other
+3.13.5 and 3.13.15 only, its command field may be a single nonzero control
+character (the known audit-format defect); all other runtimes require the exact
+command line there too. A missing, duplicate or unrecognized event fails. Any other
 launch or `ctypes.dlopen` is a violation, so a child interpreter's launches never need observing, and an
 exception caught in the entry cannot remove a written line. After normalizing
 `-C <checkout>` and `--no-replace-objects`, the Git calls must equal this
@@ -744,6 +744,73 @@ renamed or deleted; (6) the entry harness is slow and not a sandbox (2.7).
 | `.claude/` | 127 | No model field; read-only roles read-only tools; ignore `.claude/settings.local.json` |
 
 ## 8. Review response (codex/gpt-6-astra)
+
+Windows CI audit correction admission (2026-09-28): implementation owner
+`codex/gpt-6-astra`, base `ac6b5fe4adf102b63647bdcb2aaa82dc02289afd`.
+Mutable surfaces are this plan, `tests/scripts/structure_entry_audit.py` and
+`tests/scripts/test_structure_entry_audit.py`. Owner search found `LaunchGuard`
+owns event pairing and the Git multiset; `install_windows_boundary` records
+the exact native-call tuple before forwarding it unchanged; `install_audit`
+and `audit_transcript` apply the same guard in child and parent. Disposition:
+`extend-owner`. Correct the observed runtime compatibility within section 2.7,
+retaining exact Popen/boundary command authority, fail-closed unknown launches,
+the existing multiset and all R3 commander-owned integration/review gates.
+Local gates are the three requested audit/topology/retirement suites,
+structure-only and standalone Polytail. No firmware or production validator
+behavior changes; no GitHub action is authorized by this correction.
+
+Windows CI finding and response (2026-09-28): the supplied `ci-a-q.log:331`
+and `ci-s-z.log:339` identify CPython 3.13.15 and report six and four failures,
+respectively. The native audit payload is still three fields: application
+`None`, command `\x03`, and the checkout cwd (or `None`). In `ci-s-z.log:933`,
+`test_real_windows_boundary_records_exact_command_and_rejects_direct_call`
+fails on `[None, '\x03', None]`; no extended-length cwd is involved. A local
+3.13.5 probe without the harness records Popen `[None, 'git --version', None]`
+then native `[None, '\x02', None]`. The shape has not changed. The existing
+guard's exact `(3, 13, 5)` predicate rejects the same malformed command field
+on 3.13.15, before repeated-call controls can reach their expected count error.
+The `ac6b5fe4a` diff changes fixture paths and cloning, not native audit
+arguments or this predicate. The logs establish the compatibility failure;
+they do not establish a particular security patch or the 3.13.15 C source.
+The earlier 3.13.5 source diagnosis remains historical evidence, not a newly
+verified source claim for 3.13.15.
+
+The correction adds only the observed 3.13.15 runtime to that compatibility
+predicate, removes the test-only boolean bypass, and leaves the native command
+matcher unchanged. Exact launch commands remain recorded and checked from
+`subprocess.Popen` and the actual `_winapi.CreateProcess/arguments` tuple;
+the malformed native field never authorizes a command. Application/cwd equality,
+one-to-one ordering, completion, parent replay and the Git multiset remain
+mandatory. Unknown runtimes still require an exact native command. Regression
+units now exercise runtime selection for both 3.13.5 and 3.13.15, with exact
+commands, `\x02` / `\x03`, absent and extended-length cwd, unknown commands at
+each source, and the existing missing/duplicate/mismatched-event controls.
+Before the harness correction, the new runtime-selection cases produced
+4 failures and 20 passes: only 3.13.15 control-character positives failed,
+with and without explicit cwd, at the same native-command check as CI.
+
+Local correction verification (Windows CPython 3.13.5, corrected working tree
+based on `ac6b5fe4a`; real-entry fixtures clone that base and construct the
+three topology heads):
+
+| Gate | Result |
+| --- | --- |
+| Runtime-selection and event-pairing units (`python -m pytest -q -p no:cacheprovider tests/scripts/test_structure_entry_audit.py -k 'windows_launch_pairs_exact_boundary_and_native_event or windows_runtime_compatibility_never_authorizes_unknown_command or windows_launch_pairing_fails_closed'`) | 72 passed, 50 deselected. |
+| Direct `python -m pytest -q -p no:cacheprovider` on `test_structure_entry_audit.py`, `test_governance_topology.py`, `test_governance_retirement.py`, with an external JUnit report | 169 passed: 122 / 39 / 8 respectively; zero failures, skips or teardown errors (405.46 s). |
+| `python scripts/verify.py --structure-only` | PASS, one structure lane; 0 derived files changed. |
+| `python scripts/polytail_check.py` | PASS. |
+| `git diff --check` | PASS. |
+
+Scoped correctness and Polytail review of the three-file correction against
+`ac6b5fe4a` found no remaining finding: `PASS-WITH-HUMAN-GATE` for local work.
+The stable launch sources, exact pairing, denied launches, counts and parent
+transcript replay are preserved; no firmware bytes, ranges, order, integrity,
+support facts, frozen pins or Golden expectations change. The 3.13.15 payloads
+are covered by synthetic runtime-selection units, not a local 3.13.15 run.
+The supplied failed CI logs are diagnosis evidence, not a fresh CI pass.
+Commander-owned 3.13.15 CI rerun, independent final-head review, full verification
+and required role approvals remain integration gates. No full verifier,
+download, installation, push or GitHub operation was performed.
 
 Lane-environment correction admission (2026-09-28): implementation owner
 `codex/gpt-6-astra`, base `3aab50b15c3b91293d3b989f71e071c7d10ffd58`.

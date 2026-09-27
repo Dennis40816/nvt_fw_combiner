@@ -304,31 +304,55 @@ def test_unbounded_symbolic_and_foreign_history_calls_fail(entry_checkout, call)
         guard.observe({"event": "subprocess.Popen", "args": ["git", ["git", *call], None]})
 
 
+@pytest.mark.parametrize("version", [(3, 13, 5), (3, 13, 15)])
 @pytest.mark.parametrize("native_command", ["git ls-files -z", "\x02", "\x03"])
-def test_windows_launch_pairs_exact_boundary_and_native_event(tmp_path, native_command):
-    guard = LaunchGuard(tmp_path, [["ls-files", "-z"]], windows=True, broken_native_command=True)
-    args = [None, "git ls-files -z", None]
+@pytest.mark.parametrize("explicit_cwd", [False, True])
+def test_windows_launch_pairs_exact_boundary_and_native_event(tmp_path, monkeypatch, version, native_command, explicit_cwd):
+    # Exercise runtime selection, not a compatibility override: CI 3.13.15
+    # reports the same control-character shape as local 3.13.5.
+    monkeypatch.setattr(audit_module.sys, "version_info", version)
+    checkout = entry_path(tmp_path)
+    guard = LaunchGuard(checkout, [["ls-files", "-z"]], windows=True)
+    cwd = str(checkout) if explicit_cwd else None
+    args = [None, "git ls-files -z", cwd]
     guard.observe({"event": "subprocess.Popen", "args": args})
     guard.observe({"event": "_winapi.CreateProcess/arguments", "args": args})
-    guard.observe({"event": "_winapi.CreateProcess", "args": [None, native_command, None]})
+    guard.observe({"event": "_winapi.CreateProcess", "args": [None, native_command, cwd]})
     guard.finish()
     with pytest.raises(AuditViolation, match="unpaired"):
-        guard.observe({"event": "_winapi.CreateProcess", "args": [None, native_command, None]})
+        guard.observe({"event": "_winapi.CreateProcess", "args": [None, native_command, cwd]})
+
+
+@pytest.mark.parametrize("version", [(3, 13, 5), (3, 13, 15)])
+@pytest.mark.parametrize("native_command", ["\x02", "\x03"])
+@pytest.mark.parametrize("source", ["popen", "boundary", "native"])
+def test_windows_runtime_compatibility_never_authorizes_unknown_command(tmp_path, monkeypatch, version, native_command, source):
+    monkeypatch.setattr(audit_module.sys, "version_info", version)
+    guard = LaunchGuard(tmp_path, [["ls-files", "-z"]], windows=True)
+    approved = [None, "git ls-files -z", None]
+    unknown = [None, "git rev-list HEAD", None]
+    with pytest.raises(AuditViolation):
+        guard.observe({"event": "subprocess.Popen", "args": unknown if source == "popen" else approved})
+        guard.observe({"event": "_winapi.CreateProcess/arguments", "args": unknown if source == "boundary" else approved})
+        guard.observe({"event": "_winapi.CreateProcess", "args": unknown if source == "native" else [None, native_command, None]})
+        guard.finish()
 
 
 @pytest.mark.parametrize("failure", ["direct", "missing-boundary", "wrong-command", "wrong-executable",
                                       "wrong-cwd", "missing-native", "next-popen", "duplicate-boundary",
                                       "unknown-native", "other-runtime", "native-executable", "native-cwd"])
-def test_windows_launch_pairing_fails_closed(tmp_path, failure):
-    guard = LaunchGuard(tmp_path, [["ls-files", "-z"]], windows=True,
-                        broken_native_command=failure != "other-runtime")
+@pytest.mark.parametrize("version", [(3, 13, 5), (3, 13, 15)])
+@pytest.mark.parametrize("native_command", ["\x02", "\x03"])
+def test_windows_launch_pairing_fails_closed(tmp_path, monkeypatch, failure, version, native_command):
+    monkeypatch.setattr(audit_module.sys, "version_info", (3, 13, 16) if failure == "other-runtime" else version)
+    guard = LaunchGuard(tmp_path, [["ls-files", "-z"]], windows=True)
     args = [None, "git ls-files -z", None]
     with pytest.raises(AuditViolation):
         if failure == "direct":
             guard.observe({"event": "_winapi.CreateProcess/arguments", "args": args})
         guard.observe({"event": "subprocess.Popen", "args": args})
         if failure == "missing-boundary":
-            guard.observe({"event": "_winapi.CreateProcess", "args": [None, "\x02", None]})
+            guard.observe({"event": "_winapi.CreateProcess", "args": [None, native_command, None]})
         boundary = list(args)
         if failure == "wrong-command": boundary[1] = "git rev-list HEAD"
         if failure == "wrong-executable": boundary[0] = "python"
@@ -338,7 +362,7 @@ def test_windows_launch_pairing_fails_closed(tmp_path, failure):
         if failure == "next-popen": guard.observe({"event": "subprocess.Popen", "args": args})
         if failure == "duplicate-boundary":
             guard.observe({"event": "_winapi.CreateProcess/arguments", "args": args})
-        native = [None, "unknown" if failure == "unknown-native" else "\x02", None]
+        native = [None, "unknown" if failure == "unknown-native" else native_command, None]
         if failure == "native-executable": native[0] = "python"
         if failure == "native-cwd": native[2] = "elsewhere"
         guard.observe({"event": "_winapi.CreateProcess", "args": native})
