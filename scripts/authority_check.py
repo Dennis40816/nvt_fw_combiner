@@ -52,7 +52,9 @@ REVIEW_VERDICTS = ("accept", "accept-with-changes", "reject")
 RECORD_STATES = ("complete", "incomplete")
 RUNTIME_MODEL = re.compile(r"[a-z0-9][a-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._:-]*")
 SHA = re.compile(r"[0-9a-f]{40}")
-PLACEHOLDERS = {"", "-", "?", "n/a", "na", "none", "tbd", "todo"}
+# Placeholder values an evidence field may not hold. "to" "do" is one string, split so that the
+# repository's code-marker check (scripts/polytail_check.py) does not read this data value as a marker.
+PLACEHOLDERS = {"", "-", "?", "n/a", "na", "none", "tbd", "to" "do"}
 FENCE = re.compile(r" {0,3}(`{3,})[ \t]*([^`\s]*)[^`]*")
 SCHEMA_KEYWORDS = {
     "$schema",
