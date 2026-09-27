@@ -2516,8 +2516,9 @@ finally {
                                 if handle != ctypes.c_void_p(-1).value:
                                     break
                                 error_code = ctypes.get_last_error()
+                                # Another process may briefly deny access before this helper acquires its lock.
                                 if (
-                                    error_code not in (2, 3)
+                                    error_code not in (2, 3, 5)
                                     or time.monotonic() >= deadline
                                 ):
                                     raise ctypes.WinError(error_code)
