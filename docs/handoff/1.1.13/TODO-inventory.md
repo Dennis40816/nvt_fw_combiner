@@ -51,6 +51,7 @@ remove items; the board decisions stay the authority for scope.
 | 55 | Document at the line ceiling: dated handoff history archived | #468 |
 | 57 | Canonical roadmap synchronized with decisions 103-104 (W6-E) | #468 |
 | 40 | ADR 0077 Step 0 measurement: gate admits B2 (avoidable wall time 916.8 and 929.6 ms in two passes at `47e01ebab`; acceptance cost 66.7 ms median) | evidence `<test-area>/evidence/adr0077-step0/` |
+| 31 | WS-GOV governance reset (ADR 0080): G1-A (decision 145) and G1-B cutover (decision 146) | #463, #469 (`8f5223860`) |
 
 ## Active (4)
 
