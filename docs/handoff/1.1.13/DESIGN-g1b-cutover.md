@@ -357,8 +357,14 @@ stderr minus every whole line matching `^NFC-AUDIT(-END)?\t[^\n]*\n` must
 equal the reference stderr byte for byte; a reference line with that prefix,
 or a prefix in mid-line, is an error, not a filter case. `subprocess.Popen`
 is allowed only for `git`; on Windows `_winapi.CreateProcess` only for the
-command line of the `subprocess.Popen` just before it; any other launch or `ctypes.dlopen` is a
-violation, so a child interpreter's launches never need observing, and an
+exact application, command line and cwd of the `subprocess.Popen` just before
+it, recorded by a `_winapi.CreateProcess/arguments` boundary event forwarding
+the same native-call tuple. The native `_winapi.CreateProcess` event must
+follow that boundary once, with the same application and cwd. On CPython
+3.13.5 only, its command field may be a single nonzero control character
+(the known audit-format defect); all other runtimes require the exact command
+line there too. A missing, duplicate or unrecognized event fails. Any other
+launch or `ctypes.dlopen` is a violation, so a child interpreter's launches never need observing, and an
 exception caught in the entry cannot remove a written line. After normalizing
 `-C <checkout>` and `--no-replace-objects`, the Git calls must equal this
 multiset (derived from the code at `17794107d`, confirmed by the first run;
@@ -709,3 +715,17 @@ Each finding is answered by the normative section named.
 | 3 | [P2] harness launch (import path, argv, cwd, exit code, sentinel) | 2.7 "The structure lane, reproduced", "Launch", "Bootstrap", launch positive control, control 7 |
 | 3 | note: length | each rule stated once and linked |
 | 4 | [P2] `runpy.run_path()` makes `argv[0]` absolute and adds traceback frames | 2.7 "Why not `runpy`", "Bootstrap" steps 5-6, stderr rule, launch positive control, controls 7a-7c, units |
+| Stage A implementation clarification 1 (commander, 2026-09-27) | Windows command-line pairing, 2.7 | The running Windows CPython 3.13.5 emits `subprocess.Popen(executable, command_line, cwd, env)` and `_winapi.CreateProcess(application_name, command_line, current_directory)`. Observed native `\x02` / `\x03` are reference-count fragments: CPython v3.13.5 `Modules/_winapi.c` passes a `PyObject*` through audit format `uuu`, whose second slot expects `wchar_t*`. The harness records the actual positional-only native arguments before forwarding the identical tuple, pairs Popen -> boundary -> native once, and checks completion. Only that known runtime accepts the native nonzero control-character fragment; it never supplies argv authority. Every real argv still matches the unchanged decision-125 multiset. This clarifies implementation, not design. |
+
+Stage A continuation admission: implementation owner `codex/gpt-6-astra`;
+base `912ad70e602fa30873202d5eb996fdffdc3dd289`, plus the authorized G1-A
+placeholder-data cherry-pick. The four commander clarifications own only this
+plan, the structure audit harness and tests, the frozen-pin validator and
+its topology assertions, the predecessor contract prose and retirement scan.
+Owner search: `LaunchGuard` and `bootstrap` produce/consume the launch proof;
+`validate_frozen_evidence_pins` owns HEAD/index/disk checks and is called by
+`validate()` and the parity default; `live_findings` owns retirement exceptions.
+Disposition: `extend-owner`, no second execution or authority path. No firmware
+bytes, ranges, ordering, integrity, profile values or Golden inputs change.
+The scope retains the plan's R3 roles and final integration review/approval
+gates; this local Stage A continuation runs only section 6.2's Stage A gates.

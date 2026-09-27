@@ -58,17 +58,26 @@ def git_arguments(arguments, checkout, expected):
 
 
 class LaunchGuard:
-    def __init__(self, checkout, expected):
+    def __init__(self, checkout, expected, *, windows=None, broken_native_command=None):
         self.checkout = Path(checkout)
+        self.windows = os.name == "nt" if windows is None else windows
+        self.broken_native_command = (
+            sys.implementation.name == "cpython" and sys.version_info[:3] == (3, 13, 5)
+            if broken_native_command is None else broken_native_command
+        )
         self.expected = collections.Counter(map(tuple, expected))
         self.seen = collections.Counter()
         self.pending_windows = None
+        self.pending_native = None
 
     def observe(self, item):
         event, arguments = item["event"], item["args"]
         if event == "subprocess.Popen":
+            if self.pending_windows is not None or self.pending_native is not None:
+                raise AuditViolation("unpaired Windows launch before next Popen")
+            if len(arguments) != 3 or self.windows != isinstance(arguments[1], str):
+                raise AuditViolation(f"unrecognized Popen arguments: {arguments!r}")
             executable, command, cwd = arguments
-            self.pending_windows = None
             if executable not in (None, "git", "git.exe"):
                 raise AuditViolation(f"non-git child: {command!r}")
             if cwd is not None and os.path.normcase(os.path.abspath(cwd)) != os.path.normcase(str(self.checkout)):
@@ -77,25 +86,61 @@ class LaunchGuard:
             self.seen[call] += 1
             if self.seen[call] > self.expected[call]:
                 raise AuditViolation(f"unexpected Git call/count: {' '.join(call)}")
-            self.pending_windows = command if isinstance(command, str) else subprocess.list2cmdline(command)
-        elif event == "_winapi.CreateProcess":
-            if os.name != "nt" or not self.pending_windows or arguments[1] != self.pending_windows:
-                raise AuditViolation(f"unpaired _winapi.CreateProcess: {arguments!r}")
+            if self.windows:
+                self.pending_windows = list(arguments)
+        elif event == "_winapi.CreateProcess/arguments":
+            if not self.windows or self.pending_windows is None or arguments != self.pending_windows:
+                raise AuditViolation(f"unpaired CreateProcess arguments: {arguments!r}")
+            self.pending_native = self.pending_windows
             self.pending_windows = None
+        elif event == "_winapi.CreateProcess":
+            pending = self.pending_native
+            if (not self.windows or pending is None or len(arguments) != 3
+                    or arguments[0] != pending[0] or arguments[2] != pending[2]):
+                raise AuditViolation(f"unpaired _winapi.CreateProcess: {arguments!r}")
+            command = arguments[1]
+            # CPython 3.13.5 passes PyObject* to the audit format's wchar_t*
+            # slot (Modules/_winapi.c, "uuu"). Its control character is an
+            # ob_refcnt fragment, not argv. Only the boundary event above
+            # supplies argv authority for this specific broken runtime.
+            refcount_fragment = (self.broken_native_command and isinstance(command, str)
+                                 and len(command) == 1 and 0 < ord(command) < 32)
+            if command != pending[1] and not refcount_fragment:
+                raise AuditViolation(f"unrecognized _winapi.CreateProcess command: {arguments!r}")
+            self.pending_native = None
         else:
             raise AuditViolation(f"forbidden launch: {event}: {arguments!r}")
 
     def finish(self):
+        if self.pending_windows is not None or self.pending_native is not None:
+            raise AuditViolation("unpaired Windows launch at end of transcript")
         if self.seen != self.expected:
             raise AuditViolation(f"Git multiset mismatch: missing={self.expected - self.seen}; extra={self.seen - self.expected}")
 
 
 def is_launch(event):
     return event in {
-        "subprocess.Popen", "_winapi.CreateProcess", "os.system", "os.exec",
+        "subprocess.Popen", "_winapi.CreateProcess", "_winapi.CreateProcess/arguments", "os.system", "os.exec",
         "os.spawn", "os.posix_spawn", "os.startfile", "os.startfile/2",
         "os.fork", "os.forkpty", "ctypes.dlopen",
     }
+
+
+def install_windows_boundary():
+    if os.name != "nt":
+        return
+    import _winapi
+    create_process = _winapi.CreateProcess
+
+    def audited_create_process(*args):
+        # Positional-only native API: application, command, ..., cwd, startup.
+        # Forward the very same tuple; never copy or log its environment.
+        if len(args) != 9:
+            raise AuditViolation("unrecognized CreateProcess call shape")
+        sys.audit("_winapi.CreateProcess/arguments", args[0], args[1], args[7])
+        return create_process(*args)
+
+    _winapi.CreateProcess = audited_create_process
 
 
 def bootstrap():
@@ -115,7 +160,7 @@ def bootstrap():
         if not is_launch(event):
             return
         # Never record subprocess environments; they can contain credentials.
-        payload = list(arguments[:3]) if event in {"subprocess.Popen", "_winapi.CreateProcess"} else list(arguments[:2])
+        payload = list(arguments[:3]) if event in {"subprocess.Popen", "_winapi.CreateProcess", "_winapi.CreateProcess/arguments"} else list(arguments[:2])
         item = {"event": event, "args": payload}
         sys.stderr.flush()
         os.write(2, ("NFC-AUDIT\t" + json.dumps(item, default=os.fsdecode) + "\n").encode())
@@ -123,6 +168,7 @@ def bootstrap():
         guard.observe(item)
 
     sys.addaudithook(hook)
+    install_windows_boundary()
     import site
     site.main()
     sys.argv = [target]

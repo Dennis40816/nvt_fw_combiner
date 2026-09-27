@@ -3,6 +3,7 @@
 import contextlib
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -171,13 +172,19 @@ def test_system_exit_retains_interpreter_status_and_message(value, status, stder
 
 
 def event_line(call):
-    return b"NFC-AUDIT\t" + json.dumps({"event": "subprocess.Popen", "args": ["git", ["git", *call], None]}).encode() + b"\n"
+    command = subprocess.list2cmdline(["git", *call]) if os.name == "nt" else ["git", *call]
+    events = [{"event": "subprocess.Popen", "args": [None if os.name == "nt" else "git", command, None]}]
+    if os.name == "nt":
+        events.extend({"event": name, "args": [None, command, None]} for name in
+                      ("_winapi.CreateProcess/arguments", "_winapi.CreateProcess"))
+    return b"".join(b"NFC-AUDIT\t" + json.dumps(item).encode() + b"\n" for item in events)
+
 
 
 def test_stderr_rule_preserves_clean_bytes_and_strips_only_whole_audit_lines(tmp_path):
     for output, expected in [(b"", []), (b"ordinary stderr NFC-AUDIT mention\n", []), (event_line(["ls-files", "-z"]), [["ls-files", "-z"]])]:
         reference = output if output.startswith(b"ordinary") else b""
-        raw = output + f"NFC-AUDIT-END\t{len(expected)}\t0\n".encode()
+        raw = output + f"NFC-AUDIT-END\t{output.count(b"NFC-AUDIT\t")}\t0\n".encode()
         clean, _ = audit_transcript(raw, 0, tmp_path, expected, reference)
         assert clean == reference
 
@@ -197,7 +204,7 @@ def test_incomplete_spoofed_or_late_transcripts_fail(tmp_path, raw, reference, m
 
 def test_each_reviewed_multiset_row_is_accepted_once(entry_checkout):
     calls = expected_calls(entry_checkout)
-    guard = LaunchGuard(entry_checkout, calls)
+    guard = LaunchGuard(entry_checkout, calls, windows=False)
     for call in reversed(calls):
         guard.observe({"event": "subprocess.Popen", "args": ["git", ["git", "-C", str(entry_checkout), *call], None]})
     guard.finish()
@@ -212,23 +219,64 @@ def test_each_reviewed_multiset_row_is_accepted_once(entry_checkout):
     ["rev-list", "--parents", "-n", "1", "f" * 40],
 ])
 def test_unbounded_symbolic_and_foreign_history_calls_fail(entry_checkout, call):
-    guard = LaunchGuard(entry_checkout, expected_calls(entry_checkout))
+    guard = LaunchGuard(entry_checkout, expected_calls(entry_checkout), windows=False)
     with pytest.raises(AuditViolation, match="Git call"):
         guard.observe({"event": "subprocess.Popen", "args": ["git", ["git", *call], None]})
 
 
-def test_windows_process_event_requires_exact_preceding_command(tmp_path):
-    guard = LaunchGuard(tmp_path, [["ls-files", "-z"]])
-    with patch.object(audit_module.os, "name", "nt"):
-        with pytest.raises(AuditViolation, match="unpaired"):
-            guard.observe({"event": "_winapi.CreateProcess", "args": [None, "git ls-files -z", None]})
-        guard.observe({"event": "subprocess.Popen", "args": [None, "git ls-files -z", None]})
-        with pytest.raises(AuditViolation, match="unpaired"):
-            guard.observe({"event": "_winapi.CreateProcess", "args": [None, "git rev-list HEAD", None]})
-        guard.observe({"event": "_winapi.CreateProcess", "args": [None, "git ls-files -z", None]})
-        with pytest.raises(AuditViolation, match="unpaired"):
-            guard.observe({"event": "_winapi.CreateProcess", "args": [None, "git ls-files -z", None]})
+@pytest.mark.parametrize("native_command", ["git ls-files -z", "\x02", "\x03"])
+def test_windows_launch_pairs_exact_boundary_and_native_event(tmp_path, native_command):
+    guard = LaunchGuard(tmp_path, [["ls-files", "-z"]], windows=True, broken_native_command=True)
+    args = [None, "git ls-files -z", None]
+    guard.observe({"event": "subprocess.Popen", "args": args})
+    guard.observe({"event": "_winapi.CreateProcess/arguments", "args": args})
+    guard.observe({"event": "_winapi.CreateProcess", "args": [None, native_command, None]})
     guard.finish()
+    with pytest.raises(AuditViolation, match="unpaired"):
+        guard.observe({"event": "_winapi.CreateProcess", "args": [None, native_command, None]})
+
+
+@pytest.mark.parametrize("failure", ["direct", "missing-boundary", "wrong-command", "wrong-executable",
+                                      "wrong-cwd", "missing-native", "next-popen", "duplicate-boundary",
+                                      "unknown-native", "other-runtime", "native-executable", "native-cwd"])
+def test_windows_launch_pairing_fails_closed(tmp_path, failure):
+    guard = LaunchGuard(tmp_path, [["ls-files", "-z"]], windows=True,
+                        broken_native_command=failure != "other-runtime")
+    args = [None, "git ls-files -z", None]
+    with pytest.raises(AuditViolation):
+        if failure == "direct":
+            guard.observe({"event": "_winapi.CreateProcess/arguments", "args": args})
+        guard.observe({"event": "subprocess.Popen", "args": args})
+        if failure == "missing-boundary":
+            guard.observe({"event": "_winapi.CreateProcess", "args": [None, "\x02", None]})
+        boundary = list(args)
+        if failure == "wrong-command": boundary[1] = "git rev-list HEAD"
+        if failure == "wrong-executable": boundary[0] = "python"
+        if failure == "wrong-cwd": boundary[2] = "elsewhere"
+        guard.observe({"event": "_winapi.CreateProcess/arguments", "args": boundary})
+        if failure == "missing-native": guard.finish()
+        if failure == "next-popen": guard.observe({"event": "subprocess.Popen", "args": args})
+        if failure == "duplicate-boundary":
+            guard.observe({"event": "_winapi.CreateProcess/arguments", "args": args})
+        native = [None, "unknown" if failure == "unknown-native" else "\x02", None]
+        if failure == "native-executable": native[0] = "python"
+        if failure == "native-cwd": native[2] = "elsewhere"
+        guard.observe({"event": "_winapi.CreateProcess", "args": native})
+        guard.finish()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows native audit contract")
+def test_real_windows_boundary_records_exact_command_and_rejects_direct_call(entry_checkout):
+    probe = entry_checkout / "scripts/_native_probe.py"
+    probe.write_text("import subprocess\nsubprocess.run(['git', '--version'], check=True)\n", encoding="utf-8")
+    result = run_audited(entry_checkout, [["--version"]], "scripts/_native_probe.py")
+    assert result.returncode == 0
+    assert [item["event"] for item in result.audit_events] == [
+        "subprocess.Popen", "_winapi.CreateProcess/arguments", "_winapi.CreateProcess"]
+    assert result.audit_events[0]["args"] == result.audit_events[1]["args"] == [None, "git --version", None]
+    probe.write_text("import _winapi, subprocess\ntry:\n    _winapi.CreateProcess(None, 'git --version', None, None, False, 0, None, None, subprocess.STARTUPINFO())\nexcept Exception:\n    pass\n", encoding="utf-8")
+    with pytest.raises(AuditViolation, match="unpaired"):
+        run_audited(entry_checkout, [], "scripts/_native_probe.py")
 
 
 @pytest.mark.parametrize("event", ["os.system", "os.exec", "os.spawn", "os.posix_spawn", "os.startfile", "os.fork", "os.forkpty", "ctypes.dlopen"])
