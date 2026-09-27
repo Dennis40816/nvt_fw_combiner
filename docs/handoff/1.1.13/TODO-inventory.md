@@ -58,7 +58,7 @@ remove items; the board decisions stay the authority for scope.
 | # | Item | Next |
 | --- | --- | --- |
 | 26 | C-7 TP SVN display (R3) | paused behind the verify-speed work: admission on the current checkpoint, ADR 0075 memory gate, firmware and release attestations |
-| 30 | G0: GitHub App, rulesets and settings, including A-5 | applied; D6 bypass drill done 2026-09-28 (decision 148, run by Codex in the owner's session); A8 (the owner's general sign-out) and D7 cleanup (`recovery/9.9.x-20260928`) remain |
+| 30 | G0: GitHub App, rulesets and settings, including A-5 | applied; D6 done and D7 cleanup done on 2026-09-28 (decisions 148, 152); only A8 remains: the owner confirms no `git:https://github.com` entry is left in Windows Credential Manager |
 | 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | CI tiers and U4/U5 with G2 |
 | 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150) | three reviewable commits (UiSmoke 145/145); rebase onto the cutover trunk, then the non-UI remainder; Settings references (decision 150) wait for the owner |
 

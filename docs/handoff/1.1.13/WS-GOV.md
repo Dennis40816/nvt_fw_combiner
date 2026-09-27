@@ -1287,3 +1287,9 @@ verified afterwards, and the board records it (G0 checklist, C3).
   - Step 7: the effective rules for `9.9.x` (ruleset 24060410, RS-2) are still
     deletion, non-fast-forward, pull request and required status checks.
   - Open: the owner deletes `recovery/9.9.x-20260928` after G1-B merges (D7).
+- D7 (2026-09-28, decision 152, run by Codex in the owner's session):
+  `recovery/9.9.x-20260928` (at `e6e991af3`) deleted at 06:54:51 +08:00; no
+  `recovery/*` or `9.9.*` branch remains; the agent helper path is unchanged.
+  The GCM sign-out reported no stored `Dennis40816` account (the account list is
+  empty), so the owner confirms in Windows Credential Manager that no
+  `git:https://github.com` entry remains (A8).
