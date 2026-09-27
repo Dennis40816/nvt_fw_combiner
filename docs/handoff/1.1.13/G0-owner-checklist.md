@@ -502,6 +502,9 @@ then test from an ordinary process outside the package as well as inside it.
 Do not regard a second packaged child process as the outside-process check.
 An encrypted-file move under the same Windows user does not constitute a
 new-machine DPAPI restore; the restoration gap below still applies.
+Keep the old virtualized copy until the owner decides its disposition after
+confirming the durable location works and the Bitwarden backup is valid.
+It contains a private-key file; an agent must not delete it on its own.
 
 Before changing computers, confirm the actual files already live outside
 `Packages\...\LocalCache`, not merely at an AppData path visible to a
@@ -854,6 +857,15 @@ to its rule, in the WS-GOV log; you confirm.
       `Everything up-to-date` result or a public read does not prove
       authentication. Passing inside the packaged app or one of its child
       shells does not pass D0. Record the external operator and outcome.
+
+      Execution update, 2026-09-27, reported by Claude commander from Claude
+      Code's Git Bash outside Codex: the configured helper and DPAPI files
+      were visible; `git push --dry-run` to the disposable external-check
+      ref completed authentication with exit 0; `ls-remote` confirmed no
+      branch was created. **External visibility and authentication passed
+      at dry-run level only.** Wrapper-path visibility was not reported,
+      and an actual external disposable push remains outstanding; D0 as a
+      whole stays unchecked. Existing D2 protection tests are separate.
 - [ ] **D1 Formal refs by snapshot. agent → none**, then **owner → owner.** An
       agent reads the effective rules of `main`, `1.1.x` and, if present, a
       release branch (`GET /repos/<owner>/<repo>/rules/branches/<branch>`) and

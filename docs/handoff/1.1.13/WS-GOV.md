@@ -58,9 +58,12 @@ Execution and review outcome (2026-09-27):
   now use a private root outside AppData. Original encrypted files and
   private backups were copied opaquely, all copied file hashes matched, and
   key owner/protected ACL/user-only access were preserved. Machine paths,
-  private IDs and rollback files are recorded only outside Git. External
-  process verification (D0) and old virtualized-copy cleanup remain pending;
-  a Codex child shell is not D0 evidence.
+  private IDs and rollback files are recorded only outside Git. D0 is
+  partially verified as recorded below; a Codex child shell is not external
+  evidence. The old virtualized copy contains a private-key file and is
+  retained. Only the owner decides whether to delete it, after confirming
+  the durable location works and the Bitwarden backup is valid; external
+  verification alone does not authorize agent deletion.
 - Rulesets were applied and read back against the reviewed request bodies;
   effective rules on the formal refs and disposable release ref were saved.
   The original apply stopped after `main` because GitHub added
@@ -79,8 +82,15 @@ Execution and review outcome (2026-09-27):
   [disposable PR #460](https://github.com/Dennis40816/nvt_fw_combiner/pull/460)
   was created through the wrapper; its author is the App, and the
   installation-token repository query lists only this repository.
-- Still open: D0 external-process test, decision 82 Bitwarden backup
-  confirmation, D4 owner approvals/review behavior, D5 positive merge, D6
+- External follow-up reported by Claude commander (2026-09-27): from Claude
+  Code's Git Bash outside Codex, the helper and DPAPI files were visible;
+  `git push --dry-run` to a disposable external-check ref authenticated
+  through the helper with exit 0; `ls-remote` confirmed no branch was
+  created. This passes external visibility/authentication at dry-run level,
+  not the complete D0 write check. Wrapper-path visibility was not reported.
+  This entry attributes the evidence to Claude; Codex did not repeat it.
+- Still open: D0 external wrapper-path check and actual push, decision 82
+  Bitwarden backup confirmation, D4 owner approvals/review behavior, D5 positive merge, D6
   owner bypass test, D7 cleanup, and A8 owner-session cleanup. These are not
   marked passed by the local script tests or by this commit. The current
   document/code change is local only, for commander review and batch 2c;
