@@ -64,11 +64,11 @@ Follow the mandatory verdict and waiver policy in
    mirroring constants or weakening expected output.
 4. Route authority-specific checks:
    - architecture/contracts → `$nfc-architecture-change`;
-   - profiles/ranges/processors → `$firmware-profile-authoring`;
-   - CRC/header worker → `$crc-worker-contract`;
-   - golden evidence → `$golden-regression`;
-   - UI → `$ui-experience-change`;
-   - release/package → `$release-readiness`.
+   - profiles/ranges/processors → `$nfc-firmware-profile-authoring`;
+   - CRC/header worker → `$nfc-crc-worker-contract`;
+   - golden evidence → `$nfc-golden-regression`;
+   - UI → `$nfc-ui-experience-change`;
+   - release/package → `$nfc-release-readiness`.
 5. Expand the production-admission audit only when the diff touches route,
    profile, processor, support, or evidence admission. R0/R1 documentation,
    tooling, or visual-only changes do not invent a firmware matrix.

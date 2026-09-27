@@ -227,11 +227,11 @@ agent developer instructions or executable CI policy; identify any remaining
 conflict and propose out-of-scope changes without silently applying them.
 
 Before a specification, architecture, terminology, or planning change becomes
-an implementation goal or ticket rewrite, use `$grill-with-docs` while owner
+an implementation goal or ticket rewrite, use `$nfc-grill-with-docs` while owner
 decisions remain. Ask only unresolved material decisions; a clear owner request
 or an already accepted decision does not require a new interview. Record
 accepted results in the affected canonical owner and check consistency of the
-affected documents. Use `$to-tickets` only when ticket creation/rewrite is part
+affected documents. Use `$nfc-to-tickets` only when ticket creation/rewrite is part
 of the request. Use explicit `$grilling` for a requested generic decision
 interview. Do not restore a separate `domain-modeling` workflow.
 

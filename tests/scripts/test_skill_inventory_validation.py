@@ -290,28 +290,28 @@ class RepositorySkillRoutingContractTests(unittest.TestCase):
         }
         self.assertEqual(
             {
-                "github-review-polling",
+                "nfc-github-review-polling",
             },
             explicit,
         )
 
     def test_to_spec_produces_draft_without_ready_label(self) -> None:
-        text = self.read_skill("to-spec")
+        text = self.read_skill("nfc-to-spec")
         self.assertIn("draft specification", text)
         self.assertIn("Never apply\n`ready-for-agent`", text)
         self.assertIn("Open\ndecisions", text)
 
     def test_to_tickets_accepts_headless_vertical_paths(self) -> None:
-        text = self.read_skill("to-tickets")
+        text = self.read_skill("nfc-to-tickets")
         self.assertIn("headless path", text)
         self.assertIn("is vertical without UI", text)
         self.assertIn("owner explicitly approved", text)
 
     def test_implement_owns_red_green_refactor_loop(self) -> None:
-        text = self.read_skill("implement")
+        text = self.read_skill("nfc-implement")
         for phase in ("**Red:**", "**Green:**", "**Refactor:**", "**Repeat:**"):
             self.assertIn(phase, text)
-        self.assertEqual(["tdd"], self.entries["implement"]["replaces"])
+        self.assertEqual(["tdd"], self.entries["nfc-implement"]["replaces"])
 
     def test_polytail_expands_only_touched_authority(self) -> None:
         text = self.read_skill("nfc-review")

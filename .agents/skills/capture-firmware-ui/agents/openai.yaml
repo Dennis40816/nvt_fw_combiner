@@ -1,4 +1,0 @@
-interface:
-  display_name: "Capture Firmware UI"
-  short_description: "Render firmware-loaded UI with both Details states"
-  default_prompt: "Use $capture-firmware-ui to prepare and inspect the NVT FW Combiner release visual matrix."

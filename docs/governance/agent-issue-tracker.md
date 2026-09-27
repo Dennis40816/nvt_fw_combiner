@@ -46,7 +46,7 @@ until the owner authorizes the required GitHub vocabulary and behavior.
 
 ## Mutation gates
 
-- `$to-spec` and `$to-tickets` may publish only when explicitly invoked with a
+- `$nfc-to-spec` and `$nfc-to-tickets` may publish only when explicitly invoked with a
   GitHub target. If `ready-for-agent` is required, the missing-label gate applies.
 - A future `$triage` activation must recommend before applying roles unless the
   owner gave an exact transition. It never creates labels implicitly.
