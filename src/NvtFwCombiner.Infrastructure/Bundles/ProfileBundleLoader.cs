@@ -70,6 +70,7 @@ internal sealed class ProfileBundleLoadLimits
 /// <summary>One external-anchor-verified manifest and immutable validated entry snapshots.</summary>
 internal sealed class TrustedProfileBundle
 {
+    private readonly ProfileBundleFileSnapshot _manifestSnapshot;
     private readonly ProfileBundleEntrySnapshotCollection _entrySnapshots;
     private readonly int _maximumJsonDepth;
 
@@ -82,6 +83,7 @@ internal sealed class TrustedProfileBundle
         ArgumentNullException.ThrowIfNull(entrySnapshots);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumJsonDepth);
         ManifestSha256 = manifestSnapshot.ActualSha256;
+        _manifestSnapshot = manifestSnapshot;
         Manifest = entrySnapshots.Manifest;
         _entrySnapshots = entrySnapshots;
         _maximumJsonDepth = maximumJsonDepth;
@@ -95,7 +97,7 @@ internal sealed class TrustedProfileBundle
     internal TrustedProfileBundleDocumentProjection CreateDocumentProjection()
     {
         return new TrustedProfileBundleDocumentProjection(
-            ManifestSha256,
+            _manifestSnapshot,
             Manifest,
             _entrySnapshots.Entries,
             _maximumJsonDepth);

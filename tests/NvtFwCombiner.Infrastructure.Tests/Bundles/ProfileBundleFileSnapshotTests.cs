@@ -9,6 +9,25 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 /// <summary>Tests bounded private snapshots of bundle manifest and entry files.</summary>
 public sealed class ProfileBundleFileSnapshotTests
 {
+    /// <summary>Raw export preserves whitespace, escapes and newlines without exposing writable storage.</summary>
+    [Fact]
+    public void RawContentIsTheOriginalCaptureAndCallerCopiesAreIsolated()
+    {
+        using var workspace = TempWorkspace.Create("nfc-bundle-raw-snapshot");
+        byte[] expected = " \r\n{\"value\":\"\\u0061\"} \n"u8.ToArray();
+        string path = workspace.Write("profile-bundle.json", expected);
+        var snapshot = ProfileBundleFileSnapshot.ReadManifest(workspace.Root, "profile-bundle.json", 1024);
+        _ = snapshot.GetStrictJsonRoot(16);
+        File.Delete(path);
+
+        byte[] copy = snapshot.Content.ToArray();
+        Assert.Equal(expected, copy);
+        Array.Fill(copy, (byte)0);
+        Assert.Equal(expected, snapshot.Content.ToArray());
+        Assert.Equal(Hash(expected), snapshot.ActualSha256);
+        Assert.Equal("a", snapshot.GetStrictJsonRoot(16).GetProperty("value").GetString());
+    }
+
     /// <summary>Verifies one listed file is read, hashed, and parsed from its private snapshot.</summary>
     [Fact]
     public void ReadEntryReturnsVerifiedStrictJsonSnapshot()

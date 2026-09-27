@@ -23,6 +23,9 @@ internal sealed class ProfileBundleFileSnapshot
 
     internal int Length => _content.Length;
 
+    /// <summary>The exact captured bytes; callers can copy them but cannot obtain writable storage.</summary>
+    internal ReadOnlySpan<byte> Content => _content;
+
     internal static ProfileBundleFileSnapshot ReadManifest(
         string bundleRoot,
         string manifestPath,

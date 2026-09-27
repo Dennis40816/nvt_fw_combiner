@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace NvtFwCombiner.Infrastructure.Bundles;
@@ -47,12 +48,14 @@ internal sealed record ProfileBundlePackageTrustEntry(
 internal sealed class ProfileBundlePackageTrustIndex
 {
     internal ProfileBundlePackageTrustIndex(
+        string actualSha256,
         string schemaVersion,
         string trustIndexId,
         string trustIndexVersion,
         string trustAnchorBindingId,
         IEnumerable<ProfileBundlePackageTrustEntry> bundles)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(actualSha256);
         ArgumentException.ThrowIfNullOrWhiteSpace(schemaVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(trustIndexId);
         ArgumentException.ThrowIfNullOrWhiteSpace(trustIndexVersion);
@@ -86,12 +89,16 @@ internal sealed class ProfileBundlePackageTrustIndex
 
         Array.Sort(bundleSnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.BundleDirectory, right.BundleDirectory));
+        ActualSha256 = actualSha256;
         SchemaVersion = schemaVersion;
         TrustIndexId = trustIndexId;
         TrustIndexVersion = trustIndexVersion;
         TrustAnchorBindingId = trustAnchorBindingId;
         Bundles = Array.AsReadOnly(bundleSnapshot);
     }
+
+    /// <summary>SHA-256 of the same bounded byte snapshot that the loader parsed and admitted.</summary>
+    internal string ActualSha256 { get; }
 
     internal string SchemaVersion { get; }
 
@@ -149,6 +156,7 @@ internal static class ProfileBundlePackageTrustIndexLoader
 
         JsonElement root = document.RootElement;
         return new ProfileBundlePackageTrustIndex(
+            Convert.ToHexStringLower(SHA256.HashData(bytes)),
             root.GetProperty("schemaVersion").GetString()!,
             root.GetProperty("trustIndexId").GetString()!,
             root.GetProperty("trustIndexVersion").GetString()!,
