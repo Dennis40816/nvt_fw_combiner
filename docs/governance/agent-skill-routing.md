@@ -24,23 +24,19 @@ CRC/header behavior, evidence, support, release authority, or permissions.
 | Avalonia, approved visual-reference fidelity, ViewModels, localization, accessibility | `$ui-experience-change` |
 | SDK, packages, restore, solution bootstrap | `$dotnet-bootstrap` |
 | Versioning, packaging, release evidence | `$release-readiness` |
-| Completion/review quality | `$polytail` |
+| Completion/review quality | `$nfc-review` |
 
 ## Workflow routes
 
-- Use `$assess-refactor-progress` for an explicitly requested `0.10.x` program
-  review; its weighted progress model is not the default for current 1.x work.
-  GitHub remains that program's live completion source.
 - Diagnose with `$diagnosing-bugs`; diagnosis alone does not authorize a fix.
 - Implement approved scope with `$implement`: red-green-refactor for changed
   behavior, characterization for unchanged refactors, applicable document
   checks for prose. Reuse existing evidence when it demonstrates the same case.
-- Review changes as a fixed diff with `$code-review` and scoped `$polytail`.
+- Review changes as a fixed diff with `$nfc-review`.
   For a current-state audit, pin the commit, subsystem/files and audit question;
   that audit does not replace change admission or fixed-diff review.
-- Use `$grilling` when the owner explicitly requests a decision interview.
 - Use `$grill-with-docs` whenever an NFC specification, architecture, or
-  terminology discussion still has owner decisions. It composes `$grilling`,
+  terminology discussion still has owner decisions. It uses its own interview,
   `$nfc-architecture-change`, and `$to-spec`, records each accepted result in
   the existing canonical owner, and completes its consistency audit before
   tickets or an implementation goal.
@@ -48,7 +44,7 @@ CRC/header behavior, evidence, support, release authority, or permissions.
 - Split only owner-approved specifications with `$to-tickets`; headless
   Application/CLI use-case paths are valid vertical slices.
 - Recover conflicts with `$resolving-merge-conflicts`.
-- Use `$supervised-branch-development` for multi-agent reconstruction, R3
+- Use `docs/handoff/README.md` for multi-agent reconstruction, R3
   migration, release integration, or large conflict resolution.
 - Use `$github-review-polling` only for an explicitly requested exact-head
   GitHub review wait.

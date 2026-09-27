@@ -35,7 +35,7 @@ the nearest `AGENTS.md`. Implement only owner-approved scope.
 5. Create a commit at a stable review checkpoint: coherent, tested, and
    recoverable. Do not require a separate commit for every documentation,
    test, or review correction.
-6. Apply `$polytail` and the risk-appropriate review. Finish local units with
+6. Apply `$nfc-review` and the risk-appropriate review. Finish local units with
    their affected tests and explicit residual integration gates. Run
    `python scripts/verify.py --all` at the frozen integration/release boundary,
    or when the root risk rules require broader verification, not per microcommit.

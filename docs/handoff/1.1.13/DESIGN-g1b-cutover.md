@@ -745,3 +745,17 @@ Disposition: `extend-owner`, no second execution or authority path. No firmware
 bytes, ranges, ordering, integrity, profile values or Golden inputs change.
 The scope retains the plan's R3 roles and final integration review/approval
 gates; this local Stage A continuation runs only section 6.2's Stage A gates.
+
+Stage B implementation admission: `codex/gpt-6-astra`, base `acd88696941f6f7b86ac5ae9a8936ae071a893aa`.
+The manifest and skill routing own invocation; `sync_derived.Provider` and
+`synchronize` own derived-file custody; `validate_skills` owns inventory;
+`code_size_policy` owns source aggregation. Disposition: `extend-owner`.
+The plan's Stage B surfaces and necessary live rename consumers are mutable;
+no production firmware behavior, inputs or expectations change. Local commits
+are authorized; external integration, approval and full verification remain
+with the commander.
+
+| Stage B clarification | Resolution |
+| --- | --- |
+| Section numbers in dispatch | This revision's commit sequence is 6.1, narrow gates 6.2, decisions 7 and review responses 8. The named content governs. |
+| Step 7 deletion consumers | Remove `test_assess_refactor_progress.py` with its deleted script; move supervision routing to the existing root, model routing and handoff owners. Update the CRC worker's old review-skill invocation too. Polytail policy, checker and CI names remain. |

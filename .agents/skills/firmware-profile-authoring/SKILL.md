@@ -16,6 +16,6 @@ description: Add or change an IC profile, canonical memory region, experience ac
 7. Add ordered operations, explicit overlap and processor/integrity declarations.
 8. Validate bounds, arithmetic, atomicity, access, overlap, compatibility, missing references and malformed values.
 9. Update support matrix, examples, evidence manifest and golden regression.
-10. Run schema/profile/planner/golden tests, `$polytail`, and
+10. Run schema/profile/planner/golden tests, `$nfc-review`, and
     `python scripts/verify.py --all`; report every changed firmware fact and
     keep the R3 firmware-owner/evidence gate explicit.

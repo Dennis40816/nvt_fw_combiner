@@ -91,8 +91,8 @@ Do not independently repeat its entire search; inspect the decisive evidence
 when needed, especially for firmware, coverage, or release conclusions.
 
 For multi-agent reconstruction, conflict-heavy integration, or R3 migration,
-use `.agents/skills/supervised-branch-development/SKILL.md`. Its detailed
-handoff format is for that coordination work, not a prerequisite for every task.
+use `docs/handoff/README.md`. Its dispatch envelope is for that coordination
+work, not a prerequisite for every task.
 
 ## Canonical commands
 
@@ -220,7 +220,7 @@ mutations, or missing mandatory human evidence. GitHub mutations follow
 ## Skills and completion
 
 Find the relevant NFC authority and workflow skill through
-`docs/governance/agent-skill-routing.md`. Apply `.agents/skills/polytail/` to
+`docs/governance/agent-skill-routing.md`. Apply `.agents/skills/nfc-review/` to
 non-trivial R1-R3 changes with scope proportional to touched authority and the
 current review decision. Instruction edits do not reconfigure already-loaded
 agent developer instructions or executable CI policy; identify any remaining

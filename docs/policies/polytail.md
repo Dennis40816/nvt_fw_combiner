@@ -4,7 +4,7 @@ Status: Mandatory for non-trivial R1-R3 implementation and review.
 
 Apply the root [risk-adaptive gates](../../AGENTS.md#risk-adaptive-gates) for
 review depth, independence, human evidence and local/full-test applicability.
-Use the [Polytail skill](../../.agents/skills/polytail/SKILL.md) to perform the
+Use the [NFC review skill](../../.agents/skills/nfc-review/SKILL.md) to perform the
 audit. This policy owns the required verdict rules:
 
 - Verdicts are `PASS`, `PASS-WITH-HUMAN-GATE`, or `FAIL`.

@@ -13,7 +13,7 @@ description: Design or modify NFC Avalonia screens, approved-reference layouts, 
 6. Add keyboard, focus, screen-reader, localization and high-contrast acceptance coverage.
 7. Apply the reference-fidelity gate below whenever the owner supplies or approves a visual reference.
 8. Add ViewModel/unit tests plus the narrowest UI smoke/snapshot coverage available.
-9. Run the narrow UI tests, `$polytail`, and the final gate required by the risk
+9. Run the narrow UI tests, `$nfc-review`, and the final gate required by the risk
    class. Report whether any core/profile contract changed and route that change
    through its authoritative skill.
 

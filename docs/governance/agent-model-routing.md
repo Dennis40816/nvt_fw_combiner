@@ -3,8 +3,7 @@
 Status: Active repository authority for current per-runtime agent model-tier defaults.
 
 Selection principles live in
-[`AGENTS.md`](../../AGENTS.md#delegation-and-model-selection) and
-[`supervised-branch-development`](../../.agents/skills/supervised-branch-development/SKILL.md#model-routing);
+[`AGENTS.md`](../../AGENTS.md#delegation-and-model-selection);
 this document is their single current-mapping owner, so a model rename is a
 one-file edit instead of scattered prose:
 
@@ -50,11 +49,13 @@ naming a model the tooling does not expose.
 
 ## Dispatch disclosure
 
-Use the field order
-[`supervised-branch-development`](../../.agents/skills/supervised-branch-development/SKILL.md#dispatch-and-execution)
-already defines: `role / model / reasoning effort / inherited-or-override /
-read-only-or-write / scope / selection reason`. This document does not define
-a second disclosure format.
+Dispatch disclosure follows root `AGENTS.md`: role, model or known inheritance,
+reasoning effort when exposed, read/write scope and selection reason. The
+[handoff protocol](../handoff/README.md#dispatch-envelope) owns workstream
+assignments and reports. Select a strong reasoning model for ambiguous
+architecture or review, a capable implementation model for bounded changes,
+and a faster model for mechanical work; the dated defaults above implement
+these tiers without weakening their evidence gates.
 
 ## When the current tools do not offer a listed model
 

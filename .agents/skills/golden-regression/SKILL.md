@@ -17,6 +17,6 @@ description: Add, update, or review firmware golden vectors, expected output has
 10. Never regenerate or edit expected output merely to make a test pass.
 11. Add invalid-input and one-byte-boundary cases for ranges, patches, CRC/header stages, and atomic failure.
 12. Promotion to `supported` requires owner sign-off and no unknown integrity behavior.
-13. Run profile/worker/golden gates, `$polytail`, and
+13. Run profile/worker/golden gates, `$nfc-review`, and
     `python scripts/verify.py --all`; report private evidence that could not be
     executed and retain the R3 owner-review gate.

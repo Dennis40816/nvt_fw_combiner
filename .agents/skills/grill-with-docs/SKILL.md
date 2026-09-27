@@ -6,8 +6,8 @@ description: Close unresolved NFC specification, architecture, terminology, or p
 # Grill With Docs
 
 Apply [Agent Skill Routing](../../../docs/governance/agent-skill-routing.md).
-Use `$grilling` as the interview engine, `$nfc-architecture-change` for durable
-boundaries, and `$to-spec` for canonical specification synthesis. Apply the
+Use the interview below, `$nfc-architecture-change` for durable boundaries,
+and `$to-spec` for canonical specification synthesis. Apply the
 matching firmware, contract, UI, evidence, or release authority when the
 decision touches that surface.
 

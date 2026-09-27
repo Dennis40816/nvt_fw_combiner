@@ -571,7 +571,7 @@ See [`docs/adr/0006-external-combiner-tool-runner.md`](docs/adr/0006-external-co
 
 The current Python worker is a constrained pure CRC calculation prototype. It is not the sole production CRC/Header system. Production rewrite behavior must go through the external processor/tool runner and host-side independent diff verification.
 
-`polytail` 已正式定義為 repository skill：`.agents/skills/polytail/SKILL.md`。它用來防止 AI 產生 architecture drift、duplicate logic、fake tests、placeholder、silent error、broad suppression 與不可 review 的 code；不是第三方同名 package，也不是 Pylint 的別名。
+`nfc-review` 已正式定義為 repository skill：`.agents/skills/nfc-review/SKILL.md`。它用來防止 AI 產生 architecture drift、duplicate logic、fake tests、placeholder、silent error、broad suppression 與不可 review 的 code；不是第三方同名 package，也不是 Pylint 的別名。
 
 ### 5.3 Profile 與契約格式
 

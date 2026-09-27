@@ -28,4 +28,4 @@ description: Review or design changes that affect NVT FW Combiner layers, depend
    alternatives, migration, tests and release impact where applicable; use a
    brief not-applicable reason instead of inventing a migration or artifact.
 9. Require an independent architecture/contract reviewer for R2 changes. Run
-   the narrow architecture tests, `$polytail`, and the final canonical gate.
+   the narrow architecture tests, `$nfc-review`, and the final canonical gate.

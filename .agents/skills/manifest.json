@@ -2,29 +2,11 @@
   "schemaVersion": 1,
   "skills": [
     {
-      "name": "assess-refactor-progress",
-      "status": "active",
-      "scope": "repo",
-      "invocation": "implicit",
-      "authority": "progress-report",
-      "owner": "repository",
-      "replaces": []
-    },
-    {
       "name": "capture-firmware-ui",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
       "authority": "visual-evidence",
-      "owner": "repository",
-      "replaces": []
-    },
-    {
-      "name": "code-review",
-      "status": "active",
-      "scope": "repo",
-      "invocation": "implicit",
-      "authority": "review",
       "owner": "repository",
       "replaces": []
     },
@@ -98,16 +80,9 @@
       "invocation": "implicit",
       "authority": "decision-documentation",
       "owner": "repository",
-      "replaces": ["domain-modeling"]
-    },
-    {
-      "name": "grilling",
-      "status": "active",
-      "scope": "repo",
-      "invocation": "explicit",
-      "authority": "decision-interview",
-      "owner": "repository",
-      "replaces": []
+      "replaces": [
+        "domain-modeling"
+      ]
     },
     {
       "name": "implement",
@@ -116,7 +91,9 @@
       "invocation": "implicit",
       "authority": "implementation",
       "owner": "repository",
-      "replaces": ["tdd"]
+      "replaces": [
+        "tdd"
+      ]
     },
     {
       "name": "locate-golden-evidence",
@@ -134,7 +111,22 @@
       "invocation": "implicit",
       "authority": "architecture",
       "owner": "repository",
-      "replaces": ["codebase-design", "improve-codebase-architecture"]
+      "replaces": [
+        "codebase-design",
+        "improve-codebase-architecture"
+      ]
+    },
+    {
+      "name": "nfc-review",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "review",
+      "owner": "repository",
+      "replaces": [
+        "code-review",
+        "polytail"
+      ]
     },
     {
       "name": "open-firmware-example",
@@ -142,15 +134,6 @@
       "scope": "repo",
       "invocation": "implicit",
       "authority": "example-opening",
-      "owner": "repository",
-      "replaces": []
-    },
-    {
-      "name": "polytail",
-      "status": "active",
-      "scope": "repo",
-      "invocation": "implicit",
-      "authority": "quality-gate",
       "owner": "repository",
       "replaces": []
     },
@@ -171,15 +154,6 @@
       "authority": "conflict-recovery",
       "owner": "repository",
       "replaces": []
-    },
-    {
-      "name": "supervised-branch-development",
-      "status": "active",
-      "scope": "repo",
-      "invocation": "implicit",
-      "authority": "branch-coordination",
-      "owner": "repository",
-      "replaces": ["handoff"]
     },
     {
       "name": "to-spec",
@@ -206,7 +180,9 @@
       "invocation": "implicit",
       "authority": "presentation",
       "owner": "repository",
-      "replaces": ["prototype"]
+      "replaces": [
+        "prototype"
+      ]
     }
   ]
 }

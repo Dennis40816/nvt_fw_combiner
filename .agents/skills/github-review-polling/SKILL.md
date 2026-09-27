@@ -80,7 +80,7 @@ threads remain. A bot response does not authorize merge, thread resolution, CI
 reruns, or review-request repetition.
 
 If GitHub review remains pending, keep it as a merge gate while continuing safe
-independent work under `$supervised-branch-development`. Request another review
+independent work under `docs/handoff/README.md`. Request another review
 only after a new locally reviewed SHA or after actionable feedback was fixed.
 
 ## Validate The Skill

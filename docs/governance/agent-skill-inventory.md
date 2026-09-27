@@ -9,9 +9,7 @@ skills; they are not repository authority.
 
 | Skill | Invocation | Authority | Replaces |
 | --- | --- | --- | --- |
-| `assess-refactor-progress` | implicit | progress-report | — |
 | `capture-firmware-ui` | implicit | visual-evidence | — |
-| `code-review` | implicit | review | — |
 | `composition-experience-change` | implicit | experience | — |
 | `crc-worker-contract` | implicit | crc-worker | — |
 | `diagnosing-bugs` | implicit | diagnosis | — |
@@ -20,15 +18,13 @@ skills; they are not repository authority.
 | `github-review-polling` | explicit | github-review | — |
 | `golden-regression` | implicit | golden-evidence | — |
 | `grill-with-docs` | implicit | decision-documentation | domain-modeling |
-| `grilling` | explicit | decision-interview | — |
 | `implement` | implicit | implementation | tdd |
 | `locate-golden-evidence` | implicit | golden-lookup | — |
 | `nfc-architecture-change` | implicit | architecture | codebase-design, improve-codebase-architecture |
+| `nfc-review` | implicit | review | code-review, polytail |
 | `open-firmware-example` | implicit | example-opening | — |
-| `polytail` | implicit | quality-gate | — |
 | `release-readiness` | implicit | release | — |
 | `resolving-merge-conflicts` | implicit | conflict-recovery | — |
-| `supervised-branch-development` | implicit | branch-coordination | handoff |
 | `to-spec` | implicit | specification-draft | — |
 | `to-tickets` | implicit | ticket-planning | — |
 | `ui-experience-change` | implicit | presentation | prototype |

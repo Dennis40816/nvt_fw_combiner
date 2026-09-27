@@ -18,6 +18,6 @@ description: Change Display, TP HW, TP FW, General Merge, or General Replace aut
 5. General mapping changes must preserve one state model for canvas and exact table/manual entry and compile to normal operations.
 6. Reject arbitrary scripts, user-provided commands/processor paths, filename inference, implicit overlap, or unbounded ranges.
 7. Add positive and cross-persona negative tests, request/schema tests, round-trip tests, and stable issue codes.
-8. Run affected policy/compiler/request/UI tests, `$polytail`, and the final
+8. Run affected policy/compiler/request/UI tests, `$nfc-review`, and the final
    gate required by the risk class. Report access-policy and compatibility
    impact.

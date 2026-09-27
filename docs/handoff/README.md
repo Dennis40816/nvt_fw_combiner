@@ -43,7 +43,10 @@ The commander writes this at the top of a new workstream log:
 - **Branch and worktree**, with the base commit.
 - **Write lock**: the exact paths the worker may modify. Everything else is
   read-only for that worker.
-- **Read first**: the owner documents and prior evidence.
+- **Read first**: the owner documents and prior evidence; semantic owner and
+  owner-search disposition (`reuse`, `extend-owner`, `reject-duplicate`).
+- **Model reason**: configured model or known inheritance, exposed reasoning
+  effort and the selection reason under root `AGENTS.md`.
 - **Acceptance**: the observable result, narrow checks and evidence to record.
 - **Stop and ask**: conditions that end the task instead of widening scope.
 
@@ -61,7 +64,10 @@ Next: <one step>
 ```
 
 State words follow the root `AGENTS.md` reporting rule. `verified` names the
-exact commands, results and commit.
+exact commands, results and commit. Include actual model/config when known,
+base/head, owned paths, tracked and untracked changes, findings and residual
+gates. Review a frozen checkpoint independently; return corrections to its
+single writer and rerun the affected checks.
 
 ## Rules
 
