@@ -114,7 +114,7 @@ internal sealed partial class MergePresentationViewModel
 
     public ObservableCollection<MemoryMapRowViewModel> MergeMemoryRows { get; } = [];
 
-    public ObservableCollection<MemoryCoverageSegmentViewModel> MergeCoverageSegments { get; } = [];
+    public ResettableObservableCollection<MemoryCoverageSegmentViewModel> MergeCoverageSegments { get; } = [];
 
     public ObservableCollection<MemoryCoverageSegmentViewModel> MergeCoverageRows { get; } = [];
 
