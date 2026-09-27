@@ -308,26 +308,35 @@ public static partial class CliApplication
             outputTarget,
             build && !bundleBuild);
 
-        CompositionRunResult result = await services.Execution
-            .ExecuteAsync(
-                new AcceptedCompositionExecutionRequest(
-                    prepared.Snapshot!,
-                    slotPaths,
-                    build,
-                    outputPath: build && hasExplicitOutput && !bundleBuild
-                        ? outputTarget.FullPath
-                        : null,
-                    previewOutputFileName: !build && hasExplicitOutput
-                        ? outputTarget.FileName
-                        : null,
-                    automaticOutputDirectory: build && !hasExplicitOutput && !bundleBuild
-                        ? outputTarget.OutputDirectory
-                        : null,
-                    reportPath: build ? reportPath : null,
-                    outputBundle: outputBundle),
-                new CompositionRunProgressFeed(),
-                cancellationToken)
-            .ConfigureAwait(false);
+        CompositionRunResult result;
+        try
+        {
+            result = await services.Execution
+                .ExecuteAsync(
+                    new AcceptedCompositionExecutionRequest(
+                        prepared.Snapshot!,
+                        slotPaths,
+                        build,
+                        outputPath: build && hasExplicitOutput && !bundleBuild
+                            ? outputTarget.FullPath
+                            : null,
+                        previewOutputFileName: !build && hasExplicitOutput
+                            ? outputTarget.FileName
+                            : null,
+                        automaticOutputDirectory: build && !hasExplicitOutput && !bundleBuild
+                            ? outputTarget.OutputDirectory
+                            : null,
+                        reportPath: build ? reportPath : null,
+                        outputBundle: outputBundle),
+                    new CompositionRunProgressFeed(),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (CompositionPreRunRefusalException refusal)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, refusal.Issues).ConfigureAwait(false);
+            return CompositionFailed;
+        }
         await CliCompositionRunSupport.WriteReportJsonAsync(
                 result,
                 string.IsNullOrWhiteSpace(reportPath) ? null : reportPath,

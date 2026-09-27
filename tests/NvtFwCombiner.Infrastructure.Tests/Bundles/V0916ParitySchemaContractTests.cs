@@ -19,6 +19,7 @@ public sealed class V0916ParitySchemaContractTests
         "v0916-baseline-executor-v1.schema.json",
         "v0916-candidate-source-executor-v1.schema.json",
         "v0916-nt51951-c2-diagnostic-v1.schema.json",
+        "v0916-parity-1x-amendment-v1.schema.json",
         "v0916-parity-build-report-v1.schema.json",
         "v0916-parity-certification-v1.schema.json",
         "v0916-parity-comparison-v1.schema.json",
@@ -37,6 +38,7 @@ public sealed class V0916ParitySchemaContractTests
         data.Add("v0916-baseline-executor-v1.schema.json", "v0916-baseline-executor-v1.json");
         data.Add("v0916-candidate-source-executor-v1.schema.json", "v100-candidate-source-executor-v1.json");
         data.Add("v0916-nt51951-c2-diagnostic-v1.schema.json", "v0916-nt51951-c2-diagnostic-v1.json");
+        data.Add("v0916-parity-1x-amendment-v1.schema.json", "v0916-parity-1x-amendment-v1.json");
         data.Add("v0916-parity-certification-v1.schema.json", "v0916-parity-certification-v1.json");
         data.Add("v0916-parity-workflow-v1.schema.json", "v0916-parity-workflow-v1.json");
         return data;

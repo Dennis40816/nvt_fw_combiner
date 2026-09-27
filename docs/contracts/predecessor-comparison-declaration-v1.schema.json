@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/predecessor-comparison-declaration-v1.schema.json",
+  "title": "NVT FW Combiner predecessor comparison release declaration (proposed)",
+  "$comment": "Proposed interface: revised with the report schema before any release commits a declaration. The schema holds only relations inside one declaration; its agreement with the ledger, the report, the CHANGELOG and the cited board decisions belongs to the comparator's single semantic validator and to review.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "candidateVersion", "baseline", "ledgerSha256", "entries"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "kind": { "const": "predecessor-comparison-declaration" },
+    "candidateVersion": { "$ref": "#/$defs/version" },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tag", "tagObject"],
+      "properties": {
+        "tag": { "type": "string", "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
+        "tagObject": { "$ref": "#/$defs/gitSha" }
+      }
+    },
+    "ledgerSha256": { "$ref": "#/$defs/sha256" },
+    "entries": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
+    "entryId": { "type": "string", "pattern": "^RP-(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)-[0-9]{2,}$" },
+    "stage": { "enum": ["build", "precursor-build", "precursor-preview", "preview"] },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["size", "sha256"],
+      "properties": {
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "optionalArtifact": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/artifact" }] },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "endExclusive"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 0 },
+        "endExclusive": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "sideOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "output", "precursor", "stage", "issueCodes"],
+      "properties": {
+        "result": { "enum": ["output", "rejected"] },
+        "output": { "$ref": "#/$defs/optionalArtifact" },
+        "precursor": { "$ref": "#/$defs/optionalArtifact" },
+        "stage": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/stage" }] },
+        "issueCodes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "result": { "const": "output" } }, "required": ["result"] },
+          "then": {
+            "properties": { "output": { "$ref": "#/$defs/artifact" }, "stage": { "const": null }, "issueCodes": { "maxItems": 0 } }
+          },
+          "else": { "properties": { "output": { "const": null }, "stage": { "$ref": "#/$defs/stage" }, "issueCodes": { "minItems": 1 } } }
+        }
+      ]
+    },
+    "outputOutcome": {
+      "allOf": [
+        { "$ref": "#/$defs/sideOutcome" },
+        { "properties": { "result": { "const": "output" } }, "required": ["result"] }
+      ]
+    },
+    "rejectedOutcome": {
+      "allOf": [
+        { "$ref": "#/$defs/sideOutcome" },
+        { "properties": { "result": { "const": "rejected" } }, "required": ["result"] }
+      ]
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline", "candidate"],
+      "properties": {
+        "baseline": { "$ref": "#/$defs/sideOutcome" },
+        "candidate": { "$ref": "#/$defs/sideOutcome" }
+      }
+    },
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "endExclusive", "mechanism", "cause", "causeVerification", "evidence"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 0 },
+        "endExclusive": { "type": "integer", "minimum": 1 },
+        "mechanism": { "enum": ["derived-field", "precursor-carried", "stopped-write-preserved-bytes", "writes-different-bytes"] },
+        "cause": { "type": "string", "minLength": 1 },
+        "causeVerification": { "enum": ["not-independently-verified", "supported-by-cited-evidence"] },
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "causeVerification": { "const": "supported-by-cited-evidence" } }, "required": ["causeVerification"] },
+          "then": { "properties": { "evidence": { "minItems": 1 } } }
+        }
+      ]
+    },
+    "difference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["differentByteCount", "rangeCount", "rangeListSha256", "ranges", "attribution"],
+      "properties": {
+        "differentByteCount": { "type": "integer", "minimum": 1 },
+        "rangeCount": { "type": "integer", "minimum": 1 },
+        "rangeListSha256": { "$ref": "#/$defs/sha256" },
+        "ranges": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/range" }
+        },
+        "attribution": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/attribution" }
+        }
+      }
+    },
+    "differences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output", "precursor"],
+      "properties": {
+        "output": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/difference" }] },
+        "precursor": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/difference" }] }
+      }
+    },
+    "rejectionDifferences": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/differences" },
+            { "properties": { "output": { "const": null }, "precursor": { "$ref": "#/$defs/difference" } } }
+          ]
+        }
+      ]
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["boardDecision", "role", "date"],
+      "properties": {
+        "boardDecision": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*) board decision [1-9][0-9]*$" },
+        "role": { "const": "firmware-owner" },
+        "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+      }
+    },
+    "withoutOutcome": {
+      "properties": {
+        "expected": { "const": null },
+        "differences": { "const": null },
+        "knownIssue": { "const": null },
+        "routeWithdrawal": { "const": false }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "scenarioIds",
+        "routeIds",
+        "expected",
+        "differences",
+        "knownIssue",
+        "routeWithdrawal",
+        "approval"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/entryId" },
+        "kind": {
+          "enum": ["accepted-gap", "baseline-rejects", "both-reject", "byte-difference", "candidate-rejects", "input-revision", "scenario-retired"]
+        },
+        "scenarioIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "routeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^route-[a-z0-9-]+$" }
+        },
+        "expected": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/expected" }] },
+        "differences": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/differences" }] },
+        "knownIssue": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["bugId"],
+              "properties": {
+                "bugId": { "type": "string", "pattern": "^BUG-[0-9]{8}-[a-z0-9-]+$" }
+              }
+            }
+          ]
+        },
+        "routeWithdrawal": { "type": "boolean" },
+        "approval": { "$ref": "#/$defs/approval" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "differences": { "type": "object", "properties": { "precursor": { "type": "object" } }, "required": ["precursor"] }
+            },
+            "required": ["differences"]
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "type": "object",
+                "properties": {
+                  "baseline": { "properties": { "precursor": { "$ref": "#/$defs/artifact" } } },
+                  "candidate": { "properties": { "precursor": { "$ref": "#/$defs/artifact" } } }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "byte-difference" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "scenarioIds": { "minItems": 1 },
+              "expected": {
+                "$ref": "#/$defs/expected",
+                "properties": { "baseline": { "$ref": "#/$defs/outputOutcome" }, "candidate": { "$ref": "#/$defs/outputOutcome" } }
+              },
+              "differences": {
+                "$ref": "#/$defs/differences",
+                "anyOf": [
+                  { "properties": { "output": { "$ref": "#/$defs/difference" } } },
+                  { "properties": { "precursor": { "$ref": "#/$defs/difference" } } }
+                ]
+              },
+              "knownIssue": { "const": null },
+              "routeWithdrawal": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "baseline-rejects" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "scenarioIds": { "minItems": 1 },
+              "expected": {
+                "$ref": "#/$defs/expected",
+                "properties": { "baseline": { "$ref": "#/$defs/rejectedOutcome" }, "candidate": { "$ref": "#/$defs/outputOutcome" } }
+              },
+              "differences": { "$ref": "#/$defs/rejectionDifferences" },
+              "knownIssue": { "const": null },
+              "routeWithdrawal": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "candidate-rejects" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "scenarioIds": { "minItems": 1 },
+              "expected": {
+                "$ref": "#/$defs/expected",
+                "properties": { "baseline": { "$ref": "#/$defs/outputOutcome" }, "candidate": { "$ref": "#/$defs/rejectedOutcome" } }
+              },
+              "differences": { "$ref": "#/$defs/rejectionDifferences" }
+            },
+            "oneOf": [
+              { "properties": { "knownIssue": { "type": "object" }, "routeWithdrawal": { "const": false } } },
+              { "properties": { "knownIssue": { "const": null }, "routeWithdrawal": { "const": true } } }
+            ]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "both-reject" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "scenarioIds": { "minItems": 1 },
+              "expected": {
+                "$ref": "#/$defs/expected",
+                "properties": { "baseline": { "$ref": "#/$defs/rejectedOutcome" }, "candidate": { "$ref": "#/$defs/rejectedOutcome" } }
+              },
+              "differences": { "$ref": "#/$defs/rejectionDifferences" },
+              "knownIssue": { "type": "object" },
+              "routeWithdrawal": { "const": false }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["input-revision", "scenario-retired"] } }, "required": ["kind"] },
+          "then": {
+            "allOf": [{ "$ref": "#/$defs/withoutOutcome" }],
+            "properties": { "scenarioIds": { "minItems": 1 } }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "accepted-gap" } }, "required": ["kind"] },
+          "then": {
+            "allOf": [{ "$ref": "#/$defs/withoutOutcome" }],
+            "properties": { "scenarioIds": { "maxItems": 0 } }
+          }
+        }
+      ]
+    }
+  }
+}

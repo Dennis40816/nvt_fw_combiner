@@ -4,7 +4,14 @@
 - Date: 2026-07-18
 - Owners: Product owner + architecture owner + firmware/process reviewer + UI reviewer
 - Amends: ADR 0009's General Replace Build-orchestration clause; validation remains mandatory inside one authoritative Build execution
-- Amended by: 2026-08-09 complete legacy-architecture retirement; 2026-08-12 evidence-sharded .NET CI
+- Amended by: 2026-08-09 complete legacy-architecture retirement; 2026-08-12 evidence-sharded .NET CI;
+  [ADR 0079](0079-test-architecture.md), accepted on 2026-09-26 (board
+  decision 81), for the 2026-08-12 amendment: its measured targets replaced the
+  300-second acceptance clause and its stop rule from that acceptance; its
+  verified exact partitions in place of "each project is run unfiltered", and
+  the selection and coverage on pull requests, take effect only through their
+  own admitted batches and the T4b activation, and until then the rest of that
+  amendment applies unchanged.
 - Supersedes: The former `v0.9.10` candidate-intake assignment
 - Superseded by: None
 

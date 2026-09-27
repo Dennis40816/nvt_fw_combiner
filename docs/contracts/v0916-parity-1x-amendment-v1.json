@@ -1,0 +1,163 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "v0916-parity-1x-amendment",
+  "certification": "none",
+  "terminal": false,
+  "plan": {
+    "path": "docs/contracts/v0916-parity-certification-v1.json",
+    "withoutCandidateAuthorityJcsSha256": "649fc3fec306026560336105020d86c577a53624a6faa7ff650ff50b2ab40a9a",
+    "canonicalInputAuthorityJcsSha256": "c31e00df61d46496d2e03d15fc6e57f48201bab22ad329016d32ca00b3b13fdf",
+    "policySha256": "bf818a4c9aa4d539882e4bc4a0a662ef70ece67a44e78ae83356430365828f50",
+    "baselineTagObject": "578b2614632d6c2affdf2000324b134b5d1a16c1",
+    "baselinePeeledCommit": "462590e8b993b8e42d088bc07377571a4bb9f25d"
+  },
+  "recordedEvidence": [
+    {
+      "path": "docs/handoff/1.1.12/parity/explanations.json",
+      "size": 2186,
+      "sha256": "e0776df0b0c8d41fb3cddcd56569923f80796589a3cdcc5e4542999433c687e5"
+    },
+    {
+      "path": "docs/handoff/1.1.12/parity/v0916-local-comparison.json",
+      "size": 216236,
+      "sha256": "e937ebabae349790732f1af524ccdfd81ec81d4a0e93aed82a88b1e345b8b4e6"
+    }
+  ],
+  "approvedSemanticCorrections": [
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-36-nt51950-ctrlram-fw1x-cascade-tp-work",
+      "capabilityFingerprint": "df822064eaa890d08bc0e0ecbaa9d8cd7f6464395066308e1dd64b11507fbb49",
+      "kind": "owner-approved-diff-nf-preservation",
+      "ownerDecision": "owner-decision:2026-09-26:nt51950-cascade-tp-work-diff-nf-preservation-is-correct",
+      "boardDecision": "1.1.12 board decision 12",
+      "scope": "exactly-these-values",
+      "baselineOutput": { "size": 225280, "sha256": "cfae15911aac4ef641eed9dc95acdb08bb69e988284b8753ad0528f3ed44e47e" },
+      "candidateOutput": { "size": 225280, "sha256": "a239645dd6e2527af34934e20ef7399ecb9d748aca32ce9ed4b829b94b8fc643" },
+      "differentByteCount": 2816,
+      "differentRanges": [
+        { "start": 41244, "endExclusive": 41248 },
+        { "start": 41264, "endExclusive": 41268 },
+        { "start": 185384, "endExclusive": 185388 },
+        { "start": 185404, "endExclusive": 185408 },
+        { "start": 211728, "endExclusive": 214528 }
+      ],
+      "attribution": [
+        {
+          "start": 41244,
+          "endExclusive": 41248,
+          "mechanism": "derived-field",
+          "cause": "header-crc-word, recalculated on both sides by the same registered Legacy Combiner 1.13.0 postbuild processor; that it changes because the preserved Diff NF tail differs is not independently verified, and the word is accepted only as part of this exact difference",
+          "causeVerification": "not-independently-verified",
+          "evidence": [
+            "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json#allowedByteDifferenceContract",
+            "profiles/built-in/nt51950-ctrlram-replace-candidate/families/nt51950-ctrlram-replace.json#header-crc-a11c"
+          ]
+        },
+        {
+          "start": 41264,
+          "endExclusive": 41268,
+          "mechanism": "derived-field",
+          "cause": "header-copy-crc-word, recalculated on both sides by the same registered Legacy Combiner 1.13.0 postbuild processor; that it changes because the preserved Diff NF tail differs is not independently verified, and the word is accepted only as part of this exact difference",
+          "causeVerification": "not-independently-verified",
+          "evidence": [
+            "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json#allowedByteDifferenceContract",
+            "profiles/built-in/nt51950-ctrlram-replace-candidate/families/nt51950-ctrlram-replace.json#header-crc-a130"
+          ]
+        },
+        {
+          "start": 185384,
+          "endExclusive": 185388,
+          "mechanism": "derived-field",
+          "cause": "copied-header-crc-word, in the 0x200-byte TP header copy that the same registered Legacy Combiner 1.13.0 postbuild processor refreshes on both sides; that it changes because the preserved Diff NF tail differs is not independently verified, and the word is accepted only as part of this exact difference",
+          "causeVerification": "not-independently-verified",
+          "evidence": [
+            "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json#allowedByteDifferenceContract",
+            "profiles/built-in/nt51950-ctrlram-replace-candidate/families/nt51950-ctrlram-replace.json#header-copy"
+          ]
+        },
+        {
+          "start": 185404,
+          "endExclusive": 185408,
+          "mechanism": "derived-field",
+          "cause": "copied-header-copy-crc-word, in the 0x200-byte TP header copy that the same registered Legacy Combiner 1.13.0 postbuild processor refreshes on both sides; that it changes because the preserved Diff NF tail differs is not independently verified, and the word is accepted only as part of this exact difference",
+          "causeVerification": "not-independently-verified",
+          "evidence": [
+            "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json#allowedByteDifferenceContract",
+            "profiles/built-in/nt51950-ctrlram-replace-candidate/families/nt51950-ctrlram-replace.json#header-copy"
+          ]
+        },
+        {
+          "start": 211728,
+          "endExclusive": 214528,
+          "mechanism": "stopped-write-preserved-bytes",
+          "cause": "Diff NF tail [0x0910, 0x1400) of the Diff CtrlRAM record at 0x33200: v0.9.16 writes the whole record, 1.x writes only the active [0x0000, 0x0910) prefix and keeps the base bytes (0.10.1, #188)",
+          "causeVerification": "supported-by-cited-evidence",
+          "evidence": [
+            "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/cascade-2/nt51950-cascade2-geometry-nt51951-auto-prj-599-alias/provenance/case.json#alias.factScope",
+            "profiles/built-in/nt51950-ctrlram-replace-candidate/families/nt51950-ctrlram-replace.json#diff-ctrlram",
+            "docs/handoff/1.1.12/parity/explanations.json"
+          ]
+        }
+      ],
+      "candidateProvenance": {
+        "evidenceCaseId": "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
+        "evidenceCaseManifest": {
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/cascade-2/nt51950-cascade2-geometry-nt51951-auto-prj-599-alias/provenance/case.json",
+          "size": 1632,
+          "sha256": "b8b6a1ceeb1a6232a144363aab05173cbf9833eccec09a62f8a42190c221b4ca"
+        },
+        "inputCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+        "inputCaseManifest": {
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json",
+          "size": 12502,
+          "sha256": "04b38a6bbf20918b98d259e0b6486b7724036c69a0d30017a314406958ce8c24"
+        }
+      },
+      "observation": {
+        "status": "historical-non-certifying-observation",
+        "recordedIn": "docs/handoff/1.1.12/parity/v0916-local-comparison.json",
+        "baselineExecutorCliSha256": "093212528d1048acdb43563ba795353e1ac872f8b6a3aa99251782e958ad1a30",
+        "baselineExecutorBuild": "1.1.12 probe build of v0.9.16 (restore with --force-evaluate); not the v0.9.16 executor of the 1.x mode, which is pending its own record",
+        "candidateSourceCommits": ["1c37bd718d8c4fbc5cc247952229e8b2f9f54ce8", "badc545b04cf98aaaec9c7c9eb0261bdcc5cee69"],
+        "sameRunConfirmationRequired": true
+      },
+      "requiredProofKind": "exact-output-with-approved-semantic-correction"
+    }
+  ],
+  "baselineNotApplicable": [
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-39-nt51950-ctrlram-fw1x-cascade-full-flash",
+      "capabilityFingerprint": "267bbab586f1742ce5e0a7da6586afb11c02652de1e0a767d007e2a9cee2e0a7",
+      "kind": "canonical-binding-not-applicable-to-v0916",
+      "ownerDecision": "owner-decision:2026-09-26:nt51950-cascade-full-flash-binding-not-applicable-to-v0916",
+      "boardDecision": "1.1.12 board decision 62",
+      "scope": "this-canonical-binding-only",
+      "binding": {
+        "evidenceCaseId": "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
+        "inputCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+        "precursorMapVariant": "nt51950-standard-merge-512k"
+      },
+      "expectedBaseline": {
+        "precursorOutput": { "size": 524288, "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32" },
+        "rejectingStage": "preview",
+        "issueCodes": ["profile.v2.compile.map-selection-invalid"]
+      },
+      "expectedCandidate": {
+        "precursorOutput": { "size": 524288, "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32" },
+        "output": { "size": 524288, "sha256": "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd" },
+        "observation": {
+          "status": "historical-non-certifying-observation",
+          "recordedIn": "docs/handoff/1.1.12/parity/v0916-local-comparison.json",
+          "candidateSourceCommits": ["badc545b04cf98aaaec9c7c9eb0261bdcc5cee69"]
+        },
+        "ownerConfirmation": "required-at-the-1.1.13-milestone-run"
+      },
+      "revisit": "2.0.0-terminal-rebinding"
+    }
+  ],
+  "baselineExecutor": {
+    "status": "pending-executor-record",
+    "boardDecisions": ["1.1.12 board decision 63", "1.1.12 board decision 79"],
+    "contract": null
+  }
+}

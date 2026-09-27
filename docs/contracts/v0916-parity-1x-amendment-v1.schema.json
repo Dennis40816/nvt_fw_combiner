@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/v0916-parity-1x-amendment-v1.schema.json",
+  "title": "NVT FW Combiner v0.9.16 parity 1.x amendment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "certification",
+    "terminal",
+    "plan",
+    "recordedEvidence",
+    "approvedSemanticCorrections",
+    "baselineNotApplicable",
+    "baselineExecutor"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "kind": { "const": "v0916-parity-1x-amendment" },
+    "certification": { "const": "none" },
+    "terminal": { "const": false },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "withoutCandidateAuthorityJcsSha256", "canonicalInputAuthorityJcsSha256", "policySha256", "baselineTagObject", "baselinePeeledCommit"],
+      "properties": {
+        "path": { "const": "docs/contracts/v0916-parity-certification-v1.json" },
+        "withoutCandidateAuthorityJcsSha256": { "$ref": "#/$defs/sha256" },
+        "canonicalInputAuthorityJcsSha256": { "$ref": "#/$defs/sha256" },
+        "policySha256": { "$ref": "#/$defs/sha256" },
+        "baselineTagObject": { "$ref": "#/$defs/gitSha" },
+        "baselinePeeledCommit": { "$ref": "#/$defs/gitSha" }
+      }
+    },
+    "recordedEvidence": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "size", "sha256"],
+        "properties": {
+          "path": { "type": "string", "pattern": "^docs/handoff/[A-Za-z0-9._/-]+\\.json$" },
+          "size": { "type": "integer", "minimum": 1 },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    "approvedSemanticCorrections": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/correction" }
+    },
+    "baselineNotApplicable": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/notApplicable" }
+    },
+    "baselineExecutor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "boardDecisions", "contract"],
+      "properties": {
+        "status": { "enum": ["pending-executor-record"] },
+        "boardDecisions": { "const": ["1.1.12 board decision 63", "1.1.12 board decision 79"] },
+        "contract": { "type": "null" }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "routeId": { "type": "string", "pattern": "^route-[a-z0-9-]+$" },
+    "caseId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "ownerDecision": { "type": "string", "pattern": "^owner-decision:[0-9]{4}-[0-9]{2}-[0-9]{2}:[a-z0-9-]+$" },
+    "boardDecision": { "type": "string", "pattern": "^1\\.1\\.12 board decision [1-9][0-9]*$" },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["size", "sha256"],
+      "properties": {
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "fileIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size", "sha256"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^testdata/golden/canonical/[A-Za-z0-9._/-]+/case\\.json$" },
+        "size": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "endExclusive"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 0 },
+        "endExclusive": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "endExclusive", "mechanism", "cause", "causeVerification", "evidence"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 0 },
+        "endExclusive": { "type": "integer", "minimum": 1 },
+        "mechanism": { "enum": ["derived-field", "precursor-carried", "stopped-write-preserved-bytes", "writes-different-bytes"] },
+        "cause": { "type": "string", "minLength": 1 },
+        "causeVerification": { "enum": ["not-independently-verified", "supported-by-cited-evidence"] },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^(docs|profiles|testdata)/[A-Za-z0-9._/-]+(#[A-Za-z0-9._-]+)?$" }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "recordedIn", "candidateSourceCommits"],
+      "properties": {
+        "status": { "const": "historical-non-certifying-observation" },
+        "recordedIn": { "type": "string", "pattern": "^docs/handoff/[A-Za-z0-9._/-]+\\.json$" },
+        "baselineExecutorCliSha256": { "$ref": "#/$defs/sha256" },
+        "baselineExecutorBuild": { "type": "string", "minLength": 1 },
+        "candidateSourceCommits": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/gitSha" }
+        },
+        "sameRunConfirmationRequired": { "const": true }
+      }
+    },
+    "correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routeId",
+        "capabilityFingerprint",
+        "kind",
+        "ownerDecision",
+        "boardDecision",
+        "scope",
+        "baselineOutput",
+        "candidateOutput",
+        "differentByteCount",
+        "differentRanges",
+        "attribution",
+        "candidateProvenance",
+        "observation",
+        "requiredProofKind"
+      ],
+      "properties": {
+        "routeId": { "$ref": "#/$defs/routeId" },
+        "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+        "kind": { "const": "owner-approved-diff-nf-preservation" },
+        "ownerDecision": { "$ref": "#/$defs/ownerDecision" },
+        "boardDecision": { "$ref": "#/$defs/boardDecision" },
+        "scope": { "const": "exactly-these-values" },
+        "baselineOutput": { "$ref": "#/$defs/artifact" },
+        "candidateOutput": { "$ref": "#/$defs/artifact" },
+        "differentByteCount": { "type": "integer", "minimum": 1 },
+        "differentRanges": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/range" }
+        },
+        "attribution": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/attribution" }
+        },
+        "candidateProvenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["evidenceCaseId", "evidenceCaseManifest", "inputCaseId", "inputCaseManifest"],
+          "properties": {
+            "evidenceCaseId": { "$ref": "#/$defs/caseId" },
+            "evidenceCaseManifest": { "$ref": "#/$defs/fileIdentity" },
+            "inputCaseId": { "$ref": "#/$defs/caseId" },
+            "inputCaseManifest": { "$ref": "#/$defs/fileIdentity" }
+          }
+        },
+        "observation": {
+          "allOf": [
+            { "$ref": "#/$defs/observation" },
+            { "required": ["baselineExecutorCliSha256", "baselineExecutorBuild", "sameRunConfirmationRequired"] }
+          ]
+        },
+        "requiredProofKind": { "const": "exact-output-with-approved-semantic-correction" }
+      }
+    },
+    "notApplicable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "routeId",
+        "capabilityFingerprint",
+        "kind",
+        "ownerDecision",
+        "boardDecision",
+        "scope",
+        "binding",
+        "expectedBaseline",
+        "expectedCandidate",
+        "revisit"
+      ],
+      "properties": {
+        "routeId": { "$ref": "#/$defs/routeId" },
+        "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+        "kind": { "const": "canonical-binding-not-applicable-to-v0916" },
+        "ownerDecision": { "$ref": "#/$defs/ownerDecision" },
+        "boardDecision": { "$ref": "#/$defs/boardDecision" },
+        "scope": { "const": "this-canonical-binding-only" },
+        "binding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["evidenceCaseId", "inputCaseId", "precursorMapVariant"],
+          "properties": {
+            "evidenceCaseId": { "$ref": "#/$defs/caseId" },
+            "inputCaseId": { "$ref": "#/$defs/caseId" },
+            "precursorMapVariant": { "type": "string", "pattern": "^[a-z0-9-]+$" }
+          }
+        },
+        "expectedBaseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["precursorOutput", "rejectingStage", "issueCodes"],
+          "properties": {
+            "precursorOutput": { "$ref": "#/$defs/artifact" },
+            "rejectingStage": { "enum": ["build", "preview"] },
+            "issueCodes": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "expectedCandidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["precursorOutput", "output", "observation", "ownerConfirmation"],
+          "properties": {
+            "precursorOutput": { "$ref": "#/$defs/artifact" },
+            "output": { "$ref": "#/$defs/artifact" },
+            "observation": { "$ref": "#/$defs/observation" },
+            "ownerConfirmation": { "enum": ["required-at-the-1.1.13-milestone-run"] }
+          }
+        },
+        "revisit": { "const": "2.0.0-terminal-rebinding" }
+      }
+    }
+  }
+}

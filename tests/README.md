@@ -5,6 +5,14 @@ The scheduling snapshot below was inspected on 2026-09-06 at
 `6c8552af6b5b497065a5b24867cc0e349de03e83` (`1.1.4`). Historical timings are
 explicitly **v1.1.3**, not fresh measurements of the current UI changes.
 
+[ADR 0079](../docs/adr/0079-test-architecture.md), accepted on 2026-09-26
+(board decision 81), sets the rules for test groups, execution categories, path
+selection, coverage on pull requests, class size, splits and test stability.
+A rule that needs a selector, CI or test change applies only once its own
+admitted batch (and, for selection and coverage on pull requests, the T4b
+activation) is in force; until then the current rules apply. This README keeps
+navigation and measurements only.
+
 ## v1.1.5 local scheduling change
 
 Public `--jobs` supports 1–4 workers; the default remains three. Four is an
@@ -1377,7 +1385,7 @@ native DPI/accessibility, firmware Golden outputs, integration or release.
 
 ## Compact local-card spacing — 2026-09-10
 
-Owner reference: `C:/Users/liusx/AppData/Local/Temp/codex-clipboard-5f61e320-f77d-4e40-b612-67043d699cfd.png`
+Owner reference: `codex-clipboard-5f61e320-f77d-4e40-b612-67043d699cfd.png`
 (cropped Light/English NT51927 Master/Normal state). The shared local card's
 extra outer gap is 4 px instead of 12 px; the header, address row, direct main
 cards, lift and 320 ms transit grace stay unchanged.
@@ -1417,7 +1425,7 @@ evidence, not an integration or release pass.
 
 ## Shared input-card column — 2026-09-10
 
-Owner reference: `C:/Users/liusx/AppData/Local/Temp/codex-clipboard-9d397696-a694-44ac-9b4a-4f448bed6590.png`
+Owner reference: `codex-clipboard-9d397696-a694-44ac-9b4a-4f448bed6590.png`
 (cropped Light/English loaded CtrlRAM). Five standalone hosts now use a 32 px
 horizontal inset: CtrlRAM Base, structured Replace, Standard Merge, AB Merge,
 and Dummy DP. Their card edges match grouped CtrlRAM children; the shared card
