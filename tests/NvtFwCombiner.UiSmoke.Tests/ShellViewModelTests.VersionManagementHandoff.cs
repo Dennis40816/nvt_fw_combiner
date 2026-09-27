@@ -204,9 +204,11 @@ public sealed partial class VersionManagementSettingsTests
         Assert.Equal(1, handoff.Attempts);
     }
 
-    /// <summary>Activation admitted while ordinary Close drains upgrades the terminal choice.</summary>
-    [AvaloniaFact]
-    public async Task ActivationDuringDrainStartsLauncherBeforeFinalClose()
+    /// <summary>Activation before the terminal decision upgrades Close, including just after drain expiry.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ActivationDuringDrainStartsLauncherBeforeFinalClose(bool afterDeadline)
     {
         var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
         var handoff = new GatedWindowLifetimeHandoff();
@@ -230,16 +232,32 @@ public sealed partial class VersionManagementSettingsTests
         Assert.True(shell.Settings.IsEventBufferFormatLoading);
         TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
         window.Closed += (_, _) => _ = closed.TrySetResult();
+        var expiry = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (afterDeadline)
+        {
+            window.CloseDeadlineFactory = _ => expiry.Task;
+        }
         window.Close();
         Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
+        if (afterDeadline)
+        {
+            expiry.SetResult();
+        }
         window.RequestStableLauncherRestart();
         window.Close();
-        held.SetException(new InvalidOperationException("synthetic factory fault"));
+        if (!afterDeadline)
+        {
+            held.SetException(new InvalidOperationException("synthetic factory fault"));
+        }
         await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Assert.Equal(WindowClosePhase.HandingOff, window.ClosePhase);
         Assert.False(closed.Task.IsCompleted);
         handoff.Release(started: true);
         await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        if (afterDeadline)
+        {
+            held.SetException(new InvalidOperationException("late factory fault"));
+        }
     }
 
     /// <summary>A window result committed while a store is sealed is replayed after handoff recovery.</summary>
