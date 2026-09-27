@@ -1,6 +1,21 @@
 # G0 owner checklist: agent GitHub identity and rulesets
 
-Status: sixth version, 2026-09-27, retaining the owner-run setup
+**Pending independent review: seventh version, 2026-09-27.** This version
+proposes a change to the token helper, the `gh` wrapper, their README and the
+tests: a token carries `workflows: write` only on explicit request (A6a), and
+the wrapper passes `gh` options such as `--repo` to `gh` unchanged (A6;
+`BUG-20260927-g0-gh-wrapper-repo-option-conflict`). The first independent
+review of the proposal (G0HR, `codex/gpt-6-astra`) returned
+ACCEPT-WITH-CHANGES, and so did its re-reviews (G0HR2, G0HR3). G0HR3 closed
+F-1 (launch identity); this revision addresses the rest of F-5 by limiting the
+test runner to Pester 3.4.0, and still needs the review's acceptance. The inventory rows marked
+**pending review** describe that proposal. Do not install it, and do not
+change the App's permissions for it, until an independent review accepts it
+and the commander records the acceptance in [WS-GOV](WS-GOV.md). Until then
+the installed reviewed version stays in use; its hashes are listed under the
+inventory.
+
+Status of the reviewed baseline: sixth version, 2026-09-27, retaining the owner-run setup
 scripts of decisions 80 and 82 after they passed their fourth independent
 security review (G0SR4, ACCEPT): the App, its key, the rulesets and their
 rollback are now done with the reviewed scripts in
@@ -73,6 +88,31 @@ corrected in batch 2c (text only); this checklist adds the MSIX location require
 your verified copy outside every repository and worktree. The original
 inventory remains in source commit `c61f10e3f1bfc03b287b256dd0526588cf2f4dc9`.
 
+The seventh version proposes new bytes for four files and one new file, marked
+**pending review** in the table: `nfc-app-token-helper.ps1`
+(`-IncludeWorkflowsWrite`; the fixed permission set now comes from one
+function, and the reply check also requires `workflows: write` when it was
+requested), `Invoke-NfcGh.ps1` (accepts only a `pwsh -NoProfile -File`
+launch of itself by its fully qualified path, called directly by the
+process; passes the `gh` arguments unchanged; refuses common options naming
+another repository before requesting a token), `README.md`,
+`tests/NfcG0.Tests.ps1` and the new `tests/Invoke-NfcG0Tests.ps1`, which runs
+the suite in its own process without GitHub, Git credential or Bitwarden
+variables (the suite stops if such a variable is present, and no test saves a
+real value). The runner accepts only Pester 3.4.0, whose failure count
+includes setup, cleanup and block failures, and exits with 0 only when it ran
+at least one test and none failed (1: a test or block failed; 2: the run
+itself failed, including any other requested Pester version).
+`NfcG0.Common.ps1`, the setup scripts and the ruleset templates are
+unchanged. Through that runner, the complete G0 suite passed 64/64 with fake
+secrets on the proposal. The 42 earlier cases also pass against the installed
+version, where the new cases fail; against the G0HR2-reviewed wrapper and
+runner, the 4 cases added for G0HR2 fail (among them the same-name script that
+moves the working directory, which that wrapper let through); and against the
+G0HR3-reviewed runner, only the runner case fails, because that runner
+accepted a fake Pester 5.7.1 result with a failed cleanup block and exited
+with 0. The proposal is a local patch, not an installed or reviewed version.
+
 | File | Used in | Operator → GitHub identity | SHA-256 |
 | --- | --- | --- | --- |
 | `New-NfcGitHubApp.ps1` | A1, A2: manifest, local callback, conversion, key saved to DPAPI and Bitwarden | owner → owner | `6d9cc3b509b59d6e71bea60bc22494a6e1b003a4c1302cdbdb9dd703ab22f0d2` |
@@ -81,11 +121,24 @@ inventory remains in source commit `c61f10e3f1bfc03b287b256dd0526588cf2f4dc9`.
 | `rulesets/RS-2.json` | C1: the new trunk ruleset | (data) | `360aff370f725ea5e913bfdd1a5453ffe5d3e2a5d8f128725a0f877a563f142e` |
 | `rulesets/RS-3.json` | C1: the new release-branch ruleset | (data) | `59bca0cad48739cfdc8e635851611908ca20af780862f6b225d7ec01e47d4762` |
 | `rulesets/RS-4.json` | C1: what the tag ruleset must already be | (data) | `2896cc49e313cc14a93305e6eccdce3fe527f4255a6f8616946f11cb90968f14` |
-| `nfc-app-token-helper.ps1` | A6: an installation token for Git | agent → App, after you install it | `17fc16ba844bfcd25eba416dc742eecc2a175f1e286cff6d22912f5fc8660b82` |
-| `Invoke-NfcGh.ps1` | A6: one `gh` call with an installation token | agent → App, after you install it | `b26088a795b659f0d34f88e9bec09908a9e45f18c683cae306233dfa6b227afb` |
+| `nfc-app-token-helper.ps1` | A6, A6a: an installation token for Git; `workflows: write` only with `-IncludeWorkflowsWrite` (**pending review**) | agent → App, after you install it | `6a4c3767bce7d1e1a05c2d38ab94552501398026acb69217ed22c7c5b3074944` |
+| `Invoke-NfcGh.ps1` | A6, A6a: one `gh` call with an installation token; `gh` arguments passed unchanged (**pending review**) | agent → App, after you install it | `29c3ecb9d7fe8356a0af4ae0edfcb7e3a69522149b729dbbeb56855f2002b0d0` |
 | `NfcG0.Common.ps1` | shared functions; independently reviewed Git advisory-array correction (2026-09-27) | (loaded by the others) | `d58661852446634454e8f09b1b6acba27af0325cf58892537618f73eed0e63a4` |
-| `tests/NfcG0.Tests.ps1` | offline fake-secret tests; 42/42 passed after the compatibility correction; original G0SR4 run was 38/38 | none | `030b2433480408d4930cc40a7b3f4a5e8404a810fc3baf0075b9adb6b7c03a83` |
-| `README.md` | the scripts' own instructions | (text) | `72e19e83281b02cb081fce9fe682010c2f84ffba1f251a4ba65f490e05464e1d` |
+| `tests/NfcG0.Tests.ps1` | offline fake-secret tests; 64/64 on the proposal through the runner (**pending review**); the installed version passed 42/42; original G0SR4 run was 38/38 | none | `3a2fdad3f8591f73dd6fc35b9bd41d3d612e0b90a1f1e78498ff1a7ac7320014` |
+| `tests/Invoke-NfcG0Tests.ps1` | runs the offline tests in an isolated process with Pester 3.4.0 only; fails unless it executed a test (**pending review**, new) | none | `5cd25e943a95cfec9a210f558a282a6a54d05d951ea3166bdf8f4720f219f02b` |
+| `README.md` | the scripts' own instructions (**pending review**) | (text) | `8d1b2934c6bd770d1a0b13f395772522fa037fa6b748db7ac8e5a42ce27522dc` |
+
+The installed reviewed version (sixth version) of the four changed files; it
+has no `tests/Invoke-NfcG0Tests.ps1`. A copy for a new setup made before the
+review accepts the proposal comes from source commit `9c7ad0caa` and is
+compared with these hashes; the other files keep the hashes above.
+
+| File | Installed reviewed SHA-256 |
+| --- | --- |
+| `nfc-app-token-helper.ps1` | `17fc16ba844bfcd25eba416dc742eecc2a175f1e286cff6d22912f5fc8660b82` |
+| `Invoke-NfcGh.ps1` | `b26088a795b659f0d34f88e9bec09908a9e45f18c683cae306233dfa6b227afb` |
+| `tests/NfcG0.Tests.ps1` | `030b2433480408d4930cc40a7b3f4a5e8404a810fc3baf0075b9adb6b7c03a83` |
+| `README.md` | `72e19e83281b02cb081fce9fe682010c2f84ffba1f251a4ba65f490e05464e1d` |
 
 ## What G0 changes
 
@@ -163,6 +216,8 @@ hold, stop and tell the commander.
 | `bw create item` with an encoded secure-note item creates it and returns its ID | A2, A4 | the script's confirmation and your look at the vault (A4) |
 | Installation tokens expire after one hour; `POST /app/installations/{id}/access_tokens` accepts `repositories` and `permissions` and returns a token limited to them; `/installation/repositories` accepts only installation tokens | A6, D3a | D3a (the helper also refuses a reply that is not limited that way) |
 | `gh` uses `GH_TOKEN` from its environment before any stored login | A6, D3a | D3a |
+| A permission added to an existing App reaches its installation only after the installation's owner accepts the request; until then GitHub refuses a token request that asks for it | A6a | A6a step 5 (the wrapper call with `-IncludeWorkflowsWrite` succeeds only after your acceptance in step 4) |
+| An App token needs `workflows: write` to push, or to merge through the API, a change under `.github/workflows/`; without it GitHub refuses the write and names the `workflows` permission | A6a | the first authorized workflow write (A6a step 7) |
 | A personal repository offers "Repository admin" in a ruleset bypass list; the API form is `RepositoryRole` with `actor_id` 5 and `bypass_mode` `always`, which also permits direct and force pushes | C1, C2 | your check in C1 step 1 and the saved ruleset JSON; D6 |
 | `do_not_enforce_on_create` only exempts the required-status-checks rule when a branch is created; it skips no other rule, and the pull-request rule does not block creating a branch | RS-2, RS-3, D2 | the ruleset page's help text; D2 |
 | The UI settings of C1 have the API names given there (`dismiss_stale_reviews_on_push` and the others) | C1 | the readbacks the script saves (`after-<id>.json`) |
@@ -272,20 +327,23 @@ the script picks when it runs:
 | `pull_requests: write` | Open, update and merge pull requests, post review records and replies | No |
 | `checks: read`, `statuses: read`, `actions: read` | Read CI results, logs and artifacts | Only if agents never read CI |
 
-Not requested: `workflows` (added by you, with your approval of the new
-permission on the installation, just before the first authorized batch that
-edits `.github/workflows/`, release batch R-1), administration, secrets,
+Not requested: `workflows` (added by you in A6a, with your acceptance of the
+new permission on the installation, just before the first authorized batch
+whose pushes or merges change `.github/workflows/`: G1-A's workflow wiring,
+G2 or release batch R-1, whichever comes first), administration, secrets,
 variables, environments, deployments, issues (the bug ledger lives in the
 repository, and GitHub issue writes need separate authorization), members,
 pages and packages. The webhook is inactive and subscribes to no event. The
-helper requests exactly this permission set for every token and refuses a
-token with any other, so granting `workflows` on the installation is not
-enough for R-1: the helper's permission set needs an owner-reviewed change
-first.
+installed helper requests exactly this permission set for every token and
+refuses a token with any other, so granting `workflows` on the installation is
+not enough: the owner-reviewed helper change of A6a (pending review) must be
+installed and verified first. With it, a token still carries this set alone
+unless the helper is started with `-IncludeWorkflowsWrite`, which adds
+`workflows: write` and nothing else.
 
 Amendment, 2026-10-01 ([board decision 216](../1.2.x.md)): that change is the opt-in
-`-IncludeWorkflowsWrite` switch of the reviewed helper revision `4ac380da8` (not merged
-into this trunk). The owner enabled it on 2026-10-01 and keeps it in the Git helper
+`-IncludeWorkflowsWrite` switch of helper revision `4ac380da8`, which this trunk carries
+since the G0 landing pull request. The owner enabled it on 2026-10-01 and keeps it in the Git helper
 command until `1.2.1` is released, instead of per batch; at that release the owner
 decides whether it stays. Risk, explained to the owner before this choice: while it is on, every Git token issued for this
 repository may change `.github/workflows/`, and a pushed branch's pull-request CI runs
@@ -355,6 +413,10 @@ that branch's workflow.
       | "App conversion succeeded, but no protected key copy was confirmed" | The app exists; no stored copy of the key is confirmed | Revoke or delete the app's key (or delete the app) before starting again |
       | "App setup stopped after DPAPI save" | The DPAPI file exists (its path is in the message); Bitwarden may or may not hold the note (a timeout does not prove that none was created) | Inspect the vault. If the note is there with the key, both copies exist: continue with A3. If not, copy the DPAPI key into Bitwarden with a separately reviewed local step, or remove the DPAPI file and revoke or delete the app's key before starting again |
       | Push works inside the agent app, but an ordinary terminal cannot find the helper | MSIX virtualization may have placed the files in package-local storage while Git names the logical AppData path | Resolve the physical location; relocate the local encrypted files and backups outside AppData under owner custody, update helper/key/wrapper paths, and complete D0. For a different computer, use A9's Bitwarden restore procedure instead of copying the virtualized folder |
+- [ ] **owner → none.** The manifest never asks for `workflows`. When a
+      workflow-writing batch needs it, you add it to the existing App and
+      accept it on the installation in A6a; you do not create a new App or
+      run this script again for it.
 
 ### A3. Install it on this repository only
 
@@ -409,7 +471,13 @@ that branch's workflow.
   - It reads the DPAPI copy into memory only, signs a JSON Web Token (RS256;
     issuer = Client ID; issued 60 seconds in the past; valid for 9 minutes),
     and requests an installation token limited to this repository and to the
-    A1 permissions, refusing a reply that is not limited that way. The token
+    A1 permissions. It refuses a reply that names another or a second
+    repository, that goes beyond the requested set or that carries a
+    permission at a different level; a reply that omits a requested
+    permission is accepted (A6a failure table). The pending-review version
+    adds `workflows: write` to one token only when its command line carries
+    `-IncludeWorkflowsWrite` (A6a), and then also refuses a reply without
+    `workflows: write`. The token
     expires after one hour and is not cached on disk. Git receives
     `username=x-access-token` and the token through the credential-helper
     protocol. The helper stops when it detects a recording policy.
@@ -452,16 +520,173 @@ that branch's workflow.
       ```
 
       "Through the wrapper" below means this form. The first use is D3a.
-      PowerShell binds the wrapper's own parameters before the rest reaches
-      `gh`, so a `gh` option that it reads as one of them or as a common
-      parameter never reaches `gh`: `-R`/`--repo`, `--owner`, `-c`, `-d`,
-      `-i`, `-o` and `-r` (in either case) are refused as duplicates, `-e`,
-      `-p` and `-w` as ambiguous, and `-v`, `--verbose` and `--debug` are
-      dropped silently. Use long options that match none of them, as this
+
+      **Installed reviewed (sixth) version.** PowerShell binds the wrapper's
+      own parameters before the rest reaches `gh`, so a `gh` option that it
+      reads as one of them or as a common parameter never reaches `gh`:
+      `-R`/`--repo`, `--owner`, `-c`, `-d`, `-i`, `-o` and `-r` (in either
+      case) are refused as duplicates, `-e`, `-p` and `-w` as ambiguous, and
+      `-v`, `--verbose` and `--debug` are dropped silently. It also splits an
+      argument that begins with `-` and contains `:` (for example
+      `--head=<owner>:<branch>` reaches `gh` as two arguments), and it does
+      not accept `--`. Use long options that match none of them, as this
       checklist does (`--json`, `--jq`, `--base`, `--head`, `--title`,
-      `--body`, `--merge`, `--match-head-commit`); `gh` finds the repository
-      from the working directory. (Observed locally with the wrapper's
-      parameter block on PowerShell 7.6, without GitHub.)
+      `--body`, `--merge`, `--match-head-commit`), with their values as
+      separate arguments; `gh` finds the repository from the working
+      directory. (Observed locally with the wrapper's parameter block on
+      PowerShell 7.6, without GitHub.)
+
+      **Pending-review (seventh) version.** The wrapper has no PowerShell
+      parameter block; it reads its own process command line. It requires
+      `-NoProfile`, accepts only `-NonInteractive` and `-NoLogo` besides it,
+      and the first execution mode must be `-File` with the fully qualified
+      path of the wrapper itself (as in the form above, once your shell has
+      expanded `$env:USERPROFILE`), so neither a profile nor the working
+      directory takes part. It also requires that the process invoked the
+      wrapper directly, with no other script, profile or command on its call
+      stack. `-Command`, another script (including one with the same name that
+      changes the working directory), a relative `-File` path, a missing
+      `-NoProfile`, any other start-up option (for example `-ExecutionPolicy`),
+      dot-sourcing or a call with `&` stops it with exit code 64 before the
+      helper runs; it never searches later arguments for another `-File`. It
+      then reads its own
+      options up to `--`, or up to the first argument that does not begin
+      with `-`, and passes every later argument to `gh` exactly as given. The
+      form above therefore keeps working, and so do the calls already made
+      through the wrapper (`pr create` without `--repo`, `api graphql -f ...`,
+      `pr merge <n> --merge --match-head-commit <sha>`); the offline tests run
+      each of them. Every `gh` option listed for the installed version, and
+      arguments such as `--head=<owner>:<branch>`, now reach `gh` unchanged.
+      Put `--` between the wrapper options and `<gh arguments>` when these
+      begin with an option. Wrapper options come first: an option placed
+      after the `gh` arguments goes to `gh`. It also stops, with exit code 64,
+      on a missing, repeated, unknown or malformed wrapper option.
+
+      Before requesting a token, the wrapper refuses common repository
+      options early: it stops, with exit code 64 and a message naming
+      `<owner>/<repo>`, when `--repo`/`-R` or `GH_REPO` names anything other
+      than exactly `<owner>/<repo>`, or when a group of short options
+      contains `-R`. Omit `--repo` or pass exactly `--repo <owner>/<repo>`,
+      and pass a value that begins with `-R` as `--option=<value>`. This
+      early refusal is not a limit on what `gh` does. It does not inspect
+      `gh api repos/<other>/...` paths, GraphQL queries, `gh repo` positional
+      repository arguments or the repository `gh` derives from the working
+      directory; `GH_HOST` or any other API host or URL selection; or `gh`
+      aliases, extensions, child processes and whichever `pwsh` or `gh`
+      executable `PATH` selects. The installation token authorizes this one
+      repository only, but that does not prove that each request targets it,
+      and a request to another host may use a different login: the wrapper
+      does not technically guarantee the App identity or the destination
+      host of a call. **owner → none:** keep the wrapper's operating
+      conditions: a trusted `pwsh` and `gh` installation, GitHub.com only (no
+      `GH_HOST` or enterprise host in the agents' environment), no untrusted
+      `gh` alias or extension, and only commands the board authorizes.
+
+### A6a. New helper and wrapper version, and the `workflows` permission (pending review)
+
+This part uses the pending-review (seventh) version of the helper and the
+wrapper. None of it starts before an independent review accepts that version
+and the commander records the acceptance in WS-GOV. Steps 1 and 2 install and
+verify the new version as soon as it is accepted; steps 3 to 8 follow only
+just before the first authorized batch whose pushes or merges change
+`.github/workflows/` (A1). The App permission is the outer limit and the
+helper switch the inner one: a token carries `workflows: write` only when the
+App has the permission, the installation has accepted it and the helper was
+started with `-IncludeWorkflowsWrite`.
+
+1. **owner → none.** In your own terminal, keep a private copy of the four
+   installed files that change (helper, wrapper, README, tests) outside every
+   repository and AppData tree, for example in
+   `%USERPROFILE%\.nfc\G0\scripts-sixth`. Copy the four accepted changed
+   files and the new `tests/Invoke-NfcG0Tests.ps1` from the reviewed source
+   commit into `%USERPROFILE%\.nfc\G0\scripts` and compare every file in
+   that folder with the inventory (`Get-FileHash -Algorithm SHA256 <file>`);
+   stop on any difference. `NfcG0.Common.ps1` and the Git helper entry of A6
+   stay as they are.
+2. **agent → App**, checked by **owner → none.** Verify the new version,
+   still without `workflows`:
+   - through the wrapper, `api /installation/repositories --jq '.repositories[].full_name'`
+     succeeds and lists only `<owner>/<repo>`;
+   - through the wrapper, `pr list --repo <owner>/<repo> --limit 1` succeeds
+     (the form the installed version refused), and
+     `pr list --repo <owner>/<another-repo> --limit 1` stops with exit code 64
+     and a message naming `<owner>/<repo>`, before any token is requested;
+   - Git, from an ordinary terminal as in D0:
+     `git push --dry-run origin HEAD:refs/heads/<disposable-ref>` authenticates
+     through the helper and creates nothing.
+3. **owner → owner.** Just before the first workflow-writing batch, add the
+   permission to the App in the browser: Settings, Developer settings, GitHub
+   Apps, `<app-slug>`, **Edit**; under **Permissions & events**, **Repository
+   permissions**, set **Workflows** to **Read and write**, change nothing
+   else, and save. Check that the other repository permissions still equal
+   A1.
+4. **owner → owner.** Accept the change on the installation: Settings,
+   Applications, **Installed GitHub Apps**, `<app-slug>`, **Configure** (the
+   installation page `.../settings/installations/<installation-id>`). GitHub
+   shows that the app requests updated permissions: open the request, check
+   that it adds only **Workflows** (read and write), and accept it. Check
+   that **Only select repositories** still lists this repository alone. These
+   labels come from GitHub's documentation; if the page differs, follow its
+   wording, and stop if the request lists any other permission.
+5. **agent → App.** Verify the switch: through the wrapper with
+   `-IncludeWorkflowsWrite` among its options,
+   `api /installation/repositories --jq '.repositories[].full_name'` succeeds
+   and lists only `<owner>/<repo>`. The helper returns a token only when the
+   reply stays within the requested set, carries no permission at a different
+   level and includes `workflows: write`, so this success shows the
+   `workflows` grant without showing the token. (A reply that omits another
+   requested permission is accepted, as in the installed version; see the
+   table below.) Without the switch the same call still succeeds with the
+   ordinary set.
+6. **owner → none.** Git: for the window of the authorized batch only, replace
+   the App helper entry with one that carries the switch (the empty first
+   entry stays; `<helper command>` is the A6 command):
+
+   ```text
+   git config --local --replace-all credential.https://github.com.helper ""
+   git config --local --add credential.https://github.com.helper "!<helper command> -IncludeWorkflowsWrite"
+   ```
+
+   Check with `git config --local --get-all credential.https://github.com.helper`.
+   The `--local` setting is shared by every worktree of this repository, so
+   in this window every Git call from any worktree, not only the batch's
+   pushes, receives a token with `workflows: write`; the commander keeps
+   other Git writes out of the window or accepts that. When the batch's
+   workflow pushes are finished, put the A6 entry back the same way without
+   the switch and check again. Removing the switch affects only tokens issued
+   afterwards: it revokes none already issued, and each keeps
+   `workflows: write` until it expires (at most one hour). If a token must
+   stop working before then, suspend the installation (A4). The commander
+   records the times the switch was added and removed in WS-GOV. Agents
+   never change this entry.
+7. **agent → App.** Only in the authorized batch, a `gh` call that writes a
+   change under `.github/workflows/`, such as merging a pull request that
+   contains one, carries `-IncludeWorkflowsWrite` among the wrapper options;
+   no other call does. The first such push and merge, with GitHub's result,
+   are recorded in WS-GOV.
+8. **owner → owner**, optional. After the batch you may set **Workflows** back
+   to **No access** on the App and check on the installation page that it is
+   gone; before the next workflow-writing batch, repeat steps 3 to 6.
+
+| Message or symptom | State | What you do |
+| --- | --- | --- |
+| A hash differs in step 1 | Wrong or changed copy; nothing was run | Stop. Copy the files again from the reviewed source commit |
+| "NFC gh wrapper failed" or "NFC token helper failed" in step 2 | The new version or its configuration does not work; nothing was written | Put the private copy of step 1 back, compare it with the installed reviewed hashes, and tell the commander |
+| "NFC gh wrapper usage error: ... limited to `<owner>/<repo>`" (exit code 64) | A `--repo`/`-R` value or `GH_REPO` named another repository; no token was requested | Omit `--repo` or pass exactly `--repo <owner>/<repo>`; unset `GH_REPO` or set it to exactly `<owner>/<repo>` |
+| "NFC gh wrapper usage error: Start the wrapper as its own process" | The wrapper was dot-sourced, called with `&`, started through `-Command` or from another script, started without `-NoProfile` or with another PowerShell option before `-File` (only `-NonInteractive` and `-NoLogo` are allowed), started through a relative `-File` path, or started through a path it cannot match to itself (a link is not supported); no token was requested | Run it as `pwsh -NoProfile -File "<script folder>/Invoke-NfcGh.ps1" ...` with its real, fully qualified path |
+| "NFC gh wrapper usage error: Unknown wrapper option ...", "... is required", "... needs a value" or "... more than once" | A wrapper option is missing, mistyped or repeated, or a `gh` option came before the `gh` arguments without `--` | Correct the wrapper options; put `--` before `gh` arguments that begin with an option |
+| `gh` reports an unknown flag `-IncludeWorkflowsWrite` | The installed wrapper is the old version, which passes the switch to `gh` | Complete step 1 first |
+| Git asks for credentials or reports failed authentication after step 6 | The installed helper is the old version, which takes the switch as an unknown Git action and answers nothing | Put the A6 entry back without the switch, then complete step 1 |
+| Step 5 fails with "NFC gh wrapper failed" | The installation has not accepted `workflows`, so GitHub refuses the token request; or the old helper is installed | Check steps 3 and 4 and the hashes; nothing was written |
+| A push or merge is refused and GitHub's message names the `workflows` permission | The token did not carry `workflows: write`: the Git entry lacks the switch (step 6), the wrapper call lacks it (step 7), or the App or the installation lacks the permission | Inside the authorized batch, correct that step; outside one, the refusal is intended |
+| A call that needs one of the other A1 permissions (for example reading CI results with `actions: read`) fails with a GitHub permission error, although the token was issued | The App or the installation lacks that permission. The helper accepts a reply that omits a requested permission, never one that adds a permission or changes its level (the installed version behaves the same) | Compare the App's repository permissions and the installation's accepted permissions with A1, restore the missing one yourself, and accept it on the installation |
+| A `gh` call reaches another repository or host despite the early refusal (for example `gh api repos/<other>/...` or `GH_HOST` set) | The early refusal covers only `--repo`, `-R` and `GH_REPO`; the token itself authorizes only `<owner>/<repo>` | Stop the batch and tell the commander; keep the operating conditions of A6 (GitHub.com only, no untrusted alias or extension, authorized commands) |
+
+Rollback: put the private copy of step 1 back, remove
+`tests/Invoke-NfcG0Tests.ps1`, and compare the files with the installed
+reviewed hashes; put the A6 Git entry back without the switch;
+optionally set **Workflows** to **No access** on the App. The installed
+sixth version then works as before, including its `gh` option limits (A6).
 
 ### A7. Agent commit identity
 

@@ -5,6 +5,105 @@ function Test-NfcThrows {
     try { $null = & $Action; return $false } catch { return $true }
 }
 
+function Get-NfcThrownMessage {
+    param([scriptblock]$Action)
+    try { $null = & $Action; return $null } catch { return $_.Exception.Message }
+}
+
+# GitHub host, repository and credential variables, Git credential prompts and Bitwarden sessions.
+function Test-NfcCredentialVariableName {
+    param([string]$Name)
+    return ($Name -match '^(GH_|GITHUB_|GCM_|BW_|GIT_CONFIG_)' -or $Name -in @('GIT_ASKPASS', 'SSH_ASKPASS', 'GIT_TERMINAL_PROMPT'))
+}
+
+# The suite runs only in its own process without such variables (tests/Invoke-NfcG0Tests.ps1), so no
+# test reads, saves or restores a real value. Only the names are reported.
+$nfcCredentialNames = @(Get-ChildItem Env: | Where-Object { Test-NfcCredentialVariableName $_.Name } | ForEach-Object Name)
+if ($nfcCredentialNames.Count -gt 0) {
+    throw "Run the G0 tests with tests/Invoke-NfcG0Tests.ps1; this process has: $($nfcCredentialNames -join ', ')"
+}
+
+# Every child process gets the same cleaned environment plus the fake values of its test.
+function Invoke-NfcTestProcess {
+    param([Parameter(Mandatory)][AllowEmptyString()][string[]]$Arguments, [hashtable]$Environment = @{}, [string]$StandardInput = '',
+          [string]$WorkingDirectory = '')
+    $psi = [Diagnostics.ProcessStartInfo]::new()
+    $psi.FileName = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
+    $psi.UseShellExecute = $false
+    if ($WorkingDirectory) { $psi.WorkingDirectory = $WorkingDirectory }
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    foreach ($name in @($psi.Environment.Keys)) {
+        if (Test-NfcCredentialVariableName $name) { [void]$psi.Environment.Remove($name) }
+    }
+    foreach ($key in $Environment.Keys) { $psi.Environment[$key] = $Environment[$key] }
+    foreach ($arg in $Arguments) { [void]$psi.ArgumentList.Add($arg) }
+    $proc = [Diagnostics.Process]::Start($psi)
+    try {
+        $proc.StandardInput.Write($StandardInput)
+        $proc.StandardInput.Close()
+        $outTask = $proc.StandardOutput.ReadToEndAsync()
+        $errTask = $proc.StandardError.ReadToEndAsync()
+        $proc.WaitForExit()
+        return @{ ExitCode = $proc.ExitCode; Output = $outTask.GetAwaiter().GetResult()
+            Error = $errTask.GetAwaiter().GetResult() }
+    } finally { $proc.Dispose() }
+}
+
+# A fake gh.exe that records each argument it received (CommandLineToArgvW, UTF-8, base64 per line)
+# in NFC_TEST_GH_ARGV and prints GH_TOKEN on stdout and stderr.
+function New-NfcFakeGh {
+    param([Parameter(Mandatory)][string]$Directory)
+    $exe = Join-Path $Directory 'gh.exe'
+    if (Test-Path -LiteralPath $exe) { return $exe }
+    $null = New-Item -ItemType Directory -Force -Path $Directory
+    $source = @'
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+
+static class FakeGh {
+    [DllImport("shell32.dll", SetLastError = true)]
+    static extern IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)] string commandLine, out int count);
+    [DllImport("kernel32.dll")]
+    static extern IntPtr LocalFree(IntPtr memory);
+
+    static int Main() {
+        int count;
+        IntPtr argv = CommandLineToArgvW(Environment.CommandLine, out count);
+        StringBuilder lines = new StringBuilder();
+        for (int i = 1; i < count; i++) {
+            string arg = Marshal.PtrToStringUni(Marshal.ReadIntPtr(argv, i * IntPtr.Size));
+            lines.Append(Convert.ToBase64String(Encoding.UTF8.GetBytes(arg))).Append('\n');
+        }
+        LocalFree(argv);
+        File.WriteAllText(Environment.GetEnvironmentVariable("NFC_TEST_GH_ARGV"), lines.ToString());
+        string token = Environment.GetEnvironmentVariable("GH_TOKEN") ?? "";
+        Console.Out.Write("gh-token=" + token + "\n");
+        Console.Error.Write("gh-token=" + token + "\n");
+        return 0;
+    }
+}
+'@
+    [IO.File]::WriteAllText((Join-Path $Directory 'FakeGh.cs'), $source)
+    $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+    $output = & $csc /nologo /target:exe "/out:$exe" (Join-Path $Directory 'FakeGh.cs') 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "The fake gh receiver did not compile: $output" }
+    return $exe
+}
+
+function Read-NfcFakeGhArguments {
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    $values = [Collections.Generic.List[string]]::new()
+    foreach ($line in @([IO.File]::ReadAllText($Path) -split "`n" | Select-Object -SkipLast 1)) {
+        $values.Add([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($line)))
+    }
+    return , $values.ToArray()
+}
+
 Describe 'NFC G0 pure functions' {
     It 'creates the exact manifest permission set and inactive webhook' {
         $m = New-NfcManifest -Owner 'example-owner' -Repo 'example-repo' -AppName 'nfc-agent-example' -Port 49152
@@ -530,79 +629,40 @@ Describe 'NFC G0 process isolation with fake secrets' {
         } finally { Pop-Location }
     }
 
-    It 'keeps the fake helper token out of wrapper stdout, stderr, and the parent environment' {
+    It 'keeps the fake helper token out of wrapper output and gives gh only that token' {
         $wrapper = Join-Path $TestDrive 'Invoke-NfcGh.ps1'
         Copy-Item "$PSScriptRoot/../Invoke-NfcGh.ps1" $wrapper
         $helper = Join-Path $TestDrive 'nfc-app-token-helper.ps1'
         Set-Content -LiteralPath $helper -Value "[Console]::Out.Write('FAKE_TOKEN_12345'); [Console]::Error.Write('FAKE_TOKEN_12345')"
-        Copy-Item $env:ComSpec (Join-Path $TestDrive 'gh.exe')
-        $oldPath = $env:PATH
-        $oldGhToken = $env:GH_TOKEN
-        try {
-            $env:PATH = "$TestDrive;$oldPath"
-            $env:GH_TOKEN = 'parent-token'
-            $psi = [Diagnostics.ProcessStartInfo]::new()
-            $psi.FileName = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
-            $psi.UseShellExecute = $false
-            $psi.RedirectStandardOutput = $true
-            $psi.RedirectStandardError = $true
-            foreach ($arg in @('-NoProfile', '-File', $wrapper, '-Owner', 'owner', '-Repo', 'repo',
-                '-ClientId', 'Iv1.fake', '-InstallationId', '1', '-DpapiPath', 'unused',
-                '/d', '/c', 'echo', '%GH_TOKEN%')) { [void]$psi.ArgumentList.Add($arg) }
-            $proc = [Diagnostics.Process]::Start($psi)
-            try {
-                $outTask = $proc.StandardOutput.ReadToEndAsync()
-                $errTask = $proc.StandardError.ReadToEndAsync()
-                $proc.WaitForExit()
-                $output = $outTask.GetAwaiter().GetResult() + $errTask.GetAwaiter().GetResult()
-                if ($proc.ExitCode -ne 0) { throw "Fake wrapper failed: $($output.Replace('FAKE_TOKEN_12345', '[redacted]'))" }
-                $proc.ExitCode | Should Be 0
-                $output.Contains('FAKE_TOKEN_12345') | Should Be $false
-                $output | Should Match '\[redacted\]'
-                $env:GH_TOKEN | Should Be 'parent-token'
-            } finally { $proc.Dispose() }
+        $null = New-NfcFakeGh -Directory (Join-Path $TestDrive 'bin')
+        $environment = @{ PATH = (Join-Path $TestDrive 'bin') + ';' + $env:PATH; GH_TOKEN = 'FAKE_CALLER_TOKEN'
+            GH_CONFIG_DIR = (Join-Path $TestDrive 'gh-config'); NFC_TEST_GH_ARGV = (Join-Path $TestDrive 'gh-argv.txt') }
+        $arguments = @('-NoProfile', '-File', $wrapper, '-Owner', 'owner', '-Repo', 'repo',
+            '-ClientId', 'Iv1.fake', '-InstallationId', '1', '-DpapiPath', 'unused', 'api', 'user')
+        $result = Invoke-NfcTestProcess -Arguments $arguments -Environment $environment
+        $output = $result.Output + $result.Error
+        if ($result.ExitCode -ne 0) { throw "Fake wrapper failed: $($output.Replace('FAKE_TOKEN_12345', '[redacted]'))" }
+        $output.Contains('FAKE_TOKEN_12345') | Should Be $false
+        $output.Contains('FAKE_CALLER_TOKEN') | Should Be $false
+        $result.Output | Should Match '(?m)^gh-token=\[redacted\]$'
+        $result.Error | Should Match '(?m)^gh-token=\[redacted\]$'
 
-            Set-Content -LiteralPath $helper -Value "[Console]::Error.Write('FAKE_PEM FAKE_JWT FAKE_CONVERSION_SECRET FAKE_TOKEN_12345'); exit 1"
-            $proc = [Diagnostics.Process]::Start($psi)
-            try {
-                $outTask = $proc.StandardOutput.ReadToEndAsync()
-                $errTask = $proc.StandardError.ReadToEndAsync()
-                $proc.WaitForExit()
-                $failureOutput = $outTask.GetAwaiter().GetResult() + $errTask.GetAwaiter().GetResult()
-                $proc.ExitCode | Should Be 1
-                foreach ($fakeSecret in @('FAKE_PEM', 'FAKE_JWT', 'FAKE_CONVERSION_SECRET', 'FAKE_TOKEN_12345')) {
-                    $failureOutput.Contains($fakeSecret) | Should Be $false
-                }
-            } finally { $proc.Dispose() }
-        } finally {
-            $env:PATH = $oldPath
-            $env:GH_TOKEN = $oldGhToken
+        Set-Content -LiteralPath $helper -Value "[Console]::Error.Write('FAKE_PEM FAKE_JWT FAKE_CONVERSION_SECRET FAKE_TOKEN_12345'); exit 1"
+        $result = Invoke-NfcTestProcess -Arguments $arguments -Environment $environment
+        $result.ExitCode | Should Be 1
+        foreach ($fakeSecret in @('FAKE_PEM', 'FAKE_JWT', 'FAKE_CONVERSION_SECRET', 'FAKE_TOKEN_12345')) {
+            ($result.Output + $result.Error).Contains($fakeSecret) | Should Be $false
         }
     }
 
     It 'ignores a Git credential request without a repo path before reading the fake store' {
-        $psi = [Diagnostics.ProcessStartInfo]::new()
-        $psi.FileName = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
-        $psi.UseShellExecute = $false
-        $psi.RedirectStandardInput = $true
-        $psi.RedirectStandardOutput = $true
-        $psi.RedirectStandardError = $true
-        foreach ($arg in @('-NoProfile', '-File', "$PSScriptRoot/../nfc-app-token-helper.ps1",
+        $result = Invoke-NfcTestProcess -Arguments @('-NoProfile', '-File', "$PSScriptRoot/../nfc-app-token-helper.ps1",
             '-Mode', 'git', '-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake',
-            '-InstallationId', '1', '-DpapiPath', (Join-Path $TestDrive 'nonexistent.dpapi'), 'get')) {
-            [void]$psi.ArgumentList.Add($arg)
-        }
-        $proc = [Diagnostics.Process]::Start($psi)
-        try {
-            $proc.StandardInput.Write("capability[]=authtype`ncapability[]=state`nprotocol=https`nhost=github.com`nwwwauth[]=Basic realm=GitHub`n`n")
-            $proc.StandardInput.Close()
-            $outTask = $proc.StandardOutput.ReadToEndAsync()
-            $errTask = $proc.StandardError.ReadToEndAsync()
-            $proc.WaitForExit()
-            $proc.ExitCode | Should Be 0
-            $outTask.GetAwaiter().GetResult() | Should Be ''
-            $errTask.GetAwaiter().GetResult() | Should Be ''
-        } finally { $proc.Dispose() }
+            '-InstallationId', '1', '-DpapiPath', (Join-Path $TestDrive 'nonexistent.dpapi'), 'get') `
+            -StandardInput "capability[]=authtype`ncapability[]=state`nprotocol=https`nhost=github.com`nwwwauth[]=Basic realm=GitHub`n`n"
+        $result.ExitCode | Should Be 0
+        $result.Output | Should Be ''
+        $result.Error | Should Be ''
     }
 }
 
@@ -636,7 +696,6 @@ function Invoke-NfcMockSetup {
     $global:NfcDpapiCalls = 0
     $global:NfcBwCalls = 0
     $global:NfcConversionCalls = 0
-    $oldSession = $env:BW_SESSION
     $env:BW_SESSION = 'FAKE_SESSION_ONLY'
     function global:Read-Host { param($Prompt) return 'YES' }
     function global:Start-Process {
@@ -666,7 +725,7 @@ function Invoke-NfcMockSetup {
     } catch {
         return @{ output = ($captured -join "`n"); error = $_.Exception.Message }
     } finally {
-        $env:BW_SESSION = $oldSession
+        Remove-Item Env:\BW_SESSION -ErrorAction SilentlyContinue
         Remove-Item Function:\Read-Host -ErrorAction SilentlyContinue
         Remove-Item Function:\Start-Process -ErrorAction SilentlyContinue
         Remove-Item Function:\Invoke-RestMethod -ErrorAction SilentlyContinue
@@ -684,30 +743,13 @@ Describe 'NFC G0 helper recording stop with a fake secret source' {
         [IO.File]::WriteAllText((Join-Path $TestDrive 'nfc-app-token-helper.ps1'), $source)
         [IO.File]::WriteAllText((Join-Path $TestDrive 'NfcG0.Common.ps1'), 'function Assert-NfcRuntime { }' + "`n" + 'function Test-NfcRecordingPolicy { return $true }')
         $marker = Join-Path $TestDrive 'source-called.txt'
-        $oldMarker = $env:NFC_TEST_MARKER
-        try {
-            $env:NFC_TEST_MARKER = $marker
-            $psi = [Diagnostics.ProcessStartInfo]::new()
-            $psi.FileName = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
-            $psi.UseShellExecute = $false
-            $psi.RedirectStandardOutput = $true
-            $psi.RedirectStandardError = $true
-            foreach ($arg in @('-NoProfile', '-File', (Join-Path $TestDrive 'nfc-app-token-helper.ps1'),
-                '-Mode', 'token', '-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake',
-                '-InstallationId', '1', '-DpapiPath', (Join-Path $TestDrive 'fake.dpapi'))) {
-                [void]$psi.ArgumentList.Add($arg)
-            }
-            $proc = [Diagnostics.Process]::Start($psi)
-            try {
-                $outTask = $proc.StandardOutput.ReadToEndAsync()
-                $errTask = $proc.StandardError.ReadToEndAsync()
-                $proc.WaitForExit()
-                $proc.ExitCode | Should Be 1
-                (Test-Path -LiteralPath $marker) | Should Be $false
-                $outTask.GetAwaiter().GetResult() | Should Be ''
-                $errTask.GetAwaiter().GetResult().Contains('FAKE_TOKEN') | Should Be $false
-            } finally { $proc.Dispose() }
-        } finally { $env:NFC_TEST_MARKER = $oldMarker }
+        $result = Invoke-NfcTestProcess -Environment @{ NFC_TEST_MARKER = $marker } -Arguments @('-NoProfile', '-File',
+            (Join-Path $TestDrive 'nfc-app-token-helper.ps1'), '-Mode', 'token', '-Owner', 'owner', '-Repo', 'repo',
+            '-ClientId', 'Iv1.fake', '-InstallationId', '1', '-DpapiPath', (Join-Path $TestDrive 'fake.dpapi'))
+        $result.ExitCode | Should Be 1
+        (Test-Path -LiteralPath $marker) | Should Be $false
+        $result.Output | Should Be ''
+        $result.Error.Contains('FAKE_TOKEN') | Should Be $false
     }
 }
 
@@ -789,5 +831,532 @@ Describe 'NFC G0 Bitwarden process deadlines with a fake CLI' {
             )) -join "`r`n"), [Text.Encoding]::ASCII)
             (Test-NfcThrows { Invoke-NfcBitwarden -Arguments @('status') -TimeoutSeconds 1 }) | Should Be $true
         } finally { $env:PATH = $oldPath }
+    }
+}
+
+function New-NfcFakeTokenReply {
+    param([hashtable]$Permissions, [string[]]$FullNames = @('owner/repo'), [string]$Token = 'FAKE_INSTALLATION_TOKEN')
+    $reply = @{ token = $Token; expires_at = '2026-09-27T01:00:00Z'; permissions = $Permissions
+        repositories = @($FullNames | ForEach-Object { @{ full_name = $_ } }) }
+    return ($reply | ConvertTo-Json -Depth 5 | ConvertFrom-Json)
+}
+
+Describe 'NFC G0 token permission set' {
+    BeforeAll {
+        $source = Get-Content -LiteralPath "$PSScriptRoot/../nfc-app-token-helper.ps1" -Raw
+        $tokens = $null; $errors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseInput($source, [ref]$tokens, [ref]$errors)
+        foreach ($definition in $ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+            $node.Name -in @('New-NfcTokenPermissionSet', 'Request-NfcInstallationToken') }, $true)) {
+            . ([scriptblock]::Create($definition.Extent.Text))
+        }
+    }
+
+    It 'requests the A1 manifest set without workflows by default' {
+        $default = New-NfcTokenPermissionSet
+        (($default.Keys | Sort-Object) -join ',') | Should BeExactly 'actions,checks,contents,metadata,pull_requests,statuses'
+        $manifest = New-NfcManifest -Owner 'example-owner' -Repo 'example-repo' -AppName 'nfc-agent-example' -Port 49152
+        $default.Count | Should Be $manifest.default_permissions.Count
+        foreach ($key in $manifest.default_permissions.Keys) {
+            ($default[$key] -ceq $manifest.default_permissions[$key]) | Should Be $true
+        }
+        $default.ContainsKey('workflows') | Should Be $false
+        (New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$false).ContainsKey('workflows') | Should Be $false
+    }
+
+    It 'adds only workflows write when explicitly asked and never carries it into a later default' {
+        $with = New-NfcTokenPermissionSet -IncludeWorkflowsWrite
+        $default = New-NfcTokenPermissionSet
+        $with.Count | Should Be ($default.Count + 1)
+        ($with['workflows'] -ceq 'write') | Should Be $true
+        foreach ($key in $default.Keys) { ($with[$key] -ceq $default[$key]) | Should Be $true }
+        $with['contents'] = 'admin'
+        (New-NfcTokenPermissionSet).ContainsKey('workflows') | Should Be $false
+        ((New-NfcTokenPermissionSet)['contents'] -ceq 'write') | Should Be $true
+    }
+
+    It 'builds every token request from the one permission function' {
+        $source = Get-Content -LiteralPath "$PSScriptRoot/../nfc-app-token-helper.ps1" -Raw
+        $tokens = $null; $errors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseInput($source, [ref]$tokens, [ref]$errors)
+        $sets = @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.HashtableAst] -and
+            @($node.KeyValuePairs | Where-Object { $_.Item1.Extent.Text -eq 'contents' }).Count -gt 0 }, $true))
+        $sets.Count | Should Be 1
+        $parent = $sets[0].Parent
+        while ($parent -isnot [Management.Automation.Language.FunctionDefinitionAst]) { $parent = $parent.Parent }
+        $parent.Name | Should Be 'New-NfcTokenPermissionSet'
+        $get = $ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+            $node.Name -eq 'Get-NfcInstallationToken' }, $true)[0]
+        $calls = @($get.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] -and
+            $node.GetCommandName() -eq 'New-NfcTokenPermissionSet' }, $true))
+        $calls.Count | Should Be 1
+        $calls[0].Extent.Text | Should BeExactly 'New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$IncludeWorkflowsWrite'
+    }
+
+    It 'sends a fake request limited to one repository with exactly the chosen permissions' {
+        Mock Invoke-RestMethod {
+            $global:NfcTokenRequests.Add(@{ Uri = "$Uri"; Method = "$Method"; Body = $Body; Redirect = $MaximumRedirection })
+            return $global:NfcFakeReply
+        }
+        foreach ($include in @($false, $true)) {
+            $global:NfcTokenRequests = [Collections.Generic.List[object]]::new()
+            $permissions = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$include
+            $global:NfcFakeReply = New-NfcFakeTokenReply -Permissions $permissions
+            $token = Request-NfcInstallationToken -Owner owner -Repo repo -InstallationId 7 -Jwt 'FAKE.JWT.VALUE' -Permissions $permissions
+            $token | Should BeExactly 'FAKE_INSTALLATION_TOKEN'
+            $global:NfcTokenRequests.Count | Should Be 1
+            $request = $global:NfcTokenRequests[0]
+            $request.Uri | Should BeExactly 'https://api.github.com/app/installations/7/access_tokens'
+            $request.Method | Should Be 'Post'
+            $request.Redirect | Should Be 0
+            $body = $request.Body | ConvertFrom-Json -AsHashtable
+            (($body.Keys | Sort-Object) -join ',') | Should BeExactly 'permissions,repositories'
+            (@($body.repositories) -join ',') | Should BeExactly 'repo'
+            $expected = 'actions=read,checks=read,contents=write,metadata=read,pull_requests=write,statuses=read'
+            if ($include) { $expected += ',workflows=write' }
+            ((@($body.permissions.Keys | Sort-Object) | ForEach-Object { "$_=$($body.permissions[$_])" }) -join ',') | Should BeExactly $expected
+        }
+    }
+
+    It 'rejects fake replies that widen, narrow or leave the requested scope' {
+        $default = New-NfcTokenPermissionSet
+        $with = New-NfcTokenPermissionSet -IncludeWorkflowsWrite
+        $workflowsRead = New-NfcTokenPermissionSet -IncludeWorkflowsWrite
+        $workflowsRead['workflows'] = 'read'
+        $contentsAdmin = New-NfcTokenPermissionSet
+        $contentsAdmin['contents'] = 'admin'
+        $cases = @(
+            @{ Requested = $default; Reply = (New-NfcFakeTokenReply -Permissions $with) },
+            @{ Requested = $with; Reply = (New-NfcFakeTokenReply -Permissions $default) },
+            @{ Requested = $with; Reply = (New-NfcFakeTokenReply -Permissions $workflowsRead) },
+            @{ Requested = $default; Reply = (New-NfcFakeTokenReply -Permissions $contentsAdmin) },
+            @{ Requested = $with; Reply = (New-NfcFakeTokenReply -Permissions $with -FullNames @('owner/other')) },
+            @{ Requested = $with; Reply = (New-NfcFakeTokenReply -Permissions $with -FullNames @('Owner/Repo')) },
+            @{ Requested = $with; Reply = (New-NfcFakeTokenReply -Permissions $with -FullNames @('owner/repo', 'owner/other')) },
+            @{ Requested = $with; Reply = (New-NfcFakeTokenReply -Permissions $with -Token '') }
+        )
+        Mock Invoke-RestMethod { return $global:NfcFakeReply }
+        foreach ($case in $cases) {
+            $global:NfcFakeReply = $case.Reply
+            (Test-NfcThrows { Request-NfcInstallationToken -Owner owner -Repo repo -InstallationId 7 -Jwt 'FAKE.JWT.VALUE' -Permissions $case.Requested }) | Should Be $true
+        }
+        foreach ($requested in @($default, $with)) {
+            $global:NfcFakeReply = New-NfcFakeTokenReply -Permissions $requested
+            (Request-NfcInstallationToken -Owner owner -Repo repo -InstallationId 7 -Jwt 'FAKE.JWT.VALUE' -Permissions $requested) | Should BeExactly 'FAKE_INSTALLATION_TOKEN'
+        }
+    }
+
+    It 'accepts a fake reply that omits a requested base permission, as the reviewed version did' {
+        # Established handling: the reply may be narrower than the request, never wider or at another level;
+        # only a requested workflows permission must be present. A missing base permission makes the call
+        # that needs it fail at GitHub, and the owner compares the App's permissions with A1.
+        Mock Invoke-RestMethod { return $global:NfcFakeReply }
+        foreach ($include in @($false, $true)) {
+            $requested = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$include
+            $narrower = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$include
+            $narrower.Remove('actions')
+            $global:NfcFakeReply = New-NfcFakeTokenReply -Permissions $narrower
+            (Request-NfcInstallationToken -Owner owner -Repo repo -InstallationId 7 -Jwt 'FAKE.JWT.VALUE' -Permissions $requested) | Should BeExactly 'FAKE_INSTALLATION_TOKEN'
+        }
+    }
+}
+
+function Invoke-NfcFakeTokenSource {
+    param([string]$WorkDir, [string[]]$Arguments, [string]$StandardInput = '')
+    $source = Get-Content -LiteralPath "$PSScriptRoot/../nfc-app-token-helper.ps1" -Raw
+    $tokens = $null; $errors = $null
+    $ast = [Management.Automation.Language.Parser]::ParseInput($source, [ref]$tokens, [ref]$errors)
+    $definition = $ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-NfcInstallationToken' }, $true)[0]
+    $replacement = @'
+function Get-NfcInstallationToken {
+    param([string]$Owner, [string]$Repo, [string]$ClientId, [long]$InstallationId, [string]$DpapiPath, [switch]$IncludeWorkflowsWrite)
+    $set = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$IncludeWorkflowsWrite
+    [IO.File]::WriteAllText($env:NFC_TEST_MARKER, ((@($set.Keys | Sort-Object) | ForEach-Object { "$_=$($set[$_])" }) -join ','))
+    return 'FAKE_TOKEN_67890'
+}
+'@
+    $source = $source.Substring(0, $definition.Extent.StartOffset) + $replacement + $source.Substring($definition.Extent.EndOffset)
+    [IO.File]::WriteAllText((Join-Path $WorkDir 'nfc-app-token-helper.ps1'), $source)
+    $common = (Get-Content -LiteralPath "$PSScriptRoot/../NfcG0.Common.ps1" -Raw) +
+        "`nfunction Assert-NfcRuntime { }`nfunction Test-NfcRecordingPolicy { return `$false }`n"
+    [IO.File]::WriteAllText((Join-Path $WorkDir 'NfcG0.Common.ps1'), $common)
+    $marker = Join-Path $WorkDir 'token-source.txt'
+    if (Test-Path -LiteralPath $marker) { Remove-Item -LiteralPath $marker }
+    $result = Invoke-NfcTestProcess -Environment @{ NFC_TEST_MARKER = $marker } -StandardInput $StandardInput `
+        -Arguments (@('-NoProfile', '-File', (Join-Path $WorkDir 'nfc-app-token-helper.ps1')) + $Arguments)
+    $result.Marker = $null
+    if (Test-Path -LiteralPath $marker) { $result.Marker = [IO.File]::ReadAllText($marker) }
+    return $result
+}
+
+Describe 'NFC G0 helper workflows switch with a fake token source' {
+    It 'passes the explicit switch to the token request in token and Git modes, and only then' {
+        $default = 'actions=read,checks=read,contents=write,metadata=read,pull_requests=write,statuses=read'
+        $common = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '1',
+            '-DpapiPath', (Join-Path $TestDrive 'nonexistent.dpapi'))
+        $inScope = "capability[]=authtype`nprotocol=https`nhost=github.com`npath=owner/repo.git`n`n"
+
+        $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments (@('-Mode', 'token') + $common)
+        $result.ExitCode | Should Be 0
+        $result.Output | Should BeExactly 'FAKE_TOKEN_67890'
+        $result.Marker | Should BeExactly $default
+
+        $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments (@('-Mode', 'token') + $common + @('-IncludeWorkflowsWrite'))
+        $result.ExitCode | Should Be 0
+        $result.Marker | Should BeExactly "$default,workflows=write"
+
+        $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments (@('-Mode', 'git') + $common + @('get')) -StandardInput $inScope
+        $result.ExitCode | Should Be 0
+        $result.Output | Should BeExactly "username=x-access-token`npassword=FAKE_TOKEN_67890`n`n"
+        $result.Marker | Should BeExactly $default
+
+        $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments (@('-Mode', 'git') + $common + @('-IncludeWorkflowsWrite', 'get')) -StandardInput $inScope
+        $result.ExitCode | Should Be 0
+        $result.Output | Should BeExactly "username=x-access-token`npassword=FAKE_TOKEN_67890`n`n"
+        $result.Marker | Should BeExactly "$default,workflows=write"
+    }
+
+    It 'keeps the exact-repository Git scope and store and erase no-ops with the switch' {
+        $common = @('-Mode', 'git', '-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '1',
+            '-DpapiPath', (Join-Path $TestDrive 'nonexistent.dpapi'), '-IncludeWorkflowsWrite')
+        $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments ($common + @('get')) -StandardInput "protocol=https`nhost=github.com`npath=owner/repo`n`n"
+        $result.Output | Should BeExactly "username=x-access-token`npassword=FAKE_TOKEN_67890`n`n"
+        foreach ($request in @("protocol=https`nhost=github.com`npath=other/repo.git`n`n",
+            "protocol=https`nhost=github.com`n`n", "protocol=https`nhost=evil.example`npath=owner/repo.git`n`n")) {
+            $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments ($common + @('get')) -StandardInput $request
+            $result.ExitCode | Should Be 0
+            $result.Output | Should BeExactly ''
+            ($null -eq $result.Marker) | Should Be $true
+        }
+        foreach ($action in @('store', 'erase')) {
+            $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments ($common + @($action)) -StandardInput "protocol=https`nhost=github.com`npath=owner/repo.git`n`n"
+            $result.ExitCode | Should Be 0
+            $result.Output | Should BeExactly ''
+            ($null -eq $result.Marker) | Should Be $true
+        }
+    }
+}
+
+Describe 'NFC G0 gh wrapper argument handling' {
+    BeforeAll {
+        $source = Get-Content -LiteralPath "$PSScriptRoot/../Invoke-NfcGh.ps1" -Raw
+        $tokens = $null; $errors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseInput($source, [ref]$tokens, [ref]$errors)
+        foreach ($definition in $ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] }, $true)) {
+            . ([scriptblock]::Create($definition.Extent.Text))
+        }
+        $script:NfcWrapperPath = 'C:\nfc-fake\scripts\Invoke-NfcGh.ps1'
+        $script:NfcWrapperPrefix = @('C:\fake\pwsh.dll', '-NoProfile', '-File', $script:NfcWrapperPath,
+            '-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'C:\fake\app-key.dpapi')
+    }
+
+    It 'keeps the existing call forms and forwards their gh arguments unchanged' {
+        $forms = @(
+            @('pr', 'create', '--base', '9.9.x', '--title', 'G0 check', '--body', 'fake body'),
+            @('pr', 'create', '--repo', 'owner/repo', '--title', 't', '--body', 'b'),
+            @('api', 'graphql', '-f', 'query=mutation { resolveReviewThread(input: {threadId: "FAKE_THREAD"}) { thread { isResolved } } }'),
+            @('pr', 'merge', '461', '--merge', '--match-head-commit', 'c524e7d2b3244288e8169e87a932dc8752379c2d')
+        )
+        foreach ($gh in $forms) {
+            foreach ($separator in @(@(), @('--'))) {
+                $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + $separator + $gh) -ScriptPath $script:NfcWrapperPath
+                ($parsed.GhArguments -join "`n") | Should BeExactly ($gh -join "`n")
+                $parsed.Owner | Should BeExactly 'owner'
+                $parsed.Repo | Should BeExactly 'repo'
+                $parsed.ClientId | Should BeExactly 'Iv1.fake'
+                $parsed.InstallationId | Should BeExactly '7'
+                $parsed.DpapiPath | Should BeExactly 'C:\fake\app-key.dpapi'
+                $parsed.IncludeWorkflowsWrite | Should Be $false
+                (Test-NfcThrows { Assert-NfcGhRepository -GhArguments $parsed.GhArguments -Owner owner -Repo repo -EnvironmentRepo $null }) | Should Be $false
+            }
+        }
+    }
+
+    It 'forwards gh options that share names with wrapper or PowerShell parameters' {
+        $gh = @('--', 'pr', 'list', '--owner', 'x', '-c', '-d', '-i', '-o', '-r', '-e', '-p', '-w', '-v', '--verbose', '--debug',
+            '-Owner', '-ClientId', '-ErrorAction', '--head=owner:feature/x', '--jq=.a:b', 'two words', '')
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + $gh) -ScriptPath $script:NfcWrapperPath
+        ($parsed.GhArguments -join "`n") | Should BeExactly (($gh | Select-Object -Skip 1) -join "`n")
+        $parsed.GhArguments.Count | Should Be ($gh.Count - 1)
+        (Test-NfcThrows { Assert-NfcGhRepository -GhArguments $parsed.GhArguments -Owner owner -Repo repo -EnvironmentRepo $null }) | Should Be $false
+    }
+
+    It 'accepts every repository option form that names the configured repository' {
+        foreach ($gh in @(@('pr', 'view', '--repo', 'owner/repo'), @('pr', 'view', '--repo=owner/repo'),
+            @('pr', 'view', '-R', 'owner/repo'), @('pr', 'view', '-Rowner/repo'), @('pr', 'view', '-R=owner/repo'))) {
+            $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + $gh) -ScriptPath $script:NfcWrapperPath
+            ($parsed.GhArguments -join "`n") | Should BeExactly ($gh -join "`n")
+            (Test-NfcThrows { Assert-NfcGhRepository -GhArguments $parsed.GhArguments -Owner owner -Repo repo -EnvironmentRepo 'owner/repo' }) | Should Be $false
+        }
+    }
+
+    It 'refuses any other repository selection with a message naming the configured one' {
+        foreach ($gh in @(@('pr', 'view', '--repo', 'other/repo'), @('pr', 'view', '--repo=owner/other'),
+            @('pr', 'view', '-R', 'Owner/Repo'), @('pr', 'view', '-R', 'github.com/owner/repo'),
+            @('pr', 'view', '-Rother/repo'), @('pr', 'view', '-R=other/repo'), @('pr', 'view', '--repo'),
+            @('pr', 'view', '-wR', 'owner/repo'), @('pr', 'create', '--title', '-Release'))) {
+            $message = Get-NfcThrownMessage { Assert-NfcGhRepository -GhArguments $gh -Owner owner -Repo repo -EnvironmentRepo $null }
+            $message | Should Match 'limited to owner/repo'
+        }
+        $message = Get-NfcThrownMessage { Assert-NfcGhRepository -GhArguments @('pr', 'list') -Owner owner -Repo repo -EnvironmentRepo 'other/repo' }
+        $message | Should Match 'GH_REPO names another repository'
+        $message | Should Match 'limited to owner/repo'
+    }
+
+    It 'sets the workflows switch only when given among the wrapper options' {
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('-IncludeWorkflowsWrite', '--', 'pr', 'list')) -ScriptPath $script:NfcWrapperPath
+        $parsed.IncludeWorkflowsWrite | Should Be $true
+        ($parsed.GhArguments -join ' ') | Should BeExactly 'pr list'
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('-includeworkflowswrite', 'pr', 'list')) -ScriptPath $script:NfcWrapperPath
+        $parsed.IncludeWorkflowsWrite | Should Be $true
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('pr', 'list', '-IncludeWorkflowsWrite')) -ScriptPath $script:NfcWrapperPath
+        $parsed.IncludeWorkflowsWrite | Should Be $false
+        ($parsed.GhArguments -join ' ') | Should BeExactly 'pr list -IncludeWorkflowsWrite'
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('--', '-IncludeWorkflowsWrite', 'pr')) -ScriptPath $script:NfcWrapperPath
+        $parsed.IncludeWorkflowsWrite | Should Be $false
+        $message = Get-NfcThrownMessage { Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('-IncludeWorkflowsWrite', '-IncludeWorkflowsWrite', 'pr')) -ScriptPath $script:NfcWrapperPath }
+        $message | Should Match 'more than once'
+    }
+
+    It 'refuses malformed wrapper options and other launch forms with clear messages' {
+        $base = @('C:\fake\pwsh.dll', '-NoProfile', '-File', $script:NfcWrapperPath)
+        $cases = @(
+            @{ Line = $base + @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-DpapiPath', 'k', 'pr', 'list'); Message = '-InstallationId is required' },
+            @{ Line = $script:NfcWrapperPrefix + @('-Repo', 'repo', 'pr', 'list'); Message = '-Repo is given more than once' },
+            @{ Line = $script:NfcWrapperPrefix + @('--repo', 'owner/repo', 'pr', 'list'); Message = "Unknown wrapper option '--repo'" },
+            @{ Line = $script:NfcWrapperPrefix + @('-R', 'owner/repo', 'pr', 'list'); Message = "Unknown wrapper option '-R'" },
+            @{ Line = $base + @('-Owner', '-Repo', 'repo', 'pr'); Message = '-Owner needs a value' },
+            @{ Line = $base + @('-Owner', 'own/er', '-Repo', 'repo', '-ClientId', 'c', '-InstallationId', '7', '-DpapiPath', 'k', 'pr'); Message = 'must name one GitHub repository' },
+            @{ Line = $base + @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'c', '-InstallationId', '0', '-DpapiPath', 'k', 'pr'); Message = 'positive number' },
+            @{ Line = $script:NfcWrapperPrefix; Message = 'No gh arguments' },
+            @{ Line = $script:NfcWrapperPrefix + @('--'); Message = 'No gh arguments' }
+        )
+        foreach ($case in $cases) {
+            $message = Get-NfcThrownMessage { Split-NfcGhCommandLine -CommandLine $case.Line -ScriptPath $script:NfcWrapperPath }
+            $message | Should Match ([regex]::Escape($case.Message))
+        }
+    }
+
+    It 'reads only the PowerShell start-up options and lets the first execution mode decide' {
+        $options = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'k')
+        foreach ($launch in @(@('-NoProfile', '-File'), @('-NonInteractive', '-NoLogo', '-NoProfile', '-f'), @('-noprofile', '-file'))) {
+            $parsed = Split-NfcGhCommandLine -CommandLine (@('C:\fake\pwsh.dll') + $launch + @($script:NfcWrapperPath) + $options + @('pr', 'list')) -ScriptPath $script:NfcWrapperPath
+            ($parsed.GhArguments -join ' ') | Should BeExactly 'pr list'
+        }
+        $refused = @(
+            @('-NoProfile', '-Command', "& $($script:NfcWrapperPath) pr list"),
+            (@('-NoProfile', '-Command', '-File', $script:NfcWrapperPath) + $options + @('pr', 'list')),
+            (@('-NoProfile', '-File', 'C:\nfc-fake\scripts\Other.ps1', '-File', $script:NfcWrapperPath) + $options + @('pr', 'list')),
+            (@('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script:NfcWrapperPath) + $options + @('pr', 'list')),
+            (@('-NoProfile', $script:NfcWrapperPath) + $options + @('pr', 'list')),
+            (@('-EncodedCommand', 'ZgBhAGsAZQA=', '-File', $script:NfcWrapperPath) + $options + @('pr', 'list')),
+            @('-NoProfile', '-File'),
+            (@('-File', $script:NfcWrapperPath) + $options + @('pr', 'list')),
+            (@('-NonInteractive', '-File', $script:NfcWrapperPath) + $options + @('pr', 'list')),
+            (@('-NoProfile', '-File', '.\Invoke-NfcGh.ps1') + $options + @('pr', 'list')),
+            (@('-NoProfile', '-File', 'Invoke-NfcGh.ps1') + $options + @('pr', 'list')),
+            (@('-NoProfile', '-File', '\nfc-fake\scripts\Invoke-NfcGh.ps1') + $options + @('pr', 'list')),
+            (@('-NoProfile', '-File', 'C:nfc-fake\scripts\Invoke-NfcGh.ps1') + $options + @('pr', 'list'))
+        )
+        foreach ($launch in $refused) {
+            $message = Get-NfcThrownMessage { Split-NfcGhCommandLine -CommandLine (@('C:\fake\pwsh.dll') + $launch) -ScriptPath $script:NfcWrapperPath }
+            $message | Should Match 'Start the wrapper as its own process'
+        }
+    }
+
+    It 'requires that the process ran the wrapper itself, not another script, a profile or a command' {
+        $path = $script:NfcWrapperPath
+        (Test-NfcThrows { Assert-NfcStandaloneInvocation -CommandOrigin 'Runspace' -CallStackScripts @($path) -ScriptPath $path }) | Should Be $false
+        (Test-NfcThrows { Assert-NfcStandaloneInvocation -CommandOrigin 'Runspace' -CallStackScripts @($path.ToUpperInvariant()) -ScriptPath $path }) | Should Be $false
+        foreach ($case in @(
+            @{ Origin = 'Internal'; Stack = @($path, 'C:\nfc-fake\scripts\Other.ps1') },
+            @{ Origin = 'Internal'; Stack = @($path, 'C:\Users\fake\Documents\PowerShell\Microsoft.PowerShell_profile.ps1') },
+            @{ Origin = 'Internal'; Stack = @($path) },
+            @{ Origin = 'Runspace'; Stack = @($path, '') },
+            @{ Origin = 'Runspace'; Stack = @('C:\nfc-fake\impostor\Invoke-NfcGh.ps1') },
+            @{ Origin = 'Runspace'; Stack = @() }
+        )) {
+            $message = Get-NfcThrownMessage { Assert-NfcStandaloneInvocation -CommandOrigin $case.Origin -CallStackScripts $case.Stack -ScriptPath $path }
+            $message | Should Match 'Start the wrapper as its own process'
+        }
+    }
+}
+
+function New-NfcFakeWrapperDirectory {
+    param([string]$WorkDir)
+    $null = New-NfcFakeGh -Directory (Join-Path $WorkDir 'bin')
+    Copy-Item "$PSScriptRoot/../Invoke-NfcGh.ps1" (Join-Path $WorkDir 'Invoke-NfcGh.ps1') -Force
+    [IO.File]::WriteAllText((Join-Path $WorkDir 'nfc-app-token-helper.ps1'),
+        "[IO.File]::WriteAllText(`$env:NFC_TEST_HELPER_ARGS, (`$args -join `"``n`")); [Console]::Out.Write('FAKE_TOKEN_24680')")
+    [IO.File]::WriteAllText((Join-Path $WorkDir 'Other.ps1'),
+        "& (Join-Path `$PSScriptRoot 'Invoke-NfcGh.ps1') -Owner owner -Repo repo -ClientId Iv1.fake -InstallationId 7 -DpapiPath unused pr list`nexit `$LASTEXITCODE`n")
+    # A script with the wrapper's name elsewhere: it moves the process working directory to the real
+    # wrapper's folder, so a relative -File path would now name the real wrapper, and then calls it.
+    $impostor = Join-Path $WorkDir 'impostor'
+    $null = New-Item -ItemType Directory -Force -Path $impostor
+    $real = Join-Path $WorkDir 'Invoke-NfcGh.ps1'
+    [IO.File]::WriteAllText((Join-Path $impostor 'Invoke-NfcGh.ps1'),
+        "[Environment]::CurrentDirectory = '$WorkDir'`nSet-Location -LiteralPath '$WorkDir'`n" +
+        "& '$real' -Owner owner -Repo repo -ClientId Iv1.fake -InstallationId 7 -DpapiPath unused pr list`nexit `$LASTEXITCODE`n")
+}
+
+function Invoke-NfcFakeWrapper {
+    param([string]$WorkDir, [string[]]$Arguments = @(), [string[]]$Launch, [string]$WorkingDirectory = '')
+    $helperArgs = Join-Path $WorkDir 'helper-args.txt'
+    $ghArgv = Join-Path $WorkDir 'gh-argv.txt'
+    foreach ($file in @($helperArgs, $ghArgv)) { if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file } }
+    if (-not $Launch) { $Launch = @('-NoProfile', '-File', (Join-Path $WorkDir 'Invoke-NfcGh.ps1')) }
+    $environment = @{ PATH = (Join-Path $WorkDir 'bin') + ';' + $env:PATH; GH_CONFIG_DIR = (Join-Path $WorkDir 'gh-config')
+        NFC_TEST_HELPER_ARGS = $helperArgs; NFC_TEST_GH_ARGV = $ghArgv }
+    $result = Invoke-NfcTestProcess -Arguments ($Launch + $Arguments) -Environment $environment -WorkingDirectory $WorkingDirectory
+    $result.HelperArguments = $null
+    if (Test-Path -LiteralPath $helperArgs) { $result.HelperArguments = [IO.File]::ReadAllText($helperArgs) }
+    $result.GhArguments = Read-NfcFakeGhArguments -Path $ghArgv
+    return $result
+}
+
+function ConvertTo-NfcArgumentJson {
+    param([AllowNull()][AllowEmptyCollection()][string[]]$Values)
+    return (ConvertTo-Json -InputObject @($Values) -Compress)
+}
+
+Describe 'NFC G0 gh wrapper process with a fake helper and a fake gh' {
+    It 'runs the existing call forms and the fixed --repo form through one fake gh process' {
+        New-NfcFakeWrapperDirectory -WorkDir $TestDrive
+        $options = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'unused')
+        $helperExpected = (@('-Mode', 'token') + $options) -join "`n"
+        $forms = @(
+            @('pr', 'create', '--base', '9.9.x', '--head', 'feature/1.1.13/g0-check', '--title', 't', '--body', 'b'),
+            @('pr', 'create', '--repo', 'owner/repo', '--title', 't', '--body', 'b'),
+            @('api', 'graphql', '-f', 'query=mutation { resolveReviewThread(input: {threadId: "FAKE_THREAD"}) { thread { isResolved } } }'),
+            @('pr', 'merge', '461', '--merge', '--match-head-commit', 'c524e7d2b3244288e8169e87a932dc8752379c2d')
+        )
+        foreach ($gh in $forms) {
+            $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Arguments ($options + $gh)
+            if ($result.ExitCode -ne 0) { throw "Fake wrapper failed: $($result.Error)" }
+            (ConvertTo-NfcArgumentJson $result.GhArguments) | Should BeExactly (ConvertTo-NfcArgumentJson $gh)
+            $result.Output | Should Match '(?m)^gh-token=\[redacted\]$'
+            ($result.Output + $result.Error).Contains('FAKE_TOKEN_24680') | Should Be $false
+            $result.HelperArguments | Should BeExactly $helperExpected
+        }
+    }
+
+    It 'passes quotes, empty and Unicode arguments and trailing backslashes exactly and asks for workflows only when told to' {
+        New-NfcFakeWrapperDirectory -WorkDir $TestDrive
+        $options = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'unused')
+        $unicode = "$([char]0x7E41)$([char]0x9AD4) $([char]0x2713) caf$([char]0xE9)"
+        $gh = @('api', 'graphql', '-f', "query=query {`n  viewer { login }`n}", '-f', 'body=say "hi there"', '-F', 'a\"b', '',
+            $unicode, 'C:\path\', 'C:\my dir\', '--head=owner:feature/x', '-R', 'owner/repo', '%PATH%', '^&|<>', '-v')
+        $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Arguments ($options + @('-IncludeWorkflowsWrite', '--') + $gh)
+        if ($result.ExitCode -ne 0) { throw "Fake wrapper failed: $($result.Error)" }
+        $result.GhArguments.Count | Should Be $gh.Count
+        (ConvertTo-NfcArgumentJson $result.GhArguments) | Should BeExactly (ConvertTo-NfcArgumentJson $gh)
+        $result.HelperArguments | Should BeExactly ((@('-Mode', 'token') + $options + @('-IncludeWorkflowsWrite')) -join "`n")
+        $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Arguments ($options + @('--') + $gh)
+        $result.ExitCode | Should Be 0
+        (ConvertTo-NfcArgumentJson $result.GhArguments) | Should BeExactly (ConvertTo-NfcArgumentJson $gh)
+        $result.HelperArguments | Should BeExactly ((@('-Mode', 'token') + $options) -join "`n")
+    }
+
+    It 'stops another repository before starting the helper or gh' {
+        New-NfcFakeWrapperDirectory -WorkDir $TestDrive
+        $options = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'unused')
+        foreach ($gh in @(@('pr', 'create', '--repo', 'other/repo'), @('--', 'pr', 'view', '-R', 'owner/other'))) {
+            $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Arguments ($options + $gh)
+            $result.ExitCode | Should Be 64
+            $result.Error | Should Match 'NFC gh wrapper usage error'
+            $result.Error | Should Match 'limited to owner/repo'
+            $result.Output | Should BeExactly ''
+            ($null -eq $result.HelperArguments) | Should Be $true
+            ($null -eq $result.GhArguments) | Should Be $true
+        }
+    }
+
+    It 'refuses a launch through -Command or another script before starting the helper or gh' {
+        New-NfcFakeWrapperDirectory -WorkDir $TestDrive
+        $wrapper = Join-Path $TestDrive 'Invoke-NfcGh.ps1'
+        $options = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'unused')
+        $launches = @(
+            @{ Launch = @('-NoProfile', '-Command', "& '$wrapper' $($options -join ' ') pr list"); Arguments = @() },
+            @{ Launch = @('-NoProfile', '-File', (Join-Path $TestDrive 'Other.ps1'), '-File', $wrapper)
+               Arguments = ($options + @('pr', 'view', '--repo', 'owner/repo')) }
+        )
+        foreach ($case in $launches) {
+            $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Launch $case.Launch -Arguments $case.Arguments
+            $result.ExitCode | Should Not Be 0
+            $result.Error | Should Match 'NFC gh wrapper usage error: Start the wrapper as its own process'
+            ($null -eq $result.HelperArguments) | Should Be $true
+            ($null -eq $result.GhArguments) | Should Be $true
+        }
+    }
+
+    It 'refuses a same-name script that moves the working directory and then calls the wrapper' {
+        New-NfcFakeWrapperDirectory -WorkDir $TestDrive
+        $impostor = Join-Path $TestDrive 'impostor'
+        $options = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'unused')
+        foreach ($launchPath in @('.\Invoke-NfcGh.ps1', (Join-Path $impostor 'Invoke-NfcGh.ps1'))) {
+            $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -WorkingDirectory $impostor `
+                -Launch @('-NoProfile', '-File', $launchPath) -Arguments ($options + @('pr', 'view', '--repo', 'owner/repo'))
+            $result.ExitCode | Should Be 64
+            $result.Error | Should Match 'NFC gh wrapper usage error: Start the wrapper as its own process'
+            ($null -eq $result.HelperArguments) | Should Be $true
+            ($null -eq $result.GhArguments) | Should Be $true
+        }
+    }
+}
+
+Describe 'NFC G0 isolated test runner' {
+    It 'accepts only Pester 3.4.0, returns 2 without a valid executed test, 1 for a failed test or block and 0 only for a passing run' {
+        $runner = "$PSScriptRoot/Invoke-NfcG0Tests.ps1"
+        $files = @{ Pass = 'Describe "fake" { It "passes" { 1 | Should Be 1 } }'
+            Fail = 'Describe "fake" { It "fails" { 1 | Should Be 2 } }'
+            CleanupFails = 'Describe "fake" { AfterAll { throw "fake cleanup failure" }; It "passes" { 1 | Should Be 1 } }'
+            Empty = '# no tests'
+            Pending = 'Describe "fake" { It "waits" -Pending { }; It "skips" -Skip { } }' }
+        foreach ($name in $files.Keys) { [IO.File]::WriteAllText((Join-Path $TestDrive "$name.Tests.ps1"), $files[$name]) }
+        # Fake Pester 3.4.0 modules, each first in its own module path: no result, a result without valid
+        # counts, and a manifest that cannot load.
+        $fakes = @{ 'fake-null' = 'return $null'
+            'fake-invalid' = "return [pscustomobject]@{ TotalCount = 'x'; PassedCount = 'y'; FailedCount = 'z' }"
+            'fake-broken' = $null }
+        # A fake Pester 5.7.1 whose result has a passing test count but a failed cleanup block.
+        $fakes['fake-pester5'] = 'return [pscustomobject]@{ TotalCount = 1; PassedCount = 1; FailedCount = 0; FailedBlocksCount = 1; Result = ''Failed'' }'
+        foreach ($name in $fakes.Keys) {
+            $version = '3.4.0'
+            if ($name -eq 'fake-pester5') { $version = '5.7.1' }
+            $folder = Join-Path $TestDrive "$name/Pester/$version"
+            $null = New-Item -ItemType Directory -Force -Path $folder
+            $rootModule = 'Pester.psm1'
+            if ($null -eq $fakes[$name]) { $rootModule = 'Missing.psm1' } else {
+                [IO.File]::WriteAllText((Join-Path $folder 'Pester.psm1'), "function Invoke-Pester { param(`$Script, [switch]`$PassThru) $($fakes[$name]) }")
+            }
+            [IO.File]::WriteAllText((Join-Path $folder 'Pester.psd1'),
+                "@{ ModuleVersion = '$version'; RootModule = '$rootModule'; FunctionsToExport = @('Invoke-Pester') }")
+        }
+        $pass = Join-Path $TestDrive 'Pass.Tests.ps1'
+        $cases = @(
+            @{ Arguments = @('-PesterVersion', '5.7.1', '-TestPath', $pass); Modules = 'fake-pester5'; Exit = 2; Message = "Only Pester 3.4.0 is supported; '5.7.1'" },
+            @{ Arguments = @('-PesterVersion', '0.0.1', '-TestPath', $pass); Exit = 2; Message = "Only Pester 3.4.0 is supported; '0.0.1'" },
+            @{ Arguments = @('-PesterVersion', '3.4', '-TestPath', $pass); Exit = 2; Message = 'Only Pester 3.4.0 is supported' },
+            @{ Arguments = @('-TestPath', (Join-Path $TestDrive 'Empty.Tests.ps1')); Exit = 2; Message = 'no valid result' },
+            @{ Arguments = @('-TestPath', (Join-Path $TestDrive 'Pending.Tests.ps1')); Exit = 2; Message = 'no valid result' },
+            @{ Arguments = @('-TestPath', (Join-Path $TestDrive 'Missing.Tests.ps1')); Exit = 2; Message = 'does not exist' },
+            @{ Arguments = @('-TestPath', $pass); Modules = 'fake-null'; Exit = 2; Message = 'Pester returned no result' },
+            @{ Arguments = @('-TestPath', $pass); Modules = 'fake-invalid'; Exit = 2; Message = 'no valid result' },
+            @{ Arguments = @('-TestPath', $pass); Modules = 'fake-broken'; Exit = 2; Message = 'fake-broken' },
+            @{ Arguments = @('-TestPath', (Join-Path $TestDrive 'Fail.Tests.ps1')); Exit = 1; Message = '1 of 1 failed' },
+            @{ Arguments = @('-TestPath', (Join-Path $TestDrive 'CleanupFails.Tests.ps1')); Exit = 1; Message = '1 of 2 failed' },
+            @{ Arguments = @('-TestPath', $pass); Exit = 0; Message = '' }
+        )
+        foreach ($case in $cases) {
+            $environment = @{}
+            if ($case.ContainsKey('Modules')) { $environment.PSModulePath = (Join-Path $TestDrive $case.Modules) + ';' + $env:PSModulePath }
+            $result = Invoke-NfcTestProcess -Arguments (@('-NoProfile', '-File', $runner) + $case.Arguments) -Environment $environment
+            if ($result.ExitCode -ne $case.Exit) {
+                throw "Runner exit $($result.ExitCode), expected $($case.Exit), for $($case.Arguments -join ' '): $($result.Error)"
+            }
+            if ($case.Exit -eq 2) { $result.Error | Should Match 'NFC G0 test runner failed' }
+            if ($case.Message) { $result.Error | Should Match ([regex]::Escape($case.Message)) }
+        }
     }
 }
