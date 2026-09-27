@@ -26,6 +26,15 @@ Sources read at `8682dd269`, identical in content to the rebuilt `e60ba0062`
 [`.github/workflows/README.md`](../../../.github/workflows/README.md). Line
 numbers below refer to that source.
 
+Source refresh (second design review, F-10, 2026-09-27): against the `1.1.x`
+trunk `e6e991af32d76d99ad156a7f86baa662947db8d9`, two of these files changed.
+`scripts/package.ps1` line 282 carries a new approved SHA-256 of the canonical
+capability policy (no line shift); R-1 keeps that hash and edits the current
+file, never an older copy. ADR 0057 gained two lines linking the ADR 0078
+amendment, so its later line numbers are two higher; its terminal
+certification text is unchanged. Every other listed file is identical, so the
+workflow and policy line references below still hold.
+
 ## What stays
 
 Every item keeps these ADR 0033 properties: the workflow runs only from the
@@ -418,6 +427,17 @@ R-3 follows G0; R-4 follows the governance ADR; R-5 follows the comparator.
   refused, with a new version required; a required parity chain that failed,
   was cancelled or was skipped failing the run instead of ending green; and a
   dry-run artifact refused by promotion. R-3 repeats the promotion-path cases.
+  **G0 equivalence (F-11, 2026-09-27).** The staging repository reproduces the
+  controls G0 applied to this repository, and its evidence names each one:
+  an App-authored pull request, a normal owner approval and a merge without
+  bypass; the three existing required checks; an exact-source `main` CI run;
+  the `release` environment; immutable Releases; and a tag ruleset with no
+  bypass. Tag and Release writes use the designed `GITHUB_TOKEN` only, never
+  an owner or App credential with wider rights. The record keeps the settings
+  snapshots, every run and attempt, the candidate digest, the tag and Release
+  identities and each negative case's result; "staging passed" alone is not
+  evidence. The same list is the pre-release check for 1.1.13 when it ships
+  with the current workflow.
 - **Dry run on `main`:** after each release batch merges, a `dry_run` run
   exercises admission, Golden, package, smoke, notes, handoff and manifest.
   Its artifacts are marked non-promotable (manifest flag and name prefix), the
