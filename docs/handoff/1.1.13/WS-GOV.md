@@ -1233,3 +1233,29 @@ personal repository; G0 confirms it in the UI before relying on it.
 **Decided 2026-09-26 (board decision 78): B1.** Every agent stops related
 writes and releases for a bounded window; protection is restored and
 verified afterwards, and the board records it (G0 checklist, C3).
+
+## G1-A activation and acceptance (2026-09-27)
+
+- **Merge.** #463 merged into `1.1.x` as `50c0998e3` (reviewed head `fa87b19fd`, final evidence `e3fa02975`,
+  attestation head `93326303c`); owner approval of that head, recorded under board decision 141 with the bootstrap
+  statement in the pull request; all eleven checks green; pre-merge record on the pull request.
+- **Required context.** Board decision 142: Codex added `governance / authority` (GitHub Actions) to the trunk ruleset
+  (RS-2, `*.*.x`) after the owner's Confirm access; API and web read-back agree and nothing else changed. The
+  release-branch ruleset stays unchanged because open release branches (`0.1.0` to `1.1.12`) lack the workflow.
+- **Case 1 (#465, triggers and edits).** 1 failure (run 108623988421), 2 success (run 108624065938), 3 failure (run 108624130035), 4 success (run 108624193063), 5 failure (run 108624266824), 6 success (run 108624338352), 7 success (run 108624338352), 8 failure (run 108624606992): opened without a record red; record green; risk lowered to R0 red;
+  restored green; identical-tree push red until a new record; record edited after a green run keeps the old green
+  result and only the pre-merge re-run turns it red (P2: the procedure closes this gap).
+- **Case 2 (#465, required).** With the context required and red, the pull request is BLOCKED (read from the merge
+  state, no merge attempt). Cancelled and missing results were not produced separately.
+- **Case 3 (#467 into a disposable base, base tightening).** Green before the base tightened; the step 1 comparison
+  flags the older policy blob on the head; the current base checker run against the unchanged head fails (exit 1); a
+  new run after the tightening is red (stricter of base and head). Not executed: re-running the old green run, which
+  needs Actions write that the App lacks.
+- **Cases 4-6 (#466, policy description only).** 4.1 success (run 108625978434), 4.2 success (run 108627190906), 6 failure (run 108627269012): self-change: the trunk checker run against the head passed
+  and its output is posted on the pull request; after the owner's approval, replacing the role evidence on the same
+  head keeps the check green while the commander's step 4 snapshot comparison stops the merge (P9); D4: a diff-changing
+  push dismissed the owner's approval (#463), an identical-tree push kept it (#466) while the check turned red for the
+  missing record, so P3 stays procedural (pre-merge step 3 asks for a new approval on the exact head).
+- **Still open for "in force" (ADR 0080 item 9):** one real pull request other than G1-B merged under G1-A with its
+  recorded pre-merge verification (planned: batch 3), and the owner's confirmation. Evidence files are in the test area
+  under `evidence/g1a-activation/`.
