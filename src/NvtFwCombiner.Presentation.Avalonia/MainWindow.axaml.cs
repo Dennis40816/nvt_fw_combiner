@@ -101,6 +101,7 @@ public sealed partial class MainWindow : Window, IDisposable
             lifecycle => lifecycle.WindowPublication = _windowPublication);
         viewModel.Settings.SetWindowPublication(() => !_isDisposed && IsEnabled && !_isReportHistoryClosePending);
         viewModel.RunSession.SetWindowPublication(() => !_isDisposed && !_isReportHistoryPersistenceComplete);
+        viewModel.RunSession.SetWindowAdmission(() => ClosePhase == WindowClosePhase.Open);
         _localStateSave = new(() => viewModel.Text);
         _localStateSave.Attach(LocalStateSaveTarget.ReportHistory, _reportHistoryPersistence.TryRetry);
         _localStateSave.Attach(LocalStateSaveTarget.Preferences, _shellPreferencePersistence.TryRetry);

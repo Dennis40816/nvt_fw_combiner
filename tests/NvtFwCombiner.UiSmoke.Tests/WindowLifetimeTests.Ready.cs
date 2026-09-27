@@ -4,6 +4,7 @@ using Avalonia.Platform.Storage;
 using System.Reflection;
 using System.Text;
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
@@ -48,6 +49,16 @@ public sealed partial class WindowLifetimeTests
         window.Close();
         Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
         Assert.False(window.CloseAttempt.IsCompleted);
+        bool lateRunStarted = false;
+        UiRunResultViewModel? lateRun = await shell.RunSession.RunCompositionAsync(
+            shell.Merge.CaptureRunContext(ExperienceIds.StandardMerge, build: true), true,
+            (_, _) =>
+            {
+                lateRunStarted = true;
+                throw new InvalidOperationException("A run cannot start after close admission shuts.");
+            }, (_, _) => { });
+        Assert.Null(lateRun);
+        Assert.False(lateRunStarted);
         selected.SetResult(file);
         await saving.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);

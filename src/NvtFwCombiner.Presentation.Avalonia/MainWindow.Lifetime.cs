@@ -20,7 +20,6 @@ public sealed partial class MainWindow
 
     private async Task RunCloseAttemptAsync()
     {
-        Task runCompletion = Task.CompletedTask;
         try
         {
             try
@@ -28,13 +27,12 @@ public sealed partial class MainWindow
                 _startupLoadCancellation.Cancel();
                 if (DataContext is MainWindowViewModel viewModel)
                 {
-                    runCompletion = viewModel.RunSession.ActiveRunCompletion;
                     viewModel.RunSession.CancelActiveRun();
                     _preloadSession.StopAcceptingAndRevoke();
                     using var stopDrain = new CancellationTokenSource();
                     try
                     {
-                        var work = Task.WhenAll(runCompletion, _preloadSession.AllUsersSettled,
+                        var work = Task.WhenAll(_preloadSession.AllUsersSettled,
                             DrainAdmittedWindowWorkAsync(viewModel, stopDrain.Token));
                         await WaitWithinCloseDeadlineAsync(work);
                     }
@@ -56,7 +54,8 @@ public sealed partial class MainWindow
             }
             finally
             {
-                if (!runCompletion.IsCompleted && DataContext is MainWindowViewModel timedOutViewModel)
+                if (DataContext is MainWindowViewModel timedOutViewModel &&
+                    !timedOutViewModel.RunSession.ActiveRunCompletion.IsCompleted)
                 {
                     timedOutViewModel.RunSession.RevokeActiveRun();
                 }
@@ -164,6 +163,7 @@ public sealed partial class MainWindow
     {
         var tasks = new List<Task>(_sessionTasks)
         {
+            viewModel.RunSession.ActiveRunCompletion,
             viewModel.Settings.WhenOperationsIdleAsync(),
             viewModel.Reports.WhenSavesIdleAsync(),
         };

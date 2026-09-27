@@ -26,6 +26,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
     }
     private RunAttempt? _activeAttempt;
     private Func<bool> _windowMayPublish = static () => true;
+    private Func<bool> _windowMayAdmit = static () => true;
     private bool _activeRunIsBuild;
     public bool ActiveRunShowsNumberSelector { get; private set; }
     private string ActiveRunDeviceContextRefreshSummary { get; set; } = string.Empty;
@@ -63,6 +64,11 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
     internal void SetWindowPublication(Func<bool> mayPublish)
     {
         _windowMayPublish = mayPublish ?? throw new ArgumentNullException(nameof(mayPublish));
+    }
+
+    internal void SetWindowAdmission(Func<bool> mayAdmit)
+    {
+        _windowMayAdmit = mayAdmit ?? throw new ArgumentNullException(nameof(mayAdmit));
     }
 
     private bool CanPublish(RunAttempt attempt)
@@ -124,7 +130,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
 
     private RunAttempt? BeginRun(CompositionRunContext context, bool build)
     {
-        if (_activeAttempt is not null || !_windowMayPublish())
+        if (_activeAttempt is not null || !_windowMayPublish() || !_windowMayAdmit())
         {
             return null;
         }
