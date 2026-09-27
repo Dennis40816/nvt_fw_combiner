@@ -5,7 +5,9 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import os
 import re
+import stat
 import subprocess
 import sys
 import tomllib
@@ -57,6 +59,7 @@ from v0916_parity_certification import (
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_FILES = {
+    "docs/governance/frozen-evidence-pins.json",
     "README.md",
     "LICENSE",
     "AGENTS.md",
@@ -1510,6 +1513,159 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
             )
 
 
+FROZEN_EVIDENCE_PIN_FILE = "docs/governance/frozen-evidence-pins.json"
+FROZEN_EVIDENCE_PATHS = (
+    ("docs/governance/change-records", "tree"),
+    ("docs/governance/external-authority-attestations", "tree"),
+    ("docs/governance/waivers", "tree"),
+    ("docs/governance/trusted-initial-capability-checkpoint.v1.json", "blob"),
+)
+FROZEN_CHECKPOINT_MODE = "100644"
+
+
+def validate_frozen_evidence_pins(root: Path, errors: list[str]) -> None:
+    """Prove the frozen snapshot at HEAD, in the index and on disk without history."""
+    def require(condition: bool, path: str, reason: str) -> None:
+        if not condition:
+            raise ValueError(f"{path}: {reason}")
+
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            require(key not in result, FROZEN_EVIDENCE_PIN_FILE, f"duplicate key {key}")
+            result[key] = value
+        return result
+
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.upper().startswith("GIT_")}
+    environment.update(GIT_NO_REPLACE_OBJECTS="1", GIT_OPTIONAL_LOCKS="0",
+                       GIT_LITERAL_PATHSPECS="1")
+
+    def git(*arguments: str) -> str:
+        result = subprocess.run(
+            ["git", "--no-replace-objects", *arguments], cwd=root, env=environment,
+            capture_output=True, check=True,
+        )
+        return result.stdout.decode("utf-8", errors="strict")
+
+    def frozen_path(path: str) -> bool:
+        folded = path.casefold()
+        return any(folded == name.casefold() or folded.startswith(name.casefold() + "/")
+                   for name, _ in FROZEN_EVIDENCE_PATHS)
+
+    def entry_stat(entry: os.DirEntry[str], relative: str, directory: bool) -> None:
+        info = entry.stat(follow_symlinks=False)
+        require(not entry.is_symlink() and not (
+            getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+        ), relative, "symlink or reparse point")
+        require(stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode),
+                relative, "unexpected filesystem type")
+        if not directory and os.name != "nt":
+            require(not info.st_mode & 0o111, relative, "executable file")
+
+    def exact_entry(relative: str) -> os.DirEntry[str]:
+        parent = root
+        components = relative.split("/")
+        for offset, component in enumerate(components):
+            with os.scandir(parent) as entries:
+                matches = [entry for entry in entries if entry.name.casefold() == component.casefold()]
+            current = "/".join(components[:offset + 1])
+            require(len(matches) == 1 and matches[0].name == component,
+                    current, "missing, case-renamed or case-aliased component")
+            entry = matches[0]
+            directory = offset < len(components) - 1 or relative != FROZEN_EVIDENCE_PATHS[-1][0]
+            entry_stat(entry, current, directory)
+            parent = Path(entry.path)
+        return entry
+
+    try:
+        document = json.loads((root / FROZEN_EVIDENCE_PIN_FILE).read_text(encoding="utf-8"),
+                              object_pairs_hook=unique_object)
+        require(isinstance(document, dict) and set(document) == {
+            "schemaVersion", "authority", "frozenAtBase", "pins"
+        }, FROZEN_EVIDENCE_PIN_FILE, "invalid document keys")
+        require(type(document["schemaVersion"]) is int and document["schemaVersion"] == 1
+                and document["authority"] == "docs/adr/0080-governance-reset.md#evidence-and-admission",
+                FROZEN_EVIDENCE_PIN_FILE, "invalid schema or authority")
+        require(isinstance(document["frozenAtBase"], str) and
+                re.fullmatch(r"[0-9a-f]{40}", document["frozenAtBase"]) is not None,
+                FROZEN_EVIDENCE_PIN_FILE, "invalid frozenAtBase")
+        pins = document["pins"]
+        require(isinstance(pins, list) and len(pins) == 4, FROZEN_EVIDENCE_PIN_FILE, "invalid pin count")
+        for pin, (path, kind) in zip(pins, FROZEN_EVIDENCE_PATHS):
+            require(isinstance(pin, dict) and set(pin) == {"path", "type", "id"}
+                    and pin["path"] == path and pin["type"] == kind
+                    and isinstance(pin["id"], str) and re.fullmatch(r"[0-9a-f]{40}", pin["id"]) is not None,
+                    path, "invalid frozen evidence pin")
+        repository = git("rev-parse", "--show-toplevel", "--is-inside-work-tree", "--show-object-format").splitlines()
+        require(len(repository) == 3 and os.path.samefile(repository[0], root)
+                and repository[1:] == ["true", "sha1"], FROZEN_EVIDENCE_PIN_FILE, "not the expected SHA-1 work tree")
+        tree: dict[str, tuple[str, str, str]] = {}
+        raw_tree = git("ls-tree", "-r", "-t", "-z", "--full-tree", "HEAD")
+        require(raw_tree.endswith("\0"), FROZEN_EVIDENCE_PIN_FILE, "malformed tree response")
+        for row in raw_tree[:-1].split("\0"):
+            metadata, path = row.split("\t", 1)
+            mode, kind, oid = metadata.split(" ")
+            require(path not in tree and re.fullmatch(r"[0-9a-f]{40}", oid) is not None,
+                    path, "malformed tree entry")
+            tree[path] = (mode, kind, oid)
+        expected: dict[str, str] = {}
+        for pin in pins:
+            path, kind, oid = pin["path"], pin["type"], pin["id"]
+            mode = "040000" if kind == "tree" else FROZEN_CHECKPOINT_MODE
+            require(tree.get(path) == (mode, kind, oid), path, "HEAD differs from frozen pin")
+            if kind == "blob":
+                expected[path] = oid
+        for path, (mode, kind, oid) in tree.items():
+            if not frozen_path(path):
+                continue
+            roots = [name for name, _ in FROZEN_EVIDENCE_PATHS]
+            require(path in roots or any(path.startswith(name + "/") for name in roots[:-1]),
+                    path, "case alias in HEAD")
+            if path not in roots:
+                require((mode, kind) == ("100644", "blob"), path, "non-regular frozen tree entry")
+                expected[path] = oid
+        folded: set[str] = set()
+        for path in expected:
+            require(path.casefold() not in folded, path, "case alias in HEAD")
+            folded.add(path.casefold())
+        found: set[str] = set()
+        raw_index = git("ls-files", "-z", "-s", "-v")
+        require(raw_index.endswith("\0"), FROZEN_EVIDENCE_PIN_FILE, "malformed index response")
+        for row in raw_index[:-1].split("\0"):
+            metadata, path = row.split("\t", 1)
+            tag, mode, oid, stage = metadata.split(" ")
+            if not frozen_path(path.rstrip("/")):
+                continue
+            require(path in expected and path not in found and tag == "H" and mode == "100644"
+                    and stage == "0" and oid == expected[path], path, "index differs from frozen snapshot")
+            found.add(path)
+        missing = set(expected) - found
+        require(not missing, sorted(missing)[0] if missing else "index", "missing frozen index entry")
+        disk: dict[str, Path] = {}
+        for relative, kind in FROZEN_EVIDENCE_PATHS:
+            entry = exact_entry(relative)
+            if kind == "blob":
+                disk[relative] = Path(entry.path)
+                continue
+            with os.scandir(entry.path) as children:
+                seen: set[str] = set()
+                for child in children:
+                    path = relative + "/" + child.name
+                    require(child.name.casefold() not in seen, path, "case-aliased sibling")
+                    seen.add(child.name.casefold())
+                    canonical = next((name for name in expected if name.casefold() == path.casefold()), path)
+                    require(path in expected, canonical, f"extra or case-renamed frozen entry: {path}")
+                    entry_stat(child, path, False)
+                    disk[path] = Path(child.path)
+        missing = set(expected) - set(disk)
+        require(not missing, sorted(missing)[0] if missing else "worktree", "missing frozen file")
+        for path, file in disk.items():
+            require(git_blob_sha1(file) == expected[path], path, "raw bytes differ from frozen snapshot")
+    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
+        errors.append(f"frozen evidence pins: {error}")
+
+
 def validate_agent_files(errors: list[str]) -> None:
     root_agents = ROOT / "AGENTS.md"
     if root_agents.is_file() and root_agents.stat().st_size > 16 * 1024:
@@ -1571,7 +1727,7 @@ def validate_agent_files(errors: list[str]) -> None:
 def validate_historical_parity_authority(errors: list[str]) -> None:
     if (ROOT / "docs/contracts/v0916-parity-certification-v1.json").is_file():
         try:
-            # Canonical governance validates this immutable record before this adapter.
+            # Frozen evidence pins validate this immutable record before this adapter.
             # Current workflow projections may change the plan after its frozen H2.
             binding_record = load_json(
                 ROOT / "docs/governance/change-records/"
@@ -1632,6 +1788,7 @@ def validate() -> list[str]:
     validate_workflows(errors)
     validate_packaging_policy(files, errors)
     validate_agent_files(errors)
+    validate_frozen_evidence_pins(ROOT, errors)
     validate_historical_parity_authority(errors)
     return sorted(set(errors))
 

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "authority": "docs/adr/0080-governance-reset.md#evidence-and-admission",
+  "frozenAtBase": "38cf159eeadb564df8d4c8f6b1bd52a74daa2e52",
+  "pins": [
+    {
+      "path": "docs/governance/change-records",
+      "type": "tree",
+      "id": "3718b7e1312ac71d768f6f880c7efe1783c518da"
+    },
+    {
+      "path": "docs/governance/external-authority-attestations",
+      "type": "tree",
+      "id": "8693ab33783b32f0407eddca47234f8cf6580ed6"
+    },
+    {
+      "path": "docs/governance/waivers",
+      "type": "tree",
+      "id": "6fae96afac9822bc1d1813ac278a7b815fa31dc8"
+    },
+    {
+      "path": "docs/governance/trusted-initial-capability-checkpoint.v1.json",
+      "type": "blob",
+      "id": "a3f34af053a8a712cbd43232a5e927d06119dd51"
+    }
+  ]
+}

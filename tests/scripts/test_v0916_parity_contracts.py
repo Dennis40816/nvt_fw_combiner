@@ -2652,3 +2652,22 @@ class V0916ParityContractTests(V0916ParityTestBase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DefaultFrozenEvidenceHookTests(unittest.TestCase):
+    def test_default_hook_accepts_real_frozen_snapshot(self):
+        from tests.scripts.test_frozen_evidence_pins import FrozenEvidencePinTests
+        fixture = FrozenEvidencePinTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        MODULE._validate_current_frozen_evidence(fixture.root, "HEAD")
+
+    def test_default_hook_maps_frozen_drift_to_authority_mismatch(self):
+        from tests.scripts.test_frozen_evidence_pins import FrozenEvidencePinTests
+        fixture = FrozenEvidencePinTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        (fixture.root / fixture.record).write_bytes(b"changed")
+        with self.assertRaises(MODULE.ParityError) as caught:
+            MODULE._validate_current_frozen_evidence(fixture.root, "HEAD")
+        self.assertEqual("PARITY_AUTHORITY_MISMATCH", caught.exception.code)
