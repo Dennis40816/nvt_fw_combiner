@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Styling;
@@ -451,9 +452,23 @@ public sealed partial class MainWindow : Window, IDisposable
                 ApplyShellInteractionState(viewModel);
             },
             () => Dispatcher.UIThread.Post(
-                () => _ = HomeNavigationButton.Focus(NavigationMethod.Tab),
+                () => _ = SelectedNavigationButton(viewModel).Focus(NavigationMethod.Tab),
                 DispatcherPriority.Input),
             () => ApplyPreloadStage(_preloadSession, _preloadLoading, viewModel.Text, stage));
+    }
+
+    /// <summary>Startup focus lands on the selected page's own nav tab (owner decision 32), not always
+    /// Home; a selected page without a nav tab (HexEditor) keeps the previous Home fallback.</summary>
+    private ToggleButton SelectedNavigationButton(MainWindowViewModel viewModel)
+    {
+        return viewModel.SelectedPage switch
+        {
+            ShellPage.Home => HomeNavigationButton,
+            ShellPage.Merge => MergeNavigationButton,
+            ShellPage.Replace => ReplaceNavigationButton,
+            ShellPage.HexEditor => HomeNavigationButton,
+            _ => HomeNavigationButton,
+        };
     }
 
     internal static void CommitRequiredStagePresentation(
