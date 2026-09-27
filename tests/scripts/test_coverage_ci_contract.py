@@ -34,6 +34,14 @@ SCHEDULED_SECURITY_TEMPLATE = (
 MAIN_PACKAGE_WORKFLOW = ROOT / ".github" / "workflows" / "main-package.yml"
 VERIFIER = ROOT / "scripts" / "verify.py"
 
+# A captured pwsh error view can truncate a line with an ellipsis, encoded in
+# whatever code page the host console uses (e.g. Big5 on a zh-TW Windows
+# host). Force UTF-8 so this subprocess's captured output decodes the same
+# way on every host, including CI.
+PWSH_FORCE_UTF8_OUTPUT = (
+    "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)"
+)
+
 
 class CoverageCiContractTests(unittest.TestCase):
     def test_repository_script_ci_shards_are_complete_and_runner_isolated(self) -> None:
@@ -93,7 +101,13 @@ class CoverageCiContractTests(unittest.TestCase):
                         environment = os.environ.copy()
                         environment["NFC_REPOSITORY_SCRIPTS_RESULT"] = result
                         completed = subprocess.run(
-                            [shell, "-NoProfile", "-NonInteractive", "-Command", gate["run"]],
+                            [
+                                shell,
+                                "-NoProfile",
+                                "-NonInteractive",
+                                "-Command",
+                                f"{PWSH_FORCE_UTF8_OUTPUT}; {gate['run']}",
+                            ],
                             env=environment,
                             capture_output=True,
                             text=True,

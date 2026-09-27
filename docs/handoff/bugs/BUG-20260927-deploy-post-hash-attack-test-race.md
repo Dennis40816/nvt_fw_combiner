@@ -18,4 +18,8 @@ stream is open, or by accepting either rejection stage while still requiring tha
 Evidence: the verifier log of that run (local test area); three reruns of the test file at the same head passed (17/17 each);
 the same lane passed in the six earlier full runs of batches 2a and 2b.
 Owner: WS-TEST (test architecture work under ADR 0079); an R1 test-only correction.
+Update (2026-09-27): a test-only fix (branch `feature/1.1.13/script-test-stability`, next batch) makes the attacker count
+only `ERROR_SHARING_VIOLATION` as a lock and renames the test to what it proves: tampering is always detected by one of
+the two hash checks and never admitted. It no longer claims that the mutation lands between the two checks.
+Deterministic post-hash coverage needs a synchronization point in the script (R2) and is later work; this bug stays open.
 Resolution:

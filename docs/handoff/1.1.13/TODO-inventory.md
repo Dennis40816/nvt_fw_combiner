@@ -50,7 +50,7 @@ remove items; the board decisions stay the authority for scope.
 | 30 | G0: GitHub App, rulesets and settings, including A-5 | owner runs the scripts |
 | 31 | WS-GOV governance reset (ADR 0080) | on `feature/1.1.13/ws-gov`; integration after G0 |
 
-## Waiting or open (27)
+## Waiting or open (28)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
@@ -79,8 +79,9 @@ remove items; the board decisions stay the authority for scope.
 | 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
 | 55 | Document at the line ceiling | open |
 | 56 | Private-string check rejects user-profile paths in new changes (rest of the public-paths bug) | open |
-| 57 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | release |
-| 58 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
+| 57 | Canonical roadmap synchronized with decisions 103-104 (1.2.0 as the user release; intermediate 1.1.x releases), a governed documentation record | open (found by the #462 review) |
+| 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | release |
+| 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
 
 Not 1.1.13: the display-convention inventory (1.1.14, decision 39); the 1.2.1
 architecture and UI reviews and Launcher; CtrlRAM cold first-open and F14/F15
