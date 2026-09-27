@@ -24,8 +24,9 @@
 - Amends: [ADR 0027](0027-evidence-preserving-performance-remediation.md),
   section "2026-08-12 evidence-sharded .NET CI amendment", only as stated in
   decision item 9
-- Relates to: ADR 0080 (governance reset, proposed: the authority path map and
-  the CI tiers of its batches G1-A, G1-B and G2); the CI failure-evidence
+- Relates to: [ADR 0080](0080-governance-reset.md) (governance reset, accepted
+  2026-09-27 as a staged design: the authority path map and the CI tiers of its
+  batches G1-A, G1-B and G2); the CI failure-evidence
   contract (`CI-FAILURE-EVIDENCE-1113-01`)
 - Design review: `codex/gpt-6-astra` reviewed the WS-TEST design drafts on
   2026-09-26 at `87ac3d6c1` (ACCEPT-WITH-CHANGES, findings F-1 to F-6); all
@@ -209,8 +210,8 @@ product issues waiting for that evidence.
 
 ### Related work
 
-- The governance reset (ADR 0080, proposed): its authority path map classifies
-  every path as `firmware`, `release`, `governance`, `code`, `prose` or
+- The governance reset (ADR 0080, accepted as a staged design): its authority
+  path map classifies every path as `firmware`, `release`, `governance`, `code`, `prose` or
   `unclassified`. Its draft first defined `prose` as text "that no test or
   script reads"; that wording is historical, and the draft now uses the joint
   definition of item 3 (WS-GOV head

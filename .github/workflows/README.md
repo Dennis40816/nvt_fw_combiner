@@ -16,6 +16,20 @@ fixture gate remain owned only by
 Missing or failed producers and missing, extra, duplicate, wrong-SHA,
 wrong-SDK, or hash-mismatched evidence fail the finalizer.
 
+`authority.yml` produces the pull request check `governance / authority`
+([ADR 0080](../../docs/adr/0080-governance-reset.md), G1-A): one job, run on
+every pull request event type that can change the head or the description
+(`edited` included), with read-only `contents` and `pull-requests` permissions
+and no secret. `scripts/authority_check.py` classifies the change against
+`docs/governance/authority-policy.json` and verifies the description's
+authority block and the review records on the head; its job summary records the
+evaluated head and base, the Git blob IDs of the authority files at both, and
+the revision and blob of the checker that ran. The context binds a branch only
+after the owner adds it to that branch's ruleset (trunk and release branches in
+G1-A, `main` in G2); until then the three checks above stay the required set.
+Procedures: `docs/governance/development-execution-workflow.md`, "Authority
+check".
+
 `release.yml` is always dispatched from the exact current protected `main`
 workflow definition for one explicit reviewed release-branch head and its final
 merged PR. The product source is normally `main`; the approved

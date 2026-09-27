@@ -77,6 +77,117 @@ the execution sequence:
    authority and evidence remain separate prerequisites, never supplied by a
    record or reviewer verdict.
 
+## Authority check
+
+[ADR 0080](../adr/0080-governance-reset.md) (G1-A) adds the pull request check
+`governance / authority` (`.github/workflows/authority.yml`,
+`scripts/authority_check.py`) and its path map
+[`authority-policy.json`](authority-policy.json). It runs beside the record
+gate above, which stays in force until an authorized G1-B merges; it binds a
+branch once the owner has made the context required on that branch's ruleset.
+The check proves presence and form at the time it ran; the owner judges the
+evidence, and the procedures below close what the check leaves open (ADR 0080,
+safeguards P1 to P9). Once the context is required, a pull request whose head
+predates the workflow or checker reports a failure or no context at all, and
+either blocks the merge: rebase it onto the base, then renew its review record
+and approval on the new head.
+
+**Authority block.** The description carries exactly one fenced
+`nfc-authority` JSON block (template: `.github/pull_request_template.md`):
+`risk`, `roles`, `implementationOwner`, `ownedPaths` and, for each declared
+role, its `evidence` (`firmware-owner`: `golden`, `writeRanges`;
+`release-owner`: `release`; `governance-owner`: `change` and, for each
+unclassified path, a `classification`). The check takes the changed paths from
+the merge base of the live base tip and the head, both sides of renames and
+copies included, and applies the stricter of the base and head policies to
+each path. It fails when the block is missing or malformed, the declared risk
+is below the floor, a role the paths, a review record or a classification
+require is not declared, a declared role lacks its entries, an R1 to R3 change
+has no valid review record on the head, a policy is missing or invalid, or an
+API or Git call fails. A required or declared role makes the change R3.
+
+**Review record.** The reviewer posts a comment review on the head through the
+API, never in the description:
+
+```text
+gh api repos/Dennis40816/nvt_fw_combiner/pulls/<n>/reviews -X POST \
+  -f commit_id=<head> -f event=COMMENT -F body=@review.md
+```
+
+`review.md` holds one fenced `nfc-review-record` block with the JSON object
+`head` (40-character SHA), `reviewer` (runtime and model, for example
+`codex/gpt-6-astra`), `mode` (`other-runtime` or `same-runtime-fresh-session`),
+`verdict` (`accept`, `accept-with-changes` or `reject`), `openP0P1`, `state`
+(`complete` or `incomplete`) and `addedRoles`. It counts when its `commit_id`
+and `head` equal the head, it is complete and not rejecting, `openP0P1` is 0,
+and its author is on the reviewer list of both policies; the latest record of
+each listed principal decides. Posting or editing a review starts no run, and a
+new head needs a new record.
+
+**Approval snapshot.** When the owner approves, the commander records in the
+pull request the head SHA, the authority block as approved and every valid
+review record with its review id, head, verdict and complete body.
+
+**Pre-merge verification** (commander, before asking for the merge):
+
+1. Base authority code. Compare the blob IDs of
+   `.github/workflows/authority.yml`, `scripts/authority_check.py`,
+   `docs/governance/authority-policy.schema.json` and
+   `docs/governance/authority-policy.json` at the base tip
+   (`git fetch origin <base>`, then `git rev-parse origin/<base>:<path>`) with
+   the evaluated-head column of the latest run's job summary, whose "Checker
+   that ran" line names the checker revision and blob that produced it. If the
+   pull request runs older versions it does not change, rebase it (and renew
+   the review record and the approval), or run the current base checker
+   against its head and attach the result, whose "Checker that ran" line must
+   name the base tip; a failure stops the merge:
+
+   ```text
+   git worktree add --detach <tmp>/base origin/<base>
+   git worktree add --detach <tmp>/head <head>
+   python <tmp>/base/scripts/authority_check.py --root <tmp>/head \
+     --repository Dennis40816/nvt_fw_combiner --pull-request <n>
+   ```
+
+   (`GITHUB_TOKEN` may hold a read-only token; unset, the public API is read
+   anonymously.) If the pull request changes these files on purpose, the
+   self-change check below applies.
+2. Re-run `governance / authority` (`gh run rerun <run-id>`) and wait for it.
+3. Confirm through the API that this run reports success for the current head
+   (`gh api repos/Dennis40816/nvt_fw_combiner/commits/<head>/check-runs`) and
+   that the owner's approving review is on that SHA after its most recent push
+   (`gh api repos/Dennis40816/nvt_fw_combiner/pulls/<n>/reviews`). For a new SHA
+   with an identical tree, ask for a new approval until D4 shows GitHub does.
+4. Compare the live authority block and valid review records with the
+   snapshot. Any difference, a body edit under the same review id included,
+   stops the merge until the owner reconfirms by a new approving review or a
+   comment naming the head SHA and the change; record the new snapshot.
+5. Merge with `gh pr merge <n> --merge --match-head-commit <head>` on the
+   owner's go-ahead. If anything changed after step 1, start again.
+
+The pull request records the snapshot, the blob IDs compared in step 1, and
+the run id and head SHA of steps 2 and 3.
+
+**Self-change check.** A pull request that changes the workflow, the checker,
+the policy or its schema runs its own version of the check. When the base has
+the checker, the commander runs the base checker against the head (step 1's
+commands) and attaches the result, the pull request states which verdicts the
+change alters and why, and the owner's approval states that the change was
+reviewed, the base checker's result was read and this pull request's own
+requirements were not lowered (or accepts the stated lowering).
+
+**Bootstrap approval.** When the base has no checker (the G1-A pull request
+into the trunk and the first release pull request that brings the check into
+`main`), no base result exists and none is claimed. The pull request passes the
+gates in force on its base (for G1-A: its capability-reuse record, the base
+validator, the existing required checks and the release-owner attestation for
+the workflow; for the release pull request: ADR 0033 and the release policy),
+an independent review of its fixed head covers the check (for the release pull
+request it may instead confirm that the authority files have the trunk's blob
+IDs, citing G1-A's review), and the owner's approval states that the base has no checker, which gates stood
+in, and that the introduced check was reviewed at that head. The check's own
+result there is informative only.
+
 ## Narrow test selection
 
 Before each verifier or direct test, apply the root
