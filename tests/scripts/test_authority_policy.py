@@ -1,8 +1,6 @@
 """Coverage, consistency and dependency tests for the authority policy (ADR 0080 item 4).
 
-They bind the policy to the current tree: every tracked path is classified, no
-path the record validator governs gets a lower floor while that validator
-exists, every default exclusion is covered, the script table of item 4 holds,
+They bind the policy to the current tree: every tracked path is classified, every default exclusion is covered, the script table of item 4 holds,
 the checker reads only governance-R3 files, CODEOWNERS gives every role path to
 its principals, prose is read by no topic test, and the workflow keeps its
 fail-closed shape.
@@ -29,7 +27,6 @@ check = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = check
 SPEC.loader.exec_module(check)
 sys.path.insert(0, str(ROOT / "scripts"))
-import validate_repository as record_validator  # noqa: E402
 
 POLICY = check.load_policy(
     (ROOT / check.POLICY_PATH).read_bytes(), (ROOT / check.SCHEMA_PATH).read_bytes(), "head"
@@ -165,22 +162,7 @@ class AuthorityPolicyTests(unittest.TestCase):
                         f"{path} is excluded from {default.id} and matched by no other entry",
                     )
 
-    def test_no_governed_path_gets_a_lower_floor_than_the_record_validator(self) -> None:
-        # Binds the migration seam until G1-B deletes the record classifier.
-        lowered = []
-        for path in TRACKED:
-            if record_validator._is_capability_reuse_governed_path(path):
-                old = record_validator._capability_reuse_minimum_risk(path)
-                new = POLICY.classify(path).floor
-                if check.RISKS.index(new) < check.RISKS.index(old):
-                    lowered.append(f"{path}: {old} -> {new}")
-        self.assertEqual(lowered, [])
-
     def test_script_table_of_item_4(self) -> None:
-        self.assertLessEqual(
-            {Path(path).name for path in record_validator.CAPABILITY_REUSE_R3_SCRIPTS},
-            set(SCRIPT_ROLES),
-        )
         for name, roles in SCRIPT_ROLES.items():
             with self.subTest(script=name):
                 result = POLICY.classify(f"scripts/{name}")

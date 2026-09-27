@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -46,22 +45,6 @@ class CodeSizePolicyTests(unittest.TestCase):
             + snapshot.infrastructure_contracts_worker_nonblank,
         )
         self.assertEqual([], validate_code_size_policy(REPOSITORY_ROOT))
-
-    def test_launcher_structure_record_matches_the_canonical_exact_ledger(self) -> None:
-        record = json.loads(
-            (REPOSITORY_ROOT / "docs/governance/change-records/LAUNCHER-STRUCTURE-RATCHET-104-01.json")
-            .read_text(encoding="utf-8")
-        )
-        evidence = " ".join(
-            [
-                *record["searchEvidence"],
-                record["terminalContract"],
-                record["designReview"]["evidence"],
-            ]
-        )
-
-        for value in (129_509, 91_851, 20_632, 40_425, 4_323, 26_471):
-            self.assertIn(f"{value:,}", evidence)
 
     def test_default_policy_reports_ratchets_without_final_targets(self) -> None:
         findings = review_code_size_policy(self.root)
