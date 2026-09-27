@@ -265,16 +265,21 @@ public sealed partial class WindowLifetimeTests
         Assert.Equal(WindowClosePhase.Closed, window.ClosePhase);
     }
 
-    /// <summary>A deadline adapter fault still completes final revocation and closes the window.</summary>
-    [AvaloniaFact]
-    public async Task CloseDeadlineFaultDoesNotStrandWindowOrEscapeDispatcher()
+    /// <summary>A work-drain or local-state flush deadline fault still revokes the lease and closes.</summary>
+    [AvaloniaTheory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task CloseDeadlineFaultDoesNotStrandWindowOrEscapeDispatcher(int faultOnCall)
     {
         PresentationHostServices services = PresentationTestHost.CreateServices("0.10.5");
         using var window = new MainWindow(
             UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
         window.Show();
         await ReportControlTestHost.AwaitHistoryReadyAsync(window);
-        window.CloseDeadlineFactory = _ => throw new InvalidOperationException("synthetic deadline failure");
+        int deadlineCalls = 0;
+        window.CloseDeadlineFactory = _ => Interlocked.Increment(ref deadlineCalls) == faultOnCall
+            ? throw new InvalidOperationException("synthetic deadline failure")
+            : Task.Delay(TimeSpan.FromSeconds(10));
         bool escaped = false;
         void Capture(object sender, DispatcherUnhandledExceptionEventArgs args)
         {
@@ -290,11 +295,16 @@ public sealed partial class WindowLifetimeTests
             await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Dispatcher.UIThread.RunJobs();
             Assert.False(escaped);
+            Assert.True(deadlineCalls >= faultOnCall);
+            Assert.Equal(WindowClosePhase.Closed, window.ClosePhase);
+            Assert.False(Assert.IsType<MainWindowViewModel>(window.DataContext)
+                .Reports.WindowPublication!.CanPublish);
         }
         finally
         {
             Dispatcher.UIThread.UnhandledException -= Capture;
         }
+
     }
 
     /// <summary>Cancellation of a READY write during Close stays inside the startup owner.</summary>
