@@ -9,7 +9,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (37)
+## Done (38)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -50,6 +50,7 @@ remove items; the board decisions stay the authority for scope.
 | 51 | Deploy post-hash attack test made deterministic (W6-D) | #468 |
 | 55 | Document at the line ceiling: dated handoff history archived | #468 |
 | 57 | Canonical roadmap synchronized with decisions 103-104 (W6-E) | #468 |
+| 40 | ADR 0077 Step 0 measurement: gate admits B2 (avoidable wall time 916.8 and 929.6 ms in two passes at `47e01ebab`; acceptance cost 66.7 ms median) | evidence `<test-area>/evidence/adr0077-step0/` |
 
 ## Active (5)
 
@@ -61,7 +62,7 @@ remove items; the board decisions stay the authority for scope.
 | 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | CI tiers and U4/U5 with G2 |
 | 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 88) | three reviewable commits (UiSmoke 145/145); waits for the owner's approval of the two dialog reference images and a two-file scope extension |
 
-## Waiting or open (26)
+## Waiting or open (25)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
@@ -72,8 +73,7 @@ remove items; the board decisions stay the authority for scope.
 | 36 | WS-AI dual-runtime agent documents, with the two agent-skill bugs | open |
 | 38 | WS-FLOW F1 second half, F5 and F6 re-evaluation | open |
 | 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | stage 1 merged in #461; stages 2-4 paused (decision 100) |
-| 40 | ADR 0077 Step 0 measurement | quiet machine |
-| 41 | ADR 0077 B2a (R2) | Step 0 |
+| 41 | ADR 0077 B2a (R2) | Step 0 admitted it; starts after G1-B merges |
 | 42 | ADR 0077 B2b trust policy (R3) | B2a |
 | 43 | First window within the EXE size ceiling | ADR 0077 |
 | 48 | Version-branch CI gap | WS-GOV |
