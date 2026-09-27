@@ -37,8 +37,14 @@ file names; the resolved paths are unchanged. Test projects declare the
 `NvtFwCombiner.LocalState.CurrentUserFolderForbidden` runtime switch, so that
 default resolver refuses before any local-state IO of those four files; test
 hosts inject isolated directories. The switch does not cover explicitly
-injected paths, child product processes or version-manager state, which keeps
-its separate resolver (a separate follow-up).
+injected paths or child product processes.
+
+Update 2026-09-27 (`VERSION-MANAGER-STATE-1113-01`): version-manager state keeps
+its own resolver, `JsonVersionManagerStateStore.GetDefaultPath`, which now honors
+the same switch and refuses before reading `LOCALAPPDATA` or the platform folder.
+Its nullable-path callers (both launcher parsers and `StableLauncherHandoff`)
+resolve the default only after validating their arguments; tests inject an
+isolated state path.
 
 Future uninstall work should consume and update this inventory, present settings
 and history cleanup separately from program removal, and inventory managed
