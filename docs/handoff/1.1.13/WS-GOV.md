@@ -1269,3 +1269,21 @@ verified afterwards, and the board records it (G0 checklist, C3).
 - Step 3 (freeze): nothing pushes to or merges into `9.9.x`; no open pull
   request targets it.
 - Steps 2, 4, 5 (owner) and 6, 7, 10 (agent): results recorded below when done.
+- Result (2026-09-28, run by Codex in the owner's session under decision 148;
+  the owner signed in through Git Credential Manager):
+  - Step 2: `recovery/9.9.x-20260928` created at `e6e991af3` (01:15-01:17 +08:00).
+  - Step 4: force push `e6e991af3...54974d5cc` to `9.9.x` (01:17:46 +08:00); the
+    push reported "Bypassed rule violations for refs/heads/9.9.x". Deletion of
+    `9.9.x` (01:18:02 +08:00) succeeded.
+  - Step 5: the repository activity API lists `force_push` and
+    `branch_deletion` for `9.9.x` by `Dennis40816`. The rule insights need an
+    admin view (the App gets 403); the owner may confirm the two bypass
+    entries on the page. The owner credential was signed out at once
+    (`git credential-manager github logout`; `github list` no longer shows the
+    account), which closes A8 for this drill.
+  - Step 6: agent path unchanged: the local helper is still the empty entry
+    plus the App helper, `useHttpPath` is `true`, and the App wrapper still
+    reaches `/installation/repositories` (this repository only).
+  - Step 7: the effective rules for `9.9.x` (ruleset 24060410, RS-2) are still
+    deletion, non-fast-forward, pull request and required status checks.
+  - Open: the owner deletes `recovery/9.9.x-20260928` after G1-B merges (D7).
