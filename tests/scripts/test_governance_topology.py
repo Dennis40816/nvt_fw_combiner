@@ -1,4 +1,5 @@
 """Retired history constraints must not reject unchanged frozen merge snapshots."""
+import json
 import pytest
 import tempfile
 from pathlib import Path
@@ -26,7 +27,13 @@ def test_frozen_snapshot_survives_merge_shapes(repository, shape, mutation):
     errors = []
     validator.validate_frozen_evidence_pins(repository, errors)
     if mutation == "kept":
-        assert any(refs["frozen_file"] in error for error in errors), errors
+        path = "docs/governance/change-records"
+        pins = json.loads((repository / "docs/governance/frozen-evidence-pins.json").read_text())
+        pinned = next(pin["id"] for pin in pins["pins"] if pin["path"] == path)
+        actual = git(repository, "--no-replace-objects", "rev-parse", f"HEAD:{path}")
+        assert pinned != actual
+        assert errors == [f"frozen evidence pins: {path}: HEAD differs from frozen pin: "
+                          f"pinned=040000 tree {pinned}; actual=040000 tree {actual}"]
     else:
         assert errors == []
 

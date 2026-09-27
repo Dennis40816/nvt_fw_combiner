@@ -1613,7 +1613,10 @@ def validate_frozen_evidence_pins(root: Path, errors: list[str]) -> None:
         for pin in pins:
             path, kind, oid = pin["path"], pin["type"], pin["id"]
             mode = "040000" if kind == "tree" else FROZEN_CHECKPOINT_MODE
-            require(tree.get(path) == (mode, kind, oid), path, "HEAD differs from frozen pin")
+            actual = tree.get(path)
+            require(actual == (mode, kind, oid), path,
+                    f"HEAD differs from frozen pin: pinned={mode} {kind} {oid}; "
+                    f"actual={' '.join(actual) if actual is not None else 'missing'}")
             if kind == "blob":
                 expected[path] = oid
         for path, (mode, kind, oid) in tree.items():

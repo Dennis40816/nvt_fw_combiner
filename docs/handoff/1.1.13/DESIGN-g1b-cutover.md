@@ -256,7 +256,9 @@ base `C0`). The builder asserts the relations itself.
   `topo-a`, `topo-b`, `topo-c`; each final head runs the real entry under the
   harness: exit 0, no violation, calls equal to the multiset.
 - **Negative controls**: a frozen file changed after `F` and kept to the final
-  `HEAD` fails naming the file; restored before it, it passes; the 2.7 controls
+  `HEAD` fails naming the pinned path and its pinned/actual mode, type and ID;
+  the index and physical layers name changed entries. Restored before the final
+  head, it passes; the 2.7 controls
   fail on the topology heads too.
 
 ### 2.7 Structure-entry audit harness (decision 125)
@@ -716,6 +718,7 @@ Each finding is answered by the normative section named.
 | 3 | note: length | each rule stated once and linked |
 | 4 | [P2] `runpy.run_path()` makes `argv[0]` absolute and adds traceback frames | 2.7 "Why not `runpy`", "Bootstrap" steps 5-6, stderr rule, launch positive control, controls 7a-7c, units |
 | Stage A implementation clarification 1 (commander, 2026-09-27) | Windows command-line pairing, 2.7 | The running Windows CPython 3.13.5 emits `subprocess.Popen(executable, command_line, cwd, env)` and `_winapi.CreateProcess(application_name, command_line, current_directory)`. Observed native `\x02` / `\x03` are reference-count fragments: CPython v3.13.5 `Modules/_winapi.c` passes a `PyObject*` through audit format `uuu`, whose second slot expects `wchar_t*`. The harness records the actual positional-only native arguments before forwarding the identical tuple, pairs Popen -> boundary -> native once, and checks completion. Only that known runtime accepts the native nonzero control-character fragment; it never supplies argv authority. Every real argv still matches the unchanged decision-125 multiset. This clarifies implementation, not design. |
+| Stage A implementation clarification 2 (commander, 2026-09-27) | Pin error detail, 2.3 and 2.6 | HEAD-tree mismatches report the pinned path with pinned and actual mode, type and ID (or `missing`). Index and physical mismatches continue to name the changed file, since those layers compare entries. The three kept-mutation topology cases assert the complete HEAD diagnostic against independently read fixture IDs. No call is added to the three-call proof or the exact decision-125 allowlist. This clarifies implementation, not design. |
 
 Stage A continuation admission: implementation owner `codex/gpt-6-astra`;
 base `912ad70e602fa30873202d5eb996fdffdc3dd289`, plus the authorized G1-A
