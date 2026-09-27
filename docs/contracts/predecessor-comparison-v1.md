@@ -287,9 +287,11 @@ The compiler host is pinned by board decision 79: the P-0.5 spike showed that
 the embedded PDBs record whichever runtime patch hosts the compiler, and that
 pinning the host to runtime 10.0.11 reproduces the pinned v0.9.16 closure bit
 for bit; the 1.x identity comparison uses the same pinning. The exact pinning,
-together with the second v0.9.16 executor contract, is admitted by a separate
-executor record; until it is, `compilerHost` is `pending-executor-record` and
-no formal run is possible.
+together with the second v0.9.16 executor contract, is admitted by its own R3
+pull request with the owner's exact-head approval of its last push naming the
+`firmware-owner` role, with byte and Golden evidence and the exact write-range
+audit (ADR 0080 items 4 and 7); until it is, `compilerHost` is
+`pending-executor-record` and no formal run is possible.
 
 The identity is recorded, not pinned in advance. From 1.1.14 on, the rebuilt
 rolling baseline identity is also compared with the candidate identity that
@@ -466,7 +468,7 @@ of the report without that member; timings are never part of the report.
 | Interface | Status | Until it is in effect |
 | --- | --- | --- |
 | declaration schema | proposed | revised with the report schema before any release commits a declaration |
-| report schema | proposed | revised by the reader record; no report of record |
+| report schema | proposed | revised by the reader pull request, with the review and approvals its paths require; any R3 approval binds the last push and names each required role (ADR 0080 item 7); no report of record |
 | report reader | `pending-reader-record` | no report of record |
 | compiler-host pinning | `pending-executor-record` (board decision 79) | no formal run |
 | v0.9.16 baseline executor | `pending-executor-record` in the amendment (board decisions 63 and 79) | no formal v0.9.16 1.x run |

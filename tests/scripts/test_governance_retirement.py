@@ -3,6 +3,8 @@ from pathlib import Path
 import re
 import subprocess
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 SYMBOLS = re.compile(
     r"capability_reuse|CAPABILITY_REUSE|_record_changed_in_commits_after|"
@@ -12,15 +14,23 @@ INSTRUCTIONS = re.compile(
     r"design-active|final-complete|evidence commit|capability-reuse record|capability record|"
     r"external-authority attestation|trusted (?:initial )?(?:capability )?checkpoint|"
     r"latest (?:evidence )?checkpoint|R[0-3] (?:capability )?record|"
-    r"(?:own|separate|executor) record|finaliz\w* .{0,40}record|change-records/", re.I
+    r"(?:own|separate|executor|reader) record|finaliz\w* .{0,40}record|change-records/", re.I
 )
 GOVERNANCE_OWNERS = {
     "development-execution-workflow.md", "branch-version-and-release-governance.md",
     "agent-skill-routing.md", "agent-model-routing.md", "agent-issue-tracker.md",
 }
 
+# Terminal parity execution/verification records, not retired admission records.
+# Preserve their normative evidence requirements verbatim (plan section 3).
+TERMINAL_EXCEPTIONS = {
+    ('docs/adr/0057-v0916-black-box-parity-certification.md', 'Finalization verifies that external record.'),
+    ('docs/contracts/v0916-parity-certification-v1.md', 'The same hash-pinned comparator script prepares and finalizes the canonical invocation record.'),
+}
+
 # Exact historical sentences, bound to their original canonical documents.
 EXCEPTIONS: set[tuple[str, str]] = {
+    *TERMINAL_EXCEPTIONS,
     ('docs/adr/0021-code-size-ratchet-accepted-artifact-amendment.md', 'This increment has no transferable headroom; independent admission and fixed-head review are recorded in the batch capability record.'),
     ('docs/adr/0057-v0916-black-box-parity-certification.md', 'H3 may modify only the predeclared final-record set; H4 may add only the predeclared external-authority attestation set and is the exact parity package-source head.'),
     ('docs/adr/0072-event-buffer-format-configuration.md', 'Record 12 remains `design-active` until the frozen integration boundary.'),
@@ -118,3 +128,17 @@ def test_skill_scripts_and_claude_files_are_in_live_scope():
     sentence = "Finalize the design-active record before the evidence commit."
     for path in (".agents/skills/example/check.py", ".agents/skills/example/check.sh", ".claude/rules.yml"):
         assert live_findings({path: sentence}) == [(path, sentence)]
+
+
+@pytest.mark.parametrize("path,sentence", sorted(TERMINAL_EXCEPTIONS))
+def test_terminal_exception_is_bound_to_exact_file_and_sentence(path, sentence):
+    assert live_findings({path: "Status: Accepted\n\n" + sentence}) == []
+    assert live_findings({"AGENTS.md": sentence}) == [("AGENTS.md", sentence)]
+    added = "Finalize the design-active record before the evidence commit."
+    assert live_findings({path: "Status: Accepted\n\n" + sentence + "\n\n" + added}) == [(path, added)]
+
+
+def test_reader_admission_instruction_is_reported():
+    sentence = "The schema is revised by the reader record."
+    path = "docs/contracts/predecessor-comparison-v1.md"
+    assert live_findings({path: sentence}) == [(path, sentence)]

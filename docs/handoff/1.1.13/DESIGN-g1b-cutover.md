@@ -513,6 +513,8 @@ Golden evidence stay; only the mechanism changes. Contract values
 | same file `:139-140` | "The contract itself is admitted by a separate executor record; until then" | "The contract itself is admitted by its own R3 pull request with the owner's exact-head firmware-owner approval; until then" |
 | `docs/contracts/predecessor-comparison-v1.md:184-186` | "It does not replace the exact-head owner attestation that an R3 capability record needs, such as the record of the 1.x amendment." | "It does not replace the owner's exact-head firmware-owner approval that an R3 pull request needs, such as a change to the 1.x amendment (ADR 0080 item 7)." |
 | same file `:382-384` | "its rules are admitted by a separate record after the P-0.5 spike, and until then" | "its rules are admitted by their own pull request after the P-0.5 spike, with the review and approvals their paths require, and until then" |
+| `docs/contracts/predecessor-comparison-v1.md:290-292` | "together with the second v0.9.16 executor contract, is admitted by a separate executor record; until it is" | "together with the second v0.9.16 executor contract, is admitted by its own R3 pull request with the owner's exact-head approval of its last push naming the `firmware-owner` role, with byte and Golden evidence and the exact write-range audit (ADR 0080 items 4 and 7); until it is" |
+| same file `:469`, report-schema row | "revised by the reader record; no report of record" | "revised by the reader pull request, with the review and approvals its paths require; any R3 approval binds the last push and names each required role (ADR 0080 item 7); no report of record" |
 | ADR 0078 `:127-130` (Proposed; R2) | "they are admitted by their own R3 record and finalized with an exact-head firmware-owner attestation, which the declaration's citation form does not replace." | "they are admitted by their own R3 pull request with the owner's exact-head firmware-owner approval (ADR 0080 item 7), which the declaration's citation form does not replace." |
 | ADR 0078 `:212-215` Open items | "(a separate record after the P-0.5 spike)"; "(a separate executor record after the P-0.5 spike)" | "(a separate pull request after the P-0.5 spike)"; "(a separate executor pull request after the P-0.5 spike)" |
 | ADR 0079 `:781`, `:783` (Accepted; R2) | T2a "no capability-reuse record (the validator rejects a record whose only path is a test file)"; T3 "its own record or pull request fields, review" | T2a "pull request fields only"; T3 "pull request admission fields, review record" |
@@ -520,7 +522,8 @@ Golden evidence stay; only the mechanism changes. Contract values
 **Found and left** (`git grep` over every `Proposed`/`Accepted` ADR, all
 contracts, `docs/specs/`, `SPEC.md`, the canonical architecture documents,
 `docs/ci/`, every `AGENTS.md`), the only 2.8 exceptions: ADR 0057 `:282-289`
-(terminal v1.0.0 H1-H4 chain; left, as the review asks); ADR 0072 `:872`,
+(terminal v1.0.0 H1-H4 chain; left, as the review asks), plus the exact
+terminal sentence pairs below; ADR 0072 `:872`,
 `:992` (dated; records 11-13 `final-complete`, section 4); ADR 0077 `:547-550`
 (defers to "the governance in force"; B2b is an owner approval under item 7);
 ADR 0079 `:780` (T1, sealed); ADR 0021 artifact amendment `:541` (dated); ADR
@@ -528,6 +531,14 @@ ADR 0079 `:780` (T1, sealed); ADR 0021 artifact amendment `:541` (dated); ADR
 frozen records; `docs/specs/v1.0.8-update-catalog-v2.md:20` is an owner table;
 dated handoff, UI, reference and ledger documents are history
 (`docs/AGENTS.md:8`).
+
+The terminal exceptions retain substantive parity execution and verification
+records, not governance admission records; their text stays unchanged:
+
+| File | Exact allowed sentence | Reason |
+| --- | --- | --- |
+| `docs/adr/0057-v0916-black-box-parity-certification.md:320` | "Finalization verifies that external record." | Terminal firmware-owner verification evidence; retain the v1.0.0 certification requirements. |
+| `docs/contracts/v0916-parity-certification-v1.md:241` | "The same hash-pinned comparator script prepares and finalizes the canonical invocation record." | Terminal executor invocation evidence; retain the hash-pinned parity certification requirements. |
 
 ## 4. Transition inventory (step 3)
 
@@ -719,6 +730,8 @@ Each finding is answered by the normative section named.
 | 4 | [P2] `runpy.run_path()` makes `argv[0]` absolute and adds traceback frames | 2.7 "Why not `runpy`", "Bootstrap" steps 5-6, stderr rule, launch positive control, controls 7a-7c, units |
 | Stage A implementation clarification 1 (commander, 2026-09-27) | Windows command-line pairing, 2.7 | The running Windows CPython 3.13.5 emits `subprocess.Popen(executable, command_line, cwd, env)` and `_winapi.CreateProcess(application_name, command_line, current_directory)`. Observed native `\x02` / `\x03` are reference-count fragments: CPython v3.13.5 `Modules/_winapi.c` passes a `PyObject*` through audit format `uuu`, whose second slot expects `wchar_t*`. The harness records the actual positional-only native arguments before forwarding the identical tuple, pairs Popen -> boundary -> native once, and checks completion. Only that known runtime accepts the native nonzero control-character fragment; it never supplies argv authority. Every real argv still matches the unchanged decision-125 multiset. This clarifies implementation, not design. |
 | Stage A implementation clarification 2 (commander, 2026-09-27) | Pin error detail, 2.3 and 2.6 | HEAD-tree mismatches report the pinned path with pinned and actual mode, type and ID (or `missing`). Index and physical mismatches continue to name the changed file, since those layers compare entries. The three kept-mutation topology cases assert the complete HEAD diagnostic against independently read fixture IDs. No call is added to the three-call proof or the exact decision-125 allowlist. This clarifies implementation, not design. |
+| Stage A implementation clarification 3 (commander, 2026-09-27) | Predecessor executor/reader admission, section 3 | Added both replacement rows. Executor admission uses its own R3 pull request and the owner's exact-head last-push approval naming `firmware-owner`, retaining byte/Golden evidence and the exact write-range audit. Reader schema admission uses its own pull request with path-required reviews and role-naming last-push approvals. `pending-executor-record`, `pending-reader-record` and all other contract values stay unchanged. This clarifies implementation, not design. |
+| Stage A implementation clarification 4 (commander, 2026-09-27) | Terminal exceptions, 2.8 and section 3 | Added the two exact (file, sentence) pairs listed in section 3 to the retirement scan. They are terminal parity execution/verification evidence, not live governance admission instructions. Both source sentences stay unchanged; moved sentences and new admission instructions still fail. This clarifies implementation, not design. |
 
 Stage A continuation admission: implementation owner `codex/gpt-6-astra`;
 base `912ad70e602fa30873202d5eb996fdffdc3dd289`, plus the authorized G1-A
