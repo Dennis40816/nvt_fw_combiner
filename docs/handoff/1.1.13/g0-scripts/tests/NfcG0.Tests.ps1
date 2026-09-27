@@ -91,6 +91,45 @@ Describe 'NFC G0 pure functions' {
     }
 }
 
+Describe 'NFC G0 Git advisory credential metadata' {
+    It 'accepts repeated advisory arrays without treating their contents as identity' {
+        $inputText = "capability[]=authtype`ncapability[]=state`nprotocol=https`nhost=github.com`npath=owner/repo.git`nwwwauth[]=Basic realm=GitHub`nwwwauth[]=host=evil.example`n`n"
+        $request = Read-NfcCredentialInput $inputText
+        $request.Count | Should Be 3
+        $request.protocol | Should Be 'https'
+        $request.host | Should Be 'github.com'
+        $request.path | Should Be 'owner/repo.git'
+        (Test-NfcCredentialScope -Request $request -Owner owner -Repo repo) | Should Be $true
+    }
+
+    It 'still rejects repeated scalar identity and unknown fields' {
+        foreach ($field in @('protocol', 'host', 'path', 'unknown')) {
+            foreach ($second in @('first', 'different')) {
+                $inputText = "capability[]=authtype`n${field}=first`nwwwauth[]=Basic realm=GitHub`n${field}=$second`n`n"
+                (Test-NfcThrows { Read-NfcCredentialInput $inputText }) | Should Be $true
+            }
+        }
+        (Test-NfcThrows { Read-NfcCredentialInput "capability[]=one`nCapability[]=two`nCapability[]=three`n`n" }) | Should Be $true
+    }
+
+    It 'rejects malformed advisory records and respects the blank-line terminator' {
+        foreach ($field in @('capability[]', 'wwwauth[]')) {
+            (Test-NfcThrows { Read-NfcCredentialInput "$field`n`n" }) | Should Be $true
+        }
+        $request = Read-NfcCredentialInput "protocol=https`nhost=github.com`npath=owner/repo`n`nhost=evil.example`n"
+        (Test-NfcCredentialScope -Request $request -Owner owner -Repo repo) | Should Be $true
+    }
+
+    It 'does not let advisory metadata repair an invalid repository scope' {
+        foreach ($identity in @("protocol=http`nhost=github.com`npath=owner/repo",
+            "protocol=https`nhost=evil.example`npath=owner/repo",
+            "protocol=https`nhost=github.com`npath=other/repo")) {
+            $request = Read-NfcCredentialInput "capability[]=authtype`ncapability[]=state`n$identity`nwwwauth[]=host=github.com`nwwwauth[]=path=owner/repo`n`n"
+            (Test-NfcCredentialScope -Request $request -Owner owner -Repo repo) | Should Be $false
+        }
+    }
+}
+
 Describe 'NFC G0 scope, callback, and recording guards' {
     It 'rejects missing, blank, and unrelated credential paths before any store call' {
         foreach ($request in @(
@@ -503,7 +542,7 @@ Describe 'NFC G0 process isolation with fake secrets' {
             $env:PATH = "$TestDrive;$oldPath"
             $env:GH_TOKEN = 'parent-token'
             $psi = [Diagnostics.ProcessStartInfo]::new()
-            $psi.FileName = (Get-Command pwsh -CommandType Application).Source
+            $psi.FileName = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
             $psi.UseShellExecute = $false
             $psi.RedirectStandardOutput = $true
             $psi.RedirectStandardError = $true
@@ -543,7 +582,7 @@ Describe 'NFC G0 process isolation with fake secrets' {
 
     It 'ignores a Git credential request without a repo path before reading the fake store' {
         $psi = [Diagnostics.ProcessStartInfo]::new()
-        $psi.FileName = (Get-Command pwsh -CommandType Application).Source
+        $psi.FileName = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
         $psi.UseShellExecute = $false
         $psi.RedirectStandardInput = $true
         $psi.RedirectStandardOutput = $true
@@ -555,7 +594,7 @@ Describe 'NFC G0 process isolation with fake secrets' {
         }
         $proc = [Diagnostics.Process]::Start($psi)
         try {
-            $proc.StandardInput.Write("protocol=https`nhost=github.com`n`n")
+            $proc.StandardInput.Write("capability[]=authtype`ncapability[]=state`nprotocol=https`nhost=github.com`nwwwauth[]=Basic realm=GitHub`n`n")
             $proc.StandardInput.Close()
             $outTask = $proc.StandardOutput.ReadToEndAsync()
             $errTask = $proc.StandardError.ReadToEndAsync()
@@ -649,7 +688,7 @@ Describe 'NFC G0 helper recording stop with a fake secret source' {
         try {
             $env:NFC_TEST_MARKER = $marker
             $psi = [Diagnostics.ProcessStartInfo]::new()
-            $psi.FileName = (Get-Command pwsh -CommandType Application).Source
+            $psi.FileName = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
             $psi.UseShellExecute = $false
             $psi.RedirectStandardOutput = $true
             $psi.RedirectStandardError = $true

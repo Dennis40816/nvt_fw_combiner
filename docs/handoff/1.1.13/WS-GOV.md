@@ -13,6 +13,107 @@ questions and answers are at the end
 [questions the G0 review left](#questions-after-the-g0-review), now decided.
 The board allocated ADR number 0080 to the governance draft.
 
+## G0 local execution checkpoint — 2026-09-27
+
+The owner explicitly authorized the assistant to execute the prepared G0
+setup in this task. This is task-specific execution authority, not a standing
+change to the operator rules. Machine-specific IDs, key paths and private
+rollback files remain in the owner's local record outside Git.
+
+Local R1 pre-edit admission for the Git compatibility correction:
+
+- Source: `c61f10e3f1bfc03b287b256dd0526588cf2f4dc9` on this worktree.
+- Existing owner: `Read-NfcCredentialInput` in `g0-scripts/NfcG0.Common.ps1`;
+  production consumer: `nfc-app-token-helper.ps1`, followed by the unchanged
+  exact-repository `Test-NfcCredentialScope` gate before token/key access.
+- Reproduction: Git 2.53.0.windows.1 sends `capability[]`, `capability[]`,
+  `protocol`, `host`, `path`, `wwwauth[]` on an HTTPS push. A diagnostic with
+  no key access or credential output reproduced `Invalid credential request`
+  before token acquisition; the App API wrapper itself already works.
+- Owned implementation surfaces: that existing parser and
+  `g0-scripts/tests/NfcG0.Tests.ps1`. Documentation records the result and
+  patched file inventory. No change to credentials, permissions, token
+  handling, repository scope, recording guards or firmware behavior.
+- Acceptance: valid repeated advisory arrays work; malformed lines,
+  duplicate scalar fields and unrelated repository scopes remain rejected.
+- Narrow gate: focused regression red/green and the existing complete G0
+  Pester suite using fake secret material, followed by independent scoped
+  correctness/security review before installing the compatibility patch.
+- Residual boundary: this local patch and its live setup verification do not
+  certify repository integration, the complete D1–D7 owner acceptance, or a
+  release. Keep those states separate.
+
+Execution and review outcome (2026-09-27):
+
+- Parser regression: original implementation failed 2 of 4 focused cases;
+  corrected implementation passed 4/4. Complete G0 Pester suite: 42 passed,
+  zero failed, using fake secrets with the existing test-area temp root.
+  Three subprocess fixtures also needed to choose the first `pwsh`
+  application returned, matching the production wrapper's existing behavior
+  on hosts with more than one executable. This is a test harness correction.
+- Independent scoped correctness/security review: PASS for that local R1
+  diff, plus 16 independent parser/scope checks. Helper and wrapper production
+  files are unchanged. The checklist records the two changed file hashes.
+- The App is installed on this repository only. The daily helper/wrapper
+  now use a private root outside AppData. Original encrypted files and
+  private backups were copied opaquely, all copied file hashes matched, and
+  key owner/protected ACL/user-only access were preserved. Machine paths,
+  private IDs and rollback files are recorded only outside Git. External
+  process verification (D0) and old virtualized-copy cleanup remain pending;
+  a Codex child shell is not D0 evidence.
+- Rulesets were applied and read back against the reviewed request bodies;
+  effective rules on the formal refs and disposable release ref were saved.
+  The original apply stopped after `main` because GitHub added
+  `required_reviewers: []` and
+  `require_extra_approval_for_unattributed_changes: true` to the response.
+  The UI identified the latter as extra approval for unattributed Copilot
+  changes. A bounded reconciliation retained the pending transaction and
+  pre-change snapshots, compared all approved fields, admitted only those
+  two server-added defaults, then applied and verified the remaining
+  reviewed requests. No protection was weakened; the tag ruleset was
+  unchanged. The script's strict readback compatibility issue remains open;
+  do not blindly rerun apply or treat the reconciliation as a script fix.
+- D2 passed through the relocated helper: disposable trunk/release creation,
+  direct trunk push rejection, trunk force-push/deletion rejection, and
+  release force-push rejection. The App feature probe was pushed and
+  [disposable PR #460](https://github.com/Dennis40816/nvt_fw_combiner/pull/460)
+  was created through the wrapper; its author is the App, and the
+  installation-token repository query lists only this repository.
+- Still open: D0 external-process test, decision 82 Bitwarden backup
+  confirmation, D4 owner approvals/review behavior, D5 positive merge, D6
+  owner bypass test, D7 cleanup, and A8 owner-session cleanup. These are not
+  marked passed by the local script tests or by this commit. The current
+  document/code change is local only, for commander review and batch 2c;
+  the owner authorized commit on this branch, without a push.
+
+MSIX runtime guard follow-up (explicitly deferred under the owner's allowed
+scope option; not implemented or covered by the parser review):
+
+- Extend the existing `NfcG0.Common.ps1`; do not create another setup path.
+  Detect package identity with `GetCurrentPackageFullName`: only
+  `APPMODEL_ERROR_NO_PACKAGE (15700)` means unpackaged; expected success or
+  insufficient-buffer results mean packaged; unexpected failures stop.
+- For packaged callers, reject AppData destinations before any side effect.
+  Resolve the physical existing target or nearest existing ancestor, append
+  any nonexistent tail, and compare with equally resolved AppData roots.
+  Cover junction/symlink ancestors and short-name aliases; lexical prefix
+  checking alone is insufficient. Guard and IO must share a path base.
+- Cover App creation (including dry-run), ruleset preview/apply/restore,
+  helper installation/configuration and runtime key access, and the wrapper
+  before it invokes the helper. Keep Common loading side-effect-free.
+  Reject before browser/listener, conversion, Bitwarden, key access, backup
+  IO or GitHub calls. Emit fixed errors without supplied private paths.
+- Add Pester coverage for package API outcomes, AppData roots and children,
+  case and `..`, nonexistent tails, sibling names, junctions and 8.3 aliases;
+  test each caller with fake side-effect counters and private sentinels.
+  Update affected reviewed hashes and obtain independent review of the
+  concrete new diff. The parser PASS does not cover this new guard.
+- This requires its own bounded security change across multiple callers.
+  The current delivery therefore enforces unpackaged setup, an external
+  private root and D0 through explicit operator checks. It does not promise
+  protection against malicious concurrent filesystem mutation by the same
+  Windows user.
+
 ## Dispatch envelope (commander, 2026-09-26)
 
 - **Outcome.** (1) A governance ADR draft, Status Proposed, number `00XX`:

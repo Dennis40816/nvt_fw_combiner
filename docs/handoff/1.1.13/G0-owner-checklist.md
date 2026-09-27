@@ -1,11 +1,13 @@
 # G0 owner checklist: agent GitHub identity and rulesets
 
-Status: fifth version, 2026-09-27, rewritten around the owner-run setup
+Status: sixth version, 2026-09-27, retaining the owner-run setup
 scripts of decisions 80 and 82 after they passed their fourth independent
 security review (G0SR4, ACCEPT): the App, its key, the rulesets and their
 rollback are now done with the reviewed scripts in
-[`g0-scripts/`](g0-scripts/README.md). For the final review, and not to be
-executed before that review passes. It implements board decisions 49 and 56
+[`g0-scripts/`](g0-scripts/README.md). The local Git compatibility correction
+and its review are recorded below; MSIX operator and migration requirements
+were added after live setup. This is a reusable checklist, not a completed
+acceptance record; current execution evidence is in WS-GOV. It implements board decisions 49 and 56
 (agents get their own GitHub identity, a GitHub App first and a machine
 account as fallback, created by the owner), the G0 step of decision 50,
 decision 65 (key custody, and agents obtaining installation tokens through the
@@ -59,13 +61,17 @@ notes. Read them before you start.
 
 ## The reviewed scripts
 
-[`g0-scripts/`](g0-scripts/README.md) is a byte-exact copy of the reviewed
-files, kept here for review and traceability;
+[`g0-scripts/`](g0-scripts/README.md) preserves the reviewed files and the
+independently reviewed Git compatibility correction below;
 [`.gitattributes`](.gitattributes) turns off line-ending conversion for it, so
-a checkout keeps these bytes. Their README still describes them as kept
-outside the repository, as they were when reviewed; they are left unchanged so
-that the hashes below remain those of the review. You run them only from your
-own copy outside every repository and worktree.
+a checkout keeps these bytes. The current inventory below includes the
+2026-09-27 local R1 correction to `NfcG0.Common.ps1` and its tests: legal
+repeated Git advisory arrays no longer fail scalar duplicate validation.
+Independent scoped review passed; the complete G0 suite passed 42/42. All
+other script files retain their G0SR4 bytes. The README describes the earlier
+script custody; this checklist adds the MSIX location requirements. Run only
+your verified copy outside every repository and worktree. The original
+inventory remains in source commit `c61f10e3f1bfc03b287b256dd0526588cf2f4dc9`.
 
 | File | Used in | Operator → GitHub identity | SHA-256 |
 | --- | --- | --- | --- |
@@ -77,8 +83,8 @@ own copy outside every repository and worktree.
 | `rulesets/RS-4.json` | C1: what the tag ruleset must already be | (data) | `2896cc49e313cc14a93305e6eccdce3fe527f4255a6f8616946f11cb90968f14` |
 | `nfc-app-token-helper.ps1` | A6: an installation token for Git | agent → App, after you install it | `17fc16ba844bfcd25eba416dc742eecc2a175f1e286cff6d22912f5fc8660b82` |
 | `Invoke-NfcGh.ps1` | A6: one `gh` call with an installation token | agent → App, after you install it | `b26088a795b659f0d34f88e9bec09908a9e45f18c683cae306233dfa6b227afb` |
-| `NfcG0.Common.ps1` | shared functions the scripts load | (loaded by the others) | `c711299fa2a5fb02874fc58ef5b347da5cec972bfacf6c92f1e9fe32459fdc3d` |
-| `tests/NfcG0.Tests.ps1` | offline tests with fake secrets; 38 of 38 passed in the commander's independent run (G0SR4) | none | `08af82fa30822daeb1edcf69fe91585b2335fd52632d6f755e214576738e7eff` |
+| `NfcG0.Common.ps1` | shared functions; independently reviewed Git advisory-array correction (2026-09-27) | (loaded by the others) | `d58661852446634454e8f09b1b6acba27af0325cf58892537618f73eed0e63a4` |
+| `tests/NfcG0.Tests.ps1` | offline fake-secret tests; 42/42 passed after the compatibility correction; original G0SR4 run was 38/38 | none | `030b2433480408d4930cc40a7b3f4a5e8404a810fc3baf0075b9adb6b7c03a83` |
 | `README.md` | the scripts' own instructions | (text) | `12b27fcb03b6dd095893ffc0f38134ede20339f133b508d44d11974071bff84a` |
 
 ## What G0 changes
@@ -168,6 +174,21 @@ hold, stop and tell the commander.
 
 ## Before you start
 
+- [ ] **owner → none.** Run setup and installation in an unpackaged
+      PowerShell process, for example a normal Windows Terminal session
+      running `pwsh.exe`, not a shell launched by an agent app. An MSIX app
+      such as Codex desktop and its child processes can virtualize writes
+      under `%LOCALAPPDATA%` / `%APPDATA%` into
+      `%LOCALAPPDATA%\Packages\<PackageFamily>\LocalCache\...`. Other tools
+      may not see those files, and app removal/reset may delete them. Use a
+      private root outside AppData, such as `%USERPROFILE%\.nfc\G0`, for
+      scripts, DPAPI and rollback backups. A2, A6 and C1 use this root below;
+      D0 verifies it from outside the package.
+- [ ] **owner → none.** The current scripts do **not** implement a packaged
+      process/AppData path guard. The preceding location check and D0 remain
+      manual requirements; do not infer that script success proves a durable
+      location. The bounded follow-up and its acceptance conditions are in
+      [WS-GOV](WS-GOV.md#g0-local-execution-checkpoint--2026-09-27).
 - [ ] **owner → none.** No release run is in progress and none is planned
       during G0.
 - [ ] **owner → owner.** Open pull requests authored by your account are merged
@@ -199,8 +220,9 @@ hold, stop and tell the commander.
       PowerShell 7.4 or later (`pwsh`), the GitHub CLI (`gh`) and the
       Bitwarden CLI (`bw`) with your vault.
 - [ ] **owner → none.** Choose, outside every repository and worktree: a
-      private folder for your copy of the scripts (the helper and the wrapper
-      run from it, A6); an existing private directory for the DPAPI key file,
+      private folder outside AppData for your copy of the scripts (for example
+      `%USERPROFILE%\.nfc\G0\scripts`; A6); an existing private directory
+      such as `%USERPROFILE%\.nfc\G0\keys` for the DPAPI key file,
       with a file name that does not exist yet; and a place for the ruleset
       backup directories (every preview and every apply needs a new one).
 - [ ] **owner → none.** Copy [`g0-scripts/`](g0-scripts/README.md) into that
@@ -279,8 +301,11 @@ first.
 - [ ] **owner → owner.** From your script folder, run:
 
       ```powershell
-      pwsh -NoProfile -File .\New-NfcGitHubApp.ps1 -Owner <owner> -Repo <repo> -AppName nfc-agent-<owner> -KeyStore Both -DpapiPath '<private-directory>\app-key.dpapi'
+      pwsh -NoProfile -File .\New-NfcGitHubApp.ps1 -Owner <owner> -Repo <repo> -AppName nfc-agent-<owner> -KeyStore Both -DpapiPath "$env:USERPROFILE/.nfc/G0/keys/app-key.dpapi"
       ```
+
+      This existing private directory is outside AppData so the key does not
+      become dependent on an MSIX package's virtualized storage.
 
       In order, the script:
       1. checks, before anything opens: Windows, PowerShell 7.4 or later and
@@ -321,6 +346,7 @@ first.
       | "App conversion outcome is unknown" | The conversion was sent; an app and a key may exist | Check GitHub for the app and its keys, revoke or delete any key and delete the app, then decide whether to create a new one. Never retry the conversion |
       | "App conversion succeeded, but no protected key copy was confirmed" | The app exists; no stored copy of the key is confirmed | Revoke or delete the app's key (or delete the app) before starting again |
       | "App setup stopped after DPAPI save" | The DPAPI file exists (its path is in the message); Bitwarden may or may not hold the note (a timeout does not prove that none was created) | Inspect the vault. If the note is there with the key, both copies exist: continue with A3. If not, copy the DPAPI key into Bitwarden with a separately reviewed local step, or remove the DPAPI file and revoke or delete the app's key before starting again |
+      | Push works inside the agent app, but an ordinary terminal cannot find the helper | MSIX virtualization may have placed the files in package-local storage while Git names the logical AppData path | Resolve the physical location; relocate the local encrypted files and backups outside AppData under owner custody, update helper/key/wrapper paths, and complete D0. For a different computer, use A9's Bitwarden restore procedure instead of copying the virtualized folder |
 
 ### A3. Install it on this repository only
 
@@ -361,9 +387,12 @@ first.
 
 - [ ] **owner → none.** Install: `nfc-app-token-helper.ps1`, `Invoke-NfcGh.ps1`
       and `NfcG0.Common.ps1` stay together in your script folder, outside
-      every repository and worktree, with the hashes of the table (the wrapper
+      every repository, worktree and AppData tree, for example
+      `%USERPROFILE%\.nfc\G0\scripts`, with the hashes of the table. This
+      keeps other tools' Git authentication independent of package storage.
+      The wrapper
       starts the helper from its own folder, and both load
-      `NfcG0.Common.ps1` from there). Agents never change these files or
+      `NfcG0.Common.ps1` from there. Agents never change these files or
       their configuration. What they do:
   - The helper, in Git mode, answers only `get`, and only for an HTTPS
     request to `github.com` whose path is exactly `<owner>/<repo>` or
@@ -392,7 +421,11 @@ first.
 
       `<helper command>` is `pwsh -NoProfile -File "<script folder>/nfc-app-token-helper.ps1" -Mode git -Owner <owner> -Repo <repo> -ClientId <client-id> -InstallationId <installation-id> -DpapiPath "<DPAPI file>"`
       (the form of the scripts' README, section 3), with no token or key in
-      it. Git runs it as a shell command and appends `get`, `store` or
+      it. Expand the script folder to an absolute path under
+      `%USERPROFILE%\.nfc\G0\scripts` and the DPAPI path under
+      `%USERPROFILE%\.nfc\G0\keys` before saving the helper command; do not
+      leave a PowerShell environment expression in Git's shell command.
+      Git runs it as a shell command and appends `get`, `store` or
       `erase`. The empty first entry stops Git from using the helpers of the
       system and global scopes, and so your stored credentials, for this
       repository; `useHttpPath` makes Git pass the repository path, without
@@ -407,7 +440,7 @@ first.
       themselves; for `gh`, an agent runs the wrapper:
 
       ```text
-      pwsh -NoProfile -File "<script folder>/Invoke-NfcGh.ps1" -Owner <owner> -Repo <repo> -ClientId <client-id> -InstallationId <installation-id> -DpapiPath "<DPAPI file>" <gh arguments>
+      pwsh -NoProfile -File "$env:USERPROFILE/.nfc/G0/scripts/Invoke-NfcGh.ps1" -Owner <owner> -Repo <repo> -ClientId <client-id> -InstallationId <installation-id> -DpapiPath "$env:USERPROFILE/.nfc/G0/keys/app-key.dpapi" <gh arguments>
       ```
 
       "Through the wrapper" below means this form. The first use is D3a.
@@ -445,6 +478,68 @@ first.
       only, in your own terminal: `gh auth login` for `gh` (answer no if it
       offers to set up Git with your credentials), the owner push path of C2
       for Git. Sign out afterwards.
+
+### A9. Changing computers: operational reference (2026-09-27)
+
+Owner request: retain this procedure for a future Windows replacement. This
+note maps that scenario to the existing steps; it does not change operators,
+permissions, approvals or the reviewed script inventory.
+
+**MSIX location note (owner follow-up, 2026-09-27).** A packaged host such as
+Codex can virtualize writes under `%LOCALAPPDATA%` into its package's
+`LocalCache/Local` directory. Its child PowerShell can see the logical path
+while an ordinary terminal, another coding tool or an IDE cannot. Removing
+or resetting that package may also remove the virtualized files. Therefore
+the owner selected `%USERPROFILE%\.nfc\G0` as the durable local root for this
+setup, outside AppData, the app package, repositories and worktrees.
+
+For an existing virtualized setup, preserve the actual physical source and
+private backups, move the encrypted file opaquely without printing or
+decrypting it, retain its restricted ACL, and update every installed helper,
+wrapper invocation and local non-secret record to the durable root. Verify
+the scripts' approved hashes, key-file existence and access restrictions,
+then test from an ordinary process outside the package as well as inside it.
+Do not regard a second packaged child process as the outside-process check.
+An encrypted-file move under the same Windows user does not constitute a
+new-machine DPAPI restore; the restoration gap below still applies.
+
+Before changing computers, confirm the actual files already live outside
+`Packages\...\LocalCache`, not merely at an AppData path visible to a
+packaged process. Restore the private key from the owner's Bitwarden backup
+through the separately reviewed local restoration step; do not migrate by
+copying the virtualized folder. Ordinary CLI login/session caches are not
+part of the G0 file migration.
+
+| State | Location | On a replacement computer |
+| --- | --- | --- |
+| GitHub App, repository installation and rulesets | GitHub | Inspect and reuse the existing resources if still valid; changing computers alone does not require creating them again or reapplying C1. |
+| App key backup | Owner's Bitwarden vault (A4) | Owner confirms the existing secure note and key are available; agents do not inspect them. |
+| DPAPI key file | Original Windows user's protection context | Copying this file alone is not a restore procedure. The scripts use `DataProtectionScope.CurrentUser`; a new Windows installation needs a key copy protected for its own user. |
+| PowerShell, Git, `gh`, `bw`, reviewed helper and wrapper | Local machine | Install the required tools, obtain the approved script version, verify its inventory, and keep the three daily-use scripts together outside repositories. |
+| Git credential wiring and bot commit identity | Local repository configuration, shared by its worktrees | Repeat A5–A7 with the new machine's paths and existing App/installation identifiers, after the owner backs up the new checkout's existing settings. |
+| Bitwarden unlock session and App installation tokens | Short-lived process state | Obtain fresh sessions as needed; do not migrate or record their values. |
+
+There is **no reviewed existing-key restore command in this script set**.
+`New-NfcGitHubApp.ps1` creates an App and stores the key returned by that
+conversion; it is not a Bitwarden-to-DPAPI restore utility. A2 already requires
+a separately reviewed local step for copying an existing DPAPI key into
+Bitwarden, and its equivalent for restoring the backup to a new user's DPAPI
+store remains to be prepared and reviewed before migration. This is a future
+restoration gap, not evidence that restoration has been tested.
+
+After owner installation/configuration on the new computer, verify repo-only
+access through the wrapper as in D3a and verify the bot identity. Inspect D1's
+effective rules; use D2–D7's disposable verification scope for any repeated
+write tests. Normal branches are not a migration test surface. Apply A8's
+owner-session cleanup and A4's key-custody rules on each machine. Retiring an
+old machine or rotating a shared App key is a separate owner action; key
+revocation also affects other machines using that key.
+
+Keep machine-specific paths, App identifiers and non-secret execution status
+in the owner's local A5 record, outside Git. Never place passwords, private
+keys, `BW_SESSION`, callback codes or installation tokens in this checklist,
+shell history, screenshots or a handoff. Preserve the existing rollback
+evidence until the owner has verified the replacement setup.
 
 ## Part B: machine account (fallback, decision 56)
 
@@ -515,7 +610,7 @@ returns, which the script saves, is the record.
    directory:
 
    ```powershell
-   pwsh -NoProfile -File .\Set-NfcRulesets.ps1 -Owner <owner> -Repo <repo> -BackupDirectory '<backup-place>\g0-preview' -AdminBypassAvailable Yes -WhatIf
+   pwsh -NoProfile -File .\Set-NfcRulesets.ps1 -Owner <owner> -Repo <repo> -BackupDirectory "$env:USERPROFILE/.nfc/G0/backups/g0-preview-$(Get-Date -Format yyyyMMdd-HHmmss)" -AdminBypassAvailable Yes -WhatIf
    ```
 
    It reads GitHub and fills the new directory (`repository.json`,
@@ -530,7 +625,7 @@ returns, which the script saves, is the record.
 4. **owner → owner.** Apply, with another new backup directory:
 
    ```powershell
-   pwsh -NoProfile -File .\Set-NfcRulesets.ps1 -Owner <owner> -Repo <repo> -BackupDirectory '<backup-place>\g0-apply' -AdminBypassAvailable Yes
+   pwsh -NoProfile -File .\Set-NfcRulesets.ps1 -Owner <owner> -Repo <repo> -BackupDirectory "$env:USERPROFILE/.nfc/G0/backups/g0-apply-$(Get-Date -Format yyyyMMdd-HHmmss)" -AdminBypassAvailable Yes
    ```
 
    It repeats the backup and the checks, then asks for each item in turn
@@ -551,8 +646,9 @@ returns, which the script saves, is the record.
    hold no secret), and then restore what was applied (Rollback) or decide
    with the commander how to complete it. Do not re-run the apply as it is:
    it stops when RS-2 or RS-3 already exists.
-6. **owner → none.** Keep every backup directory, private and outside every
-   repository; the rollback needs the apply directory's `index.json`.
+6. **owner → none.** Keep every backup directory private, outside every
+   repository and outside AppData; the rollback needs the apply directory's
+   `index.json` even if the agent app is removed or reset.
 
 From the preview until the apply has ended, and during a restore, nobody
 changes this repository's rulesets: you edit none in the browser, and the
@@ -749,6 +845,15 @@ patterns, never on `main`, `1.1.x` or a real release branch. An agent records
 each result with the message GitHub returns, so that each block can be traced
 to its rule, in the WS-GOV log; you confirm.
 
+- [ ] **D0 Outside-package verification. owner → none**, then **owner → App**
+      through the configured helper. From a newly opened ordinary Windows
+      Terminal/PowerShell process outside the agent package, confirm that
+      the helper path in `.git/config`, its `-DpapiPath`, and the installed
+      wrapper path all exist and are accessible. Repeat an actual disposable
+      branch push through that helper and clean up the probe. An
+      `Everything up-to-date` result or a public read does not prove
+      authentication. Passing inside the packaged app or one of its child
+      shells does not pass D0. Record the external operator and outcome.
 - [ ] **D1 Formal refs by snapshot. agent → none**, then **owner → owner.** An
       agent reads the effective rules of `main`, `1.1.x` and, if present, a
       release branch (`GET /repos/<owner>/<repo>/rules/branches/<branch>`) and

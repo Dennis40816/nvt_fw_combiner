@@ -183,7 +183,10 @@ function Read-NfcCredentialInput {
     foreach ($line in ($InputText -split "`r?`n")) {
         if ($line -eq '') { break }
         $kv = $line.Split('=', 2)
-        if ($kv.Length -ne 2 -or $values.ContainsKey($kv[0])) { throw 'Invalid credential request.' }
+        if ($kv.Length -ne 2) { throw 'Invalid credential request.' }
+        # Git may repeat these advisory arrays; neither selects an identity or scope.
+        if ($kv[0] -cin @('capability[]', 'wwwauth[]')) { continue }
+        if ($values.ContainsKey($kv[0])) { throw 'Invalid credential request.' }
         $values[$kv[0]] = $kv[1]
     }
     return $values
