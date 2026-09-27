@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "taskId": "PROCESS-START-TYPED-1113-01",
+  "capability": "An operating-system process-start failure for an approved external combiner tool (for example a Win32Exception because the executable was removed, blocked, or is not a valid Win32 application between the manifest SHA-256 check and the launch) reaches the existing typed fail-closed path of ExternalCombinerProcessor and LegacyCombinerPostbuildProcessor as a CompositionIssue, instead of escaping SystemExternalProcessRunner.RunAsync as an unhandled BCL exception.",
+  "integrationBase": "e3fa0297535b0f1057dffa4421e1df5724ab5dfb",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "design-active",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessResult.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/SystemExternalProcessRunner.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorFailureTests.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/SystemExternalProcessRunnerTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "Read docs/handoff/bugs/BUG-20260926-process-start-failure-escapes-typed-result.md: names SystemExternalProcessRunner.cs (ProcessLaunchGate.Start) as the escape source and the catch filters in ExternalCombinerProcessor.cs, LegacyCombinerPostbuildProcessor.cs, CompositionRunPresentationViewModel.cs and CliApplication.cs as the places a Win32Exception passes through unhandled.",
+    "rg -n 'ProcessLaunchGate' src: ProcessLaunchGate.Start (src/NvtFwCombiner.Platform/Processes/ProcessLaunchGate.cs) calls Process.Start(startInfo) under a process-wide lock; SystemExternalProcessRunner.RunAsync is its only ExternalTools caller.",
+    "Read SystemExternalProcessRunner.cs: the try/catch around ProcessLaunchGate.Start already releases the capacity reservation on any exception but rethrows it unchanged (`catch { _seams.Capacity.Release(); throw; }`), so a raw Win32Exception (or any other BCL start exception) keeps its original type; the sibling ExternalProcessCleanupCapacityException is the existing precedent for a typed pre-start refusal that both processors already catch.",
+    "Read ExternalCombinerProcessor.cs and LegacyCombinerPostbuildProcessor.cs TransformAsync catch blocks: only OperationCanceledException (cancellation), ExternalProcessCleanupCapacityException, and IOException/UnauthorizedAccessException are caught around the RunAsync call; a Win32Exception is not one of these and would propagate out of TransformAsync.",
+    "rg -n '\\.RunAsync\\(' src: exactly three IExternalProcessRunner.RunAsync call sites exist: ExternalCombinerProcessor.cs, LegacyCombinerPostbuildProcessor.cs (both named by the bug) and RuntimeTrustProbeProcess.cs (toolchain-runtime candidate inspection, its own runtime.trust.* issue-code contract, not named by the bug, not on the Build/Preview run path); left unchanged and reported as a separate out-of-scope finding.",
+    "Read docs/architecture/external-combiner-tool-runner.md 'Failure behavior' section: it already enumerates each fail-closed case with its exact issue code (cleanup-incomplete, cleanup-capacity) under the general 'All external combiner errors fail closed' principle; this record adds one more enumerated case using the same pattern, not a new principle.",
+    "Read scripts/validate_repository.py capability-reuse schema (CAPABILITY_REUSE_RECORD_FIELDS/_is_capability_reuse_governed_path/_capability_reuse_minimum_risk/_capability_reuse_auxiliary_kind): src/** is governed at minimum R1; tests/** is the recognized auxiliary kind 'test'. docs/architecture/external-combiner-tool-runner.md is neither governed nor a recognized auxiliary path, so `python scripts/validate_repository.py` rejected it from mutablePaths ('current capability-reuse mutable path is not governed'); it is edited as ordinary R0 prose outside this record (AGENTS.md: 'For ordinary R0 prose, finish the authorized edit on the existing branch and report briefly; no new issue, capability record ... is required'), completing the doc's existing 'all external combiner errors fail closed' enumeration without changing the ADR 0081 contract or any docs/contracts/*.schema.json file.",
+    "Read tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs TransformMapsCleanupCapacityRefusalToTypedIssue and LegacyCombinerPostbuildProcessorFailureTests.cs CleanupCapacityRefusalMapsToTypedIssue: the existing FakeProcessRunner-based pattern for asserting a runner-thrown typed exception maps to a CompositionIssue, reused unchanged in shape for the new exception.",
+    "Red evidence: `git stash push` on the four production files reproduced the bug — the new SystemExternalProcessRunnerTests regression test, temporarily asserting Assert.ThrowsAsync<Win32Exception>, passed against the pre-fix runner (raw Win32Exception observed escaping RunAsync); after `git stash pop` restored the fix and the assertion was restored to ExternalProcessStartFailedException, dotnet test showed Infrastructure.Tests ExternalTools 243/243, Application.Tests ExternalProcessor 12/12, and Architecture.Tests 273/273 all passing."
+  ],
+  "semanticOwner": "SystemExternalProcessRunner.RunAsync remains the single owner that translates an operating-system process-start failure into one typed exception (the new sealed ExternalProcessStartFailedException, parallel to the existing ExternalProcessCleanupCapacityException pre-start refusal); ExternalCombinerProcessor and LegacyCombinerPostbuildProcessor remain the only two staged-processor owners that convert a runner-level typed exception into a CompositionIssue through their existing Fail(...)/ExternalProcessorResult.Failed(...) path. ADR 0081's terminal-phase/cleanup contract (owner decisions 85, 86, 92) and its ExternalProcessRunnerSeams, ExternalProcessCapacity and Invocation types are unchanged; this fix is at process start, not termination or cleanup. RuntimeTrustProbeProcess keeps its own separate runtime.trust.* contract and is not touched by this record.",
+  "terminalContract": "A Win32Exception raised by Process.Start inside SystemExternalProcessRunner.RunAsync still releases the invocation's capacity reservation exactly once (unchanged) and is now re-thrown as the one new sealed ExternalProcessStartFailedException carrying the original exception as InnerException. ExternalCombinerProcessor.TransformAsync and LegacyCombinerPostbuildProcessor.TransformAsync each catch ExternalProcessStartFailedException next to their existing ExternalProcessCleanupCapacityException catch and return ExternalProcessorResult.Failed with CompositionIssue code external-tool.process.start-failed and a message naming only the wrapped exception's type, matching the existing IOException/UnauthorizedAccessException staging-failure message convention. No other exception type, catch filter, capacity/cleanup/timeout/termination behavior, byte range, output naming, or ADR 0081 owner decision changes. The Presentation and CLI catch filters named in the bug need no change: the failure no longer reaches them as an exception at all, because it is already a normal ExternalProcessorResult.Failed by the time TransformAsync returns.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 fix entirely inside the existing typed pre-start-refusal owner (SystemExternalProcessRunner -> ExternalProcessCleanupCapacityException/ExternalProcessStartFailedException -> ExternalCombinerProcessor/LegacyCombinerPostbuildProcessor Fail(...) conversion), reusing exactly the pattern owner decision 92 already established for the capacity refusal; no new user-visible policy, no ADR 0081 contract change, and no docs/contracts/*.schema.json change (docs/architecture/external-combiner-tool-runner.md is not a governed capability-reuse document and only gains one bullet completing its existing 'all external combiner errors fail closed' principle). Narrow tests: SystemExternalProcessRunnerTests (new regression test, red pre-fix by reverting the four production files and observing the raw Win32Exception escape via git stash, green post-fix), ExternalCombinerProcessorTests and LegacyCombinerPostbuildProcessorFailureTests (new FakeProcessRunner mapping tests mirroring the existing capacity-exception tests), full Infrastructure.Tests ExternalTools filter (243/243), Application.Tests ExternalProcessor filter (12/12), and NvtFwCombiner.Architecture.Tests (273/273)."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
