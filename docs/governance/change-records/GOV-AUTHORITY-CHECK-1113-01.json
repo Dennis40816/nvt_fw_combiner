@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "taskId": "GOV-AUTHORITY-CHECK-1113-01",
+  "capability": "ADR 0080 G1-A: the authority policy (path map with risk floors, authority roles and one default-entry exclusion; role principals and review-record principals from owner decisions 110 and 111) and its JSON Schema; the ordinary pull request check `governance / authority` (scripts/authority_check.py, run by .github/workflows/authority.yml) that classifies the change from the merge base of the live base tip to the head against the stricter of the base and head policies and fails closed on a missing or malformed authority block, a declared risk below the floor, a required role undeclared or without evidence entries, an unclassified path without classification, a missing valid review record on the head for R1-R3, a missing or invalid policy, or an API or Git failure; its unit, coverage, no-downgrade, script-table, dependency, CODEOWNERS-consistency, prose-consumer and workflow-shape tests; the pull request template's authority block and review-record format; the execution-workflow section on review records, the approval snapshot, the pre-merge verification, the self-change check and the bootstrap approval while both gates run; ADR 0080 entered as Accepted (board decision 109, staged) with the ADR 0079 cross-reference; no change to ci.yml, scripts/verify.py, the record validator, scripts/release_promotion_policy.py, CODEOWNERS, any ruleset or any firmware, profile or Golden input",
+  "integrationBase": "c6add007169abd087d08964f0a7aabfba8a053a3",
+  "risk": "R3",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    ".github/workflows/README.md",
+    ".github/workflows/authority.yml",
+    "docs/adr/0079-test-architecture.md",
+    "docs/adr/0080-governance-reset.md",
+    "docs/governance/authority-policy.json",
+    "docs/governance/authority-policy.schema.json",
+    "docs/governance/development-execution-workflow.md",
+    "scripts/authority_check.py",
+    "tests/scripts/test_authority_check.py",
+    "tests/scripts/test_authority_policy.py"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "git ls-files | rg -i 'authority|codeowner' (change records and attestations excluded) finds no authority policy, checker or authority workflow before this batch; .github/CODEOWNERS is hand-written ('*' and every high-risk path to @Dennis40816) and nothing generates it.",
+    "rg -n 'def _is_capability_reuse_governed_path|def _capability_reuse_minimum_risk|CAPABILITY_REUSE_R3_SCRIPTS' scripts/validate_repository.py: the record validator is the only current path classifier; it sets governed paths and minimum risk for the record gate and replays history. ADR 0080 items 1 and 4 keep it until G1-B and make the history-independent authority policy the classifier; a coverage test binds the policy's floors to it (no governed path downgraded) while it exists.",
+    "rg -n '_require_exact_head_codex_review|CODEX_REVIEWER|_read_github_paginated_array|_run_read_only_gh' scripts/release_promotion_policy.py: its exact-head review parsing validates only the Codex connector evidence of the owner self-approval exception (reviewer chatgpt-codex-connector, states COMMENTED or APPROVED) and pages through gh api until an empty page; it has no machine-readable review record, principal list, verdict or P0/P1 count and cannot see Link or rate-limit headers. ADR 0080 G1-A deliverable 7 keeps release_promotion_policy.py out of G1-A, and importing its private helpers would make release code part of the authority check (a self-change on every release-policy edit).",
+    "rg -n 'def (_parse_records|collect_handoff|_collect_changed_files)' scripts/collect_review_handoff.py: the handoff collector packages local branch evidence for a human reviewer; it reads no pull request review and no authority policy.",
+    "rg -n 'commit_id|DEFAULT_BOT_LOGIN' .agents/skills/github-review-polling/scripts/poll_github_review.py: an agent waiting helper that polls for a Codex connector response on the exact head by commit_id equality; not a gate, no record block, and a skill script that WS-AI makes explicit-only.",
+    "rg -n 'jsonschema' scripts .github/workflows: the validator imports jsonschema optionally and skips when it is absent, and CI installs only PyYAML; the checker therefore validates the policy with a strict standard-library subset of JSON Schema 2020-12 that rejects every keyword it does not implement."
+  ],
+  "semanticOwner": "ADR 0080 item 4 makes docs/governance/authority-policy.json (schema docs/governance/authority-policy.schema.json) the single canonical owner of authority classes, paths, roles and principals, and scripts/authority_check.py its single evaluator for pull requests; .github/CODEOWNERS stays hand-written and a consistency test binds it to the policy; the rulesets keep GitHub's last-push code-owner approval. Migration seam: the record validator's _is_capability_reuse_governed_path and _capability_reuse_minimum_risk remain the record gate's classifier until the authorized G1-B deletes them with the record code (ADR 0080 migration step 1); the no-downgrade test binds the two while both exist. scripts/release_promotion_policy.py keeps the release approval policy unchanged.",
+  "terminalContract": "Add exactly the listed paths, plus the non-governed .github/pull_request_template.md edit and a pointer stub at docs/handoff/1.1.13/ADR-DRAFT-governance-reset.md. The workflow runs one job, `governance / authority`, on pull_request opened, synchronize, reopened, ready_for_review and edited, with contents: read and pull-requests: read, the automatic job token and no repository secret, fetch-depth 0 and the pull request head checked out, and no if, path filter, concurrency or continue-on-error; it ends in success (exit 0) or failure. The checker reads the live pull request, the live base tip and the complete review list through read-only REST calls (Link-header pagination, redirects not followed); requires the checked-out head to equal the live head; takes the changed paths, both sides of renames and copies included, from git diff between the merge base and the head; applies the stricter (highest floor, union of roles) of the base and head policies to each path; treats an unmatched path as R3 governance-owner; accepts a missing base policy only when the pull request adds the policy file; counts a review record only from a principal listed in both policies whose latest COMMENT review on the head carries one complete, non-rejecting nfc-review-record block naming the head with openP0P1 0; adds the roles of the records on the head and of unclassified-path classifications; makes any required or declared role R3; and fails on every error listed in ADR 0080 G1-A. Its job summary records the head, base and merge-base SHAs, the run identity and the Git blob IDs of the workflow, checker, schema and policy at the head and the base tip. It writes nothing to GitHub. Bootstrap (ADR 0080, first introduction): the base 1.1.x has no authority checker, so no base-checker result exists or is claimed, and the check's result on the G1-A pull request is informative only; the gates in force stand in: this record, the base validator, the three existing required checks, the release-owner attestation for the workflow at the final evidence head, an independent fixed-head review, and the owner's GitHub approval naming the governance-owner and release-owner roles with an explicit bootstrap approval. Not in scope: ci.yml, scripts/verify.py, the record validator, scripts/release_promotion_policy.py, .github/CODEOWNERS, a CODEOWNERS generator, the main ruleset and every ruleset change (the owner adds the required context later).",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "findings-incorporated",
+    "evidence": "ADR 0080 design reviews by codex/gpt-6-astra: first at e60ba0062, second at acbe5654d, third at cb72ee0b0 and fourth at 168de342b, each ACCEPT-WITH-CHANGES with every finding incorporated (docs/handoff/1.1.13/WS-GOV.md). Independent read-only fifth-round design review by codex/gpt-6-astra at 664bbe868af0b4a17507d0ac91f758afc626eec6 concluded ACCEPT-WITH-CHANGES, with no P0 or P1 findings; fourth-round F-1 (bootstrap) and F-2 (base authority code) were closed. Independent read-only confirmation by codex/gpt-6-luna at d7002a9e5962b9b0134b3477e377748f4f378aea confirms F-3 and F-4 are closed: the approval snapshot retains the full approval-relevant review content and requires owner reconfirmation for a body edit under the same review ID, head SHA and verdict; the required-checks summary matches M4 and states the Active, non-bypass condition. No contradiction with the related ADR sections was found. No files were modified; no build or tests were run. The owner accepted the staged design at d7002a9e5 (board decision 109) and supplied the G1-A inputs: principals (decision 110) and the firmware-semantic folders (decision 111)."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
