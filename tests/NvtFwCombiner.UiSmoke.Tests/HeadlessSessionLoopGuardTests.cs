@@ -1,8 +1,22 @@
+using Avalonia.Headless;
+
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>The headless session guard fails the process only when the session loop has died.</summary>
-public sealed class HeadlessSessionLoopGuardTests
+/// <param name="guard">This assembly's guard; resolving it fails when the assembly fixture is not registered.</param>
+public sealed class HeadlessSessionLoopGuardTests(HeadlessSessionLoopGuard guard)
 {
+    /// <summary>The assembly's guard watches the loop of the session that runs this assembly's headless tests.</summary>
+    [Fact]
+    public void GuardWatchesTheAssemblySessionLoop()
+    {
+        HeadlessUnitTestSession session =
+            HeadlessUnitTestSession.GetOrStartForAssembly(typeof(HeadlessSessionLoopGuardTests).Assembly);
+
+        Assert.Same(HeadlessSessionLoopGuard.FindLoop(session), guard.Loop);
+        Assert.False(guard.Loop.IsCompleted);
+    }
+
     /// <summary>A faulted loop reports its cause, the dispatcher owner and the running tests in one failure.</summary>
     [Fact]
     public async Task FaultedSessionLoopFailsWithItsCause()
@@ -22,7 +36,8 @@ public sealed class HeadlessSessionLoopGuardTests
         Assert.Same(setupFailure, cause);
         Assert.Contains("headless session loop faulted", message, StringComparison.Ordinal);
         Assert.Contains("BUG-20260927-uismoke-headless-session-stall", message, StringComparison.Ordinal);
-        Assert.Contains("Avalonia UI dispatcher thread: ", message, StringComparison.Ordinal);
+        Assert.Contains("sampled while this report is written, after the fault", message, StringComparison.Ordinal);
+        Assert.Contains("Avalonia UI dispatcher thread now: ", message, StringComparison.Ordinal);
         Assert.Contains(
             $"{TestContext.Current.Test!.TestDisplayName} on managed ",
             message,

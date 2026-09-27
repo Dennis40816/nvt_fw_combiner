@@ -33,8 +33,12 @@ public sealed class HeadlessSessionLoopGuard
     {
         HeadlessUnitTestSession session =
             HeadlessUnitTestSession.GetOrStartForAssembly(typeof(HeadlessSessionLoopGuard).Assembly);
-        _ = FailWhenFaulted(FindLoop(session), Environment.FailFast);
+        Loop = FindLoop(session);
+        _ = FailWhenFaulted(Loop, Environment.FailFast);
     }
+
+    /// <summary>Gets the session loop this guard watches.</summary>
+    internal Task Loop { get; }
 
     internal static Task FindLoop(HeadlessUnitTestSession session)
     {
@@ -71,9 +75,11 @@ public sealed class HeadlessSessionLoopGuard
             .Append("so the test process stops now (").Append(BugId).AppendLine(").")
             .Append("Setup fails this way when code outside the session, for example a plain [Fact] or [Theory], ")
             .AppendLine("creates an Avalonia object or reads Dispatcher.UIThread while a headless test is being set up.")
-            .Append("Observed on thread: ").AppendLine(DescribeThread(Thread.CurrentThread))
-            .Append("Avalonia UI dispatcher thread: ").AppendLine(DescribeUiDispatcherThread())
-            .AppendLine("Tests in flight (thread where each started):");
+            .AppendLine("The lines below are sampled while this report is written, after the fault, not at the fault.")
+            .Append("Reporting thread: ").AppendLine(DescribeThread(Thread.CurrentThread))
+            .Append("Avalonia UI dispatcher thread now: ").AppendLine(DescribeUiDispatcherThread())
+            .Append("Tests started and not finished (thread where each started); a test whose headless setup ")
+            .AppendLine("failed before it started is not listed:");
         foreach (string test in HeadlessTestsInFlightAttribute.Snapshot())
         {
             _ = text.Append("  ").AppendLine(test);
