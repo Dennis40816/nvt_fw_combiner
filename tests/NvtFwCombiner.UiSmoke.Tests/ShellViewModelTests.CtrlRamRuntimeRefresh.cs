@@ -82,5 +82,18 @@ public sealed partial class CtrlRamWorkflowTests
             Assert.Equal(shell.Reports.LoadedReport.OutputSha256,
                 Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(output)), ignoreCase: true);
         }
+        var finalLease = new WindowPublicationLease();
+        shell.Replace.WindowPublication = finalLease;
+        finalLease.Revoke();
+        int postCloseReadinessNotifications = 0;
+        shell.Replace.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(ReplacePresentationViewModel.CanBuildReplace))
+            {
+                postCloseReadinessNotifications++;
+            }
+        };
+        await shell.Replace.RefreshCtrlRamActionReadinessAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(0, postCloseReadinessNotifications);
     }
 }

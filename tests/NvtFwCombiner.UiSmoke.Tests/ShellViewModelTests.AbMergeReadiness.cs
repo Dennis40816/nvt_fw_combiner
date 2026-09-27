@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -170,6 +171,20 @@ public sealed partial class FirmwareInspectionSlotTests
             viewModel.RunSession.LastRunResult.Succeeded,
             viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Merge.CanBuildMerge);
+
+        var finalLease = new WindowPublicationLease();
+        viewModel.Merge.WindowPublication = finalLease;
+        finalLease.Revoke();
+        int postCloseReadinessNotifications = 0;
+        viewModel.Merge.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MergePresentationViewModel.CanBuildMerge))
+            {
+                postCloseReadinessNotifications++;
+            }
+        };
+        await viewModel.Merge.RefreshAbMergeActionReadinessAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(0, postCloseReadinessNotifications);
     }
 
     /// <summary>Informational AB facts cannot replace canonical session publication.</summary>

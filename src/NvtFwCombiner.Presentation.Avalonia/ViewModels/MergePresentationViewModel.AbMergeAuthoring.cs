@@ -155,6 +155,11 @@ internal sealed partial class MergePresentationViewModel
     internal async Task RefreshAbMergeActionReadinessAsync(
         CancellationToken cancellationToken)
     {
+        if (WindowPublication is not null &&
+            !await WindowPublication.WaitToPublishAsync(static () => true, cancellationToken))
+        {
+            return;
+        }
         ClearAbMergeActionReadiness();
         ActiveSessionSnapshot? session = _abMergeSession.CurrentSnapshot;
         if (!IsAbCodeMergeModeSelected || session is null)
@@ -167,6 +172,13 @@ internal sealed partial class MergePresentationViewModel
             await _compositionServices.AbMergeAuthoring.GetActionReadinessAsync(
                     session,
                     cancellationToken);
+        if (WindowPublication is not null &&
+            !await WindowPublication.WaitToPublishAsync(
+                () => ReferenceEquals(session, _abMergeSession.CurrentSnapshot) &&
+                    IsAbCodeMergeModeSelected, cancellationToken))
+        {
+            return;
+        }
         if (readiness is not null &&
             ReferenceEquals(session, _abMergeSession.CurrentSnapshot) &&
             IsAbCodeMergeModeSelected)
