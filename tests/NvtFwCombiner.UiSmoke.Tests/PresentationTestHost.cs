@@ -20,7 +20,8 @@ internal static class PresentationTestHost
     }
 
     internal static async Task<PresentationHostServices> CreateConfiguredFormatServicesAsync(
-        TempWorkspace workspace, string version)
+        TempWorkspace workspace, string version,
+        Func<IAbMergeAuthoring, IAbMergeAuthoring>? abMergeAuthoringDecorator = null)
     {
         CompositionHostServices host = CompositionHostServices.Create(
             new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value),
@@ -30,7 +31,8 @@ internal static class PresentationTestHost
             TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(),
             TestContext.Current.CancellationToken)).Succeeded);
-        return CreateServices(version, host, static authoring => authoring);
+        return CreateServices(version, host, static authoring => authoring,
+            abMergeAuthoring: abMergeAuthoringDecorator?.Invoke(host.AbMergeAuthoring));
     }
 
     private static readonly Lazy<ExternalProcessorRuntimeEnvironment> ExternalEnvironment =
@@ -221,7 +223,8 @@ internal static class PresentationTestHost
         Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
         IAbMergeAuthoring? abMergeAuthoring = null,
         ICompositionExecution? execution = null,
-        ICompositionOutputNaming? outputNaming = null)
+        ICompositionOutputNaming? outputNaming = null,
+        ICtrlRamAuthoring? ctrlRamAuthoring = null)
     {
         return new PresentationHostServices(
             new PresentationCompositionServices(
@@ -229,7 +232,7 @@ internal static class PresentationTestHost
                 host.StandardMergeAuthoring,
                 abMergeAuthoring ?? host.AbMergeAuthoring,
                 generalAuthoringDecorator(host.GeneralAuthoring),
-                host.CtrlRamAuthoring,
+                ctrlRamAuthoring ?? host.CtrlRamAuthoring,
                 host.FirmwareInspectionExperience,
                 outputNaming ?? host.CompositionOutputNaming,
                 execution ?? host.CompositionExecution),

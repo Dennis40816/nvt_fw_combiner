@@ -1,4 +1,7 @@
 using System.Text.Json;
+using System.Reflection;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Infrastructure.ExternalTools;
@@ -22,7 +25,11 @@ public sealed partial class CtrlRamWorkflowTests
         var loader = new ExternalProcessorEnvironmentLoader(toolsAvailable
             ? RepositoryPaths.FromRepositoryRoot("external-tools") : workspace.Root);
         var host = CompositionHostServices.Create(loader, IsolatedLocalState.CreateDirectory());
-        PresentationHostServices services = PresentationTestHost.CreateServices("runtime-refresh", host, static authoring => authoring);
+        ICtrlRamAuthoring proxy = DispatchProxy.Create<ICtrlRamAuthoring, GatedCtrlRamReadinessProxy>();
+        var readinessGate = (GatedCtrlRamReadinessProxy)proxy;
+        readinessGate.Inner = host.CtrlRamAuthoring;
+        PresentationHostServices services = PresentationTestHost.CreateServices(
+            "runtime-refresh", host, static authoring => authoring, ctrlRamAuthoring: proxy);
         var shell = new MainWindowViewModel("test", "runtime-refresh", ShellLanguage.English, services);
         _ = PresentationTestHost.PublishCanonicalCatalog(services, shell);
         JsonElement fixture = CanonicalGoldenTestData.LoadDirectEvidenceCase(
@@ -84,7 +91,6 @@ public sealed partial class CtrlRamWorkflowTests
         }
         var finalLease = new WindowPublicationLease();
         shell.Replace.WindowPublication = finalLease;
-        finalLease.Revoke();
         int postCloseReadinessNotifications = 0;
         shell.Replace.PropertyChanged += (_, args) =>
         {
@@ -93,7 +99,57 @@ public sealed partial class CtrlRamWorkflowTests
                 postCloseReadinessNotifications++;
             }
         };
-        await shell.Replace.RefreshCtrlRamActionReadinessAsync(TestContext.Current.CancellationToken);
+        readinessGate.Arm();
+        Task refresh = shell.Replace.RefreshCtrlRamActionReadinessAsync(TestContext.Current.CancellationToken);
+        await readinessGate.Started.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        finalLease.Revoke();
+        readinessGate.Release();
+        await refresh;
         Assert.Equal(0, postCloseReadinessNotifications);
+    }
+
+    /// <summary>Delays one CtrlRAM readiness response until the final close decision.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1852:Seal internal types",
+        Justification = "DispatchProxy creates a runtime subclass.")]
+    public class GatedCtrlRamReadinessProxy : DispatchProxy
+    {
+        private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal ICtrlRamAuthoring Inner { get; set; } = null!;
+        internal Task Started => _started.Task;
+        private bool _armed;
+
+        internal void Arm()
+        {
+            _armed = true;
+        }
+
+        internal void Release()
+        {
+            _ = _release.TrySetResult();
+        }
+
+        /// <inheritdoc />
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2012:Use ValueTasks correctly",
+            Justification = "DispatchProxy must forward the boxed ValueTask without consuming it.")]
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            ArgumentNullException.ThrowIfNull(targetMethod);
+            ArgumentNullException.ThrowIfNull(args);
+            return _armed && targetMethod.Name == nameof(ICtrlRamAuthoring.GetActionReadinessAsync)
+                ? ReadAfterGateAsync((string)args[0]!, (string)args[1]!,
+                    (IReadOnlyDictionary<string, string>)args[2]!, (ActiveSessionSnapshot)args[3]!,
+                    (CancellationToken)args[4]!)
+                : targetMethod.Invoke(Inner, args);
+        }
+
+        private async ValueTask<CapabilityActionReadinessSnapshot?> ReadAfterGateAsync(
+            string icId, string number, IReadOnlyDictionary<string, string> slotPaths,
+            ActiveSessionSnapshot session, CancellationToken cancellationToken)
+        {
+            _ = _started.TrySetResult();
+            await _release.Task;
+            return await Inner.GetActionReadinessAsync(icId, number, slotPaths, session, cancellationToken);
+        }
     }
 }
