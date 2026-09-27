@@ -64,35 +64,33 @@ fixtures under the declared golden policy; other private evidence stays out.
 
 ## Delegation and model selection
 
-Choose whether to delegate from task difficulty, risk, independence, and the
-cost of coordination. A small coherent task may be completed by the primary
-agent. Use parallel agents when they can contribute independent, bounded work;
-keep one writer per mutable surface and preserve other writers' changes.
-The execution workflow owns assignment and handoff of those surfaces.
+Use one writer per mutable surface. Delegate independent, bounded work when
+its value exceeds coordination cost; preserve other writers' changes. An owner
+request to work personally keeps execution with the primary agent.
 
-Consider all models exposed by the current tools, not only models named in
-earlier tasks. Choose a model and reasoning effort sufficient for the task
-rather than assigning permanent roles to model names. Routine lookup or
-mechanical work may use a faster model; ambiguous architecture, firmware
-changes, and release/security review merit stronger reasoning. The primary
-agent may also implement. Explicit owner choices take precedence when supported
-by tooling. [`docs/governance/agent-model-routing.md`](docs/governance/agent-model-routing.md)
-records the current dated per-runtime model-tier defaults for these principles.
+Select from the models actually exposed by the runtime, by capability,
+difficulty and risk. Explicit owner choices prevail when supported. Current
+dated tier defaults live in
+[`agent-model-routing.md`](docs/governance/agent-model-routing.md); a model
+choice never weakens review, evidence or approval requirements.
 
-Before dispatch, briefly disclose the configured model (or known inheritance),
-reasoning effort when exposed, role, read/write scope, and selection reason.
-Use tool configuration as evidence; do not infer a model from its prose or a
-role name. A small read-only assignment needs a clear question, scope, and
-expected evidence, not a full implementation checklist. The primary agent
-remains responsible for integration and evidence-backed conclusions.
-Reuse an existing worker and its evidence for related follow-ups. Give it the
-context needed for its bounded task, not an automatic full-history replay.
-Do not independently repeat its entire search; inspect the decisive evidence
-when needed, especially for firmware, coverage, or release conclusions.
+Before dispatch, disclose the configured model or known inheritance, exposed
+reasoning effort, role, read/write scope and selection reason. Tool configuration
+is evidence; never infer a model from prose or a role name. Give workers the
+bounded question, required context and expected evidence. Reuse workers and
+their evidence for follow-ups; the primary agent owns integration and checks
+decisive evidence for firmware, coverage and release conclusions.
 
-For multi-agent reconstruction, conflict-heavy integration, or R3 migration,
-use `docs/handoff/README.md`. Its dispatch envelope is for that coordination
-work, not a prerequisite for every task.
+For concurrent work, reconstruction, R3 migration or conflict-heavy integration,
+read the [handoff protocol](docs/handoff/README.md) for the dispatch envelope,
+version board and workstream logs. Every runtime records found bugs in its
+[bug ledger](docs/handoff/README.md#bug-ledger) before reporting; recording does
+not authorize an out-of-scope fix.
+
+One runtime is sufficient. Independent review prefers another runtime; when
+unavailable or out of capacity, use a fresh session of the same runtime,
+preferably another model, without the author's conversation. A runtime product
+is never a prerequisite; independent review and human gates still are.
 
 ## Canonical commands
 
@@ -220,20 +218,20 @@ mutations, or missing mandatory human evidence. GitHub mutations follow
 ## Skills and completion
 
 Find the relevant NFC authority and workflow skill through
-`docs/governance/agent-skill-routing.md`. Apply `.agents/skills/nfc-review/` to
+`docs/governance/agent-skill-routing.md`. Apply skill `nfc-review` to
 non-trivial R1-R3 changes with scope proportional to touched authority and the
 current review decision. Instruction edits do not reconfigure already-loaded
 agent developer instructions or executable CI policy; identify any remaining
 conflict and propose out-of-scope changes without silently applying them.
 
 Before a specification, architecture, terminology, or planning change becomes
-an implementation goal or ticket rewrite, use `$nfc-grill-with-docs` while owner
+an implementation goal or ticket rewrite, use skill `nfc-grill-with-docs` while owner
 decisions remain. Ask only unresolved material decisions; a clear owner request
 or an already accepted decision does not require a new interview. Record
 accepted results in the affected canonical owner and check consistency of the
-affected documents. Use `$nfc-to-tickets` only when ticket creation/rewrite is part
-of the request. Use explicit `$grilling` for a requested generic decision
-interview. Do not restore a separate `domain-modeling` workflow.
+affected documents. Use skill `nfc-to-tickets` only when ticket creation/rewrite is part
+of the request. Use the personal `grilling` skill for an explicitly requested generic
+interview, when available. Do not restore a separate `domain-modeling` workflow.
 
 When documentation updates are authorized, record accepted decisions in their
 existing canonical owner and synchronize affected entry links; use
