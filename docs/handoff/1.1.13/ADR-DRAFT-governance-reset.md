@@ -1,8 +1,9 @@
 # ADR 0080 (draft): Retire capability-reuse history replay and reset the development flow
 
-- Status: **Proposed** — revised after the second independent design review
-  (2026-09-27), with the owner's decisions to 102 recorded; awaiting the check
-  of this revision and the owner's acceptance; not implementation authority.
+- Status: **Proposed** — revised after the third independent design review
+  (2026-09-27) to the simpler authority check the owner chose (decision 105);
+  awaiting the check of this revision and the owner's acceptance; not
+  implementation authority.
 - Date: 2026-09-26; revised 2026-09-27.
 - Owners (board decision 102, three roles recorded separately, today all held
   by the repository owner): the **governance owner** (governance rules,
@@ -15,17 +16,22 @@
   2026-09-26, both REJECT ([log](WS-GOV.md#g0-checklist-review-2026-09-26));
   second design review by `codex/gpt-6-astra` at `acbe5654d` against the rules
   of `1.1.x` `e6e991af3`, ACCEPT-WITH-CHANGES (P1 F-1 and F-2, P2 F-3 to F-6;
-  [log](WS-GOV.md#design-re-review-2026-09-27)). This revision takes in every
-  finding of both design reviews.
+  [log](WS-GOV.md#design-re-review-2026-09-27)); third design review by
+  `codex/gpt-6-astra` at `cb72ee0b0`, ACCEPT-WITH-CHANGES (P1 F-1 to F-3 on the
+  authority check's platform wiring, P2 F-4;
+  [log](WS-GOV.md#design-re-review-3-2026-09-27)). The owner answered the
+  third review's P1 findings with decision 105, which replaces that wiring by
+  an ordinary pull request check, GitHub's native last-push approval and
+  named procedural safeguards.
 - Owner decisions: 2026-09-26, board decisions 49 to 52, 56, 65 to 67, 77, 78,
   80 and 82 and, for the release side, 47 and 53 to 55; O-3 and O-4 confirmed
   in decision 67 ([owner decisions](#owner-decisions-2026-09-26)); 2026-09-27,
-  decisions 100 to 102 ([below](#owner-decisions-2026-09-27)).
+  decisions 100 to 102 and 105 ([below](#owner-decisions-2026-09-27)).
 - Number: 0080, allocated on the [1.1.13 board](../1.1.13.md) on 2026-09-26.
 - Risk: R3. The authority policy, the authority check and the approval rules
-  change approval authority (governance owner); the new workflow and the
-  release-policy interface are release paths (release owner). No firmware
-  byte, range, profile or Golden input changes.
+  change approval authority (governance owner); the new workflow and, in G2,
+  the release policy's closed check set are release paths (release owner). No
+  firmware byte, range, profile or Golden input changes.
 - Effect of acceptance: accepting this ADR accepts the **staged design**
   ([migration step 0](#compatibility-and-migration)). It changes no rule by
   itself; every retirement clause takes effect only when an authorized G1-B
@@ -166,14 +172,20 @@ failures or other release failures.
   not strict, not required on creation); the owner-only bypass as configured.
   `main` has the same review rules and keeps its required checks exactly as
   they were saved before G0.
-- **Not yet accepted:** D0's actual external push, the decision 82 Bitwarden
-  backup confirmation, D4 (approval and review behavior), D5 (positive merge
-  by the App without a bypass), D6 (owner bypass or pause), the owner's C2
-  deletion of the protected disposable `9.9.x`, and A8. G0 is therefore
-  applied but not accepted; D4 to D6 are not yet proven replacement
-  safeguards.
-- **Not yet in force:** the authority check, the exact-head review and approval
-  checks, the derived CODEOWNERS (G1-A), and every retirement of G1-B.
+- **Accepted since (board, batch 2c, 2026-09-27):** D0's actual external push
+  (the batch 2c branch, pushed through the App helper from outside the Codex
+  package); D4's owner approval of pull request #461 at its exact head after
+  the last push; D5, the App's normal merge of #461 (`c524e7d2b`) without a
+  bypass, after the required checks, that approval and the resolution of its
+  one review thread. The checklist's D4 also observes the dismissal of an
+  approval by a diff-changing push and what GitHub does with an
+  identical-tree push; the board does not record those two observations,
+  and the second now matters (item 7).
+- **Still open:** D6 (owner bypass or pause), the decision 82 Bitwarden backup
+  confirmation, the owner's C2 deletion of the protected disposable `9.9.x`,
+  and A8. G0 is therefore applied and mostly, not fully, accepted.
+- **Not yet in force:** the authority check (G1-A) and every retirement of
+  G1-B.
 - **Order (decision 100):** this ADR's acceptance, G1-A, G1-B and the WS-TEST
   stages come before release workflow cleanup R-1, which is paused with its
   draft kept. G1-A waits for neither R-1, G2 nor the CI failure-evidence
@@ -189,7 +201,8 @@ failures or other release failures.
 - Parallel work never waits on a repository-wide checkpoint.
 - No gate is switched off before its replacement is in force.
 - An approval binds an exact head, a named authority role and its evidence.
-- A change cannot lower the requirements it is checked against.
+- Every safeguard states whether a machine enforces it or a procedure does;
+  a procedural safeguard is never presented as a machine guarantee.
 - Historical evidence stays immutable, and contracts that cite it keep
   resolving.
 - Every rule has one canonical owner; every workflow works with one agent
@@ -207,16 +220,28 @@ failures or other release failures.
 3. Relax the pull-request base check (analysis option C). Hides a real base
    mismatch and still needs option 1. Rejected.
 4. **Retire records, attestations and history replay; freeze the existing
-   evidence; keep a history-independent authority policy; enforce review and
-   R3 approval through exact-head, role-bound platform records.** Selected;
-   this is 1.1.12 WS-GOV decision 1, completed by the review corrections.
+   evidence; keep a history-independent authority policy, checked by an
+   ordinary pull request check; take the exact-head R3 approval from GitHub's
+   native code-owner review of the last push; name the remaining gaps as
+   procedural safeguards.** Selected; this is 1.1.12 WS-GOV decision 1,
+   completed by the review corrections and decision 105.
 5. First remove only the checkpoint rebinding, before G1-A. Not pursued: the
    checkpoint also fixes path coverage, the path-state digest and the
    reconciliation ancestry, so it needs a separate admission base and
    integration base and new ownership rules, while history replay, the
    evidence commit and re-review stay. The second review judged it likely
    slower than completing G1-A and G1-B; it is reconsidered only if G1-A is
-   blocked for long on platform wiring.
+   blocked for long.
+6. Make the authority check tamper-resistant: a check whose workflow and
+   policy a pull request cannot change, re-evaluated on review events, with a
+   trusted result publisher for the exact head and invalidation of an earlier
+   result on the same head. The third review found that this needs a
+   default-branch bootstrap (a target-branch-context workflow is loaded from
+   `main`, not from the trunk), a publisher with write permission that the
+   candidate cannot influence, and a stale-result and concurrency contract.
+   Not chosen (decision 105): the owner accepts the remaining risks as
+   procedural safeguards instead. A later ADR can add such a boundary if a
+   machine guarantee becomes necessary.
 
 ## Decision
 
@@ -262,8 +287,10 @@ failures or other release failures.
    The reviewer confirms in writing the byte, range, order, integrity and
    support impact (or its absence), the existing semantic owner, callers and
    typed contract, and the test evidence. Enforcement comes from the authority
-   check (items 4, 6 and 7 and the [wiring](#authority-check-wiring-g1-a)),
-   the rulesets (item 8) and CI.
+   check (items 4 and 6 and
+   [its safeguards](#authority-check-and-its-safeguards-g1-a)), GitHub's
+   native approval rules (items 7 and 8) and CI; what they leave open is named
+   there as procedural.
 
    **Single writer.** The records' exactly-once path coverage retires with
    them; the rule it enforced stays. Root `AGENTS.md` keeps "one writer per
@@ -300,14 +327,20 @@ failures or other release failures.
      `firmware-owner`). No text removes a role or lowers a floor; only a
      governance change to the map does. A declared risk below the floor fails.
    - **Unclassified paths.** A path no entry matches has floor R3 and role
-     `governance-owner`; the governance owner's exact-head approval states its
-     classification and may add roles. The author's text alone never clears
-     it. G1-A's map covers every tracked path of its base tree, so this case
-     arises only for new locations.
-   - **Floor no lower than today.** For every tracked path of G1-A's base, the
-     map's floor is at least the current validator's
-     (`_capability_reuse_minimum_risk`); a test proves it while that function
-     exists.
+     `governance-owner`: the pull request declares that role with a proposed
+     classification, which may add roles, and the owner's approval (item 7)
+     accepts it. The author's text alone never clears it. G1-A's map covers
+     every tracked path of its base tree, so this case arises only for new
+     locations.
+   - **No downgrade of today's governed paths.** For every tracked path of
+     G1-A's base that the current validator governs
+     (`_is_capability_reuse_governed_path`), the map's floor is at least that
+     validator's floor (`_capability_reuse_minimum_risk`); a test proves it
+     while those functions exist. The comparison covers only governed paths:
+     for the others the old function returns a default R1 that never applied,
+     so they are accepted by the explicit rules of this item instead (the
+     prose list and its consumer limit, the R1 defaults, and the coverage of
+     every exclusion).
 
    Initial map (G1-A fixes the exact patterns; where the table names a group,
    the implementation lists its members and the named owner confirms them).
@@ -323,7 +356,7 @@ failures or other release failures.
    | `docs/contracts/`: each file firmware, release or both; a file the map does not name individually gets both | R3 | firmware and/or release |
    | `external-tools/` (external processors and their packaged allowlist) | R3 | firmware, release |
    | `.github/workflows/`, `.github/actions/`, `VERSION`, `docs/ci/release-package.md`, the package inputs `CHANGELOG.md`, `LICENSE` and `THIRD_PARTY_NOTICES.md`, and the release scripts of the table below | R3 | release |
-   | Approval authority: the authority policy file, the authority checker and its tests, the authority workflow (also release by its folder), `.github/CODEOWNERS`, root `AGENTS.md`, `docs/governance/development-execution-workflow.md`, `docs/governance/branch-version-and-release-governance.md`, `docs/policies/`, the frozen evidence paths and the pin file, and the G0 scripts and ruleset bodies (`docs/handoff/**/g0-scripts/`) | R3 | governance |
+   | Approval authority: the authority policy file and its schema, the authority checker, every repository file it imports or reads to reach its verdict (G1-A lists them, and a test proves the list against the checker's imports), its tests, the authority workflow (also release by its folder), `.github/CODEOWNERS`, root `AGENTS.md`, `docs/governance/development-execution-workflow.md`, `docs/governance/branch-version-and-release-governance.md`, `docs/policies/`, the frozen evidence paths and the pin file, and the G0 scripts and ruleset bodies (`docs/handoff/**/g0-scripts/`) | R3 | governance |
    | `.agents/`, `.codex/`, `.claude/`, every other `AGENTS.md`, the rest of `docs/governance/`, `docs/adr/`, `docs/specs/`, `SPEC.md` and the four canonical architecture documents, the rest of `.github/`, the rest of `scripts/`, `tests/scripts/`, `eng/`, `third-party/`, `CONTRIBUTING.md`, `SECURITY.md`, root build and repository configuration (`Directory.*`, `global.json`, `NuGet.config`, `*.slnx`, `.gitattributes`, `.gitignore`, `.editorconfig`) | R2 | — |
    | The rest of `src/` and `tests/`; the rest of `docs/` (the prose list excluded); `README.md` | R1 | — |
    | `prose`: an explicit list of files that are not an input to any product test or other semantic verification; only listed generic document-structure checks may read them (Markdown links and anchors, the line ceiling, encoding and file-name rules). A document a topic test still reads is not prose. Joint definition with WS-TEST (ADR 0079); initially `docs/handoff/` Markdown | R0 | — |
@@ -341,9 +374,12 @@ failures or other release failures.
    | Raised from R2: `v0916_parity_certification.py` (terminal certification, decision 47), `release_source_pins.py` (projects the capability policy, the package trust index and the Golden allowlist) | firmware, release |
    | Raised from R2: `deploy-update-source.ps1` | release |
 
-   `.github/CODEOWNERS` becomes a derived projection of the policy (ADR 0068
-   synchronization): every path with a role lists that role's principals, and
-   the default line keeps every other path with the owner, as today.
+   `.github/CODEOWNERS` agrees with the policy, because GitHub's code-owner
+   review is the approval mechanism (item 7): every path with a role is owned
+   by that role's principals, and the default line keeps every other path with
+   the owner, as today. G1-A proves this with a consistency test; a generated
+   projection (ADR 0068) can replace the test once a role has a principal of
+   its own.
 5. R0-R3 stay the vocabulary for choosing evidence, reviewers and approvals
    (root [`AGENTS.md`](../../../AGENTS.md)).
 
@@ -358,17 +394,20 @@ failures or other release failures.
    the head, whose body carries one machine-readable block: the full
    40-character head SHA, the reviewer's runtime and model identifier (for
    example `codex/gpt-6-astra`), the review mode, the verdict, the open P0/P1
-   count, a completed state, and any roles the reviewer adds (item 4). A
-   record counts only when its `commit_id` and its SHA both equal the head, it
-   is complete, its verdict accepts and its open P0/P1 count is zero, and its
-   GitHub principal is on the policy's reviewer list (the agent App, the
-   fallback machine account, the owner); a comment by anyone else, on this
-   public repository, is ignored. The latest record of each listed principal
-   on the head decides; an edited record is read again. GitHub records the
-   principal that posted it; the runtime identifier and the GitHub principal
-   stay separate fields, and neither is inferred from the other. A new head
-   needs a new record. Independence between agent sessions is procedural:
-   GitHub proves who posted, and for which head, not which session reviewed.
+   count, a completed state, and any roles the reviewer adds (item 4). The
+   authority check reads the records on each run. A record counts only when
+   its `commit_id` and its SHA both equal the head, it is complete, its verdict
+   accepts and its open P0/P1 count is zero, and its GitHub principal is on
+   the policy's reviewer list (the agent App, the fallback machine account,
+   the owner); a comment by anyone else, on this public repository, is
+   ignored. The latest record of each listed principal on the head decides.
+   Posting or editing a review starts no run: the check stays red until its
+   next run (a push, a description edit or a re-run), and the pre-merge
+   verification re-runs it. GitHub records the principal that posted it; the
+   runtime identifier and the GitHub principal stay separate fields, and
+   neither is inferred from the other. A new head needs a new record.
+   Independence between agent sessions is procedural: GitHub proves who
+   posted, and for which head, not which session reviewed.
 7. **R3 human authority.** An R3 change needs the item 6 review **and** an
    approval for each role in its role set (item 4): the firmware owner for
    firmware paths and firmware-semantic additions, the release owner for
@@ -378,43 +417,50 @@ failures or other release failures.
    or a reviewer. Release, signing and workflow `permissions:` changes take
    the release owner, and also the governance owner when they change who may
    approve, publish or bypass (by the map, or declared by the author or a
-   reviewer where the map does not already require it). An approval counts
-   only if it:
-   - is an approving pull request review recorded by GitHub on the exact head
-     (`commit_id` equal to the head SHA) by a principal listed for that role in
-     the authority policy (GitHub user ID and login; the governance owner is
-     the owner's GitHub account, decision 102). Agents act under their own
-     GitHub identity, a GitHub App (a machine account is the fallback), which
-     the owner creates and holds the key of; agents never create accounts or
-     apps and never handle the owner's credentials (O-2, board decisions 49
-     and 56; setup in the [G0 owner checklist](G0-owner-checklist.md)). Under
-     one Windows user this separation is a rule, not a technical boundary
-     (board decision 65);
-   - carries, for each role it exercises, one block naming the role, the full
-     head SHA and the evidence approved: always the item 6 review; for
-     `firmware-owner` also the byte and Golden evidence and the exact
-     write-range audit; for `release-owner` the release-owner evidence; for
-     `governance-owner` the rule, permission or approval-authority change
-     approved and, for an unclassified path, its classification;
-   - is current: its `commit_id` equals the head SHA, so every new SHA, one
-     with an identical tree included, needs a new approval. A dismissed
-     approval does not count, and a later changes-requested review by the same
-     principal supersedes it. The ruleset settings
-     `dismiss_stale_reviews_on_push` and `require_last_push_approval` are a
-     first line that GitHub applies to new reviewable pushes; they are not the
-     exact-head guarantee.
-   One person may hold several roles, but then states each role in its own
-   block with its own evidence; a block for one role never implies another.
+   reviewer where the map does not already require it). Under decision 105
+   the parts are:
+   - **The last-push approval: GitHub's own (machine-enforced).** An approving
+     review by a code owner of the changed files on the most recent reviewable
+     push, given by someone other than its pusher, is required by the
+     rulesets (`require_code_owner_review`, `require_last_push_approval`,
+     `dismiss_stale_reviews_on_push`); a push that changes the diff dismisses
+     it. CODEOWNERS gives every role path to that role's principals (item 4).
+     Today the owner holds all three roles and gives this one approval for
+     every role the change needs. Agents act under their own GitHub identity,
+     a GitHub App (a machine account is the fallback), which the owner creates
+     and holds the key of, and which cannot approve its own pull request;
+     agents never create accounts or apps and never handle the owner's
+     credentials (O-2, board decisions 49 and 56; setup in the
+     [G0 owner checklist](G0-owner-checklist.md)). Under one Windows user this
+     separation is a rule, not a technical boundary (board decision 65).
+   - **The roles and their evidence: declared in the pull request, checked for
+     presence (machine).** The description declares the roles and, for each,
+     its evidence: always the item 6 review; for `firmware-owner` also the byte
+     and Golden evidence and the exact write-range audit; for `release-owner`
+     the release-owner evidence; for `governance-owner` the rule, permission
+     or approval-authority change and, for an unclassified path, its
+     classification. The authority check verifies that each required role is
+     declared with well-formed evidence entries; it does not judge their
+     content, which the owner does.
+   - **Role naming (procedural).** The owner's approval states the roles it
+     exercises (decision 102), each with its own statement when one person
+     holds several; a statement for one role never implies another. GitHub
+     does not read the approval's text.
+   - **A new SHA with an identical tree.** The authority check turns red on
+     every new SHA until a review record names it (machine). Whether GitHub
+     also requires a new approval after a push that keeps the tree identical
+     is D4's second observation (G0 checklist); until D4 shows it does, a new
+     approval for such a SHA is part of the pre-merge verification
+     (procedural).
    Firmware-semantic R3 still needs the firmware-owner review, byte and Golden
    evidence and the exact write-range audit of root `AGENTS.md`; release R3
-   still needs release-owner evidence. Each exact-head approval names the
-   role it exercises (decision 102).
+   still needs release-owner evidence.
 8. **Execution boundaries.**
 
    | Boundary | Gates |
    | --- | --- |
-   | Pull request into the trunk (`1.1.x`) or a release branch | required checks (items 13 and 14), `governance / authority` from G1-A (items 4, 6 and 7), conversation resolution (item 12), the G0 review rules |
-   | Release pull request into `main` | the same over the whole release diff, the full suite with Golden, the release owner's approval of the exact release head, an up-to-date base. `governance / authority` runs here once `main` contains its workflow (the first release after G1-A adds it) and becomes a required `main` context only in G2 (below) |
+   | Pull request into the trunk (`1.1.x`) or a release branch | required checks (items 13 and 14), `governance / authority` from G1-A (items 4 and 6), GitHub's code-owner approval of the last push (item 7), conversation resolution (item 12), the pre-merge verification |
+   | Release pull request into `main` | the same over the whole release diff, the full suite with Golden, the release owner's approval of the exact release head, an up-to-date base. `governance / authority` runs on it once the release branch contains the workflow; it becomes a required `main` context only in G2 (below) |
    | Release workflow from `main` | ADR 0033 admission at the candidate, pre-tag and pre-Release boundaries; the protected `release` environment |
 
    **In force since G0 (2026-09-27):** active branch rulesets on `main`, the
@@ -424,21 +470,17 @@ failures or other release failures.
    review from today's CODEOWNERS and conversation resolution, allow merge
    commits only, and block force pushes; `main` and the trunk also block
    deletion, while a release branch is deleted after its tag
-   ([state](#state-on-2026-09-27); D4 to D6 not yet accepted).
+   ([state](#state-on-2026-09-27); D6 not yet accepted).
    **Added by G1-A:** the required context `governance / authority` on the
    trunk and release-branch rulesets, with GitHub Actions as its required
-   source, and the derived CODEOWNERS. **Added in G2:** the same context on
-   `main`, in the one maintenance window that also renames the checks,
-   because the release policy requires `main`'s required contexts to equal
-   its closed set exactly (`REQUIRED_RELEASE_CHECKS` in
-   `scripts/release_promotion_policy.py`). Until then, once `main` contains
-   the policy, the release owner's approval of a release pull request cites
-   its green result on the exact head, and the commander does not ask for the
-   merge while it is red. Before that (the first release after G1-A), a
-   result that fails only because the base `main` has no policy is expected
-   and recorded, and the approval cites the release branch's own results;
-   content merged after G1-A came into force already passed the context on
-   its way into the trunk or the release branch.
+   source, and the CODEOWNERS consistency test. **Added in G2:** the same
+   context on `main`, in the one maintenance window that also renames the
+   checks, because the release policy requires `main`'s required contexts to
+   equal its closed set exactly (`REQUIRED_RELEASE_CHECKS` in
+   `scripts/release_promotion_policy.py`). Until then the release owner's
+   approval of a release pull request cites its green `governance /
+   authority` result on the exact head, and the commander does not ask for the
+   merge while it is red (procedural).
 
    The only bypass actor is the owner, through the Repository admin role, on
    `main`, the trunk and release branches: the standing force-push means of
@@ -463,81 +505,123 @@ failures or other release failures.
    G1-A is **in force**: its required context is active on the trunk and
    release-branch rulesets, it met every acceptance criterion of
    [G1-A delivery and acceptance](#g1-a-delivery-and-acceptance), and at least
-   one real pull request other than G1-B has merged under it. D4 and D5 of G0
-   are accepted before G1-A is declared in force, and D6 before the G1-B
-   cutover. Every G1 part that changes approval authority is R3.
+   one real pull request other than G1-B has merged under it with the
+   pre-merge verification recorded. D4, with its identical-tree observation,
+   and D5 of G0 are accepted before G1-A is declared in force (D5 and D4's
+   approval step were shown on #461), and D6 before the G1-B cutover. Every G1
+   part that changes approval authority is R3.
 
-### Authority check wiring (G1-A)
+### Authority check and its safeguards (G1-A)
 
-The checks of items 4, 6 and 7 form one required context, produced by one
-workflow of their own. G1-A builds this wiring itself; it does not wait for
-G2, and it does not edit `ci.yml` or `scripts/verify.py`, which the CI
-failure-evidence change owns.
+Decision 105 sets the design: an ordinary pull request check that classifies
+the change and verifies the declared roles and evidence, failing closed;
+GitHub's native code-owner approval of the last push as the exact-head human
+approval; and the remaining risks accepted as procedural safeguards, named
+below and never claimed as machine guarantees. G1-A builds the check in a
+workflow of its own; it does not wait for G2, and it does not edit `ci.yml`
+or `scripts/verify.py`, which the CI failure-evidence change owns.
 
-- **Producer and context.** A new workflow (for example
-  `.github/workflows/authority.yml`) runs one job whose check is the required
-  context `governance / authority`. The job has no `if:` condition, no path
-  filter and no `continue-on-error`, runs on draft pull requests too, and ends
-  only in success or failure: never neutral or skipped, which GitHub counts as
-  passing. The rulesets name GitHub Actions as the context's required source,
-  and the agent App has no `checks` or `statuses` write permission, so it
-  cannot post the context itself.
-- **Events and re-evaluation.** The existing `ci.yml` listens only to
-  `opened`, `synchronize`, `reopened` and `ready_for_review`; that is not
-  enough. The authority workflow runs on `pull_request_target` (`opened`,
-  `edited`, `synchronize`, `reopened`, `ready_for_review`, `labeled`,
-  `unlabeled`) and on `pull_request_review` (`submitted`, `edited`,
-  `dismissed`). Each run reads the live state rather than the event payload,
-  so a new push, an edited description (declared risk or roles, or a changed
-  base), a submitted, edited or dismissed review or approval, and a
-  changes-requested review all produce a fresh verdict. One concurrency group
-  per pull request cancels an older run. A verdict holds for one head SHA,
-  one base tip and one pair of policy blob IDs (base and head), which the job
-  summary records. When a push to a protected branch changes the authority
-  policy, every open pull request into that branch is evaluated again
-  before any of them merges; G1-A implements this as an automatic re-run by a
-  separate job that holds only `actions: write` (preferred) or as a recorded
-  commander step, and its negative case proves it.
-- **Trusted source.** The checker code and the policy always come from the
-  live base-branch tip, never from the head: the job checks out that base
-  commit, and under `pull_request_target` it never checks out, builds or runs
-  head content. It reads the head only as Git data (the diff, and the head's
-  policy file parsed as JSON). If the head changes the policy, the stricter of
-  base and head applies to each path (highest floor, union of roles), so a
-  pull request can raise its own requirements immediately but can lower them
-  only by merging a governance-owner-approved policy change. The policy, the
-  checker, its tests and the workflow are governance R3 (the workflow also
-  release) under the base policy. The job has read-only `contents` and
-  `pull-requests` permissions and uses no secret.
+- **Producer and triggers.** A new workflow (for example
+  `.github/workflows/authority.yml`) runs on `pull_request` with the types
+  `opened`, `synchronize`, `reopened`, `ready_for_review` and `edited`: the
+  declared risk, roles and evidence live in the description, and `ci.yml`'s
+  four types do not include `edited`. One job produces the context
+  `governance / authority`. It has no `if:` condition, no path filter and no
+  `continue-on-error`, runs on draft pull requests too, and ends in success or
+  failure, never neutral or skipped, which GitHub counts as passing. It has
+  read-only `contents` and `pull-requests` permissions, uses no secret, and
+  fetches the full history. It reads the live pull request (description,
+  head, base branch) and the review records through the API rather than the
+  event payload, so a re-run of an older run evaluates the current state. The
+  rulesets require the context from GitHub Actions, and the agent App has no
+  `checks` or `statuses` write permission.
+- **What it checks.** The changed paths of item 4 against the policy; the
+  declared risk and roles against the floor and the role union, including the
+  roles review records add; the evidence entries of each required role (item
+  7); for R1 to R3, a valid review record on the head (item 6); and the policy
+  files against their schema. It uses the head's policy and, when the base
+  has one, the base's too, the stricter applying to each path. A missing base
+  policy is accepted only when the pull request itself adds the policy file
+  (the G1-A pull request, and the first release pull request into `main`
+  after it); such a pull request changes the check itself (below).
+- **It fails when** the description's authority block is missing or
+  malformed; the declared risk is below the floor; a required role is not
+  declared, or is declared without its evidence entries; an unclassified path
+  has no governance-owner role and classification; an R1 to R3 change has no
+  valid review record on the head; a policy is missing (outside the case
+  above), violates its schema, or names a role without a principal; an API
+  call fails, times out or hits a rate limit, or a list is incomplete; a Git
+  command fails; or the live head differs from the checked-out head (the push
+  that moved it starts a new run).
 - **Principals.** The policy lists, for each role, its GitHub principals by
   user ID and login, and the reviewer list of item 6. It stores only public
   account identities: App IDs, installation IDs, keys and machine paths stay
   in the owner's private record (decision 65). Changing a principal is a
   governance R3 change. The owner supplies the values before G1-A admission.
-- **Fail closed.** The job fails when the base has no valid policy (the G1-A
-  pull request itself included), when a policy role has no principal, when a
-  GitHub API call fails, times out or hits a rate limit, when a paginated list
-  is incomplete, when a required field is missing or malformed, when the head
-  SHA changes during the evaluation (the next event evaluates again), and
-  when any producer step does not succeed. A missing run leaves the required
-  context absent, which GitHub treats as not satisfied.
-- **Residual trust.** Under `pull_request_review`, GitHub takes the workflow
-  file from the pull request's merge ref, so a pull request that changes the
-  authority workflow runs its own version on review events. Such a pull
-  request touches `.github/`, so GitHub's own code-owner review, which no
-  workflow can satisfy, requires the owner's approval, and the base policy
-  requires governance-owner and release-owner blocks. The owner merges such a
-  pull request only after checking a base-defined `pull_request_target` run on
-  its exact head, and the commander never asks to merge it on a
-  review-triggered result alone. This is still stronger than today, where
-  every required check runs the head's workflow. The same limit applies to any
-  workflow change that adds a job of the same name. Platform behaviors this
-  design relies on (which head a `pull_request_target` or
-  `pull_request_review` run reports to, and that the latest run of a context
-  decides) are verified by G1-A's live cases before the context is made
-  required; if one fails, the design admission switches to a fallback in
-  which the base-defined job writes a commit status on the exact head and the
-  rulesets require that status from GitHub Actions.
+
+**Division of the gates.**
+
+| Gate | Enforced by | What it guarantees |
+| --- | --- | --- |
+| Required checks | the rulesets (GitHub) | every required context, `governance / authority` included, succeeded for the head commit being merged; a missing or failed context blocks |
+| `governance / authority` | a CI job running the pull request's own workflow and checker | at the time of its run: paths classified, risk and roles declared, evidence entries present, a review record on the head |
+| Exact-head human approval | the rulesets' code-owner review, last-push approval and stale dismissal (GitHub) | a code owner, today the owner, approved the most recent reviewable push; a diff-changing push dismisses it |
+| Review threads | the rulesets' conversation resolution | no unresolved thread at merge |
+| Evidence content, role naming, stale results, changes to the check itself | the owner and the commander | the pre-merge verification and the self-change check below |
+
+**Machine-enforced and procedural safeguards.**
+
+| # | Safeguard | Kind | Carried by |
+| --- | --- | --- | --- |
+| M1 | Every change to a protected branch goes through a pull request | machine | rulesets |
+| M2 | A code owner approved the most recent reviewable push, and not as its pusher; a diff-changing push dismisses the approval | machine | rulesets |
+| M3 | No unresolved review thread at merge | machine | rulesets |
+| M4 | The required contexts succeeded for the merged head commit | machine | rulesets |
+| M5 | Floor, role union, declared roles, evidence entries, review record on the head, policy schema, and fail-closed inputs | machine for a pull request that does not change the check | authority check |
+| M6 | A new SHA has no valid review record until a new record names it | machine, same condition | authority check |
+| M7 | Force pushes and deletion blocked; only the owner can bypass | machine | rulesets |
+| P1 | A pull request can edit the check it runs (workflow, checker, policy, schema, files the checker reads), so its own result proves nothing about that change. The same holds today for every required check, since each runs the head's workflow | procedural | self-change check |
+| P2 | An earlier green result on the same head survives a change that starts no run: a new or edited review record, a base policy or checker change, a run that was skipped, queued, cancelled or never triggered, or a re-run of an older run | procedural | pre-merge verification |
+| P3 | A push that keeps the tree identical may keep the approval | procedural until D4 shows GitHub asks again | pre-merge verification |
+| P4 | The owner's approval names each role it exercises (decision 102) | procedural | owner |
+| P5 | The evidence is correct (bytes, Golden, write ranges, release evidence), not only present | procedural | owner and reviewer |
+| P6 | A firmware-semantic or approval-authority change outside the mapped paths is declared | procedural | author and reviewer (item 4) |
+| P7 | Reviewer independence; one writer per mutable surface | procedural | items 6 and 3 |
+| P8 | Before G2, `governance / authority` is not required on `main` | procedural | release owner's approval cites it (item 8) |
+
+**Pre-merge verification (procedural, decision 105).** Before every merge
+into a protected branch, after the owner's approval:
+
+1. The commander re-runs `governance / authority` on the pull request (a
+   re-run reads the live description, review records and base) and waits for
+   its result.
+2. Through the API the commander confirms that this run's check reports
+   success for the current head SHA, and that the owner's approval is on that
+   SHA and on its most recent push; for an identical-tree push under P3, a
+   new approval is asked for.
+3. The merge names that head (`gh pr merge --match-head-commit <sha>`) and
+   happens on the owner's go-ahead. If anything changed in between, the steps
+   start again.
+
+The run id and head SHA of steps 1 and 2 are recorded in the pull request.
+The window between step 2 and the merge is not machine-closed; the
+`--match-head-commit` guard only rejects a moved head.
+
+**Changes to the check itself (procedural, decision 105).** A pull request
+that changes the authority workflow, the checker, the policy or its schema,
+or a file the checker reads to reach its verdict (all governance R3 by item
+4) runs its own version of the check. For it:
+
+- the commander runs the base branch's checker, from a clean checkout of the
+  base, against the pull request's head, and attaches the result;
+- the pull request states which verdicts the change alters and why;
+- the owner's approval contains an explicit self-change statement: the change
+  to the check was reviewed, the base checker's result on this head was read,
+  and this pull request's own requirements were not lowered by the change
+  (or the owner accepts the stated lowering);
+- the commander never asks to merge it on its own check result alone.
+
+This also covers the pull requests that add the policy (the bootstrap case).
 
 ### Branches, releases and CI
 
@@ -584,7 +668,7 @@ failure-evidence change owns.
     - Every pull request runs the structure lane: links, frozen pins (from
       G1-B), contracts and schemas, the policy's coverage test, and the
       generic document checks. The authority check is its own required context
-      (above), because it must react to review events. Of the document checks
+      (above), because it also runs on description edits. Of the document checks
       that today live in `Architecture.Tests` (for example the 2,500-line
       ceiling over `docs/**/*.md`, which failed the 1.1.12 roadmap edit, and
       the roadmap assertions), each moves into the structure lane, stays mapped
@@ -677,9 +761,9 @@ failure-evidence change owns.
 - Structure validation stops growing with history, and parallel workstreams
   stop realigning on each other's checkpoints.
 - The reviewed head is the mergeable head; there is no evidence commit.
-- Approvals bind a head, a role and evidence, are checked on every push,
-  review and description change, and cannot be lowered by the pull request
-  they gate.
+- The human approval is GitHub's own last-push code-owner review; the
+  roles and evidence a change needs are checked on every push and description
+  edit; what neither enforces is a named procedure (decision 105).
 
 What G1-B removes, and what it keeps (second review):
 
@@ -702,11 +786,17 @@ What G1-B removes, and what it keeps (second review):
   more pull requests than the path minimum strictly needs. Narrowing an entry
   is a governance R3 change.
 - Single-writer ownership becomes procedural again (item 3).
+- The authority check is not tamper-proof: a pull request can change the
+  check it runs, and an earlier green result can outlive a later change on the
+  same head (P1 and P2 of the safeguards table). Decision 105 accepts this;
+  the self-change check and the pre-merge verification carry it, and each
+  merge costs one re-run of the check.
 - Path-mapped CI can miss a cross-cutting interaction until the next full run.
 - While G1-A runs beside the record gate, it adds cost: the old review binds
-  the implementation head, while the new review record and approvals bind the
-  final pull request head, which includes the evidence commit, so an R3 pull
-  request of that period is approved twice. The cost ends with G1-B.
+  the implementation head, while the new review record and the GitHub
+  approval bind the final pull request head, which includes the evidence
+  commit, so an R3 pull request of that period is reviewed and approved
+  twice. The cost ends with G1-B.
 - Keeping the WS-AI changes in G1-B (decision 101) delays the retirement: G1-B
   cannot fix its head until the WS-AI port is designed and reviewed; its
   larger diff lengthens the fixed-head review and makes a base move (rebase,
@@ -736,16 +826,16 @@ What G1-B removes, and what it keeps (second review):
   unions them over the change, and treats unclassified paths as governance R3;
   author and reviewer text can only add; the reviewer confirms the byte,
   range, order, integrity and support impact.
-- A pull request lowers the policy it is checked against -> checker and
-  policy come from the base; the stricter of base and head applies; the
-  policy is governance R3.
-- `pull_request_target` runs with base permissions -> the job never runs head
-  content, holds read-only permissions and no secret.
-- A pull request changes the authority workflow itself -> GitHub's code-owner
-  review and the owner's check of a base-defined run on the exact head
-  (residual trust, above).
-- A base policy change leaves open pull requests with a stale verdict -> they
-  are evaluated again before any merges (wiring, events).
+- A pull request lowers the policy it is checked against -> the stricter of
+  the base and head policy applies; if it also changes the checker or the
+  workflow, only the self-change check stops it (procedural, P1).
+- A pull request changes the authority check itself -> GitHub's code-owner
+  review requires the owner's approval, which carries the self-change
+  statement and the base checker's result on the head (procedural, P1).
+- A green result goes stale on the same head (review record edited, base
+  policy tightened, a run skipped or cancelled) -> the pre-merge verification
+  re-runs the check and binds the merge to the head it passed on
+  (procedural, P2).
 - A renamed required check blocks merges until the ruleset changes -> one
   maintenance window, no release in between.
 - A standing owner bypass skips every rule of its ruleset -> it is used only
@@ -770,13 +860,15 @@ What G1-B removes, and what it keeps (second review):
    (item 9).
 1. **Sequence** (board decisions 50 and 100). Old protection stays until the
    new one works.
-   - **G0 (owner, GitHub settings):** applied on 2026-09-27, acceptance open
-     ([state](#state-on-2026-09-27)). D4 and D5 are accepted before G1-A is
-     declared in force, D6 before the G1-B cutover.
+   - **G0 (owner, GitHub settings):** applied on 2026-09-27; D0, D5 and D4's
+     approval step accepted, the rest open ([state](#state-on-2026-09-27)).
+     D4's identical-tree observation is recorded before G1-A is declared in
+     force, D6 before the G1-B cutover.
    - **G1-A (R3, admitted under the current rules with its own record):** the
-     authority policy, the authority check and its workflow, the derived
-     CODEOWNERS and the pull request template; its deliverables, owner
-     actions and acceptance are listed in
+     authority policy and schema, the authority check and its workflow, the
+     CODEOWNERS consistency test, the pull request template and the
+     procedures of decision 105; its deliverables, owner actions and
+     acceptance are listed in
      [G1-A delivery and acceptance](#g1-a-delivery-and-acceptance). Both gates
      run side by side.
    - **G1-B (the cutover, R3), required for the retirement:**
@@ -825,10 +917,11 @@ What G1-B removes, and what it keeps (second review):
      finalization with path coverage and `pathStateDigest`, the direct-child
      evidence commit, the binding to the latest checkpoint, and the
      external-authority attestation files. These are replaced by the pull
-     request's admission fields, the item 6 review record and the item 7
-     approvals on the exact head (governance owner and release owner;
-     firmware owner too if firmware paths are touched), checked by
-     `governance / authority` in force;
+     request's admission fields, the item 6 review record, and the owner's
+     item 7 approval of the last push naming the governance-owner and
+     release-owner roles (and firmware-owner if firmware paths are touched),
+     with `governance / authority` in force, the pre-merge verification, and
+     the self-change check if G1-B touches the check;
    - **the gates it does not replace:** the base commit's validator passes at
      the base (the old rules hold for everything being frozen); the new head
      passes the new structure gate, pins included, and every required check;
@@ -868,85 +961,111 @@ What G1-B removes, and what it keeps (second review):
 
 ## G1-A delivery and acceptance
 
-G1-A is R3 (a workflow and approval authority). It is admitted under the
-current rules with its own capability-reuse record bound to the latest
-checkpoint and an approved design review; its final evidence needs the
-release-owner attestation for the workflow, and its governance-owner approval
-is recorded as an exact-head approval on its pull request, since the record
-system has no governance attestation type. The authority check cannot judge
-the G1-A pull request itself (its base has no policy), so the live evidence
-comes after G1-A merges.
+G1-A is R3 (a workflow and approval policy). It is admitted under the current
+rules with its own capability-reuse record bound to the latest checkpoint and
+an approved design review; its final evidence needs the release-owner
+attestation for the workflow, and its governance-owner approval is the
+owner's GitHub approval of its last push naming that role, since the record
+system has no governance attestation type. Because the check runs on
+`pull_request` events, it also runs on the G1-A pull request itself with that
+pull request's own policy (the bootstrap case); that result is informative
+only, and the self-change check applies.
 
 **Deliverables** (the admission fixes the exact list):
 
-1. The authority policy (path map, roles and principals) and its schema under
-   `docs/governance/`, covering every tracked path of the base tree, with the
-   floors and roles of item 4 and the script table.
+1. The authority policy (the path map with floors, roles and default-entry
+   exclusions; the role principals; the reviewer list) and its schema under
+   `docs/governance/`, covering every tracked path of the base tree.
 2. The checker (for example `scripts/authority_check.py`): a pure evaluation
-   over the diff, the policies, the pull request fields and the reviews, and a
-   thin GitHub adapter with complete pagination; it computes the stricter of
-   the base and head policies. Owner search covers the exact-head review
-   parsing of `scripts/release_promotion_policy.py` and
-   `scripts/collect_review_handoff.py` before a new owner is chosen.
-3. Its tests under `tests/scripts/`, with recorded API responses, covering the
-   negative cases below; and the coverage test (every tracked path matched;
-   floors at least the current validator's; the script table as in item 4).
-4. The workflow of the [wiring](#authority-check-wiring-g1-a): triggers,
-   read-only permissions, concurrency, base checkout, no head execution,
-   fail-closed outcomes, the job summary, and the re-evaluation after a base
-   policy change.
-5. The pull request template: declared risk and added roles, implementation
-   owner and owned paths, and the review-record and approval-block formats.
-6. `.github/CODEOWNERS` derived from the policy through the existing
-   derived-file synchronization, with its sync check.
-7. A short section of the execution workflow on writing review records and
-   approval blocks while both gates run; the full rule move is G1-B's.
-8. Not in G1-A: `ci.yml`, `scripts/verify.py`, the validator's record code,
-   `scripts/release_promotion_policy.py` and the `main` ruleset.
+   over the diff, the base and head policies, the description's authority
+   block and the review records, and a thin read-only GitHub adapter with
+   complete pagination. Owner search covers the exact-head review parsing of
+   `scripts/release_promotion_policy.py` and `scripts/collect_review_handoff.py`
+   before a new owner is chosen.
+3. Tests under `tests/scripts/` with recorded API responses for the negative
+   cases below; the coverage test (every tracked path matched, no downgrade of
+   today's governed paths, every exclusion covered, the script table of item
+   4); the dependency test (every repository file the checker imports or reads
+   is on the governance R3 list); the CODEOWNERS consistency test.
+4. The workflow: the `pull_request` types of the
+   [check](#authority-check-and-its-safeguards-g1-a), one job, read-only
+   permissions, no secret, full history, no `if:`, path filter or
+   `continue-on-error`.
+5. The pull request template: the authority block (declared risk, roles and
+   the evidence of each, implementation owner, owned paths) and the
+   review-record format.
+6. A section of the execution workflow on review records, the pre-merge
+   verification and the self-change check while both gates run; the full rule
+   move is G1-B's.
+7. Not in G1-A: `ci.yml`, `scripts/verify.py`, the validator's record code,
+   `scripts/release_promotion_policy.py`, the `main` ruleset and a CODEOWNERS
+   generator.
 
-**Owner actions:** the role principals and the reviewer list before
-admission; the governance-owner approval and release-owner attestation of the
-G1-A pull request; after the live observation cases, adding `governance /
-authority` (GitHub Actions source) to the trunk and release-branch rulesets
-through the reviewed ruleset procedure, read back and recorded; D4 and D5.
+**Owner actions:** the principals before admission (below); the G1-A pull
+request's approval naming the governance-owner and release-owner roles, with
+its self-change statement, and the release-owner attestation; adding
+`governance / authority` (GitHub Actions source) to the trunk and
+release-branch rulesets through the reviewed ruleset procedure, read back and
+recorded; D4's identical-tree observation.
 
-**Acceptance.** Each negative case must fail the check; the unit cases use
-recorded responses, the live cases disposable pull requests into `1.1.x`
-(closed without merging, their branches deleted by the App):
+**Acceptance.** Unit cases use recorded responses; each negative case must
+fail the check:
 
 - Classification: declared risk missing or below the floor; an unclassified
-  path cleared only by the author's text; a cross-class change with one role
-  approved; a rename from a code path into a firmware path, and a deletion of a
-  firmware file; a head policy that lowers its own paths (the base's roles
-  still required, and the policy change itself needs the governance owner);
-  a head policy that raises them (applied at once); a role added by the
-  reviewer that the author then removes from the description.
-- Review records: none on an R1-R3 change; one on an older head (by
+  path without the governance-owner role and a classification; a cross-class
+  change missing one of its roles; a rename from a code path into a firmware
+  path, and a deletion of a firmware file, each without the firmware role; a
+  head policy that lowers its own paths while the base has a policy (the
+  base's requirement still applies); a role that a review record adds but the
+  description lacks.
+- Evidence: a required role declared without its evidence entries; a firmware
+  role without its Golden or write-range entry; a governance role without its
+  change statement.
+- Review records: none on an R1 to R3 change; one on an older head (by
   `commit_id` or by SHA); one from a principal not on the list, such as an
-  outside commenter; open P0/P1 above zero; a rejecting or incomplete record;
-  a compliant record edited into a non-compliant one.
-- Approvals: a missing role; an approval on an older head; an approval on a
-  new SHA with an identical tree; one by a principal not listed for the role;
-  one without a role block; a firmware or release block without its evidence
-  links; one person holding two roles stating one; an approval dismissed; an
-  approval followed by a changes-requested review; an approval edited to drop
-  its role block.
-- Failure paths: a base without a valid policy; a role without a principal;
-  an API error, timeout, rate limit or incomplete page; the head changing
-  during the evaluation; a producer step skipped, cancelled or failed.
-- Live, before the context is required: the context reports to the pull
-  request head for both triggers; a dismissal, an edited record, an edited
-  description and an identical-tree push each turn a green result red; a base
-  policy tightening turns an open pull request's result red before it can
-  merge.
-- Live, after the context is required: a red or missing result leaves the
-  pull request blocked, and a cancelled run does not pass.
+  outside commenter; open P0/P1 above zero; a rejecting or incomplete record.
+- Inputs: a policy that violates its schema or names a role without a
+  principal; a missing base policy when the pull request does not add the
+  policy file; an API error, timeout, rate limit or incomplete page; a Git
+  failure; a live head that differs from the checked-out head.
+- Positive unit cases: a head policy that raises its paths applies at once; a
+  prose-only change passes as R0 without a review record; a complete R3 change
+  passes.
+
+Live cases run on disposable pull requests into `1.1.x`, closed without
+merging and their branches deleted by the App, and on one real pull request:
+
+- The check runs on `opened`, `synchronize`, `edited` and `ready_for_review`;
+  an edit that drops a required role or lowers the declared risk turns it red;
+  a new push, an identical-tree one included, turns it red until a new review
+  record exists and the check runs again.
+- After the context is required on the trunk and release-branch rulesets, a
+  red, cancelled or missing result leaves the pull request blocked (read from
+  its merge state, without trying to merge).
+- The stale-result case of P2: a review record edited after a green run
+  leaves the result green; the pre-merge re-run turns it red. The record shows
+  that the procedure, not the platform, closes this gap.
+- D4's identical-tree observation (G0 checklist), which settles P3.
+- The self-change check done once, on the G1-A pull request or a later policy
+  change: the base checker's result on the head attached, and the owner's
+  statement in the approval.
 - Positive: one real pull request, other than G1-B, merges into `1.1.x` with
-  every required check green, including `governance / authority`, its review
-  record and its approvals on the exact head.
+  every required check green, its review record, the owner's last-push
+  approval naming its roles, and the recorded pre-merge verification (run id
+  and head SHA).
 
 G1-A is in force when all of this is recorded in the WS-GOV log and the owner
 confirms it (item 9).
+
+**Expected size.** About 900 to 1,500 lines, almost all in new files: the
+checker 300 to 500, its tests 400 to 700, the workflow 40 to 60, the policy
+and schema 200 to 300 (the path map is most of it), and the template,
+runbook section and consistency tests 100 to 150. Basis: the previous design
+was estimated at 1,800 to 3,000 lines by comparison with
+`scripts/release_promotion_policy.py` (2,327 lines, tests 2,831); decision
+105 removes its approval parser, the review-event handling, the result
+publisher, the re-run job and the CODEOWNERS generator. The uncertainty is
+mostly the size of the path map and of the recorded API fixtures.
 
 ## Verification
 
@@ -997,19 +1116,20 @@ force-push means as an owner-only bypass until the owner says otherwise.
 | Priority (board decision 100) | Development speed first: ADR 0080, G1-A, G1-B and the WS-TEST stages that shorten verification come before release cleanup R-1, which pauses with its draft kept | R-1 first |
 | G1-B scope (board decision 101) | G1-B keeps its designed scope, the WS-AI changes included, accepting the later retirement stated under Consequences | The second review's narrower cutover, which would retire record validation sooner |
 | Governance owner (board decision 102) | The owner holds the governance owner role, mapped to the owner's GitHub account, for R3 changes to governance rules, permissions and approval policy; recorded separately from the firmware and release owner; each exact-head approval names its role | Folding governance approval into the release owner, or leaving it an unnamed "owner approval" |
+| G1-A direction (board decision 105) | An ordinary pull request check that classifies paths and verifies the declared roles and evidence, failing closed; the exact-head human approval is the rulesets' code-owner review after the last push, given by the owner for every role; the remaining risks (a pull request can edit the check it runs; an earlier green result on the same head; a run that did not start) are procedural safeguards stated in this ADR, not machine guarantees | A tamper-resistant check with a default-branch bootstrap, a trusted result publisher and stale-result invalidation (option 6) |
 
-**Owner input still needed:**
+**Owner input before G1-A admission** (only what the admission needs):
 
-1. Before acceptance: confirm the staged-effect wording (migration step 0)
-   and the governance R3 scope of item 7.
-2. Before G1-A admission: the GitHub principals of the firmware owner and
-   the release owner (the governance owner is the owner's account, decision
-   102; CODEOWNERS names that account today), and the reviewer list of item 6
-   (the App's public bot account, the fallback machine account if any, the
-   owner); the firmware owner's confirmation of the firmware-semantic `src/`
-   folders and the contract split of item 4.
-3. For G1-A: the governance-owner approval and release-owner attestation of
-   its pull request; adding its required context to the two rulesets; D4 and
-   D5.
-4. Before the G1-B cutover: D6; the confirmation that G1-A is in force; the
-   one-time authorization of step 2 with its pins and inventory.
+1. The principals: that the owner's GitHub account holds all three roles
+   (CODEOWNERS names it today; the owner confirms its login and user ID), and
+   the reviewer list of item 6: the App's bot account, whose commits show
+   `nfc-agent-dennis40816[bot]`, and the owner; a machine account only if the
+   fallback is ever used.
+2. The firmware owner's confirmation, or amendment, of the firmware-semantic
+   `src/` folders of item 4. The contract split can wait: until it is made,
+   every contract takes both roles.
+
+The other owner steps belong to later stages and are listed there: accepting
+this ADR; G1-A's approval, attestation, ruleset change and D4 observation
+([G1-A delivery and acceptance](#g1-a-delivery-and-acceptance)); D6 and the
+one-time cutover authorization ([migration step 2](#compatibility-and-migration)).

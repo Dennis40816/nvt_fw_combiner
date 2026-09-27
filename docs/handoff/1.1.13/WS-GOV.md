@@ -5,12 +5,13 @@ Owner: Claude Code (Opus 5.5), design drafter. Board:
 Deliverables: [governance ADR draft](ADR-DRAFT-governance-reset.md) and
 [release workflow cleanup design](DESIGN-release-workflow-cleanup.md), both
 revised after the [independent design review](#design-review-2026-09-26), the
-ADR draft again after the [second design review](#design-re-review-2026-09-27),
-and the [G0 owner checklist](G0-owner-checklist.md), revised after its own
+ADR draft again after the [second design review](#design-re-review-2026-09-27)
+and the [third](#design-re-review-3-2026-09-27), and the
+[G0 owner checklist](G0-owner-checklist.md), revised after its own
 [reviews](#g0-checklist-review-2026-09-26). The owner decided every question
 on 2026-09-26 (board decisions 47, 49 to 56, 65 to 67, 77 and 78) and on
-2026-09-27 the priority, the G1-B scope and the governance owner (decisions
-100 to 102); the questions and answers are at the end
+2026-09-27 the priority, the G1-B scope, the governance owner and the G1-A
+direction (decisions 100 to 102 and 105); the questions and answers are at the end
 ([owner decisions](#owner-decisions-in-risk-order)), followed by the
 [questions the G0 review left](#questions-after-the-g0-review), now decided.
 The board allocated ADR number 0080 to the governance draft.
@@ -240,6 +241,21 @@ scope option; not implemented or covered by the parser review):
   so that its design admission can start. Only the ADR draft and this log
   change; no edit under `scripts/`, `.github/` or `docs/adr/`; commit on this
   branch after the structure check, no push; then stop.
+- **Third design review revision (commander, 2026-09-27).** The third design
+  review of `cb72ee0b0` returned ACCEPT-WITH-CHANGES: the second review's F-3
+  to F-6 closed, three new P1 findings on the authority check's platform
+  mechanism and one P2. The owner chose the simpler direction (decision 105).
+  Replace the target-branch-context check, the trusted publisher and the
+  commit-status fallback by an ordinary `pull_request` check; state its
+  triggers, failure conditions, its division with the native code-owner
+  review, last-push approval and required checks, and which safeguards are
+  machine-enforced and which procedural; write F-2 and F-3 as procedural
+  safeguards with a pre-merge verification and an owner self-change check;
+  fix F-4 (no-downgrade over the old governed predicate plus floor; the
+  schema and the checker's direct dependencies governance R3); update G1-A's
+  deliverables, acceptance, negative cases and size; reduce the owner input
+  before admission to what it needs; record the review and decision 105 here;
+  structure check, commit, no push; then stop.
 
 ## Ported from 1.1.12
 
@@ -372,7 +388,71 @@ supersedes them where the two differ.
    condition skips every version outside 1.x and 2.0.0
    ([bug](../bugs/BUG-20260926-release-promote-skips-other-versions.md)).
 
+## Design re-review 3 2026-09-27
+
+Reviewer `codex/gpt-6-astra`, implementation owner `claude-code`, fixed head
+`cb72ee0b077cafbcb9ff03c5aaf199fed725a493` (diff `acbe5654d..cb72ee0b0`),
+current rules at `1.1.x` `e6e991af32d76d99ad156a7f86baa662947db8d9`;
+read-only, with GitHub's documentation read for the platform facts (no build,
+test or live repository check). Verdict on the ADR draft:
+**ACCEPT-WITH-CHANGES**, not yet acceptable as a complete design, and G1-A's
+`designReview.outcome` could not be `approved`. The second review's F-3 to F-6
+closed, its F-2 mostly (the new F-4 remains), its F-1 partly (the new F-1 to
+F-3). No listed R3 script was found downgraded. The scoped Polytail design
+verdict was FAIL because of the open P1 findings, not because a check failed.
+
+**Owner decision 105 (2026-09-27, [1.1.12 board](../1.1.12.md)).** After this
+review the owner chose the simpler direction: the authority check is an
+ordinary pull request CI check that classifies paths and verifies the
+declared roles and evidence, failing closed; the exact-head human approval is
+the rulesets' code-owner review after the last push, which the owner gives
+for every role; the remaining risks (a pull request can edit the check it
+runs; an earlier green result on the same head) are procedural safeguards
+stated in the ADR, not machine guarantees. Decisions 103 (users receive
+1.2.0) and 104 (1.1.x versions still go through the full release process)
+were found not to conflict with the staged design.
+
+| Finding | Severity | Taken in |
+| --- | --- | --- |
+| F-1 a target-branch-context workflow is loaded from the default branch (`main`), which does not fit G1-A's rollout on the trunk | P1 | Removed by decision 105: the check runs on ordinary `pull_request` events, whose workflow comes from the pull request, so it runs on the trunk from G1-A on, and on its own pull request (the bootstrap case, informative only). The tamper-resistant alternative is ADR option 6, not chosen |
+| F-2 two event types give no single result; the commit-status fallback had no publisher, no naming plan and no protection against a head-controlled workflow | P1 | Removed: one workflow, one job, one context, `pull_request` types `opened`, `synchronize`, `reopened`, `ready_for_review` and `edited`; no review-event trigger, publisher or fallback. The approval is GitHub's last-push code-owner review. A pull request that edits its own check is safeguard P1, carried by the self-change check: the base branch's checker run against the head and attached, the pull request's statement of changed verdicts, the owner's explicit self-change statement in the approval, and no merge on the check's own result alone |
+| F-3 an earlier green result on the same head had no invalidation or concurrency contract | P1 | Accepted as procedural (decision 105; safeguards P2 and P3): the pre-merge verification re-runs the check (a re-run reads the live description, review records and base), confirms through the API that it passed on the current head SHA and that the owner's approval is on that SHA's last push, and merges with `--match-head-commit`; the remaining window is stated. The machine claims were reduced to M1 to M7 of the new safeguards table; a live case shows a review record edited after a green run staying green until the pre-merge re-run |
+| F-4 the no-downgrade comparison applied the old floor function to every path; the policy schema was not governance R3 | P2 | ADR item 4: the comparison covers only the paths the old validator governs (`_is_capability_reuse_governed_path` with `_capability_reuse_minimum_risk`); other paths are accepted by the explicit new rules (prose list and its consumer limit, R1 defaults, coverage of every exclusion). The schema and every repository file the checker imports or reads are governance R3, with a dependency test |
+
+Also taken in: the G0 state from board batch 2c (D0's external push, D4's
+exact-head approval on #461, D5's merge of #461 without a bypass; D4's
+dismissal and identical-tree observations not recorded there, the second now
+safeguard P3); a CODEOWNERS consistency test instead of a generator in G1-A;
+G1-A's deliverables, acceptance and size re-estimated (about 900 to 1,500
+lines instead of 1,800 to 3,000); the owner input before admission reduced to
+the principals and the firmware-semantic `src/` folders.
+
+Evidence summary proposed by the reviewer for `designReview.evidence`, valid
+only with a blocked outcome and describing the reviewed head, not this
+revision:
+
+> Independent read-only third-round design review by codex/gpt-6-astra,
+> implementationOwner claude-code, at cb72ee0b077cafbcb9ff03c5aaf199fed725a493
+> against the rules at e6e991af32d76d99ad156a7f86baa662947db8d9:
+> ACCEPT-WITH-CHANGES. Second-round F-3 through F-6 are closed, and
+> authority-role classification is substantially corrected. G1-A design
+> admission remains blocked pending a viable default-branch workflow
+> bootstrap, a trusted exact-head result publication contract with a fully
+> specified fallback, and stale-result invalidation and concurrency handling.
+> Clarify the classifier comparison domain and classify the authority policy
+> schema as governance R3. No files were modified, and no builds, tests, or
+> live repository configuration checks were performed.
+
+Decision 105 changes what "closed" means for F-1 to F-3: they are answered
+by removing the mechanism and naming procedural safeguards, not by a machine
+contract. An independent check of this revision is still needed before G1-A's
+design review can be recorded as approved (commander).
+
 ## Design re-review 2026-09-27
+
+Superseded in part: the authority check wiring taken in for F-1 below was
+replaced after the [third review](#design-re-review-3-2026-09-27) by board
+decision 105.
 
 Reviewer `codex/gpt-6-astra`, implementation owner `claude-code`, fixed head
 `acbe5654d6cfa179d64fd604c38a95c24addc498`, current rules at `1.1.x`
@@ -788,6 +868,33 @@ existing code-size warnings, unrelated to these documents.
 Open: an independent check of this revision before G1-A's design review can
 be recorded as approved (commander); the owner input listed at the end of the
 ADR draft.
+Next: stop.
+
+### 2026-09-27 Revision after the third design review (decision 105)
+State: local (verified before commit, documents only)
+Commits: the commit carrying this entry, on `cb72ee0b0`; only the ADR draft
+and this log change.
+Evidence: the [third review](#design-re-review-3-2026-09-27) and decision 105
+are taken in (table above). ADR changes: options 4 and 6; items 6 to 9
+rewritten (review records read by the check on each run; the last-push
+code-owner approval as the machine-enforced approval; role naming
+procedural; the identical-tree case); a new section "Authority check and its
+safeguards (G1-A)" with the `pull_request` triggers, the failure
+conditions, the division of the gates, the table of machine-enforced (M1 to
+M7) and procedural (P1 to P8) safeguards, the pre-merge verification and the
+self-change check; item 4's no-downgrade domain and the schema and
+dependencies as governance R3; the G0 state from board batch 2c; G1-A's
+deliverables, acceptance and size; the owner input before admission. The ADR
+no longer describes a target-branch-context workflow, a review-event
+trigger, a result publisher or a commit-status fallback, except as the
+option not chosen. A link and anchor check of the four WS-GOV documents
+passed. Structure check before the commit: `python scripts/verify.py
+--structure-only` with TEMP, TMP and TMPDIR set to `<test-area>/temp`, on the
+working tree of this commit except this result line -> `structure=PASS`,
+173.2 s; `sync_derived` changed 0 files; only the existing code-size
+warnings, unrelated to these documents.
+Open: an independent check of this revision (commander); the owner input
+listed at the end of the ADR draft.
 Next: stop.
 
 ## Owner decisions in risk order
