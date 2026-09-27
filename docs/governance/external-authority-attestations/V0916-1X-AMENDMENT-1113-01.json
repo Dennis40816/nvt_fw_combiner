@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "V0916-1X-AMENDMENT-1113-01",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "241327de129cbbc1cd492070c3105ed91a03fe5f",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware owner)",
+  "evidence": "The firmware owner explicitly approved exact final-evidence head 241327de129cbbc1cd492070c3105ed91a03fe5f for V0916-1X-AMENDMENT-1113-01 on 2026-09-27, after first approving the same record content at the superseded head 98c13cd0e927166df823fdafa05e9ba9f4595454; the rebuilt batch differs only in a predecessor schema contract test that now references the Domain issue-code constant with an unchanged serialized value. The amendment transcribes owner decisions 12 and 62 into the v0.9.16 comparison: for the NT51950 FW1.x cascade TP-work route only the bound outputs and the 2,816 bytes in five ranges are accepted, with the four CRC words accepted only as part of that difference and not independently verified; for the NT51950 FW1.x cascade full-flash route, not applicable to v0.9.16 is limited to this canonical input, precursor, v0.9.16 Preview rejection code and candidate output. Both rows' candidate values are historical observations that the 1.1.13 milestone run must reproduce; any different value requires a new owner decision and is never updated automatically. This approval is not final certification and does not waive the executor or reader records, Golden execution, protected CI or any release gate."
+}
