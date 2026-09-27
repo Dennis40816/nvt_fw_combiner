@@ -150,8 +150,11 @@ CSHARP_TOKEN = re.compile(r"@?[A-Za-z_]\w*|[{};.<>,():]")
 
 def _delegate_name_index(tokens: list[str], declaration: int) -> int | None:
     """Skip the complete return type, including tuples inside generic types."""
+    return_type = declaration + 1
+    while return_type < len(tokens) and tokens[return_type] in {"ref", "readonly"}:
+        return_type += 1
     angle = parentheses = 0
-    for index in range(declaration + 1, len(tokens)):
+    for index in range(return_type, len(tokens)):
         token = tokens[index]
         if token in {";", "{", "}"}:
             return None
@@ -163,7 +166,7 @@ def _delegate_name_index(tokens: list[str], declaration: int) -> int | None:
                 while name > declaration and depth:
                     depth += (tokens[name] == ">") - (tokens[name] == "<")
                     name -= 1
-            if name > declaration + 1 and re.fullmatch(r"@?[A-Za-z_]\w*", tokens[name]):
+            if name > return_type and re.fullmatch(r"@?[A-Za-z_]\w*", tokens[name]):
                 return name
         angle += (token == "<") - (token == ">")
         parentheses += (token == "(") - (token == ")")
@@ -268,7 +271,7 @@ def review_code_size_policy(root: Path) -> list[str]:
         f"{len(snapshot.type_aggregates)} C# type aggregates; duplicate JSON "
         f"{snapshot.duplicate_json_groups} groups / {snapshot.duplicate_json_copies} copies / "
         f"{snapshot.duplicate_json_nonblank} nonblank lines. "
-        "Only enrolled hotspot measurements block under ADR 0080 item 17."
+        "Only hotspot enrollment and measured baselines block under ADR 0080 item 17."
     ]
 
 

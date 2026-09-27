@@ -26,7 +26,7 @@ For every ticket record:
 
 Choose ticket size by independent review, verification, ownership, and ability
 to keep CI green—not by a model context window. Use
-`.tmp/agent/to-tickets/<timestamp>/` only for local drafts.
+`.tmp/agent/nfc-to-tickets/<timestamp>/` only for local drafts.
 
 Create or update GitHub tickets only when authorized. Apply
 `ready-for-agent` only to tickets whose specification and individual scope the

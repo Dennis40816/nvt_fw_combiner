@@ -1,6 +1,6 @@
 ---
 name: nfc-grill-with-docs
-description: Close unresolved NFC specification, architecture, terminology, or planning decisions and record each accepted result in its canonical document. Use before to-spec, to-tickets, or an implementation goal when owner decisions remain.
+description: Close unresolved NFC specification, architecture, terminology, or planning decisions and record each accepted result in its canonical document. Use before nfc-to-spec, nfc-to-tickets, or an implementation goal when owner decisions remain.
 ---
 
 # Grill With Docs

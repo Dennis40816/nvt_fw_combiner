@@ -99,6 +99,10 @@ def test_global_types_and_delegates_are_measured(root):
     ("public delegate (int X, int Y) Callback();", "Product.Callback"),
     ("public delegate System.Func<(int X, int Y)> Callback();", "Product.Callback"),
     ("public delegate System.Func<(T X, T Y)> Callback<T>();", "Product.Callback`1"),
+    ("public delegate ref readonly (int X, int Y) Callback();", "Product.Callback"),
+    ("public delegate ref readonly (T X, T Y) Callback<T>();", "Product.Callback`1"),
+    ("public delegate ref (int X, int Y) Callback();", "Product.Callback"),
+    ("public delegate ref readonly int Callback();", "Product.Callback"),
 ])
 def test_tuple_return_delegate_is_enrolled_by_its_declared_name(root, declaration, name):
     write(root, "src/Product/Delegate.cs", "namespace Product;\n" + declaration + "\n" + "// body\n" * 1998)
