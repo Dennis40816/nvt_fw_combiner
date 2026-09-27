@@ -9,7 +9,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (23)
+## Done (25)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -36,50 +36,51 @@ remove items; the board decisions stay the authority for scope.
 | 21 | v0.9.16 1.x amendment (R3) | #459 |
 | 22 | ADR 0079 test architecture | #459 |
 | 23 | NVT reader XML documentation pointers | #459 |
+| 24 | Display OSD marker bug closed: fixed by the NVT end-flag rule | #458 (tests inverted) |
+| 25 | Bug ledger statuses brought up to date for #457-#459 | board |
 
 ## Active (6)
 
 | # | Item | Next |
 | --- | --- | --- |
-| 24 | C-7 TP SVN display (R3) | decisions 93-94, delta re-review, admission, ADR 0075 memory gate, firmware and release attestations |
-| 25 | Navigation focus underline (decision 32) | render the focus ring (review F-3), re-review |
-| 26 | Wave 5 F03/F06 process cleanup and ADR 0081 | admission and implementation; owner acceptance of ADR 0081 |
-| 27 | Test local-state isolation and the ADR 0079 amendment | admission and implementation |
-| 28 | G0: GitHub App, rulesets and settings, including A-5 | owner runs the scripts |
-| 29 | WS-GOV governance reset (ADR 0080) | on `feature/1.1.13/ws-gov`; integration after G0 |
+| 26 | C-7 TP SVN display (R3) | decisions 93-94, delta re-review, admission, ADR 0075 memory gate, firmware and release attestations |
+| 27 | Navigation focus underline (decision 32) | render the focus ring (review F-3), re-review |
+| 28 | Wave 5 F03/F06 process cleanup and ADR 0081 | admission and implementation; owner acceptance of ADR 0081 |
+| 29 | Test local-state isolation and the ADR 0079 amendment | admission and implementation |
+| 30 | G0: GitHub App, rulesets and settings, including A-5 | owner runs the scripts |
+| 31 | WS-GOV governance reset (ADR 0080) | on `feature/1.1.13/ws-gov`; integration after G0 |
 
-## Waiting or open (28)
+## Waiting or open (27)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
-| 30 | Header backup CRC (R3), with the stale B-normalization Header CRC bug | owner's six firmware facts |
-| 31 | F20/F21 residuals (stale picker and I/O results) | open |
-| 32 | Release workflow cleanup R-1 | G0 |
-| 33 | Release workflow cleanup R-2 | R-1 |
-| 34 | WS-AI dual-runtime agent documents, with the two agent-skill bugs | open |
-| 35 | WS-TEST pilot split (T1, T2a) and UiSmoke measurement U0 | open; U0 needs a quiet machine |
-| 36 | WS-FLOW F1 second half, F5 and F6 re-evaluation | open |
-| 37 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | open (P-1 merged) |
-| 38 | ADR 0077 Step 0 measurement | quiet machine |
-| 39 | ADR 0077 B2a (R2) | Step 0 |
-| 40 | ADR 0077 B2b trust policy (R3) | B2a |
-| 41 | First window within the EXE size ceiling | ADR 0077 |
-| 42 | Wave 5 window lifetime F01/F02/F25 (decisions 87, 88) | wave 5 F03/F06 |
-| 43 | Version-manager state test isolation (1.1.13 or later) | open |
-| 44 | Process start failure escapes the typed result | open |
-| 45 | `verify.py --all` help text | WS-GOV |
-| 46 | Version-branch CI gap | WS-GOV |
-| 47 | Test hygiene findings (WS-TEST T2-T4, G2) | WS-TEST |
-| 48 | UiSmoke headless session stall | owner permission to download a dump analyzer |
-| 49 | Deploy post-hash attack test race | open |
-| 50 | Legacy Combiner long path | open |
-| 51 | CI core-shard H2 and H3 follow-ups | open |
-| 52 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
-| 53 | Document at the line ceiling | open |
-| 54 | Display OSD marker bug: confirm the #458 fix and close it | open |
-| 55 | Bug ledger statuses brought up to date | open |
-| 56 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | release |
-| 57 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
+| 32 | Header backup CRC (R3), with the stale B-normalization Header CRC bug | owner's six firmware facts |
+| 33 | F20/F21 residuals (stale picker and I/O results) | open |
+| 34 | Release workflow cleanup R-1 | G0 |
+| 35 | Release workflow cleanup R-2 | R-1 |
+| 36 | WS-AI dual-runtime agent documents, with the two agent-skill bugs | open |
+| 37 | WS-TEST pilot split (T1, T2a) and UiSmoke measurement U0 | open; U0 needs a quiet machine |
+| 38 | WS-FLOW F1 second half, F5 and F6 re-evaluation | open |
+| 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | open (P-1 merged) |
+| 40 | ADR 0077 Step 0 measurement | quiet machine |
+| 41 | ADR 0077 B2a (R2) | Step 0 |
+| 42 | ADR 0077 B2b trust policy (R3) | B2a |
+| 43 | First window within the EXE size ceiling | ADR 0077 |
+| 44 | Wave 5 window lifetime F01/F02/F25 (decisions 87, 88) | wave 5 F03/F06 |
+| 45 | Version-manager state test isolation (1.1.13 or later) | open |
+| 46 | Process start failure escapes the typed result | open |
+| 47 | `verify.py --all` help text | WS-GOV |
+| 48 | Version-branch CI gap | WS-GOV |
+| 49 | Test hygiene findings (WS-TEST T2-T4, G2) | WS-TEST |
+| 50 | UiSmoke headless session stall | owner permission to download a dump analyzer |
+| 51 | Deploy post-hash attack test race | open |
+| 52 | Legacy Combiner long path | open |
+| 53 | CI core-shard H2 and H3 follow-ups | open |
+| 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
+| 55 | Document at the line ceiling | open |
+| 56 | Private-string check rejects user-profile paths in new changes (rest of the public-paths bug) | open |
+| 57 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | release |
+| 58 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
 
 Not 1.1.13: the display-convention inventory (1.1.14, decision 39); the 1.2.1
 architecture and UI reviews and Launcher; CtrlRAM cold first-open and F14/F15

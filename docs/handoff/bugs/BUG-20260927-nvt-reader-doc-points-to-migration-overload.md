@@ -1,6 +1,6 @@
 # BUG-20260927-nvt-reader-doc-points-to-migration-overload: runtime reader docs still point to the migration-only overload
 
-Status: open
+Status: fixed (merged into `1.1.x` by #459)
 Severity: P2
 Found: 2026-09-27, automated review of pull request #458 (thread on `FirmwareConfigMetadataReader.cs`)
 Where: `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigMetadataReader.cs` (XML documentation near line 16) and
@@ -11,4 +11,4 @@ the whole image for markers and skip the declared-position and `Unresolved` hand
 Expected: the documentation points runtime consumers to the declaration overload and marks the other as migration-only.
 Evidence: code reading by the automated review; documentation only, no behavior defect in current consumers.
 Owner: 1.1.13 batch 2b, a small follow-up record (the finalized NVT record is not reopened).
-Resolution:
+Resolution: fixed by `NVT-READER-DOC-1113-01` (R1), merged into `1.1.x` by #459.

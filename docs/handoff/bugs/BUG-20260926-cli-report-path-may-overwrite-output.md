@@ -1,6 +1,6 @@
 # BUG-20260926-cli-report-path-may-overwrite-output: `--report` can name the committed output
 
-Status: reproduced and fixed on `feature/1.1.13/wave1` (not yet integrated into `1.1.x`)
+Status: fixed (merged into `1.1.x` by #457)
 Severity: P2
 Found: 2026-09-26, Claude sub-agent, while fixing CLI-REPORT-RECEIPT-1113-01 on
 `feature/1.1.13/cli-report-receipt`
