@@ -212,18 +212,18 @@ public sealed partial class MainWindow
         _isReportHistoryPersistenceComplete = false;
         _isReportHistoryClosePending = false;
         _isExitConfirmed = false;
-        _windowPublication.Resume();
-        IsEnabled = true;
-        if (DataContext is MainWindowViewModel viewModel)
-        {
-            viewModel.Settings.PublishPendingRecoveryStatus();
-        }
         // A later Close is an ordinary exit. Only a new Settings activation or Retry
         // can request another launcher handoff.
         _restartThroughStableLauncher = false;
         _closeAfterFailedHandoff = false;
         ClosePhase = WindowClosePhase.Open;
         _finalClosePosted = false;
+        IsEnabled = true;
+        _windowPublication.Resume();
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.Settings.PublishPendingRecoveryStatus();
+        }
         if (_deferredActivationRequested)
         {
             _deferredActivationRequested = false;
