@@ -181,9 +181,8 @@ substitute for the precursor's own identities and ranges.
 Every entry carries the owner's approval as firmware owner: the board
 decision, which is the authority, the role `firmware-owner` and the date. The
 declaration cites the decision exactly; this citation is the approval form of
-a release declaration (board decision 64). It does not replace the exact-head
-owner attestation that an R3 capability record needs, such as the record of
-the 1.x amendment. The release decision stays with the owner as release owner.
+a release declaration (board decision 64). It does not replace the owner's exact-head firmware-owner approval that an
+R3 pull request needs, such as a change to the 1.x amendment (ADR 0080 item 7). The release decision stays with the owner as release owner.
 A newly rejected input ships only as a known non-blocking issue approved for
 that release; a declared issue never overrides a P0 or P1 bug, a required
 Golden case or a protected check (board decision 57).
@@ -379,8 +378,8 @@ A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's
 format into the normalized projection these functions read (member names,
 issue severities and codes, unknown optional members recorded by name and
-never used as authority). It may not relax, skip or reorder these checks; its
-rules are admitted by a separate record after the P-0.5 spike, and until then
+never used as authority). It may not relax, skip or reorder these checks; its rules are admitted by their own pull request after the P-0.5 spike, with
+the review and approvals their paths require, and until then
 `reportReader` is `pending-reader-record`.
 
 ### Comparison and attribution

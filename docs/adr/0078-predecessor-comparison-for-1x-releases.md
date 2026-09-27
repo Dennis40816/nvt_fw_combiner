@@ -125,9 +125,9 @@ decision are in the 1.1.13 WS-PARITY handoff.
     FW1.x cascade full-flash canonical binding is recorded as not applicable
     to v0.9.16 and is revisited at 2.0.0 (decision 62). A second v0.9.16
     executor contract is approved (decisions 63 and 79). The amendment rows
-    are firmware-owner authority: they are admitted by their own R3 record and
-    finalized with an exact-head firmware-owner attestation, which the
-    declaration's citation form does not replace.
+    are firmware-owner authority: they are admitted by their own R3 pull request
+    with the owner's exact-head firmware-owner approval (ADR 0080 item 7),
+    which the declaration's citation form does not replace.
 11. **ADR 0057 unchanged.** Its plan, schemas, workflow contract, three
     parity jobs, protected environment, terminal parser and 2.0.0 gate stay as
     they are. The comparator never emits ADR 0057 evidence or reads its
@@ -210,9 +210,9 @@ with its ledger and its proposed declaration and report schemas, and the
 ## Open items
 
 - The report reader rules and the revision of the proposed report and
-  declaration schemas (a separate record after the P-0.5 spike).
+  declaration schemas (a separate pull request after the P-0.5 spike).
 - The second v0.9.16 executor contract and the compiler-host pinning of
-  decision 79 (a separate executor record after the P-0.5 spike).
+  decision 79 (a separate executor pull request after the P-0.5 spike).
 - A Draft 2020-12 validator for the comparator's Python runtime, or keeping
   schema validation in the .NET contract tests (P-2).
 - The owner's 1.1.13 approval of the 11 candidate routes as accepted gaps.
