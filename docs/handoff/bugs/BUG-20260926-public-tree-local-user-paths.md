@@ -1,6 +1,6 @@
 # BUG-20260926-public-tree-local-user-paths: tracked documents carry the developer's local user-profile paths
 
-Status: open
+Status: partly fixed (current files merged into `1.1.x` by #459; the check for new changes is open)
 Severity: P3
 Found: 2026-09-26, the WS-TEST T1 draft review and a commander scan of the tracked tree at `9861d800c`
 Where: current files `tests/README.md` (two owner-reference image paths), `.agents/skills/assess-refactor-progress/SKILL.md`,
@@ -17,4 +17,6 @@ Evidence: `git grep -i "C:[\/]Users[\/]"` over the tracked tree.
 Owner: 1.1.13 documentation hygiene, a small governed batch for the current files (ADR, skill and roadmap paths need a
 record). The sealed records and the frozen waiver stay as they are (decisions 51 and 52) unless the owner decides
 otherwise, and Git history is not rewritten.
-Resolution:
+Resolution: the current files were fixed by `DOC-HYGIENE-1113-PRIVATE-PATHS-01`, merged into `1.1.x` by #459;
+the remaining matches are the sealed records and the frozen waiver kept by decisions 51 and 52. Open: the
+private-string check that rejects a non-placeholder user-profile path in new changes.

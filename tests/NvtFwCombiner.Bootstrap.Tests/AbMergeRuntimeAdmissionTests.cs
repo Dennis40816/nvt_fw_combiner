@@ -64,7 +64,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             });
             using TempWorkspace workspace = TempWorkspace.Create("ab-format-input-geometry");
             CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-                loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+                loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
             IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
             Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
             byte[] tp = CreateTpImage(0x81, 0, length: 0x37000);
@@ -530,7 +530,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     {
         CompositionHostServices host = CompositionHostServices.Create(
             new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools")),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);

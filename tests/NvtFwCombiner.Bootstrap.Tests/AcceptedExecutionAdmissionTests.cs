@@ -111,7 +111,7 @@ public sealed class AcceptedExecutionAdmissionTests
 
     private static async Task<CompositionHostServices> CreateLoadedHostAsync()
     {
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         _ = await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
             progress: null,
             TestContext.Current.CancellationToken);

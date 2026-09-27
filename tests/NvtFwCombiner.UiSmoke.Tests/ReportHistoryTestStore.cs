@@ -2,12 +2,13 @@ using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 internal static class ReportHistoryTestStore
 {
-    private static readonly ILocalFileStore Files = CompositionHostServices.Create().LocalFiles;
+    private static readonly ILocalFileStore Files = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory()).LocalFiles;
 
     internal static IReadOnlyList<ReportHistorySnapshot> Load(string path)
     {

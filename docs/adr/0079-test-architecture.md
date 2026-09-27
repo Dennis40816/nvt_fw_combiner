@@ -828,3 +828,103 @@ decision 81 (commit `557a9ee6ae1919c344c61426b049f9f0946d8eed`):
 | Large test classes | 75: the product-code size rule applies to test classes | item 7 |
 | Category labels | 76: only where a tool reads them; Golden stays with the manifest | item 2 |
 | Acceptance of this text | 81: the complete text accepted as reviewed at patch `583740da…`, with the measured targets filled in | status, item 9 |
+
+## Amendment 2026-09-27: test local-state isolation (board decisions 89 to 91)
+
+- Status: Accepted (owner, 2026-09-27, board decisions 89 to 91 in the
+  [1.1.12 board](../handoff/1.1.12.md); source `feature/1.1.13/wave2`, commit
+  `2718022613595482f60cb4ecdcfa435d972c6124`).
+- Change: `TEST-LOCAL-STATE-1113-01` (R2), fixing
+  `BUG-20260926-tests-write-real-local-state`.
+- Design review: `codex/gpt-6-astra`, 2026-09-27. The first review of proposal
+  patch SHA-256 `8ebd6f73…` was ACCEPT-WITH-CHANGES (F-1 to F-3). The re-review
+  of patch `d55a9ffc…` was ACCEPT-WITH-CHANGES: F-1 and F-3 closed; F-2 needed
+  a bounded classification of the UiSmoke stall, which the change's evidence
+  and this text now use. The reviewer accepted design admission on that basis;
+  the F-2 wording itself was not re-reviewed. A third review accepted the
+  r2-to-r3 delta after #459 (patch `f671f571…` on
+  `e6e991af32d76d99ad156a7f86baa662947db8d9`: ACCEPT, no new findings).
+- Integration: batch 2c, after batch 2b (ADR 0079 v5) has merged. This
+  amendment is appended to v5 without changing it.
+
+### Context
+
+Test hosts composed the production graph without a local-state directory, so
+UI and CLI tests read and wrote the developer's real
+`%LOCALAPPDATA%\NvtFwCombiner` folder. Report history there was rewritten
+repeatedly while other worktrees ran tests (2026-09-26), and parallel runs could
+overwrite each other's state. Item 8 already requires a parallel test to own
+its temporary workspace; this amendment applies that rule to local state.
+
+### Decision
+
+1. **One composed directory for four files.** `CompositionHostServices`
+   (Bootstrap) owns the one resolver of the current user's local-state folder,
+   `ResolveCurrentUserLocalStateDirectory`, and every host graph carries one
+   `LocalStateDirectory`. Report history, shell preferences, toolchain runtime
+   and Event Buffer format files are placed in that directory; Presentation
+   receives the directory through `PresentationHostServices` and
+   `DesktopApplication.Run` and only appends its own file names. With the
+   switch below unset or false, the resolved paths are those of the previous
+   release.
+2. **Test-process guard.** Every project with `IsTestProject` declares the
+   runtime switch `NvtFwCombiner.LocalState.CurrentUserFolderForbidden=true`
+   in the root `Directory.Build.props`; no product runtime configuration sets
+   it. In such a process the default resolver throws before any local-state IO
+   of the four files. The guard does not cover explicitly injected paths,
+   child product processes or version-manager state.
+3. **Isolated test directories.** Test composition roots inject a directory
+   from TestSupport `IsolatedLocalState`: each allocation is a new directory
+   under a per-process root in the test temporary area, so two allocations never
+   share files (a shared class fixture still shares its one host). A normal
+   process exit attempts to delete the per-process root; a killed or hung
+   process, or a failed delete, can leave it behind.
+4. **CLI test contract (board decision 89).** CLI regressions enter through the
+   CLI's internal overload and inject only their own local-state directory. The
+   composition graph, the capability policy and the external-tool discovery
+   stay the production defaults; a test may not substitute any of them. This
+   amends the accepted CLI test contract of `VERIFY-111-SHADOW-ROOT-01`, whose
+   sealed record stays unchanged as history. The public overload differs only by
+   resolving the current user's folder.
+5. **Composition API migration (board decision 90).** NFC is an application,
+   not a library: the composition signatures migrate without keeping the old
+   ones, and no compatibility is promised to code outside the repository. The
+   migration covers `PresentationHostServices` (both constructors gain
+   `localStateDirectory` after `localFiles`), `DesktopApplication.Run` (gains
+   `localStateDirectory`), `CompositionHostServices` (new
+   `Create(string localStateDirectory)`, `LocalStateDirectory` and
+   `ResolveCurrentUserLocalStateDirectory`; the internal `Create` overloads take
+   the directory), `CliApplication` (a new internal overload taking the
+   directory resolver) and the removal of the public
+   `ShellPreferenceFileStore.DefaultPreferencesPath`.
+6. **Scope (board decision 91).** This amendment covers the four files above.
+   Version-manager state keeps its own resolver, which honors `LOCALAPPDATA`,
+   and its test isolation is a separate follow-up
+   (`BUG-20260927-version-manager-state-test-isolation`). Until that follow-up
+   is done, no claim is made that all local-state IO of a test process fails
+   closed.
+
+### Consequences
+
+- A test that forgets to inject a directory fails with
+  `InvalidOperationException` instead of touching the real folder; the guard
+  found one such path (`Program.Main` with an unknown command) that source
+  search had missed.
+- Product behavior is unchanged unless a product's runtime configuration sets
+  the switch, which would make the product refuse its local state.
+- `DesktopApplication.Run`'s startup preference read and the process-entry
+  composition branch of the CLI `Program.Main` have no behavioral test; the
+  directory they use is pinned by architecture tests.
+
+### Verification
+
+Red tests at `9861d800c` with all local-state IO intercepted (the default root
+did not refuse; a real shell addressed report history and preferences under
+the real folder), green on the proposal; the Architecture, Bootstrap, UiSmoke
+and GoldenRegression projects; the runtime configuration of every test project
+carries the switch and no product's does. One of five UiSmoke runs of the
+proposal stalled with no Avalonia test completing: a suspected Avalonia
+headless-session startup stall whose root cause and relationship to this
+change remain undetermined. No direct causal link was identified by static
+review. Later passing runs do not close the failure; it stays open as
+`BUG-20260927-uismoke-headless-session-stall` (item 8).

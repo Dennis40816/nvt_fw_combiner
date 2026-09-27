@@ -212,7 +212,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
     [Fact]
     public void Nt51928ArtifactClassificationIsCapacityExactAndFailsClosed()
     {
-        CompositionHostServices classificationHost = CompositionHostServices.Create();
+        CompositionHostServices classificationHost = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         var resolver = new FirmwareArtifactClassificationResolver(
             classificationHost.Catalog,
             classificationHost.Compiler);
@@ -246,7 +246,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             null,
             CreateNonUniformArtifact(0x40000)));
 
-        CompositionHostServices staleHost = CompositionHostServices.Create();
+        CompositionHostServices staleHost = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         ResolvedCapability staleStandard = staleHost.Catalog.GetCurrentSnapshot()
             .Capabilities.First(static capability =>
                 capability.Identity.IcId == "NT51927" &&

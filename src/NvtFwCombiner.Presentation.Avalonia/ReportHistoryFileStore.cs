@@ -12,7 +12,11 @@ internal static class ReportHistoryFileStore
     private const string HistoryFileName = "report-history.v1.json";
     internal const long MaximumHistoryFileBytes = 64L * 1024 * 1024;
 
-    internal static string DefaultHistoryPath => LocalJsonDocument.GetDefaultPath(HistoryFileName);
+    /// <summary>Gets the report-history path inside the host-composed local-state directory.</summary>
+    internal static string PathIn(string localStateDirectory)
+    {
+        return LocalJsonDocument.GetPath(localStateDirectory, HistoryFileName);
+    }
 
     internal static async Task<IReadOnlyList<ReportHistorySnapshot>> LoadAsync(
         ILocalFileStore files,

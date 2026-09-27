@@ -164,7 +164,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 {
                     return Fail(
                         "external-tool.process.timeout",
-                        $"External processor command '{command.CommandId}' timed out.",
+                        $"External processor command '{command.CommandId}' timed out." + ExternalProcessCleanupText.Suffix(processResult),
                         executedCommands);
                 }
 
@@ -172,7 +172,16 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 {
                     return Fail(
                         "external-tool.process.failed",
-                        $"External processor command '{command.CommandId}' exited with code {processResult.ExitCode}. {FormatProcessOutput(processResult)}",
+                        $"External processor command '{command.CommandId}' exited with code {processResult.ExitCode}. {FormatProcessOutput(processResult)}" + ExternalProcessCleanupText.Suffix(processResult),
+                        executedCommands);
+                }
+
+                if (processResult.Cleanup != ExternalProcessCleanup.Complete)
+                {
+                    // Stop the command sequence: a surviving process may still write the staged firmware.
+                    return Fail(
+                        ExternalProcessCleanupText.IssueCode,
+                        $"External processor command '{command.CommandId}' exited, but " + ExternalProcessCleanupText.Describe(processResult.Cleanup),
                         executedCommands);
                 }
 
@@ -226,6 +235,13 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (ExternalProcessCleanupCapacityException exception)
+        {
+            return Fail(
+                ExternalProcessCleanupText.CapacityIssueCode,
+                ExternalProcessCleanupText.CapacityMessage(exception),
+                executedCommands);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

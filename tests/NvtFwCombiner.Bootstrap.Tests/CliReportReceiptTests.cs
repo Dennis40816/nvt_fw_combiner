@@ -85,6 +85,7 @@ public sealed class CliReportReceiptTests
             [.. CreateArguments(command, "build", workspace), "--output", outputPath, "--report", reportPath],
             output,
             error,
+            () => workspace.PathFor("local-state"),
             cancellation.Token);
 
         Assert.True(cancellation.IsCancellationRequested);

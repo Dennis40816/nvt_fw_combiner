@@ -1,6 +1,6 @@
 # BUG-20260926-cli-report-write-not-atomic: a failed `--report` write can leave a partial report
 
-Status: fixing (on `feature/1.1.13/cli-hardening`, not yet integrated)
+Status: fixed (merged into `1.1.x` by #458)
 Severity: P2
 Found: 2026-09-26, automated review of pull request #457 (thread on
 `src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs`), also noted by the implementer of

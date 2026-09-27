@@ -1,6 +1,6 @@
 # BUG-20260925-cli-report-failure-hides-receipt: CLI writes Report before printing committed BIN receipt
 
-Status: fixed on `feature/1.1.13/wave1` (not yet integrated into `1.1.x`)
+Status: fixed (merged into `1.1.x` by #457)
 Severity: P2
 Found: 2026-09-25, Codex worker (GPT-6), while tracing F07 report failure, at `feature/1.1.12/io-persistence`@`807c294bc`
 Where: `src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs:331-348`; `src/NvtFwCombiner.Cli/CliCompositionRunSupport.cs:49-62`

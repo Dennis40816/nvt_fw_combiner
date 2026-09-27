@@ -1,6 +1,6 @@
 # BUG-20260926-osd-tail-nvt-marker-blocks-base: an NVT marker inside Display OSD content blocks the Base
 
-Status: open (known 1.1.12 limitation, fail-closed)
+Status: fixed in 1.1.13 (merged into `1.1.x` by #458)
 Severity: P2 (P1 in the pull request #449 automated review)
 Found: 2026-09-26, automated review of pull request #449; confirmed by tests on
 `feature/1.1.12/review-fixes`
@@ -17,6 +17,10 @@ Evidence: tests `Nt51950StandardOsdBaseWithTailNvtMarkerFailsClosed` and
 `Nt51950CascadeEnvelopeTailNvtMarkerFailsClosedAsync` pin both fail-closed outcomes.
 Owner: 1.1.13 (needs an R3 design: AB evidence at the canonical Backup position and
 FWConfig marker cardinality within the template).
-Resolution: not fixed; documented as a 1.1.12 known issue by owner decision 19. Owner direction for the
+Resolution: fixed by `NVT-END-FLAG-1113-01` (R3, decisions 30, 35 and 37), merged into `1.1.x` by #458:
+only the marker at each bank's layout-declared end flag counts, so a Display OSD marker elsewhere no longer
+blocks the Base or the envelope Build. The two pinning tests now assert the accepted outcomes
+(`Nt51950StandardOsdBaseWithTailNvtMarkerIsStandard`, `Nt51950CascadeEnvelopeTailNvtMarkerIsIgnoredAsync`).
+In 1.1.12 it was a known issue (owner decision 19). Owner direction for the
 1.1.13 fix (decision 20, draft): take AB evidence from the NVT marker after each bank's FWConfig Backup
 region, at least one each in the A and B code.

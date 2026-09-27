@@ -53,31 +53,34 @@ internal static class ReportControlTestHost
     internal static async Task<PresentationHostServices> CreateServicesAsync(
         TempWorkspace workspace)
     {
+        // The workspace root is this host's local-state directory, so its report history is workspace-owned.
         PresentationHostServices services = await Task.Run(
-            () => PresentationTestHost.CreateServices("ui-smoke", static authoring => authoring), TestContext.Current.CancellationToken);
+            () => PresentationTestHost.CreateServices("ui-smoke", static authoring => authoring, workspace.Root),
+            TestContext.Current.CancellationToken);
         return new(services.Composition, services.FileReveal, services.SupportMatrix,
             services.SystemInformation, services.SystemDiagnosticsExporter, services.RawBinaryEditorFileSessions,
             services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader,
-            new IsolatedStateFiles(services.LocalFiles, workspace));
+            new ReportStateOnlyFiles(services.LocalFiles, services.LocalStateDirectory), services.LocalStateDirectory);
     }
 
-    private sealed class IsolatedStateFiles(ILocalFileStore inner, TempWorkspace workspace) : ILocalFileStore
+    private sealed class ReportStateOnlyFiles(ILocalFileStore inner, string localStateDirectory) : ILocalFileStore
     {
-        private string Redirect(string path)
+        private string Admit(string path)
         {
             // Fail closed: these UI tests may touch only their own Report/preferences state.
-            Assert.True(path == ReportHistoryFileStore.DefaultHistoryPath || path == ShellPreferenceFileStore.DefaultPreferencesPath);
-            return workspace.PathFor(Path.GetFileName(path));
+            Assert.True(path == ReportHistoryFileStore.PathIn(localStateDirectory) ||
+                path == ShellPreferenceFileStore.PathIn(localStateDirectory));
+            return path;
         }
 
         public ValueTask<T> ReadAsync<T>(string path, long maximumBytes, Func<Stream, CancellationToken, ValueTask<T>> project, CancellationToken cancellationToken)
         {
-            return inner.ReadAsync(Redirect(path), maximumBytes, project, cancellationToken);
+            return inner.ReadAsync(Admit(path), maximumBytes, project, cancellationToken);
         }
 
         public ValueTask<string> ReadTextAsync(string path, long maximumBytes, CancellationToken cancellationToken, Action<LocalFileReadProgress>? progress = null)
         {
-            return inner.ReadTextAsync(Redirect(path), maximumBytes, cancellationToken, progress);
+            return inner.ReadTextAsync(Admit(path), maximumBytes, cancellationToken, progress);
         }
 
         public ValueTask<string> ReadTextAsync(Func<CancellationToken, ValueTask<Stream>> openReadAsync, long maximumBytes, CancellationToken cancellationToken)
@@ -87,7 +90,7 @@ internal static class ReportControlTestHost
 
         public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
         {
-            return inner.WriteAsync(Redirect(path), bytes, cancellationToken);
+            return inner.WriteAsync(Admit(path), bytes, cancellationToken);
         }
     }
 }

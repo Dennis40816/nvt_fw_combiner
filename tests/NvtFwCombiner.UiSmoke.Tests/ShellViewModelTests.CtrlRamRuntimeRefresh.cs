@@ -21,7 +21,7 @@ public sealed partial class CtrlRamWorkflowTests
         using var workspace = TempWorkspace.Create("ctrlram-runtime-refresh");
         var loader = new ExternalProcessorEnvironmentLoader(toolsAvailable
             ? RepositoryPaths.FromRepositoryRoot("external-tools") : workspace.Root);
-        CompositionHostServices host = CompositionHostServices.Create(loader);
+        CompositionHostServices host = CompositionHostServices.Create(loader, IsolatedLocalState.CreateDirectory());
         PresentationHostServices services = PresentationTestHost.CreateServices("runtime-refresh", host, static authoring => authoring);
         var shell = new MainWindowViewModel("test", "runtime-refresh", ShellLanguage.English, services);
         _ = PresentationTestHost.PublishCanonicalCatalog(services, shell);

@@ -134,7 +134,7 @@ public sealed partial class ExitConfirmationTests
             {
                 var seed = new ReportPresentationViewModel(() => ShellTextResources.For(ShellLanguage.English), static () => { });
                 seed.LoadReportJson("{}", "previous-session.json");
-                await ReportHistoryFileStore.SaveAsync(services.LocalFiles, ReportHistoryFileStore.DefaultHistoryPath,
+                await ReportHistoryFileStore.SaveAsync(services.LocalFiles, ReportHistoryFileStore.PathIn(services.LocalStateDirectory),
                     seed.ExportReportHistory(), TestContext.Current.CancellationToken);
             }
         }

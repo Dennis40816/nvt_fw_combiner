@@ -16,13 +16,12 @@ internal static class LocalJsonDocument
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    internal static string GetDefaultPath(string fileName)
+    /// <summary>Places one Presentation-owned file in the host-composed local-state directory.</summary>
+    internal static string GetPath(string localStateDirectory, string fileName)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localStateDirectory);
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "NvtFwCombiner",
-            fileName);
+        return Path.Combine(localStateDirectory, fileName);
     }
 
     internal static async ValueTask<T?> DeserializeAsync<T>(

@@ -1,3 +1,5 @@
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 internal static class CliTestHarness
@@ -13,11 +15,16 @@ internal static class CliTestHarness
         return new(exitCode, output.ToString(), error.ToString());
     }
 
+    /// <summary>
+    /// Runs the CLI through its internal entry, which composes the production host graph (default policy and
+    /// external-tool discovery); only the local-state directory is this call's own isolated one.
+    /// </summary>
     internal static async Task<CliRunResult> RunAsync(string[] args, CancellationToken cancellationToken)
     {
+        string localStateDirectory = IsolatedLocalState.CreateDirectory("cli");
         using var output = new StringWriter();
         using var error = new StringWriter();
-        int exitCode = await CliApplication.RunAsync(args, output, error, cancellationToken);
+        int exitCode = await CliApplication.RunAsync(args, output, error, () => localStateDirectory, cancellationToken);
         return new CliRunResult(exitCode, output.ToString(), error.ToString());
     }
 

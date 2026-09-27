@@ -8,7 +8,8 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 public sealed class ShellViewModelTestHostFixture
 {
     internal CompositionHostServices Services { get; } = CompositionHostServices.Create(
-        NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load);
+        NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load,
+        IsolatedLocalState.CreateDirectory("shell-fixture"));
 }
 
 /// <summary>Shared smoke-test support; each concrete group owns an isolated host fixture.</summary>

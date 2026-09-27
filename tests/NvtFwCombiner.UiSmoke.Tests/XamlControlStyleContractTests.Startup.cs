@@ -178,12 +178,11 @@ public sealed partial class XamlControlStyleContractTests
         string navigationPressed = ExtractStyle(
             windowStyles,
             "ToggleButton.nav:pressed /template/ ContentPresenter#PART_ContentPresenter");
-        string navigationCheckedHover = ExtractStyle(
+        string navigationChecked = ExtractStyle(windowStyles, "ToggleButton.nav:checked");
+        string navigationCheckedPresenter = ExtractStyle(
             windowStyles,
-            "ToggleButton.nav:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter");
-        string navigationCheckedPressed = ExtractStyle(
-            windowStyles,
-            "ToggleButton.nav:checked:pressed /template/ ContentPresenter#PART_ContentPresenter");
+            "ToggleButton.nav:checked /template/ ContentPresenter#PART_ContentPresenter");
+        string navigationSelectedUnderline = ExtractStyle(windowStyles, "Border.navSelectedUnderline");
         string navigationDisabled = ExtractStyle(
             windowStyles,
             "ToggleButton.nav:disabled /template/ ContentPresenter#PART_ContentPresenter");
@@ -327,17 +326,32 @@ public sealed partial class XamlControlStyleContractTests
             button => Assert.Contains("semanticAction", (string?)button.Attribute("Classes")));
         Assert.Contains("FocusAdorner\" Value=\"{x:Null}\"", navigation, StringComparison.Ordinal);
         Assert.Contains("CornerRadius\" Value=\"0\"", navigationPresenter, StringComparison.Ordinal);
-        Assert.Contains("BorderThickness\" Value=\"0,0,0,2\"", navigationPresenter, StringComparison.Ordinal);
+        // The ContentPresenter never carries a BorderThickness: giving it one (even bottom-only) makes
+        // Avalonia's Border renderer clip the :focus-visible BoxShadow ring below to nothing, because the
+        // ring and a real border stroke share the same clipped paint pass (F-3, review of 91214ef81).
+        Assert.DoesNotContain("BorderThickness", navigationPresenter, StringComparison.Ordinal);
+        Assert.DoesNotContain("BorderThickness", navigationCheckedPresenter, StringComparison.Ordinal);
         Assert.Contains("NfcTextSecondaryBrush", navigationPresenter, StringComparison.Ordinal);
         Assert.Contains("Background\" Value=\"Transparent\"", navigationHover, StringComparison.Ordinal);
         Assert.Contains("BorderBrush\" Value=\"Transparent\"", navigationHover, StringComparison.Ordinal);
         Assert.Contains("Background\" Value=\"Transparent\"", navigationPressed, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", navigationPressed, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentBrush", navigationCheckedHover, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentBorderStrongBrush", navigationCheckedPressed, StringComparison.Ordinal);
+        Assert.Contains("FontWeight\" Value=\"SemiBold\"", navigationChecked, StringComparison.Ordinal);
+        Assert.Contains("NfcTextStrongBrush", navigationCheckedPresenter, StringComparison.Ordinal);
+        // The selected page's own underline is a separate sibling Border (MainWindow.axaml), not part
+        // of the nav ToggleButton's own ContentPresenter; it is visible only for the selected page,
+        // regardless of hover/pressed/focus state.
+        Assert.Contains("Height\" Value=\"2\"", navigationSelectedUnderline, StringComparison.Ordinal);
+        Assert.Contains("VerticalAlignment\" Value=\"Bottom\"", navigationSelectedUnderline, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBrush", navigationSelectedUnderline, StringComparison.Ordinal);
         Assert.Contains("NfcTextDisabledBrush", navigationDisabled, StringComparison.Ordinal);
-        Assert.Contains("BorderThickness\" Value=\"0,0,0,2\"", navigationFocus, StringComparison.Ordinal);
-        Assert.Contains("NfcAccentBorderStrongBrush", navigationFocus, StringComparison.Ordinal);
+        // A BoxShadow ring, not the bottom-only selected underline and not the ContentPresenter's own
+        // BorderBrush/BorderThickness, so keyboard focus on an unselected nav tab never reads as a
+        // second selected page, and the selected tab's own underline stays visible when that same tab
+        // is also focused (BUG-20260926, owner decision 32; F-1, review of 6dee964a0).
+        Assert.DoesNotContain("BorderBrush", navigationFocus, StringComparison.Ordinal);
+        Assert.DoesNotContain("BorderThickness", navigationFocus, StringComparison.Ordinal);
+        Assert.Contains("BoxShadow\" Value=\"{DynamicResource NfcNavFocusRingShadow}\"", navigationFocus, StringComparison.Ordinal);
         Assert.Equal(3, navigationButtons.Length);
         Assert.All(
             navigationButtons.SelectMany(button => button.Descendants().Where(element => element.Name.LocalName == "TextBlock")),
@@ -446,7 +460,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("!viewModel.OutputDelivery.IsOpen", lifecycle, StringComparison.Ordinal);
         Assert.Contains("setShellEnabled(succeeded);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("presentLoadingState();", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("HomeNavigationButton.Focus(NavigationMethod.Tab)", lifecycle, StringComparison.Ordinal);
+        // Startup focus lands on the selected page's own nav tab (owner decision 32), not always Home.
+        Assert.Contains("SelectedNavigationButton(viewModel).Focus(NavigationMethod.Tab)", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ShellPage.Home => HomeNavigationButton,", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ShellPage.Merge => MergeNavigationButton,", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ShellPage.Replace => ReplaceNavigationButton,", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("ShellPage.HexEditor => HomeNavigationButton,", lifecycle, StringComparison.Ordinal);
         Assert.Contains("_preloadSession.CancelAndDrainAsync()", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("reloadCatalog", opened, StringComparison.Ordinal);
         Assert.Contains("RunStartupPreloadAsync(", retry, StringComparison.Ordinal);
@@ -459,11 +478,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Stopwatch", lifecycle, StringComparison.Ordinal);
         Assert.Contains(
             typeof(PresentationHostServices).GetConstructors(),
-                constructor => constructor.GetParameters().Length == 9 &&
-                constructor.GetParameters()[^2].ParameterType ==
+                constructor => constructor.GetParameters().Length == 10 &&
+                constructor.GetParameters()[^3].ParameterType ==
                     typeof(Application.ExternalTools.IExternalProcessorEnvironmentLoader) &&
-                constructor.GetParameters()[^1].ParameterType ==
-                    typeof(ILocalFileStore));
+                constructor.GetParameters()[^2].ParameterType ==
+                    typeof(ILocalFileStore) &&
+                constructor.GetParameters()[^1].ParameterType == typeof(string));
     }
 
     /// <summary>The clear confirmation identifies the pending route visually and to assistive technology.</summary>

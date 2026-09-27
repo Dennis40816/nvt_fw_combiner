@@ -32,7 +32,7 @@ public sealed class EventBufferFormatConfigurationHostTests
             return BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.GetFirmwareFamily();
         }
 
-        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null, IsolatedLocalState.CreateDirectory(),
             Load, workspace.PathFor("config.json"));
         Assert.Equal(0, loads);
         IEventBufferFormatConfigurationSession[] sessions = await Task.WhenAll(Enumerable.Range(0, 3)
@@ -57,7 +57,7 @@ public sealed class EventBufferFormatConfigurationHostTests
                 effect.TpBRange);
         });
         Assert.True((await current.SaveAsync(current.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
-        CompositionHostServices restarted = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
+        CompositionHostServices restarted = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null, IsolatedLocalState.CreateDirectory(),
             Load, workspace.PathFor("config.json"));
         IEventBufferFormatConfigurationSession reloaded = await restarted.GetEventBufferFormatConfigurationAsync(
             TestContext.Current.CancellationToken);
@@ -79,7 +79,7 @@ public sealed class EventBufferFormatConfigurationHostTests
                 : BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.GetFirmwareFamily();
         }
 
-        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null, IsolatedLocalState.CreateDirectory(),
             Load, workspace.PathFor("config.json"));
         _ = await Assert.ThrowsAsync<IOException>(() => host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken));
         IEventBufferFormatConfigurationSession session = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
@@ -104,7 +104,7 @@ public sealed class EventBufferFormatConfigurationHostTests
             return BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51950", "nt51950-ab-merge-maps")!.GetFirmwareFamily();
         }
 
-        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null, IsolatedLocalState.CreateDirectory(),
             Load, workspace.PathFor("config.json"));
         Task<IEventBufferFormatConfigurationSession> cancelled = host.GetEventBufferFormatConfigurationAsync(callerCancellation.Token);
         try

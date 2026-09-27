@@ -17,7 +17,7 @@ public sealed class GeneralOutputConfirmationTests
     public async Task AcceptedGeneralFilesAppearInConfirmation(bool replace, bool extraMappings, bool unsupportedInline = false)
     {
         using TempWorkspace workspace = TempWorkspace.Create("general-confirmation");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         byte[] sourceBytes = [0xA5, 0x5A];
         byte[] referenceBytes = new byte[0x40000];
         string source = workspace.Write("source.bin", sourceBytes);

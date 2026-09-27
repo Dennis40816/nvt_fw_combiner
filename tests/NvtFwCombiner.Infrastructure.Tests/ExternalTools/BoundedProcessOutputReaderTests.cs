@@ -19,6 +19,33 @@ public sealed class BoundedProcessOutputReaderTests
         Assert.Equal(expected, actual);
     }
 
+    /// <summary>A stopped drain keeps the captured text and reports that end of stream was not reached.</summary>
+    [Fact]
+    public async Task StoppedDrainKeepsCapturedTextWithoutEndOfStream()
+    {
+        using var reader = new HeldOpenReader("partial");
+        using var stop = new CancellationTokenSource();
+        Task<BoundedProcessOutput> drain = BoundedProcessOutputReader.DrainAsync(reader, stop.Token);
+        await reader.FirstChunkServed.WaitAsync(TestContext.Current.CancellationToken);
+
+        await stop.CancelAsync();
+        BoundedProcessOutput actual = await drain.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.Equal("partial", actual.Text);
+        Assert.False(actual.ReachedEndOfStream);
+    }
+
+    /// <summary>A drain that reaches end of stream reports it even when a stop token is supplied.</summary>
+    [Fact]
+    public async Task CompletedDrainReportsEndOfStream()
+    {
+        using var reader = new StringReader("complete");
+
+        BoundedProcessOutput actual = await BoundedProcessOutputReader.DrainAsync(reader, TestContext.Current.CancellationToken);
+
+        Assert.Equal("complete", actual.Text);
+        Assert.True(actual.ReachedEndOfStream);
+    }
     /// <summary>Output exactly at the cap remains complete and receives no truncation marker.</summary>
     [Fact]
     public async Task ExactCaptureLimitRemainsExact()
@@ -132,6 +159,28 @@ public sealed class BoundedProcessOutputReaderTests
             OperationStatus status = Rune.DecodeFromUtf16(remaining, out _, out int consumed);
             Assert.Equal(OperationStatus.Done, status);
             remaining = remaining[consumed..];
+        }
+    }
+    /// <summary>Serves one chunk, then behaves like a pipe whose writer never closes.</summary>
+    private sealed class HeldOpenReader(string firstChunk) : TextReader
+    {
+        private readonly TaskCompletionSource _firstChunkServed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private bool _served;
+
+        internal Task FirstChunkServed => _firstChunkServed.Task;
+
+        public override async ValueTask<int> ReadAsync(Memory<char> buffer, CancellationToken cancellationToken = default)
+        {
+            if (!_served)
+            {
+                _served = true;
+                firstChunk.AsSpan().CopyTo(buffer.Span);
+                _ = _firstChunkServed.TrySetResult();
+                return firstChunk.Length;
+            }
+
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+            return 0;
         }
     }
 }

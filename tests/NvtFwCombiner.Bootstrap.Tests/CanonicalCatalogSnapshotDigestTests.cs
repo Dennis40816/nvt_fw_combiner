@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -105,7 +106,7 @@ public sealed class CanonicalCatalogSnapshotDigestTests
     [Fact]
     public async Task FreshHostGraphPublishesThePinnedSnapshot()
     {
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CapabilityCatalogReloadResult? result = null;
         await foreach (CanonicalCapabilityCatalogLoadUpdate update in
                        host.CanonicalCatalogLoader.LoadAsync(TestContext.Current.CancellationToken))

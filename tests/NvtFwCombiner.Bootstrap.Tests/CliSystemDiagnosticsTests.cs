@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -19,6 +20,7 @@ public sealed class CliSystemDiagnosticsTests
             ["doctor"],
             output,
             error,
+            static () => IsolatedLocalState.CreateDirectory("cli-doctor"),
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, exitCode);
@@ -87,6 +89,7 @@ public sealed class CliSystemDiagnosticsTests
             ["doctor"],
             output,
             error,
+            static () => IsolatedLocalState.CreateDirectory("cli-doctor"),
             cancellation.Token);
 
         Assert.Equal(70, exitCode);

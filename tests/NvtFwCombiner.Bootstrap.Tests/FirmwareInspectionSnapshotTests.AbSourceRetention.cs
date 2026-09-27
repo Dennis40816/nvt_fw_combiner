@@ -18,7 +18,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
     {
         using var workspace = TempWorkspace.Create("ab-common-event-display");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51929-ab-t05-d06");
         string PathFor(string id)
@@ -76,7 +76,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
     {
         using var workspace = TempWorkspace.Create("ab-format-full-dp-inspection");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(
             TestContext.Current.CancellationToken);

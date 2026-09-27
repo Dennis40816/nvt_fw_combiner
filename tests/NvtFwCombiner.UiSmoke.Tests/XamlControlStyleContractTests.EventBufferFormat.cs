@@ -30,7 +30,7 @@ public sealed partial class XamlControlStyleContractTests
         using TempWorkspace workspace = TempWorkspace.Create();
         MainWindowViewModel viewModel = await Task.Run(async () =>
         {
-            CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
+            CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null, IsolatedLocalState.CreateDirectory(),
                 configurationPath: workspace.PathFor("config.json"));
             IEventBufferFormatConfigurationSession session = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
             Assert.True((await session.SaveAsync([.. session.CreateDefaultsDraft().Select(entry => entry! with { AliasName = "Desay" })],
@@ -272,7 +272,7 @@ public sealed partial class XamlControlStyleContractTests
     public async Task EventBufferFormatMountedBeforeFirstLoadEnablesSaveAndRestore()
     {
         using TempWorkspace workspace = TempWorkspace.Create();
-        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null,
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), null, IsolatedLocalState.CreateDirectory(),
             configurationPath: workspace.PathFor("config.json"));
         IEventBufferFormatConfigurationSession session = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         var acquisition = new TaskCompletionSource<IEventBufferFormatConfigurationSession>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -334,6 +334,7 @@ public sealed partial class XamlControlStyleContractTests
         var services = new PresentationHostServices(original.Composition, original.FileReveal, original.SupportMatrix,
             original.SystemInformation, original.SystemDiagnosticsExporter, original.RawBinaryEditorFileSessions,
             original.CanonicalCatalogLoader, original.ExternalEnvironmentLoader, original.LocalFiles,
+            original.LocalStateDirectory,
             versionManagement: null, managedApplicationStartup: null, stableLauncherHandoff: null,
             eventBufferFormatConfigurationSessionFactory: _ => acquisition ?? Task.FromResult(session));
         return PresentationTestHost.PublishCanonicalCatalog(services, ShellViewModelFactory.Create(services, language));

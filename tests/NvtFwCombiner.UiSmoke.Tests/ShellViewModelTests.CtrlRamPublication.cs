@@ -111,6 +111,7 @@ public sealed partial class CtrlRamWorkflowTests
             services.CanonicalCatalogLoader,
             services.ExternalEnvironmentLoader,
             services.LocalFiles,
+            services.LocalStateDirectory,
             services.VersionManagement,
             services.ManagedApplicationStartup,
             services.StableLauncherHandoff);

@@ -30,7 +30,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True((await ((NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader)environment)
             .LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
         CompositionHostServices host = CompositionHostServices.Create(environment,
-            loadPolicy: null, configurationPath: path);
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: path);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         if (deleteOverride)
         {
@@ -70,7 +70,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-topology");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
@@ -94,7 +94,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("output-confirmation-facts");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
@@ -147,7 +147,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("output-confirmation-current");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
@@ -175,7 +175,7 @@ public sealed class AbMergeFormatRuntimeTests
     public async Task LegacyOutputConfirmationKeepsFormatAbsentAndAdditionalDeliverySeparateAsync()
     {
         using TempWorkspace workspace = TempWorkspace.Create("legacy-confirmation");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CompiledAuthoringSessionPreparation prepared = host.AbMergeAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51932", null,
             [new("tp-a-input", workspace.PathFor("a.bin"), (byte[])[.. CreateTp(0x84, 1), .. new byte[0x9000]]), new("tp-b-input", workspace.PathFor("b.bin"), (byte[])[.. CreateTp(0x84, 1), .. new byte[0x9000]])], AbMergeDpMode.Dummy);
@@ -199,7 +199,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-dp-expectation");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
@@ -237,7 +237,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-input-format-facts");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         if (state == "invalid") { _ = workspace.Write("format.json", "invalid"u8.ToArray()); }
         if (state is not ("unsaved" or "invalid"))
@@ -286,7 +286,7 @@ public sealed class AbMergeFormatRuntimeTests
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-source-retention");
         _ = workspace.Write("format.json", "invalid"u8.ToArray());
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         AbMergeDpMode mode = inputState == "missing-dp" ? AbMergeDpMode.Normal : AbMergeDpMode.Dummy;
         CompiledAuthoringSelectionSnapshot declaration = host.AbMergeAuthoring.GetAuthoringSnapshot("NT51950", "single",
@@ -360,7 +360,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-source-copy");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         byte[] source = CreateTp(0x97, 1);
         byte[] expected = [.. source];
         AbMergeInspectionBatch inspected = await ((AbMergeAuthoringExperience)host.AbMergeAuthoring).InspectInputSlotsAsync("NT51950",
@@ -384,7 +384,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True((await ((NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader)environment)
             .LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
         CompositionHostServices host = CompositionHostServices.Create(environment,
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(
             [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { AliasName = "Before Save" })],
@@ -527,7 +527,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-report-identity");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         byte[] tp = CreateTp(0x97, 1);
@@ -633,7 +633,7 @@ public sealed class AbMergeFormatRuntimeTests
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-reapply-race");
         var environment = new ExternalProcessorEnvironmentLoader();
         CompositionHostServices host = CompositionHostServices.Create(environment,
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         if (preCompilation)
@@ -714,7 +714,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-reapply");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
@@ -755,7 +755,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-equivalent-run");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
@@ -806,7 +806,7 @@ public sealed class AbMergeFormatRuntimeTests
     [Fact]
     public async Task LegacyReadinessNeverAcquiresFormatConfigurationAsync()
     {
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         var owner = new AbMergeAuthoringExperience(host.Compiler, host.Catalog, new ExternalProcessorEnvironmentLoader(),
             _ => throw new InvalidOperationException("Legacy policy must not request Config."));
         CompiledAuthoringSessionPreparation prepared = owner.PrepareSession(new AuthoringSessionState(ExperienceIds.AbMerge), "NT51929", null,
@@ -829,7 +829,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True((await ((NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader)environment)
             .LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
         CompositionHostServices host = CompositionHostServices.Create(environment,
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(removeCustom
             ? [.. configuration.CreateDefaultsDraft().Select(static entry => entry! with { RecognitionValues = [] })]
@@ -885,7 +885,7 @@ public sealed class AbMergeFormatRuntimeTests
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-fresh-run");
         string configurationPath = workspace.PathFor("format.json");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: configurationPath);
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: configurationPath);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         string a = workspace.Write("a.bin", CreateTp(0x97, 1));
@@ -948,7 +948,7 @@ public sealed class AbMergeFormatRuntimeTests
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-capture-boundary");
         var environment = new ExternalProcessorEnvironmentLoader();
         CompositionHostServices host = CompositionHostServices.Create(environment,
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1007,7 +1007,7 @@ public sealed class AbMergeFormatRuntimeTests
     [Fact]
     public async Task CancelledLegacyPreparationCannotMutateSessionAsync()
     {
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
@@ -1023,7 +1023,7 @@ public sealed class AbMergeFormatRuntimeTests
     [InlineData("tp-a-input")]
     public async Task InvalidInspectionMembershipReturnsTypedIssueAsync(string secondSlot)
     {
-        var owner = (AbMergeAuthoringExperience)CompositionHostServices.Create().AbMergeAuthoring;
+        var owner = (AbMergeAuthoringExperience)CompositionHostServices.Create(IsolatedLocalState.CreateDirectory()).AbMergeAuthoring;
         AbMergeInspectionBatch result = await owner.InspectInputSlotsAsync("NT51929",
             [new("a", "a.bin", AbMergeAddressSpaceId: "tp-a-input"), new("b", "b.bin", AbMergeAddressSpaceId: secondSlot)],
             _ => new byte[0x40000], TestContext.Current.CancellationToken);
@@ -1038,7 +1038,7 @@ public sealed class AbMergeFormatRuntimeTests
     public async Task LegacySingleSlotInspectionRetainsOriginalExactAuthorityAsync()
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-legacy-partial");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
         CompiledAuthoringSelectionSnapshot initial = host.AbMergeAuthoring.GetAuthoringSnapshot("NT51929", null,
             [], new Dictionary<string, FileStamp>(), new AuthoringRevision(1));
@@ -1070,7 +1070,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-adoption");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         var session = new AuthoringSessionState(ExperienceIds.AbMerge);
@@ -1122,7 +1122,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-discovery");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         CompiledAuthoringSelectionSnapshot selection = host.AbMergeAuthoring.GetAuthoringSnapshot("NT51950", "cascade",
             [], new Dictionary<string, FileStamp>(StringComparer.Ordinal), new AuthoringRevision(1));
         Assert.Equal(3, selection.InputBindings.Count);
@@ -1142,7 +1142,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-file-inspection");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(
             TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
@@ -1180,7 +1180,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-runtime");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(
             TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(),
@@ -1219,7 +1219,7 @@ public sealed class AbMergeFormatRuntimeTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-format-runtime-invalid");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         if (failure == "invalid-config") { _ = workspace.Write("format.json", "invalid"u8.ToArray()); }
         if (failure != "invalid-config")
         {

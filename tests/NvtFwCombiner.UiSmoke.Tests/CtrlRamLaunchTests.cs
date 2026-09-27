@@ -105,7 +105,7 @@ public sealed class CtrlRamLaunchTests
             original.GeneralAuthoring, original.CtrlRamAuthoring,
             original.FirmwareInspection, original.OutputNaming, execution), services.FileReveal, services.SupportMatrix,
             services.SystemInformation, services.SystemDiagnosticsExporter, services.RawBinaryEditorFileSessions,
-            services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, services.LocalFiles);
+            services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, services.LocalFiles, services.LocalStateDirectory);
         using var window = new MainWindow(UiLaunchOptions.Parse(startupArguments), StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default);
         MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);

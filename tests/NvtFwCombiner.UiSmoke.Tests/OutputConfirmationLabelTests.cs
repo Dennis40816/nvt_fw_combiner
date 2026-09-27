@@ -65,7 +65,7 @@ public sealed class OutputConfirmationLabelTests
     public async Task LogicalOutputShowsLocalizedNotApplicableMap()
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-logical-map");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         string source = workspace.Write("source.bin", [0xA5, 0x5A]);
         var mappings = new GeneralMappingDraftState([
             new GeneralMappingDraftRow("copy", ExplicitMappingOperationKind.CopyRange,
@@ -110,7 +110,7 @@ public sealed class OutputConfirmationLabelTests
     public async Task SharedInputFileCountsRolesSeparatelyFromBundleCopies()
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-shared-source");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         byte[] input = new byte[0x40000];
         input[0x36001] = 0xFF;
         input[0x36017] = 1;

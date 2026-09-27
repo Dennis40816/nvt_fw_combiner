@@ -11,13 +11,19 @@ public static class DesktopApplication
     public static string InformationalVersion => ApplicationVersionProvider.InformationalVersion;
 
     /// <summary>Creates the desktop dependency graph under startup tracing, then runs the UI.</summary>
+    /// <param name="hostServicesFactory">Creates the host graph composed over the same local-state directory.</param>
+    /// <param name="startupFiles">Bounded file adapter for startup work that precedes host composition.</param>
+    /// <param name="localStateDirectory">Executable-composed directory that holds the shell preferences.</param>
+    /// <param name="args">Remaining command-line arguments.</param>
     public static int Run(
         Func<PresentationHostServices> hostServicesFactory,
         ILocalFileStore startupFiles,
+        string localStateDirectory,
         string[] args)
     {
         ArgumentNullException.ThrowIfNull(hostServicesFactory);
         ArgumentNullException.ThrowIfNull(startupFiles);
+        ArgumentException.ThrowIfNullOrWhiteSpace(localStateDirectory);
         ArgumentNullException.ThrowIfNull(args);
         var startupTrace = StartupTraceSession.StartFromEnvironment();
         (PresentationHostServices hostServices, Task<ShellPreferenceSnapshot> shellPreferences) =
@@ -25,7 +31,7 @@ public static class DesktopApplication
                 hostServicesFactory,
                 () => ShellPreferenceFileStore.LoadAsync(
                     startupFiles,
-                    ShellPreferenceFileStore.DefaultPreferencesPath),
+                    ShellPreferenceFileStore.PathIn(localStateDirectory)),
                 startupTrace);
         var launchOptions = UiLaunchOptions.Parse(args);
         startupTrace.Mark("launch-options.parsed");

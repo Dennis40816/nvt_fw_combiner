@@ -76,7 +76,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [InlineData(AbMergeDpMode.Dummy)]
     public void DpModeInspectionRejectsPreviousCatalogPublication(AbMergeDpMode mode)
     {
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         var owner = (AbMergeAuthoringExperience)host.AbMergeAuthoring;
         CompiledAuthoringSelectionSnapshot initial = owner.GetAuthoringSnapshot("NT51929", null, [],
             new Dictionary<string, FileStamp>(), new AuthoringRevision(1), dpMode: mode);

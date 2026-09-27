@@ -210,6 +210,72 @@ public sealed class ExternalCombinerProcessorTests
         Assert.Equal("external-tool.process.timeout", issue.Code);
     }
 
+    /// <summary>
+    /// ADR 0081 mapping. The staged output is locked against reading for the whole call, so any read would surface
+    /// as external-tool.staging.io-failed (the Complete control row proves the lock is effective). Timeout and a
+    /// non-zero exit keep their codes and outrank incomplete cleanup; a zero exit with incomplete cleanup fails
+    /// closed before any staged file is read.
+    /// </summary>
+    [Theory]
+    [InlineData(ExternalProcessCleanup.TerminationUnconfirmed, false, 0, "external-tool.process.cleanup-incomplete")]
+    [InlineData(ExternalProcessCleanup.OutputStreamHeldOpen, false, 0, "external-tool.process.cleanup-incomplete")]
+    [InlineData(ExternalProcessCleanup.OutputReadFailed, false, 0, "external-tool.process.cleanup-incomplete")]
+    [InlineData(ExternalProcessCleanup.OutputStreamHeldOpen, true, -1, "external-tool.process.timeout")]
+    [InlineData(ExternalProcessCleanup.TerminationUnconfirmed, false, 7, "external-tool.process.failed")]
+    [InlineData(ExternalProcessCleanup.Complete, false, 0, "external-tool.staging.io-failed")]
+    public async Task CleanupOutcomeIsClassifiedBeforeAnyStagedRead(
+        ExternalProcessCleanup cleanup,
+        bool timedOut,
+        int exitCode,
+        string expectedCode)
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FileStream? readLock = null;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            string output = Path.Combine(startInfo.WorkingDirectory, "output.bin");
+            File.WriteAllBytes(output, [0, 7, 0, 0]);
+            readLock = new FileStream(output, FileMode.Open, FileAccess.Read, FileShare.None);
+            return new ExternalProcessResult(exitCode, timedOut, string.Empty, string.Empty) { Cleanup = cleanup };
+        });
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(sha256, runner);
+        try
+        {
+            ExternalProcessorResult result = await processor.TransformAsync(Request(), CancellationToken.None);
+
+            Assert.False(result.Succeeded);
+            CompositionIssue issue = Assert.Single(result.Issues);
+            Assert.Equal(expectedCode, issue.Code);
+            Assert.True(result.OutputBytes.IsEmpty);
+            Assert.Equal(1, runner.RunCount);
+            if (cleanup != ExternalProcessCleanup.Complete && (timedOut || exitCode != 0))
+            {
+                Assert.Contains(ExternalProcessCleanupText.Describe(cleanup), issue.Message, StringComparison.Ordinal);
+            }
+        }
+        finally
+        {
+            readLock?.Dispose();
+        }
+    }
+
+    /// <summary>decision 92: a runner refusal for accumulated detached cleanup maps to the typed capacity issue.</summary>
+    [Fact]
+    public async Task TransformMapsCleanupCapacityRefusalToTypedIssue()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new ExternalProcessCleanupCapacityException(8, 8));
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(sha256, runner);
+
+        ExternalProcessorResult result = await processor.TransformAsync(Request(), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.process.cleanup-capacity", Assert.Single(result.Issues).Code);
+        Assert.Equal(1, runner.RunCount);
+    }
+
     /// <summary>Verifies named artifacts are host-staged, expanded without path input, and imported only through the declared output.</summary>
     [Fact]
     public async Task TransformMaterializesNamedArtifactsAndPreservesTheirBytes()

@@ -11,8 +11,11 @@ public static class ShellPreferenceFileStore
     private const string PreferencesFileName = "preferences.v1.json";
     internal const long MaximumPreferencesFileBytes = 64L * 1024;
 
-    /// <summary>Gets the default local preference path for the current user.</summary>
-    public static string DefaultPreferencesPath => LocalJsonDocument.GetDefaultPath(PreferencesFileName);
+    /// <summary>Gets the preference path inside the host-composed local-state directory.</summary>
+    internal static string PathIn(string localStateDirectory)
+    {
+        return LocalJsonDocument.GetPath(localStateDirectory, PreferencesFileName);
+    }
 
     /// <summary>Loads a bounded preference snapshot without blocking framework initialization.</summary>
     internal static async Task<ShellPreferenceSnapshot> LoadAsync(ILocalFileStore files, string path)

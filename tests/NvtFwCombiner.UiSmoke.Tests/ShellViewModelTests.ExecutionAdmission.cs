@@ -22,7 +22,7 @@ public sealed partial class BuildOutcomeTests
     public async Task StaleCatalogRefusalIsBlockedAndKeepsReportHistory(bool build)
     {
         using var workspace = TempWorkspace.Create("nfc-ui-admission-refusal");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         AcceptedCompositionExecutionRequest request =
             await PrepareAdmissionRequestAsync(host, workspace, build, withReadiness: true);
         Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
@@ -63,7 +63,7 @@ public sealed partial class BuildOutcomeTests
     public async Task ExecutionInvariantFailureStillOpensFailureReport()
     {
         using var workspace = TempWorkspace.Create("nfc-ui-admission-invariant");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         AcceptedCompositionExecutionRequest request =
             await PrepareAdmissionRequestAsync(host, workspace, build: true, withReadiness: false);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();

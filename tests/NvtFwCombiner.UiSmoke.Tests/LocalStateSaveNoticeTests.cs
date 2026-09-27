@@ -26,8 +26,6 @@ public sealed class LocalStateSaveNoticeTests
     private const string RetryButtonName = "LocalStateSaveRetryButton";
     private const string ReferenceCase = "testdata/golden/canonical/NT51923/standard-merge/gen-flash/" +
         "topology-unscoped/nt51923-gen-flash/inputs/";
-    private static readonly string PreferencesPath = ShellPreferenceFileStore.DefaultPreferencesPath;
-    private static readonly string HistoryPath = ReportHistoryFileStore.DefaultHistoryPath;
 
     /// <summary>
     /// A failed preference save shows the notice without blocking the shell; a failed retry keeps it, a
@@ -52,7 +50,7 @@ public sealed class LocalStateSaveNoticeTests
             if (chinese)
             {
                 shell.SelectedLanguage = "Traditional Chinese";
-                await WaitUntilAsync(() => files.Completed(PreferencesPath) >= 1);
+                await WaitUntilAsync(() => files.Completed(files.PreferencesPath) >= 1);
             }
             List<bool> notifiedOnUiThread = [];
             int publications = 0;
@@ -69,7 +67,7 @@ public sealed class LocalStateSaveNoticeTests
             Assert.False(notice.IsVisible);
             Assert.False(host.IsVisible);
 
-            files.Fail(PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
+            files.Fail(files.PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
             shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
             await WaitUntilAsync(() => notice.IsVisible);
             window.UpdateLayout();
@@ -93,18 +91,18 @@ public sealed class LocalStateSaveNoticeTests
             Assert.True(shell.ShowMergeCommand.CanExecute(null));
 
             // Enter on the focused icon button retries; the save fails again and the notice stays.
-            int attempts = files.Completed(PreferencesPath);
+            int attempts = files.Completed(files.PreferencesPath);
             int published = publications;
             Assert.True(retry.Focus(NavigationMethod.Tab));
             window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, "\r");
             window.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, "\r");
-            await WaitUntilAsync(() => files.Completed(PreferencesPath) > attempts && publications > published);
+            await WaitUntilAsync(() => files.Completed(files.PreferencesPath) > attempts && publications > published);
             Assert.True(notice.IsVisible);
             Assert.True(host.IsEffectivelyVisible);
             Assert.True(retry.IsEffectivelyEnabled);
 
             // Space retries again; this time the same coordinator saves the latest snapshot and the notice clears.
-            files.Fail(PreferencesPath, null);
+            files.Fail(files.PreferencesPath, null);
             Assert.True(retry.Focus(NavigationMethod.Tab));
             window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
             window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
@@ -112,7 +110,7 @@ public sealed class LocalStateSaveNoticeTests
             Assert.False(host.IsVisible);
             Assert.Equal(string.Empty, notice.Detail);
             Assert.False(notice.RetryCommand.CanExecute(null));
-            ShellPreferenceSnapshot persisted = await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath);
+            ShellPreferenceSnapshot persisted = await ShellPreferenceFileStore.LoadAsync(files, files.PreferencesPath);
             Assert.Equal(shell.ExportShellPreferences(), persisted);
             Assert.NotEmpty(notifiedOnUiThread);
             Assert.All(notifiedOnUiThread, Assert.True);
@@ -142,7 +140,7 @@ public sealed class LocalStateSaveNoticeTests
             LocalStateSaveNoticeViewModel notice = Notice(window);
             Border host = window.FindControl<Border>(NoticeHostName)!;
 
-            files.Fail(HistoryPath, static () => new IOException("synthetic disk full", unchecked((int)0x80070070)));
+            files.Fail(files.HistoryPath, static () => new IOException("synthetic disk full", unchecked((int)0x80070070)));
             shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "first"), "first.json");
             await WaitUntilAsync(() => notice.IsVisible);
             ShellTextResources english = shell.Text;
@@ -158,7 +156,7 @@ public sealed class LocalStateSaveNoticeTests
             Assert.Equal(notice.AccessibleStatus, AutomationProperties.GetName(host));
             Assert.Equal("重試", AutomationProperties.GetName(window.FindControl<Button>(RetryButtonName)!));
 
-            files.Fail(PreferencesPath, static () => new IOException("synthetic in use", unchecked((int)0x80070020)));
+            files.Fail(files.PreferencesPath, static () => new IOException("synthetic in use", unchecked((int)0x80070020)));
             shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
             await WaitUntilAsync(() => notice.DetailToolTip.Contains(text.LocalStatePreferencesLabel, StringComparison.Ordinal));
             Assert.Equal(Detail(text, text.LocalStateSaveFileInUseReason), notice.Detail);
@@ -166,18 +164,18 @@ public sealed class LocalStateSaveNoticeTests
                 $"報告記錄: synthetic disk full{Environment.NewLine}偏好設定: synthetic in use",
                 notice.DetailToolTip);
 
-            files.Fail(HistoryPath, null);
+            files.Fail(files.HistoryPath, null);
             shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "second"), "second.json");
             await WaitUntilAsync(() => !notice.DetailToolTip.Contains(text.LocalStateReportHistoryLabel, StringComparison.Ordinal));
             Assert.True(notice.IsVisible);
             Assert.Equal("偏好設定: synthetic in use", notice.DetailToolTip);
             Assert.Equal(Detail(text, text.LocalStateSaveFileInUseReason), notice.Detail);
 
-            files.Fail(PreferencesPath, null);
+            files.Fail(files.PreferencesPath, null);
             shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
             await WaitUntilAsync(() => !notice.IsVisible);
             Assert.False(host.IsVisible);
-            Assert.Equal(2, (await ReportHistoryFileStore.LoadAsync(files, HistoryPath, CancellationToken.None)).Count);
+            Assert.Equal(2, (await ReportHistoryFileStore.LoadAsync(files, files.HistoryPath, CancellationToken.None)).Count);
         }
         finally
         {
@@ -205,17 +203,17 @@ public sealed class LocalStateSaveNoticeTests
             var shell = (MainWindowViewModel)window.DataContext!;
             LocalStateSaveNoticeViewModel notice = Notice(window);
             Border host = window.FindControl<Border>(NoticeHostName)!;
-            files.Fail(PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
+            files.Fail(files.PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
             shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
             await WaitUntilAsync(() => notice.IsVisible);
             ShellPreferenceSnapshot retried = shell.ExportShellPreferences();
 
             // Retry starts a write that ignores its cancellation; a newer preference change then supersedes it.
-            files.Fail(PreferencesPath, null);
-            retryWrite = files.HoldNextWrite(PreferencesPath, ignoresCancellation: true);
+            files.Fail(files.PreferencesPath, null);
+            retryWrite = files.HoldNextWrite(files.PreferencesPath, ignoresCancellation: true);
             notice.RetryCommand.Execute(null);
             await retryWrite.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-            latestWrite = files.HoldNextWrite(PreferencesPath);
+            latestWrite = files.HoldNextWrite(files.PreferencesPath);
             shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
             ShellPreferenceSnapshot latest = shell.ExportShellPreferences();
             Assert.NotEqual(retried, latest);
@@ -224,14 +222,14 @@ public sealed class LocalStateSaveNoticeTests
             retryWrite.Released.SetResult();
             await latestWrite.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal(retried, await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath));
+            Assert.Equal(retried, await ShellPreferenceFileStore.LoadAsync(files, files.PreferencesPath));
             Assert.True(notice.IsVisible);
             Assert.True(host.IsVisible);
 
             latestWrite.Released.SetResult();
             await WaitUntilAsync(() => !notice.IsVisible);
             Assert.False(host.IsVisible);
-            Assert.Equal(latest, await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath));
+            Assert.Equal(latest, await ShellPreferenceFileStore.LoadAsync(files, files.PreferencesPath));
         }
         finally
         {
@@ -274,7 +272,7 @@ public sealed class LocalStateSaveNoticeTests
             var shell = (MainWindowViewModel)window.DataContext!;
             LocalStateSaveNoticeViewModel notice = Notice(window);
             Border host = window.FindControl<Border>(NoticeHostName)!;
-            files.Fail(PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
+            files.Fail(files.PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
             shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
             await WaitUntilAsync(() => notice.IsVisible);
 
@@ -283,7 +281,7 @@ public sealed class LocalStateSaveNoticeTests
             // the UI thread -- to have already run, not merely for the underlying write to finish. An `await`
             // here would let this headless test host drain the dispatcher queue in the background and apply A's
             // outcome before B is even queued, which is exactly the gap this test needs to hold open.
-            files.Fail(PreferencesPath, null);
+            files.Fail(files.PreferencesPath, null);
             shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
             ShellPreferenceSnapshot a = shell.ExportShellPreferences();
             bool aReported = coordinator.WaitForIdleAsync().Wait(TimeSpan.FromSeconds(10));
@@ -291,7 +289,7 @@ public sealed class LocalStateSaveNoticeTests
 
             // B is queued, and held, only now: strictly after A's own report already ran, proven above rather
             // than assumed from elapsed time.
-            latestWrite = files.HoldNextWrite(PreferencesPath);
+            latestWrite = files.HoldNextWrite(files.PreferencesPath);
             shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
             ShellPreferenceSnapshot latest = shell.ExportShellPreferences();
             Assert.NotEqual(a, latest);
@@ -302,13 +300,13 @@ public sealed class LocalStateSaveNoticeTests
             Assert.True(notice.IsVisible, $"Detail='{notice.Detail}', ToolTip='{notice.DetailToolTip}'");
             Assert.True(host.IsVisible);
             Assert.Equal("Preferences: synthetic access denied", notice.DetailToolTip);
-            Assert.Equal(a, await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath));
+            Assert.Equal(a, await ShellPreferenceFileStore.LoadAsync(files, files.PreferencesPath));
 
             await latestWrite.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             latestWrite.Released.SetResult();
             await WaitUntilAsync(() => !notice.IsVisible);
             Assert.False(host.IsVisible);
-            Assert.Equal(latest, await ShellPreferenceFileStore.LoadAsync(files, PreferencesPath));
+            Assert.Equal(latest, await ShellPreferenceFileStore.LoadAsync(files, files.PreferencesPath));
         }
         finally
         {
@@ -330,16 +328,16 @@ public sealed class LocalStateSaveNoticeTests
         LocalStateSaveNoticeViewModel notice = Notice(window);
         int changes = 0;
         notice.PropertyChanged += (_, _) => changes++;
-        files.Fail(PreferencesPath, static () => new UnauthorizedAccessException("late failure"));
-        WriteHold late = files.HoldNextWrite(PreferencesPath);
+        files.Fail(files.PreferencesPath, static () => new UnauthorizedAccessException("late failure"));
+        WriteHold late = files.HoldNextWrite(files.PreferencesPath);
         shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
         await late.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         window.Dispose();
         late.Released.SetResult();
         // Saves are serialized, so the next write starts only after the late failure was reported.
-        files.Fail(PreferencesPath, null);
-        WriteHold next = files.HoldNextWrite(PreferencesPath);
+        files.Fail(files.PreferencesPath, null);
+        WriteHold next = files.HoldNextWrite(files.PreferencesPath);
         shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
         await next.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Dispatcher.UIThread.RunJobs();
@@ -348,7 +346,7 @@ public sealed class LocalStateSaveNoticeTests
         Assert.Equal(0, changes);
         Assert.False(notice.RetryCommand.CanExecute(null));
         next.Released.SetResult();
-        await WaitUntilAsync(() => files.Completed(PreferencesPath) == 2);
+        await WaitUntilAsync(() => files.Completed(files.PreferencesPath) == 2);
         Dispatcher.UIThread.RunJobs();
         Assert.False(notice.IsVisible);
         Assert.Equal(0, changes);
@@ -384,15 +382,15 @@ public sealed class LocalStateSaveNoticeTests
             if (dark)
             {
                 shell.SelectedTheme = "Dark";
-                await WaitUntilAsync(() => files.Completed(PreferencesPath) > saved);
-                saved = files.Completed(PreferencesPath);
+                await WaitUntilAsync(() => files.Completed(files.PreferencesPath) > saved);
+                saved = files.Completed(files.PreferencesPath);
             }
             if (chinese)
             {
                 shell.SelectedLanguage = "Traditional Chinese";
-                await WaitUntilAsync(() => files.Completed(PreferencesPath) > saved);
+                await WaitUntilAsync(() => files.Completed(files.PreferencesPath) > saved);
             }
-            files.Fail(PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
+            files.Fail(files.PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
             shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
             LocalStateSaveNoticeViewModel notice = Notice(window);
             await WaitUntilAsync(() => notice.IsVisible);
@@ -547,7 +545,7 @@ public sealed class LocalStateSaveNoticeTests
             if (chinese)
             {
                 shell.SelectedLanguage = "Traditional Chinese";
-                await WaitUntilAsync(() => files.Completed(PreferencesPath) >= 1);
+                await WaitUntilAsync(() => files.Completed(files.PreferencesPath) >= 1);
             }
 
             // Layout only: present the longest detail sentence, the report-history size failure, directly.
@@ -765,13 +763,13 @@ public sealed class LocalStateSaveNoticeTests
     [Fact]
     public async Task PreferenceSaveFailureReachesCaller()
     {
-        var files = new ScriptedStateFiles(new UnreachableFiles());
-        files.Fail(PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
+        var files = new ScriptedStateFiles(new UnreachableFiles(), IsolatedLocalState.CreateDirectory("f08-unreachable"));
+        files.Fail(files.PreferencesPath, static () => new UnauthorizedAccessException("synthetic access denied"));
 
         UnauthorizedAccessException failure = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             ShellPreferenceFileStore.SaveAsync(
                 files,
-                PreferencesPath,
+                files.PreferencesPath,
                 ShellPreferenceSnapshot.Default,
                 TestContext.Current.CancellationToken));
 
@@ -1100,10 +1098,11 @@ public sealed class LocalStateSaveNoticeTests
         TempWorkspace workspace)
     {
         PresentationHostServices services = await CreateServicesAsync(workspace);
-        var files = new ScriptedStateFiles(services.LocalFiles);
+        var files = new ScriptedStateFiles(services.LocalFiles, services.LocalStateDirectory);
         return (new PresentationHostServices(services.Composition, services.FileReveal, services.SupportMatrix,
             services.SystemInformation, services.SystemDiagnosticsExporter, services.RawBinaryEditorFileSessions,
-            services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, files), files);
+            services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, files, services.LocalStateDirectory),
+            files);
     }
 
     /// <summary>
@@ -1121,9 +1120,13 @@ public sealed class LocalStateSaveNoticeTests
         internal TaskCompletionSource Released { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
-    /// <summary>Scripted write failures and holds over the isolated real local-state store.</summary>
-    private sealed class ScriptedStateFiles(ILocalFileStore inner) : ILocalFileStore
+    /// <summary>Scripted write failures and holds over the host's isolated local-state store.</summary>
+    private sealed class ScriptedStateFiles(ILocalFileStore inner, string localStateDirectory) : ILocalFileStore
     {
+        internal string PreferencesPath { get; } = ShellPreferenceFileStore.PathIn(localStateDirectory);
+
+        internal string HistoryPath { get; } = ReportHistoryFileStore.PathIn(localStateDirectory);
+
         private readonly Lock _gate = new();
         private readonly Dictionary<string, Func<Exception>?> _failures = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _completed = new(StringComparer.Ordinal);

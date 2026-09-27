@@ -20,7 +20,8 @@ internal static class BootstrapTestHost
     {
         var services = CompositionHostServices.Create(
             CreateExternalEnvironmentLoader(),
-            NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load);
+            NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load,
+            IsolatedLocalState.CreateDirectory("bootstrap-host"));
         return services.ExternalEnvironmentLoader
             .LoadToCompletionAsync(null, CancellationToken.None)
             .GetAwaiter().GetResult().Succeeded
@@ -30,7 +31,9 @@ internal static class BootstrapTestHost
 
     internal static CompositionHostServices CreateProductServices()
     {
-        var services = CompositionHostServices.Create(CreateExternalEnvironmentLoader());
+        var services = CompositionHostServices.Create(
+            CreateExternalEnvironmentLoader(),
+            IsolatedLocalState.CreateDirectory("bootstrap-product-host"));
         if (!services.ExternalEnvironmentLoader
             .LoadToCompletionAsync(null, CancellationToken.None)
             .GetAwaiter().GetResult().Succeeded)

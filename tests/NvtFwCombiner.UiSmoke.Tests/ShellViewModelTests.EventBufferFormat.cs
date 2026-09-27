@@ -167,7 +167,7 @@ public sealed partial class ShellNavigationSystemTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-config-reapply");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host,
             secondFormat: context == "failure" ? (byte)0xA6 : (byte)0x97);
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
@@ -288,7 +288,7 @@ public sealed partial class ShellNavigationSystemTests
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-first-config-save");
         if (invalidConfig) { _ = workspace.Write("format.json", "invalid"u8.ToArray()); }
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host, initializeConfiguration: false);
         FirmwareSlotViewModel slot = viewModel.Merge.AbMergeSlots.Single(static slot => slot.SlotId == "tp-a-input");
         Assert.Equal(invalidConfig, slot.BlocksBuild);
@@ -321,7 +321,7 @@ public sealed partial class ShellNavigationSystemTests
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-config-blocker");
         if (initiallyInvalid) { _ = workspace.Write("format.json", "invalid"u8.ToArray()); }
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host,
             secondFormat: mismatchedRepair ? (byte)0xA6 : (byte)0x97, initializeConfiguration: !initiallyInvalid);
         File.Delete(workspace.PathFor("a.bin"));
@@ -381,7 +381,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True((await ((NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader)environment)
             .LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
         CompositionHostServices host = CompositionHostServices.Create(environment,
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         var execution = new HeldAbResultPublication(host.CompositionExecution);
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host, execution: execution);
         Task running = viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
@@ -439,7 +439,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True((await ((NvtFwCombiner.Application.ExternalTools.IExternalProcessorEnvironmentLoader)environment)
             .LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
         CompositionHostServices host = CompositionHostServices.Create(environment,
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         int holdNext = 0;
@@ -489,7 +489,7 @@ public sealed partial class ShellNavigationSystemTests
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-config-race");
         var environment = new ExternalProcessorEnvironmentLoader();
         CompositionHostServices host = CompositionHostServices.Create(environment,
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         int holdNext = 0;
@@ -822,6 +822,7 @@ public sealed partial class ShellNavigationSystemTests
             original.CanonicalCatalogLoader,
             original.ExternalEnvironmentLoader,
             original.LocalFiles,
+            original.LocalStateDirectory,
             versionManagement: null,
             managedApplicationStartup: null,
             stableLauncherHandoff: null,

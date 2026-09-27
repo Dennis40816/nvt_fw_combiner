@@ -26,7 +26,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("NvtFwCombiner.Presentation.Avalonia.csproj", desktopProject, StringComparison.Ordinal);
         Assert.Contains("<OutputType>WinExe</OutputType>", desktopProject, StringComparison.Ordinal);
         Assert.Contains("<AssemblyName>NvtFwCombiner.Desktop</AssemblyName>", desktopProject, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(desktopProgram, "CompositionHostServices.Create()"));
+        Assert.Equal(1, CountOccurrences(desktopProgram, "CompositionHostServices.ResolveCurrentUserLocalStateDirectory()"));
+        Assert.Equal(1, CountOccurrences(desktopProgram, "CompositionHostServices.Create(localStateDirectory)"));
+        Assert.Equal(0, CountOccurrences(desktopProgram, "CompositionHostServices.Create()"));
         Assert.Equal(1, CountOccurrences(desktopProgram, "CompositionHostServices.CreateLocalFileStore()"));
         Assert.Contains(
             "host.CanonicalCatalogLoader",
