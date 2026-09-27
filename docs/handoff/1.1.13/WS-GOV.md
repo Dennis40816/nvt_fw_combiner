@@ -359,6 +359,27 @@ supersedes them where the two differ.
    condition skips every version outside 1.x and 2.0.0
    ([bug](../bugs/BUG-20260926-release-promote-skips-other-versions.md)).
 
+## Release cleanup design re-review 2026-09-27
+
+`codex/gpt-6-astra` re-reviewed the release workflow cleanup design at
+`2f7cfd720` against the trunk `e6e991af3`: ACCEPT-WITH-CHANGES, no P0 or P1.
+The first-round findings F-1 to F-9 are closed in the design. R-1 may be
+admitted with `designReview.outcome: approved`. New findings: F-10 (refresh
+the source inventory; `package.ps1` and ADR 0057 changed on the trunk) and
+F-11 (staging must reproduce the G0 controls and the `GITHUB_TOKEN` boundary)
+must close before R-1 merges and are written into the design at `f12194a5d`;
+F-12 (R-2 must say whether the composite action shares setup only or a common
+build entry point) must close before R-2 is admitted. The review found no
+branch-ruleset conflict that blocks releasing 1.1.13 with the current
+workflow: the workflow never pushes `main`, tags are created with
+`GITHUB_TOKEN` under the unchanged tag ruleset, and only the release pull
+request into `main` now follows the new approval rules. Owner prerequisites:
+the App `workflows` permission together with the reviewed helper
+permission-set change before the first remote workflow write; the staging
+repository before R-1 merges; the G0 owner-approval and bypass or fallback
+checks (D4-D6) and a tag ruleset without bypass before the release; the
+release-owner attestation at R-1's final evidence head.
+
 ## Design review 2026-09-26
 
 Reviewer `codex/gpt-6-astra`, implementation owner `claude-code`, fixed head
