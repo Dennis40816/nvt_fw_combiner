@@ -5,7 +5,7 @@
   "integrationBase": "9c7ad0caa6645c9f41f056618759de088d2b5142",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/verify.py",
     "tests/scripts/test_verify_orchestration.py",
@@ -25,12 +25,15 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent three-round read-only R2 design review by codex/gpt-6-astra for implementationOwner claude-code. Round 1 returned BLOCKED with F1 (P1) and F2–F6 (P2). Round 2 closed the fallback and principal scheduling, test-plan, ADR and runtime-scope concerns, but remained BLOCKED on actual-FQN binding, integrationPaths classification and the compiled-type writer inventory. Round 3 reviewed DESIGN-local-verify-speed.v3.md against checkout f3801b4c7b67054900549fbd043438347735ab26; scripts/verify.py, scripts/coverage_policy.py and tests/scripts/test_verify_orchestration.py match c250ed8a5. Read-only inspection of installed VSTest 18.6.0 and the existing xUnit adapter confirmed that FQN listing and FullyQualifiedName filtering read TestCase.FullyQualifiedName, and TRX TestMethod is derived from that FQN. Supplied probes reconcile 1,720 display entries with 1,040 FQNs, 322 part-1 entries with 210 FQNs, and 1,040 xUnit method records; all 1,720 existing three-part TRX cases satisfy the per-case identity relation. Revision 3 closes R2-F1–F3 through real-FQN grammar validation, set reconciliation, mandatory per-case TRX binding, governed-only final ownership and corrected writer isolation. A non-blocking P3 corrects the SDK assumption: global.json permits latestPatch roll-forward and this checkout resolves SDK 10.0.303; compatibility relies on runtime fail-closed checks, not an exact SDK pin. Verdict: APPROVED for design admission; both records should use findings-incorporated. Decisions 128–130, 132 and 133 are premises. The owner’s fixed-head main-package dispatch remains a pre-merge gate, stopping merge on timeout or clear regression. No files or Git state were modified, no builds, tests or verifier runs were performed, and no network access was used. Implementation correctness, A/B performance, stability runs, CI, Golden execution and release readiness remain uncertified."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "b3de011fd8afe5b2664a43bbe3d8396c283688b4",
+  "reviewedHead": "b3de011fd8afe5b2664a43bbe3d8396c283688b4",
+  "pathStateDigest": "8762e1810a216bf3af1f272b0b94689b8b3ff31f5788f77264a821fc75a13c3e",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only R2 implementation review by codex/gpt-6-astra for implementationOwner claude-code at exact head 3e1a1284223c9deb49323f1ac6b0737731434d8b on feature/1.1.13/verify-speed. Reviewed admission 018b0b96a, L2 8655da533 and L1 3e1a12842 against both immutable terminalContracts, all original mutable paths, DESIGN-local-verify-speed.v3.md and VSDR3-last.md; decision-112 and U1 implementation changes were excluded. No P0–P2 findings or actual fail-open path was found in scope. Partition admission and reconciliation enforce real-FQN grammar and binding, exact filtered inventories, per-case TRX definitions, assembly hashes, fresh listings, override rejection including empty values, separate complete snapshots and post-collector freshness. The local schedule uses one bounded top-level pool, counts dotnet against jobs, preserves deadlines and declaration order, and closes admission before publishing setup failure. Cancellation retains the existing owned-process termination and cleanup guard. ADR amendments agree with the cited decisions. The four declared deviations are acceptable, with source-text assertions treated only as supplementary evidence. Two non-blocking P3 recommendations remain: add collector-level stale-listing and swapped-TestMethod wiring negatives, and correct the README description of --skip-structure. Twenty independent in-memory probes passed; git diff --check passed and the worktree remained clean. Repository pytest reruns could not execute because the read-only sandbox denied temporary files and the selected Python environment lacked yaml during collection. Implementer-reported test and .NET results were not independently rerun. Verdict: APPROVED for this fixed-source implementation review; scoped Polytail PASS-WITH-HUMAN-GATE. A/B performance, three consecutive canonical acceptance runs, finalization checks and the owner's fixed-head main-package.yml pre-merge gate remain outstanding and uncertified by this review. No files or Git state were modified; no build, dotnet test, full verifier or network operation was performed. Second-round read-only R2 review by codex/gpt-6-astra at exact head b3de011fd8afe5b2664a43bbe3d8396c283688b4 closes both prior non-blocking P3 findings: F1 now exercises the real collect_local_dotnet_coverage path with stale-listing and same-part swapped-TestMethod negatives that detect removal of their respective guards, and F2 corrects the README schedule and admission wording. Source inspection supports the implementer-reported targeted mutation failures and restored 245-pass result; these executions were not independently rerun. Only tests/scripts/test_verify_orchestration.py and tests/README.md changed from the previously approved head; scripts/verify.py is unchanged, diff checks pass, and the worktree is clean. No new findings; verdict APPROVED, with existing acceptance and integration gates unchanged."
+  },
+  "integrationPaths": [
+    "scripts/verify.py"
+  ]
 }

@@ -5,7 +5,7 @@
   "integrationBase": "9c7ad0caa6645c9f41f056618759de088d2b5142",
   "risk": "R1",
   "kind": "ui",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ResettableObservableCollection.cs",
     "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportWindowedListViewModel.cs",
@@ -32,12 +32,20 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 presentation performance correction of 1.1.13 board decision 112 inside the existing Merge/Replace ViewModel publishers and the existing report-navigator single-Reset collection; no View code, XAML, style, contract, ADR, schema, profile, firmware or governance change. Narrow tests: UiSmoke MemoryCoveragePublicationTests, ReportWindowedListViewModelTests, MemoryCoveragePopupTests, MemoryCoverageLegendTests, MemoryCoverageExplorerTests, CtrlRamMemoryLayoutTests, CtrlRamOverviewCompletionTests, ShellViewModelTests (CtrlRamReplaceDisplay, Merge, MemorySourceAb, AbCtrlRamAuthoring) and NvtFwCombiner.Architecture.Tests. Residual gates: independent fixed-head review and finalization before integration."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "b3de011fd8afe5b2664a43bbe3d8396c283688b4",
+  "reviewedHead": "b3de011fd8afe5b2664a43bbe3d8396c283688b4",
+  "pathStateDigest": "5bed379e8581775bd7c8291af05708364036c40792ace87f1b71d7d1e42c6147",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R1 fixed-head review by codex/gpt-6-sol in two rounds on feature/1.1.13/memory-coverage-rebuild (base c250ed8a5): round one APPROVED a17af2c7093cf1a256e879e88c9df45d08869c0d with one non-blocking P3; round two APPROVED 3970d50e2591a723859f03cc1e0d821b89962ff7, confirming the P3 closed. This batch cherry-picks the same three commits onto the same base; every changed blob equals the reviewed source. Independent read-only review by codex/gpt-6-sol approved a17af2c7093cf1a256e879e88c9df45d08869c0d after inspecting the implementation, declared mutable paths, collection consumers, and author-reported verification evidence. The sole nonblocking P3 finding was that an observed VM phase with zero notifications could pass its assertions. Follow-up review of exact head 3970d50e2591a723859f03cc1e0d821b89962ff7 confirmed that its only change adds a nonempty assertion to every observed phase through the shared assertion helper, closing that finding. The worktree was clean. The author reported MemoryCoveragePublicationTests 3/3 and format passing; the reviewer did not rerun tests or build. Scoped R1 review: APPROVED."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ResettableObservableCollection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportWindowedListViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs"
+  ]
 }
