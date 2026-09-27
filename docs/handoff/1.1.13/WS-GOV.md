@@ -4,11 +4,13 @@ Owner: Claude Code (Opus 5.5), design drafter. Board:
 [1.1.13 board](../1.1.13.md). Protocol: [handoff README](../README.md).
 Deliverables: [governance ADR draft](ADR-DRAFT-governance-reset.md) and
 [release workflow cleanup design](DESIGN-release-workflow-cleanup.md), both
-revised after the [independent design review](#design-review-2026-09-26), and
-the [G0 owner checklist](G0-owner-checklist.md), revised after its own
+revised after the [independent design review](#design-review-2026-09-26), the
+ADR draft again after the [second design review](#design-re-review-2026-09-27),
+and the [G0 owner checklist](G0-owner-checklist.md), revised after its own
 [reviews](#g0-checklist-review-2026-09-26). The owner decided every question
-on 2026-09-26 (board decisions 47, 49 to 56, 65 to 67, 77 and 78); the
-questions and answers are at the end
+on 2026-09-26 (board decisions 47, 49 to 56, 65 to 67, 77 and 78) and on
+2026-09-27 the priority, the G1-B scope and the governance owner (decisions
+100 to 102); the questions and answers are at the end
 ([owner decisions](#owner-decisions-in-risk-order)), followed by the
 [questions the G0 review left](#questions-after-the-g0-review), now decided.
 The board allocated ADR number 0080 to the governance draft.
@@ -227,6 +229,17 @@ scope option; not implemented or covered by the parser review):
   wrapper steps use `nfc-app-token-helper.ps1` and `Invoke-NfcGh.ps1`; list
   the G0SR4 owner notes at the top; label every setup-script step owner →
   owner; run the structure check; no push; then stop.
+- **Second design review revision (commander, 2026-09-27).** The second
+  design review of the ADR draft at `acbe5654d`, against the rules of `1.1.x`
+  `e6e991af3`, returned ACCEPT-WITH-CHANGES with P1 F-1 and F-2 and P2 F-3 to
+  F-6. Take in every finding and complete the partly closed first-round
+  items; record decisions 100 (development speed before R-1), 101 (G1-B keeps
+  its scope, the WS-AI changes included, stated with its waiting cost, not
+  narrowed) and 102 (the owner is the governance owner, a role separate from
+  the firmware and release owner); write G1-A's deliverables and acceptance
+  so that its design admission can start. Only the ADR draft and this log
+  change; no edit under `scripts/`, `.github/` or `docs/adr/`; commit on this
+  branch after the structure check, no push; then stop.
 
 ## Ported from 1.1.12
 
@@ -358,6 +371,61 @@ supersedes them where the two differ.
    Proposed although it is implemented and attested; the release promote
    condition skips every version outside 1.x and 2.0.0
    ([bug](../bugs/BUG-20260926-release-promote-skips-other-versions.md)).
+
+## Design re-review 2026-09-27
+
+Reviewer `codex/gpt-6-astra`, implementation owner `claude-code`, fixed head
+`acbe5654d6cfa179d64fd604c38a95c24addc498`, current rules at `1.1.x`
+`e6e991af32d76d99ad156a7f86baa662947db8d9`; read-only (Git reads, document
+and code search; no build, test or live GitHub check; the G0 state was taken
+from this log). Verdict on the ADR draft: **ACCEPT-WITH-CHANGES**. The
+retirement direction and the staged G1-A/G1-B transition hold; G1-A admission
+stayed blocked on the two P1 gaps. The scoped Polytail design verdict was
+FAIL because of those gaps, not because a check failed. R-1 was not needed
+first.
+
+| Finding | Severity | Taken in |
+| --- | --- | --- |
+| F-1 the new checks lacked required-check wiring, a trusted policy source and re-evaluation | P1 | ADR "Authority check wiring (G1-A)": one always-run job producing the required context `governance / authority` from GitHub Actions, never neutral or skipped, and the App without `checks`/`statuses` write; `pull_request_target` (opened, edited, synchronize, reopened, ready_for_review, labeled, unlabeled) and `pull_request_review` (submitted, edited, dismissed) instead of `ci.yml`'s four events, live-state reads, a verdict bound to head, base and policy blobs, re-evaluation of open pull requests after a base policy change; checker and policy from the live base, head read only as data, the stricter of base and head policy; principals by user ID and login in the policy; fail-closed on missing policy or principal, API error, timeout, rate limit, incomplete page, a head moving during the run, or a failed producer; residual trust for a pull request that edits the workflow; platform facts verified live with a commit-status fallback. G1-A builds this wiring itself, without `ci.yml` or `verify.py`. The negative cases (withdrawn approval, edited evidence, same-PR policy downgrade, missing producer, and others) are in "G1-A delivery and acceptance"; one real pull request is only part of the evidence |
+| F-2 no role union, R3 scripts all put under release, no governance R3 role | P1 | ADR item 4: each map entry has a risk floor and a role set; every matching entry applies (highest floor, union of roles), no first match; author and reviewer text only adds; an unclassified path is governance R3 and cleared only by the governance owner's exact-head approval; floors never below today's validator; an initial map table; the 21 `CAPABILITY_REUSE_R3_SCRIPTS` assigned one by one (five firmware, two firmware and release, 13 release, `release_promotion_policy.py` release and governance) and three R2 scripts raised. Item 7: three roles with decision 102's governance owner, the approval contract (approving review, `commit_id` equal to the head, principal listed for the role, one block per role with head SHA and evidence, dismissal and changes-requested handling) |
+| F-3 acceptance and retirement took effect at different times | P2 | ADR header ("Effect of acceptance"; "Supersedes, effective when the authorized G1-B merges") and migration step 0: acceptance accepts the staged design only; step 2 lists the old obligations the G1-B authorization replaces for G1-B itself and the gates it does not replace |
+| F-4 pins recomputed from a base that lacks the READMEs | P2 | ADR item 2 and migration step 4: one order, the pins are G1-B's final snapshot (base evidence plus exactly three READMEs; checkpoint blob unchanged), proven by the frozen-path diff and named in the authorization |
+| F-5 G0 state and decision 100 not in the ADR | P2 | ADR "State on 2026-09-27" (App and three rulesets applied, the trunk rules, D0 partly, D4 to D6 and the rest open, so G0 is applied but not accepted), the identity bullet, item 8 (in force since G0 versus added by G1-A and G2), item 10 (decision 66 as the current rule, decision 23 history, equal trees never replacing the history gate), R-1 paused (decision 100) |
+| F-6 no single-writer rule after the records; G1-B scope | P2 | ADR item 3 "Single writer" (root `AGENTS.md` rule, execution-workflow procedure, stated as procedural: CODEOWNERS is not a write lock) and the owners table; migration step 1 separates G1-B's parts required for the retirement from those carried by decision 101; Consequences state the waiting cost of decision 101 without narrowing G1-B |
+
+First-round findings the review found only partly closed:
+
+| First round | Second review | Now |
+| --- | --- | --- |
+| F-1 executable R3 approval | head SHA, role and evidence done; wiring missing | closed by F-1 and F-2 above |
+| F-2 firmware-semantic escalation | direction right; union and script split missing | closed by F-2 above |
+| F-3 sealed-but-unmerged records | mostly closed | F-3 and F-4 above; the inventory row now names each owed item's carrier |
+| F-4, F-5 to F-9 | closed at design level | unchanged |
+
+Other review notes taken in: the transitional double approval while both gates
+run, and the table of what G1-B removes and keeps (ADR Consequences); the
+"remove checkpoint rebinding first" alternative recorded as option 5 and not
+pursued; ADR 0079's acceptance (decision 81) synchronized, so item 13 now
+waits for its T4b activation. Owner input the review listed is in the ADR's
+"Owner input still needed"; decisions 101 and 102 already answer two of its
+questions, and decision 100 settled the priority.
+
+Evidence summary proposed by the reviewer for `designReview.evidence`, valid
+only with a blocked outcome, never as `approved`:
+
+> Independent read-only design re-review by codex/gpt-6-astra,
+> implementationOwner claude-code, at acbe5654d6cfa179d64fd604c38a95c24addc498
+> against the rules at e6e991af32d76d99ad156a7f86baa662947db8d9:
+> ACCEPT-WITH-CHANGES. The retirement direction and staged G1-A/G1-B
+> transition are sound. G1-A admission remains blocked pending an enforceable
+> required-check lifecycle and trusted policy source, plus complete
+> authority-role classification and governance R3 escalation. Clarify cutover
+> effectiveness, frozen-pin construction, retained single-writer
+> responsibility, and the applied-but-not-fully-accepted G0 state. No build,
+> tests, or live GitHub verification were performed.
+
+This revision is not itself reviewed: recording G1-A's `designReview.outcome`
+as `approved` needs an independent check of this revision (commander).
 
 ## Release cleanup design re-review 2026-09-27
 
@@ -694,6 +762,32 @@ TMPDIR set to `<test-area>/temp`, at `3d2540e0c` -> `structure=PASS`, 276.0 s;
 the working tree stayed clean. A link and anchor check of the four WS-GOV
 documents passed before the commit.
 Open: the final review (commander).
+Next: stop.
+
+### 2026-09-27 Revision after the second design review
+State: local (verified before commit, documents only)
+Commits: the commit carrying this entry, on `acbe5654d`; only the ADR draft
+and this log change.
+Evidence: F-1 to F-6 of the [second design review](#design-re-review-2026-09-27)
+and the partly closed first-round items are taken in (tables above); board
+decisions 100 to 102 are recorded in the ADR draft. New ADR parts: "State on
+2026-09-27", the authority policy with risk floors and role sets (item 4),
+three roles with the governance owner (item 7), "Authority check wiring
+(G1-A)", migration step 0 and the G1-B authorization contents, the
+single-writer rule (item 3), and "G1-A delivery and acceptance". Facts checked
+at `e6e991af3` for this revision: 359 records, all final-complete; 112
+attestations; the six open inherited authorities of the trusted checkpoint
+each have an approving attestation; `CAPABILITY_REUSE_R3_SCRIPTS` holds 21
+scripts; `ci.yml` listens to four `pull_request` event types;
+`REQUIRED_RELEASE_CHECKS` is the closed set of three. A link and anchor check
+of the four WS-GOV documents passed. Structure check before the commit:
+`python scripts/verify.py --structure-only` with TEMP, TMP and TMPDIR set to
+`<test-area>/temp`, on the working tree of this commit except this result
+line -> `structure=PASS`, 169.1 s; `sync_derived` changed 0 files; only the
+existing code-size warnings, unrelated to these documents.
+Open: an independent check of this revision before G1-A's design review can
+be recorded as approved (commander); the owner input listed at the end of the
+ADR draft.
 Next: stop.
 
 ## Owner decisions in risk order
