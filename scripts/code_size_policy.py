@@ -277,4 +277,3 @@ def validate_code_size_policy(root: Path, hotspots: Mapping[str, int] | None = N
         elif actual < hotspots[name]:
             errors.append(f"code-size hotspot {name}: lower baseline {hotspots[name]} to measured {actual}; no approval needed for reduction")
     return errors
-

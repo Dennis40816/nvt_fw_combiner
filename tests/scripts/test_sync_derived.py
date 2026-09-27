@@ -103,6 +103,47 @@ class ClaudeProjectionTests(unittest.TestCase):
             sync.synchronize(self.root, [replace(provider, plan=race)], write=True)
         self.assertEqual(b"concurrent edit", (self.root / target).read_bytes())
 
+    def test_publication_time_creator_keeps_its_file(self):
+        original_link = os.link
+
+        def race(source, target):
+            Path(target).write_bytes(b"created at publication")
+            original_link(source, target)
+
+        with patch.object(sync.os, "link", side_effect=race):
+            with self.assertRaises(FileExistsError):
+                self.run_sync(write=True)
+        self.assertEqual(
+            b"created at publication",
+            (self.root / ".claude/agents/implementer.md").read_bytes(),
+        )
+
+    def test_discovered_manifest_or_agent_inventory_cannot_change(self):
+        for changed in ("manifest", "agents"):
+            with self.subTest(changed=changed):
+                provider = sync.claude_projection_provider(self.root)
+                if changed == "manifest":
+                    path = self.root / ".agents/skills/manifest.json"
+                    path.write_bytes(path.read_bytes() + b"\n")
+                else:
+                    self.write(".codex/agents/new.toml", b'name = "new"\n')
+                with self.assertRaisesRegex(sync.SyncError, "changed after"):
+                    sync.synchronize(self.root, [provider], write=True)
+                self.assertFalse((self.root / ".claude").exists())
+
+    @unittest.skipUnless(os.name == "nt", "Windows junction contract")
+    def test_real_junction_parent_is_rejected(self):
+        import _winapi
+
+        outside = tempfile.TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        junction = self.root / ".claude"
+        _winapi.CreateJunction(outside.name, str(junction))
+        self.addCleanup(junction.rmdir)
+        with self.assertRaisesRegex(sync.SyncError, "reparse"):
+            self.run_sync(write=True)
+        self.assertEqual([], list(Path(outside.name).iterdir()))
+
     def test_projection_set_rejects_stale_or_untracked_expected_files(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
         import validate_repository as validator

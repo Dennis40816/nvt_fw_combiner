@@ -2097,10 +2097,11 @@ Presentation consumes the typed result and offers no manual Standard/AB override
 #### Promotion and planning workflow
 
 Before an implementation goal or ticket rewrite is approved, unresolved
-architecture and terminology are closed through the explicit repository
-`grilling` workflow. `nfc-grill-with-docs` applies the same one-decision-at-a-time
-discipline and writes every accepted result immediately to its canonical
-specification/architecture owner through the current
+architecture and terminology are closed through skill `nfc-grill-with-docs`.
+Its hybrid interview asks firmware, R3 and architecture decisions one at a time;
+related or low-risk decisions may share a round of at most four questions,
+each with a recommendation. It writes every accepted result immediately to its
+canonical specification/architecture owner through the current
 `nfc-architecture-change` and `nfc-to-spec` authorities. The former standalone
 `domain-modeling` workflow is not restored; its terminology consistency,
 concrete IC/IC Count stress cases, and canonical-document ownership rules are
