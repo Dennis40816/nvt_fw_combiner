@@ -1,6 +1,6 @@
 # 1.1.13 TODO inventory
 
-Commander, 2026-09-27, after #459. The owner asked that progress be counted
+Commander, 2026-09-27, after #459; statuses refreshed after #462 the same day. The owner asked that progress be counted
 over every item scheduled for 1.1.13, not only the scope table in
 [`../1.1.13.md`](../1.1.13.md). This list breaks that table into separately
 deliverable items and adds the records made outside it, the bugs whose owner
@@ -9,7 +9,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (25)
+## Done (28)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -38,19 +38,23 @@ remove items; the board decisions stay the authority for scope.
 | 23 | NVT reader XML documentation pointers | #459 |
 | 24 | Display OSD marker bug closed: fixed by the NVT end-flag rule | #458 (tests inverted) |
 | 25 | Bug ledger statuses brought up to date for #457-#459 | board |
+| 27 | Navigation focus underline (decision 32) | #461 |
+| 28 | Wave 5 F03/F06 process cleanup and ADR 0081 | #461 |
+| 29 | Test local-state isolation and the ADR 0079 amendment | #461 |
 
-## Active (6)
+## Active (7)
 
 | # | Item | Next |
 | --- | --- | --- |
-| 26 | C-7 TP SVN display (R3) | decisions 93-94, delta re-review, admission, ADR 0075 memory gate, firmware and release attestations |
-| 27 | Navigation focus underline (decision 32) | render the focus ring (review F-3), re-review |
-| 28 | Wave 5 F03/F06 process cleanup and ADR 0081 | admission and implementation; owner acceptance of ADR 0081 |
-| 29 | Test local-state isolation and the ADR 0079 amendment | admission and implementation |
-| 30 | G0: GitHub App, rulesets and settings, including A-5 | owner runs the scripts |
-| 31 | WS-GOV governance reset (ADR 0080) | on `feature/1.1.13/ws-gov`; integration after G0 |
+| 26 | C-7 TP SVN display (R3) | paused behind the verify-speed work: admission on the current checkpoint, ADR 0075 memory gate, firmware and release attestations |
+| 30 | G0: GitHub App, rulesets and settings, including A-5 | applied; Workflows permission granted (decision 131 push done); owner items A8 (sign out own sessions) and D6 (bypass or pause drill on `9.9.x`) remain |
+| 31 | WS-GOV governance reset (ADR 0080) | paused by decision 133: G1-A #463 needs a rebase onto the trunk (its base missed #462), re-finalization and exact-head approvals after the verify-speed batch; the G1-B plan keeps its third design review result |
+| 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114) | verify speed below (item 61) |
+| 50 | UiSmoke headless session stall | U1 fail-fast guard approved in two review rounds; joins the verify-speed batch |
+| 60 | `MemoryCoverageBar` one rebuild per load (decision 112) | approved in two review rounds; joins the verify-speed batch |
+| 61 | Local verify speed: UiSmoke three-process partition and .NET/Python overlap (decisions 107, 128-130, 132) | design in its third revision, then admission, implementation, three green runs and the `main-package.yml` gate |
 
-## Waiting or open (28)
+## Waiting or open (26)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
@@ -59,9 +63,8 @@ remove items; the board decisions stay the authority for scope.
 | 34 | Release workflow cleanup R-1 | G0 |
 | 35 | Release workflow cleanup R-2 | R-1 |
 | 36 | WS-AI dual-runtime agent documents, with the two agent-skill bugs | open |
-| 37 | WS-TEST pilot split (T1, T2a) and UiSmoke measurement U0 | open; U0 needs a quiet machine |
 | 38 | WS-FLOW F1 second half, F5 and F6 re-evaluation | open |
-| 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | open (P-1 merged) |
+| 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | stage 1 merged in #461; stages 2-4 paused (decision 100) |
 | 40 | ADR 0077 Step 0 measurement | quiet machine |
 | 41 | ADR 0077 B2a (R2) | Step 0 |
 | 42 | ADR 0077 B2b trust policy (R3) | B2a |
@@ -72,8 +75,7 @@ remove items; the board decisions stay the authority for scope.
 | 47 | `verify.py --all` help text | WS-GOV |
 | 48 | Version-branch CI gap | WS-GOV |
 | 49 | Test hygiene findings (WS-TEST T2-T4, G2) | WS-TEST |
-| 50 | UiSmoke headless session stall | root cause found (Avalonia.Headless setup race); fix: fail-fast diagnostics and off-session Avalonia use |
-| 51 | Deploy post-hash attack test race | open |
+| 51 | Deploy post-hash attack test race | test reframed in #462; deterministic coverage still open |
 | 52 | Legacy Combiner long path | open |
 | 53 | CI core-shard H2 and H3 follow-ups | open |
 | 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
