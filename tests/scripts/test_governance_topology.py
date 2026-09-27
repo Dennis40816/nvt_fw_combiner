@@ -40,8 +40,8 @@ def test_frozen_snapshot_survives_merge_shapes(repository, shape, mutation):
 
 @pytest.fixture(scope="module", params=["a", "b", "c"], ids=["topo-a", "topo-b", "topo-c"])
 def entry_topology(request):
-    from tests.scripts.structure_entry_audit import create_entry_checkout
-    with tempfile.TemporaryDirectory(prefix="gt-") as directory:
+    from tests.scripts.structure_entry_audit import create_entry_checkout, entry_path
+    with tempfile.TemporaryDirectory(prefix="gt-", dir=entry_path(tempfile.gettempdir())) as directory:
         root = create_entry_checkout(Path(__file__).resolve().parents[2], Path(directory) / "r")
         git(root, "config", "user.name", "Fixture")
         git(root, "config", "user.email", "fixture@example.invalid")

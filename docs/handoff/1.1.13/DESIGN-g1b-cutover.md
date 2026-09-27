@@ -410,6 +410,11 @@ test-area `TEMP`, one checkout of about 132 MB) with every canonical file, the
 parity binding history and the real validator, nothing mocked. The reference
 inherits the real environment independently of the audit environment helper;
 the audit retains its inherited paths and restores them before customization.
+On Windows the fixture uses the verifier's existing extended-length path helper
+for clone access, child cwd and temporary-directory cleanup. Git clones into
+`.` from that cwd because its destination argument rejects the extended path.
+The fixture remains under inherited `TEMP`, including a verifier-owned session;
+it does not relocate scratch or change inherited environment variables.
 
 - **Launch positive control** (rounds 3-4): an untracked probe
   `scripts/_launch_probe.py` imports the sibling `ab_merge_fixture_validation`
@@ -427,10 +432,17 @@ the audit retains its inherited paths and restores them before customization.
   exceptions: the same traceback frames, source lines and message), exit
   status 7, 1, 1, 1, 0, and sentinel `NFC-AUDIT-END\t0\t<status>` with
   nothing after it.
+  The probe also compares inherited `NFC_VERIFY_INTERNAL_LANE`,
+  `NFC_TEST_AREA_ROOT`, `NFC_TEST_SESSION_ROOT`, `TEMP`, `TMP` and `TMPDIR`.
 - **Real-entry equivalence**: `scripts/validate_repository.py` on the tested
   head, lane form and harness form: exit 0, identical stdout, stderr equal
   under the stderr rule, sentinel code 0, calls equal to the multiset. The
   topology heads of 2.6 run in harness form.
+  An additional positive control places a complete checkout under nested TEMP
+  so canonical paths exceed 260 characters even in direct pytest. It requires
+  the same real-entry equivalence, every tracked canonical file accessible and
+  complete fixture cleanup. Both entry suites also run through the real local
+  lane runner, inside the verifier's parent-owned test session.
 - **Negative controls** (one-file fixture edits; each yields its named
   violation although the edited code catches exceptions): (1)
   `subprocess.run(["git", "rev-list", "HEAD"])` in `validate_code_size_policy`,
@@ -732,6 +744,80 @@ renamed or deleted; (6) the entry harness is slow and not a sandbox (2.7).
 | `.claude/` | 127 | No model field; read-only roles read-only tools; ignore `.claude/settings.local.json` |
 
 ## 8. Review response (codex/gpt-6-astra)
+
+Lane-environment correction admission (2026-09-28): implementation owner
+`codex/gpt-6-astra`, base `3aab50b15c3b91293d3b989f71e071c7d10ffd58`.
+Mutable surfaces are this plan, `tests/scripts/structure_entry_audit.py`,
+`tests/scripts/test_structure_entry_audit.py` and
+`tests/scripts/test_governance_topology.py`. Owner search found
+`create_entry_checkout` and the two entry fixtures own clone lifetime;
+`scripts/verify.py:verification_test_session` owns inherited session scratch,
+and `_windows_file_api_path` already owns Windows extended-length spelling.
+Disposition: `extend-owner` for the fixtures and `reuse` for that path helper.
+Correct section 2.7's launch equivalence and topology positive controls without
+changing the validator, environment inheritance, Git multiset, frozen pins,
+Golden inputs, expected bytes or firmware behavior. Retain the plan's R3 roles
+and commander-owned final review, full verification and integration gates.
+
+Lane-environment finding and response (2026-09-28): the verifier's
+`verification_test_session` changes `TEMP`, `TMP` and `TMPDIR` from the fixed
+test area's `temp` child to a deeper `sessions/<session>/t` child. The shared
+clone contains the Golden files, but its longest tracked path reached 275
+characters. On the installed Windows interpreter, the ordinary path returned
+`is_file() == False`; the extended-length spelling returned `True`. The real
+validator returned 1 with missing-file/canonical-resolution errors both with
+and without `NFC_VERIFY_INTERNAL_LANE`; changing only its cwd to the
+extended-length spelling returned 0. Fixture cleanup suffered the same limit,
+causing the additional teardown errors. No missing Golden payload or frozen
+pin drift caused these failures.
+
+This predates the rebase: in a temporary detached worktree at `8f7d1010f`,
+the existing real-entry positive control passed directly (1 passed), but failed
+under a parent-owned verifier session (1 failed, 1 teardown error) with the
+same Golden path failures. The current checkout owned that session because a
+verifier rooted inside the test area correctly rejects overlapping roots.
+The old and new heads have identical entry-harness and topology-test sources.
+The temporary detached worktree is removed after the comparison.
+
+The correction reuses `_windows_file_api_path` only in fixture preparation;
+both clone access and cleanup retain the extended spelling. Clone creation
+uses the native cwd and relative destination `.`. The validator, audited child
+and ordinary reference still inherit the same environment and compare the
+same exit status, stdout, stderr and Git multiset. The new nested-TEMP positive
+control failed on the old helper (1 failed), then passed on the correction
+(1 passed); it also checks canonical-file accessibility and cleanup. The launch
+probe now compares the six named lane/session/temp environment values without
+reading or logging the rest of the environment. No assertion or case was removed.
+
+The exact local lane route is `verification_test_session(internal_lane=False)`
+plus the two named lanes selected from `local_repository_script_lanes()` and
+`run_selected_lanes(..., jobs=2)`. Those lanes use
+`repository_script_test_action` / `verify_repository_scripts`, with the canonical
+pytest confcutdir, basetemp and cache flags. They have `isolate_action=False`.
+`--internal-lane test_governance_topology` is rejected by the parser; only the
+three repository-script shard names are accepted there. The targeted run uses
+the actual local full-verifier route without running the full verifier or
+changing its lane definitions.
+
+Local correction verification on the patched working tree based on
+`3aab50b15` (the validator is unchanged; entry fixtures clone that head and
+build the three topology heads):
+
+| Gate | Result |
+| --- | --- |
+| Direct `python -m pytest` on `test_structure_entry_audit.py`, `test_governance_topology.py`, `test_governance_retirement.py`, `test_frozen_evidence_pins.py`, with `-q -p no:cacheprovider` and an external JUnit report | 171 passed, 3 existing platform skips: 65 / 39 / 8 / 59 passed respectively. All 174 cases collected. |
+| Actual local lane runner, `test_governance_topology` | 39 passed, no skips or teardown errors. |
+| Actual local lane runner, `test_structure_entry_audit` | 65 passed, no skips or teardown errors. |
+| `python scripts/verify.py --structure-only` | Passed. |
+| `python scripts/polytail_check.py` | Passed. |
+
+The frozen-pin skips are the unchanged case-sensitive alias control (the
+Windows volume is case-insensitive) and two POSIX execute-bit controls. No
+symlink or junction case skipped. This patch does not alter those tests or
+their selection. Scoped correctness and Polytail review found no remaining
+finding in the four-file correction: `PASS-WITH-HUMAN-GATE` for local work.
+The commander retains independent final-head review, the required role
+approvals, full verification and integration. No full-verifier run is claimed.
 
 Each finding is answered by the normative section named.
 

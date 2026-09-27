@@ -304,9 +304,22 @@ except ModuleNotFoundError as error:
 ''', encoding="utf-8")
 
 
+def entry_path(path):
+    path = Path(path).resolve()
+    if os.name == "nt":
+        # Fixture parent only: keep clone reads, child cwd and cleanup in the
+        # same namespace without changing the verifier's session environment.
+        from scripts.verify import _windows_file_api_path
+        path = Path(_windows_file_api_path(path))
+    return path
+
+
 def create_entry_checkout(source, destination):
-    source, destination = Path(source).resolve(), Path(destination).resolve()
-    subprocess.run(["git", "clone", "--shared", "--no-checkout", "-c", "core.longpaths=true", str(source), str(destination)], check=True, capture_output=True)
+    source, destination = Path(source).resolve(), entry_path(destination)
+    destination.mkdir(parents=True, exist_ok=True)
+    # Git for Windows rejects an extended-length clone destination argument;
+    # the native cwd supports it and the relative destination preserves it.
+    subprocess.run(["git", "clone", "--shared", "--no-checkout", "-c", "core.longpaths=true", str(source), "."], cwd=destination, check=True, capture_output=True)
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=source, check=True, capture_output=True, text=True).stdout.strip()
     subprocess.run(["git", "checkout", "--detach", head], cwd=destination, check=True, capture_output=True)
     return destination

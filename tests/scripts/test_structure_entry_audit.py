@@ -14,7 +14,7 @@ import pytest
 
 from structure_entry_audit import (
     AuditViolation, LaunchGuard, audit_transcript, create_entry_checkout,
-    drop_leading_harness_frames, exit_status, expected_calls,
+    drop_leading_harness_frames, entry_path, exit_status, expected_calls,
     run_audited,
 )
 import structure_entry_audit as audit_module
@@ -26,9 +26,9 @@ HARNESS = Path(__file__).with_name("structure_entry_audit.py")
 
 @pytest.fixture(scope="module")
 def entry_checkout():
-    # A direct TEMP child keeps the canonical long filenames accessible to
-    # Windows interpreters whose manifest does not opt in to long paths.
-    with tempfile.TemporaryDirectory(prefix="ea-") as scratch:
+    # The lane's session TEMP is deeper than a direct pytest TEMP. Cleanup
+    # needs the same long-path namespace as the checkout and validator.
+    with tempfile.TemporaryDirectory(prefix="ea-", dir=entry_path(tempfile.gettempdir())) as scratch:
         yield create_entry_checkout(ROOT, Path(scratch))
 
 
@@ -64,6 +64,10 @@ print(json.dumps({
     "argv": sys.argv, "cwd": os.getcwd(), "path": sys.path,
     "executable": sys.executable, "prefix": sys.prefix,
     "flags": repr(sys.flags), "pythonpath": os.environ.get("PYTHONPATH"),
+    "lane_environment": {name: os.environ.get(name) for name in (
+        "NFC_VERIFY_INTERNAL_LANE", "NFC_TEST_AREA_ROOT", "NFC_TEST_SESSION_ROOT",
+        "TEMP", "TMP", "TMPDIR",
+    )},
     "inherited_import": nfc_launch_dependency.value,
     "site": sys.nfc_launch_site,
     "user_site": getattr(sys, "nfc_launch_user_site", None),
@@ -97,6 +101,10 @@ def test_script_launch_matches_interpreter_namespace_traceback_and_shutdown(entr
     if observed["enable_user_site"]:
         assert observed["user_site"] == observed["site"]
     assert observed["pythonpath"] == os.environ["PYTHONPATH"]
+    assert observed["lane_environment"] == {name: os.environ.get(name) for name in (
+        "NFC_VERIFY_INTERNAL_LANE", "NFC_TEST_AREA_ROOT", "NFC_TEST_SESSION_ROOT",
+        "TEMP", "TMP", "TMPDIR",
+    )}
     audited = run_audited(entry_checkout, [], "scripts/_launch_probe.py", reference=reference)
     assert audited.returncode == status
     assert audited.stderr.endswith(f"NFC-AUDIT-END\t0\t{status}\n".encode())
@@ -108,6 +116,28 @@ def test_real_structure_entry_has_only_frozen_binding_calls(entry_checkout):
     audited = run_audited(entry_checkout, reference=reference)
     assert audited.returncode == 0
     assert len(audited.audit_events) >= len(expected_calls(entry_checkout))
+
+
+def test_real_structure_entry_matches_reference_beyond_windows_path_limit(monkeypatch):
+    from scripts.verify import _windows_file_api_path
+
+    parent = Path(tempfile.gettempdir())
+    cleanup_parent = _windows_file_api_path(parent) if os.name == "nt" else parent
+    # Keep cleanup long-path capable even while the old checkout helper fails.
+    with tempfile.TemporaryDirectory(prefix="deep-entry-", dir=cleanup_parent) as scratch:
+        destination = parent / Path(scratch).name / ("nested-" + "x" * 80) / "r"
+        destination.parent.mkdir()
+        for name in ("TEMP", "TMP", "TMPDIR"):
+            monkeypatch.setenv(name, str(destination.parent))
+        monkeypatch.setattr(tempfile, "tempdir", str(destination.parent))
+        checkout = create_entry_checkout(ROOT, destination)
+        paths = subprocess.check_output(
+            ["git", "ls-files", "-z", "testdata/golden/canonical"], cwd=checkout,
+        ).decode().rstrip("\0").split("\0")
+        assert max(len(str(destination / path)) for path in paths) > 260
+        test_real_structure_entry_has_only_frozen_binding_calls(checkout)
+        assert all((checkout / path).is_file() for path in paths)
+    assert not Path(scratch).exists()
 
 
 @pytest.mark.parametrize("control", ["unbounded", "system", "python", "import", "no_site", "foreign", "repeated"])
