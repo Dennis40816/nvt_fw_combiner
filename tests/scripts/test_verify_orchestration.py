@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import _thread
 import argparse
 import contextlib
 from fnmatch import fnmatch
@@ -875,65 +876,201 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual([160.0, 217.0], deadlines)
         cleanup.assert_called_once()
 
-    def test_public_full_plan_runs_dotnet_before_parallel_independent_lanes(
-        self,
-    ) -> None:
-        calls: list[tuple[list[str], int, int]] = []
-
-        def record_phase(lanes, *, jobs, lane_timeout_seconds):
-            calls.append(([lane.name for lane in lanes], jobs, lane_timeout_seconds))
-            if lanes[0].name == "dotnet-restore":
-                lanes[0].action(None)
+    @contextlib.contextmanager
+    def local_full_plan(self, *, scripts=(), isolated=None, restore=None, build=None):
+        """Patch only the leaves of execute_verification's local full plan."""
 
         with (
-            patch.dict(
-                os.environ,
-                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
-                clear=False,
-            ),
-            patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
             patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
-            patch.object(MODULE, "run_dotnet_restore_plan") as build,
+            patch.object(MODULE, "verify_structure_sync"),
+            patch.object(MODULE, "run_dotnet_restore_plan", side_effect=restore) as restore_plan,
+            patch.object(
+                MODULE, "run_dotnet_post_restore_build_plan", side_effect=build
+            ) as build_plan,
+            patch.object(MODULE, "local_repository_script_lanes", return_value=scripts),
+            patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
             patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
-            contextlib.redirect_stdout(io.StringIO()),
         ):
-            result = MODULE.execute_verification(MODULE.parse_args(["--all"]))
+            yield restore_plan, build_plan, cleanup
+
+    def test_local_full_plan_overlaps_dotnet_coverage_with_script_lanes(self) -> None:
+        barrier = threading.Barrier(2)
+        met: list[str] = []
+
+        def meet(name: str) -> None:
+            barrier.wait(timeout=5)  # A serial schedule breaks the barrier.
+            met.append(name)
+
+        def isolated(name: str, _log: Path) -> None:
+            if name == "dotnet-coverage":
+                meet(name)
+
+        with (
+            self.local_full_plan(
+                scripts=(MODULE.VerificationLane("script", lambda _log: meet("script")),),
+                isolated=isolated,
+            ) as (restore, build, cleanup),
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            result = MODULE.execute_verification(MODULE.parse_args(["--skip-structure"]))
 
         self.assertEqual(0, result)
-        self.assertEqual(
-            [
-                (
-                    ["structure-sync"],
-                    MODULE.DEFAULT_VERIFY_JOBS,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-                (
-                    ["dotnet-restore"],
-                    MODULE.DEFAULT_VERIFY_JOBS,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-                (
-                    ["dotnet-build"],
-                    1,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-                (
-                    ["dotnet"],
-                    1,
-                    1200,
-                ),
-                (
-                    ["structure", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
-                    MODULE.DEFAULT_VERIFY_JOBS,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-            ],
-            calls,
-        )
-        build.assert_called_once()
+        self.assertCountEqual(["dotnet-coverage", "script"], met)
+        self.assertEqual("selected-dotnet", restore.call_args.args[0])
         self.assertEqual("selected-dotnet", build.call_args.args[0])
         cleanup.assert_called_once()
         self.assertEqual("selected-dotnet", cleanup.call_args.args[0])
+
+    def test_local_full_pool_counts_dotnet_against_jobs(self) -> None:
+        for jobs in (3, 2):
+            with self.subTest(jobs=jobs):
+                lock = threading.Lock()
+                starts: list[str] = []
+                active: set[str] = set()
+                maximum = 0
+                together: list[set[str]] = []
+
+                def snapshot() -> None:
+                    with lock:
+                        together.append(set(active))
+
+                barrier = threading.Barrier(jobs, action=snapshot)
+
+                def workload(name: str) -> None:
+                    nonlocal maximum
+                    with lock:
+                        position = len(starts)
+                        starts.append(name)
+                        active.add(name)
+                        maximum = max(maximum, len(active))
+                    try:
+                        if position < jobs:
+                            barrier.wait(timeout=5)
+                    finally:
+                        with lock:
+                            active.discard(name)
+
+                scripts = tuple(
+                    MODULE.VerificationLane(
+                        f"script-{index}", lambda _log, i=index: workload(f"script-{i}")
+                    )
+                    for index in range(4)
+                )
+                with (
+                    self.local_full_plan(
+                        scripts=scripts, isolated=lambda name, _log: workload(name)
+                    ),
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
+                    result = MODULE.execute_verification(
+                        MODULE.parse_args(["--skip-structure", f"--jobs={jobs}"])
+                    )
+
+                self.assertEqual(0, result)
+                self.assertEqual(jobs, maximum)
+                self.assertEqual(1, len(together))
+                self.assertEqual(jobs, len(together[0]))
+                self.assertIn("dotnet-coverage", together[0])
+                self.assertCountEqual(
+                    ["dotnet-coverage", *(f"script-{index}" for index in range(4)), "python"],
+                    starts,
+                )
+
+    def test_local_full_pool_starts_no_lane_before_restore_and_build_finish(self) -> None:
+        for failing in (None, "restore", "build"):
+            with self.subTest(failing=failing):
+                lock = threading.Lock()
+                events: list[str] = []
+
+                def record(event: str) -> None:
+                    with lock:
+                        events.append(event)
+
+                def phase(name: str):
+                    def action(*_args: object, **_kwargs: object) -> None:
+                        if name == failing:
+                            raise RuntimeError(f"{name} probe")
+                        record(f"{name}-end")
+
+                    return action
+
+                with (
+                    self.local_full_plan(
+                        scripts=(
+                            MODULE.VerificationLane("script", lambda _log: record("start:script")),
+                        ),
+                        isolated=lambda name, _log: record(f"start:{name}"),
+                        restore=phase("restore"),
+                        build=phase("build"),
+                    ) as (_restore, _build, cleanup),
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
+                    result = MODULE.execute_verification(MODULE.parse_args(["--all"]))
+
+                self.assertEqual(0 if failing is None else 1, result)
+                cleanup.assert_called_once()
+                expected_prefix = {
+                    None: ["restore-end", "build-end"],
+                    "restore": [],
+                    "build": ["restore-end"],
+                }[failing]
+                self.assertEqual(expected_prefix, events[:len(expected_prefix)])
+                lane_starts = events[len(expected_prefix):]
+                if failing is not None:
+                    self.assertEqual([], lane_starts)
+                else:
+                    self.assertCountEqual(
+                        ["start:dotnet-coverage", "start:structure-postchecks",
+                         "start:script", "start:python"],
+                        lane_starts,
+                    )
+
+    def test_local_full_pool_gives_only_dotnet_its_lane_budget(self) -> None:
+        for flags, dotnet_budget, budget in (
+            ([], MODULE.LOCAL_DOTNET_COVERAGE_LANE_TIMEOUT_SECONDS,
+             MODULE.DEFAULT_LANE_TIMEOUT_SECONDS),
+            (["--lane-timeout-seconds=60"], 60, 60),
+            (["--lane-timeout-seconds=900"], 900, 900),
+        ):
+            with self.subTest(flags=flags):
+                clock = [1000.0]
+                budgets: dict[str, float] = {}
+
+                def observe(name: str) -> None:
+                    budgets[name] = MODULE.LANE_DEADLINE.get() - clock[0]
+                    clock[0] += 10
+
+                scripts = (
+                    MODULE.VerificationLane(
+                        "module-a", lambda _log: observe("module-a"), deadline_group="shard"
+                    ),
+                    MODULE.VerificationLane(
+                        "module-b", lambda _log: observe("module-b"), deadline_group="shard"
+                    ),
+                )
+                with (
+                    self.local_full_plan(
+                        scripts=scripts, isolated=lambda name, _log: observe(name)
+                    ),
+                    patch.object(MODULE, "monotonic", side_effect=lambda: clock[0]),
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
+                    result = MODULE.execute_verification(
+                        MODULE.parse_args(["--skip-structure", "--jobs=1", *flags])
+                    )
+
+                self.assertEqual(0, result)
+                # The queued module keeps its shard's shared deadline, queue time included.
+                self.assertEqual(
+                    {"dotnet-coverage": dotnet_budget, "module-a": budget,
+                     "module-b": budget - 10, "python": budget},
+                    budgets,
+                )
 
     def test_explicit_local_full_deadline_still_bounds_dotnet_coverage(self) -> None:
         for deadline in (60, 900):
@@ -983,36 +1120,49 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertEqual([["structure-sync"]], calls)
 
-    def test_public_dotnet_failure_still_runs_independent_lanes_and_aggregates(self) -> None:
+    def test_local_full_pool_reports_and_fails_in_declaration_order(self) -> None:
+        lock = threading.Lock()
         completed: list[str] = []
+        others_finished = threading.Event()
+        stdout = io.StringIO()
         stderr = io.StringIO()
 
-        def isolated(name: str, _log: Path) -> None:
-            completed.append(name)
-            if name in {"dotnet-coverage", "python"}:
+        def finish(name: str, *, fail: bool = False) -> None:
+            with lock:
+                completed.append(name)
+                if {"script", "python"} <= set(completed):
+                    others_finished.set()
+            if fail:
                 raise RuntimeError(f"{name} failed")
 
+        def isolated(name: str, _log: Path) -> None:
+            if name == "dotnet-coverage":
+                if not others_finished.wait(5):
+                    raise AssertionError("the other lanes did not finish before .NET")
+            finish(name, fail=True)
+
         with (
-            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
-            patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
-            patch.object(MODULE, "run_dotnet_restore_plan"),
-            patch.object(MODULE, "run_dotnet_post_restore_build_plan"),
-            patch.object(MODULE, "local_repository_script_lanes", return_value=(
-                MODULE.VerificationLane("script", lambda _log: completed.append("script")),
-            )),
-            patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
-            patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
-            contextlib.redirect_stdout(io.StringIO()),
+            self.local_full_plan(
+                scripts=(MODULE.VerificationLane("script", lambda _log: finish("script")),),
+                isolated=isolated,
+            ) as (_restore, _build, cleanup),
+            contextlib.redirect_stdout(stdout),
             contextlib.redirect_stderr(stderr),
         ):
             self.assertEqual(1, MODULE.execute_verification(
                 MODULE.parse_args(["--skip-structure"])
             ))
-        self.assertEqual("dotnet-coverage", completed[0])
-        self.assertCountEqual(["dotnet-coverage", "script", "python"], completed)
-        self.assertIn("verification lanes failed: dotnet", stderr.getvalue())
-        self.assertIn("independent lanes also failed: verification lanes failed: python",
-                      stderr.getvalue())
+
+        self.assertEqual("dotnet-coverage", completed[-1])
+        self.assertIn("verification lanes failed: dotnet, python", stderr.getvalue())
+        output = stdout.getvalue()
+        headers = [output.index(f"=== {name} lane") for name in ("dotnet", "script", "python")]
+        self.assertEqual(sorted(headers), headers)
+        self.assertRegex(
+            output,
+            r"Verification lane summary: dotnet=FAIL \([0-9.]+s\), "
+            r"script=PASS \([0-9.]+s\), python=FAIL \([0-9.]+s\)",
+        )
         cleanup.assert_called_once()
 
     def test_public_build_or_pool_setup_failure_and_cancellation_still_cleanup(self) -> None:
@@ -1064,13 +1214,207 @@ class VerifyOrchestrationTests(unittest.TestCase):
             contextlib.redirect_stdout(io.StringIO()),
             contextlib.redirect_stderr(stderr),
         ):
+            # The serial form; the pool form is the admission-latch test below.
             self.assertEqual(1, MODULE.execute_verification(
-                MODULE.parse_args(["--skip-structure"])
+                MODULE.parse_args(["--skip-structure", "--jobs=1"])
             ))
         self.assertEqual(1, launch.call_count)
         script.assert_not_called()
         self.assertIn("coverage child launch probe", stderr.getvalue())
         cleanup.assert_called_once()
+
+    def test_setup_failure_closes_lane_admission_before_later_lanes_start(self) -> None:
+        lock = threading.Lock()
+        attempts: list[tuple[str, bool]] = []
+        blocked_started = threading.Event()
+        queued_attempted = threading.Event()
+        ran: list[str] = []
+        cancellation_seen: list[bool] = []
+        stderr = io.StringIO()
+        real_admission = MODULE.LaneAdmission
+        real_as_completed = MODULE.as_completed
+
+        class ObservedAdmission(real_admission):
+            def admit(self, name: str) -> bool:
+                admitted = super().admit(name)
+                with lock:
+                    attempts.append((name, admitted))
+                    if {"queued", "python"} <= {attempt for attempt, _ in attempts}:
+                        queued_attempted.set()
+                return admitted
+
+        def blocked(_log: Path) -> None:
+            blocked_started.set()
+            cancellation_seen.append(MODULE.PROCESS_CANCELLATION_REQUESTED.is_set())
+            if not queued_attempted.wait(5):
+                raise AssertionError("queued lanes were never attempted")
+            ran.append("blocked")
+
+        def isolated(name: str, _log: Path) -> None:
+            if name == "dotnet-coverage":
+                if not blocked_started.wait(5):
+                    raise AssertionError("the blocked lane was never admitted")
+                raise OSError("coverage child launch probe")
+            ran.append(name)
+
+        def hold_main_thread(futures):
+            if not queued_attempted.wait(5):
+                raise AssertionError("queued lanes were never attempted")
+            return real_as_completed(futures)
+
+        with (
+            self.local_full_plan(
+                scripts=(
+                    MODULE.VerificationLane("blocked", blocked),
+                    MODULE.VerificationLane("queued", lambda _log: ran.append("queued")),
+                ),
+                isolated=isolated,
+            ) as (_restore, _build, cleanup),
+            patch.object(MODULE, "LaneAdmission", ObservedAdmission),
+            patch.object(MODULE, "as_completed", side_effect=hold_main_thread),
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(stderr),
+        ):
+            result = MODULE.execute_verification(
+                MODULE.parse_args(["--skip-structure", "--jobs=2"])
+            )
+
+        self.assertEqual(1, result)
+        self.assertEqual(["blocked"], ran)
+        # Restore and build are earlier single-lane pools with their own latches.
+        self.assertEqual(
+            {("dotnet-restore", True), ("dotnet-build", True), ("dotnet", True),
+             ("blocked", True), ("queued", False), ("python", False)},
+            set(attempts),
+        )
+        self.assertEqual(6, len(attempts))
+        self.assertIn("dotnet coverage child launch/setup failed", stderr.getvalue())
+        self.assertIn("coverage child launch probe", stderr.getvalue())
+        self.assertNotIn("verification lanes failed", stderr.getvalue())
+        self.assertEqual([False], cancellation_seen)
+        self.assertFalse(MODULE.PROCESS_CANCELLATION_REQUESTED.is_set())
+        cleanup.assert_called_once()
+
+    @staticmethod
+    def process_ended(pid: int, timeout_seconds: float = 5) -> bool:
+        """Wait for a process to end without signalling it."""
+
+        if sys.platform == "win32":
+            import ctypes
+            from ctypes import wintypes
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel32.OpenProcess.restype = wintypes.HANDLE
+            kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+            kernel32.WaitForSingleObject.restype = wintypes.DWORD
+            kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+            synchronize_and_query = 0x00100000 | 0x00001000
+            handle = kernel32.OpenProcess(synchronize_and_query, False, pid)
+            if not handle:
+                return True
+            try:
+                return kernel32.WaitForSingleObject(handle, int(timeout_seconds * 1000)) == 0
+            finally:
+                kernel32.CloseHandle(handle)
+        deadline = time.monotonic() + timeout_seconds
+        while True:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.05)
+
+    def test_local_full_pool_interruption_terminates_the_coverage_tree_without_cleanup_child(
+        self,
+    ) -> None:
+        for mode in ("ctrl-c", "sigterm"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                pid_files = (root / "child.pid", root / "grandchild.pid")
+                grandchild = (
+                    "import os, pathlib, time; "
+                    f"pathlib.Path({str(pid_files[1])!r}).write_text(str(os.getpid())); "
+                    "time.sleep(20)"
+                )
+                child = (
+                    "import os, pathlib, subprocess, sys, time; "
+                    f"pathlib.Path({str(pid_files[0])!r}).write_text(str(os.getpid())); "
+                    f"subprocess.Popen([sys.executable, '-c', {grandchild!r}]); "
+                    "time.sleep(20)"
+                )
+                spawned: list[list[str]] = []
+                cleanup_cancellation: list[bool] = []
+                real_start = MODULE.start_owned_process
+                real_cleanup = MODULE.cleanup_dotnet_batch
+                expected = (
+                    KeyboardInterrupt if mode == "ctrl-c"
+                    else MODULE.VerificationTerminationRequested
+                )
+
+                def start(command, **kwargs):
+                    spawned.append(command)
+                    return real_start(command, **kwargs)
+
+                def isolated(name: str, log: Path) -> None:
+                    if name == "dotnet-coverage":
+                        MODULE.run([sys.executable, "-c", child], log_path=log)
+
+                def script(_log: Path) -> None:
+                    deadline = time.monotonic() + 10
+                    while not MODULE.PROCESS_CANCELLATION_REQUESTED.is_set():
+                        if time.monotonic() > deadline:
+                            raise AssertionError("the blocked script lane was never cancelled")
+                        time.sleep(0.01)
+
+                def interrupt_after_ready(_futures):
+                    deadline = time.monotonic() + 10
+                    while not all(path.exists() and path.read_text() for path in pid_files):
+                        if time.monotonic() > deadline:
+                            raise AssertionError("the coverage child tree never became ready")
+                        time.sleep(0.01)
+                    if self.process_ended(int(pid_files[0].read_text()), 0):
+                        raise AssertionError("the coverage child ended before the interruption")
+                    if mode == "ctrl-c":
+                        _thread.interrupt_main()
+                    else:
+                        signal.raise_signal(signal.SIGTERM)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        time.sleep(0.01)
+                    raise AssertionError("the interruption was not delivered")
+
+                def cleanup(*args: object) -> None:
+                    cleanup_cancellation.append(MODULE.PROCESS_CANCELLATION_REQUESTED.is_set())
+                    real_cleanup(*args)
+
+                try:
+                    with (
+                        MODULE.handle_external_termination(),
+                        self.local_full_plan(
+                            scripts=(MODULE.VerificationLane("script", script),),
+                            isolated=isolated,
+                        ),
+                        patch.object(MODULE, "start_owned_process", side_effect=start),
+                        patch.object(MODULE, "as_completed", side_effect=interrupt_after_ready),
+                        patch.object(MODULE, "cleanup_dotnet_batch", side_effect=cleanup),
+                        patch.object(MODULE, "stop_idle_build_workers") as stop_workers,
+                        contextlib.redirect_stdout(io.StringIO()),
+                        contextlib.redirect_stderr(io.StringIO()),
+                        self.assertRaises(expected),
+                    ):
+                        MODULE.execute_verification(MODULE.parse_args(["--skip-structure"]))
+                    self.assertTrue(all(
+                        self.process_ended(int(path.read_text())) for path in pid_files
+                    ))
+                    self.assertEqual([[sys.executable, "-c", child]], spawned)
+                    self.assertEqual([True], cleanup_cancellation)
+                    stop_workers.assert_not_called()
+                    self.assertFalse(MODULE.ACTIVE_PROCESSES)
+                finally:
+                    MODULE.PROCESS_CANCELLATION_REQUESTED.clear()
 
     def test_real_lane_interruption_keeps_cleanup_from_starting_a_child(self) -> None:
         for interruption in (KeyboardInterrupt(), MODULE.VerificationTerminationRequested(signal.SIGTERM)):

@@ -338,6 +338,31 @@ class VerificationLane:
     internal_name: str | None = None
     deadline_group: str | None = None
     on_terminal: Callable[[BaseException | None], None] | None = None
+    # A lane-specific wall-clock budget; None uses the pool's lane timeout.
+    timeout_seconds: float | None = None
+
+
+class LaneAdmission:
+    """Pool-local latch: after a lane setup failure no later lane is admitted.
+
+    A lane is admitted before its action starts; a worker whose action raised
+    ``VerificationLaneSetupFailure`` closes the latch before the failure is
+    published through its future, so every other lane was either admitted
+    before the close or never starts, however late the main thread observes it.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._closed = False
+
+    def admit(self, name: str) -> bool:
+        del name  # Named for diagnostics and observation only.
+        with self._lock:
+            return not self._closed
+
+    def close(self) -> None:
+        with self._lock:
+            self._closed = True
 
 
 @dataclass(frozen=True)
@@ -6347,7 +6372,9 @@ def run_lanes(
         raise ValueError(
             f"verification jobs must be between 1 and {MAXIMUM_VERIFY_JOBS}"
         )
-    if lane_timeout_seconds <= 0:
+    if lane_timeout_seconds <= 0 or any(
+        lane.timeout_seconds is not None and lane.timeout_seconds <= 0 for lane in lanes
+    ):
         raise ValueError("verification lane timeout must be positive")
     names = tuple(lane.name for lane in lanes)
     if len(names) != len(set(names)):
@@ -6357,6 +6384,7 @@ def run_lanes(
     group_deadlines_lock = threading.Lock()
     notified: set[str] = set()
     notification_lock = threading.Lock()
+    admission = LaneAdmission()
 
     def notify_terminal(lane: VerificationLane, failure: BaseException | None) -> BaseException | None:
         with notification_lock:
@@ -6377,8 +6405,14 @@ def run_lanes(
 
     def run_lane(lane: VerificationLane) -> LaneResult:
         log_path = log_directory / f"{lane.name}.log"
+        if not admission.admit(lane.name):
+            refusal = "not started: lane admission closed after a setup failure"
+            notify_terminal(lane, RuntimeError(refusal))
+            return LaneResult(lane.name, False, 0.0, log_path, refusal)
         started = monotonic()
-        deadline = started + lane_timeout_seconds
+        deadline = started + (
+            lane_timeout_seconds if lane.timeout_seconds is None else lane.timeout_seconds
+        )
         if lane.deadline_group is not None:
             with group_deadlines_lock:
                 deadline = group_deadlines.setdefault(lane.deadline_group, deadline)
@@ -6392,6 +6426,8 @@ def run_lanes(
                 lane.action(log_path)
             remaining_timeout()
         except BaseException as error:
+            if isinstance(error, VerificationLaneSetupFailure):
+                admission.close()  # Before the failure is published through the future.
             failure = error
         finally:
             LANE_DEADLINE.reset(deadline_token)
@@ -6488,7 +6524,12 @@ def run_selected_lanes(
         print(
             "Verification policy: "
             f"jobs={jobs}, lane-timeout={lane_timeout_seconds}s, "
-            f"cleanup-ceiling={CLEANUP_TIMEOUT_SECONDS}s"
+            + "".join(
+                f"{lane.name}-lane-timeout={lane.timeout_seconds:g}s, "
+                for lane in lanes
+                if lane.timeout_seconds is not None
+            )
+            + f"cleanup-ceiling={CLEANUP_TIMEOUT_SECONDS}s"
         )
         results = run_lanes(
             lanes,
@@ -6530,7 +6571,12 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
 
 
 def run_local_full_verification(args: argparse.Namespace) -> None:
-    """Run bounded .NET build and coverage before independent postchecks."""
+    """Run exclusive sync, restore and build, then every workload in one lane pool.
+
+    The .NET coverage lane is submitted first and counts against ``--jobs``; its
+    UiSmoke parts and Infrastructure stay exclusive inside it. Results keep
+    declaration order, and SDK cleanup runs once after the pool.
+    """
 
     dotnet = resolve_dotnet()
     environment = dotnet_batch_environment()
@@ -6563,30 +6609,25 @@ def run_local_full_verification(args: argparse.Namespace) -> None:
             )),),
             jobs=1, lane_timeout_seconds=args.lane_timeout_seconds,
         )
-        independent_lanes = []
+        # An explicit --lane-timeout-seconds binds every lane, .NET included.
+        lanes = [VerificationLane(
+            "dotnet", collect_coverage,
+            timeout_seconds=(
+                None if args.lane_timeout_was_supplied
+                else LOCAL_DOTNET_COVERAGE_LANE_TIMEOUT_SECONDS
+            ),
+        )]
         if not args.skip_structure:
-            independent_lanes.append(VerificationLane(
+            lanes.append(VerificationLane(
                 "structure", verify_structure_postchecks,
                 isolate_action=True, internal_name="structure-postchecks",
             ))
-        independent_lanes.extend(local_repository_script_lanes())
-        independent_lanes.append(VerificationLane(
+        lanes.extend(local_repository_script_lanes())
+        lanes.append(VerificationLane(
             "python", verify_python, isolate_action=True,
         ))
-        try:
-            run_selected_lanes((VerificationLane(
-                "dotnet", collect_coverage,
-            ),), jobs=1, lane_timeout_seconds=(
-                args.lane_timeout_seconds if args.lane_timeout_was_supplied
-                else LOCAL_DOTNET_COVERAGE_LANE_TIMEOUT_SECONDS
-            ))
-        except VerificationLanesFailed as error:
-            failure = error
-        try:
-            run_selected_lanes(independent_lanes, jobs=args.jobs,
-                               lane_timeout_seconds=args.lane_timeout_seconds)
-        except Exception as error:
-            failure = combine_failures(failure, error, secondary_label="independent lanes")
+        run_selected_lanes(lanes, jobs=args.jobs,
+                           lane_timeout_seconds=args.lane_timeout_seconds)
     except BaseException as error:
         failure = error
     finally:

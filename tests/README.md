@@ -40,6 +40,26 @@ Visual captures therefore use narrow `dotnet test` runs, as in the sections
 below. Measured basis (experiment E2, Release, no coverage): UiSmoke 331 s in
 one process and 155 s in three, all 1,720 cases passing.
 
+## 1.1.13 local top-level schedule
+
+Owner: `run_local_full_verification` and `run_lanes` in
+[`verify.py`](../scripts/verify.py) (`VERIFY-LOCAL-OVERLAP-1113-01`, board
+decisions 107 and 130). Every `--all` run, including `main-package.yml`, and
+every `--skip-structure` run first runs derived-data sync, restore and the
+Release build as exclusive phases. Then one pool of at most `--jobs` lanes
+runs the .NET coverage lane (submitted first, 1,200 s unless
+`--lane-timeout-seconds` is given, which then binds every lane), the structure
+postchecks, each script module under its shard's shared deadline, and the CRC
+worker. UiSmoke parts and Infrastructure stay exclusive inside the .NET lane.
+`--jobs=1` runs the same lanes serially in that order and keeps the UiSmoke
+partition. Results, the report and the failure list keep declaration order.
+A coverage child launch failure closes the pool's admission latch: no later
+lane starts, lanes already admitted finish, and SDK cleanup runs once after
+the pool. This replaces the VERIFY-1110 rule that ran the coverage lane alone
+before the other lanes; the build stays exclusive. Measured basis (experiment
+E1, one run, four concurrent lanes): about 24 minutes before, 15 min 27 s
+with the overlap, UiSmoke at 486 s of its 600 s limit.
+
 ## v1.1.5 local scheduling change
 
 Public `--jobs` supports 1–4 workers; the default remains three. Four is an
