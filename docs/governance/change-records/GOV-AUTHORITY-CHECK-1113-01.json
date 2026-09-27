@@ -5,7 +5,7 @@
   "integrationBase": "c6add007169abd087d08964f0a7aabfba8a053a3",
   "risk": "R3",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     ".github/workflows/README.md",
     ".github/workflows/authority.yml",
@@ -35,12 +35,22 @@
     "outcome": "findings-incorporated",
     "evidence": "ADR 0080 design reviews by codex/gpt-6-astra: first at e60ba0062, second at acbe5654d, third at cb72ee0b0 and fourth at 168de342b, each ACCEPT-WITH-CHANGES with every finding incorporated (docs/handoff/1.1.13/WS-GOV.md). Independent read-only fifth-round design review by codex/gpt-6-astra at 664bbe868af0b4a17507d0ac91f758afc626eec6 concluded ACCEPT-WITH-CHANGES, with no P0 or P1 findings; fourth-round F-1 (bootstrap) and F-2 (base authority code) were closed. Independent read-only confirmation by codex/gpt-6-luna at d7002a9e5962b9b0134b3477e377748f4f378aea confirms F-3 and F-4 are closed: the approval snapshot retains the full approval-relevant review content and requires owner reconfirmation for a body edit under the same review ID, head SHA and verdict; the required-checks summary matches M4 and states the Active, non-bypass condition. No contradiction with the related ADR sections was found. No files were modified; no build or tests were run. The owner accepted the staged design at d7002a9e5 (board decision 109) and supplied the G1-A inputs: principals (decision 110) and the firmware-semantic folders (decision 111)."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "fa87b19fde44efefe510d4d39ae005f95e6f62b1",
+  "reviewedHead": "fa87b19fde44efefe510d4d39ae005f95e6f62b1",
+  "pathStateDigest": "820d605ec88a51ae70085672e6a311a6d06fe300f59dd5b7c49b58b77bc40f74",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only R3 final review by codex/gpt-6-astra, implementationOwner claude-code, at exact head 17794107df99bc1b076583e0c997ae0e18e0ce1f: APPROVED. Round one at e320cd2b16f8cf587fbae40ecae88626778d88b6 was BLOCKED by F-1 (P1, unchanged copy sources omitted), F-2 (P2, missing governance-R3 pin-file classification), and F-3 (P2, misleading checker provenance). Round two confirms all three findings and comments A/C are incorporated, with no new required corrections. Admission 2df28773c remains unchanged. Forty-three tests passed independently; read-only probes confirmed planned-path classifications, checker identity, the original copy reproduction, binary-copy detection, and failure on detection-limit warnings and timeout. An existing-object comparison covering 1,988 changes completed in approximately 1.68 seconds. Nine scratch-repository tests were not run under the read-only sandbox, and the policy suite lacked PyYAML; the implementer's reported 61 passes were not independently rerun in full. No files were modified, builds performed, or network requests made. Finalization may proceed; owner attestations, bootstrap approval, required checks and live activation acceptance remain separate gates. Rebuilt on the trunk after #464: codex/gpt-6-astra confirmed by read-only inspection that b80aa7c25cf8817ed6fcadea5d9fcdc923e10e28 preserves all seven G1-A patches except the integrationBase checkpoint update and contains only the expected trunk delta, with #464 path classifications remaining appropriate; however, #462 introduces a docstring reference that deterministically triggers the prose-consumer assertion, requiring correction before unconditional approval; no builds or tests were run. codex/gpt-6-astra accepts fce8721ff8da6c1ddc9e4ca826c133245cfbaf39: the sole added commit changes only two docstring lines to cite the bug ID, closing the prior P2 without altering executable code, checker, policy, or classifications; the requested path scan found no additional non-exempt R0 prose references, while the local pytest attempt was blocked before collection by unavailable writable temporary storage, and full verification remains pending. codex/gpt-6-astra accepts fa87b19fde44efefe510d4d39ae005f95e6f62b1 as a narrowly scoped follow-up to G1AR4: the sole diff preserves the complete module AST and PLACEHOLDERS values while eliminating the confirmed marker false positive without modifying polytail_check.py; the full polytail pass and 61 passing tests are commander-reported evidence, not rerun by this reviewer."
+  },
+  "integrationPaths": [
+    ".github/workflows/README.md",
+    ".github/workflows/authority.yml",
+    "docs/adr/0079-test-architecture.md",
+    "docs/adr/0080-governance-reset.md",
+    "docs/governance/authority-policy.json",
+    "docs/governance/authority-policy.schema.json",
+    "docs/governance/development-execution-workflow.md",
+    "scripts/authority_check.py"
+  ]
 }
