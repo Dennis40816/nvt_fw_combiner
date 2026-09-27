@@ -9,7 +9,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (28)
+## Done (31)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -41,18 +41,18 @@ remove items; the board decisions stay the authority for scope.
 | 27 | Navigation focus underline (decision 32) | #461 |
 | 28 | Wave 5 F03/F06 process cleanup and ADR 0081 | #461 |
 | 29 | Test local-state isolation and the ADR 0079 amendment | #461 |
+| 50 | UiSmoke headless session stall: fail-fast guard (U1) | #464 |
+| 60 | `MemoryCoverageBar` one rebuild per load (decision 112) | #464 |
+| 61 | Local verify speed: UiSmoke partition and lane overlap (decisions 107, 128-130, 132, 134): about 24 to 14 min | #464 |
 
-## Active (7)
+## Active (4)
 
 | # | Item | Next |
 | --- | --- | --- |
 | 26 | C-7 TP SVN display (R3) | paused behind the verify-speed work: admission on the current checkpoint, ADR 0075 memory gate, firmware and release attestations |
 | 30 | G0: GitHub App, rulesets and settings, including A-5 | applied; Workflows permission granted (decision 131 push done); owner items A8 (sign out own sessions) and D6 (bypass or pause drill on `9.9.x`) remain |
-| 31 | WS-GOV governance reset (ADR 0080) | paused by decision 133: G1-A #463 needs a rebase onto the trunk (its base missed #462), re-finalization and exact-head approvals after the verify-speed batch; the G1-B plan keeps its third design review result |
-| 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114) | verify speed below (item 61) |
-| 50 | UiSmoke headless session stall | U1 fail-fast guard approved in two review rounds; joins the verify-speed batch |
-| 60 | `MemoryCoverageBar` one rebuild per load (decision 112) | approved in two review rounds; joins the verify-speed batch |
-| 61 | Local verify speed: UiSmoke three-process partition and .NET/Python overlap (decisions 107, 128-130, 132) | design in its third revision, then admission, implementation, three green runs and the `main-package.yml` gate |
+| 31 | WS-GOV governance reset (ADR 0080) | G1-A rebuilt on the trunk with its admission rebound to `c6add0071`: verification, re-finalization and exact-head approvals; G1-B plan revision 4 after the third review (one P2) |
+| 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | CI tiers and U4/U5 with G2 |
 
 ## Waiting or open (26)
 
