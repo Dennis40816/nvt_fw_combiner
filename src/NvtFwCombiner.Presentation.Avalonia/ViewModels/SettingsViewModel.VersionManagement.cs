@@ -236,17 +236,30 @@ internal sealed partial class SettingsViewModel
         try
         {
             VersionManagementSnapshot initialized = await _versionManagement.InitializeAsync(CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
             ApplyVersionSnapshot(initialized);
             if (initialized.State?.UpdateSource is not null)
             {
                 IsSourceChecking = true;
-                ApplyVersionSnapshot(await _versionManagement.CheckAsync(isAutomatic, CancellationToken.None));
+                VersionManagementSnapshot checkedSnapshot = await _versionManagement.CheckAsync(
+                    isAutomatic, CancellationToken.None);
+                if (!await WaitForWindowPublicationAsync())
+                {
+                    return;
+                }
+                ApplyVersionSnapshot(checkedSnapshot);
             }
         }
         finally
         {
-            IsSourceChecking = false;
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsSourceChecking = false;
+                IsVersionBusy = false;
+            }
         }
     }
 
@@ -425,14 +438,22 @@ internal sealed partial class SettingsViewModel
         try
         {
             IsUpdateSourceEditing = false;
-            ApplyVersionSnapshot(await _versionManagement.CommitUpdateSourceAsync(
+            VersionManagementSnapshot committed = await _versionManagement.CommitUpdateSourceAsync(
                 UpdateSourceDraft,
-                CancellationToken.None));
+                CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
+            ApplyVersionSnapshot(committed);
         }
         finally
         {
-            IsSourceChecking = false;
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsSourceChecking = false;
+                IsVersionBusy = false;
+            }
         }
     }
 
@@ -448,14 +469,22 @@ internal sealed partial class SettingsViewModel
         IsSourceChecking = true;
         try
         {
-            ApplyVersionSnapshot(await _versionManagement.CheckAsync(
+            VersionManagementSnapshot checkedSnapshot = await _versionManagement.CheckAsync(
                 isAutomatic: false,
-                CancellationToken.None));
+                CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
+            ApplyVersionSnapshot(checkedSnapshot);
         }
         finally
         {
-            IsSourceChecking = false;
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsSourceChecking = false;
+                IsVersionBusy = false;
+            }
         }
     }
 
@@ -477,6 +506,10 @@ internal sealed partial class SettingsViewModel
         {
             VersionManagementSnapshot snapshot = await _versionManagement.AcknowledgeRetentionReviewAsync(
                 CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
             ApplyVersionSnapshot(snapshot);
             VersionOperationStatus = snapshot.StateIssue == VersionManagerStateLoadIssue.None &&
                 snapshot.State?.RetentionReviewDue == false
@@ -489,7 +522,10 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsVersionBusy = false;
+            }
         }
     }
 
@@ -555,6 +591,10 @@ internal sealed partial class SettingsViewModel
                     row.Version,
                     rollbackLossConfirmed: action == VersionConfirmationAction.DeleteLastKnownGood,
                     CancellationToken.None);
+                if (!await WaitForWindowPublicationAsync())
+                {
+                    return;
+                }
                 if (deleted.OperationIssue == VersionDeleteOperationIssue.RollbackConfirmationRequired)
                 {
                     ApplyVersionSnapshot(deleted.Snapshot);
@@ -582,6 +622,10 @@ internal sealed partial class SettingsViewModel
                 VersionInstallOperationResult installed = await _versionManagement.InstallAsync(
                     row.Version,
                     CancellationToken.None);
+                if (!await WaitForWindowPublicationAsync())
+                {
+                    return;
+                }
                 ApplyVersionSnapshot(installed.Snapshot);
                 if (!installed.Install.IsSuccess)
                 {
@@ -614,9 +658,17 @@ internal sealed partial class SettingsViewModel
             }
             catch (InvalidOperationException)
             {
+                if (!await WaitForWindowPublicationAsync())
+                {
+                    return;
+                }
                 VersionOperationStatus = Localize(
                     "Activation could not be prepared because version state is unavailable or changed.",
                     "版本狀態目前無法使用或已變更，因此無法準備啟用。");
+                return;
+            }
+            if (!await WaitForWindowPublicationAsync())
+            {
                 return;
             }
             VersionOperationStatus = Localize("Restarting through the launcher…", "正在透過啟動器重新啟動…");
@@ -624,7 +676,10 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsVersionBusy = false;
+            }
         }
     }
 

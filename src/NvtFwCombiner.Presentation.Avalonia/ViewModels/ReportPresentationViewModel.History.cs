@@ -307,6 +307,13 @@ internal sealed partial class ReportPresentationViewModel
             return;
         }
 
+        if (WindowPublication is not null &&
+            !await WindowPublication.WaitToPublishAsync(
+                () => IsCurrentReportProjection(generation) && ReportHistoryEntries.Contains(entry),
+                cancellationToken))
+        {
+            return;
+        }
         if (!IsCurrentReportProjection(generation))
         {
             return;

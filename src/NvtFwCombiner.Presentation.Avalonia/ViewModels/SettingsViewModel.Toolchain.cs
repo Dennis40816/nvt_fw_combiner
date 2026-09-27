@@ -68,6 +68,7 @@ internal sealed partial class SettingsViewModel
             ToolchainRuntimeConfigurationOperationResult result = snapshot.Status == ToolchainRuntimeConfigurationStatus.NotLoaded
                 ? await _toolchainSession.ReloadAsync(CancellationToken.None)
                 : new(snapshot, true, snapshot.Issues);
+            if (!await WaitForWindowPublicationAsync()) { return; }
             if (operation != ToolchainOperationGeneration) { return; }
             _toolchainBaseline = result.Snapshot.RequestedSelection;
             _toolchainDraft = _toolchainBaseline;
@@ -76,9 +77,10 @@ internal sealed partial class SettingsViewModel
         }
         catch (Exception)
         {
-            if (operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; _toolchainLoadStarted = false; }
+            if (await WaitForWindowPublicationAsync() && operation == ToolchainOperationGeneration)
+            { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; _toolchainLoadStarted = false; }
         }
-        finally { if (operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
+        finally { if (MayPublishWindow && operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
     }
 
     private async Task InspectToolchainDraftAsync(long operation, long generation)
@@ -89,6 +91,7 @@ internal sealed partial class SettingsViewModel
             { Source: ToolchainRuntimeSource.User, Path: { } path } => await _toolchainSession!.InspectAsync(path, CancellationToken.None),
             _ => null,
         };
+        if (!await WaitForWindowPublicationAsync()) { return; }
         if (operation != ToolchainOperationGeneration || generation != _toolchainSession!.Current.Generation) { return; }
         _toolchainInspection = inspection;
         _toolchainIssues = [.. _toolchainIssues, .. inspection?.Issues ?? []];
@@ -107,8 +110,8 @@ internal sealed partial class SettingsViewModel
         long operation = ++ToolchainOperationGeneration;
         IsToolchainBusy = true;
         try { await InspectToolchainDraftAsync(operation, _toolchainSession!.Current.Generation); }
-        catch (Exception) { if (operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
-        finally { if (operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
+        catch (Exception) { if (await WaitForWindowPublicationAsync() && operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
+        finally { if (MayPublishWindow && operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
     }
 
     [RelayCommand(CanExecute = nameof(CanEditToolchain))]
@@ -143,11 +146,12 @@ internal sealed partial class SettingsViewModel
         try
         {
             ToolchainRuntimeCandidateInspection inspection = await _toolchainSession.InspectAsync(path, CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync()) { return; }
             if (operation != ToolchainOperationGeneration || generation != _toolchainSession.Current.Generation) { return; }
             ApplyToolchainCandidate(inspection, path);
         }
-        catch (Exception) { if (operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
-        finally { if (operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
+        catch (Exception) { if (await WaitForWindowPublicationAsync() && operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
+        finally { if (MayPublishWindow && operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
     }
 
     [RelayCommand(CanExecute = nameof(CanEditToolchain))]
@@ -162,6 +166,7 @@ internal sealed partial class SettingsViewModel
         try
         {
             IReadOnlyList<ToolchainRuntimeCandidateInspection> candidates = await _toolchainSession.DetectAsync(CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync()) { return; }
             if (operation != ToolchainOperationGeneration || generation != _toolchainSession.Current.Generation) { return; }
             ToolchainCandidates.Clear();
             foreach (ToolchainRuntimeCandidateInspection candidate in candidates)
@@ -182,8 +187,8 @@ internal sealed partial class SettingsViewModel
                 ToolchainOperationStatus = _textProvider().ToolchainNoCandidatesLabel;
             }
         }
-        catch (Exception) { if (operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
-        finally { if (operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
+        catch (Exception) { if (await WaitForWindowPublicationAsync() && operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
+        finally { if (MayPublishWindow && operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
     }
 
     [RelayCommand(CanExecute = nameof(CanEditToolchain))]
@@ -213,6 +218,7 @@ internal sealed partial class SettingsViewModel
         try
         {
             ToolchainRuntimeConfigurationOperationResult result = await _toolchainSession!.SaveAsync(_toolchainDraft!, CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync()) { return; }
             if (operation != ToolchainOperationGeneration) { return; }
             _toolchainIssues = result.Issues;
             if (result.Succeeded)
@@ -220,11 +226,11 @@ internal sealed partial class SettingsViewModel
                 _toolchainBaseline = _toolchainDraft = result.Snapshot.RequestedSelection;
                 ToolchainOperationStatus = string.Empty;
                 try { if (ToolchainAppliedAsync is not null) { await ToolchainAppliedAsync(CancellationToken.None); } }
-                catch (Exception) { if (operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainRefreshFailedLabel; } }
+                catch (Exception) { if (await WaitForWindowPublicationAsync() && operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainRefreshFailedLabel; } }
             }
         }
-        catch (Exception) { if (operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
-        finally { if (operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
+        catch (Exception) { if (await WaitForWindowPublicationAsync() && operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
+        finally { if (MayPublishWindow && operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
     }
 
     [RelayCommand(CanExecute = nameof(CanDiscardToolchain))]
@@ -239,8 +245,8 @@ internal sealed partial class SettingsViewModel
         IsToolchainBusy = true;
         long operation = ++ToolchainOperationGeneration;
         try { await InspectToolchainDraftAsync(operation, _toolchainSession.Current.Generation); }
-        catch (Exception) { if (operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
-        finally { if (operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
+        catch (Exception) { if (await WaitForWindowPublicationAsync() && operation == ToolchainOperationGeneration) { ToolchainOperationStatus = _textProvider().ToolchainOperationFailedLabel; } }
+        finally { if (MayPublishWindow && operation == ToolchainOperationGeneration) { IsToolchainBusy = false; RefreshToolchainLabels(); } }
     }
 
     [RelayCommand]

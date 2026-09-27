@@ -11,6 +11,54 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class VersionManagementSettingsTests
 {
+    /// <summary>A current Settings result waits through failed handoff and publishes once after resume.</summary>
+    [AvaloniaFact]
+    public async Task SettingsResultSuspendsDuringHandoffAndPublishesAfterResume()
+    {
+        VersionManagementSnapshot reviewed = Snapshot(retentionReviewDue: true);
+        var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        var held = new TaskCompletionSource<VersionManagementSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        bool holdRefresh = false;
+        IVersionManagementExperience experience =
+            DispatchProxy.Create<IVersionManagementExperience, WindowLifetimeStorageProxy>();
+        ((WindowLifetimeStorageProxy)experience).Call = (method, args) =>
+        {
+            return holdRefresh && method == nameof(IVersionManagementExperience.InitializeAsync)
+                ? new ValueTask<VersionManagementSnapshot>(held.Task)
+                : typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
+        };
+        var handoff = new GatedWindowLifetimeHandoff();
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.5", experience, handoff);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        holdRefresh = true;
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        Task refreshing = shell.Settings.RefreshVersionAsync(isAutomatic: false);
+        Assert.True(shell.Settings.IsVersionBusy);
+        window.CloseDeadlineFactory = _ => Task.CompletedTask;
+        window.RequestStableLauncherRestart();
+        window.Close();
+        await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.HandingOff, window.ClosePhase);
+        held.SetResult(reviewed);
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(shell.Settings.HasRetentionReview);
+        handoff.Release(started: false);
+        using var watchdog = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (!window.IsEnabled)
+        {
+            watchdog.Token.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            await Task.Yield();
+        }
+        await refreshing.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.True(shell.Settings.HasRetentionReview);
+    }
+
     /// <summary>Actual Closed is deferred until the stable launcher confirms its handoff.</summary>
     [AvaloniaFact]
     public async Task RealCloseWaitsForStableLauncherBeforeClosed()

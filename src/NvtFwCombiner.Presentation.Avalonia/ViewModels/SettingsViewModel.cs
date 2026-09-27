@@ -29,6 +29,15 @@ internal sealed partial class SettingChoiceViewModel(string value, string label)
 
 internal sealed partial class SettingsViewModel : ObservableObject
 {
+    internal WindowPublicationLease? WindowPublication { get; set; }
+
+    private Task<bool> WaitForWindowPublicationAsync(CancellationToken cancellationToken = default)
+    {
+        return WindowPublication?.WaitToPublishAsync(static () => true, cancellationToken) ?? Task.FromResult(true);
+    }
+
+    private bool MayPublishWindow => WindowPublication?.CanPublish ?? true;
+
     private readonly Lock _windowOperationsLock = new();
     private TaskCompletionSource _windowOperationsIdle = CompletedIdleSignal();
     private int _windowOperationsInFlight;

@@ -90,6 +90,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         MainWindowViewModel viewModel = CreateStartupViewModel(_hostServices, startupPreferences);
+        viewModel.Settings.WindowPublication = _windowPublication;
         viewModel.Reports.WindowPublication = _windowPublication;
         viewModel.WorkflowSession.WindowPublication = _windowPublication;
         viewModel.Merge.WindowPublication = _windowPublication;

@@ -24,13 +24,20 @@ internal sealed partial class SettingsViewModel
         {
             VersionEnvironmentSelfTestResult result = await Task.Run(
                 () => _versionManagement.RunEnvironmentSelfTestAsync(cancellationToken).AsTask(), cancellationToken);
+            if (!await WaitForWindowPublicationAsync(cancellationToken))
+            {
+                return;
+            }
             VersionOperationStatus = FormatEnvironmentSelfTestResult(result);
         }
         finally
         {
-            IsSourceChecking = false;
-            IsVersionSelfTestRunning = false;
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsSourceChecking = false;
+                IsVersionSelfTestRunning = false;
+                IsVersionBusy = false;
+            }
         }
     }
 

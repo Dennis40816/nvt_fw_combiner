@@ -13,6 +13,57 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Real-window close and startup publication lifetime regressions.</summary>
 public sealed partial class WindowLifetimeTests
 {
+    /// <summary>A late Settings fault settles without notifying the finally closed window.</summary>
+    [AvaloniaFact]
+    public async Task SettingsFaultAfterFinalCloseDoesNotPublishBusyChange()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var held = new TaskCompletionSource<VersionManagementSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        IVersionManagementExperience experience =
+            DispatchProxy.Create<IVersionManagementExperience, LifetimeReportStorageProxy>();
+        ((LifetimeReportStorageProxy)experience).Call = (name, _) => name == nameof(IVersionManagementExperience.InitializeAsync)
+            ? new ValueTask<VersionManagementSnapshot>(EnterAndWait())
+            : throw new NotSupportedException(name);
+        Task<VersionManagementSnapshot> EnterAndWait()
+        {
+            _ = entered.TrySetResult();
+            return held.Task;
+        }
+        PresentationHostServices original = PresentationTestHost.CreateServices("0.10.5");
+        var services = new PresentationHostServices(
+            original.Composition, original.FileReveal, original.SupportMatrix,
+            original.SystemInformation, original.SystemDiagnosticsExporter,
+            original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
+            original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory,
+            experience, null, null);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        Task refreshing = shell.Settings.RefreshVersionAsync(isAutomatic: false);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.True(shell.Settings.IsVersionBusy);
+        int postCloseNotifications = 0;
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => _ = closed.TrySetResult();
+        shell.Settings.PropertyChanged += (_, _) =>
+        {
+            if (closed.Task.IsCompleted)
+            {
+                postCloseNotifications++;
+            }
+        };
+        window.CloseDeadlineFactory = _ => Task.CompletedTask;
+        window.Close();
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        held.SetException(new InvalidOperationException("late Settings fault"));
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await refreshing);
+        Assert.Equal(0, postCloseNotifications);
+    }
+
     /// <summary>A completed user-file save cannot notify a window after its final lease is revoked.</summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
         Justification = "The modal takes ownership of the selected storage file.")]
