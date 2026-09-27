@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-ALL-HELP-1113-47",
+  "capability": "Accurate help for the existing --all local verification option",
+  "integrationBase": "e3fa0297535b0f1057dffa4421e1df5724ab5dfb",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "design-active",
+  "mutablePaths": [
+    "scripts/verify.py",
+    "tests/scripts/test_verify_orchestration.py"
+  ],
+  "implementationOwner": "codex/gpt-6-sol",
+  "searchEvidence": [
+    "scripts/verify.py:6141-6160,6292-6325,6573-6639,6642-6680,6706-6735",
+    ".github/workflows/ci.yml:56,90,125,164,220,261; .github/workflows/main-package.yml:41",
+    "scripts/validate_repository.py:1698-1744,1747-1779"
+  ],
+  "semanticOwner": "scripts/verify.py:parse_args",
+  "terminalContract": "The --all help is exactly 'Run the complete local verification suite. Cannot be combined with skip flags.' and does not claim CI/Codex completion or all public gates; parsing and execution behavior remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent two-round read-only R2 design review by codex/gpt-6-astra for implementationOwner codex/gpt-6-sol, NFC 1.1.13 TODO 47. Round 1 found one P2: the proposed public-gate wording overstated --all coverage and did not fix the final help string. Round 2 reviewed 47-design-v2.md and confirms that finding is incorporated: the exact text is “Run the complete local verification suite. Cannot be combined with skip flags.” Planned tests exercise rendered argparse help, whitespace normalization, SystemExit(0), the complete replacement text, removal of both old claims, and exact rejection of all three skip flags. The design preserves existing parsing, scheduling, partitioning, concurrency, and CI/release behavior. No new findings were identified. Relevant verifier, test, validator, and execution-workflow sources at HEAD 5cae4b591e9450ac25b4a253436f26c6d7484b64 are unchanged from f3857d6f1. Verdict: PASS for design only; recommended designReview.outcome: findings-incorporated. Formal admission, implementation verification, and frozen integration gates remain pending; checkpoint replay was not executed. Neither review modified files or Git state or ran tests, verifiers, builds, or network operations."
+  },
+  "implementationHead": null,
+  "reviewedHead": null,
+  "pathStateDigest": null,
+  "finalReview": {
+    "reviewer": null,
+    "outcome": "pending",
+    "evidence": ""
+  }
+}
