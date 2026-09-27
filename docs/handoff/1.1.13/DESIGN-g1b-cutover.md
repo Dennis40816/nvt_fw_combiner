@@ -368,14 +368,18 @@ missing sentinel, a count mismatch or any `NFC-AUDIT` line after the sentinel
 stderr minus every whole line matching `^NFC-AUDIT(-END)?\t[^\n]*\n` must
 equal the reference stderr byte for byte; a reference line with that prefix,
 or a prefix in mid-line, is an error, not a filter case. `subprocess.Popen`
-is allowed only for `git`; on Windows `_winapi.CreateProcess` only for the
-exact application, command line and cwd of the `subprocess.Popen` just before
+is allowed only for `git` after one Windows startup calibration child
+(`sys.executable -I -S -c pass`, without startup customization); on Windows
+`_winapi.CreateProcess` only for the exact application, command line and cwd of the `subprocess.Popen` just before
 it, recorded by a `_winapi.CreateProcess/arguments` boundary event forwarding
 the same native-call tuple. The native `_winapi.CreateProcess` event must
-follow that boundary once, with the same application and cwd. On CPython
-3.13.5 and 3.13.15 only, its command field may be a single nonzero control
-character (the known audit-format defect); all other runtimes require the exact
-command line there too. A missing, duplicate or unrecognized event fails. Any other
+follow that boundary once, with the same application and cwd. The calibration
+uses this same hook and pairing, records all three events, and caches whether
+the native command is exact or a single nonzero control character (the known
+audit-format defect); any other shape fails closed. Only an observed fragment
+allows later fragments, still paired with exact Popen/boundary commands. There
+is no version allowlist or boolean override. A missing, duplicate or
+unrecognized event fails. Any other
 launch or `ctypes.dlopen` is a violation, so a child interpreter's launches never need observing, and an
 exception caught in the entry cannot remove a written line. After normalizing
 `-C <checkout>` and `--no-replace-objects`, the Git calls must equal this
@@ -744,6 +748,20 @@ renamed or deleted; (6) the entry harness is slow and not a sandbox (2.7).
 | `.claude/` | 127 | No model field; read-only roles read-only tools; ignore `.claude/settings.local.json` |
 
 ## 8. Review response (codex/gpt-6-astra)
+
+Runtime calibration correction (2026-09-28), owner `codex/gpt-6-astra`, base
+`7531ec5fb`: the floating Python patch exposed the version allowlist's gap.
+Owner search confirms `LaunchGuard`, `install_audit` and `audit_transcript`
+own the proof; disposition `extend-owner`, mutable paths limited to this plan
+and the audit harness/tests. Replace version selection with one recorded,
+exactly paired harmless probe and a cached observation; preserve the Git
+multiset, denied launches and firmware semantics. Synthetic clean, fragment,
+unknown-shape and pairing controls cover the change: 17 new outcome cases failed
+before the harness edit; the corrected three Stage A suites passed 198 tests
+(audit 151, topology 39, retirement 8; no skips), with structure-only and
+Polytail passing on Windows CPython 3.13.5. Later-version shapes are synthetic
+evidence. Scoped review: `PASS-WITH-HUMAN-GATE`; the plan's R3 independent
+final-head review and owner approvals remain commander-owned integration gates.
 
 Windows CI audit correction admission (2026-09-28): implementation owner
 `codex/gpt-6-astra`, base `ac6b5fe4adf102b63647bdcb2aaa82dc02289afd`.

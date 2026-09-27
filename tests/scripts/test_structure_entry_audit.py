@@ -107,7 +107,7 @@ def test_script_launch_matches_interpreter_namespace_traceback_and_shutdown(entr
     )}
     audited = run_audited(entry_checkout, [], "scripts/_launch_probe.py", reference=reference)
     assert audited.returncode == status
-    assert audited.stderr.endswith(f"NFC-AUDIT-END\t0\t{status}\n".encode())
+    assert audited.stderr.endswith(f"NFC-AUDIT-END\t{3 if os.name == 'nt' else 0}\t{status}\n".encode())
 
 
 def test_real_structure_entry_has_only_frozen_binding_calls(entry_checkout):
@@ -260,10 +260,65 @@ def event_line(call):
     return b"".join(b"NFC-AUDIT\t" + json.dumps(item).encode() + b"\n" for item in events)
 
 
+def calibration_events(native_command=None):
+    command = subprocess.list2cmdline([sys.executable, "-I", "-S", "-c", "pass"])
+    return [
+        {"event": "subprocess.Popen", "args": [None, command, None]},
+        {"event": "_winapi.CreateProcess/arguments", "args": [None, command, None]},
+        {"event": "_winapi.CreateProcess", "args": [None, command if native_command is None else native_command, None]},
+    ]
+
+
+def calibrate(guard, native_command=None):
+    for event in calibration_events(native_command):
+        guard.observe(event)
+
+
+@pytest.mark.parametrize("native_command,broken", [(None, False), ("\x02", True), ("\x03", True)])
+@pytest.mark.parametrize("version", [(3, 13, 5), (3, 13, 15), (3, 13, 16), (3, 14, 0)])
+def test_probe_calibrates_from_observation_independent_of_patch(tmp_path, monkeypatch, native_command, broken, version):
+    monkeypatch.setattr(audit_module.sys, "version_info", version)
+    guard = LaunchGuard(tmp_path, [], windows=True)
+    calibrate(guard, native_command)
+    assert guard.broken_native_command is broken
+    guard.finish()
+    # Calibration is consumed once; it cannot become another launch allowance.
+    with pytest.raises(AuditViolation, match="non-git|unapproved"):
+        calibrate(guard, native_command)
+    assert guard.broken_native_command is broken
+
+
+@pytest.mark.parametrize("native_command", ["unknown", "", "\0", "\x02\x03", 2])
+def test_probe_unknown_native_shape_fails_closed(tmp_path, native_command):
+    guard = LaunchGuard(tmp_path, [], windows=True)
+    with pytest.raises(AuditViolation, match="calibration.*shape.*" + ("int" if isinstance(native_command, int) else "str")):
+        calibrate(guard, native_command)
+
+
+@pytest.mark.parametrize("failure", ["absent", "missing-popen", "missing-boundary", "missing-native", "duplicate", "wrong-command", "wrong-cwd", "wrong-executable"])
+def test_probe_requires_complete_exact_pairing(tmp_path, failure):
+    guard = LaunchGuard(tmp_path, [], windows=True)
+    events = calibration_events("\x03")
+    if failure == "absent":
+        events = []
+    elif failure.startswith("missing-"):
+        del events[{"missing-popen": 0, "missing-boundary": 1, "missing-native": 2}[failure]]
+    elif failure == "duplicate":
+        events.insert(1, events[0])
+    else:
+        events[1]["args"][{"wrong-command": 1, "wrong-cwd": 2, "wrong-executable": 0}[failure]] = "unexpected"
+    with pytest.raises(AuditViolation):
+        for event in events:
+            guard.observe(event)
+        guard.finish()
+
+
 
 def test_stderr_rule_preserves_clean_bytes_and_strips_only_whole_audit_lines(tmp_path):
     for output, expected in [(b"", []), (b"ordinary stderr NFC-AUDIT mention\n", []), (event_line(["ls-files", "-z"]), [["ls-files", "-z"]])]:
         reference = output if output.startswith(b"ordinary") else b""
+        if os.name == "nt":
+            output = b"".join(b"NFC-AUDIT\t" + json.dumps(item).encode() + b"\n" for item in calibration_events()) + output
         raw = output + f"NFC-AUDIT-END\t{output.count(b"NFC-AUDIT\t")}\t0\n".encode()
         clean, _ = audit_transcript(raw, 0, tmp_path, expected, reference)
         assert clean == reference
@@ -308,11 +363,11 @@ def test_unbounded_symbolic_and_foreign_history_calls_fail(entry_checkout, call)
 @pytest.mark.parametrize("native_command", ["git ls-files -z", "\x02", "\x03"])
 @pytest.mark.parametrize("explicit_cwd", [False, True])
 def test_windows_launch_pairs_exact_boundary_and_native_event(tmp_path, monkeypatch, version, native_command, explicit_cwd):
-    # Exercise runtime selection, not a compatibility override: CI 3.13.15
-    # reports the same control-character shape as local 3.13.5.
+    # Both evidenced runtimes use observed events, never a boolean override.
     monkeypatch.setattr(audit_module.sys, "version_info", version)
     checkout = entry_path(tmp_path)
     guard = LaunchGuard(checkout, [["ls-files", "-z"]], windows=True)
+    calibrate(guard, None if native_command.startswith("git") else native_command)
     cwd = str(checkout) if explicit_cwd else None
     args = [None, "git ls-files -z", cwd]
     guard.observe({"event": "subprocess.Popen", "args": args})
@@ -329,6 +384,7 @@ def test_windows_launch_pairs_exact_boundary_and_native_event(tmp_path, monkeypa
 def test_windows_runtime_compatibility_never_authorizes_unknown_command(tmp_path, monkeypatch, version, native_command, source):
     monkeypatch.setattr(audit_module.sys, "version_info", version)
     guard = LaunchGuard(tmp_path, [["ls-files", "-z"]], windows=True)
+    calibrate(guard, native_command)
     approved = [None, "git ls-files -z", None]
     unknown = [None, "git rev-list HEAD", None]
     with pytest.raises(AuditViolation):
@@ -338,16 +394,19 @@ def test_windows_runtime_compatibility_never_authorizes_unknown_command(tmp_path
         guard.finish()
 
 
-@pytest.mark.parametrize("failure", ["direct", "missing-boundary", "wrong-command", "wrong-executable",
+@pytest.mark.parametrize("failure", ["direct", "direct-native", "missing-boundary", "wrong-command", "wrong-executable",
                                       "wrong-cwd", "missing-native", "next-popen", "duplicate-boundary",
-                                      "unknown-native", "other-runtime", "native-executable", "native-cwd"])
+                                      "unknown-native", "clean-probe", "native-executable", "native-cwd"])
 @pytest.mark.parametrize("version", [(3, 13, 5), (3, 13, 15)])
 @pytest.mark.parametrize("native_command", ["\x02", "\x03"])
 def test_windows_launch_pairing_fails_closed(tmp_path, monkeypatch, failure, version, native_command):
-    monkeypatch.setattr(audit_module.sys, "version_info", (3, 13, 16) if failure == "other-runtime" else version)
+    monkeypatch.setattr(audit_module.sys, "version_info", version)
     guard = LaunchGuard(tmp_path, [["ls-files", "-z"]], windows=True)
+    calibrate(guard, None if failure == "clean-probe" else native_command)
     args = [None, "git ls-files -z", None]
     with pytest.raises(AuditViolation):
+        if failure == "direct-native":
+            guard.observe({"event": "_winapi.CreateProcess", "args": [None, native_command, None]})
         if failure == "direct":
             guard.observe({"event": "_winapi.CreateProcess/arguments", "args": args})
         guard.observe({"event": "subprocess.Popen", "args": args})
@@ -376,8 +435,9 @@ def test_real_windows_boundary_records_exact_command_and_rejects_direct_call(ent
     result = run_audited(entry_checkout, [["--version"]], "scripts/_native_probe.py")
     assert result.returncode == 0
     assert [item["event"] for item in result.audit_events] == [
-        "subprocess.Popen", "_winapi.CreateProcess/arguments", "_winapi.CreateProcess"]
-    assert result.audit_events[0]["args"] == result.audit_events[1]["args"] == [None, "git --version", None]
+        "subprocess.Popen", "_winapi.CreateProcess/arguments", "_winapi.CreateProcess"] * 2
+    assert result.audit_events[:2] == calibration_events()[:2]
+    assert result.audit_events[3]["args"] == result.audit_events[4]["args"] == [None, "git --version", None]
     probe.write_text("import _winapi, subprocess\ntry:\n    _winapi.CreateProcess(None, 'git --version', None, None, False, 0, None, None, subprocess.STARTUPINFO())\nexcept Exception:\n    pass\n", encoding="utf-8")
     with pytest.raises(AuditViolation, match="unpaired"):
         run_audited(entry_checkout, [], "scripts/_native_probe.py")

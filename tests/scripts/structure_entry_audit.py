@@ -58,17 +58,24 @@ def git_arguments(arguments, checkout, expected):
     return normalized_git(arguments, checkout)
 
 
+def calibration_argv():
+    # The harmless child must not run inherited site/user customization.
+    return [sys.executable, "-I", "-S", "-c", "pass"]
+
+
 class LaunchGuard:
     def __init__(self, checkout, expected, *, windows=None):
         self.checkout = Path(checkout)
         self.windows = os.name == "nt" if windows is None else windows
-        self.broken_native_command = (
-            sys.implementation.name == "cpython" and sys.version_info[:3] in {(3, 13, 5), (3, 13, 15)}
-        )
+        self._broken_native_command = None if self.windows else False
         self.expected = collections.Counter(map(tuple, expected))
         self.seen = collections.Counter()
         self.pending_windows = None
         self.pending_native = None
+
+    @property
+    def broken_native_command(self):
+        return self._broken_native_command
 
     def observe(self, item):
         event, arguments = item["event"], item["args"]
@@ -78,6 +85,11 @@ class LaunchGuard:
             if len(arguments) != 3 or self.windows != isinstance(arguments[1], str):
                 raise AuditViolation(f"unrecognized Popen arguments: {arguments!r}")
             executable, command, cwd = arguments
+            if self.broken_native_command is None:
+                if list(arguments) != [None, subprocess.list2cmdline(calibration_argv()), None]:
+                    raise AuditViolation(f"unrecognized calibration Popen: {arguments!r}")
+                self.pending_windows = list(arguments)
+                return
             if executable not in (None, "git", "git.exe"):
                 raise AuditViolation(f"non-git child: {command!r}")
             if cwd is not None and os.path.normcase(os.path.abspath(cwd)) != os.path.normcase(str(self.checkout)):
@@ -99,15 +111,17 @@ class LaunchGuard:
                     or arguments[0] != pending[0] or arguments[2] != pending[2]):
                 raise AuditViolation(f"unpaired _winapi.CreateProcess: {arguments!r}")
             command = arguments[1]
-            # CPython 3.13.5 passes PyObject* to the audit format's wchar_t*
-            # slot (Modules/_winapi.c, "uuu"). Its control character is an
-            # ob_refcnt fragment, not argv. CI 3.13.15 shows the same malformed
-            # field, including with cwd=None (see design review response).
-            # Exact argv authority remains Popen paired with the actual native
-            # arguments above; only the two evidenced runtimes allow fragments.
-            refcount_fragment = (self.broken_native_command and isinstance(command, str)
-                                 and len(command) == 1 and 0 < ord(command) < 32)
-            if command != pending[1] and not refcount_fragment:
+            # Some CPython builds pass PyObject* into a wchar_t* audit slot.
+            # Calibrate once from the paired harmless launch, never a version
+            # number. A fragment never supplies command authority.
+            refcount_fragment = (isinstance(command, str) and len(command) == 1
+                                 and 0 < ord(command) < 32)
+            if self.broken_native_command is None:
+                if command != pending[1] and not refcount_fragment:
+                    raise AuditViolation(
+                        f"calibration native command has unknown shape: {type(command).__name__} {command!r}")
+                self._broken_native_command = command != pending[1]
+            if command != pending[1] and not (self.broken_native_command and refcount_fragment):
                 raise AuditViolation(f"unrecognized _winapi.CreateProcess command: {arguments!r}")
             self.pending_native = None
         else:
@@ -116,6 +130,8 @@ class LaunchGuard:
     def finish(self):
         if self.pending_windows is not None or self.pending_native is not None:
             raise AuditViolation("unpaired Windows launch at end of transcript")
+        if self.broken_native_command is None:
+            raise AuditViolation("missing Windows audit calibration")
         if self.seen != self.expected:
             raise AuditViolation(f"Git multiset mismatch: missing={self.expected - self.seen}; extra={self.seen - self.expected}")
 
@@ -162,6 +178,11 @@ def install_audit(expected):
 
     sys.addaudithook(hook)
     install_windows_boundary()
+    if guard.windows:
+        subprocess.run(calibration_argv(), stdin=subprocess.DEVNULL,
+                       capture_output=True, check=True, timeout=10)
+        if guard.broken_native_command is None:
+            raise AuditViolation("missing Windows audit calibration events")
     return state
 
 
