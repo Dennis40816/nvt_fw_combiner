@@ -1,6 +1,6 @@
 # BUG-20260926-doc-at-line-ceiling: a UI handoff sits one line under the text-file ceiling
 
-Status: open
+Status: fixed (merged into `1.1.x` by #468, merge `47e01ebab`, 2026-09-28)
 Severity: P3 (next edit breaks CI)
 Found: 2026-09-26, WS-TEST design on `feature/1.1.13/test-architecture`
 Where: `docs/ui/v1.1.x-custom-options-layout-handoff.md`

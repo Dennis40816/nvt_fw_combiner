@@ -1,6 +1,6 @@
 # 1.1.13 TODO inventory
 
-Commander, 2026-09-27, after #459; statuses refreshed after #462 the same day. The owner asked that progress be counted
+Commander, 2026-09-27, after #459; statuses refreshed after #462 the same day and after #468 on 2026-09-28. The owner asked that progress be counted
 over every item scheduled for 1.1.13, not only the scope table in
 [`../1.1.13.md`](../1.1.13.md). This list breaks that table into separately
 deliverable items and adds the records made outside it, the bugs whose owner
@@ -9,7 +9,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (31)
+## Done (37)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -44,15 +44,22 @@ remove items; the board decisions stay the authority for scope.
 | 50 | UiSmoke headless session stall: fail-fast guard (U1) | #464 |
 | 60 | `MemoryCoverageBar` one rebuild per load (decision 112) | #464 |
 | 61 | Local verify speed: UiSmoke partition and lane overlap (decisions 107, 128-130, 132, 134): about 24 to 14 min | #464 |
+| 45 | Version-manager state test isolation (W6-C) | #468 |
+| 46 | Process start failure becomes a typed result (W6-B) | #468 |
+| 47 | `verify.py --all` help text | #468 |
+| 51 | Deploy post-hash attack test made deterministic (W6-D) | #468 |
+| 55 | Document at the line ceiling: dated handoff history archived | #468 |
+| 57 | Canonical roadmap synchronized with decisions 103-104 (W6-E) | #468 |
 
-## Active (4)
+## Active (5)
 
 | # | Item | Next |
 | --- | --- | --- |
 | 26 | C-7 TP SVN display (R3) | paused behind the verify-speed work: admission on the current checkpoint, ADR 0075 memory gate, firmware and release attestations |
-| 30 | G0: GitHub App, rulesets and settings, including A-5 | applied; Workflows permission granted (decision 131 push done); owner items A8 (sign out own sessions) and D6 (bypass or pause drill on `9.9.x`) remain |
-| 31 | WS-GOV governance reset (ADR 0080) | G1-A rebuilt on the trunk with its admission rebound to `c6add0071`: verification, re-finalization and exact-head approvals; G1-B plan revision 4 after the third review (one P2) |
+| 30 | G0: GitHub App, rulesets and settings, including A-5 | applied; D6 bypass drill done 2026-09-28 (decision 148, run by Codex in the owner's session); A8 (the owner's general sign-out) and D7 cleanup (`recovery/9.9.x-20260928`) remain |
+| 31 | WS-GOV governance reset (ADR 0080) | G1-A merged (#463) and in force (decision 145); G1-B rebased on `47e01ebab`, re-pinned, lane path fix `ac6b5fe4a`; final `verify.py --all` and Opus R3 review next (decision 146) |
 | 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | CI tiers and U4/U5 with G2 |
+| 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 88) | three reviewable commits (UiSmoke 145/145); waits for the owner's approval of the two dialog reference images and a two-file scope extension |
 
 ## Waiting or open (26)
 
@@ -69,20 +76,20 @@ remove items; the board decisions stay the authority for scope.
 | 41 | ADR 0077 B2a (R2) | Step 0 |
 | 42 | ADR 0077 B2b trust policy (R3) | B2a |
 | 43 | First window within the EXE size ceiling | ADR 0077 |
-| 44 | Wave 5 window lifetime F01/F02/F25 (decisions 87, 88) | wave 5 F03/F06 |
-| 45 | Version-manager state test isolation (1.1.13 or later) | open |
-| 46 | Process start failure escapes the typed result | open |
-| 47 | `verify.py --all` help text | WS-GOV |
 | 48 | Version-branch CI gap | WS-GOV |
 | 49 | Test hygiene findings (WS-TEST T2-T4, G2) | WS-TEST |
-| 51 | Deploy post-hash attack test race | test reframed in #462; deterministic coverage still open |
 | 52 | Legacy Combiner long path | open |
 | 53 | CI core-shard H2 and H3 follow-ups | open |
 | 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
-| 55 | Document at the line ceiling | open |
 | 56 | Private-string check rejects user-profile paths in new changes (rest of the public-paths bug) | open |
-| 57 | Canonical roadmap synchronized with decisions 103-104 (1.2.0 as the user release; intermediate 1.1.x releases), a governed documentation record | open (found by the #462 review) |
 | 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | release |
+| 62 | Trust probe does not catch the typed process start failure (`BUG-20260927-trust-probe-start-failure-escapes`, R1) | open |
+| 63 | Win32 start-failure handoff test returns before the start (`BUG-20260927-win32-handoff-test-returns-early`, R1) | open |
+| 64 | Launcher cleanup lock-thread flake (`BUG-20260927-launcher-cleanup-lock-thread-flake`, R1) | open |
+| 65 | Local evidence paths in the archived handoff history (`BUG-20260927-archived-handoff-local-paths`, R0) | batch 4 |
+| 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | release workflow cleanup R-1/R-2 |
+| 67 | G0 `gh` wrapper repository option conflict (`BUG-20260927-g0-gh-wrapper-repo-option-conflict`) | WS-GOV |
+| 68 | Predecessor validator false inconsistency (`BUG-20260927-predecessor-validator-false-inconsistent`) | parity P-2 next batch |
 | 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
 
 Not 1.1.13: the display-convention inventory (1.1.14, decision 39); the 1.2.1

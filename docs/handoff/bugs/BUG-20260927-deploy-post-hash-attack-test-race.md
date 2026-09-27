@@ -1,6 +1,6 @@
 # BUG-20260927-deploy-post-hash-attack-test-race: the post-hash attack test can mutate the package before the hash is taken
 
-Status: open (observed once in seven full-verifier runs; the script rejected the mutated package in every run)
+Status: fixed (merged into `1.1.x` by #468, merge `47e01ebab`, 2026-09-28)
 Severity: P3
 Found: 2026-09-27, Claude Code (Opus 5.5), in `python scripts/verify.py --all` at batch 2b head `3b8d46693`
 Where: `tests/scripts/test_deploy_update_source.py`
