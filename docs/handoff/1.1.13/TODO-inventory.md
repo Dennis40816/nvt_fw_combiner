@@ -9,7 +9,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (38)
+## Done (39)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -52,15 +52,14 @@ remove items; the board decisions stay the authority for scope.
 | 57 | Canonical roadmap synchronized with decisions 103-104 (W6-E) | #468 |
 | 40 | ADR 0077 Step 0 measurement: gate admits B2 (avoidable wall time 916.8 and 929.6 ms in two passes at `47e01ebab`; acceptance cost 66.7 ms median) | evidence `<test-area>/evidence/adr0077-step0/` |
 
-## Active (5)
+## Active (4)
 
 | # | Item | Next |
 | --- | --- | --- |
 | 26 | C-7 TP SVN display (R3) | paused behind the verify-speed work: admission on the current checkpoint, ADR 0075 memory gate, firmware and release attestations |
 | 30 | G0: GitHub App, rulesets and settings, including A-5 | applied; D6 bypass drill done 2026-09-28 (decision 148, run by Codex in the owner's session); A8 (the owner's general sign-out) and D7 cleanup (`recovery/9.9.x-20260928`) remain |
-| 31 | WS-GOV governance reset (ADR 0080) | G1-A merged (#463) and in force (decision 145); G1-B rebased on `47e01ebab`, re-pinned, lane path fix `ac6b5fe4a`; final `verify.py --all` and Opus R3 review next (decision 146) |
 | 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | CI tiers and U4/U5 with G2 |
-| 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 88) | three reviewable commits (UiSmoke 145/145); waits for the owner's approval of the two dialog reference images and a two-file scope extension |
+| 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150) | three reviewable commits (UiSmoke 145/145); rebase onto the cutover trunk, then the non-UI remainder; Settings references (decision 150) wait for the owner |
 
 ## Waiting or open (26)
 
