@@ -91,10 +91,26 @@ Execution and review outcome (2026-09-27):
   This entry attributes the evidence to Claude; Codex did not repeat it.
 - Still open: D0 external wrapper-path check and actual push, decision 82
   Bitwarden backup confirmation, D4 owner approvals/review behavior, D5 positive merge, D6
-  owner bypass test, D7 cleanup, and A8 owner-session cleanup. These are not
+  owner bypass test, D7 cleanup of the protected `9.9.x` ref, and A8
+  owner-session cleanup. These are not
   marked passed by the local script tests or by this commit. The current
   document/code change is local only, for commander review and batch 2c;
   the owner authorized commit on this branch, without a push.
+- D7 cleanup (owner approved, 2026-09-27, recorded by Codex for this batch):
+  disposable PR #460 was closed without merging; the App deleted the
+  disposable remote branches `9.9.9` and `feature/1.1.13/g0-check` with an
+  atomic push using exact-SHA leases, and readback confirms both refs are
+  absent. Protected `9.9.x` remains at
+  `e6e991af32d76d99ad156a7f86baa662947db8d9` for the owner's C2 deletion. No
+  owner bypass, credential change or ruleset change was made. Cleanup does
+  not pass D4-D6. The old virtualized key copy is untouched and remains under
+  the owner's deletion decision. The Claude commander confirmed the PR state
+  and the three refs on GitHub afterwards.
+- D0 wrapper path (Claude commander, 2026-09-27, outside Codex): the installed
+  daily-use folder holds `Invoke-NfcGh.ps1`, `nfc-app-token-helper.ps1` and
+  `NfcG0.Common.ps1`, visible from an unpackaged process, and their SHA-256
+  values match the reviewed inventory in the checklist. The D0 actual
+  external push remains open.
 
 MSIX runtime guard follow-up (explicitly deferred under the owner's allowed
 scope option; not implemented or covered by the parser review):
