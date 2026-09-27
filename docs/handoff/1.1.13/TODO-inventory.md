@@ -72,7 +72,7 @@ remove items; the board decisions stay the authority for scope.
 | 47 | `verify.py --all` help text | WS-GOV |
 | 48 | Version-branch CI gap | WS-GOV |
 | 49 | Test hygiene findings (WS-TEST T2-T4, G2) | WS-TEST |
-| 50 | UiSmoke headless session stall | owner permission to download a dump analyzer |
+| 50 | UiSmoke headless session stall | root cause found (Avalonia.Headless setup race); fix: fail-fast diagnostics and off-session Avalonia use |
 | 51 | Deploy post-hash attack test race | open |
 | 52 | Legacy Combiner long path | open |
 | 53 | CI core-shard H2 and H3 follow-ups | open |
