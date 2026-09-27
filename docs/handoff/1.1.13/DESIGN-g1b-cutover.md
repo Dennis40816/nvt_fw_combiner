@@ -765,3 +765,45 @@ with the commander.
 | Stage B review 1 | Fixed the P2 live SPEC planning route: it now names `nfc-grill-with-docs` and its accepted hybrid interview. Added direct publication-time no-clobber, post-discovery inventory drift and real Windows junction regressions. Review found no firmware or projection-control defect. |
 | Stage B review 2 | Fixed the P2 delegate aggregate parser: skip complete tuple/generic return types to locate the declared name and exclude anonymous delegates. Four regressions failed on the reviewed implementation, then all 32 size tests passed; the nine measured hotspot entries remain unchanged. |
 | Stage B review 3 | Extend the same delegate fix to `ref readonly` tuple returns (two additional red cases; 36 size cases green), preserving complete return-type parsing before name selection. Final rename scan also updates the interview description and ticket draft directory, with their derived copies. The advisory names enrollment as well as exact-baseline checks. |
+| Step 13 pin disposition | The base did not move and Stage B changed no frozen path. Recomputed HEAD tree/blob IDs match all four existing pins; the frozen-base diff is exactly the three Stage A README additions and checkpoint mode/blob are unchanged. Re-pinning therefore produces no content change; retain the pin file rather than inventing a new freeze point. |
+
+### Stage B local checkpoints (2026-09-27)
+
+All listed checkpoints reran `python scripts/sync_derived.py` (zero drift),
+`python scripts/verify.py --structure-only` (PASS) and standalone
+`python scripts/polytail_check.py` (PASS), with the required external test-area
+environment. No `verify.py --all` was run. No push, merge or GitHub mutation
+was performed. Builds left no modified lock files.
+
+The skill gate is `python -m pytest` on
+`tests/scripts/test_skill_inventory_validation.py`, `test_sync_derived.py`,
+`test_github_review_polling.py` and `test_governance_retirement.py`, with `-q`.
+The size gate is `test_code_size_policy.py`; its expanded consumers are
+`test_production_source_ownership.py`, `test_coverage_policy.py` and
+`test_governance_retirement.py`. C# architecture is
+`dotnet test tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj`.
+
+| Step / checkpoint | Narrow evidence after commit |
+| --- | --- |
+| 7 / `8fed8c19c` | Skill gate: 67 passed; inventory red: 5 failures before source change. |
+| 8 / `5298cf9c6` | Skill gate: 67 passed. |
+| 9 / `18e536a31` | Skill gate: 67 passed. |
+| 10 / `6f52ba9d2` | Skill gate plus Stage A structure-entry audit and verifier orchestration: 380 passed. Projection red: 7 failures before implementation. |
+| 11 / `c28febffb` | Skill gate: 74 passed; root AGENTS 15,564 to 15,287 bytes, below 16 KiB. |
+| 12 / `392395090` | Expanded size gate: 94 passed; C# architecture: 273 passed, 0 skipped. Size red: 27 failures before implementation. |
+| Review 1 / `f26e5358a` | Skill gate: 77 passed, including publication-time creation race and real Windows junction. |
+| Review 2 / `6242c1cc4` | Expanded size gate: 98 passed; C# architecture: 273 passed, 0 skipped. Four delegate regressions red before correction. |
+| Review 3 / `817e7957b` | Skill plus size gate: 113 passed; C# architecture: 273 passed, 0 skipped. Two ref-readonly tuple regressions red before correction. |
+
+Independent read-only review covered the staged fixed diffs through
+`817e7957b`: `PASS-WITH-HUMAN-GATE`, no remaining findings. Fresh reviewer
+checks: 36 size tests passed and Claude projection check had zero drift.
+The final evidence commit is followed by all applicable Stage A narrow suites,
+Stage B suites, sync, structure-only and standalone Polytail; their exact-head
+results are delivered with the worker report. A full integration/release run,
+required CI, external review record and last-push owner approvals naming the
+required roles remain commander/owner gates, not claimed by this local handoff.
+
+Final inventory: 19 canonical skills and 19 skill / 4 agent projections;
+9 measured hotspots. Four frozen pins match. No firmware bytes, ranges,
+ordering, integrity, support declarations or Golden expectations changed.
