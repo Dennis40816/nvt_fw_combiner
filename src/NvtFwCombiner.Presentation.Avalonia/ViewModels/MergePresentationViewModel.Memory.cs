@@ -46,7 +46,7 @@ internal sealed partial class MergePresentationViewModel
                         IsGeneralMergeModeSelected ? _generalMergeAdmission : null);
             MergeMemoryRangeLabel = rangeLabel;
             ReplaceRows(MergeMemoryRows, rows);
-            ReplaceRows(MergeCoverageSegments, coverageSegments);
+            MergeCoverageSegments.ReplaceAll(coverageSegments);
             ReplaceRows(
                 MergeCoverageRows,
                 ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text)

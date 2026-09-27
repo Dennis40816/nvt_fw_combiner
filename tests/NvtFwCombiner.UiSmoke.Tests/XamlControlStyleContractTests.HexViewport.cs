@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Headless.XUnit;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
@@ -159,7 +160,7 @@ public sealed partial class XamlControlStyleContractTests
     }
 
     /// <summary>The arranged viewport uses full cell rectangles for hover and keeps click selection unchanged.</summary>
-    [Fact]
+    [AvaloniaFact]
     public async Task HexEditorArrangedViewportTracksHoverAtCellCornersAndExit()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-hex-hover-cell");

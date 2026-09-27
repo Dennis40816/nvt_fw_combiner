@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Avalonia;
+using Avalonia.Headless.XUnit;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
@@ -13,7 +14,7 @@ public sealed partial class UiPerformanceObservationTests
     /// 10,175,656-byte scroll, 3,360,000-byte selection, and 400,000-byte hover
     /// allocation baselines.
     /// </summary>
-    [Fact]
+    [AvaloniaFact]
     public async Task HexViewportRefactorBeatsReleasedAllocationBaseline()
     {
         const int documentLength = 1024 * 1024;

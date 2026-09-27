@@ -210,7 +210,7 @@ public sealed partial class XamlControlStyleContractTests
     }
 
     /// <summary>The IC detail tooltip supports pointer and keyboard discovery without becoming interactive.</summary>
-    [Fact]
+    [AvaloniaFact]
     public void IcDetailTooltipUsesOneNonInteractiveFocusAwareCard()
     {
         string shellPanels = ReadPresentationFile("Resources/MainWindowShellPanels.axaml");

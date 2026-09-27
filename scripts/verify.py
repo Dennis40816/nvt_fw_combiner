@@ -22,7 +22,7 @@ import tempfile
 import threading
 import xml.etree.ElementTree as ET
 from collections import Counter
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar, copy_context
@@ -338,6 +338,31 @@ class VerificationLane:
     internal_name: str | None = None
     deadline_group: str | None = None
     on_terminal: Callable[[BaseException | None], None] | None = None
+    # A lane-specific wall-clock budget; None uses the pool's lane timeout.
+    timeout_seconds: float | None = None
+
+
+class LaneAdmission:
+    """Pool-local latch: after a lane setup failure no later lane is admitted.
+
+    A lane is admitted before its action starts; a worker whose action raised
+    ``VerificationLaneSetupFailure`` closes the latch before the failure is
+    published through its future, so every other lane was either admitted
+    before the close or never starts, however late the main thread observes it.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._closed = False
+
+    def admit(self, name: str) -> bool:
+        del name  # Named for diagnostics and observation only.
+        with self._lock:
+            return not self._closed
+
+    def close(self) -> None:
+        with self._lock:
+            self._closed = True
 
 
 @dataclass(frozen=True)
@@ -401,6 +426,60 @@ class LocalDotnetCoverageStage:
     external_tools_source_root: Path | None = None
     external_tools_shadow_root: Path | None = None
     external_tools_hashes: dict[str, str] | None = None
+    partition_part: DotnetPartitionPart | None = None
+    fully_qualified_report: Path | None = None
+
+
+@dataclass(frozen=True)
+class DotnetTestPartition:
+    """Declared exact type partition of one test project (ADR 0079 item 9)."""
+
+    namespace: str
+    listed_parts: tuple[tuple[str, ...], ...]  # parts 1..k-1; part k is every other type
+
+    @property
+    def part_count(self) -> int:
+        return len(self.listed_parts) + 1
+
+
+@dataclass(frozen=True)
+class DotnetPartitionPart:
+    """One 1-based part of a declared partition."""
+
+    declaration: DotnetTestPartition
+    index: int
+
+    @property
+    def label(self) -> str:
+        return f"part-{self.index}-of-{self.declaration.part_count}"
+
+
+@dataclass(frozen=True)
+class VstestDiscoveryListing:
+    """One fresh discovery of one assembly: ``--ListTests`` and real FQN listings."""
+
+    display: Path
+    fully_qualified: Path
+
+
+@dataclass(frozen=True)
+class DotnetPartitionAssemblyHashes:
+    """The snapshot manifest's test-assembly hash and each part's current hash."""
+
+    source: str
+    parts: Mapping[int, str]
+
+
+@dataclass(frozen=True)
+class DotnetPartitionInventory:
+    """Admitted identities of an exact partition, unfiltered and per part."""
+
+    discovered: Counter[str]
+    fully_qualified: frozenset[str]
+    part_types: tuple[frozenset[str], ...]
+    part_cases: tuple[Counter[str], ...]
+    part_fully_qualified: tuple[frozenset[str], ...]
+    stale_types: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -477,6 +556,86 @@ INFRASTRUCTURE_VSTEST_SETTINGS = (
     "xUnit.DiagnosticMessages=true",
     "xUnit.LongRunningTestSeconds=30",
 )
+UISMOKE_TEST_PROJECT = "NvtFwCombiner.UiSmoke.Tests"
+# Caller-set capture and input overrides of UiSmoke; the verifier never sets them.
+LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES = (
+    "NFC_VISUAL_OUTPUT_DIR",
+    "NFC_UI_REFERENCE_CAPTURE_DIR",
+    "NFC_REPORT_VISUAL_INPUT",
+)
+DOTNET_PARTITION_EVIDENCE_SCHEMA_VERSION = 1
+VSTEST_IDENTIFIER_SEGMENT = r"[A-Za-z_][A-Za-z0-9_]*"
+# Board decision 128: the measured k=3 lists (experiment E2, balanced by class
+# time). The last part is the complement and receives every new type.
+UISMOKE_PARTITION_PART_1 = (
+    "AbDummyDpControlTests",
+    "BinInspectorViewportAdapterTests",
+    "CtrlRamMemoryDisplayFailureTests",
+    "CtrlRamMemoryLayoutTests",
+    "ForegroundLoadingStateTests",
+    "GeneralWorkflowTests",
+    "HexEditorLoadOrderingTests",
+    "IssueCardProjectionTests",
+    "MemoryCoverageBarProjectionTests",
+    "MemoryCoverageContentGroupingTests",
+    "NavigationCheckedStateTests",
+    "OutputConfirmationLabelTests",
+    "OutputConfirmationTests",
+    "OutputConfirmationWarningTests",
+    "ReportHistoryPersistenceTests",
+    "ReportInputFeedbackTests",
+    "ReportProjectionConcurrencyTests",
+    "ReportRawCopyTests",
+    "ReportReviewHistoryTests",
+    "RepositoryPathsTests",
+    "RunAndHexEditorTests",
+    "ShellScreenInventoryTests",
+    "SpaciousPanelTests",
+    "ToolchainSettingsTests",
+    "WorkflowInspectionLifecycleTests",
+)
+UISMOKE_PARTITION_PART_2 = (
+    "AbCtrlRamVisualTests",
+    "AbDpMetadataTests",
+    "AbMemoryLayoutControlTests",
+    "AbMergeLaunchTests",
+    "AvaloniaApplicationResourceTests",
+    "BuildOutcomeTests",
+    "CtrlRamDpVersionTests",
+    "CtrlRamLaunchTests",
+    "FirmwareDropProcessSmokeTests",
+    "FirmwareInspectionSlotTests",
+    "HomeWorkflowCardVerticalAlignmentDiagnosticTests",
+    "LocalStateIsolationTests",
+    "LocalStateSaveNoticeTests",
+    "MemoryCoverageBarGeometryTests",
+    "MemoryCoverageExplorerTests",
+    "MemoryCoverageLegendTests",
+    "MemoryInitializationTextTests",
+    "MemoryPostprocessingTextTests",
+    "MergeWorkflowTests",
+    "ModeSelectorBindingTests",
+    "NavigationClearModalAccessibilityTests",
+    "NavigationFocusIndicatorTests",
+    "OutputDeliveryReferenceTests",
+    "ReleaseExampleScreenshots",
+    "ReplaceSurfaceCompatibilityTests",
+    "ReportChangesLayoutTests",
+    "ReportHexDiffViewportAdapterTests",
+    "ReportWindowedListViewModelTests",
+    "RunReportsListTests",
+    "StandardMemoryLayoutControlTests",
+    "StandardMergeLaunchTests",
+    "SupportMatrixInteractionTests",
+    "VersionManagementSettingsTests",
+)
+# Consumed by the local collector only; CI producers stay unfiltered until G2.
+DOTNET_TEST_PARTITIONS: dict[str, DotnetTestPartition] = {
+    UISMOKE_TEST_PROJECT: DotnetTestPartition(
+        UISMOKE_TEST_PROJECT,
+        (UISMOKE_PARTITION_PART_1, UISMOKE_PARTITION_PART_2),
+    ),
+}
 
 
 def remaining_timeout(timeout_seconds: float | None = None) -> float | None:
@@ -2905,8 +3064,14 @@ def local_dotnet_vstest_command(
     test_assembly: Path,
     adapter_path: Path | None,
     results_directory: Path,
+    *,
+    test_case_filter: str | None = None,
 ) -> list[str]:
-    """Build one unfiltered exact-assembly command, optionally collecting coverage."""
+    """Build one exact-assembly command, optionally collecting coverage.
+
+    Only a declared local partition part passes a filter; every other local,
+    release-Golden and CI command stays unfiltered.
+    """
 
     command = [dotnet, "vstest", str(test_assembly)]
     settings: list[str] = []
@@ -2922,6 +3087,8 @@ def local_dotnet_vstest_command(
         f"--ResultsDirectory:{results_directory}",
         "--Logger:trx;LogFileName=test-results.trx",
     ])
+    if test_case_filter is not None:
+        command.append(f"--TestCaseFilter:{test_case_filter}")
     if test_assembly.stem == INFRASTRUCTURE_TEST_PROJECT:
         settings.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
     if settings:
@@ -2929,10 +3096,45 @@ def local_dotnet_vstest_command(
     return command
 
 
-def dotnet_vstest_discovery_command(dotnet: str, test_assembly: Path) -> list[str]:
+def dotnet_vstest_discovery_command(
+    dotnet: str,
+    test_assembly: Path,
+    *,
+    test_case_filter: str | None = None,
+) -> list[str]:
     """Return the compiled-test discovery command used by local and CI gates."""
 
     command = [dotnet, "vstest", str(test_assembly), "--ListTests"]
+    if test_case_filter is not None:
+        command.append(f"--TestCaseFilter:{test_case_filter}")
+    if test_assembly.stem == INFRASTRUCTURE_TEST_PROJECT:
+        command.append("--")
+        command.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
+    return command
+
+
+def dotnet_vstest_fully_qualified_discovery_command(
+    dotnet: str,
+    test_assembly: Path,
+    target_path: Path,
+    *,
+    test_case_filter: str | None = None,
+) -> list[str]:
+    """List each real ``FullyQualifiedName`` (the value a filter evaluates) to a file.
+
+    The two listing options are accepted by VSTest but absent from its help, so
+    every run validates the listing fail-closed instead of trusting the version.
+    """
+
+    command = [
+        dotnet,
+        "vstest",
+        str(test_assembly),
+        "--ListFullyQualifiedTests",
+        f"--ListTestsTargetPath:{target_path}",
+    ]
+    if test_case_filter is not None:
+        command.append(f"--TestCaseFilter:{test_case_filter}")
     if test_assembly.stem == INFRASTRUCTURE_TEST_PROJECT:
         command.append("--")
         command.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
@@ -3044,8 +3246,13 @@ def require_discovered_test_results(
     trx_report: Path,
     counters: dict[str, int],
     producer_platform: str,
+    *,
+    approved_skips: Counter[str] | None = None,
 ) -> None:
-    """Reconcile exact compiled discovery and owner-admitted TRX outcomes."""
+    """Reconcile exact compiled discovery and owner-admitted TRX outcomes.
+
+    A partition part passes the project's approved skips projected onto its types.
+    """
 
     discovered = parse_vstest_discovery(discovery_report)
     outcomes = parse_trx_test_outcomes(trx_report)
@@ -3056,7 +3263,8 @@ def require_discovered_test_results(
         )
     if outcomes["Failed"]:
         raise RuntimeError(f"{project.name} contains failed test identities")
-    approved_skips = approved_platform_skip_identities(project, producer_platform)
+    if approved_skips is None:
+        approved_skips = approved_platform_skip_identities(project, producer_platform)
     if outcomes["NotExecuted"] != approved_skips:
         raise RuntimeError(
             f"{project.name} contains unapproved skipped test identities for "
@@ -3073,6 +3281,369 @@ def require_discovered_test_results(
             f"{project.name} discovered/executed test inventory changed: "
             f"expected {expected_counters}, observed {counters}"
         )
+
+
+def validate_dotnet_test_partition(declaration: DotnetTestPartition) -> None:
+    """Reject a declaration that cannot select exact, disjoint type parts."""
+
+    segment = re.compile(VSTEST_IDENTIFIER_SEGMENT)
+    if not all(segment.fullmatch(part) for part in declaration.namespace.split(".")):
+        raise RuntimeError(f"invalid partition namespace: {declaration.namespace!r}")
+    if not 2 <= declaration.part_count <= MAXIMUM_LOCAL_DOTNET_JOBS:
+        raise RuntimeError(
+            f"{declaration.namespace} partition must declare 2 to "
+            f"{MAXIMUM_LOCAL_DOTNET_JOBS} parts"
+        )
+    declared: dict[str, str] = {}
+    for index, types in enumerate(declaration.listed_parts, 1):
+        if not types:
+            raise RuntimeError(
+                f"{declaration.namespace} partition part {index} lists no type"
+            )
+        for type_name in types:
+            if segment.fullmatch(type_name) is None:
+                raise RuntimeError(f"invalid partition type: {type_name!r}")
+            prior = declared.get(type_name.lower())
+            if prior is not None:
+                raise RuntimeError(
+                    "partition types must appear once and be unique under ASCII "
+                    f"casefold: {prior!r}, {type_name!r}"
+                )
+            declared[type_name.lower()] = type_name
+
+
+def dotnet_partition_filter(part: DotnetPartitionPart) -> str:
+    """Return the one ``--TestCaseFilter`` value that selects exactly this part.
+
+    Under grammar G a term ``NS.T.`` can only match at offset 0 of a real FQN,
+    so it selects exactly type ``T``; the last part negates every listed term.
+    """
+
+    declaration = part.declaration
+    namespace = declaration.namespace
+    if 1 <= part.index < declaration.part_count:
+        return "|".join(
+            f"FullyQualifiedName~{namespace}.{type_name}."
+            for type_name in declaration.listed_parts[part.index - 1]
+        )
+    if part.index == declaration.part_count:
+        return "&".join(
+            f"FullyQualifiedName!~{namespace}.{type_name}."
+            for types in declaration.listed_parts
+            for type_name in types
+        )
+    raise ValueError(f"invalid partition part: {part.index}")
+
+
+def dotnet_partition_identity_pattern(namespace: str) -> re.Pattern[str]:
+    """Return grammar G: ``NS "." T "." M`` with ASCII identifier segments."""
+
+    return re.compile(
+        rf"{re.escape(namespace)}\.({VSTEST_IDENTIFIER_SEGMENT})"
+        rf"\.({VSTEST_IDENTIFIER_SEGMENT})"
+    )
+
+
+def parse_vstest_fully_qualified_listing(path: Path) -> frozenset[str]:
+    """Read one fresh ``--ListFullyQualifiedTests`` file as a set of real FQNs.
+
+    The listing is a set: a name repeated across discovery batches counts once.
+    """
+
+    try:
+        raw = path.read_bytes()
+    except OSError as error:
+        raise RuntimeError(
+            f"VSTest fully qualified listing could not be read: {path}"
+        ) from error
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise RuntimeError(
+            f"VSTest fully qualified listing is not UTF-8: {path}"
+        ) from error
+    names = frozenset(line for line in text.splitlines() if line)
+    if not names:
+        raise RuntimeError(f"VSTest fully qualified listing is empty: {path}")
+    return names
+
+
+def require_partition_identity_types(
+    namespace: str,
+    names: frozenset[str],
+    *,
+    description: str,
+) -> dict[str, str]:
+    """Map each real FQN to its type under grammar G, rejecting case aliases."""
+
+    pattern = dotnet_partition_identity_pattern(namespace)
+    types: dict[str, str] = {}
+    folded_names: dict[str, str] = {}
+    folded_types: dict[str, str] = {}
+    for name in sorted(names):
+        match = pattern.fullmatch(name)
+        if match is None:
+            raise RuntimeError(f"{description} is outside the partition grammar: {name!r}")
+        type_name = match[1]
+        for folded, value, owner in (
+            (folded_names, name, "test names"),
+            (folded_types, type_name, "types"),
+        ):
+            prior = folded.setdefault(value.lower(), value)
+            if prior != value:
+                raise RuntimeError(
+                    f"{description} {owner} differ only by case: {prior!r}, {value!r}"
+                )
+        types[name] = type_name
+    return types
+
+
+def require_partition_binding(
+    display_methods: set[str],
+    names: frozenset[str],
+    *,
+    description: str,
+) -> None:
+    """Bind display-derived method identities to the real FQN set, exactly."""
+
+    if display_methods != names:
+        raise RuntimeError(
+            f"{description}: display-derived method identities differ from the "
+            f"real fully qualified names (display only: "
+            f"{sorted(display_methods - names)[:5]}; fully qualified only: "
+            f"{sorted(names - display_methods)[:5]})"
+        )
+
+
+def partition_approved_skips(
+    declaration: DotnetTestPartition,
+    approved: Counter[str],
+    types: frozenset[str],
+) -> Counter[str]:
+    """Project a project's approved skips onto the types of one part."""
+
+    pattern = dotnet_partition_identity_pattern(declaration.namespace)
+    projected: Counter[str] = Counter()
+    for identity, count in approved.items():
+        match = pattern.fullmatch(identity)
+        if match is None:
+            raise RuntimeError(
+                f"approved skip is outside the partition grammar: {identity!r}"
+            )
+        if match[1] in types:
+            projected[identity] = count
+    return projected
+
+
+def require_trx_case_bindings(
+    trx_report: Path,
+    fully_qualified: frozenset[str],
+    *,
+    description: str,
+) -> None:
+    """Bind every TRX case through its ``testId`` to one real test method of its part."""
+
+    try:
+        document = ET.parse(trx_report)
+    except (OSError, ET.ParseError) as error:
+        raise RuntimeError(f"{description} TRX is missing or invalid: {trx_report}") from error
+    definitions: dict[str, list[ET.Element]] = {}
+    for definition in document.findall(".//{*}UnitTest"):
+        definitions.setdefault(definition.attrib.get("id", "").strip(), []).append(
+            definition
+        )
+    results = document.findall(".//{*}UnitTestResult")
+    if not results:
+        raise RuntimeError(f"{description} TRX has no test results: {trx_report}")
+    for result in results:
+        test_id = result.attrib.get("testId", "").strip()
+        candidates = definitions.get(test_id, []) if test_id else []
+        if len(candidates) != 1:
+            raise RuntimeError(
+                f"{description} TRX result has no unique test definition: "
+                f"{test_id or '<missing testId>'}"
+            )
+        methods = candidates[0].findall("{*}TestMethod")
+        class_name = methods[0].attrib.get("className", "").strip() if methods else ""
+        method_name = methods[0].attrib.get("name", "").strip() if methods else ""
+        if len(methods) != 1 or not class_name or not method_name:
+            raise RuntimeError(
+                f"{description} TRX definition has no unique test method: {test_id}"
+            )
+        display = result.attrib.get("testName", "").strip()
+        if re.fullmatch(r"<unknown test ID [0-9a-f]{64}>", display):
+            display = candidates[0].attrib.get("name", "").strip()
+        identity = canonical_vstest_identity(display)
+        method_identity = f"{class_name}.{method_name}"
+        if identity != method_identity:
+            raise RuntimeError(
+                f"{description} TRX case {display!r} is bound to test method "
+                f"{method_identity!r}"
+            )
+        if method_identity not in fully_qualified:
+            raise RuntimeError(
+                f"{description} TRX test method is outside the part's filtered "
+                f"discovery: {method_identity!r}"
+            )
+
+
+def require_exact_partition(
+    declaration: DotnetTestPartition,
+    unfiltered: VstestDiscoveryListing,
+    filtered_by_part: Mapping[int, VstestDiscoveryListing],
+    executed_by_part: Mapping[int, Path] | None = None,
+    assembly_hashes: DotnetPartitionAssemblyHashes | None = None,
+    *,
+    project: CiDotnetProject,
+    producer_platform: str | None = None,
+) -> DotnetPartitionInventory:
+    """Prove a declared partition exact; every failure is fail-closed.
+
+    Without ``executed_by_part`` this is the admission before any part runs
+    tests: grammar G and FQN binding, the declared part set, each filtered
+    discovery equal to the declaration applied to the unfiltered one, non-empty
+    disjoint parts summing to the whole. With it, each part's TRX must also equal
+    its own filtered discovery, with no failure or unapproved skip, and bind
+    every case to a real test method of that part.
+    """
+
+    validate_dotnet_test_partition(declaration)
+    name = project.name
+    part_numbers = tuple(range(1, declaration.part_count + 1))
+    if set(filtered_by_part) != set(part_numbers):
+        raise RuntimeError(
+            f"{name} partition discovery must cover exactly parts "
+            f"1-{declaration.part_count}: observed {sorted(filtered_by_part)}"
+        )
+    discovered = parse_vstest_discovery(unfiltered.display)
+    fully_qualified = parse_vstest_fully_qualified_listing(unfiltered.fully_qualified)
+    type_of = require_partition_identity_types(
+        declaration.namespace,
+        fully_qualified,
+        description=f"{name} fully qualified test name",
+    )
+    require_partition_binding(
+        set(discovered), fully_qualified, description=f"{name} unfiltered discovery"
+    )
+    discovered_types = frozenset(type_of.values())
+    discovered_by_fold = {type_name.lower(): type_name for type_name in discovered_types}
+    stale_types: list[str] = []
+    for types in declaration.listed_parts:
+        for type_name in types:
+            actual = discovered_by_fold.get(type_name.lower())
+            if actual is None:
+                stale_types.append(type_name)
+            elif actual != type_name:
+                raise RuntimeError(
+                    f"{name} declared partition type {type_name!r} differs from "
+                    f"discovered type {actual!r} only by case"
+                )
+    listed_types = tuple(
+        frozenset(types) & discovered_types for types in declaration.listed_parts
+    )
+    part_types = (*listed_types, discovered_types.difference(*listed_types))
+    part_cases: list[Counter[str]] = []
+    part_names: list[frozenset[str]] = []
+    for number, types in zip(part_numbers, part_types, strict=True):
+        if not types:
+            raise RuntimeError(f"{name} partition part {number} selects no discovered type")
+        expected_cases = Counter({
+            identity: count
+            for identity, count in discovered.items()
+            if type_of[identity] in types
+        })
+        expected_names = frozenset(
+            identity for identity in fully_qualified if type_of[identity] in types
+        )
+        listing = filtered_by_part[number]
+        cases = parse_vstest_discovery(listing.display)
+        names = parse_vstest_fully_qualified_listing(listing.fully_qualified)
+        require_partition_identity_types(
+            declaration.namespace,
+            names,
+            description=f"{name} part {number} fully qualified test name",
+        )
+        require_partition_binding(
+            set(cases), names, description=f"{name} part {number} discovery"
+        )
+        if cases == discovered and expected_cases != discovered:
+            raise RuntimeError(
+                f"{name} part {number} filtered discovery equals the unfiltered "
+                "discovery; the filter was not applied"
+            )
+        if cases != expected_cases or names != expected_names:
+            raise RuntimeError(
+                f"{name} part {number} filtered discovery differs from the "
+                "declaration applied to the unfiltered discovery"
+            )
+        part_cases.append(expected_cases)
+        part_names.append(expected_names)
+    for first, second in (
+        (first, second)
+        for first in range(len(part_numbers))
+        for second in range(first + 1, len(part_numbers))
+    ):
+        if (
+            set(part_cases[first]) & set(part_cases[second])
+            or part_names[first] & part_names[second]
+        ):
+            raise RuntimeError(
+                f"{name} partition parts {first + 1} and {second + 1} overlap"
+            )
+    if (
+        sum(part_cases, Counter()) != discovered
+        or frozenset().union(*part_names) != fully_qualified
+    ):
+        raise RuntimeError(f"{name} partition parts do not sum to the unfiltered discovery")
+    if assembly_hashes is not None:
+        if set(assembly_hashes.parts) != set(part_numbers):
+            raise RuntimeError(f"{name} partition assembly hashes do not cover every part")
+        for number in part_numbers:
+            if assembly_hashes.parts[number] != assembly_hashes.source:
+                raise RuntimeError(
+                    f"{name} part {number} test assembly hash differs from the "
+                    "snapshot manifest"
+                )
+    if executed_by_part is not None:
+        if assembly_hashes is None:
+            raise ValueError("executed partition evidence requires assembly hashes")
+        if set(executed_by_part) != set(part_numbers):
+            raise RuntimeError(
+                f"{name} partition execution must cover exactly parts "
+                f"1-{declaration.part_count}: observed {sorted(executed_by_part)}"
+            )
+        platform = (
+            current_dotnet_producer_platform()
+            if producer_platform is None
+            else producer_platform
+        )
+        approved = approved_platform_skip_identities(project, platform)
+        for number, types, names in zip(part_numbers, part_types, part_names, strict=True):
+            trx_report = executed_by_part[number]
+            try:
+                if not trx_report.is_file():
+                    raise RuntimeError(f"TRX is missing: {trx_report}")
+                require_discovered_test_results(
+                    project,
+                    filtered_by_part[number].display,
+                    trx_report,
+                    parse_trx_counters(trx_report),
+                    platform,
+                    approved_skips=partition_approved_skips(declaration, approved, types),
+                )
+            except RuntimeError as error:
+                raise RuntimeError(f"{name} part {number}: {error}") from error
+            require_trx_case_bindings(
+                trx_report, names, description=f"{name} part {number}"
+            )
+    return DotnetPartitionInventory(
+        discovered,
+        fully_qualified,
+        part_types,
+        tuple(part_cases),
+        tuple(part_names),
+        tuple(stale_types),
+    )
 
 
 def find_project_release_output(
@@ -3201,8 +3772,14 @@ def prepare_local_dotnet_coverage_stage(
     work_root: Path,
     coverage_directory: Path,
     repository_root: Path = ROOT,
+    *,
+    part: DotnetPartitionPart | None = None,
 ) -> LocalDotnetCoverageStage:
-    """Validate and snapshot one project's immutable Release test output."""
+    """Validate and snapshot one project's immutable Release test output.
+
+    A partition part gets its own complete, link-free copy (Coverlet instruments
+    modules in place), its own results directory and fresh listing paths.
+    """
 
     source_output, release_suffix = find_project_release_output(
         project,
@@ -3218,7 +3795,10 @@ def prepare_local_dotnet_coverage_stage(
         canonical_outputs,
     )
     project_token = local_dotnet_project_token(project)
-    shadow_output = work_root / project_token / release_suffix
+    shadow_root = work_root / (
+        project_token if part is None else f"{project_token}-{part.index}"
+    )
+    shadow_output = shadow_root / release_suffix
     source_hashes = snapshot_regular_tree(
         source_output,
         shadow_output,
@@ -3230,7 +3810,7 @@ def prepare_local_dotnet_coverage_stage(
     external_tools_hashes: dict[str, str] | None = None
     if project.requires_external_tools_fixture:
         external_tools_source_root = repository_root / "external-tools"
-        external_tools_shadow_root = work_root / project_token / "external-tools"
+        external_tools_shadow_root = shadow_root / "external-tools"
         external_tools_hashes = snapshot_regular_tree(
             external_tools_source_root,
             external_tools_shadow_root,
@@ -3240,11 +3820,20 @@ def prepare_local_dotnet_coverage_stage(
     test_assembly = shadow_output / f"{project.name}.dll"
     if not test_assembly.is_file() or is_reparse_point(test_assembly):
         raise RuntimeError(f"missing shadow test assembly: {test_assembly}")
-    results_directory = coverage_directory / project.name
+    fully_qualified_report: Path | None = None
+    if part is None:
+        results_directory = coverage_directory / project.name
+        discovery_report = work_root / project_token / "discovered-tests.txt"
+    else:
+        results_directory = coverage_directory / project.name / part.label
+        discovery_report = results_directory / "discovered-tests.txt"
+        fully_qualified_report = results_directory / "discovered-fqn.txt"
     if results_directory.exists():
-        raise RuntimeError(f"duplicate local .NET results directory: {project.name}")
+        raise RuntimeError(
+            f"duplicate local .NET results directory: {project.name}"
+            + ("" if part is None else f" {part.label}")
+        )
     results_directory.mkdir(parents=True)
-    discovery_report = work_root / project_token / "discovered-tests.txt"
     return LocalDotnetCoverageStage(
         project,
         source_output,
@@ -3257,6 +3846,8 @@ def prepare_local_dotnet_coverage_stage(
         external_tools_source_root,
         external_tools_shadow_root,
         external_tools_hashes,
+        part,
+        fully_qualified_report,
     )
 
 
@@ -3266,6 +3857,7 @@ def require_local_dotnet_project_evidence(
     discovery_report: Path,
     *,
     require_coverage: bool = True,
+    approved_skips: Counter[str] | None = None,
 ) -> None:
     """Validate one exact TRX, its discovery counters, and optional coverage evidence."""
 
@@ -3290,6 +3882,7 @@ def require_local_dotnet_project_evidence(
         trx_report,
         counters,
         current_dotnet_producer_platform(),
+        approved_skips=approved_skips,
     )
 
 
@@ -3323,6 +3916,377 @@ def run_local_dotnet_coverage_project(
         stage.discovery_report,
         require_coverage=adapter_path is not None,
     )
+
+
+def local_dotnet_test_partitions(
+    projects: Sequence[CiDotnetProject],
+) -> dict[str, DotnetTestPartition]:
+    """Select and validate the declared partitions of the complete local inventory."""
+
+    selected = {
+        project.name: DOTNET_TEST_PARTITIONS[project.name]
+        for project in projects
+        if project.name in DOTNET_TEST_PARTITIONS
+    }
+    for declaration in selected.values():
+        validate_dotnet_test_partition(declaration)
+    return selected
+
+
+def require_no_local_partition_overrides(environment: Mapping[str, str]) -> None:
+    """Reject caller-set UiSmoke capture and input overrides before discovery.
+
+    Presence alone fails, including an empty or whitespace-only value.
+    """
+
+    names = {
+        name.upper() if sys.platform == "win32" else name for name in environment
+    }
+    present = [
+        name for name in LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES if name in names
+    ]
+    if present:
+        raise RuntimeError(
+            "partitioned local .NET coverage forbids caller-set overrides: "
+            + ", ".join(present)
+        )
+
+
+def require_fresh_listing_path(path: Path) -> Path:
+    """Refuse a leftover listing so that only this run's discovery can be read."""
+
+    if path.exists() or is_reparse_point(path):
+        raise RuntimeError(f"VSTest listing exists before its discovery ran: {path}")
+    return path
+
+
+def dotnet_partition_declaration_sha256(declaration: DotnetTestPartition) -> str:
+    document = {
+        "listedParts": [list(types) for types in declaration.listed_parts],
+        "namespace": declaration.namespace,
+    }
+    return hashlib.sha256(
+        json.dumps(document, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def first_version_in_report(path: Path, pattern: str) -> str | None:
+    """Return the first recorded version in a command log, for evidence only."""
+
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    match = re.search(pattern, text, re.MULTILINE)
+    return match[1] if match else None
+
+
+def run_local_dotnet_partition_part(
+    stage: LocalDotnetCoverageStage,
+    dotnet: str,
+    adapter_path: Path | None,
+    environment: dict[str, str],
+    log_path: Path | None,
+    approved_skips: Counter[str],
+) -> None:
+    """Run one admitted part from its own tree and validate its own evidence."""
+
+    if stage.partition_part is None:
+        raise ValueError("partition part stage is required")
+    run(
+        local_dotnet_vstest_command(
+            dotnet,
+            stage.test_assembly,
+            adapter_path,
+            stage.results_directory,
+            test_case_filter=dotnet_partition_filter(stage.partition_part),
+        ),
+        environment=environment,
+        log_path=log_path,
+    )
+    require_local_dotnet_project_evidence(
+        stage.project,
+        stage.results_directory,
+        stage.discovery_report,
+        require_coverage=adapter_path is not None,
+        approved_skips=approved_skips,
+    )
+
+
+def dotnet_partition_part_summaries(
+    inventory: DotnetPartitionInventory,
+) -> list[dict[str, int]]:
+    return [
+        {
+            "part": index,
+            "types": len(types),
+            "cases": sum(cases.values()),
+            "fullyQualifiedTests": len(names),
+        }
+        for index, (types, cases, names) in enumerate(
+            zip(
+                inventory.part_types,
+                inventory.part_cases,
+                inventory.part_fully_qualified,
+                strict=True,
+            ),
+            1,
+        )
+    ]
+
+
+def run_local_dotnet_partition(
+    declaration: DotnetTestPartition,
+    stages: Sequence[LocalDotnetCoverageStage],
+    dotnet: str,
+    adapter_path: Path | None,
+    environment: dict[str, str],
+    coverage_directory: Path,
+) -> tuple[tuple[LaneResult, ...], BaseException | None]:
+    """Admit, run and prove one declared partition; parts run only after admission.
+
+    Lane failures are returned as results and check failures as the returned
+    error; either fails the project. Cancellation propagates unchanged.
+    """
+
+    project = stages[0].project
+    parts = tuple(stage.partition_part for stage in stages)
+    if (
+        any(stage.project != project for stage in stages)
+        or any(part is None or part.declaration != declaration for part in parts)
+        or [part.index for part in parts if part is not None]
+        != list(range(1, declaration.part_count + 1))
+    ):
+        raise RuntimeError(f"{project.name} partition stages do not match the declaration")
+    evidence_directory = coverage_directory / project.name
+    unfiltered = VstestDiscoveryListing(
+        evidence_directory / "discovered-tests.txt",
+        evidence_directory / "discovered-fqn.txt",
+    )
+    filtered: dict[int, VstestDiscoveryListing] = {}
+    for stage in stages:
+        assert stage.partition_part is not None
+        if stage.fully_qualified_report is None:
+            raise RuntimeError(f"{project.name} partition part has no FQN listing path")
+        filtered[stage.partition_part.index] = VstestDiscoveryListing(
+            stage.discovery_report, stage.fully_qualified_report
+        )
+    sdk_report = evidence_directory / "dotnet-version.txt"
+    jobs = min(MAXIMUM_LOCAL_DOTNET_JOBS, len(stages))
+    log_directory = coverage_directory / "logs"
+    results: tuple[LaneResult, ...] = ()
+    failure: BaseException | None = None
+    inventory: DotnetPartitionInventory | None = None
+    verdict_failure: str | None = None
+    executed: dict[int, dict[str, int]] = {}
+    source_hash: str | None = None
+
+    def discover(stage: LocalDotnetCoverageStage) -> LaneAction:
+        part = stage.partition_part
+        assert part is not None
+        listings: list[tuple[str | None, VstestDiscoveryListing]] = []
+        if part.index == 1:
+            listings.append((None, unfiltered))
+        listings.append((dotnet_partition_filter(part), filtered[part.index]))
+
+        def action(log_path: Path | None) -> None:
+            if part.index == 1:
+                run(
+                    [dotnet, "--version"],
+                    environment=environment,
+                    log_path=require_fresh_listing_path(sdk_report),
+                )
+            for test_case_filter, listing in listings:
+                run(
+                    dotnet_vstest_discovery_command(
+                        dotnet, stage.test_assembly, test_case_filter=test_case_filter
+                    ),
+                    environment=environment,
+                    log_path=require_fresh_listing_path(listing.display),
+                )
+                run(
+                    dotnet_vstest_fully_qualified_discovery_command(
+                        dotnet,
+                        stage.test_assembly,
+                        require_fresh_listing_path(listing.fully_qualified),
+                        test_case_filter=test_case_filter,
+                    ),
+                    environment=environment,
+                    log_path=log_path,
+                )
+
+        return action
+
+    def assembly_hashes() -> DotnetPartitionAssemblyHashes:
+        assert source_hash is not None
+        return DotnetPartitionAssemblyHashes(
+            source_hash,
+            {
+                stage.partition_part.index: sha256_file(stage.test_assembly)
+                for stage in stages
+                if stage.partition_part is not None
+            },
+        )
+
+    try:
+        manifests = {json.dumps(stage.source_hashes, sort_keys=True) for stage in stages}
+        source_hash = stages[0].source_hashes.get(f"{project.name}.dll")
+        if len(manifests) != 1 or source_hash is None:
+            raise RuntimeError(
+                f"{project.name} partition parts do not share one snapshot manifest"
+            )
+        admission_hashes = assembly_hashes()
+        discovery_results = run_lanes(
+            tuple(
+                VerificationLane(
+                    f"{project.name}.{stage.partition_part.label}.discovery",
+                    discover(stage),
+                )
+                for stage in stages
+                if stage.partition_part is not None
+            ),
+            jobs=jobs,
+            log_directory=log_directory,
+            lane_timeout_seconds=LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS,
+            preserve_cancellation_request=True,
+        )
+        results += discovery_results
+        if not all(result.succeeded for result in discovery_results):
+            verdict_failure = "partition discovery failed; no part ran"
+        else:
+            inventory = require_exact_partition(
+                declaration,
+                unfiltered,
+                filtered,
+                assembly_hashes=admission_hashes,
+                project=project,
+            )
+            if inventory.stale_types:
+                print(
+                    f"{project.name} partition: stale declared types (not discovered): "
+                    + ", ".join(inventory.stale_types),
+                    flush=True,
+                )
+            print(
+                f"{project.name} partition admitted: "
+                + "; ".join(
+                    f"part {summary['part']} {summary['types']} types, "
+                    f"{summary['cases']} cases, {summary['fullyQualifiedTests']} tests"
+                    for summary in dotnet_partition_part_summaries(inventory)
+                ),
+                flush=True,
+            )
+            remaining_timeout()
+            if PROCESS_CANCELLATION_REQUESTED.is_set():
+                raise RuntimeError("local .NET coverage was cancelled")
+            approved = approved_platform_skip_identities(
+                project, current_dotnet_producer_platform()
+            )
+            admitted = inventory
+            part_results = run_lanes(
+                tuple(
+                    VerificationLane(
+                        f"{project.name}.{stage.partition_part.label}",
+                        lambda part_log, current=stage: run_local_dotnet_partition_part(
+                            current,
+                            dotnet,
+                            adapter_path,
+                            environment,
+                            part_log,
+                            partition_approved_skips(
+                                declaration,
+                                approved,
+                                admitted.part_types[current.partition_part.index - 1],
+                            ),
+                        ),
+                    )
+                    for stage in stages
+                    if stage.partition_part is not None
+                ),
+                jobs=jobs,
+                log_directory=log_directory,
+                lane_timeout_seconds=LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS,
+                preserve_cancellation_request=True,
+            )
+            results += part_results
+            if not all(result.succeeded for result in part_results):
+                verdict_failure = "partition parts failed"
+            else:
+                executed_reports = {
+                    stage.partition_part.index: stage.results_directory / "test-results.trx"
+                    for stage in stages
+                    if stage.partition_part is not None
+                }
+                require_exact_partition(
+                    declaration,
+                    unfiltered,
+                    filtered,
+                    executed_reports,
+                    assembly_hashes(),
+                    project=project,
+                )
+                executed = {
+                    index: parse_trx_counters(report)
+                    for index, report in executed_reports.items()
+                }
+    except Exception as error:
+        failure = error
+        verdict_failure = f"{type(error).__name__}: {error}"
+    document: dict[str, object] = {
+        "schemaVersion": DOTNET_PARTITION_EVIDENCE_SCHEMA_VERSION,
+        "project": project.name,
+        "namespace": declaration.namespace,
+        "declarationSha256": dotnet_partition_declaration_sha256(declaration),
+        "partCount": declaration.part_count,
+        "assemblySha256": source_hash,
+        "sdkVersion": first_version_in_report(
+            sdk_report, r"^\s*([0-9]+\.[0-9]+\.[0-9]+\S*)\s*$"
+        ),
+        "vstestVersion": first_version_in_report(
+            unfiltered.display, r"\bVSTest\b\D*?([0-9]+\.[0-9]+\.[0-9]+)"
+        ),
+        "discovered": None if inventory is None else {
+            "cases": sum(inventory.discovered.values()),
+            "fullyQualifiedTests": len(inventory.fully_qualified),
+            "types": len(frozenset().union(*inventory.part_types)),
+        },
+        "parts": [] if inventory is None else [
+            {**summary, "executed": executed.get(summary["part"])}
+            for summary in dotnet_partition_part_summaries(inventory)
+        ],
+        "staleTypes": [] if inventory is None else list(inventory.stale_types),
+        "verdict": "failed" if verdict_failure is not None else "passed",
+        "failure": verdict_failure,
+    }
+    try:
+        write_ci_manifest(evidence_directory / "partition.json", document)
+    except OSError as error:
+        failure = combine_failures(failure, error, secondary_label="partition evidence")
+    return results, failure
+
+
+def local_dotnet_coverage_batches(
+    stages: Sequence[LocalDotnetCoverageStage],
+    partitions: Mapping[str, DotnetTestPartition],
+) -> tuple[tuple[LocalDotnetCoverageStage, ...], ...]:
+    """Order batches: each partition's parts and each exclusive project run alone,
+    in inventory order; then every other project runs together."""
+
+    exclusive: list[list[LocalDotnetCoverageStage]] = []
+    partition_batches: dict[str, list[LocalDotnetCoverageStage]] = {}
+    shared: list[LocalDotnetCoverageStage] = []
+    for stage in stages:
+        name = stage.project.name
+        if name in partitions:
+            if name not in partition_batches:
+                partition_batches[name] = []
+                exclusive.append(partition_batches[name])
+            partition_batches[name].append(stage)
+        elif stage.project.requires_exclusive_local_coverage:
+            exclusive.append([stage])
+        else:
+            shared.append(stage)
+    return tuple(tuple(batch) for batch in (*exclusive, shared) if batch)
 
 
 def require_local_dotnet_sources_unchanged(
@@ -3399,8 +4363,13 @@ def prepare_local_dotnet_coverage_stages(
     work_root: Path,
     coverage_directory: Path,
     repository_root: Path,
+    *,
+    partitions: Mapping[str, DotnetTestPartition] | None = None,
 ) -> tuple[LocalDotnetCoverageStage, ...]:
-    """Prepare disjoint snapshots, joining every writer before the caller can clean up."""
+    """Prepare disjoint snapshots, joining every writer before the caller can clean up.
+
+    A partitioned project yields one complete snapshot per part, in part order.
+    """
 
     names = [project.name.casefold() for project in projects]
     tokens = [local_dotnet_project_token(project) for project in projects]
@@ -3408,23 +4377,41 @@ def prepare_local_dotnet_coverage_stages(
         raise RuntimeError("duplicate local .NET project name or shadow token collision")
     if not projects:
         return ()
+    units: list[tuple[CiDotnetProject, DotnetPartitionPart | None]] = []
+    for project in projects:
+        declaration = None if partitions is None else partitions.get(project.name)
+        if declaration is None:
+            units.append((project, None))
+        else:
+            units.extend(
+                (project, DotnetPartitionPart(declaration, index))
+                for index in range(1, declaration.part_count + 1)
+            )
 
-    def prepare(project: CiDotnetProject) -> LocalDotnetCoverageStage:
+    def prepare(
+        unit: tuple[CiDotnetProject, DotnetPartitionPart | None],
+    ) -> LocalDotnetCoverageStage:
+        project, part = unit
         remaining_timeout()
         if PROCESS_CANCELLATION_REQUESTED.is_set():
             raise RuntimeError("local .NET snapshot preparation was cancelled")
-        stage = prepare_local_dotnet_coverage_stage(
-            project, work_root, coverage_directory, repository_root,
-        )
+        if part is None:
+            stage = prepare_local_dotnet_coverage_stage(
+                project, work_root, coverage_directory, repository_root,
+            )
+        else:
+            stage = prepare_local_dotnet_coverage_stage(
+                project, work_root, coverage_directory, repository_root, part=part,
+            )
         remaining_timeout()
         return stage
 
     results: dict[int, LocalDotnetCoverageStage] = {}
-    with ThreadPoolExecutor(max_workers=min(MAXIMUM_LOCAL_DOTNET_JOBS, len(projects))) as executor:
+    with ThreadPoolExecutor(max_workers=min(MAXIMUM_LOCAL_DOTNET_JOBS, len(units))) as executor:
         futures = {}
         try:
-            for index, project in enumerate(projects):
-                futures[executor.submit(copy_context().run, prepare, project)] = index
+            for index, unit in enumerate(units):
+                futures[executor.submit(copy_context().run, prepare, unit)] = index
             for future in as_completed(futures):
                 results[futures[future]] = future.result()
         except BaseException:
@@ -3434,7 +4421,7 @@ def prepare_local_dotnet_coverage_stages(
     remaining_timeout()
     if PROCESS_CANCELLATION_REQUESTED.is_set():
         raise RuntimeError("local .NET snapshot preparation was cancelled")
-    return tuple(results[index] for index in range(len(projects)))
+    return tuple(results[index] for index in range(len(units)))
 
 
 def collect_local_dotnet_coverage(
@@ -3466,30 +4453,38 @@ def collect_local_dotnet_coverage(
     stages: list[LocalDotnetCoverageStage] = []
     failure: BaseException | None = None
     try:
+        # Only the complete local inventory is partitioned; subsets stay unfiltered.
+        partitions = local_dotnet_test_partitions(projects) if full_coverage else {}
+        if partitions:
+            require_no_local_partition_overrides(environment)
         adapter_path = (
             resolve_coverlet_adapter_path(repository_root) if collect_coverage else None
         )
         stages = list(prepare_local_dotnet_coverage_stages(
-            projects, work, coverage_directory, repository_root,
+            projects, work, coverage_directory, repository_root, partitions=partitions,
         ))
 
-        batches = (
-            *(
-                (stage,)
-                for stage in stages
-                if stage.project.requires_exclusive_local_coverage
-            ),
-            tuple(
-                stage
-                for stage in stages
-                if not stage.project.requires_exclusive_local_coverage
-            ),
-        )
+        batches = local_dotnet_coverage_batches(stages, partitions)
         results = ()
-        for batch in (batch for batch in batches if batch):
+        partition_failures: list[BaseException] = []
+        for batch in batches:
             remaining_timeout()
             if PROCESS_CANCELLATION_REQUESTED.is_set():
                 raise RuntimeError("local .NET coverage was cancelled")
+            declaration = partitions.get(batch[0].project.name)
+            if declaration is not None:
+                partition_results, partition_failure = run_local_dotnet_partition(
+                    declaration,
+                    batch,
+                    dotnet,
+                    adapter_path,
+                    environment,
+                    coverage_directory,
+                )
+                results += partition_results
+                if partition_failure is not None:
+                    partition_failures.append(partition_failure)
+                continue
             lanes = tuple(
                 VerificationLane(
                     stage.project.name,
@@ -3514,6 +4509,10 @@ def collect_local_dotnet_coverage(
             )
             results += batch_results
         report_lane_results(results)
+        for partition_failure in partition_failures:
+            failure = combine_failures(
+                failure, partition_failure, secondary_label="partition"
+            )
         try:
             require_local_dotnet_sources_unchanged(
                 stages,
@@ -5373,7 +6372,9 @@ def run_lanes(
         raise ValueError(
             f"verification jobs must be between 1 and {MAXIMUM_VERIFY_JOBS}"
         )
-    if lane_timeout_seconds <= 0:
+    if lane_timeout_seconds <= 0 or any(
+        lane.timeout_seconds is not None and lane.timeout_seconds <= 0 for lane in lanes
+    ):
         raise ValueError("verification lane timeout must be positive")
     names = tuple(lane.name for lane in lanes)
     if len(names) != len(set(names)):
@@ -5383,6 +6384,7 @@ def run_lanes(
     group_deadlines_lock = threading.Lock()
     notified: set[str] = set()
     notification_lock = threading.Lock()
+    admission = LaneAdmission()
 
     def notify_terminal(lane: VerificationLane, failure: BaseException | None) -> BaseException | None:
         with notification_lock:
@@ -5403,8 +6405,14 @@ def run_lanes(
 
     def run_lane(lane: VerificationLane) -> LaneResult:
         log_path = log_directory / f"{lane.name}.log"
+        if not admission.admit(lane.name):
+            refusal = "not started: lane admission closed after a setup failure"
+            notify_terminal(lane, RuntimeError(refusal))
+            return LaneResult(lane.name, False, 0.0, log_path, refusal)
         started = monotonic()
-        deadline = started + lane_timeout_seconds
+        deadline = started + (
+            lane_timeout_seconds if lane.timeout_seconds is None else lane.timeout_seconds
+        )
         if lane.deadline_group is not None:
             with group_deadlines_lock:
                 deadline = group_deadlines.setdefault(lane.deadline_group, deadline)
@@ -5418,6 +6426,8 @@ def run_lanes(
                 lane.action(log_path)
             remaining_timeout()
         except BaseException as error:
+            if isinstance(error, VerificationLaneSetupFailure):
+                admission.close()  # Before the failure is published through the future.
             failure = error
         finally:
             LANE_DEADLINE.reset(deadline_token)
@@ -5514,7 +6524,12 @@ def run_selected_lanes(
         print(
             "Verification policy: "
             f"jobs={jobs}, lane-timeout={lane_timeout_seconds}s, "
-            f"cleanup-ceiling={CLEANUP_TIMEOUT_SECONDS}s"
+            + "".join(
+                f"{lane.name}-lane-timeout={lane.timeout_seconds:g}s, "
+                for lane in lanes
+                if lane.timeout_seconds is not None
+            )
+            + f"cleanup-ceiling={CLEANUP_TIMEOUT_SECONDS}s"
         )
         results = run_lanes(
             lanes,
@@ -5556,7 +6571,12 @@ def validate_internal_lane_arguments(args: argparse.Namespace) -> None:
 
 
 def run_local_full_verification(args: argparse.Namespace) -> None:
-    """Run bounded .NET build and coverage before independent postchecks."""
+    """Run exclusive sync, restore and build, then every workload in one lane pool.
+
+    The .NET coverage lane is submitted first and counts against ``--jobs``; its
+    UiSmoke parts and Infrastructure stay exclusive inside it. Results keep
+    declaration order, and SDK cleanup runs once after the pool.
+    """
 
     dotnet = resolve_dotnet()
     environment = dotnet_batch_environment()
@@ -5589,30 +6609,25 @@ def run_local_full_verification(args: argparse.Namespace) -> None:
             )),),
             jobs=1, lane_timeout_seconds=args.lane_timeout_seconds,
         )
-        independent_lanes = []
+        # An explicit --lane-timeout-seconds binds every lane, .NET included.
+        lanes = [VerificationLane(
+            "dotnet", collect_coverage,
+            timeout_seconds=(
+                None if args.lane_timeout_was_supplied
+                else LOCAL_DOTNET_COVERAGE_LANE_TIMEOUT_SECONDS
+            ),
+        )]
         if not args.skip_structure:
-            independent_lanes.append(VerificationLane(
+            lanes.append(VerificationLane(
                 "structure", verify_structure_postchecks,
                 isolate_action=True, internal_name="structure-postchecks",
             ))
-        independent_lanes.extend(local_repository_script_lanes())
-        independent_lanes.append(VerificationLane(
+        lanes.extend(local_repository_script_lanes())
+        lanes.append(VerificationLane(
             "python", verify_python, isolate_action=True,
         ))
-        try:
-            run_selected_lanes((VerificationLane(
-                "dotnet", collect_coverage,
-            ),), jobs=1, lane_timeout_seconds=(
-                args.lane_timeout_seconds if args.lane_timeout_was_supplied
-                else LOCAL_DOTNET_COVERAGE_LANE_TIMEOUT_SECONDS
-            ))
-        except VerificationLanesFailed as error:
-            failure = error
-        try:
-            run_selected_lanes(independent_lanes, jobs=args.jobs,
-                               lane_timeout_seconds=args.lane_timeout_seconds)
-        except Exception as error:
-            failure = combine_failures(failure, error, secondary_label="independent lanes")
+        run_selected_lanes(lanes, jobs=args.jobs,
+                           lane_timeout_seconds=args.lane_timeout_seconds)
     except BaseException as error:
         failure = error
     finally:

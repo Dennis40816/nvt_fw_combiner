@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "taskId": "MEMORY-COVERAGE-REBUILD-1113-01",
+  "capability": "Each Merge or Replace memory-coverage publication replaces MergeCoverageSegments, ReplaceCoverageSegments and CtrlRamOverview with one collection Reset instead of a Clear followed by one Add per segment, so every bound MemoryCoverageBar rebuilds its rail, endpoint positions and legend once per replacement, synchronously, instead of once per segment",
+  "integrationBase": "9c7ad0caa6645c9f41f056618759de088d2b5142",
+  "risk": "R1",
+  "kind": "ui",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ResettableObservableCollection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportWindowedListViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs",
+    "tests/NvtFwCombiner.UiSmoke.Tests/MemoryCoveragePublicationTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "1.1.13 board decision 112: MemoryCoverageBar rebuilds its legend and child controls once per collection notification, quadratic in the row count; real CtrlRAM loading pays the same cost.",
+    "rg -n 'OnCollectionChanged|Rebuild\\(' src/NvtFwCombiner.Presentation.Avalonia/Views: MemoryCoverageBar.OnCollectionChanged calls Rebuild for every notification; Rebuild runs CloseAll, CoalesceContent, BuildPositions, BuildLegend and reassigns the rail ItemsPanel, ItemTemplate and ItemsSource, so one Clear plus N Adds costs O(N^2) control construction.",
+    "rg -n 'MergeCoverageSegments|ReplaceCoverageSegments|CtrlRamOverview|CtrlRamPositions' src: the three ObservableCollections are bound only to MemoryCoverageBar (MainWindowSharedTemplates.axaml, MainWindowWorkflowTemplates.axaml) and are populated only by private ReplaceRows helpers (Clear plus per-item Add) in MergePresentationViewModel.Memory.cs and ReplacePresentationViewModel.Memory.cs; CtrlRamPositions is a computed List, not INotifyCollectionChanged, and does not fire per item.",
+    "rg -n 'CollectionChanged \\+=' src/NvtFwCombiner.Presentation.Avalonia: MemoryCoverageBar is the only subscriber to these collections; no test subscribes to them or retains their instances.",
+    "rg -n 'NotifyCollectionChangedAction.Reset|: ObservableCollection<' src: the only existing single-Reset bulk replacement is the private ReportWindowedListViewModel.ResettableObjectCollection.ReplaceAll, covered by ReportWindowedListViewModelTests asserting exactly one Reset per page change; it is promoted, not duplicated.",
+    "Owner-session experiment (not committed): coalescing the view's rebuilds with a dispatcher post cut the full UiSmoke run from about 6:00 to 4:38 with 1723/1723 passing, mostly in CtrlRamMemoryLayoutTests; rejected as the fix because it makes the bar asynchronous and leaves the per-item fan-out in the publisher."
+  ],
+  "semanticOwner": "MergePresentationViewModel (PrepareMergeMemoryMapState) and ReplacePresentationViewModel (ApplyReplaceMemoryDisplay, RefreshCtrlRamBankOverview, PrepareClearCtrlRamInspectionDisplay) remain the only publishers of the memory-coverage display collections, UiCompositionRunner remains the only source of their typed segments, MemoryCoverageBar remains the only renderer and MemoryCoverageBarProjection the only display reduction. The existing single-Reset bulk replacement privately owned by ReportWindowedListViewModel is promoted unchanged to one internal generic Presentation collection used by both the report navigator and the memory-coverage publishers; no second bulk-replace mechanism is added and MemoryCoverageBar and every XAML binding stay unchanged.",
+  "terminalContract": "Every replacement of MergeCoverageSegments, ReplaceCoverageSegments or CtrlRamOverview raises exactly one NotifyCollectionChangedAction.Reset (plus Count and Item[] property changes) and no per-item Add, while keeping each collection's identity and the same element instances in the same order as before; clearing still raises one Reset. MemoryCoverageBar therefore rebuilds once per replacement, synchronously on the UI thread, and ends with the same rail items, endpoint positions, legend rows, automation names, reducedMotion classes and overlay dismissal as before. ReportWindowedListViewModel keeps exactly one Reset per page change. No firmware fact, address range, byte, order, label, binding path or visual layout changes.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 presentation performance correction of 1.1.13 board decision 112 inside the existing Merge/Replace ViewModel publishers and the existing report-navigator single-Reset collection; no View code, XAML, style, contract, ADR, schema, profile, firmware or governance change. Narrow tests: UiSmoke MemoryCoveragePublicationTests, ReportWindowedListViewModelTests, MemoryCoveragePopupTests, MemoryCoverageLegendTests, MemoryCoverageExplorerTests, CtrlRamMemoryLayoutTests, CtrlRamOverviewCompletionTests, ShellViewModelTests (CtrlRamReplaceDisplay, Merge, MemorySourceAb, AbCtrlRamAuthoring) and NvtFwCombiner.Architecture.Tests. Residual gates: independent fixed-head review and finalization before integration."
+  },
+  "implementationHead": "b3de011fd8afe5b2664a43bbe3d8396c283688b4",
+  "reviewedHead": "b3de011fd8afe5b2664a43bbe3d8396c283688b4",
+  "pathStateDigest": "5bed379e8581775bd7c8291af05708364036c40792ace87f1b71d7d1e42c6147",
+  "finalReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent R1 fixed-head review by codex/gpt-6-sol in two rounds on feature/1.1.13/memory-coverage-rebuild (base c250ed8a5): round one APPROVED a17af2c7093cf1a256e879e88c9df45d08869c0d with one non-blocking P3; round two APPROVED 3970d50e2591a723859f03cc1e0d821b89962ff7, confirming the P3 closed. This batch cherry-picks the same three commits onto the same base; every changed blob equals the reviewed source. Independent read-only review by codex/gpt-6-sol approved a17af2c7093cf1a256e879e88c9df45d08869c0d after inspecting the implementation, declared mutable paths, collection consumers, and author-reported verification evidence. The sole nonblocking P3 finding was that an observed VM phase with zero notifications could pass its assertions. Follow-up review of exact head 3970d50e2591a723859f03cc1e0d821b89962ff7 confirmed that its only change adds a nonempty assertion to every observed phase through the shared assertion helper, closing that finding. The worktree was clean. The author reported MemoryCoveragePublicationTests 3/3 and format passing; the reviewer did not rerun tests or build. Scoped R1 review: APPROVED."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ResettableObservableCollection.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportWindowedListViewModel.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs"
+  ]
+}

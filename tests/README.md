@@ -13,6 +13,56 @@ admitted batch (and, for selection and coverage on pull requests, the T4b
 activation) is in force; until then the current rules apply. This README keeps
 navigation and measurements only.
 
+## 1.1.13 local UiSmoke partition
+
+Owners: the [ADR 0079 amendment of 2026-09-27](../docs/adr/0079-test-architecture.md#amendment-2026-09-27-local-uismoke-partition-board-decisions-113-and-128)
+and `DOTNET_TEST_PARTITIONS`, `require_exact_partition` and
+`collect_local_dotnet_coverage` in [`verify.py`](../scripts/verify.py)
+(`VERIFY-UISMOKE-PARTITION-1113-01`). Every local run of the complete .NET
+coverage inventory runs UiSmoke as three concurrent test processes: two
+declared type lists and a last part holding every other type. Each part has its
+own complete copy of the Release output and its own filtered discovery, TRX and
+coverage pair; the parts run alone, before Infrastructure and the other
+projects, with the existing 600-second project limit. Any failed exactness
+check fails the coverage lane. CI shards, release Golden and the coverage
+policy stay unpartitioned.
+
+Evidence lands under `artifacts/coverage/dotnet/NvtFwCombiner.UiSmoke.Tests/`:
+`partition.json` (declaration and assembly hashes, SDK and VSTest versions,
+per-part counts, verdict), the unfiltered `discovered-tests.txt` and
+`discovered-fqn.txt`, and `part-<i>-of-3/` with the filtered listings, TRX and
+coverage pair. The lane report shows each `.part-<i>-of-3` and
+`.discovery` lane with its duration.
+
+The partitioned lane fails before discovery when `NFC_VISUAL_OUTPUT_DIR`,
+`NFC_UI_REFERENCE_CAPTURE_DIR` or `NFC_REPORT_VISUAL_INPUT` is set, even empty.
+Visual captures therefore use narrow `dotnet test` runs, as in the sections
+below. Measured basis (experiment E2, Release, no coverage): UiSmoke 331 s in
+one process and 155 s in three, all 1,720 cases passing.
+
+## 1.1.13 local top-level schedule
+
+Owner: `run_local_full_verification` and `run_lanes` in
+[`verify.py`](../scripts/verify.py) (`VERIFY-LOCAL-OVERLAP-1113-01`, board
+decisions 107 and 130). This describes the complete local plan only: every
+`--all` run, including `main-package.yml`, and a run that only adds
+`--skip-structure`; a `--skip-python` or `--skip-dotnet` run does not use it.
+With structure enabled it first runs derived-data sync; then restore and the
+Release build run as exclusive phases; then one pool of at most `--jobs` lanes
+runs the .NET coverage lane (submitted first, 1,200 s unless
+`--lane-timeout-seconds` is given, which then binds every lane), the structure
+postchecks, each script module under its shard's shared deadline, and the CRC
+worker. `--skip-structure` skips the sync and the structure postchecks.
+UiSmoke parts and Infrastructure stay exclusive inside the .NET lane.
+`--jobs=1` runs the same lanes serially in that order and keeps the UiSmoke
+partition. Results, the report and the failure list keep declaration order.
+A coverage child launch failure closes the pool's admission latch: no later
+lane is admitted, lanes already admitted finish, and SDK cleanup runs once
+after the pool. This replaces the VERIFY-1110 rule that ran the coverage lane alone
+before the other lanes; the build stays exclusive. Measured basis (experiment
+E1, one run, four concurrent lanes): about 24 minutes before, 15 min 27 s
+with the overlap, UiSmoke at 486 s of its 600 s limit.
+
 ## v1.1.5 local scheduling change
 
 Public `--jobs` supports 1–4 workers; the default remains three. Four is an
@@ -908,7 +958,7 @@ Project paths are also the navigation links; their `.csproj` has the same name.
 | [GoldenRegression](NvtFwCombiner.GoldenRegression.Tests/) | Certified output byte/hash regressions | 9 | core; also fresh release Golden |
 | [Architecture](NvtFwCombiner.Architecture.Tests/) | Layer/dependency and source-contract checks | 238 | core |
 | [Bootstrap](NvtFwCombiner.Bootstrap.Tests/) | Assembled routes, real fixtures and supported workflow execution | 666 | bootstrap; also fresh release Golden |
-| [UiSmoke](NvtFwCombiner.UiSmoke.Tests/) | Headless real controls, layout, bindings and shell workflows | 749 | ui; exclusive in local coverage |
+| [UiSmoke](NvtFwCombiner.UiSmoke.Tests/) | Headless real controls, layout, bindings and shell workflows | 749 | ui; exclusive in local coverage (three partition parts from 1.1.13) |
 | [Repository scripts](scripts/), `test_[a-q]*.py` | Policy, automation and verifier contracts | 418 | repository-scripts-a-q |
 | [Repository scripts](scripts/), `test_r*.py` | Release/repository policy regressions | 165 | repository-scripts-r |
 | [Repository scripts](scripts/), `test_[s-z]*.py` | Sync, verification, process ownership and remaining contracts | 413 | repository-scripts-s-z |
@@ -1220,7 +1270,8 @@ shell cases, one existing compact Preferences case (both themes internally),
 and four existing Report controls to check the shared host's unchanged default.
 TRX and PNG evidence is under
 `D:/NvtFwCombiner-TestArea/evidence/v114-shell-inventory/product-policy/`;
-set `NFC_VISUAL_OUTPUT_DIR` to an external evidence directory to reproduce.
+set `NFC_VISUAL_OUTPUT_DIR` to an external evidence directory to reproduce
+(narrow runs only; the partitioned full verifier rejects the variable).
 Earlier parent/verified-directory captures used the historical DP test policy
 or a theme assignment not synchronized with shell preferences; they are not
 the final inventory. No full-suite/native DPI/High Contrast claim is made.
