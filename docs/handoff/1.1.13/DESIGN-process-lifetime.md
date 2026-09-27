@@ -6,7 +6,7 @@ Status: 第 6 版設計已獲 R2 設計批准，2026-09-27，Claude Code（Opus 
 ACCEPT-WITH-CHANGES（餘 F-12 至 F-15）；第 5 版 ACCEPT-WITH-CHANGES（餘 F-16、F-17 與
 ADR 措辭）；第 6 版 ACCEPT-WITH-CHANGES、scoped Polytail PASS，建議給予設計批准（僅
 餘 repo 外證據檔的 F-18，已修正）。record 的 `designReview.outcome` 為 `approved`。
-ADR 0081 仍是 Proposed，要等 owner 接受全文後另行改狀態。
+ADR 0081 已由 owner decision 97（2026-09-27）接受。
 
 ## 0. 身分與依據
 
@@ -421,9 +421,9 @@ OS 拒絕終止 fixture（分類改以 refusal seam 測試為準）。
 
 1. **上限數值 8**：若 owner 想要更小（例如 4）或更大，改 `ExternalProcessCapacity.DefaultLimit`
    一個常數即可（併發硬上限的機制與數值無關）。
-2. **ADR 0006 的反向連結**：本 patch 在 ADR 0006 加上
-   `Amended by: ADR 0015, ADR 0081`。ADR 0081 目前是 Proposed，這行應在 ADR 0081
-   被接受時才生效。建議保留在 patch 中，admission 時由重審確認。
+2. **ADR 0006 的反向連結**（已決定（decision 97））：本 patch 在 ADR 0006 加上
+   `Amended by: ADR 0015, ADR 0081`。ADR 0081 已由 owner decision 97（2026-09-27）
+   接受。建議保留在 patch 中，admission 時由重審確認。
 3. **啟動失敗 bug 的順序**：建議第一批合入後，另開同 owner 的 R1。
 
 ## 9. 工作量預估
