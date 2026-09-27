@@ -796,7 +796,7 @@ or a file the checker reads to reach its verdict (all governance R3 by item
 18. Agent instructions and skills follow the 1.1.12 WS-AI decisions 1-5: one
     root `AGENTS.md`; `.agents/skills/` canonical with derived `.claude/`
     projections (extends ADR 0068); the `nfc-` skill prefix; 23 skills reduced
-    to 18; `code-review` and `polytail` merged into `nfc-review`; the hybrid
+    to 19 (board decision 120 amends the WS-AI count); `code-review` and `polytail` merged into `nfc-review`; the hybrid
     interview style; the dual-runtime agent documents. The WS-AI port confirms
     or amends this item. It lands with G1-B because the owner kept G1-B's
     designed scope (decision 101), not because the record retirement needs it
@@ -977,7 +977,7 @@ What G1-B removes, and what it keeps (second review):
        (step 2).
    - **G1-B, carried by decision 101 (not required for the retirement):** the
      WS-AI changes of item 18 (skill renames with the `nfc-` prefix, the
-     `nfc-review` merge, 23 to 18 skills, `.claude/` projections, the
+     `nfc-review` merge, 23 to 19 skills, `.claude/` projections, the
      dual-runtime agent documents, the hybrid interview style, and the skill
      inventory and routing changes they need) and the size-policy
      consolidation of item 17. They share G1-B's writer and paths; their
@@ -1170,8 +1170,10 @@ mostly the size of the path map and of the recorded API fixtures.
 
 ## Verification
 
-- The validator runs no `rev-list` or `diff-tree` (today every such call
-  belongs to the record code); a test fails if it does.
+- No gate walks history: no `diff-tree`, no `--ancestry-path`, no unbounded
+  `rev-list` or `log`; the only `rev-list` and `log` calls are the parity
+  reader's two calls anchored at the frozen binding head (decision 125); the
+  structure-entry audit test fails otherwise.
 - Freeze-pin tests: adding, changing, deleting or renaming a frozen file fails;
   a clean tree passes; the pin diff between base and G1-B head lists exactly
   the three README additions; a pin change is classified governance R3.

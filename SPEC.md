@@ -571,7 +571,7 @@ See [`docs/adr/0006-external-combiner-tool-runner.md`](docs/adr/0006-external-co
 
 The current Python worker is a constrained pure CRC calculation prototype. It is not the sole production CRC/Header system. Production rewrite behavior must go through the external processor/tool runner and host-side independent diff verification.
 
-`polytail` 已正式定義為 repository skill：`.agents/skills/polytail/SKILL.md`。它用來防止 AI 產生 architecture drift、duplicate logic、fake tests、placeholder、silent error、broad suppression 與不可 review 的 code；不是第三方同名 package，也不是 Pylint 的別名。
+`nfc-review` 已正式定義為 repository skill：`.agents/skills/nfc-review/SKILL.md`。它用來防止 AI 產生 architecture drift、duplicate logic、fake tests、placeholder、silent error、broad suppression 與不可 review 的 code；不是第三方同名 package，也不是 Pylint 的別名。
 
 ### 5.3 Profile 與契約格式
 
@@ -2097,14 +2097,15 @@ Presentation consumes the typed result and offers no manual Standard/AB override
 #### Promotion and planning workflow
 
 Before an implementation goal or ticket rewrite is approved, unresolved
-architecture and terminology are closed through the explicit repository
-`grilling` workflow. `grill-with-docs` applies the same one-decision-at-a-time
-discipline and writes every accepted result immediately to its canonical
-specification/architecture owner through the current
-`nfc-architecture-change` and `to-spec` authorities. The former standalone
+architecture and terminology are closed through skill `nfc-grill-with-docs`.
+Its hybrid interview asks firmware, R3 and architecture decisions one at a time;
+related or low-risk decisions may share a round of at most four questions,
+each with a recommendation. It writes every accepted result immediately to its
+canonical specification/architecture owner through the current
+`nfc-architecture-change` and `nfc-to-spec` authorities. The former standalone
 `domain-modeling` workflow is not restored; its terminology consistency,
 concrete IC/IC Count stress cases, and canonical-document ownership rules are
-part of `grill-with-docs`. Ticket bodies and dependency edges are synchronized
+part of `nfc-grill-with-docs`. Ticket bodies and dependency edges are synchronized
 after the grill closes so issues do not become a competing draft specification.
 
 44. Product intent, user-visible terminology, workflow requirements, and global
@@ -2900,7 +2901,7 @@ mandatory at the risk level declared by the affected authority.
 No architecture or terminology decision remains open from this grill. Owner
 amendment on 2026-08-08 replaced the disproven numeric completion caps with the
 maximum-practical, evidence-backed candidate-ledger contract while retaining
-all exact ratchets and anti-gaming rules. `$to-tickets` synchronizes umbrella
+all exact ratchets and anti-gaming rules. `$nfc-to-tickets` synchronizes umbrella
 #229, ownership-bounded slices #230-#233, and the #197 dependency to that
 amendment. Each ticket remains outside implementation intake until the owner
 separately approves its exact scope for `ready-for-agent`. Route-specific R3
@@ -2934,7 +2935,7 @@ admission, reporting, delivery, and processor behavior could be deleted rather
 than relocated to its canonical owner. Exact gross/add/net and slice closure
 are recorded in the size assessment.
 
-The owner approved the `$to-tickets` graph on 2026-08-09. Stable repository
+The owner approved the `$nfc-to-tickets` graph on 2026-08-09. Stable repository
 planning ids LAR-01 through LAR-12 owned the vertical implementation slices and
 LAR-00 owned aggregate completion; their exact blocker graph remains in
 `docs/governance/0.10.x-ticket-dependency-plan.md` as completed traceability.

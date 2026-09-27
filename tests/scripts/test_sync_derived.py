@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import json
 import os
 import sys
 import tempfile
@@ -11,6 +12,149 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts import sync_derived as sync
+
+
+class ClaudeProjectionTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        environment = patch.dict(os.environ, {"CI": "", "GITHUB_ACTIONS": ""})
+        environment.start()
+        self.addCleanup(environment.stop)
+        self.write(".agents/skills/manifest.json", json.dumps({"schemaVersion": 1, "skills": [
+            {"name": "nfc-test", "invocation": "explicit"},
+            {"name": "nfc-auto", "invocation": "implicit"},
+        ]}).encode())
+        for name in ("nfc-test", "nfc-auto"):
+            self.write(f".agents/skills/{name}/SKILL.md", f"---\nname: {name}\ndescription: Test this skill.\n---\n\nBody stays exact.\n".encode())
+        for role, mode in (("reviewer", "read-only"), ("implementer", "workspace-write")):
+            self.write(f".codex/agents/{role}.toml", (
+                f'name = "{role}"\ndescription = "Test role"\nsandbox_mode = "{mode}"\n'
+                'model = "must-not-project"\ndeveloper_instructions = "Follow root AGENTS.md."\n'
+            ).encode())
+
+    def write(self, path, raw):
+        target = self.root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
+
+    def run_sync(self, write=False):
+        with redirect_stdout(io.StringIO()):
+            return sync.synchronize(self.root, [sync.claude_projection_provider(self.root)], write=write)
+
+    def test_empty_projection_check_is_read_only_then_creation_converges(self):
+        self.assertEqual(1, self.run_sync())
+        self.assertFalse((self.root / ".claude").exists())
+        self.assertEqual(0, self.run_sync(write=True))
+        explicit = (self.root / ".claude/skills/nfc-test/SKILL.md").read_text()
+        self.assertIn("disable-model-invocation: true\n---", explicit)
+        canonical = (self.root / ".agents/skills/nfc-test/SKILL.md").read_text()
+        self.assertEqual(canonical, explicit.replace("disable-model-invocation: true\n", ""))
+        self.assertEqual((self.root / ".agents/skills/nfc-auto/SKILL.md").read_bytes(),
+                         (self.root / ".claude/skills/nfc-auto/SKILL.md").read_bytes())
+        reviewer = (self.root / ".claude/agents/reviewer.md").read_text()
+        self.assertIn("tools: Read, Grep, Glob", reviewer)
+        self.assertNotIn("model:", reviewer)
+        self.assertNotIn("tools:", (self.root / ".claude/agents/implementer.md").read_text())
+        with patch.object(sync.os, "replace", side_effect=AssertionError("no-op wrote")):
+            self.assertEqual(0, self.run_sync(write=True))
+        (self.root / ".claude/agents/reviewer.md").unlink()
+        self.assertEqual(1, self.run_sync())
+
+    def test_ci_creation_is_forbidden(self):
+        with patch.dict(os.environ, {"CI": "true"}):
+            with self.assertRaisesRegex(sync.SyncError, "cannot write in CI"):
+                self.run_sync(write=True)
+        self.assertFalse((self.root / ".claude").exists())
+
+    def test_creatable_outputs_cannot_escape_claude(self):
+        provider = sync.Provider("bad", (".agents/skills/manifest.json", "other/new.md"),
+                                 ("other/new.md",), lambda _: {"other/new.md": b"bad"},
+                                 creatable_outputs=("other/new.md",))
+        with self.assertRaisesRegex(sync.SyncError, "creatable"):
+            sync.synchronize(self.root, [provider], write=True)
+        self.assertFalse((self.root / "other").exists())
+
+    def test_missing_canonical_source_is_not_creatable(self):
+        (self.root / ".agents/skills/nfc-test/SKILL.md").unlink()
+        with self.assertRaisesRegex(sync.SyncError, "missing synchronization input"):
+            self.run_sync(write=True)
+        self.assertFalse((self.root / ".claude").exists())
+
+    def test_reparse_parent_is_rejected_even_when_output_is_absent(self):
+        (self.root / ".claude").mkdir()
+        original = Path.is_symlink
+        with patch.object(Path, "is_symlink", lambda p: p == self.root / ".claude" or original(p)):
+            with self.assertRaisesRegex(sync.SyncError, "reparse"):
+                self.run_sync(write=True)
+        self.assertEqual([], list((self.root / ".claude").iterdir()))
+
+    def test_concurrent_creation_is_not_overwritten(self):
+        provider = sync.claude_projection_provider(self.root)
+        plan = provider.plan
+        target = provider.outputs[0]
+        def race(before):
+            result = plan(before)
+            self.write(target, b"concurrent edit")
+            return result
+        from dataclasses import replace
+        with self.assertRaisesRegex(sync.SyncError, "changed while planning"):
+            sync.synchronize(self.root, [replace(provider, plan=race)], write=True)
+        self.assertEqual(b"concurrent edit", (self.root / target).read_bytes())
+
+    def test_publication_time_creator_keeps_its_file(self):
+        original_link = os.link
+
+        def race(source, target):
+            Path(target).write_bytes(b"created at publication")
+            original_link(source, target)
+
+        with patch.object(sync.os, "link", side_effect=race):
+            with self.assertRaises(FileExistsError):
+                self.run_sync(write=True)
+        self.assertEqual(
+            b"created at publication",
+            (self.root / ".claude/agents/implementer.md").read_bytes(),
+        )
+
+    def test_discovered_manifest_or_agent_inventory_cannot_change(self):
+        for changed in ("manifest", "agents"):
+            with self.subTest(changed=changed):
+                provider = sync.claude_projection_provider(self.root)
+                if changed == "manifest":
+                    path = self.root / ".agents/skills/manifest.json"
+                    path.write_bytes(path.read_bytes() + b"\n")
+                else:
+                    self.write(".codex/agents/new.toml", b'name = "new"\n')
+                with self.assertRaisesRegex(sync.SyncError, "changed after"):
+                    sync.synchronize(self.root, [provider], write=True)
+                self.assertFalse((self.root / ".claude").exists())
+
+    @unittest.skipUnless(os.name == "nt", "Windows junction contract")
+    def test_real_junction_parent_is_rejected(self):
+        import _winapi
+
+        outside = tempfile.TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        junction = self.root / ".claude"
+        _winapi.CreateJunction(outside.name, str(junction))
+        self.addCleanup(junction.rmdir)
+        with self.assertRaisesRegex(sync.SyncError, "reparse"):
+            self.run_sync(write=True)
+        self.assertEqual([], list(Path(outside.name).iterdir()))
+
+    def test_projection_set_rejects_stale_or_untracked_expected_files(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+        import validate_repository as validator
+        self.run_sync(write=True)
+        expected = [self.root / p for p in sync.claude_projection_provider(self.root).outputs]
+        for tracked, valid in ((expected, True), (expected[:-1], False),
+                               ([*expected, self.root / ".claude/skills/stale/SKILL.md"], False)):
+            errors = []
+            with patch.object(validator, "ROOT", self.root):
+                validator.validate_claude_projections(tracked, errors)
+            self.assertEqual(valid, not errors, errors)
 
 
 class DerivedSyncTests(unittest.TestCase):
@@ -149,6 +293,7 @@ class DerivedSyncTests(unittest.TestCase):
                 "ci-template-mirror",
                 "reviewed-source-pins",
                 "release-version-headers",
+                "claude-projections",
             },
             {provider.name for provider in sync.default_providers()},
         )

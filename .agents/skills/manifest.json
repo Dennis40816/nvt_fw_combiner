@@ -2,16 +2,19 @@
   "schemaVersion": 1,
   "skills": [
     {
-      "name": "assess-refactor-progress",
+      "name": "nfc-architecture-change",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
-      "authority": "progress-report",
+      "authority": "architecture",
       "owner": "repository",
-      "replaces": []
+      "replaces": [
+        "codebase-design",
+        "improve-codebase-architecture"
+      ]
     },
     {
-      "name": "capture-firmware-ui",
+      "name": "nfc-capture-firmware-ui",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -20,16 +23,7 @@
       "replaces": []
     },
     {
-      "name": "code-review",
-      "status": "active",
-      "scope": "repo",
-      "invocation": "implicit",
-      "authority": "review",
-      "owner": "repository",
-      "replaces": []
-    },
-    {
-      "name": "composition-experience-change",
+      "name": "nfc-composition-experience-change",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -38,7 +32,7 @@
       "replaces": []
     },
     {
-      "name": "crc-worker-contract",
+      "name": "nfc-crc-worker-contract",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -47,7 +41,7 @@
       "replaces": []
     },
     {
-      "name": "diagnosing-bugs",
+      "name": "nfc-diagnosing-bugs",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -56,7 +50,7 @@
       "replaces": []
     },
     {
-      "name": "dotnet-bootstrap",
+      "name": "nfc-dotnet-bootstrap",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -65,7 +59,7 @@
       "replaces": []
     },
     {
-      "name": "firmware-profile-authoring",
+      "name": "nfc-firmware-profile-authoring",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -74,7 +68,7 @@
       "replaces": []
     },
     {
-      "name": "github-review-polling",
+      "name": "nfc-github-review-polling",
       "status": "active",
       "scope": "repo",
       "invocation": "explicit",
@@ -83,7 +77,7 @@
       "replaces": []
     },
     {
-      "name": "golden-regression",
+      "name": "nfc-golden-regression",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -92,34 +86,29 @@
       "replaces": []
     },
     {
-      "name": "grill-with-docs",
+      "name": "nfc-grill-with-docs",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
       "authority": "decision-documentation",
       "owner": "repository",
-      "replaces": ["domain-modeling"]
+      "replaces": [
+        "domain-modeling"
+      ]
     },
     {
-      "name": "grilling",
-      "status": "active",
-      "scope": "repo",
-      "invocation": "explicit",
-      "authority": "decision-interview",
-      "owner": "repository",
-      "replaces": []
-    },
-    {
-      "name": "implement",
+      "name": "nfc-implement",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
       "authority": "implementation",
       "owner": "repository",
-      "replaces": ["tdd"]
+      "replaces": [
+        "tdd"
+      ]
     },
     {
-      "name": "locate-golden-evidence",
+      "name": "nfc-locate-golden-evidence",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -128,16 +117,7 @@
       "replaces": []
     },
     {
-      "name": "nfc-architecture-change",
-      "status": "active",
-      "scope": "repo",
-      "invocation": "implicit",
-      "authority": "architecture",
-      "owner": "repository",
-      "replaces": ["codebase-design", "improve-codebase-architecture"]
-    },
-    {
-      "name": "open-firmware-example",
+      "name": "nfc-open-firmware-example",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -146,16 +126,7 @@
       "replaces": []
     },
     {
-      "name": "polytail",
-      "status": "active",
-      "scope": "repo",
-      "invocation": "implicit",
-      "authority": "quality-gate",
-      "owner": "repository",
-      "replaces": []
-    },
-    {
-      "name": "release-readiness",
+      "name": "nfc-release-readiness",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -164,7 +135,7 @@
       "replaces": []
     },
     {
-      "name": "resolving-merge-conflicts",
+      "name": "nfc-resolving-merge-conflicts",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -173,16 +144,19 @@
       "replaces": []
     },
     {
-      "name": "supervised-branch-development",
+      "name": "nfc-review",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
-      "authority": "branch-coordination",
+      "authority": "review",
       "owner": "repository",
-      "replaces": ["handoff"]
+      "replaces": [
+        "code-review",
+        "polytail"
+      ]
     },
     {
-      "name": "to-spec",
+      "name": "nfc-to-spec",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -191,7 +165,7 @@
       "replaces": []
     },
     {
-      "name": "to-tickets",
+      "name": "nfc-to-tickets",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
@@ -200,13 +174,15 @@
       "replaces": []
     },
     {
-      "name": "ui-experience-change",
+      "name": "nfc-ui-experience-change",
       "status": "active",
       "scope": "repo",
       "invocation": "implicit",
       "authority": "presentation",
       "owner": "repository",
-      "replaces": ["prototype"]
+      "replaces": [
+        "prototype"
+      ]
     }
   ]
 }

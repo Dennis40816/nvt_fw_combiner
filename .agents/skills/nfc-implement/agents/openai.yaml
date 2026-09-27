@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement"
+  short_description: "Build work from a spec or tickets"
+  default_prompt: "Use $nfc-implement to deliver this approved NFC issue or ticket through the repository phase gates."

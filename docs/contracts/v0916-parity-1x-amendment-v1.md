@@ -14,13 +14,14 @@ unchanged. The document states `certification: none` and `terminal: false`;
 a 1.x-mode result is `consistent`, `inconsistent` or `invalid`, never `pass`.
 
 Its rows decide which exact differing bytes and which exact baseline rejection
-leave a route consistent with v0.9.16. That is firmware-owner authority: the
-amendment is admitted under its own R3 capability record, separate from the
-R2 record of the predecessor comparison contract, and that record is finalized
-only with an exact-head firmware-owner attestation. Board decision 64's rule
-that a release declaration cites the board decision instead of a separate
-attestation file is the approval form of release declarations; it does not
-replace the R3 record's finalization contract.
+leave a route consistent with v0.9.16. That is firmware-owner authority: a change to the amendment is an R3 pull
+request of its own, separate from changes to the predecessor comparison
+contract, and needs the owner's approval of its last push naming the
+`firmware-owner` role, with the byte and Golden evidence and the exact write-
+range audit that role requires (ADR 0080 items 4 and 7). Board decision 64's
+rule that a release declaration cites the board decision instead of a separate
+approval is the approval form of release declarations; it does not replace
+that exact-head firmware-owner approval.
 
 ## Plan binding
 
@@ -136,8 +137,8 @@ decision 63 approves a second executor contract that re-resolves the missing
 Windows runtime section, pins the complete lock-file diff and runtime closure
 with the cause of every difference, and blocks formal runs while any
 difference is unexplained; board decision 79 pins its compiler host to
-runtime 10.0.11. The P-0.5 spike has produced that evidence. The contract
-itself is admitted by a separate executor record; until then
+runtime 10.0.11. The P-0.5 spike has produced that evidence. The contract itself is admitted by its own R3 pull request with the owner's
+exact-head firmware-owner approval; until then
 `baselineExecutor.status` is `pending-executor-record`, `contract` is `null`,
 and no formal 1.x-mode run is possible. The v1 executor contract stays with
 the terminal plan.

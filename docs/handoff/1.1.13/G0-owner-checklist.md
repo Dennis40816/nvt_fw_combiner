@@ -982,7 +982,10 @@ today's state.
   approvals and for merges you make yourself. Integration into `1.1.x` and
   release branches happens only through pull requests, one merge at a time
   (decision 24).
-- **Trunk catch-up until G1-B (decision 66).** RS-2 blocks decision 23's
+- **Historical trunk catch-up (decision 66; ended with G1-B).** The procedure
+  below applied before G1-B. Current catch-up follows
+  [branch governance](../../governance/branch-version-and-release-governance.md#establish-branch-authority).
+  RS-2 blocks decision 23's
   fast-forward. After a release, the trunk catches up with `main` through a
   pull request from `main` into `1.1.x`, merged with a merge commit:
   1. **agent → none.** The commander freezes every other write and merge into

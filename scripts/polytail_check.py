@@ -1,4 +1,4 @@
-"""Fast repository anti-slop checks used by the Polytail skill and CI."""
+"""Fast repository anti-slop checks used by the NFC review skill and CI."""
 
 from __future__ import annotations
 
@@ -33,7 +33,6 @@ STALE_TOKENS = {
 
 def main() -> int:
     errors: list[str] = []
-    warnings: list[str] = []
     for root in SCAN_ROOTS:
         for path in root.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in SOURCE_SUFFIXES:
@@ -52,11 +51,6 @@ def main() -> int:
                         errors.append(
                             f"stale token {token!r} in {rel.as_posix()}: {guidance}"
                         )
-            line_count = text.count("\n") + 1
-            if path.suffix.lower() in {".cs", ".py"} and line_count > 800:
-                warnings.append(
-                    f"code-size review oversized source file ({line_count} lines): {rel.as_posix()}"
-                )
             if "refcode" in text and path.suffix.lower() == ".cs":
                 errors.append(f"C# source must not reference refcode: {rel.as_posix()}")
 
@@ -64,8 +58,6 @@ def main() -> int:
         for error in sorted(set(errors)):
             print(f"POLYTAIL: {error}", file=sys.stderr)
         return 1
-    for warning in sorted(set(warnings)):
-        print(f"POLYTAIL WARNING: {warning}", file=sys.stderr)
     print("Polytail fast checks passed.")
     return 0
 

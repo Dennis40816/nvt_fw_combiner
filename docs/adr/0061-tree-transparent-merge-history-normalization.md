@@ -1,6 +1,7 @@
 # ADR 0061: Normalize tree-transparent containment merges in evidence history
 
-- Status: Proposed for exact-head release-owner approval
+- Status: Superseded by [ADR 0080 (G1-B)](0080-governance-reset.md#compatibility-and-migration).
+- Former status: Proposed for exact-head release-owner approval
 - Date: 2026-08-29
 - Owners: Repository-governance owner, release owner
 - Risk: R3 immutable release-governance evidence

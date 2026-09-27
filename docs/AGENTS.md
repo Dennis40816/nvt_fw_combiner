@@ -9,4 +9,4 @@
 - Reuse an existing canonical document before creating another inventory, report, index, checklist, or archive structure. Retain a separate artifact only for a concrete reader or evidence need; document deletion/moving must preserve still-used references and remain within authorization.
 - Memory ranges use half-open notation except clearly quoted legacy evidence.
 - Commands must match scripts/CI; no proprietary firmware bytes, secrets or private URLs.
-- Before editing, apply the root [risk-adaptive gates](../AGENTS.md#risk-adaptive-gates) to distinguish ordinary prose from normative or classifier-governed documents. That section owns verification and record applicability; Markdown alone is not an R0 classification.
+- Before editing, apply the root [risk-adaptive gates](../AGENTS.md#risk-adaptive-gates) to distinguish ordinary prose from normative or classifier-governed documents. That section owns verification and review applicability; Markdown alone is not an R0 classification.

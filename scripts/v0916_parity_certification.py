@@ -1193,19 +1193,19 @@ def _declared_final_evidence_entries(
     return entries
 
 
-def _validate_current_capability_governance(
+def _validate_current_frozen_evidence(
     repository: Path, package_source_head: str
 ) -> None:
     del package_source_head
     try:
         try:
-            from scripts.validate_repository import validate_capability_reuse_governance
+            from scripts.validate_repository import validate_frozen_evidence_pins
         except ModuleNotFoundError as error:
             if error.name != "scripts":
                 raise
-            from validate_repository import validate_capability_reuse_governance  # type: ignore[no-redef]
+            from validate_repository import validate_frozen_evidence_pins  # type: ignore[no-redef]
         errors: list[str] = []
-        validate_capability_reuse_governance(repository, errors)
+        validate_frozen_evidence_pins(repository, errors)
     except (ImportError, OSError, subprocess.SubprocessError):
         _fail("PARITY_AUTHORITY_MISMATCH")
     if errors:
@@ -1302,7 +1302,7 @@ def validate_repository_parity_package_source(
         ) or _sha256(git.file_bytes(commit, policy_path)) != expected_policy_sha256:
             _fail("PARITY_AUTHORITY_MISMATCH")
 
-    validator = governance_validator or _validate_current_capability_governance
+    validator = governance_validator or _validate_current_frozen_evidence
     validator(repository, package_source_head)
     return {
         "implementationHead": implementation_head,
