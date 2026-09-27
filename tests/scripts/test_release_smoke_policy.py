@@ -19,6 +19,14 @@ GOLDEN_PATH = Path(
     "topology-unscoped/nt51927-gen-flash/expected/nt51927-expected-output.bin"
 )
 
+# A captured pwsh error view can truncate a line with an ellipsis, encoded in
+# whatever code page the host console uses (e.g. Big5 on a zh-TW Windows
+# host). Force UTF-8 so this subprocess's captured output decodes the same
+# way on every host, including CI.
+PWSH_FORCE_UTF8_OUTPUT = (
+    "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)"
+)
+
 
 def run_release_functions(script_name: str, names: tuple[str, ...], command: str):
     """Execute the real PowerShell owners without launching the package entrypoint."""
@@ -32,6 +40,7 @@ def run_release_functions(script_name: str, names: tuple[str, ...], command: str
             "-NoProfile",
             "-Command",
             f"""
+{PWSH_FORCE_UTF8_OUTPUT}
 $ErrorActionPreference = 'Stop'
 $PSStyle.OutputRendering = 'PlainText'
 $tokens = $null; $errors = $null
@@ -250,15 +259,15 @@ def test_release_entrypoint_enforces_runtime_before_later_package_gates(
     with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
         for path, payload in payloads.items():
             archive.writestr(f"{package_name}/{path}", payload)
+    script = str(ROOT / "scripts/smoke-release.ps1").replace("'", "''")
+    package_path = str(archive_path).replace("'", "''")
     result = subprocess.run(
         [
             PWSH,
             "-NoProfile",
-            "-File",
-            str(ROOT / "scripts/smoke-release.ps1"),
-            "-PackagePath",
-            str(archive_path),
-            "-SkipUiLaunch",
+            "-Command",
+            f"{PWSH_FORCE_UTF8_OUTPUT}; "
+            f"& '{script}' -PackagePath '{package_path}' -SkipUiLaunch",
         ],
         capture_output=True,
         text=True,

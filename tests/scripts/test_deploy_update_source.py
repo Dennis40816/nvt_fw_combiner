@@ -207,6 +207,19 @@ class DeployUpdateSourceTests(unittest.TestCase):
                 result = Path(sys.argv[2])
                 result.write_text("ready", encoding="utf-8")
                 saw_hash_lock = False
+                # The script opens the downloaded file with FileShare.Read
+                # for both of its hash checks, so a genuine hash-read lock
+                # rejects a write-mode open with exactly
+                # ERROR_SHARING_VIOLATION -- but that cannot tell which of
+                # the two checks (or something else entirely) held it, so
+                # this does not guarantee the mutation lands specifically
+                # between them. It still matters: without this filter, an
+                # unrelated failure (for example ERROR_FILE_NOT_FOUND before
+                # the download has even landed, or a transient holder that
+                # still permits writes, such as the fake gh copy that writes
+                # the file) gets mistaken for a hash lock, and this attacker
+                # mutates the file before the script ever hashes it at all.
+                ERROR_SHARING_VIOLATION = 32
                 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
                 create_file = kernel32.CreateFileW
                 create_file.argtypes = [
@@ -224,6 +237,7 @@ class DeployUpdateSourceTests(unittest.TestCase):
                 invalid_handle = ctypes.c_void_p(-1).value
                 deadline = time.monotonic() + 10
                 while time.monotonic() < deadline:
+                    ctypes.set_last_error(0)
                     handle = create_file(
                         str(package),
                         0x40000000,
@@ -234,7 +248,8 @@ class DeployUpdateSourceTests(unittest.TestCase):
                         None,
                     )
                     if handle == invalid_handle:
-                        saw_hash_lock = True
+                        if ctypes.get_last_error() == ERROR_SHARING_VIOLATION:
+                            saw_hash_lock = True
                     else:
                         close_handle(handle)
                         if saw_hash_lock:
@@ -618,7 +633,27 @@ class DeployUpdateSourceTests(unittest.TestCase):
         (temp_root / "unexpected.txt").unlink()
         temp_root.rmdir()
 
-    def test_download_changed_after_initial_hash_is_not_admitted(self) -> None:
+    def test_downloaded_package_tampering_is_detected_and_never_admitted(self) -> None:
+        """A background attacker races to mutate the just-downloaded package
+        before the script can admit it.
+
+        This proves the invariant the script actually gives us under this
+        race: tampering is always detected by one of the script's two hash
+        checks (the initial "Downloaded package bytes" check, or the later
+        "verified downloaded package" re-check just before staging), and the
+        tampered bytes are never admitted. When the attacker's mutation
+        attempt loses the race entirely, the admitted bytes must still be
+        exactly the original package.
+
+        It does NOT prove the mutation lands specifically between the two
+        checks -- the attacker's own lock detection (see
+        post_hash_attacker.py) cannot guarantee that timing, only that it
+        mutates no earlier than some read of the file under a deny-write
+        lock. Deterministically pinning the post-first-hash window needs a
+        synchronization point on the script side, which is out of scope for
+        a test-only correction; see
+        docs/handoff/bugs/BUG-20260927-deploy-post-hash-attack-test-race.md.
+        """
         self.package = b"x" * (1024 * 1024)
         self.release_package.write_bytes(self.package)
         self._write_metadata()
@@ -638,16 +673,26 @@ class DeployUpdateSourceTests(unittest.TestCase):
             or attack_log.read_text(encoding="utf-8") == "ready"
         ):
             time.sleep(0.01)
-        self.assertTrue(attack_log.exists(), "post-hash attacker did not report")
+        self.assertTrue(attack_log.exists(), "the tamper attacker did not report")
         self.assertEqual("mutated-after-lock", attack_log.read_text())
         admitted = deep_packages / self.package_name
         if result.returncode == 0:
+            # The attacker never found a mutation window before admission:
+            # the admitted bytes must still be exactly the original package.
             self.assertEqual(
                 hashlib.sha256(self.package).hexdigest(),
                 hashlib.sha256(admitted.read_bytes()).hexdigest(),
             )
         else:
-            self.assertIn("verified downloaded package", result.stderr)
+            # Tampering happened and was rejected by one of the two hash
+            # checks -- this test does not pin which one -- but the
+            # tampered bytes must never be admitted either way.
+            self.assertTrue(
+                "verified downloaded package" in result.stderr
+                or "Downloaded package bytes do not match published Release "
+                "metadata." in result.stderr,
+                result.stderr,
+            )
             self.assertFalse(admitted.exists())
 
 
