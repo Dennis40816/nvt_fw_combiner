@@ -1,6 +1,7 @@
 # ADR 0059: Activate one audited trusted initial capability checkpoint
 
-- Status: Accepted design — exact-head owner activation pending
+- Status: Superseded by [ADR 0080 (G1-B)](0080-governance-reset.md#compatibility-and-migration).
+- Former status: Accepted design — exact-head owner activation pending
 - Date: 2026-08-26
 - Owners: Repository owner, architecture owner
 - Risk: R2 repository governance; inherited R3 authorities remain separate

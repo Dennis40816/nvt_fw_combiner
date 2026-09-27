@@ -93,8 +93,8 @@ has no valid review record on the head, a policy is missing or invalid, or an
 API or Git call fails. A required or declared role makes the change R3.
 
 **Review record.** For R1-R3, another agent runtime reviews. If unavailable, a
-fresh session of the same runtime reviews, preferably with another model and
-without the author's conversation. No process requires two agent products.
+fresh session of the same runtime reviews, preferably with another model, and
+never shares the author's conversation. No process requires two agent products.
 The reviewer posts a comment review on the head through the API, never in the
 description:
 

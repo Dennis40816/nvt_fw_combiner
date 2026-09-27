@@ -98,7 +98,8 @@ def test_no_retired_executable_symbols():
 def test_no_live_retired_admission_instructions():
     paths = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode("utf-8").split("\0")
     sources = {path: (ROOT / path).read_text(encoding="utf-8") for path in paths
-               if path and (ROOT / path).is_file() and Path(path).suffix in {".md", ".toml", ".yaml", ".json"}}
+               if path and (ROOT / path).is_file()
+               and (live_path(path, "") or path.startswith("docs/adr/") and path.endswith(".md"))}
     assert live_findings(sources) == []
 
 
@@ -111,3 +112,9 @@ def test_new_instruction_in_exception_document_is_reported():
 def test_exception_sentence_moved_to_another_document_is_reported():
     _, sentence = next(iter(sorted(EXCEPTIONS)))
     assert live_findings({"AGENTS.md": sentence}) == [("AGENTS.md", sentence)]
+
+
+def test_skill_scripts_and_claude_files_are_in_live_scope():
+    sentence = "Finalize the design-active record before the evidence commit."
+    for path in (".agents/skills/example/check.py", ".agents/skills/example/check.sh", ".claude/rules.yml"):
+        assert live_findings({path: sentence}) == [(path, sentence)]

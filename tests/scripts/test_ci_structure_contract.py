@@ -156,4 +156,3 @@ class CiStructureContractTests(unittest.TestCase):
             errors,
         )
         self.assertTrue(errors)
-

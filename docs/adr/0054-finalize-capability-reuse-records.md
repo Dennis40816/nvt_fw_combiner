@@ -1,6 +1,7 @@
 # ADR 0054: Finalize capability-reuse records against a reviewed Git state
 
-- Status: Accepted mechanics — trusted initial checkpoint authority pending
+- Status: Superseded by [ADR 0080 (G1-B)](0080-governance-reset.md#compatibility-and-migration).
+- Former status: Accepted mechanics — trusted initial checkpoint authority pending
 - Date: 2026-08-25
 - Owners: Architecture owner, repository governance owner
 - Risk: R2 repository admission and review evidence

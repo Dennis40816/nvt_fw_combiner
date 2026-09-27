@@ -1,6 +1,7 @@
 # ADR 0071: Preserve change provenance with unique final integration ownership
 
-- Status: Accepted design; checkpoint amendment approved 2026-09-23; implementation and candidate verification pending
+- Status: Superseded by [ADR 0080 (G1-B)](0080-governance-reset.md#compatibility-and-migration).
+- Former status: Accepted design; checkpoint amendment approved 2026-09-23; implementation and candidate verification pending
 - Date: 2026-09-10
 - Owner: Repository owner, explicitly approved preserving historical records and unique final ownership
 - Risk: R2 governance

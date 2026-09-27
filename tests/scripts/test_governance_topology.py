@@ -26,7 +26,7 @@ def test_frozen_snapshot_survives_merge_shapes(repository, shape, mutation):
     errors = []
     validator.validate_frozen_evidence_pins(repository, errors)
     if mutation == "kept":
-        assert any("docs/governance/change-records" in error for error in errors)
+        assert any(refs["frozen_file"] in error for error in errors), errors
     else:
         assert errors == []
 
@@ -55,3 +55,10 @@ def test_entry_controls_remain_fail_closed_on_topologies(entry_topology, control
     from tests.scripts.test_structure_entry_audit import test_caught_launch_regressions_remain_visible_to_parent
     root, _ = entry_topology
     test_caught_launch_regressions_remain_visible_to_parent(root, control)
+
+
+@pytest.mark.parametrize("broken", ["runpy", "path", "argv"])
+def test_broken_bootstraps_fail_on_topology_heads(entry_topology, tmp_path, broken):
+    from tests.scripts.test_structure_entry_audit import test_launch_control_rejects_broken_bootstrap
+    root, _ = entry_topology
+    test_launch_control_rejects_broken_bootstrap(root, tmp_path, broken)
