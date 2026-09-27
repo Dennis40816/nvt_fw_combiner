@@ -14,11 +14,10 @@ Follow the mandatory verdict and waiver policy in
    fallback, broad suppressions, speculative abstraction, unsafe mutation,
    private/generated payloads, and code/document/schema drift.
    A diff that adds, changes, moves, wraps, splits, replaces, or refactors
-   production behavior, a semantic branch, or an owner contract without the applicable
-   [capability-reuse gate evidence](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed)
-   is a P1 finding even when its tests pass. Follow that gate's applicability
-   rules when selecting local R1 evidence or recorded admission/integration
-   evidence.
+   production behavior, a semantic branch, or an owner contract without the
+   [pull request admission evidence](../../../docs/governance/development-execution-workflow.md#admission)
+   is a P1 finding even when its tests pass. Confirm the owner search,
+   disposition, and risk-appropriate review and approval evidence.
    For every added readiness calculation, validator, normalizer, or policy
    branch, trace its canonical producer. Treat re-deriving profile/compiler,
    inspector, session, or processor facts in Application/Bootstrap/UI as

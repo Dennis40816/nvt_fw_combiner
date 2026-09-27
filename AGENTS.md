@@ -68,6 +68,7 @@ Choose whether to delegate from task difficulty, risk, independence, and the
 cost of coordination. A small coherent task may be completed by the primary
 agent. Use parallel agents when they can contribute independent, bounded work;
 keep one writer per mutable surface and preserve other writers' changes.
+The execution workflow owns assignment and handoff of those surfaces.
 
 Consider all models exposed by the current tools, not only models named in
 earlier tasks. Choose a model and reasoning effort sufficient for the task
@@ -123,11 +124,9 @@ ordinary Git or document inspection.
   Application owns terminal use-case decisions; adapters carry typed results;
   Presentation/CLI render them. Before adding, changing, moving, wrapping,
   splitting, replacing, or refactoring production behavior, a semantic branch,
-  or an owner contract, complete the
-  [fail-closed capability-reuse gate](docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed).
-  Apply its bounded local R1 path when eligible: unfinished integration records
-  alone do not block authorized local corrections or require repeated waivers.
-  R2/R3 admission and formal integration/release checks remain required.
+  or an owner contract, complete owner search and record the semantic owner and
+  disposition (`reuse`, `extend-owner`, `reject-duplicate`) in the
+  [pull request admission fields](docs/governance/development-execution-workflow.md#admission).
   Extend the existing owner when its contract is insufficient. A second
   semantic path requires an approved migration seam and executable deletion
   milestone.
@@ -153,22 +152,21 @@ Assess the behavior and authority actually affected. For local work:
 | Risk | Required local/review gate |
 | --- | --- |
 | R0: inspection or ordinary non-normative documentation | Inspection: evidence-backed answer. Non-classifier-governed prose: diff and affected-link review; structure/consumer checks only when layout or parsed inputs are affected. No mandatory subagent or product test. |
-| R1: bounded behavior correction | Relevant behavioral tests and scoped correctness review. Broaden for affected shared behavior or an unresolved failure. |
+| R1: bounded behavior correction | Relevant behavioral tests and scoped correctness review, with a review record on the exact head. Broaden for affected shared behavior or an unresolved failure. |
 | R2: architecture, contract, or governance behavior | R1 plus review of the affected architecture/contract and scoped Polytail; independent review when that authority changes. |
-| R3 | R2 plus the human approval and independent evidence for the authority touched. |
+| R3 | R2 plus independent evidence and the owner's approval of the last push naming each affected role. |
 
 A task-specific owner decision about review applies only to that task. It
 does not waive test results, Golden evidence, external permissions, or protected
 checks, and must not be recorded as a permanent exemption for future work.
 
-Read-only assessment needs no production capability record. For ordinary R0
-prose, finish the authorized edit on the existing branch and report briefly;
-no new issue, capability record, fixed-head review, code-size census or handoff
-document is required. The validator classifies paths, not prose meaning:
-`AGENTS.md` and other classifier-governed documents retain their record and
-integration contract. Normative, governance, permission and executable-policy
-changes use their affected gates, not the R0 shortcut. Reuse an admitted batch
-only within its scope. Commit/publish authority and required CI are unchanged.
+Read-only assessment needs no implementation admission. For ordinary R0 prose,
+finish the authorized edit on the existing branch and report briefly; no new
+issue, fixed-head review, code-size census or handoff document is required.
+The authority policy classifies paths, not prose meaning: `AGENTS.md` and
+other governed documents retain their review and integration requirements.
+Normative, governance, permission and executable-policy changes use their
+affected gates. Commit/publish authority and required CI are unchanged.
 
 During development, run the affected tests after each coherent correction.
 A full-suite run belongs at a frozen integration/release boundary or a
@@ -189,7 +187,10 @@ authorized work. Required failing checks still block integration/publication.
 
 Firmware-semantic R3 requires firmware-owner review, byte/golden evidence, and
 exact write-range audit. Release/signing/permission R3 requires release-owner
-and release-policy evidence. Changes touching both require both gates.
+and release-policy evidence. Governance/approval R3 requires governance-owner
+review and evidence of the affected rule or authority change. Every affected
+role must be named in the owner's last-push approval; combined changes retain
+all applicable gates.
 
 Every release must execute all applicable owner-certified Golden output cases
 against its actual candidate source. Fixture hash checks and a test-project

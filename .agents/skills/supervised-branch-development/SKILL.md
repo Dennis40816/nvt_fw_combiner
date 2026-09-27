@@ -39,7 +39,7 @@ downgrades repository risk, required gates, or evidence.
    parent` and disclose the parent identity only when known; never guess.
 3. Send every worker one fixed dispatch envelope containing: `task`, `source`,
    `base`, `risk`, `authority`, `outcome`, `non-goals`, `semantic owner`,
-   `capability-reuse disposition`, `mutable paths`, `model reason`, `tests`,
+   `owner-search disposition`, `mutable paths`, `model reason`, `tests`,
    `gates`, `deliverables`, and `stop conditions`.
 4. Require the standard worker report: status, actual model/config, base/head,
    owned paths, files changed, commands/results, diff summary, unresolved gates,

@@ -8,6 +8,13 @@ What changed and why.
 - Affected layers/routes:
 - Non-goals:
 
+## Owner search
+
+- Existing semantic owner, callers and typed contract:
+- Search evidence:
+- Disposition: `reuse` / `extend-owner` / `reject-duplicate`
+- Affected authority and paths:
+
 ## Authority (ADR 0080)
 
 <!--
@@ -69,3 +76,13 @@ A new head needs a new record.
 - Write ranges:
 - Human approval:
 - Support status:
+
+## Waiver
+
+None, or a statement under the [execution workflow](../docs/governance/development-execution-workflow.md#waivers):
+
+- Head SHA and scope:
+- Rule/tool, reason and risk:
+- Owner, issue and approver:
+- Creation date, expiry date and removal condition:
+- Relevant authority owner's last-push approval:

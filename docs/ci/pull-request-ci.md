@@ -7,6 +7,7 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
 1. **`policy / polytail`** validates repository structure, forbidden tracked
    files, schemas, Markdown links, layered AGENTS, the exact skill inventory,
    skill frontmatter and Codex invocation metadata, immutable reference hashes,
+   frozen evidence pins,
    action pins, version/license consistency, dependency direction, and
    canonical architecture fields.
 2. **`python-worker / verify`** runs Ruff format/check, Pyright strict, Pylint, pytest, branch coverage, protocol/process tests, plus the structure gate.

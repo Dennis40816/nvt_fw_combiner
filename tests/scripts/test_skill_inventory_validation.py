@@ -358,7 +358,7 @@ class RepositorySkillRoutingContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("allow_implicit_invocation: true", metadata)
         self.assertIn("never downgrades repository risk, required gates, or evidence", normalized)
-        self.assertIn("`capability-reuse disposition`", text)
+        self.assertIn("`owner-search disposition`", text)
         self.assertIn("Before every dispatch", text)
         for disclosure in (
             "role / model / reasoning effort / inherited-or-override",

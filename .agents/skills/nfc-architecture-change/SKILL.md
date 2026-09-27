@@ -13,8 +13,8 @@ description: Review or design changes that affect NVT FW Combiner layers, depend
    deterministic output, mutation ownership, offline behavior and traceability
    wherever the change touches them; do not invent a firmware matrix for
    unrelated governance or tooling work.
-4. Complete and review the fail-closed
-   [capability-reuse gate](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed).
+4. Complete and review the
+   [pull request admission evidence](../../../docs/governance/development-execution-workflow.md#admission).
    Confirm the current producer, caller path, port/adapter, tests, proposed
    owner, and dependency direction before adding, changing, moving, wrapping,
    splitting, replacing, or refactoring production behavior, a semantic branch,

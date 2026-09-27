@@ -1,13 +1,12 @@
 # Contributing
 
-This repository uses protected `main`, version integration branches named with the exact planned release (for example `0.8.1`), and short-lived feature branches.
+This repository uses protected `main`, a minor-line trunk, release branches
+and short-lived feature branches under the canonical branch policy below.
 
 ## Branch model
 
-1. Start each release on its owner-selected version integration branch, such as `0.8.1`.
-2. Commit tightly coupled release work directly to that version branch in independently verifiable phases.
-3. Create `feature/<version>/<topic>` from the version branch only for an independently reviewable feature; merge it back to the same version branch after review.
-4. Open the only `main` PR after the version branch reaches its defined scope and final review gates.
+Follow [Branch, Version, and Release Governance](docs/governance/branch-version-and-release-governance.md)
+for branch targets, release freeze, merge-back, review resolution and recovery.
 
 ## Change sequence
 
@@ -16,18 +15,20 @@ R0 short path: preserve existing edits, update the existing document, review the
 diff and affected links, and report the result. Run structure/consumer checks
 when layout or parsed inputs change. No new issue, branch, ADR, code-size report
 or product test is required for that path. AGENTS/governance and other
-classifier-governed documents retain their record/integration obligations;
-normative, permission and release changes retain their affected gates.
+classifier-governed documents retain the review/integration obligations of
+the [authority policy](docs/governance/authority-policy.json). Its path floors
+and roles govern classification; normative, permission and release changes
+retain their affected gates.
 
 For R1-R3 implementation:
 
 1. Use the owner-approved task or issue and its acceptance criteria; do not create a duplicate issue solely for ceremony.
-2. Reuse the appropriate version branch; create a feature branch only for an independently reviewable change.
+2. Use the appropriate branch under branch governance and complete the [admission fields](.github/pull_request_template.md), including owner search and the single writer's owned paths.
 3. Read root and applicable nested `AGENTS.md`; update an ADR when an architectural decision changes.
 4. Implement a coherent change and run the relevant behavioral tests. Reuse an existing regression when it covers the change.
 5. At an authorized, tested checkpoint, review the exact staged files and create a Conventional Commit. Do not stage unrelated work or require a commit per paragraph/test correction.
 6. Run `python scripts/verify.py --all` once on the frozen R1-R3 integration/release candidate; root risk rules control interim local checks.
-7. Merge feature work to its version branch, then open the final version-to-`main` PR under the existing authority and review rules. Use a Conventional Commit style title.
+7. Open the pull request to the target set by branch governance, with the exact-head review and each required role's approval. Use a Conventional Commit style title.
 
 ## Current test-platform scope
 
@@ -122,13 +123,10 @@ The boundary is recorded in [ADR 0068](docs/adr/0068-derived-file-synchronizatio
 
 ## Pull request evidence
 
-Each PR must state:
-
-- what changed and why;
-- affected ICs, modes, profiles, ranges, and contracts;
-- tests and exact commands run;
-- golden hashes affected or explicitly unaffected;
-- compatibility and release impact;
-- remaining risks.
+Use the [pull request template](.github/pull_request_template.md) and the
+[execution workflow](docs/governance/development-execution-workflow.md) for
+admission, verification evidence, independent exact-head review, role approvals
+and waivers. Include the exact test commands/results, affected or unaffected
+Golden hashes, compatibility and release impact, and remaining risks.
 
 Firmware-semantic changes require human byte-level review. Generated output screenshots are not a substitute for golden regression.

@@ -10,9 +10,9 @@ the nearest `AGENTS.md`. Implement only owner-approved scope.
 
 1. Pin the integration base, risk, affected authority, acceptance criteria,
    non-goals, mutable surfaces, evidence gates, narrow test, and final gate.
-2. Complete the applicable local R1 preflight or recorded design admission in the
-   [capability-reuse gate](../../../docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed)
-   before changing behavior; follow that gate's R1/R2/R3 applicability rules.
+2. Complete owner search and the
+   [pull request admission evidence](../../../docs/governance/development-execution-workflow.md#admission)
+   before changing behavior; apply the declared risk's review and approval gates.
    Inventory existing semantic producers, callers,
    ports/adapters, tests, and duplicate-risk helpers; record the owner or exact
    `none-found` evidence and the approved disposition. A projection may
