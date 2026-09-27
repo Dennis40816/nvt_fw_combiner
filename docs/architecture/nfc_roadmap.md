@@ -2,11 +2,13 @@
 
 Status: active owner roadmap; release-closure checkpoint 2026-09-01; subsequent owner allocation amendments are recorded below.
 
-Current evidence checkpoint, 2026-09-26: **`v1.1.12` is published** at
+Current evidence checkpoint, 2026-09-27: **`v1.1.12` is published** at
 `30b17e699bde29fc3ec33b3730e7408600ddc5c3`; see the
 [release closure](../handoff/1.1.12.md#released-v1112--2026-09-26). `1.1.13`
-is in progress: the
-[2026-09-26 owner allocation](#owner-allocation-after-the-1112-release--2026-09-26)
+is in progress on the `1.1.x` trunk, with pull requests #457, #458, #459, #461,
+#462 and #464 merged; the
+[2026-09-27 release-model amendment](#owner-amendment-for-120-and-11x-releases--2026-09-27),
+the [2026-09-26 owner allocation](#owner-allocation-after-the-1112-release--2026-09-26)
 and the table below own its allocation, the [1.1.13 board](../handoff/1.1.13.md)
 its detail.
 
@@ -17,6 +19,27 @@ and the superseded 2026-09-19 evidence checkpoint moved verbatim to the
 Earlier dated checkpoints below remain history, not open release gates.
 
 ## Current release sequence — 2026-09-14
+
+### Owner amendment for 1.2.0 and 1.1.x releases — 2026-09-27
+
+The owner's 2026-09-27 decisions in the
+[1.1.12 board](../handoff/1.1.12.md#owner-decisions-2026-09-25) correct the
+release model that the table below describes.
+
+- **User release (decision 103)**: users receive `1.2.0`, released after all
+  `1.1.x` development is complete. The standing firmware verification
+  reminders recorded in decision 15 of that board apply at the `1.2.0`
+  release approval; their three checks stay private owner detail and are
+  not restated here. This supersedes the
+  `1.2.0` row's prior wording that `1.2.0` is no longer a release label.
+- **Intermediate releases (decision 104)**: `1.1.13`, `1.1.14` and later
+  `1.1.x` versions are still published on GitHub through the full release
+  process; they are not silently folded into a single terminal `1.2.0`
+  publish.
+
+This amendment records the corrected release model only. It allocates no
+additional scope, promotes no support, and changes no firmware behavior,
+review, or evidence gate.
 
 ### Owner allocation after the 1.1.12 release — 2026-09-26
 
@@ -289,7 +312,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.12` | Published 2026-09-26. **Output/persistence correctness and measured Home startup optimization**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. Hard targets from process launch: visible first window within 500 ms, all startup loading within 2,000 ms; nonessential work in background. Use comparable per-launch timing and first-navigation regression evidence; see the 2026-09-25 startup amendment. TP SVN modeling uses the owner-confirmed 4-byte field at TP start + `0x24` (decision 36) and proceeds only under the `1.1.13` C-7 R3 admission; the scoped NT51950 Normal/Both Header backup CRC investigation follows its linked deferral amendment. 2026-09-26 release scope: see [Owner release scope for 1.1.12](#owner-release-scope-for-1112--2026-09-26); F08, residual F20/F21, TP SVN modeling and the Header backup CRC investigation move to `1.1.13`. |
 | `1.1.13` | In progress. **Items moved from 1.1.12, 1.1.12 follow-ups and the pre-built profile catalog, then process cancellation and window lifetime**: the items moved by the 2026-09-26 [1.1.12 release-scope disposition](#owner-release-scope-for-1112--2026-09-26) first (F08 and residual F20/F21, TP SVN modeling, the Header backup CRC investigation and the process, agent-document, test-architecture, parity and first-window work); the follow-ups and additions of the [2026-09-26 allocation](#owner-allocation-after-the-1112-release--2026-09-26), including the NT51950/NT51951 Display OSD NVT marker rule, release workflow cleanup and pre-built profile catalog; then F03/F06 before F01/F02/F25; bounded termination and recovery. Waves, order and state: [1.1.13 board](../handoff/1.1.13.md). |
 | `1.1.14` | **Controlled diagnostics, repair regression and display-convention consistency**: F17/F23/F26, demonstrated F16 defects; retain F18 evidence throughout. Repository-wide inventory and improvement of display conventions per the [2026-09-26 allocation](#owner-allocation-after-the-1112-release--2026-09-26) (decision 39); `1.1.13` follows the existing conventions until then. |
-| `1.2.0` | **No longer the release label for `1.1.10`**: the owner explicitly chose `1.1.10` on 2026-09-23. No additional scope is assigned by that numbering correction. The former Launcher development tranche remains in `1.2.1`; reference refresh and current evidence remain in the `1.1.10` delivery. |
+| `1.2.0` | **User release after all `1.1.x` development** (decision 103, [2026-09-27 amendment](#owner-amendment-for-120-and-11x-releases--2026-09-27)): `1.2.0` is the release users receive once `1.1.x` development is complete; the standing firmware verification reminders apply at that release's approval. This supersedes the prior 2026-09-26 wording that `1.2.0` is no longer a release label. Historical note: on 2026-09-23 the owner explicitly chose `1.1.10`, not `1.2.0`, for that separate numbering correction; the former Launcher development tranche remains in `1.2.1`, and reference refresh/current evidence remain in the `1.1.10` delivery. |
 | `1.2.1` | **Customized large-file support, Launcher update development, Python Combiner replacement and residual ownership convergence**. Follow the [1.2.1 handoff](v1.2.1-handoff.md) for large-source/small-slice then large-output work, delta transfer, Launcher self-update and intranet migration. Preserve the [Python Combiner intake](#121-python-combiner-intake--2026-09-21), including B-bank CRC/postbuild mode assessment, and existing identity/family/topology/input-snapshot/page-draft and recovery work. Progressively consolidate repeated family profile declarations through an explicit, validated shared-definition reference; retain each member's map, topology, identity and evidence. Shared DPCMI/Perfect-family and page-contract work required by DP retirement remains in `1.1.10`; avoid a wholesale profile rewrite. |
 | `1.2.2` | Former residual F20/F21/F26 work moves to 1.1.12/1.1.14; F24 already moved to 1.1.10. No replacement scope is assigned. |
 | `1.2.3` | **CLI and deterministic Desktop automation** through existing Application/startup owners: workflow coverage, load-report/tab/state/capture/exit, actionable argument errors. Prioritize this before remaining broad UI acceptance. |
