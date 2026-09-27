@@ -1,11 +1,8 @@
 # G1-B cutover: implementation plan (ADR 0080)
 
-Status: **draft plan, revision 5**, 2026-09-27, after four design reviews by
-`codex/gpt-6-astra` (each ACCEPT-WITH-CHANGES; round 4's one P2 is answered in
-2.7, closure pending re-review and the implemented controls); revisions 2 to 4
-are kept beside this file. Owner decisions 115-127
-(section 7) bind it. Not accepted; changes no rule. Drafted by Claude Code
-(Opus 5.5) for WS-GOV, read-only.
+Status: **implemented and merged in #469**, 2026-09-27. This design received
+four reviews by `codex/gpt-6-astra` during development. Owner decisions 115-127
+(section 7) bind it. Drafted by Claude Code (Opus 5.5) for WS-GOV.
 
 Evidence: `<worktrees>/g1a` at `17794107df99bc1b076583e0c997ae0e18e0ce1f`;
 every `file:line` is at that commit (the worktree has since moved, for example
@@ -975,7 +972,7 @@ with the commander.
 | Stage B review 1 | Fixed the P2 live SPEC planning route: it now names `nfc-grill-with-docs` and its accepted hybrid interview. Added direct publication-time no-clobber, post-discovery inventory drift and real Windows junction regressions. Review found no firmware or projection-control defect. |
 | Stage B review 2 | Fixed the P2 delegate aggregate parser: skip complete tuple/generic return types to locate the declared name and exclude anonymous delegates. Four regressions failed on the reviewed implementation, then all 32 size tests passed; the nine measured hotspot entries remain unchanged. |
 | Stage B review 3 | Extend the same delegate fix to `ref readonly` tuple returns (two additional red cases; 36 size cases green), preserving complete return-type parsing before name selection. Final rename scan also updates the interview description and ticket draft directory, with their derived copies. The advisory names enrollment as well as exact-baseline checks. |
-| Step 13 pin disposition | The base did not move and Stage B changed no frozen path. Recomputed HEAD tree/blob IDs match all four existing pins; the frozen-base diff is exactly the three Stage A README additions and checkpoint mode/blob are unchanged. Re-pinning therefore produces no content change; retain the pin file rather than inventing a new freeze point. |
+| Step 13 pin disposition | At the Stage B local checkpoint, the base had not moved and Stage B changed no frozen path; the four pins still matched. The later rebase onto the moved trunk superseded that checkpoint disposition: step 13 re-pinned the evidence against the rebased base before #469 merged. |
 
 ### Stage B local checkpoints (2026-09-27)
 
