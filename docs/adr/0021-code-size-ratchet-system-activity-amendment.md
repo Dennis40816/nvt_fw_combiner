@@ -1,5 +1,11 @@
 # ADR 0021 normative appendix — current-session System Activity
 
+Status: **Superseded by ADR 0080 item 17**.
+
+The dynamic hotspot rule in [ADR 0080](0080-governance-reset.md#size-and-agent-instructions)
+owns current size enforcement. The former allocation and allowance policy below
+is historical evidence; retain its measurements and product decisions.
+
 The owner approved the two-level System Activity history on 2026-08-22: one
 existing Application-owned System Information service retains a bounded,
 privacy-filtered current-session activity list; the default view shows
