@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -116,6 +117,26 @@ class FrozenEvidencePinTests(unittest.TestCase):
         git(self.root, "commit", "-qam", "Change")
         git(self.root, "replace", "HEAD", frozen)
         self.reject(DIRECTORIES[0])
+
+    def test_alternate_index_cannot_hide_staged_change(self):
+        crafted = self.root / "clean-index"
+        shutil.copyfile(self.root / ".git/index", crafted)
+        original = (self.root / self.record).read_bytes()
+        (self.root / self.record).write_bytes(b'changed\n')
+        git(self.root, "add", self.record)
+        (self.root / self.record).write_bytes(original)
+        with mock.patch.dict(os.environ, {"GIT_INDEX_FILE": str(crafted)}):
+            self.reject(self.record)
+
+    def test_alternate_repository_cannot_hide_changed_head(self):
+        crafted = self.root / "clean-repository"
+        git(self.root, "clone", "-q", "--shared", str(self.root), str(crafted))
+        original = (self.root / self.record).read_bytes()
+        (self.root / self.record).write_bytes(b'changed\n')
+        git(self.root, "commit", "-qam", "Change")
+        (self.root / self.record).write_bytes(original)
+        with mock.patch.dict(os.environ, {"GIT_DIR": str(crafted / ".git"), "GIT_WORK_TREE": str(crafted)}):
+            self.reject(DIRECTORIES[0])
 
     @unittest.skipUnless(os.name == "nt", "Windows checkout contract")
     def test_autocrlf_checkout_preserves_raw_blob_bytes(self):

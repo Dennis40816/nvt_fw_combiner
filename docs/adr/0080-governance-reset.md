@@ -1170,8 +1170,10 @@ mostly the size of the path map and of the recorded API fixtures.
 
 ## Verification
 
-- The validator runs no `rev-list` or `diff-tree` (today every such call
-  belongs to the record code); a test fails if it does.
+- No gate walks history: no `diff-tree`, no `--ancestry-path`, no unbounded
+  `rev-list` or `log`; the only `rev-list` and `log` calls are the parity
+  reader's two calls anchored at the frozen binding head (decision 125); the
+  structure-entry audit test fails otherwise.
 - Freeze-pin tests: adding, changing, deleting or renaming a frozen file fails;
   a clean tree passes; the pin diff between base and G1-B head lists exactly
   the three README additions; a pin change is classified governance R3.
