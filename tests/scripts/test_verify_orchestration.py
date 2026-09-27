@@ -5926,6 +5926,127 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     verify_coverage.assert_not_called()
                 self.assertFalse(work.exists())
 
+    def run_partition_wiring_scenario(self, scenario: str, failure: str):
+        """Run the real collector over a fake VSTest for one wiring negative."""
+
+        name = "P0.Tests"
+        project = MODULE.CiDotnetProject(
+            f"tests/{name}/{name}.csproj", requires_exclusive_local_coverage=True
+        )
+        declaration = MODULE.DotnetTestPartition(name, (("Alpha",), ("Beta", "Gamma")))
+        cases = self.partition_cases(name)
+        swapped = ((f"{name}.Gamma", "Three"), (f"{name}.Beta", "Two"))
+        part_two = MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(declaration, 2))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository = root / "repository"
+            coverage = root / "coverage"
+            output = repository / "tests" / name / "bin/Release/net10.0"
+            output.mkdir(parents=True)
+            (output / f"{name}.dll").write_bytes(b"assembly")
+            unfiltered_names = "".join(
+                f"{identity}\r\n"
+                for identity in sorted({MODULE.canonical_vstest_identity(case) for case in cases})
+            )
+            if scenario == "stale listing":
+                # A leftover with valid content; the fake VSTest then ignores the
+                # listing option, so only the fresh-listing guard can reject it.
+                (coverage / name).mkdir(parents=True)
+                (coverage / name / "discovered-fqn.txt").write_text(
+                    unfiltered_names, encoding="utf-8"
+                )
+            else:
+                coverage.mkdir()
+            executions: list[str | None] = []
+
+            def option(command, prefix):
+                return next(
+                    (part.removeprefix(prefix) for part in command if part.startswith(prefix)),
+                    None,
+                )
+
+            def fake_run(command, *, environment=None, log_path=None, **_kwargs):
+                del environment
+                if command[1:] == ["--version"]:
+                    with log_path.open("a", encoding="utf-8") as log:
+                        log.write("10.0.303\n")
+                    return
+                expression = option(command, "--TestCaseFilter:")
+                selected = tuple(
+                    case for case in cases
+                    if expression is None or self.partition_filter_selects(
+                        expression, MODULE.canonical_vstest_identity(case))
+                )
+                if "--ListTests" in command:
+                    with log_path.open("a", encoding="utf-8") as log:
+                        log.writelines(f"    {case}\n" for case in selected)
+                    return
+                if "--ListFullyQualifiedTests" in command:
+                    if scenario == "stale listing" and expression is None:
+                        return  # The option was ignored; no fresh listing appears.
+                    Path(option(command, "--ListTestsTargetPath:")).write_text(
+                        "".join(f"{identity}\r\n" for identity in sorted(
+                            {MODULE.canonical_vstest_identity(case) for case in selected})),
+                        encoding="utf-8",
+                    )
+                    return
+                executions.append(expression)
+                results = Path(option(command, "--ResultsDirectory:"))
+                # Exit 0 and a correct identity Counter; part 2 binds its two
+                # cases to each other's test methods in the swapped scenario.
+                self.write_partition_trx(
+                    results / "test-results.trx",
+                    selected,
+                    methods=(
+                        swapped
+                        if scenario == "swapped case" and expression == part_two
+                        else None
+                    ),
+                )
+                self.write_ci_coverage_pair(results / "attachment", {})
+
+            with (
+                patch.object(MODULE, "DOTNET_TEST_PARTITIONS", {name: declaration}),
+                patch.object(MODULE, "flatten_ci_dotnet_projects", return_value=(project,)),
+                patch.object(MODULE, "resolve_coverlet_adapter_path", return_value=root / "adapter"),
+                patch.object(
+                    MODULE, "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(MODULE, "canonical_production_release_outputs", return_value={}),
+                patch.object(MODULE, "require_production_release_matches", return_value=()),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+                contextlib.redirect_stdout(io.StringIO()) as stdout,
+                self.assertRaisesRegex(RuntimeError, failure),
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet", coverage, root / "work", {}, None,
+                    repository_root=repository, work_owner_root=root,
+                )
+
+            verify_coverage.assert_not_called()
+            self.assertFalse((root / "work").exists())
+            evidence = json.loads(
+                (coverage / name / "partition.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual("failed", evidence["verdict"])
+            return evidence, executions, stdout.getvalue()
+
+    def test_partitioned_collector_rejects_a_stale_listing_before_any_part_runs(self) -> None:
+        _evidence, executions, output = self.run_partition_wiring_scenario(
+            "stale listing", r"P0\.Tests\.part-1-of-3\.discovery"
+        )
+        self.assertEqual([], executions, "a part ran after a stale listing")
+        self.assertIn("VSTest listing exists before its discovery ran", output)
+
+    def test_partitioned_collector_fails_a_swapped_case_binding_after_a_clean_run(self) -> None:
+        evidence, executions, _output = self.run_partition_wiring_scenario(
+            "swapped case", "is bound to test method"
+        )
+        self.assertEqual(3, len(executions))
+        self.assertIn("is bound to test method", evidence["failure"])
+
     def test_partitioned_collector_rejects_caller_set_overrides_before_discovery(self) -> None:
         values = ("", "   ", "D:/capture")
         names = list(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES)

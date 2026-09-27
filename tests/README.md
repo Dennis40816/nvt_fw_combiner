@@ -44,18 +44,21 @@ one process and 155 s in three, all 1,720 cases passing.
 
 Owner: `run_local_full_verification` and `run_lanes` in
 [`verify.py`](../scripts/verify.py) (`VERIFY-LOCAL-OVERLAP-1113-01`, board
-decisions 107 and 130). Every `--all` run, including `main-package.yml`, and
-every `--skip-structure` run first runs derived-data sync, restore and the
-Release build as exclusive phases. Then one pool of at most `--jobs` lanes
+decisions 107 and 130). This describes the complete local plan only: every
+`--all` run, including `main-package.yml`, and a run that only adds
+`--skip-structure`; a `--skip-python` or `--skip-dotnet` run does not use it.
+With structure enabled it first runs derived-data sync; then restore and the
+Release build run as exclusive phases; then one pool of at most `--jobs` lanes
 runs the .NET coverage lane (submitted first, 1,200 s unless
 `--lane-timeout-seconds` is given, which then binds every lane), the structure
 postchecks, each script module under its shard's shared deadline, and the CRC
-worker. UiSmoke parts and Infrastructure stay exclusive inside the .NET lane.
+worker. `--skip-structure` skips the sync and the structure postchecks.
+UiSmoke parts and Infrastructure stay exclusive inside the .NET lane.
 `--jobs=1` runs the same lanes serially in that order and keeps the UiSmoke
 partition. Results, the report and the failure list keep declaration order.
 A coverage child launch failure closes the pool's admission latch: no later
-lane starts, lanes already admitted finish, and SDK cleanup runs once after
-the pool. This replaces the VERIFY-1110 rule that ran the coverage lane alone
+lane is admitted, lanes already admitted finish, and SDK cleanup runs once
+after the pool. This replaces the VERIFY-1110 rule that ran the coverage lane alone
 before the other lanes; the build stays exclusive. Measured basis (experiment
 E1, one run, four concurrent lanes): about 24 minutes before, 15 min 27 s
 with the overlap, UiSmoke at 486 s of its 600 s limit.
