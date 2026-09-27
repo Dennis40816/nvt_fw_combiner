@@ -928,3 +928,122 @@ headless-session startup stall whose root cause and relationship to this
 change remain undetermined. No direct causal link was identified by static
 review. Later passing runs do not close the failure; it stays open as
 `BUG-20260927-uismoke-headless-session-stall` (item 8).
+
+## Amendment 2026-09-27: local UiSmoke partition (board decisions 113 and 128)
+
+- Status: Accepted (owner, 2026-09-27, board decisions 113 and 128 in the
+  [1.1.12 board](../handoff/1.1.12.md); source `feature/1.1.13/wave2`, commits
+  `e07b150a7fb085ca90081f04ce228a9ebf7ab142` (decision 113) and
+  `51e7a09a330906f45683836c2b078e03ff24e11b` (decisions 128 to 130)).
+- Change: `VERIFY-UISMOKE-PARTITION-1113-01` (R2), in the local verify-speed
+  batch of board decision 129.
+- Design review: `codex/gpt-6-astra`, three rounds on 2026-09-27. Rounds one
+  and two were BLOCKED (the projection fallback, the substring filter, the
+  binding of the filter to the real `FullyQualifiedName`, the ownership table
+  and the writer inventory); round three APPROVED the design with one
+  non-blocking P3 on the SDK wording, taken in below.
+- This amendment is appended without changing the text above, except where it
+  says so for items 9 and 10 and batch T5.
+
+### Context
+
+A full local run spent about 331 s in UiSmoke, one test process whose
+Avalonia tests all run on one headless UI thread (U0). Three processes over
+disjoint type lists took 155 s, with all 1,720 cases passing (experiment E2).
+Item 9 already allows a verified exact partition; until now it waited for the
+T4b activation.
+
+### Decision
+
+1. **Item 9 in force for the local verifier.** From this change, every local
+   run of the complete .NET coverage inventory (`python scripts/verify.py
+   --all`, including its callers such as `main-package.yml`, and the other
+   local runs of that inventory) runs UiSmoke as a verified exact partition of
+   three parts, ahead of T4b. T4b's "the partition rule of item 9 in force"
+   then concerns the CI producers only; they still run each project
+   unfiltered. Release-Golden subsets and the CI shard, finalizer and
+   required-check paths are unchanged, as are the coverage policy and the
+   Infrastructure settings and exclusivity.
+2. **Declaration, identity and filter.** `scripts/verify.py` declares the
+   partition (`DOTNET_TEST_PARTITIONS`): explicit type lists for parts 1 and 2;
+   part 3 is every discovered type not listed, so new types land there. A
+   listed type that is not discovered is reported as stale; a declared type
+   that differs from a discovered type only by case fails. Grammar G applies to
+   each real `FullyQualifiedName` F that VSTest lists with
+   `--ListFullyQualifiedTests` (the value the filter evaluates): F is the
+   declared namespace, one type segment and one method segment, each an ASCII
+   identifier, with no sub-namespace, nested (`+`) or generic type; types and
+   names are unique under ASCII casefold. The set of F must equal the set of
+   method identities derived from the `--ListTests` display names, unfiltered
+   and for each part, so no display name can carry a type outside G into a
+   part. Each listed part filters on `FullyQualifiedName~NS.T.` terms and the
+   last part negates every listed term; under G such a term selects exactly its
+   type.
+3. **One evidence path.** The local collector is the only finalizer and
+   `require_exact_partition` the only checker. Before any part runs tests: the
+   declared part set is present, each part's real filtered discovery equals the
+   declaration applied to the unfiltered discovery (display counts with theory
+   multiplicity, and FQN sets), and the parts are non-empty, pairwise disjoint
+   and sum to the unfiltered discovery. After the parts run: each part's TRX
+   equals its own filtered discovery with no failure or unapproved skip, each
+   TRX case binds through its `testId` to exactly one definition whose test
+   method is that case's identity in the part (a missing or ambiguous
+   definition fails), and each part's test assembly hash equals the snapshot
+   manifest's. Listings must be fresh: a listing file that exists before its
+   discovery runs fails. A missing, empty or unparsable listing, a failed
+   command and any failed check fail the coverage lane; there is no projection,
+   partial acceptance or unpartitioned retry. `partition.json` records the
+   declaration hash, the assembly hash, the per-part counts and the verdict.
+4. **Trees and freshness.** Each part runs from its own complete, link-free,
+   hash-verified copy of the Release output (Coverlet instruments modules in
+   place), with its own results directory, TRX and coverage pair. The
+   freshness gate checks every part copy once, after all batches and
+   collectors.
+5. **Execution.** The three parts run together, exclusive of the other
+   projects, each with the existing 600-second project limit; a failing part
+   does not stop the others, but the project fails and no coverage verdict
+   passes. Cancellation and deadlines use the existing lane path.
+6. **Caller-set overrides.** The partitioned lane fails before discovery when
+   `NFC_VISUAL_OUTPUT_DIR`, `NFC_UI_REFERENCE_CAPTURE_DIR` or
+   `NFC_REPORT_VISUAL_INPUT` is present, even empty or blank. The partition
+   unit is the compiled type, so each fixed test-area evidence directory, which
+   has exactly one writer type, is written by one part only; a repository
+   script test checks this over the UiSmoke sources. Worktrees that share one
+   test area still share those fixed files, as before this change.
+7. **SDK and listing options.** The two FQN listing options are accepted by
+   VSTest 18.6.0 but are not in its help. `global.json` pins 10.0.301 with
+   `rollForward: latestPatch`, so a newer patch SDK can run (10.0.303 on the
+   measuring host); the partition evidence records the SDK and VSTest versions
+   of each run. Compatibility rests on the fail-closed checks of every run, not
+   on an exact SDK pin; an SDK or adapter update re-checks the listing contract.
+8. **Shards.** Item 9's "a shard is added only after the UiSmoke measurement
+   (U0) and shared builds (U4)" governs CI runners, not local parts.
+9. **Item 10 correction (board decision 113).** U0 showed that every Avalonia
+   UiSmoke test already runs serially on one headless UI thread, so removing
+   the UiSmoke serialization (U2a) gains about nothing; board decision 114
+   closed U2a as a measurement result. The next levers are the product hotspot
+   of board decision 112 and multi-process UiSmoke (U5), whose local form is
+   this partition. This replaces item 10's "U2a as the first UI split after
+   U0", and T5's "U5 if decided" reads "U5: local form decided (board decision
+   128); CI with G2".
+
+### Consequences
+
+- The local UiSmoke phase measured about 155 s instead of 331 s (E2, without
+  coverage); three instrumented test processes and three copies of the Release
+  output (about 1.8 GB) raise CPU, memory and disk use during that phase.
+- A rename of a listed type moves it to part 3 and reports the old name as
+  stale; the balance drifts toward part 3 until the lists are updated.
+- G2 may reuse the same declaration and checker for CI; the CI manifest then
+  gains per-part rows. Until then CI stays unfiltered.
+
+### Verification
+
+`tests/scripts/test_verify_orchestration.py` covers grammar G and the FQN
+binding (including a hidden sub-namespace type and a nested type behind legal
+display names, and swapped display names caught by the per-case TRX binding),
+the filter terms, every negative of the checker, the collector wiring
+(concurrent exclusive parts with their own trees, 600 s each, a failing part
+not stopping the others, one coverage verdict, freshness after all batches),
+the rejected variables and the writer scan. The complete run and its
+timings are recorded by the batch's acceptance runs (board decision 130).

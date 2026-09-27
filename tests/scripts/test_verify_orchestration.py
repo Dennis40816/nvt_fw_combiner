@@ -7,6 +7,7 @@ import contextlib
 from fnmatch import fnmatch
 import hashlib
 import importlib.util
+import inspect
 import io
 import json
 import locale
@@ -4986,6 +4987,724 @@ class VerifyOrchestrationTests(unittest.TestCase):
             )
             verify_coverage.assert_not_called()
             self.assertFalse(work.exists())
+
+    # Local UiSmoke partition (VERIFY-UISMOKE-PARTITION-1113-01, ADR 0079 item 9).
+
+    PARTITION_NAMESPACE = "Probe.Ui.Tests"
+
+    def partition_declaration(self, *listed_parts: tuple[str, ...]):
+        return MODULE.DotnetTestPartition(
+            self.PARTITION_NAMESPACE, listed_parts or (("Alpha",), ("Beta", "Gamma"))
+        )
+
+    def partition_cases(self, namespace: str | None = None) -> tuple[str, ...]:
+        namespace = namespace or self.PARTITION_NAMESPACE
+        return (
+            f"{namespace}.Alpha.One",
+            f"{namespace}.Alpha.Rows(value: 1)",
+            f"{namespace}.Alpha.Rows(value: 2)",
+            f"{namespace}.Beta.Two",
+            f"{namespace}.Gamma.Three",
+            f"{namespace}.AlphaBeta.Four",
+            f"{namespace}.Delta.Five",
+        )
+
+    @staticmethod
+    def partition_filter_selects(expression: str, fully_qualified_name: str) -> bool:
+        """Model VSTest's case-insensitive contains terms of the two filter shapes."""
+
+        folded = fully_qualified_name.casefold()
+        if "!~" in expression:
+            terms = expression.split("&")
+            if not all(term.startswith("FullyQualifiedName!~") for term in terms):
+                raise AssertionError(f"unexpected complement filter: {expression}")
+            return all(
+                term.removeprefix("FullyQualifiedName!~").casefold() not in folded
+                for term in terms
+            )
+        terms = expression.split("|")
+        if not all(term.startswith("FullyQualifiedName~") for term in terms):
+            raise AssertionError(f"unexpected listed filter: {expression}")
+        return any(
+            term.removeprefix("FullyQualifiedName~").casefold() in folded for term in terms
+        )
+
+    def write_partition_listing(
+        self,
+        directory: Path,
+        displays: tuple[str, ...],
+        fully_qualified: tuple[str, ...] | None = None,
+    ):
+        directory.mkdir(parents=True, exist_ok=True)
+        display = directory / "discovered-tests.txt"
+        self.write_vstest_discovery(display, displays)
+        names = (
+            sorted({MODULE.canonical_vstest_identity(case) for case in displays})
+            if fully_qualified is None
+            else fully_qualified
+        )
+        listing = directory / "discovered-fqn.txt"
+        listing.write_text("".join(f"{name}\r\n" for name in names), encoding="utf-8")
+        return MODULE.VstestDiscoveryListing(display, listing)
+
+    def write_partition_discoveries(self, root: Path, declaration, displays=None):
+        displays = displays or self.partition_cases()
+        unfiltered = self.write_partition_listing(root / "unfiltered", displays)
+        filtered = {}
+        for index in range(1, declaration.part_count + 1):
+            expression = MODULE.dotnet_partition_filter(
+                MODULE.DotnetPartitionPart(declaration, index)
+            )
+            filtered[index] = self.write_partition_listing(
+                root / f"part-{index}",
+                tuple(
+                    case
+                    for case in displays
+                    if self.partition_filter_selects(
+                        expression, MODULE.canonical_vstest_identity(case)
+                    )
+                ),
+            )
+        return unfiltered, filtered
+
+    @staticmethod
+    def write_partition_trx(
+        path: Path,
+        displays: tuple[str, ...],
+        *,
+        methods: tuple[tuple[str, str], ...] | None = None,
+        outcomes: tuple[str, ...] | None = None,
+        result_test_ids: tuple[str, ...] | None = None,
+        duplicate_definitions: bool = False,
+    ) -> None:
+        """Write a TRX whose results bind to UnitTest definitions through testId."""
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        outcomes = outcomes or tuple("Passed" for _ in displays)
+        root = MODULE.ET.Element(
+            "TestRun", xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010"
+        )
+        definitions = MODULE.ET.SubElement(root, "TestDefinitions")
+        results = MODULE.ET.SubElement(root, "Results")
+        for index, display in enumerate(displays):
+            test_id = f"{index:08x}-0000-0000-0000-000000000000"
+            class_name, method_name = (
+                methods[index]
+                if methods is not None
+                else MODULE.canonical_vstest_identity(display).rsplit(".", 1)
+            )
+            for _copy in range(2 if duplicate_definitions else 1):
+                definition = MODULE.ET.SubElement(
+                    definitions, "UnitTest", name=display, id=test_id
+                )
+                MODULE.ET.SubElement(
+                    definition, "TestMethod", className=class_name, name=method_name
+                )
+            MODULE.ET.SubElement(
+                results,
+                "UnitTestResult",
+                testId=test_id if result_test_ids is None else result_test_ids[index],
+                testName=display,
+                outcome=outcomes[index],
+            )
+        passed = outcomes.count("Passed")
+        failed = outcomes.count("Failed")
+        MODULE.ET.SubElement(
+            MODULE.ET.SubElement(root, "ResultSummary"),
+            "Counters",
+            total=str(len(displays)),
+            executed=str(passed + failed),
+            passed=str(passed),
+            failed=str(failed),
+        )
+        MODULE.ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+
+    def write_partition_executions(self, root: Path, filtered) -> dict[int, Path]:
+        executed = {}
+        for index, listing in filtered.items():
+            displays = tuple(
+                line[4:]
+                for line in listing.display.read_text(encoding="utf-8").splitlines()
+                if line.startswith("    ")
+            )
+            executed[index] = root / f"executed-{index}" / "test-results.trx"
+            self.write_partition_trx(executed[index], displays)
+        return executed
+
+    def test_partition_grammar_binds_only_real_fully_qualified_names(self) -> None:
+        namespace = self.PARTITION_NAMESPACE
+        self.assertEqual(
+            {f"{namespace}.Foo.M": "Foo"},
+            MODULE.require_partition_identity_types(
+                namespace, frozenset({f"{namespace}.Foo.M"}), description="probe"
+            ),
+        )
+        for name in (
+            f"Other.{namespace}.Foo.M",
+            f"{namespace}.Sub.Foo.M",
+            f"{namespace}.Outer+Inner.M",
+            f"{namespace}.Gen`1.M",
+            f"{namespace}.F\u00f6\u00f6.M",
+            f"{namespace}.Foo.M(value: 1)",
+            f"{namespace}.Foo.M ",
+            f"{namespace}.Foo",
+        ):
+            with self.subTest(name=name), self.assertRaisesRegex(RuntimeError, "grammar"):
+                MODULE.require_partition_identity_types(
+                    namespace, frozenset({name}), description="probe"
+                )
+        for names in (
+            {f"{namespace}.Foo.A", f"{namespace}.foo.B"},
+            {f"{namespace}.Foo.A", f"{namespace}.Foo.a"},
+        ):
+            with self.subTest(names=names), self.assertRaisesRegex(RuntimeError, "only by case"):
+                MODULE.require_partition_identity_types(
+                    namespace, frozenset(names), description="probe"
+                )
+        with tempfile.TemporaryDirectory() as temporary:
+            listing = Path(temporary) / "discovered-fqn.txt"
+            with self.assertRaisesRegex(RuntimeError, "could not be read"):
+                MODULE.parse_vstest_fully_qualified_listing(listing)
+            listing.write_text("\r\n\r\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "empty"):
+                MODULE.parse_vstest_fully_qualified_listing(listing)
+            listing.write_bytes(b"\xff\xfeP\x00")
+            with self.assertRaisesRegex(RuntimeError, "not UTF-8"):
+                MODULE.parse_vstest_fully_qualified_listing(listing)
+            # A name repeated across discovery batches is one set member.
+            listing.write_text(
+                f"{namespace}.Foo.M\r\n{namespace}.Foo.M\r\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                frozenset({f"{namespace}.Foo.M"}),
+                MODULE.parse_vstest_fully_qualified_listing(listing),
+            )
+
+    def test_partition_filters_select_exact_types_and_the_complement(self) -> None:
+        namespace = self.PARTITION_NAMESPACE
+        declaration = self.partition_declaration()
+        filters = [
+            MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(declaration, index))
+            for index in (1, 2, 3)
+        ]
+        self.assertEqual(
+            [
+                f"FullyQualifiedName~{namespace}.Alpha.",
+                f"FullyQualifiedName~{namespace}.Beta.|FullyQualifiedName~{namespace}.Gamma.",
+                f"FullyQualifiedName!~{namespace}.Alpha.&FullyQualifiedName!~{namespace}.Beta."
+                f"&FullyQualifiedName!~{namespace}.Gamma.",
+            ],
+            filters,
+        )
+        identities = sorted({
+            MODULE.canonical_vstest_identity(case) for case in self.partition_cases()
+        })
+        selected = {
+            identity: [
+                index
+                for index, expression in enumerate(filters, 1)
+                if self.partition_filter_selects(expression, identity)
+            ]
+            for identity in identities
+        }
+        # "NS.Alpha." never selects the "NS.AlphaBeta" type; every identity lands once.
+        self.assertEqual([3], selected[f"{namespace}.AlphaBeta.Four"])
+        self.assertEqual([1], selected[f"{namespace}.Alpha.One"])
+        self.assertTrue(all(len(parts) == 1 for parts in selected.values()), selected)
+        with self.assertRaises(ValueError):
+            MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(declaration, 4))
+        command = MODULE.local_dotnet_vstest_command(
+            "dotnet",
+            Path("NvtFwCombiner.Infrastructure.Tests.dll"),
+            Path("adapter"),
+            Path("results"),
+            test_case_filter=filters[0],
+        )
+        self.assertLess(
+            command.index(f"--TestCaseFilter:{filters[0]}"), command.index("--")
+        )
+        for invalid, message in (
+            ((("Alpha",), ("Alpha",)), "appear once"),
+            ((("Alpha",), ("alpha",)), "appear once"),
+            ((("Alpha", "Alpha"),), "appear once"),
+            ((("Outer+Inner",),), "invalid partition type"),
+            ((("Alpha",), ()), "lists no type"),
+            ((), "2 to"),
+            ((("A",), ("B",), ("C",)), "2 to"),
+        ):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(RuntimeError, message):
+                MODULE.validate_dotnet_test_partition(
+                    MODULE.DotnetTestPartition(namespace, invalid)
+                )
+        with self.assertRaisesRegex(RuntimeError, "namespace"):
+            MODULE.validate_dotnet_test_partition(
+                MODULE.DotnetTestPartition("Probe..Tests", (("Alpha",),))
+            )
+
+        inventory = {project.name for project in MODULE.flatten_ci_dotnet_projects()}
+        self.assertEqual({MODULE.UISMOKE_TEST_PROJECT}, set(MODULE.DOTNET_TEST_PARTITIONS))
+        self.assertLessEqual(set(MODULE.DOTNET_TEST_PARTITIONS), inventory)
+        uismoke = MODULE.DOTNET_TEST_PARTITIONS[MODULE.UISMOKE_TEST_PROJECT]
+        MODULE.validate_dotnet_test_partition(uismoke)
+        self.assertEqual(MODULE.UISMOKE_TEST_PROJECT, uismoke.namespace)
+        self.assertEqual(3, uismoke.part_count)
+        self.assertLessEqual(uismoke.part_count, MODULE.MAXIMUM_LOCAL_DOTNET_JOBS)
+        self.assertEqual([25, 33], [len(types) for types in uismoke.listed_parts])
+        for index in range(1, uismoke.part_count + 1):
+            self.assertLess(
+                len(MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(uismoke, index))),
+                8192,
+            )
+
+    def test_exact_partition_admits_and_reconciles_the_declared_parts(self) -> None:
+        namespace = self.PARTITION_NAMESPACE
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Ui.Tests.csproj")
+        for declaration, stale in (
+            (self.partition_declaration(), ()),
+            (self.partition_declaration(("Alpha", "Missing"), ("Beta", "Gamma")), ("Missing",)),
+        ):
+            with self.subTest(stale=stale), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                unfiltered, filtered = self.write_partition_discoveries(root, declaration)
+                hashes = MODULE.DotnetPartitionAssemblyHashes("a" * 64, dict.fromkeys((1, 2, 3), "a" * 64))
+                inventory = MODULE.require_exact_partition(
+                    declaration, unfiltered, filtered, assembly_hashes=hashes, project=project
+                )
+                self.assertEqual(stale, inventory.stale_types)
+                self.assertEqual(
+                    [{"Alpha"}, {"Beta", "Gamma"}, {"AlphaBeta", "Delta"}],
+                    [set(types) for types in inventory.part_types],
+                )
+                # Theory rows keep their multiplicity and are never split.
+                self.assertEqual(2, inventory.part_cases[0][f"{namespace}.Alpha.Rows"])
+                self.assertEqual([3, 2, 2], [sum(cases.values()) for cases in inventory.part_cases])
+                executed = self.write_partition_executions(root, filtered)
+                MODULE.require_exact_partition(
+                    declaration,
+                    unfiltered,
+                    filtered,
+                    executed,
+                    hashes,
+                    project=project,
+                    producer_platform="windows",
+                )
+
+    def test_exact_partition_rejects_every_inexact_discovery_or_execution(self) -> None:
+        namespace = self.PARTITION_NAMESPACE
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Ui.Tests.csproj")
+        declaration = self.partition_declaration()
+        hashes = MODULE.DotnetPartitionAssemblyHashes("a" * 64, dict.fromkeys((1, 2, 3), "a" * 64))
+        cases = self.partition_cases()
+
+        def admission(root, unfiltered, filtered, **_kwargs):
+            MODULE.require_exact_partition(
+                declaration, unfiltered, filtered, assembly_hashes=hashes, project=project
+            )
+
+        def unscheduled(root, unfiltered, filtered):
+            admission(root, unfiltered, {1: filtered[1], 2: filtered[2]})
+
+        def rewrite(index, displays, names=None):
+            def mutate(root, unfiltered, filtered):
+                target = unfiltered if index == 0 else filtered[index]
+                target.display.unlink()
+                target.fully_qualified.unlink()
+                self.write_partition_listing(target.display.parent, displays, names)
+                admission(root, unfiltered, filtered)
+
+            return mutate
+
+        def remove(kind):
+            def mutate(root, unfiltered, filtered):
+                getattr(filtered[2] if kind != "unfiltered" else unfiltered,
+                        "fully_qualified" if kind != "display" else "display").unlink()
+                admission(root, unfiltered, filtered)
+
+            return mutate
+
+        def post_run(change):
+            def mutate(root, unfiltered, filtered):
+                executed = self.write_partition_executions(root, filtered)
+                assembly = change(executed) or hashes
+                MODULE.require_exact_partition(
+                    declaration, unfiltered, filtered, executed, assembly,
+                    project=project, producer_platform="windows",
+                )
+
+            return mutate
+
+        def trx(index, displays, **options):
+            def change(executed):
+                self.write_partition_trx(executed[index], displays, **options)
+
+            return change
+
+        beta, gamma = f"{namespace}.Beta.Two", f"{namespace}.Gamma.Three"
+        part_one = cases[:3]
+        negatives = {
+            "declared part never scheduled": (unscheduled, "cover exactly parts"),
+            "unfiltered FQN listing missing": (remove("unfiltered"), "could not be read"),
+            "part discovery listing missing": (remove("display"), "could not be read"),
+            "part FQN listing missing": (remove("fully_qualified"), "could not be read"),
+            "filter not applied": (rewrite(1, cases), "filter was not applied"),
+            "identity in two parts": (rewrite(2, (beta, gamma, cases[0])), "differs from the declaration"),
+            "dropped identity": (rewrite(3, (f"{namespace}.AlphaBeta.Four",)), "differs from the declaration"),
+            "theory multiplicity drift": (rewrite(1, part_one[:2]), "differs from the declaration"),
+            "display imitates another part's type": (
+                rewrite(1, (*part_one, beta)), "differs from the declaration"),
+            "hidden sub-namespace type behind a display alias": (
+                rewrite(0, (*cases[:-1], f"{namespace}.Unlisted.M"),
+                        (*sorted({MODULE.canonical_vstest_identity(case) for case in cases[:-1]}),
+                         f"{namespace}.Sub.Hidden.M")),
+                "grammar"),
+            "real FQN differs from its display": (
+                rewrite(0, (*cases[:-1], f"{namespace}.Unlisted.M"),
+                        (*sorted({MODULE.canonical_vstest_identity(case) for case in cases[:-1]}),
+                         f"{namespace}.Hidden.M")),
+                "differ from the real fully qualified names"),
+            "nested type behind a legal display": (
+                rewrite(0, (*cases[:-1], f"{namespace}.Legal.M"),
+                        (*sorted({MODULE.canonical_vstest_identity(case) for case in cases[:-1]}),
+                         f"{namespace}.Outer+Inner.M")),
+                "grammar"),
+            "unparsable FQN listing line": (
+                rewrite(2, (beta, gamma), (beta, gamma, "not a test name")), "grammar"),
+            "assembly hash mismatch": (
+                post_run(lambda _executed: MODULE.DotnetPartitionAssemblyHashes(
+                    "a" * 64, {1: "a" * 64, 2: "b" * 64, 3: "a" * 64})),
+                "hash differs"),
+            "part TRX missing": (post_run(lambda executed: executed[2].unlink()), "TRX is missing"),
+            "part TRX extra identity": (
+                post_run(trx(2, (beta, gamma, f"{namespace}.Beta.Extra"))), "part 2:.*changed"),
+            "part TRX missing identity": (post_run(trx(2, (beta,))), "part 2:.*changed"),
+            "part TRX failed case": (
+                post_run(trx(2, (beta, gamma), outcomes=("Passed", "Failed"))), "failed test"),
+            "swapped display names": (
+                post_run(trx(2, (beta, gamma), methods=(
+                    (f"{namespace}.Gamma", "Three"), (f"{namespace}.Beta", "Two")))),
+                "is bound to test method"),
+            "result without a definition": (
+                post_run(trx(2, (beta, gamma), result_test_ids=("", "x"))),
+                "no unique test definition"),
+            "ambiguous definition": (
+                post_run(trx(2, (beta, gamma), duplicate_definitions=True)),
+                "no unique test definition"),
+        }
+        with self.assertRaisesRegex(RuntimeError, "selects no discovered type"), \
+                tempfile.TemporaryDirectory() as temporary:
+            empty = self.partition_declaration(("Alpha",), ("Missing",))
+            unfiltered, filtered = self.write_partition_discoveries(Path(temporary), empty)
+            MODULE.require_exact_partition(empty, unfiltered, filtered, project=project)
+        with self.assertRaisesRegex(RuntimeError, "only by case"), \
+                tempfile.TemporaryDirectory() as temporary:
+            unfiltered, filtered = self.write_partition_discoveries(Path(temporary), declaration)
+            MODULE.require_exact_partition(
+                self.partition_declaration(("alpha",), ("Beta", "Gamma")),
+                unfiltered, filtered, project=project,
+            )
+        for case, (mutate, message) in negatives.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                unfiltered, filtered = self.write_partition_discoveries(root, declaration)
+                with self.assertRaisesRegex(RuntimeError, message):
+                    mutate(root, unfiltered, filtered)
+
+    def test_partitioned_collector_runs_exact_parts_concurrently_and_exclusively(self) -> None:
+        names = tuple(f"P{index}.Tests" for index in range(5))
+        projects = tuple(
+            MODULE.CiDotnetProject(
+                f"tests/{name}/{name}.csproj",
+                requires_exclusive_local_coverage=name in {"P0.Tests", "P1.Tests"},
+            )
+            for name in names
+        )
+        declaration = MODULE.DotnetTestPartition("P0.Tests", (("Alpha",), ("Beta", "Gamma")))
+        displays = {
+            name: (
+                self.partition_cases("P0.Tests") if name == "P0.Tests"
+                else (f"{name}.Case.One", f"{name}.Case.Two")
+            )
+            for name in names
+        }
+        part_filters = {
+            MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(declaration, index)): index
+            for index in (1, 2, 3)
+        }
+        for failing_part in (None, 2):
+            with self.subTest(failing_part=failing_part), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                repository = root / "repository"
+                coverage = root / "coverage"
+                coverage.mkdir()
+                work = root / "work"
+                for name in names:
+                    output = repository / "tests" / name / "bin/Release/net10.0"
+                    output.mkdir(parents=True)
+                    (output / f"{name}.dll").write_bytes(name.encode("utf-8"))
+                    (output / "dependency.dll").write_bytes(b"dependency")
+                barrier = threading.Barrier(3)
+                lock = threading.Lock()
+                executions: list[tuple[str, int | None, Path, Path]] = []
+                active: list[str] = []
+                violations: list[str] = []
+                freshness: list[tuple[int, list[Path]]] = []
+                real_freshness = MODULE.require_local_dotnet_sources_unchanged
+
+                def option(command, prefix):
+                    return next(
+                        (part.removeprefix(prefix) for part in command if part.startswith(prefix)),
+                        None,
+                    )
+
+                def fake_run(command, *, environment=None, log_path=None, **_kwargs):
+                    del environment
+                    if command[1:] == ["--version"]:
+                        with log_path.open("a", encoding="utf-8") as log:
+                            log.write("10.0.303\n")
+                        return
+                    assembly = Path(command[2])
+                    name = assembly.stem
+                    expression = option(command, "--TestCaseFilter:")
+                    selected = tuple(
+                        case for case in displays[name]
+                        if expression is None or self.partition_filter_selects(
+                            expression, MODULE.canonical_vstest_identity(case))
+                    )
+                    if "--ListTests" in command:
+                        with log_path.open("a", encoding="utf-8") as log:
+                            log.write("VSTest version 18.6.0 (x64)\n")
+                            log.writelines(f"    {case}\n" for case in selected)
+                        return
+                    if "--ListFullyQualifiedTests" in command:
+                        Path(option(command, "--ListTestsTargetPath:")).write_text(
+                            "".join(f"{identity}\r\n" for identity in sorted(
+                                {MODULE.canonical_vstest_identity(case) for case in selected})),
+                            encoding="utf-8",
+                        )
+                        return
+                    part = part_filters.get(expression) if expression is not None else None
+                    results = Path(option(command, "--ResultsDirectory:"))
+                    with lock:
+                        partitioned = name == "P0.Tests"
+                        if any((other == "P0.Tests") != partitioned for other in active):
+                            violations.append(f"{name} overlapped {active}")
+                        active.append(name)
+                        executions.append((name, part, assembly, results))
+                    try:
+                        if part is not None:
+                            barrier.wait(timeout=5)
+                        failed = part is not None and part == failing_part
+                        self.write_partition_trx(
+                            results / "test-results.trx", selected,
+                            outcomes=tuple(
+                                "Failed" if failed and index == 0 else "Passed"
+                                for index in range(len(selected))),
+                        )
+                        self.write_ci_coverage_pair(results / "attachment", {})
+                    finally:
+                        with lock:
+                            active.remove(name)
+                    if failed:
+                        raise subprocess.CalledProcessError(1, command)
+
+                def observed_freshness(stages, *args):
+                    with lock:
+                        freshness.append((len(executions), [stage.shadow_output for stage in stages]))
+                    return real_freshness(stages, *args)
+
+                stdout = io.StringIO()
+                with (
+                    patch.object(MODULE, "DOTNET_TEST_PARTITIONS", {"P0.Tests": declaration}),
+                    patch.object(MODULE, "flatten_ci_dotnet_projects", return_value=projects),
+                    patch.object(MODULE, "resolve_coverlet_adapter_path", return_value=root / "adapter"),
+                    patch.object(
+                        MODULE, "find_project_release_output",
+                        side_effect=lambda project, repository_root: (
+                            repository_root / "tests" / project.name / "bin/Release/net10.0",
+                            Path("bin/Release/net10.0"),
+                        ),
+                    ),
+                    patch.object(MODULE, "canonical_production_release_outputs", return_value={}),
+                    patch.object(MODULE, "require_production_release_matches", return_value=()),
+                    patch.object(MODULE, "run", side_effect=fake_run),
+                    patch.object(MODULE, "run_lanes", wraps=MODULE.run_lanes) as run_lanes,
+                    patch.object(MODULE, "require_local_dotnet_sources_unchanged",
+                                 side_effect=observed_freshness),
+                    patch.object(MODULE, "verify_coverage") as verify_coverage,
+                    contextlib.redirect_stdout(stdout),
+                    contextlib.ExitStack() as stack,
+                ):
+                    if failing_part is not None:
+                        stack.enter_context(self.assertRaisesRegex(
+                            RuntimeError, r"local \.NET coverage projects failed: P0\.Tests\.part-2-of-3$"))
+                    MODULE.collect_local_dotnet_coverage(
+                        "dotnet", coverage, work, {}, None,
+                        repository_root=repository, work_owner_root=root,
+                    )
+
+                self.assertEqual([], violations)
+                order = [name for name, *_rest in executions]
+                self.assertEqual(["P0.Tests"] * 3 + ["P1.Tests"], order[:4])
+                self.assertCountEqual(names[2:], order[4:])
+                parts = [(part, assembly, results) for name, part, assembly, results in executions
+                         if name == "P0.Tests"]
+                self.assertCountEqual([1, 2, 3], [part for part, *_rest in parts])
+                self.assertEqual(3, len({assembly.parent for _part, assembly, _results in parts}))
+                self.assertEqual(
+                    {coverage / "P0.Tests" / f"part-{index}-of-3" for index in (1, 2, 3)},
+                    {results for *_rest, results in parts},
+                )
+                self.assertTrue(all(
+                    call.kwargs["lane_timeout_seconds"] == MODULE.LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS
+                    for call in run_lanes.call_args_list
+                ))
+                part_calls = [call for call in run_lanes.call_args_list
+                              if call.args[0][0].name.startswith("P0.Tests.part-")]
+                self.assertEqual([3, 3], [call.kwargs["jobs"] for call in part_calls])
+                self.assertEqual(1, len(freshness))
+                self.assertEqual(len(executions), freshness[0][0])
+                self.assertEqual(len(names) + 2, len(set(freshness[0][1])))
+                evidence = json.loads(
+                    (coverage / "P0.Tests" / "partition.json").read_text(encoding="utf-8")
+                )
+                self.assertEqual(
+                    ("failed" if failing_part else "passed", 3, "10.0.303", "18.6.0", [3, 2, 2]),
+                    (evidence["verdict"], evidence["partCount"], evidence["sdkVersion"],
+                     evidence["vstestVersion"], [part["cases"] for part in evidence["parts"]]),
+                )
+                self.assertEqual(
+                    hashlib.sha256(b"P0.Tests").hexdigest(), evidence["assemblySha256"]
+                )
+                self.assertIn("P0.Tests partition admitted", stdout.getvalue())
+                if failing_part is None:
+                    verify_coverage.assert_called_once_with("dotnet", coverage)
+                else:
+                    verify_coverage.assert_not_called()
+                self.assertFalse(work.exists())
+
+    def test_partitioned_collector_rejects_caller_set_overrides_before_discovery(self) -> None:
+        values = ("", "   ", "D:/capture")
+        names = list(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES)
+        if sys.platform == "win32":
+            names.append("nfc_visual_output_dir")
+        for name in names:
+            for value in values:
+                with self.subTest(name=name, value=value), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    work = root / "work"
+                    with (
+                        patch.object(MODULE, "resolve_coverlet_adapter_path") as adapter,
+                        patch.object(MODULE, "prepare_local_dotnet_coverage_stage") as prepare,
+                        patch.object(MODULE, "run") as run_command,
+                        patch.object(MODULE, "verify_coverage") as verify_coverage,
+                        self.assertRaisesRegex(RuntimeError, "forbids caller-set overrides: NFC_"),
+                    ):
+                        MODULE.collect_local_dotnet_coverage(
+                            "dotnet", root / "coverage", work, {name: value}, None,
+                            repository_root=root,
+                        )
+                    adapter.assert_not_called()
+                    prepare.assert_not_called()
+                    run_command.assert_not_called()
+                    verify_coverage.assert_not_called()
+                    self.assertFalse(work.exists())
+        self.assertEqual(
+            {"NFC_VISUAL_OUTPUT_DIR", "NFC_UI_REFERENCE_CAPTURE_DIR", "NFC_REPORT_VISUAL_INPUT"},
+            set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES),
+        )
+        # A subset such as release Golden is never partitioned, so it keeps the overrides.
+        project = next(
+            project for project in MODULE.flatten_ci_dotnet_projects()
+            if project.name == MODULE.UISMOKE_TEST_PROJECT
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stage = MODULE.LocalDotnetCoverageStage(
+                project, root, root, root / f"{project.name}.dll", root, root, {}, ()
+            )
+            with (
+                patch.object(MODULE, "prepare_local_dotnet_coverage_stage",
+                             return_value=stage) as prepare,
+                patch.object(MODULE, "run_local_dotnet_coverage_project") as run_project,
+                patch.object(MODULE, "run_local_dotnet_partition") as partition,
+                patch.object(MODULE, "require_local_dotnet_sources_unchanged"),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet", root / "coverage", root / "work",
+                    {"NFC_VISUAL_OUTPUT_DIR": ""}, None, repository_root=root,
+                    projects=(project,), collect_coverage=False,
+                )
+            partition.assert_not_called()
+            self.assertNotIn("part", prepare.call_args.kwargs)
+            run_project.assert_called_once()
+
+    def test_ci_and_release_golden_owners_never_consult_the_local_partition(self) -> None:
+        for owner in (
+            MODULE.verify_ci_dotnet_test_shard,
+            MODULE.finalize_ci_dotnet_evidence,
+            MODULE.release_golden_plan,
+            MODULE.require_release_golden_results,
+        ):
+            source = inspect.getsource(owner)
+            with self.subTest(owner=owner.__name__):
+                for marker in (
+                    "DOTNET_TEST_PARTITIONS",
+                    "test_case_filter",
+                    "dotnet_partition",
+                    "local_dotnet_test_partitions",
+                    "require_exact_partition",
+                ):
+                    self.assertNotIn(marker, source)
+
+    def test_uismoke_writers_outside_the_session_are_isolated_per_compiled_type(self) -> None:
+        project_root = ROOT / "tests" / MODULE.UISMOKE_TEST_PROJECT
+        type_pattern = re.compile(
+            r"^(?:(?:public|internal|private|protected|sealed|static|abstract|partial|file)\s+)*"
+            r"(?:class|record|struct)\s+([A-Za-z_][A-Za-z0-9_]*)",
+            re.MULTILINE,
+        )
+        variable_pattern = re.compile(r'"(NFC_[A-Z0-9_]+)"')
+        root_pattern = re.compile(r'GetEnvironmentVariable\("NFC_TEST_AREA_ROOT"\)')
+        directory_pattern = re.compile(r'"evidence"\s*,\s*"([^"]+)"')
+        process_local = {"NFC_TEST_AREA_ROOT", "NFC_TEST_REPOSITORY_ROOT"}
+        allowed = process_local | set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES)
+        writers: dict[str, set[str]] = {}
+        variables: dict[str, set[str]] = {}
+        sources = sorted(
+            path for path in project_root.rglob("*.cs")
+            if not {"bin", "obj"} & set(path.relative_to(project_root).parts)
+        )
+        self.assertGreater(len(sources), 100)
+        for path in sources:
+            text = path.read_text(encoding="utf-8")
+            declarations = [(match.start(), match[1]) for match in type_pattern.finditer(text)]
+            for match in variable_pattern.finditer(text):
+                variables.setdefault(match[1], set()).add(path.name)
+            for match in root_pattern.finditer(text):
+                directory = directory_pattern.search(text, match.end(), match.end() + 200)
+                if directory is None:
+                    continue  # The root is read without naming a fixed directory.
+                owners = [name for start, name in declarations if start < match.start()]
+                self.assertTrue(owners, f"no compiled type owns {directory[0]} in {path.name}")
+                writers.setdefault(directory[1], set()).add(owners[-1])
+        self.assertEqual(set(), set(variables) - allowed, "unlisted NFC_* variable read by UiSmoke")
+        self.assertEqual(
+            set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES),
+            set(variables) - process_local,
+        )
+        self.assertEqual(
+            {name: owners for name, owners in writers.items() if len(owners) > 1}, {},
+            "a fixed test-area directory has more than one writer type",
+        )
+        self.assertLessEqual(
+            {
+                "v114-ctrlram-slot47": {"CtrlRamLaunchTests"},
+                "v114-memory-lift51": {"CtrlRamMemoryLayoutTests"},
+                "nav-focus-underline": {"NavigationFocusIndicatorTests"},
+            }.items(),
+            writers.items(),
+        )
 
     def test_python_lane_emits_one_json_report_before_policy_validation(self) -> None:
         commands: list[list[str]] = []

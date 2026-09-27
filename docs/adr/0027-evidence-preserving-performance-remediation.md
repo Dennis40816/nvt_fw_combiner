@@ -11,7 +11,12 @@
   verified exact partitions in place of "each project is run unfiltered", and
   the selection and coverage on pull requests, take effect only through their
   own admitted batches and the T4b activation, and until then the rest of that
-  amendment applies unchanged.
+  amendment applies unchanged. Its 2026-09-27 amendment (board decision 128)
+  brings those verified exact partitions into effect for the local verifier
+  (`python scripts/verify.py --all` and the other local runs of the complete
+  .NET coverage inventory) through `VERIFY-UISMOKE-PARTITION-1113-01`, ahead of
+  T4b; the CI producers still run each project unfiltered until the T4b
+  activation.
 - Supersedes: The former `v0.9.10` candidate-intake assignment
 - Superseded by: None
 

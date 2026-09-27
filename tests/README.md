@@ -13,6 +13,33 @@ admitted batch (and, for selection and coverage on pull requests, the T4b
 activation) is in force; until then the current rules apply. This README keeps
 navigation and measurements only.
 
+## 1.1.13 local UiSmoke partition
+
+Owners: the [ADR 0079 amendment of 2026-09-27](../docs/adr/0079-test-architecture.md#amendment-2026-09-27-local-uismoke-partition-board-decisions-113-and-128)
+and `DOTNET_TEST_PARTITIONS`, `require_exact_partition` and
+`collect_local_dotnet_coverage` in [`verify.py`](../scripts/verify.py)
+(`VERIFY-UISMOKE-PARTITION-1113-01`). Every local run of the complete .NET
+coverage inventory runs UiSmoke as three concurrent test processes: two
+declared type lists and a last part holding every other type. Each part has its
+own complete copy of the Release output and its own filtered discovery, TRX and
+coverage pair; the parts run alone, before Infrastructure and the other
+projects, with the existing 600-second project limit. Any failed exactness
+check fails the coverage lane. CI shards, release Golden and the coverage
+policy stay unpartitioned.
+
+Evidence lands under `artifacts/coverage/dotnet/NvtFwCombiner.UiSmoke.Tests/`:
+`partition.json` (declaration and assembly hashes, SDK and VSTest versions,
+per-part counts, verdict), the unfiltered `discovered-tests.txt` and
+`discovered-fqn.txt`, and `part-<i>-of-3/` with the filtered listings, TRX and
+coverage pair. The lane report shows each `.part-<i>-of-3` and
+`.discovery` lane with its duration.
+
+The partitioned lane fails before discovery when `NFC_VISUAL_OUTPUT_DIR`,
+`NFC_UI_REFERENCE_CAPTURE_DIR` or `NFC_REPORT_VISUAL_INPUT` is set, even empty.
+Visual captures therefore use narrow `dotnet test` runs, as in the sections
+below. Measured basis (experiment E2, Release, no coverage): UiSmoke 331 s in
+one process and 155 s in three, all 1,720 cases passing.
+
 ## v1.1.5 local scheduling change
 
 Public `--jobs` supports 1–4 workers; the default remains three. Four is an
@@ -908,7 +935,7 @@ Project paths are also the navigation links; their `.csproj` has the same name.
 | [GoldenRegression](NvtFwCombiner.GoldenRegression.Tests/) | Certified output byte/hash regressions | 9 | core; also fresh release Golden |
 | [Architecture](NvtFwCombiner.Architecture.Tests/) | Layer/dependency and source-contract checks | 238 | core |
 | [Bootstrap](NvtFwCombiner.Bootstrap.Tests/) | Assembled routes, real fixtures and supported workflow execution | 666 | bootstrap; also fresh release Golden |
-| [UiSmoke](NvtFwCombiner.UiSmoke.Tests/) | Headless real controls, layout, bindings and shell workflows | 749 | ui; exclusive in local coverage |
+| [UiSmoke](NvtFwCombiner.UiSmoke.Tests/) | Headless real controls, layout, bindings and shell workflows | 749 | ui; exclusive in local coverage (three partition parts from 1.1.13) |
 | [Repository scripts](scripts/), `test_[a-q]*.py` | Policy, automation and verifier contracts | 418 | repository-scripts-a-q |
 | [Repository scripts](scripts/), `test_r*.py` | Release/repository policy regressions | 165 | repository-scripts-r |
 | [Repository scripts](scripts/), `test_[s-z]*.py` | Sync, verification, process ownership and remaining contracts | 413 | repository-scripts-s-z |
@@ -1220,7 +1247,8 @@ shell cases, one existing compact Preferences case (both themes internally),
 and four existing Report controls to check the shared host's unchanged default.
 TRX and PNG evidence is under
 `D:/NvtFwCombiner-TestArea/evidence/v114-shell-inventory/product-policy/`;
-set `NFC_VISUAL_OUTPUT_DIR` to an external evidence directory to reproduce.
+set `NFC_VISUAL_OUTPUT_DIR` to an external evidence directory to reproduce
+(narrow runs only; the partitioned full verifier rejects the variable).
 Earlier parent/verified-directory captures used the historical DP test policy
 or a theme assignment not synchronized with shell preferences; they are not
 the final inventory. No full-suite/native DPI/High Contrast claim is made.
