@@ -76,6 +76,81 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Empty(Directory.GetFileSystemEntries(workspace.StagingRoot));
     }
 
+    /// <summary>
+    /// ADR 0081 mapping on a two-command plan. The staged firmware is locked against reading after the first
+    /// command, so a read would surface as external-tool.staging.io-failed (the Complete control row proves the
+    /// lock is effective). Incomplete cleanup stops the sequence before any staged read and before the second
+    /// command; timeout and a non-zero exit keep their codes and outrank it.
+    /// </summary>
+    [Theory]
+    [InlineData(ExternalProcessCleanup.TerminationUnconfirmed, false, 0, "external-tool.process.cleanup-incomplete")]
+    [InlineData(ExternalProcessCleanup.OutputStreamHeldOpen, false, 0, "external-tool.process.cleanup-incomplete")]
+    [InlineData(ExternalProcessCleanup.OutputReadFailed, false, 0, "external-tool.process.cleanup-incomplete")]
+    [InlineData(ExternalProcessCleanup.OutputStreamHeldOpen, true, -1, "external-tool.process.timeout")]
+    [InlineData(ExternalProcessCleanup.TerminationUnconfirmed, false, 7, "external-tool.process.failed")]
+    [InlineData(ExternalProcessCleanup.Complete, false, 0, "external-tool.staging.io-failed")]
+    public async Task CleanupOutcomeStopsSequenceBeforeAnyStagedRead(
+        ExternalProcessCleanup cleanup,
+        bool timedOut,
+        int exitCode,
+        string expectedCode)
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FileStream? readLock = null;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            readLock ??= new FileStream(
+                Path.Combine(startInfo.WorkingDirectory, "output", "test_fw.bin"),
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.None);
+            return new ExternalProcessResult(exitCode, timedOut, string.Empty, string.Empty) { Cleanup = cleanup };
+        });
+        LegacyCombinerPostbuildProfile profile = CreateCopyThenRestoreProfile();
+        Assert.Equal(2, profile.SingleCommands.Count);
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            "run-cleanup-incomplete", profile.ProcessorId, profile.ToolBindingId,
+            new byte[] { 0x10, 0x20, 0x30, 0x40, 0x99, 0x60 }, [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+        try
+        {
+            ExternalProcessorResult result = await workspace.CreateProcessor(sha256, runner, [profile])
+                .TransformAsync(request, CancellationToken.None);
+
+            Assert.False(result.Succeeded);
+            Assert.Equal(expectedCode, Assert.Single(result.Issues).Code);
+            Assert.Equal(1, runner.RunCount);
+            _ = Assert.Single(result.ExecutedCommands);
+        }
+        finally
+        {
+            readLock?.Dispose();
+        }
+    }
+
+    /// <summary>decision 92: a runner refusal for accumulated detached cleanup maps to the typed capacity issue.</summary>
+    [Fact]
+    public async Task CleanupCapacityRefusalMapsToTypedIssue()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new ExternalProcessCleanupCapacityException(8, 8));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.cleanup-capacity-v1", "test_fw.bin");
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            "run-cleanup-capacity", profile.ProcessorId, profile.ToolBindingId, CreateFirmwareImage(), [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+
+        ExternalProcessorResult result = await workspace.CreateProcessor(sha256, runner, [profile])
+            .TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.process.cleanup-capacity", Assert.Single(result.Issues).Code);
+        Assert.Equal(1, runner.RunCount);
+    }
+
     /// <summary>Rejects execution when the compiled invocation did not select the adapter protocol plan.</summary>
     [Fact]
     public async Task TransformRejectsMissingCompiledProtocolPlanBeforeLaunch()

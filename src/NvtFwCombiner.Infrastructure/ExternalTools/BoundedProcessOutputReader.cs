@@ -15,6 +15,15 @@ internal static class BoundedProcessOutputReader
 
     internal static async Task<string> ReadAsync(TextReader reader)
     {
+        return (await DrainAsync(reader, CancellationToken.None).ConfigureAwait(false)).Text;
+    }
+
+    /// <summary>
+    /// Drains until end of stream or until <paramref name="stopToken"/> stops the drain. A stopped drain keeps the
+    /// bounded text captured so far and reports that end of stream was not reached; it never throws for the stop.
+    /// </summary>
+    internal static async Task<BoundedProcessOutput> DrainAsync(TextReader reader, CancellationToken stopToken)
+    {
         ArgumentNullException.ThrowIfNull(reader);
 
         char[] readBuffer = ArrayPool<char>.Shared.Rent(ReadBufferLength);
@@ -23,15 +32,26 @@ internal static class BoundedProcessOutputReader
         long totalCharacters = 0;
         int tailCount = 0;
         int tailWriteIndex = 0;
+        bool reachedEndOfStream = false;
         try
         {
             while (true)
             {
-                int read = await reader.ReadAsync(
-                    readBuffer.AsMemory(0, ReadBufferLength),
-                    CancellationToken.None).ConfigureAwait(false);
+                int read;
+                try
+                {
+                    read = await reader.ReadAsync(
+                        readBuffer.AsMemory(0, ReadBufferLength),
+                        stopToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (stopToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 if (read == 0)
                 {
+                    reachedEndOfStream = true;
                     break;
                 }
 
@@ -57,9 +77,10 @@ internal static class BoundedProcessOutputReader
                 }
             }
 
-            return totalCharacters <= MaximumCapturedCharacters
+            string text = totalCharacters <= MaximumCapturedCharacters
                 ? CreateCompleteOutput(prefix, tail, tailCount)
                 : CreateTruncatedOutput(prefix, tail!, tailWriteIndex);
+            return new BoundedProcessOutput(text, reachedEndOfStream);
         }
         finally
         {
@@ -137,3 +158,6 @@ internal static class BoundedProcessOutputReader
         return result.ToString();
     }
 }
+
+/// <summary>Bounded diagnostic text from one redirected stream and whether its end was observed.</summary>
+internal readonly record struct BoundedProcessOutput(string Text, bool ReachedEndOfStream);

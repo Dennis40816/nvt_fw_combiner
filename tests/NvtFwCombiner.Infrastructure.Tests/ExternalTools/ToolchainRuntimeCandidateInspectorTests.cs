@@ -62,6 +62,24 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
         Assert.Contains(result.Issues, static issue => issue.Code == "runtime.trust.protocol-invalid");
     }
 
+    /// <summary>F-11: a capacity refusal during trust probing surfaces the restart guidance in the inspection result.</summary>
+    [Fact]
+    public async Task CapacityRefusalDuringProbeReportsRestartGuidance()
+    {
+        if (!OperatingSystem.IsWindows()) { return; }
+        ToolchainRuntimeCandidateInspector inspector = CreateInspector(
+            new ThrowingRunner(new ExternalProcessCleanupCapacityException(8, 8)));
+
+        ToolchainRuntimeCandidateInspection result = await inspector.InspectAsync(
+            Path.Combine(Environment.SystemDirectory, "vcruntime140.dll"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(ToolchainRuntimeCandidateVerification.Rejected, result.Verification);
+        ToolchainRuntimeConfigurationIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("runtime.trust.probe-failed", issue.Code);
+        Assert.Contains("Restart", issue.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Windows could not verify", issue.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>Every child-process terminal failure maps to one stable fail-closed trust issue.</summary>
     [Theory]
     [InlineData(0, true, "", "runtime.trust.timeout")]
@@ -79,12 +97,72 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
             TrustedHostPath(),
             []);
 
-        string? issue = await probe.VerifyAsync(
+        RuntimeTrustProbeVerdict? verdict = await probe.VerifyAsync(
             Path.Combine(AppContext.BaseDirectory, "candidate.dll"),
             new string('a', 64),
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(expectedIssue, issue);
+        Assert.Equal(expectedIssue, verdict?.IssueCode);
+    }
+
+    /// <summary>A probe whose process cleanup is incomplete never has its captured output trusted.</summary>
+    [Theory]
+    [InlineData(ExternalProcessCleanup.TerminationUnconfirmed)]
+    [InlineData(ExternalProcessCleanup.OutputStreamHeldOpen)]
+    [InlineData(ExternalProcessCleanup.OutputReadFailed)]
+    public async Task ProbeWithIncompleteCleanupFailsClosed(ExternalProcessCleanup cleanup)
+    {
+        var probe = new RuntimeTrustProbeProcess(
+            new FixedRunner(new ExternalProcessResult(0, false, "{}", string.Empty) { Cleanup = cleanup }),
+            TrustedHostPath(),
+            []);
+
+        RuntimeTrustProbeVerdict? verdict = await probe.VerifyAsync(
+            Path.Combine(AppContext.BaseDirectory, "candidate.dll"),
+            new string('a', 64),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal("runtime.trust.probe-failed", verdict?.IssueCode);
+    }
+
+    /// <summary>F-3: a timed-out probe stays runtime.trust.timeout even when its cleanup is also incomplete.</summary>
+    [Fact]
+    public async Task ProbeTimeoutKeepsPriorityOverIncompleteCleanup()
+    {
+        var probe = new RuntimeTrustProbeProcess(
+            new FixedRunner(new ExternalProcessResult(-1, true, string.Empty, string.Empty)
+            {
+                Cleanup = ExternalProcessCleanup.OutputStreamHeldOpen,
+            }),
+            TrustedHostPath(),
+            []);
+
+        RuntimeTrustProbeVerdict? verdict = await probe.VerifyAsync(
+            Path.Combine(AppContext.BaseDirectory, "candidate.dll"),
+            new string('a', 64),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal("runtime.trust.timeout", verdict?.IssueCode);
+    }
+
+    /// <summary>F-11: a capacity refusal keeps the stable issue code but carries the restart guidance to the caller.</summary>
+    [Fact]
+    public async Task ProbeCleanupCapacityRefusalCarriesRestartGuidance()
+    {
+        var probe = new RuntimeTrustProbeProcess(
+            new ThrowingRunner(new ExternalProcessCleanupCapacityException(8, 8)),
+            TrustedHostPath(),
+            []);
+
+        RuntimeTrustProbeVerdict? verdict = await probe.VerifyAsync(
+            Path.Combine(AppContext.BaseDirectory, "candidate.dll"),
+            new string('a', 64),
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(verdict);
+        Assert.Equal("runtime.trust.probe-failed", verdict.IssueCode);
+        Assert.NotNull(verdict.UserMessage);
+        Assert.Contains("Restart", verdict.UserMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Caller cancellation is never converted into a candidate rejection or fallback.</summary>
@@ -133,6 +211,17 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult(result);
+        }
+    }
+
+    private sealed class ThrowingRunner(Exception exception) : IExternalProcessRunner
+    {
+        public ValueTask<ExternalProcessResult> RunAsync(
+            ExternalProcessStartInfo startInfo,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw exception;
         }
     }
 

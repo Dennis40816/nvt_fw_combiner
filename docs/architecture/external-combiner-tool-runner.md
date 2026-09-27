@@ -81,7 +81,38 @@ All external combiner errors fail closed:
 - unexpected file;
 - unexpected final file length change;
 - changed byte outside `allowedWriteRanges`;
-- missing or invalid output.
+- missing or invalid output;
+- cleanup observed incomplete: the direct child's termination or exit is not
+  confirmed, a redirected stream stays open or cannot be read to its end
+  within the host cleanup deadline (a timeout or non-zero exit keeps its own
+  issue code and mentions the cleanup; a zero exit reports
+  `external-tool.process.cleanup-incomplete` before any staged file is read);
+- capacity full: a new run refused because external-tool runs that are still
+  running or still cleaning up have filled the fixed capacity reports
+  `external-tool.process.cleanup-capacity` and asks the user to restart.
+
+## Process lifetime
+
+[ADR 0081](../adr/0081-external-process-cleanup.md) owns the terminal-phase
+contract. In short: `SystemExternalProcessRunner` is the single owner; the
+caller's cancellation callback only signals; one background termination work
+item performs the tree kill; and every host wait after the terminal signal
+(termination, exit confirmation, output drain and reader stop) shares one total
+5-second deadline, which is not a manifest or profile timeout. The run returns
+within that deadline, keeps ownership of any still-running cleanup work, and
+reclaims its resources once it settles; it does not claim that no handle
+survives the 5 seconds. A process-wide capacity (owner decision 92) counts the
+invocations that are running or still cleaning up; a slot is reserved
+atomically before each process starts, and at the fixed limit a new run is
+refused with a typed error asking the user to restart, so resources cannot
+accumulate without bound. Because running invocations also count, normal runs
+behave as before only while fewer than the limit are in use at once, which
+holds when one external-tool run is started at a time.
+`ExternalProcessResult.Cleanup` reports only what the runner observed of
+the direct child and its two streams; `Complete` does not prove that every
+descendant stopped (a descendant holding no stream is invisible). Caller
+cancellation requested before the decision point ends as
+`OperationCanceledException`.
 
 ## Implementation ownership
 

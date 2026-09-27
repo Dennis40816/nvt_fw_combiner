@@ -22,14 +22,26 @@ internal sealed class RuntimeTrustProbeProcess(
         return new(new SystemExternalProcessRunner(), executable, arguments);
     }
 
-    internal async ValueTask<string?> VerifyAsync(string path, string sha256, CancellationToken cancellationToken)
+    internal async ValueTask<RuntimeTrustProbeVerdict?> VerifyAsync(string path, string sha256, CancellationToken cancellationToken)
     {
         string requestId = Guid.NewGuid().ToString("D");
         var start = new ExternalProcessStartInfo(hostExecutable, Path.GetDirectoryName(hostExecutable)!,
             [.. hostArguments, Command, path, sha256, requestId], TimeSpan.FromSeconds(30));
-        ExternalProcessResult result = await runner.RunAsync(start, cancellationToken).ConfigureAwait(false);
-        if (result.TimedOut) { return "runtime.trust.timeout"; }
-        if (result.ExitCode != 0) { return "runtime.trust.probe-failed"; }
+        ExternalProcessResult result;
+        try
+        {
+            result = await runner.RunAsync(start, cancellationToken).ConfigureAwait(false);
+        }
+        catch (ExternalProcessCleanupCapacityException exception)
+        {
+            // Keep the existing issue code, but carry the capacity reason and restart guidance to the caller
+            // (owner decision 92) so the user is told how to recover rather than seeing a generic failure.
+            return new("runtime.trust.probe-failed", ExternalProcessCleanupText.CapacityMessage(exception));
+        }
+        // Timeout keeps priority over an incomplete cleanup: a timed-out probe is always runtime.trust.timeout.
+        if (result.TimedOut) { return new("runtime.trust.timeout"); }
+        if (result.Cleanup != ExternalProcessCleanup.Complete) { return new("runtime.trust.probe-failed"); }
+        if (result.ExitCode != 0) { return new("runtime.trust.probe-failed"); }
         try
         {
             using JsonDocument json = StrictJsonDocumentReader.Parse(Encoding.UTF8.GetBytes(result.StandardOutput), 4096, 4);
@@ -37,11 +49,12 @@ internal sealed class RuntimeTrustProbeProcess(
             return response is null || response.ProtocolVersion != 1 || response.RequestId != requestId ||
                 !string.Equals(response.Sha256, sha256, StringComparison.Ordinal) ||
                 (response.IssueCode is not null && !response.IssueCode.StartsWith("runtime.trust.", StringComparison.Ordinal))
-                ? "runtime.trust.protocol-invalid" : response.IssueCode;
+                ? new("runtime.trust.protocol-invalid")
+                : response.IssueCode is null ? null : new RuntimeTrustProbeVerdict(response.IssueCode);
         }
         catch (JsonException)
         {
-            return "runtime.trust.protocol-invalid";
+            return new("runtime.trust.protocol-invalid");
         }
     }
 
@@ -67,6 +80,9 @@ internal sealed class RuntimeTrustProbeProcess(
         return true;
     }
 }
+
+/// <summary>A trust-probe rejection: the stable issue code, and an optional user-facing recovery message.</summary>
+internal sealed record RuntimeTrustProbeVerdict(string IssueCode, string? UserMessage = null);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 internal sealed class RuntimeTrustProbeResponse
