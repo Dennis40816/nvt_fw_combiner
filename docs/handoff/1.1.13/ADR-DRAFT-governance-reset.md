@@ -1,9 +1,9 @@
 # ADR 0080 (draft): Retire capability-reuse history replay and reset the development flow
 
 - Status: **Proposed** — revised after the third independent design review
-  (2026-09-27) to the simpler authority check the owner chose (decision 105);
-  awaiting the check of this revision and the owner's acceptance; not
-  implementation authority.
+  (2026-09-27) to the simpler authority check the owner chose (decision 105),
+  and after the fourth for its procedures; awaiting the check of this
+  revision and the owner's acceptance; not implementation authority.
 - Date: 2026-09-26; revised 2026-09-27.
 - Owners (board decision 102, three roles recorded separately, today all held
   by the repository owner): the **governance owner** (governance rules,
@@ -22,7 +22,11 @@
   [log](WS-GOV.md#design-re-review-3-2026-09-27)). The owner answered the
   third review's P1 findings with decision 105, which replaces that wiring by
   an ordinary pull request check, GitHub's native last-push approval and
-  named procedural safeguards.
+  named procedural safeguards. Fourth design review by `codex/gpt-6-astra` at
+  `168de342b`, ACCEPT-WITH-CHANGES (decision 105 accepted as the premise; P1
+  F-1 bootstrap and F-2 base authority code updates, P2 F-3 approval snapshot
+  and F-4 the machine-guarantee table;
+  [log](WS-GOV.md#design-re-review-4-2026-09-27)).
 - Owner decisions: 2026-09-26, board decisions 49 to 52, 56, 65 to 67, 77, 78,
   80 and 82 and, for the release side, 47 and 53 to 55; O-3 and O-4 confirmed
   in decision 67 ([owner decisions](#owner-decisions-2026-09-26)); 2026-09-27,
@@ -532,9 +536,12 @@ or `scripts/verify.py`, which the CI failure-evidence change owns.
   read-only `contents` and `pull-requests` permissions, uses no secret, and
   fetches the full history. It reads the live pull request (description,
   head, base branch) and the review records through the API rather than the
-  event payload, so a re-run of an older run evaluates the current state. The
-  rulesets require the context from GitHub Actions, and the agent App has no
-  `checks` or `statuses` write permission.
+  event payload, so a re-run of an older run evaluates the current state; a
+  re-run still executes the workflow and checker versions of that run. Its
+  job summary records the head and base SHAs and the Git blob IDs of the
+  workflow, checker, schema, policies and listed checker dependencies it
+  used. The rulesets require the context from GitHub Actions, and the agent
+  App has no `checks` or `statuses` write permission.
 - **What it checks.** The changed paths of item 4 against the policy; the
   declared risk and roles against the floor and the role union, including the
   roles review records add; the evidence entries of each required role (item
@@ -567,61 +574,102 @@ or `scripts/verify.py`, which the CI failure-evidence change owns.
 | `governance / authority` | a CI job running the pull request's own workflow and checker | at the time of its run: paths classified, risk and roles declared, evidence entries present, a review record on the head |
 | Exact-head human approval | the rulesets' code-owner review, last-push approval and stale dismissal (GitHub) | a code owner, today the owner, approved the most recent reviewable push; a diff-changing push dismisses it |
 | Review threads | the rulesets' conversation resolution | no unresolved thread at merge |
-| Evidence content, role naming, stale results, changes to the check itself | the owner and the commander | the pre-merge verification and the self-change check below |
+| Evidence content, role naming, the approval snapshot, stale results, base authority code updates, changes to the check itself | the owner and the commander | the pre-merge verification, the self-change check and the bootstrap approval below |
 
-**Machine-enforced and procedural safeguards.**
+**Machine-enforced and procedural safeguards.** M1 to M4 and M7 hold while
+the rulesets are Active and no bypass is used. An owner bypass or a paused
+ruleset (board decisions 77 and 78, item 8) is outside them and follows its
+own recorded procedure. M5 and M6 are the result of the checker that ran, at
+the time it ran; whether that result still holds at merge is P2 and P9.
 
 | # | Safeguard | Kind | Carried by |
 | --- | --- | --- | --- |
-| M1 | Every change to a protected branch goes through a pull request | machine | rulesets |
-| M2 | A code owner approved the most recent reviewable push, and not as its pusher; a diff-changing push dismisses the approval | machine | rulesets |
-| M3 | No unresolved review thread at merge | machine | rulesets |
-| M4 | The required contexts succeeded for the merged head commit | machine | rulesets |
-| M5 | Floor, role union, declared roles, evidence entries, review record on the head, policy schema, and fail-closed inputs | machine for a pull request that does not change the check | authority check |
-| M6 | A new SHA has no valid review record until a new record names it | machine, same condition | authority check |
-| M7 | Force pushes and deletion blocked; only the owner can bypass | machine | rulesets |
-| P1 | A pull request can edit the check it runs (workflow, checker, policy, schema, files the checker reads), so its own result proves nothing about that change. The same holds today for every required check, since each runs the head's workflow | procedural | self-change check |
-| P2 | An earlier green result on the same head survives a change that starts no run: a new or edited review record, a base policy or checker change, a run that was skipped, queued, cancelled or never triggered, or a re-run of an older run | procedural | pre-merge verification |
-| P3 | A push that keeps the tree identical may keep the approval | procedural until D4 shows GitHub asks again | pre-merge verification |
+| M1 | In the normal, non-bypass flow, every change to a protected branch goes through a pull request | machine, rulesets Active | rulesets |
+| M2 | In that flow, a code owner approved the most recent reviewable push, and not as its pusher; a diff-changing push dismisses the approval | machine, rulesets Active | rulesets |
+| M3 | In that flow, no review thread is unresolved at merge | machine, rulesets Active | rulesets |
+| M4 | In that flow, every required context has, for the merged head commit, a conclusion GitHub accepts (success, neutral or skipped); a missing, failed or cancelled one blocks. That `governance / authority` can only end in success or failure, never neutral or skipped, comes from its workflow (one job without `if:`, path filter or `continue-on-error`), not from the platform | machine (platform) plus the workflow's design | rulesets; authority workflow |
+| M5 | Floor, role union, declared roles, evidence entries, review record on the head, policy schema and fail-closed inputs, as judged by the checker that ran, when it ran, for a pull request that does not change the check | machine at run time | authority check |
+| M6 | At run time, a new SHA has no valid review record until a new record names it | machine at run time | authority check |
+| M7 | Force pushes are blocked on `main`, the trunk and release branches; deletion is blocked on `main` and the trunk only, since a release branch is deleted after its tag (the release-branch ruleset has no deletion rule); only the owner can bypass, under board decisions 77 and 78 | machine, rulesets Active | rulesets |
+| P1 | A pull request can edit the check it runs (workflow, checker, policy, schema, files the checker reads), so its own result proves nothing about that change; when the base has no checker yet, there is no base result either. The same holds today for every required check, since each runs the pull request's workflow | procedural | self-change check or bootstrap approval |
+| P2 | An earlier green result on the same head survives a change that starts no run: a new or edited review record; a change of the authority workflow, checker, schema, policy or checker dependencies on the base, while the pull request still runs an older version; a run that was skipped, queued, cancelled or never triggered; a re-run of an older run | procedural | pre-merge verification, steps 1 to 3 |
+| P3 | A push that keeps the tree identical may keep the approval | procedural until D4 shows GitHub asks again | pre-merge verification, step 3 |
 | P4 | The owner's approval names each role it exercises (decision 102) | procedural | owner |
 | P5 | The evidence is correct (bytes, Golden, write ranges, release evidence), not only present | procedural | owner and reviewer |
 | P6 | A firmware-semantic or approval-authority change outside the mapped paths is declared | procedural | author and reviewer (item 4) |
 | P7 | Reviewer independence; one writer per mutable surface | procedural | items 6 and 3 |
 | P8 | Before G2, `governance / authority` is not required on `main` | procedural | release owner's approval cites it (item 8) |
+| P9 | After the owner's approval, the authority block, the review records or the evidence can change on the same head while the check stays green, since the check verifies presence and form, and the approval stays on the head | procedural | approval snapshot, pre-merge verification step 4 |
 
-**Pre-merge verification (procedural, decision 105).** Before every merge
-into a protected branch, after the owner's approval:
+**Pre-merge verification (procedural, decision 105).** When the owner
+approves, the commander records in the pull request the **approval
+snapshot**: the head SHA, the authority block as approved (declared risk,
+roles and each role's evidence entries) and the valid review records (review
+id, head, verdict). Then, before the merge:
 
-1. The commander re-runs `governance / authority` on the pull request (a
-   re-run reads the live description, review records and base) and waits for
-   its result.
-2. Through the API the commander confirms that this run's check reports
-   success for the current head SHA, and that the owner's approval is on that
-   SHA and on its most recent push; for an identical-tree push under P3, a
-   new approval is asked for.
-3. The merge names that head (`gh pr merge --match-head-commit <sha>`) and
-   happens on the owner's go-ahead. If anything changed in between, the steps
-   start again.
+1. **Base authority code.** The commander compares the authority workflow,
+   checker, schema, policy and listed checker dependencies of the current base
+   tip with the versions the pull request's latest run used (its job summary
+   records their Git blob IDs). If the pull request does not change them but
+   runs older versions than the base, either it is rebased onto the base,
+   after which the review record and the approval are renewed on the new
+   head, or the commander runs the current base's checker, from a clean
+   checkout of the base tip, against the pull request's head and live
+   description, and attaches the result; a failing result stops the merge. If
+   the pull request changes them on purpose, the self-change check below
+   applies.
+2. **Re-run.** The commander re-runs `governance / authority` on the pull
+   request (a re-run reads the live description, review records and base) and
+   waits for its result.
+3. **Head and approval.** Through the API the commander confirms that this
+   run's check reports success for the current head SHA and that the owner's
+   approval is on that SHA and on its most recent push; for an
+   identical-tree push under P3, a new approval is asked for.
+4. **Snapshot.** The commander compares the live authority block and valid
+   review records with the approval snapshot. If they differ (evidence
+   replaced, a role added or removed, a review record edited, added or
+   superseded), the merge stops until the owner reconfirms the new content
+   explicitly, by a new approving review or by a comment from the owner's
+   account that names the head SHA and the changed content; the commander
+   then records the new snapshot.
+5. **Merge.** The merge names that head (`gh pr merge --match-head-commit
+   <sha>`) and happens on the owner's go-ahead. If anything changed after
+   step 1, the steps start again.
 
-The run id and head SHA of steps 1 and 2 are recorded in the pull request.
-The window between step 2 and the merge is not machine-closed; the
-`--match-head-commit` guard only rejects a moved head.
+The pull request records the snapshot, the versions compared in step 1, and
+the run id and head SHA of steps 2 and 3. The window between the last check
+and the merge is not machine-closed; the `--match-head-commit` guard only
+rejects a moved head.
 
 **Changes to the check itself (procedural, decision 105).** A pull request
 that changes the authority workflow, the checker, the policy or its schema,
 or a file the checker reads to reach its verdict (all governance R3 by item
-4) runs its own version of the check. For it:
+4) runs its own version of the check. Two cases:
 
-- the commander runs the base branch's checker, from a clean checkout of the
-  base, against the pull request's head, and attaches the result;
-- the pull request states which verdicts the change alters and why;
-- the owner's approval contains an explicit self-change statement: the change
-  to the check was reviewed, the base checker's result on this head was read,
-  and this pull request's own requirements were not lowered by the change
-  (or the owner accepts the stated lowering);
-- the commander never asks to merge it on its own check result alone.
-
-This also covers the pull requests that add the policy (the bootstrap case).
+- **The base already has the checker.** The commander runs the base's
+  checker, from a clean checkout of the base tip, against the pull request's
+  head and attaches the result; the pull request states which verdicts the
+  change alters and why; the owner's approval contains an explicit
+  self-change statement: the change to the check was reviewed, the base
+  checker's result on this head was read, and this pull request's own
+  requirements were not lowered by the change (or the owner accepts the
+  stated lowering); the commander never asks to merge it on its own check
+  result alone.
+- **First introduction: the base has no checker.** This is the G1-A pull
+  request into the trunk and the first release pull request that brings the
+  check into `main`. The pull request records that the base has no authority
+  checker, so no base result exists, and none is claimed. It passes the
+  governance gates still in force on that base: for G1-A, the current record
+  rules (its capability-reuse record, the base validator, the existing
+  required checks, the release-owner attestation for the workflow); for the
+  release pull request, the release gates of ADR 0033 and the release policy.
+  An independent review of its fixed head covers the introduced check; for
+  the release pull request, that review may instead confirm that the
+  authority files at its head equal those in force on the trunk (the same
+  blob IDs), citing G1-A's review. The owner's approval contains an explicit
+  bootstrap approval: that the base has no checker, which gates stood in for
+  it, and that the introduced check was reviewed at this head. The check's
+  own result on that pull request is recorded as informative only.
 
 ### Branches, releases and CI
 
@@ -788,9 +836,11 @@ What G1-B removes, and what it keeps (second review):
 - Single-writer ownership becomes procedural again (item 3).
 - The authority check is not tamper-proof: a pull request can change the
   check it runs, and an earlier green result can outlive a later change on the
-  same head (P1 and P2 of the safeguards table). Decision 105 accepts this;
-  the self-change check and the pre-merge verification carry it, and each
-  merge costs one re-run of the check.
+  same head or on the base (P1, P2 and P9 of the safeguards table). Decision
+  105 accepts this; the self-change check, the bootstrap approval and the
+  pre-merge verification carry it, and each merge costs an approval
+  snapshot, a comparison of the base authority code and one re-run of the
+  check.
 - Path-mapped CI can miss a cross-cutting interaction until the next full run.
 - While G1-A runs beside the record gate, it adds cost: the old review binds
   the implementation head, while the new review record and the GitHub
@@ -831,11 +881,17 @@ What G1-B removes, and what it keeps (second review):
   workflow, only the self-change check stops it (procedural, P1).
 - A pull request changes the authority check itself -> GitHub's code-owner
   review requires the owner's approval, which carries the self-change
-  statement and the base checker's result on the head (procedural, P1).
-- A green result goes stale on the same head (review record edited, base
-  policy tightened, a run skipped or cancelled) -> the pre-merge verification
+  statement and the base checker's result on the head, or, when the base has
+  no checker yet, the bootstrap approval with the gates that stood in
+  (procedural, P1).
+- A green result goes stale (review record edited, base authority code
+  tightened while the pull request runs an older version, a run skipped or
+  cancelled) -> the pre-merge verification compares the base authority code,
   re-runs the check and binds the merge to the head it passed on
   (procedural, P2).
+- The approved roles or evidence change on the same head after the approval
+  -> the approval snapshot stops the merge until the owner reconfirms
+  (procedural, P9).
 - A renamed required check blocks merges until the ruleset changes -> one
   maintenance window, no release in between.
 - A standing owner bypass skips every rule of its ruleset -> it is used only
@@ -968,8 +1024,9 @@ attestation for the workflow, and its governance-owner approval is the
 owner's GitHub approval of its last push naming that role, since the record
 system has no governance attestation type. Because the check runs on
 `pull_request` events, it also runs on the G1-A pull request itself with that
-pull request's own policy (the bootstrap case); that result is informative
-only, and the self-change check applies.
+pull request's own policy; its base has no checker, so that result is
+informative only and the first-introduction case of the self-change check
+applies (bootstrap approval, no base-checker result claimed).
 
 **Deliverables** (the admission fixes the exact list):
 
@@ -990,23 +1047,27 @@ only, and the self-change check applies.
 4. The workflow: the `pull_request` types of the
    [check](#authority-check-and-its-safeguards-g1-a), one job, read-only
    permissions, no secret, full history, no `if:`, path filter or
-   `continue-on-error`.
+   `continue-on-error`, and the job summary with the SHAs and blob IDs used.
 5. The pull request template: the authority block (declared risk, roles and
    the evidence of each, implementation owner, owned paths) and the
    review-record format.
-6. A section of the execution workflow on review records, the pre-merge
-   verification and the self-change check while both gates run; the full rule
-   move is G1-B's.
+6. A section of the execution workflow on review records, the approval
+   snapshot, the pre-merge verification (with the commands that compare the
+   base authority code and run the base checker), the self-change check and
+   the bootstrap approval while both gates run; the full rule move is
+   G1-B's.
 7. Not in G1-A: `ci.yml`, `scripts/verify.py`, the validator's record code,
    `scripts/release_promotion_policy.py`, the `main` ruleset and a CODEOWNERS
    generator.
 
 **Owner actions:** the principals before admission (below); the G1-A pull
 request's approval naming the governance-owner and release-owner roles, with
-its self-change statement, and the release-owner attestation; adding
+its bootstrap approval, and the release-owner attestation; adding
 `governance / authority` (GitHub Actions source) to the trunk and
 release-branch rulesets through the reviewed ruleset procedure, read back and
-recorded; D4's identical-tree observation.
+recorded, and to the release-branch ruleset only when every open release
+branch contains the workflow (a pull request into an older release branch
+could never report the context); D4's identical-tree observation.
 
 **Acceptance.** Unit cases use recorded responses; each negative case must
 fail the check:
@@ -1045,14 +1106,26 @@ merging and their branches deleted by the App, and on one real pull request:
 - The stale-result case of P2: a review record edited after a green run
   leaves the result green; the pre-merge re-run turns it red. The record shows
   that the procedure, not the platform, closes this gap.
+- The base-tightening case of P2: on a disposable base branch that tightens
+  the checker, a pull request whose head predates the change keeps passing
+  when its old run is re-run; the step 1 comparison flags the older versions,
+  and the current base checker run against that head fails it, so the merge
+  stops until the pull request is rebased and re-reviewed.
+- The snapshot case of P9: after the owner's approval, the evidence of a role
+  is replaced, or a role added, on the same head; the check stays green; the
+  step 4 comparison stops the merge until the owner reconfirms.
 - D4's identical-tree observation (G0 checklist), which settles P3.
-- The self-change check done once, on the G1-A pull request or a later policy
-  change: the base checker's result on the head attached, and the owner's
+- The bootstrap approval on the G1-A pull request: the record that its base
+  has no checker, the gates that stood in, the independent fixed-head review
+  and the owner's bootstrap approval; no base-checker result is claimed.
+- The self-change check once on a pull request whose base already has the
+  checker (a policy change after G1-A, or a disposable one): the base
+  checker's result on the head attached, and the owner's self-change
   statement in the approval.
 - Positive: one real pull request, other than G1-B, merges into `1.1.x` with
   every required check green, its review record, the owner's last-push
-  approval naming its roles, and the recorded pre-merge verification (run id
-  and head SHA).
+  approval naming its roles, and the recorded pre-merge verification
+  (snapshot, versions compared, run id and head SHA).
 
 G1-A is in force when all of this is recorded in the WS-GOV log and the owner
 confirms it (item 9).

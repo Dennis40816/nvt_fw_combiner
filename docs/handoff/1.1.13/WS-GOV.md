@@ -6,7 +6,8 @@ Deliverables: [governance ADR draft](ADR-DRAFT-governance-reset.md) and
 [release workflow cleanup design](DESIGN-release-workflow-cleanup.md), both
 revised after the [independent design review](#design-review-2026-09-26), the
 ADR draft again after the [second design review](#design-re-review-2026-09-27)
-and the [third](#design-re-review-3-2026-09-27), and the
+and the [third](#design-re-review-3-2026-09-27) and
+[fourth](#design-re-review-4-2026-09-27), and the
 [G0 owner checklist](G0-owner-checklist.md), revised after its own
 [reviews](#g0-checklist-review-2026-09-26). The owner decided every question
 on 2026-09-26 (board decisions 47, 49 to 56, 65 to 67, 77 and 78) and on
@@ -256,6 +257,23 @@ scope option; not implemented or covered by the parser review):
   deliverables, acceptance, negative cases and size; reduce the owner input
   before admission to what it needs; record the review and decision 105 here;
   structure check, commit, no push; then stop.
+- **Fourth design review revision (commander, 2026-09-27).** The fourth
+  review of `168de342b` returned ACCEPT-WITH-CHANGES with decision 105
+  accepted as the premise and four procedural or wording items: F-1 separate
+  a base that already has the checker from its first introduction (record
+  that no base checker exists, cite the governance gates still in force, an
+  independent fixed-head review and an explicit owner bootstrap approval,
+  never a base-checker result; also for the first release pull request into
+  `main`), with the self-change statement and G1-A acceptance; F-2 the
+  commander compares the base's authority workflow, checker, schema and
+  dependencies before the merge (rebase and re-review, or run the current
+  base checker and attach it; deliberate differences go to the self-change
+  check), with a "base tightens the checker, old head unchanged" case; F-3
+  the authority block, valid review records and role evidence form the
+  owner's approval snapshot, and any change stops the merge until the owner
+  reconfirms, with a "evidence replaced or role added after approval, CI
+  still green" case; F-4 qualify M1 to M7. Record the review here; structure
+  check, commit, no push; then stop.
 
 ## Ported from 1.1.12
 
@@ -387,6 +405,55 @@ supersedes them where the two differ.
    Proposed although it is implemented and attested; the release promote
    condition skips every version outside 1.x and 2.0.0
    ([bug](../bugs/BUG-20260926-release-promote-skips-other-versions.md)).
+
+## Design re-review 4 2026-09-27
+
+Reviewer `codex/gpt-6-astra`, implementation owner `claude-code`, fixed head
+`168de342b26b81b537207ac74199163b97d1880c` (diff `cb72ee0b0..168de342b`);
+read-only (Git, the third review, decision 105, the classifier functions and
+the ruleset files; the official documentation could not be fetched from the
+review environment). Verdict: **ACCEPT-WITH-CHANGES**. Decision 105 is
+accepted as the design premise: no tamper-resistant publisher or automatic
+stale-result invalidation is required. The third review's F-1, F-2 and F-4
+are closed at design level, and its F-3 was reasonably turned into a
+procedural safeguard but needed this round's F-2 and F-3. No listed governed
+path was found downgraded; the coverage test is still G1-A's to prove. The
+scoped Polytail design verdict was FAIL because of the open P1 findings, not
+because a check failed.
+
+| Finding | Severity | Taken in |
+| --- | --- | --- |
+| F-1 the self-change procedure asked for a base-checker result that does not exist when the check is first introduced | P1 | ADR "Changes to the check itself" split into two cases. First introduction (the G1-A pull request, and the first release pull request that brings the check into `main`): the pull request records that the base has no checker and claims no base result; the governance gates still in force on that base stand in (for G1-A the record rules, base validator, existing required checks and release-owner attestation; for the release pull request the ADR 0033 release gates); an independent fixed-head review covers the introduced check (for the release pull request, equal blob IDs to the trunk's with G1-A's review cited); the owner gives an explicit bootstrap approval. G1-A's intro, owner actions and acceptance updated |
+| F-2 re-running an old run does not apply a base update of the authority code | P1 | Pre-merge verification step 1: the commander compares the base tip's authority workflow, checker, schema, policy and checker dependencies with the versions the latest run used (its job summary now records their blob IDs); if the pull request runs older versions, it is rebased and re-reviewed, or the current base checker is run against its head and attached, and a failure stops the merge; a deliberate difference goes to the self-change check. New acceptance case: a disposable base branch tightens the checker while an older pull request head stays unchanged |
+| F-3 an `edited` run re-checks presence and form, not what the owner approved | P2 | The approval snapshot (head SHA, authority block, valid review records) recorded when the owner approves; pre-merge step 4 compares it with the live content, and any change stops the merge until the owner reconfirms explicitly (a new approving review, or a comment from the owner's account naming the head SHA and the change). New safeguard P9 and acceptance case: evidence replaced or a role added after the approval while the check stays green |
+| F-4 the machine table claimed more than the rules give | P2 | M1 to M4 and M7 limited to Active rulesets in the normal, non-bypass flow; M4 separates the conclusions GitHub accepts (success, neutral, skipped) from the authority workflow's own success-or-failure design; M7 states that deletion is blocked on `main` and the trunk only (the release-branch ruleset has no deletion rule); M5 and M6 are the result of the checker that ran, when it ran, with P2 and P9 carrying whether it still holds |
+
+The reviewer judged the owner input before admission (principals and the
+firmware-semantic `src/` folders; contracts defaulting to both roles)
+sufficient. Found while revising: the release-branch ruleset should gain the
+new required context only when every open release branch contains the
+workflow, since a pull request into an older release branch could never
+report it (G1-A owner actions).
+
+Evidence summary proposed by the reviewer for `designReview.evidence`, valid
+only with a blocked outcome and describing the reviewed head, not this
+revision:
+
+> Independent read-only fourth-round R3 design review by codex/gpt-6-astra,
+> implementationOwner claude-code, at commit
+> 168de342b26b81b537207ac74199163b97d1880c: ACCEPT-WITH-CHANGES. Owner
+> decision 105 is accepted as the design premise; no tamper-resistant
+> publisher or automatic stale-result invalidation is required. Third-round
+> F-1, F-2 and F-4 are closed at design level. G1-A design admission remains
+> blocked pending an executable bootstrap procedure when no base checker
+> exists, handling of authority-code changes on the live base, and explicit
+> owner reconfirmation of changed roles or evidence on the same head. Qualify
+> the machine-guarantee table to match ruleset exceptions and accepted check
+> conclusions. No files were modified, and no builds, tests or live ruleset
+> verification were performed.
+
+A fixed-head check of this revision is still needed before G1-A's design
+review can be recorded as approved (commander).
 
 ## Design re-review 3 2026-09-27
 
@@ -894,6 +961,27 @@ working tree of this commit except this result line -> `structure=PASS`,
 173.2 s; `sync_derived` changed 0 files; only the existing code-size
 warnings, unrelated to these documents.
 Open: an independent check of this revision (commander); the owner input
+listed at the end of the ADR draft.
+Next: stop.
+
+### 2026-09-27 Revision after the fourth design review
+State: local (verified before commit, documents only)
+Commits: the commit carrying this entry, on `168de342b`; only the ADR draft
+and this log change.
+Evidence: F-1 to F-4 of the [fourth review](#design-re-review-4-2026-09-27)
+are taken in (table above): the safeguards table qualified (M1 to M7) with
+the new P9; the pre-merge verification now has five steps (base authority
+code, re-run, head and approval, approval snapshot, merge); the self-change
+check has its first-introduction case with the bootstrap approval; the job
+summary records the versions a run used; G1-A's intro, deliverables, owner
+actions and live cases follow, including the release-branch ruleset timing;
+the ADR header lists the fourth review. A link and anchor check of the four
+WS-GOV documents passed. Structure check before the commit: `python
+scripts/verify.py --structure-only` with TEMP, TMP and TMPDIR set to
+`<test-area>/temp`, on the working tree of this commit except this result
+line -> `structure=PASS`, 182.7 s; `sync_derived` changed 0 files; only the
+existing code-size warnings, unrelated to these documents.
+Open: a fixed-head check of this revision (commander); the owner input
 listed at the end of the ADR draft.
 Next: stop.
 
