@@ -574,6 +574,16 @@ only with a blocked outcome, never as `approved`:
 This revision is not itself reviewed: recording G1-A's `designReview.outcome`
 as `approved` needs an independent check of this revision (commander).
 
+## Governance ADR design re-review 5 2026-09-27
+
+`codex/gpt-6-astra` reviewed `664bbe868`: ACCEPT-WITH-CHANGES, no P0 or P1.
+Fourth-round F-1 (bootstrap) and F-2 (base authority code) are closed; F-4
+is substantively resolved. The commander made the two narrow corrections: the
+approval snapshot keeps the full approval-relevant review content, so a body
+edit under the same review id, head SHA and verdict is detected (F-3), and the
+gate-division table cites M4's accepted conclusions and the Active,
+non-bypass condition (F-4). A confirmation of these edits follows.
+
 ## Release cleanup design re-review 2026-09-27
 
 `codex/gpt-6-astra` re-reviewed the release workflow cleanup design at

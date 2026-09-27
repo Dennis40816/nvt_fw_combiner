@@ -570,7 +570,7 @@ or `scripts/verify.py`, which the CI failure-evidence change owns.
 
 | Gate | Enforced by | What it guarantees |
 | --- | --- | --- |
-| Required checks | the rulesets (GitHub) | every required context, `governance / authority` included, succeeded for the head commit being merged; a missing or failed context blocks |
+| Required checks | the rulesets (GitHub), while Active and not bypassed | every required context, `governance / authority` included, has an accepted conclusion for the head commit being merged, as M4 states: GitHub accepts success, neutral and skipped, and the authority job is designed to report only success or failure; a missing or failed context blocks |
 | `governance / authority` | a CI job running the pull request's own workflow and checker | at the time of its run: paths classified, risk and roles declared, evidence entries present, a review record on the head |
 | Exact-head human approval | the rulesets' code-owner review, last-push approval and stale dismissal (GitHub) | a code owner, today the owner, approved the most recent reviewable push; a diff-changing push dismisses it |
 | Review threads | the rulesets' conversation resolution | no unresolved thread at merge |
@@ -604,8 +604,10 @@ the time it ran; whether that result still holds at merge is P2 and P9.
 **Pre-merge verification (procedural, decision 105).** When the owner
 approves, the commander records in the pull request the **approval
 snapshot**: the head SHA, the authority block as approved (declared risk,
-roles and each role's evidence entries) and the valid review records (review
-id, head, verdict). Then, before the merge:
+roles and each role's evidence entries) and the valid review records with
+their full approval-relevant content (review id, head, verdict and the
+complete review body with any machine block and evidence text), so that an
+edit that keeps the review id, head SHA and verdict is still detected. Then, before the merge:
 
 1. **Base authority code.** The commander compares the authority workflow,
    checker, schema, policy and listed checker dependencies of the current base
@@ -627,7 +629,8 @@ id, head, verdict). Then, before the merge:
    identical-tree push under P3, a new approval is asked for.
 4. **Snapshot.** The commander compares the live authority block and valid
    review records with the approval snapshot. If they differ (evidence
-   replaced, a role added or removed, a review record edited, added or
+   replaced, a role added or removed, a review record edited, including a
+   body edit under the same review id, head SHA and verdict, added or
    superseded), the merge stops until the owner reconfirms the new content
    explicitly, by a new approving review or by a comment from the owner's
    account that names the head SHA and the changed content; the commander
