@@ -11,6 +11,67 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class VersionManagementSettingsTests
 {
+    /// <summary>Actual Closed is deferred until the stable launcher confirms its handoff.</summary>
+    [AvaloniaFact]
+    public async Task RealCloseWaitsForStableLauncherBeforeClosed()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        var handoff = new GatedWindowLifetimeHandoff();
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.5", experience, handoff);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => _ = closed.TrySetResult();
+        window.RequestStableLauncherRestart();
+        window.Close();
+        await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.HandingOff, window.ClosePhase);
+        Assert.False(closed.Task.IsCompleted);
+        handoff.Release(started: true);
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.Closed, window.ClosePhase);
+    }
+
+    /// <summary>Activation admitted while ordinary Close drains upgrades the terminal choice.</summary>
+    [AvaloniaFact]
+    public async Task ActivationDuringDrainStartsLauncherBeforeFinalClose()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        var handoff = new GatedWindowLifetimeHandoff();
+        PresentationHostServices original = PresentationTestHost.CreateServices("0.10.5", experience, handoff);
+        var held = new TaskCompletionSource<Application.Configuration.IEventBufferFormatConfigurationSession>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var services = new PresentationHostServices(
+            original.Composition, original.FileReveal, original.SupportMatrix,
+            original.SystemInformation, original.SystemDiagnosticsExporter,
+            original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
+            original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory,
+            experience, null, handoff, _ => held.Task);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        shell.OpenSettingsCommand.Execute(null);
+        shell.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        Assert.True(shell.Settings.IsEventBufferFormatLoading);
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => _ = closed.TrySetResult();
+        window.Close();
+        Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
+        window.RequestStableLauncherRestart();
+        window.Close();
+        held.SetException(new InvalidOperationException("synthetic factory fault"));
+        await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.HandingOff, window.ClosePhase);
+        Assert.False(closed.Task.IsCompleted);
+        handoff.Release(started: true);
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+    }
+
     /// <summary>A window result committed while a store is sealed is replayed after handoff recovery.</summary>
     [AvaloniaTheory]
     [InlineData(false)]

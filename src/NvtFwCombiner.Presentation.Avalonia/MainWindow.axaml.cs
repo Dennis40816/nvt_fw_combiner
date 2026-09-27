@@ -141,14 +141,33 @@ public sealed partial class MainWindow : Window, IDisposable
     }
 
     /// <inheritdoc />
-    protected override async void OnClosing(WindowClosingEventArgs e)
+    protected override void OnClosing(WindowClosingEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        if (!_isDisposed && !_isExitConfirmed && !_restartThroughStableLauncher &&
-            DataContext is MainWindowViewModel closingViewModel && closingViewModel.HasSelectedFiles)
+        if (ClosePhase == WindowClosePhase.Closing)
         {
-            e.Cancel = true;
-            closingViewModel.Navigation.RequestExitConfirmation(() =>
+            e.Cancel = !_internalFinalClose;
+            base.OnClosing(e);
+            return;
+        }
+
+        e.Cancel = true;
+        if (ClosePhase != WindowClosePhase.Open || _isDisposed)
+        {
+            base.OnClosing(e);
+            return;
+        }
+
+        if (_hasFailedStableLauncherHandoff &&
+            DataContext is MainWindowViewModel recoveredViewModel &&
+            recoveredViewModel.Settings.PendingRecoveryStatus == PendingActivationRecoveryStatus.Cleared)
+        {
+            _restartThroughStableLauncher = false;
+        }
+        if (!_isExitConfirmed && !_restartThroughStableLauncher &&
+            DataContext is MainWindowViewModel selectedViewModel && selectedViewModel.HasSelectedFiles)
+        {
+            selectedViewModel.Navigation.RequestExitConfirmation(() =>
             {
                 _isExitConfirmed = true;
                 Close();
@@ -156,124 +175,20 @@ public sealed partial class MainWindow : Window, IDisposable
             base.OnClosing(e);
             return;
         }
-        if (!_isDisposed)
-        {
-            _isExitConfirmed = true;
-            _startupLoadCancellation.Cancel();
-        }
 
-        if (_isReportHistoryPersistenceComplete)
-        {
-            if (_hasFailedStableLauncherHandoff &&
-                DataContext is MainWindowViewModel recoveredViewModel &&
-                recoveredViewModel.Settings.PendingRecoveryStatus == PendingActivationRecoveryStatus.Cleared)
-            {
-                _restartThroughStableLauncher = false;
-            }
-            if (DataContext is MainWindowViewModel finalViewModel)
-            {
-                finalViewModel.RunSession.CancelActiveRun();
-            }
-
-            if (_restartThroughStableLauncher && !_stableLauncherStarted)
-            {
-                e.Cancel = true;
-                if (_stableLauncherHandoffInProgress)
-                {
-                    base.OnClosing(e);
-                    return;
-                }
-                _stableLauncherHandoffInProgress = true;
-                bool started = await TryCompleteStableLauncherHandoffAsync();
-                _stableLauncherHandoffInProgress = false;
-                if (!started)
-                {
-                    base.OnClosing(e);
-                    return;
-                }
-                if (DataContext is MainWindowViewModel handoffViewModel)
-                {
-                    handoffViewModel.RunSession.RevokeActiveRun();
-                }
-                _windowPublication.Revoke();
-                Dispatcher.UIThread.Post(Close);
-                base.OnClosing(e);
-                return;
-            }
-            if (DataContext is MainWindowViewModel terminalViewModel)
-            {
-                terminalViewModel.RunSession.RevokeActiveRun();
-            }
-            _windowPublication.Revoke();
-            base.OnClosing(e);
-            return;
-        }
-
-        e.Cancel = true;
-        if (_isReportHistoryClosePending)
-        {
-            base.OnClosing(e);
-            return;
-        }
-
+        _isExitConfirmed = true;
+        ClosePhase = WindowClosePhase.Draining;
         _isReportHistoryClosePending = true;
         IsEnabled = false;
-        Task runCompletion = Task.CompletedTask;
-        Task settingsCompletion = Task.CompletedTask;
+        CloseAttempt = RunCloseAttemptAsync();
+        ObserveCloseAttempt(CloseAttempt);
         base.OnClosing(e);
-        try
-        {
-            if (DataContext is MainWindowViewModel viewModel)
-            {
-                runCompletion = viewModel.RunSession.ActiveRunCompletion;
-                settingsCompletion = viewModel.Settings.WhenOperationsIdleAsync();
-                viewModel.RunSession.CancelActiveRun();
-            }
-            _preloadSession.StopAcceptingAndRevoke();
-            var work = Task.WhenAll([runCompletion, settingsCompletion,
-                _preloadSession.AllUsersSettled, .. _sessionTasks]);
-            await WaitWithinCloseDeadlineAsync(work);
-        }
-        catch (Exception exception)
-        {
-            Trace.TraceError("Window close work drain failed: {0}", exception);
-        }
-        finally
-        {
-            _windowPublication.Suspend();
-            if (!runCompletion.IsCompleted && DataContext is MainWindowViewModel timedOutViewModel)
-            {
-                timedOutViewModel.RunSession.RevokeActiveRun();
-            }
-        }
-
-        try
-        {
-            _localStateSealed = true;
-            var completion = Task.WhenAll(
-                _reportHistoryPersistence.CompleteAsync(),
-                _shellPreferencePersistence.CompleteAsync());
-            await WaitWithinCloseDeadlineAsync(completion);
-        }
-        catch (Exception exception)
-        {
-            Trace.TraceError("Window close local-state flush failed: {0}", exception);
-        }
-        finally
-        {
-            _isReportHistoryPersistenceComplete = true;
-            _isReportHistoryClosePending = false;
-            if (!_restartThroughStableLauncher)
-            {
-                _windowPublication.Revoke();
-            }
-            Dispatcher.UIThread.Post(Close);
-        }
     }
 
     /// <inheritdoc />
     protected override void OnClosed(EventArgs e)
     {
+        ClosePhase = WindowClosePhase.Closed;
         if (DataContext is INotifyPropertyChanged notifier)
         {
             notifier.PropertyChanged -= ViewModel_OnPropertyChanged;
@@ -302,6 +217,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         _isDisposed = true;
+        ClosePhase = WindowClosePhase.Closed;
         _windowPublication.Revoke();
         _localStateSave.Detach();
         _startupLoadCancellation.Cancel();

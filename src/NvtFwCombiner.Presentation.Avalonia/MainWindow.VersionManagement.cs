@@ -1,4 +1,5 @@
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -8,7 +9,6 @@ public sealed partial class MainWindow
 {
     private bool _restartThroughStableLauncher;
     private bool _stableLauncherStarted;
-    private bool _stableLauncherHandoffInProgress;
     private bool _hasFailedStableLauncherHandoff;
 
     private async Task ReportManagedApplicationReadyAsync(CancellationToken cancellationToken)
@@ -97,7 +97,19 @@ public sealed partial class MainWindow
     private void Settings_ActivationRequested(object? sender, EventArgs e)
     {
         RequestStableLauncherRestart();
-        Close();
+        if (ClosePhase is WindowClosePhase.Draining or WindowClosePhase.Sealing)
+        {
+            return;
+        }
+        if (ClosePhase is WindowClosePhase.HandingOff or WindowClosePhase.Recovering)
+        {
+            _deferredActivationRequested = true;
+            return;
+        }
+        if (ClosePhase == WindowClosePhase.Open)
+        {
+            Close();
+        }
     }
 
     internal void RequestStableLauncherRestart()
@@ -140,9 +152,14 @@ public sealed partial class MainWindow
     private async Task ReportStableLauncherHandoffFailureAsync()
     {
         _hasFailedStableLauncherHandoff = true;
+        if (ClosePhase == WindowClosePhase.HandingOff)
+        {
+            ClosePhase = WindowClosePhase.Recovering;
+        }
         PendingActivationRecoveryStatus status = PendingActivationRecoveryStatus.Cleared;
         if (DataContext is MainWindowViewModel recoveryViewModel)
         {
+            recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
             var recoveryCancellation = new CancellationTokenSource();
             Task<PendingActivationRecoveryStatus> recovery =
                 recoveryViewModel.Settings.HandleLauncherHandoffFailureAsync(recoveryCancellation.Token);
@@ -201,6 +218,18 @@ public sealed partial class MainWindow
             viewModel.Settings.PublishPendingRecoveryStatus();
         }
         _restartThroughStableLauncher = status != PendingActivationRecoveryStatus.Cleared;
+        ClosePhase = WindowClosePhase.Open;
+        _finalClosePosted = false;
+        if (_deferredActivationRequested)
+        {
+            _deferredActivationRequested = false;
+            if (DataContext is MainWindowViewModel deferredViewModel &&
+                deferredViewModel.Settings.CanRetryPendingActivation)
+            {
+                _restartThroughStableLauncher = true;
+                Dispatcher.UIThread.Post(Close);
+            }
+        }
     }
 
     private static async Task ObserveRecoveryAndDisposeAsync(

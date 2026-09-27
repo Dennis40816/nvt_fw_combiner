@@ -163,10 +163,14 @@ public sealed partial class WindowLifetimeTests
         window.Closed += (_, _) => _ = closed.TrySetResult();
         window.Close();
         Dispatcher.UIThread.RunJobs();
+        Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
+        window.Close();
+        window.Close();
         Assert.Equal(1, deadlineCalls);
         Assert.False(closed.Task.IsCompleted);
         held.SetException(new InvalidOperationException("synthetic factory fault"));
         await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.Closed, window.ClosePhase);
     }
 
     /// <summary>A deadline adapter fault still completes final revocation and closes the window.</summary>
