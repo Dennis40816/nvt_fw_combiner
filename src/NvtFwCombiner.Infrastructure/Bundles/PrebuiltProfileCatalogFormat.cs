@@ -4,6 +4,7 @@ namespace NvtFwCombiner.Infrastructure.Bundles;
 internal static class PrebuiltProfileCatalogFormat
 {
     internal const int MaximumFileBytes = 4_194_304;
+    internal const int MaximumHeaderBytes = 1_048_576;
     internal const int PrefixBytes = 12;
     internal const int MinimumHeaderBytes = 1;
     internal const int MaximumBodyBytes = MaximumFileBytes - PrefixBytes - MinimumHeaderBytes;
@@ -36,4 +37,26 @@ internal sealed class PrebuiltProfileCatalogBody
     internal ReadOnlySpan<byte> Content => _content;
 
     internal IReadOnlyList<PrebuiltProfileCatalogBodyRange> Ranges { get; }
+}
+
+/// <summary>Format identities only; none conveys admission authority.</summary>
+internal sealed record PrebuiltProfileCatalogTrustIdentity(
+    string Sha256, string TrustIndexId, string TrustIndexVersion, string TrustAnchorBindingId);
+
+/// <summary>Raw bundle transport descriptor, supplied only after admission by the generator.</summary>
+internal sealed record PrebuiltProfileCatalogBundleInput(
+    string BundleDirectory, string BundleVersion, string ContentHash,
+    ProfileBundleFileSnapshot Manifest, IReadOnlyList<ProfileBundleEntrySnapshot> Documents);
+
+/// <summary>Validated transport snapshot. Runtime trust acceptance remains a separate responsibility.</summary>
+internal sealed class PrebuiltProfileCatalogSnapshot
+{
+    private readonly byte[] _body;
+    internal PrebuiltProfileCatalogSnapshot(System.Text.Json.JsonElement header, byte[] body)
+    {
+        Header = header.Clone();
+        _body = body;
+    }
+    internal System.Text.Json.JsonElement Header { get; }
+    internal ReadOnlySpan<byte> Body => _body;
 }
