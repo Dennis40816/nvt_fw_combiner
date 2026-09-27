@@ -759,3 +759,4 @@ with the commander.
 | --- | --- |
 | Section numbers in dispatch | This revision's commit sequence is 6.1, narrow gates 6.2, decisions 7 and review responses 8. The named content governs. |
 | Step 7 deletion consumers | Remove `test_assess_refactor_progress.py` with its deleted script; move supervision routing to the existing root, model routing and handoff owners. Update the CRC worker's old review-skill invocation too. Polytail policy, checker and CI names remain. |
+| Step 8 live rename consumers | Also update the evidence-reviewer role and agent-issue-tracker invocations discovered by caller search; dated evidence retains historical names. |

@@ -1,6 +1,6 @@
 ---
 name: nfc-grill-with-docs
-description: Close unresolved NFC specification, architecture, terminology, or planning decisions one at a time and record each accepted result in its canonical document. Use before to-spec, to-tickets, or an implementation goal when owner decisions remain.
+description: Close unresolved NFC specification, architecture, terminology, or planning decisions and record each accepted result in its canonical document. Use before to-spec, to-tickets, or an implementation goal when owner decisions remain.
 ---
 
 # Grill With Docs
@@ -22,8 +22,12 @@ decision touches that surface.
    For firmware decisions, cover the affected IC/workflow/IC Count/topology and
    pending-input/failure cases; add migration cases when relevant. Do not
    generalize one IC route into another without evidence.
-4. Ask one owner decision at a time with a recommendation and trade-offs. Wait
-   before following the branch.
+4. Build the decision tree and resolve prerequisites first. Ask firmware, R3
+   and architecture decisions one at a time. Related or low-risk decisions may
+   share a round of at most four questions, each with a recommendation, concrete
+   trade-offs and evidence limits. Wait for the owner before following a branch;
+   record accepted, rejected, deferred and evidence-blocked decisions. For a long
+   interview, state the remaining decision count periodically.
 5. After each confirmation, update the existing canonical document immediately
    when the user authorized documentation work. Do not create `CONTEXT.md`, a
    parallel glossary, or a second specification authority.

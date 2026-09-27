@@ -1,23 +1,32 @@
 ---
 name: nfc-composition-experience-change
-description: Change Display, TP HW, TP FW, General Merge, or General Replace authoring policy, region access, mapping editor contracts, or persona UI. Do not add workflow-specific byte execution or rely on UI-only restrictions.
+description: Change active composition authoring policy, region access or General mapping contracts through the canonical experience policy and shared compiler.
 ---
 
 # Composition Experience Change
 
-1. Read ADR 0003, ADR 0004, ADR 0005, the canonical variable model, profile/request schemas, and the affected IC region catalog.
-2. State composition kind, experience, requested IC/topology, initializer,
-   audience, allowed regions, forbidden regions, atomicity, and processor
-   dependencies.
-3. Preserve the locked policies in `AGENTS.md`: DP Replace exposes only whole
-   or declared DP partitions; CtrlRAM Replace exposes only physical
-   `owner = tp`, `kind = ctrlram` regions or approved all-CtrlRAM groups;
-   Display/TP HW/TP FW authoring keeps its declared DP/TP split; General uses
-   explicit mappings inside approved ranges.
-4. Implement enforcement in profile compiler/application policy. UI visibility is secondary and cannot be the only guard.
-5. General mapping changes must preserve one state model for canvas and exact table/manual entry and compile to normal operations.
-6. Reject arbitrary scripts, user-provided commands/processor paths, filename inference, implicit overlap, or unbounded ranges.
-7. Add positive and cross-persona negative tests, request/schema tests, round-trip tests, and stable issue codes.
-8. Run affected policy/compiler/request/UI tests, `$nfc-review`, and the final
-   gate required by the risk class. Report access-policy and compatibility
-   impact.
+Read the [experience and access policy](../../../docs/architecture/experience-and-access-policy.md),
+ADRs 0003-0005 and their amendments, the affected profiles and request schema.
+Those owners define the active experiences; historical personas do not grant
+current access. State the affected composition kind, initializer, experience,
+IC/topology, region access and processor dependencies before changing policy.
+
+Preserve these invariants:
+
+- Profiles and their compiler enforce allowed regions, atomicity, protected
+  ranges and overlap. UI visibility renders those decisions and is not the
+  only guard. The executor uses the shared operation model without branching
+  on experience or audience.
+- CtrlRAM eligibility comes from physical `owner = tp`, `kind = ctrlram`
+  facts or approved groups consisting only of those regions. DP/LDC facts
+  survive dedicated DP Replace retirement; they acquire no new execution path.
+- General mappings have explicit source/target address spaces and half-open
+  ranges, sequence, overlap policy and reason. Canvas and exact table entry
+  share one state and compile to normal operations.
+- Input bindings remain distinct from logical views. Arbitrary scripts,
+  per-run processor paths and filename-derived firmware facts are forbidden.
+
+Test changed allowed and denied requests at the compiler/Application boundary,
+including malformed ranges and affected round trips. Add UI checks only where
+presentation changes. Use skill `nfc-review` and the root risk gates; report
+compatibility, access changes and any missing firmware authority.

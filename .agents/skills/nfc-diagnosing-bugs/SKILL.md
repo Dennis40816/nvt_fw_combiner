@@ -24,9 +24,7 @@ bugs, exercise the actual control or packaged app when a lower seam misses the
 symptom. Use the available platform tools, not an assumed browser or shell.
 
 If human interaction is necessary, give precise steps and request the observed
-result/artifact. The [Bash feedback template](scripts/hitl-loop.template.sh) is
-optional when Bash and an interactive terminal are available; it is not a
-prerequisite for Windows UI diagnosis.
+result/artifact through the runtime's available interaction tools.
 
 ## Test the cause
 

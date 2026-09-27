@@ -10,7 +10,8 @@ description: Design or modify NFC Avalonia screens, approved-reference layouts, 
 3. Obtain all behavior through typed bootstrap/application contracts; never infer IC, region or processor rules from labels/filenames.
 4. Keep one mapping state shared by drag canvas and exact table/manual editing; require deterministic round-trip tests.
 5. Display address space, source/target ranges, operation, overlap and processor effects before Build.
-6. Add keyboard, focus, screen-reader, localization and high-contrast acceptance coverage.
+6. Add keyboard, focus, screen-reader, localization and high-contrast acceptance
+   coverage for the behavior and presentation states the change affects.
 7. Apply the reference-fidelity gate below whenever the owner supplies or approves a visual reference.
 8. Add ViewModel/unit tests plus the narrowest UI smoke/snapshot coverage available.
 9. Run the narrow UI tests, `$nfc-review`, and the final gate required by the risk
