@@ -1759,10 +1759,24 @@ def validate_historical_parity_authority(errors: list[str]) -> None:
             )
 
 
+def validate_claude_projections(tracked: list[Path], errors: list[str]) -> None:
+    from sync_derived import claude_projection_provider
+
+    expected = set(claude_projection_provider(ROOT).outputs)
+    actual = {
+        path.relative_to(ROOT).as_posix() for path in tracked
+        if path.relative_to(ROOT).as_posix().startswith((".claude/skills/", ".claude/agents/"))
+    }
+    if actual != expected:
+        errors.append(f"tracked Claude projections must match expected set: missing {sorted(expected - actual)}, stale {sorted(actual - expected)}")
+
+
 def validate() -> list[str]:
     errors: list[str] = []
     errors.extend(validate_code_size_policy(ROOT))
-    files = repository_files()
+    tracked = _git_tracked_paths()
+    files = [path for path in tracked if path.is_file()] if tracked is not None else repository_files()
+    validate_claude_projections(tracked if tracked is not None else files, errors)
     validate_required_files(errors)
     validate_forbidden_tracked_content(files, errors)
     validate_coverage_exclusion_policy(ROOT, files, errors)
