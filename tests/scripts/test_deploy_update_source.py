@@ -651,8 +651,8 @@ class DeployUpdateSourceTests(unittest.TestCase):
         mutates no earlier than some read of the file under a deny-write
         lock. Deterministically pinning the post-first-hash window needs a
         synchronization point on the script side, which is out of scope for
-        a test-only correction; see
-        docs/handoff/bugs/BUG-20260927-deploy-post-hash-attack-test-race.md.
+        a test-only correction; see the bug ledger entry
+        BUG-20260927-deploy-post-hash-attack-test-race.
         """
         self.package = b"x" * (1024 * 1024)
         self.release_package.write_bytes(self.package)
