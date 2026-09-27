@@ -5,7 +5,7 @@
   "integrationBase": "e3fa0297535b0f1057dffa4421e1df5724ab5dfb",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0079-test-architecture.md",
     "scripts/validate_repository.py",
@@ -44,12 +44,21 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent third-round read-only R2 design review by codex/gpt-6-astra, independent of implementationOwner codex/gpt-6-sol, against source f3857d6f1cf95a124cb580a011c5e9deac0527c7 with a clean worktree. Reviewed design v3 SHA-256 59ee5d479525914fbdd0713488280f8a42501d870fc28253eb60eca4b25eb8a7 and draft record v3 SHA-256 40cbf6887dc0b63e90542fcaf05c46194cc498ea0eaa30d19e50aa5731a40166. Round 1 was BLOCKED by eager default resolution in both launcher parsers, omission of the switch-literal architecture-test migration, and loss of production zero-argument success coverage. Round 2 confirmed those corrections but returned ACCEPT-WITH-CHANGES for one P2 gap: source-order assertions alone could not prove explicit-path bypass in Launcher.Program.Parse. Version 3 closes that design gap by requiring reflective invocation of the actual private parser through a test-only Launcher project reference, covering explicit-path success, omitted-path InvalidOperationException, and preserved unknown-option, missing-value and empty-path ArgumentException behavior under switch=true. It specifies exception unwrapping, nonparallel execution, finally-based switch restoration, and guard-first intermediate red evidence that detects eager resolution even after the option loop. Required project/test paths and the ADR amendment are included; all earlier corrections remain intact. No new findings were identified. Verdict: APPROVED; recommended designReview.outcome: findings-incorporated. Scoped design Polytail: PASS. This approves the revised design only; implementation, focused test execution, independent fixed-head final review and integration remain pending. Inspection used read-only Git, source/document searches and SHA-256 hashing. No files or Git state were modified, and no build, tests, verifier or network operations were performed."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb",
+  "reviewedHead": "201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb",
+  "pathStateDigest": "0c03d33579bc1921284c60ddb40c291bd2d8016d77dc6588bf6ccbc40eeb8020",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "findings-incorporated",
+    "evidence": "Three independent read-only fixed-head reviews of VERSION-MANAGER-STATE-1113-01 (implementationOwner codex/gpt-6-sol). (1) claude/sonnet-5 at branch head 7e82f68c7 (admission 59f4a1739) confirmed the design-v3 terminalContract, the 16 mutablePaths and the minimal Bootstrap.Tests project reference and validator entries, and ran the named Infrastructure parser classes 12/12, Bootstrap guard and CLI version-self-test 11/11 and Architecture 273/273, but broadened to the full Infrastructure.Tests project and found seven deterministic regressions (P0): StableLauncherHandoff tests in AnonymousPipeManagedApplicationProcessTests.Bootstrap.cs omitted a state path and now reached the fail-closed guard; verdict BLOCKED. (2) The commander (claude-code) rebuilt the batch 3 admission to add that test file, replayed the reviewed implementation with an identical git patch-id (b80cdcb78f7a), and made the seven tests pass the workspace state file used by the neighbouring tests (affected Infrastructure classes 84/84); codex/gpt-6-astra at 634671a90 confirmed the P0 fix, the unchanged assertions and no remaining null-state test call site, but found that the admission also listed the non-governed docs/architecture/local-user-data-inventory.md (P1) and a pre-existing gap (P2): the Win32 start-failure handoff test returns before the start because it passes no expectedIdentity; verdict BLOCKED. (3) The admission was rebuilt without the inventory entry (800c140b3); codex/gpt-6-astra in a fresh session at 06e09e0ad9a7abf7601eebeb339f6017ff478a17 (the reviewed head's parent; the only later commit, 201e5fec4, changes a test outside this record) confirmed that the record differs from 59f4a1739 only by integrationBase e3fa0297535b0f1057dffa4421e1df5724ab5dfb and the added test path, that all 17 mutablePaths satisfy the governed/auxiliary classifier, that the five replayed patches are identical, and that the P2 gap predates the batch (trunk 50c0998e3) without violating this terminalContract; verdict APPROVED. The P2 gap is logged as BUG-20260927-win32-handoff-test-returns-early. verify --all at the reviewed batch head 201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb (949 s) passed every lane except the expected pre-finalization design-active record errors; an earlier run at 06e09e0ad had one environmental failure in test_release_package_policy (lock helper PermissionError under concurrent load; 3/3 isolated reruns and the full lane passed; BUG-20260927-launcher-cleanup-lock-thread-flake), which did not recur."
+  },
+  "integrationPaths": [
+    "docs/adr/0079-test-architecture.md",
+    "scripts/validate_repository.py",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "src/NvtFwCombiner.Cli/CliApplication.cs",
+    "src/NvtFwCombiner.Launcher/Program.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs",
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/JsonVersionManagerStateStore.cs"
+  ]
 }

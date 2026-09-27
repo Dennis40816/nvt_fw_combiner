@@ -5,7 +5,7 @@
   "integrationBase": "e3fa0297535b0f1057dffa4421e1df5724ab5dfb",
   "risk": "R2",
   "kind": "governance",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/architecture/nfc_roadmap.md"
   ],
@@ -26,12 +26,15 @@
     "outcome": "findings-incorporated",
     "evidence": "Independently reviewed the R2 roadmap-sync proposal in two rounds against owner decisions 103 and 104, the roadmap source, and schema-v2 record requirements. The first round identified private firmware-check details in the public record, an overbroad merged-PR range, invalid draft admission fields, and a blob misidentified as HEAD; all four were corrected. The second round identified one additional overstatement: decision 103 makes the standing reminders applicable at the 1.2.0 release but does not exclude their application at every 1.1.x release. The proposed roadmap text was corrected to remove that exclusion. The amended release model preserves full GitHub publication of intermediate 1.1.x versions, the historical 1.1.10 numbering decision, and the existing Launcher and reference-refresh allocations. The R2 governance classification, roadmap-only mutable path, and bounded terminal contract are appropriate. Findings are incorporated; admission and final implementation verification remain separate gates."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb",
+  "reviewedHead": "201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb",
+  "pathStateDigest": "3b059073da1bc3e80d56b0afa77adaa3a469fcd1f5ac0215b1f6106f27bb6b07",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent read-only R2 fixed-head review by codex/gpt-6-sol (fresh session; the same identifier ran both design rounds) of ROADMAP-USER-RELEASE-1113-01 at exact head 634671a90: commit 6c155f4b7 changes only docs/architecture/nfc_roadmap.md and implements the approved proposal without additional semantic changes. The second-round exclusion of all 1.1.x releases is absent; the four first-round findings are closed in the committed roadmap and admission record. Commit cbadb7c07 records the completed independent design review, the roadmap-only R2 scope, implementation owner claude-code, and integration base e3fa0297535b0f1057dffa4421e1df5724ab5dfb. The roadmap is unchanged between 6c155f4b7 and 634671a90. The reviewed additions contain no local paths, private usernames, credentials, or firmware bytes. Verdict: APPROVED. Batch 3 carries the reviewed implementation with an identical git patch-id to its branch commit 33ea7047a (fa82386ab7af); verify --all at the reviewed batch head 201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb (949 s) passed every lane except the expected pre-finalization design-active record errors; an earlier run at 06e09e0ad had one environmental failure in test_release_package_policy (lock helper PermissionError under concurrent load; 3/3 isolated reruns and the full lane passed; BUG-20260927-launcher-cleanup-lock-thread-flake), which did not recur."
+  },
+  "integrationPaths": [
+    "docs/architecture/nfc_roadmap.md"
+  ]
 }

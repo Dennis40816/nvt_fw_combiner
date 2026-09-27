@@ -5,7 +5,7 @@
   "integrationBase": "e3fa0297535b0f1057dffa4421e1df5724ab5dfb",
   "risk": "R1",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs",
     "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessResult.cs",
@@ -35,12 +35,18 @@
     "outcome": "not-required",
     "evidence": "Bounded local R1 fix entirely inside the existing typed pre-start-refusal owner (SystemExternalProcessRunner -> ExternalProcessCleanupCapacityException/ExternalProcessStartFailedException -> ExternalCombinerProcessor/LegacyCombinerPostbuildProcessor Fail(...) conversion), reusing exactly the pattern owner decision 92 already established for the capacity refusal; no new user-visible policy, no ADR 0081 contract change, and no docs/contracts/*.schema.json change (docs/architecture/external-combiner-tool-runner.md is not a governed capability-reuse document and only gains one bullet completing its existing 'all external combiner errors fail closed' principle). Narrow tests: SystemExternalProcessRunnerTests (new regression test, red pre-fix by reverting the four production files and observing the raw Win32Exception escape via git stash, green post-fix), ExternalCombinerProcessorTests and LegacyCombinerPostbuildProcessorFailureTests (new FakeProcessRunner mapping tests mirroring the existing capacity-exception tests), full Infrastructure.Tests ExternalTools filter (243/243), Application.Tests ExternalProcessor filter (12/12), and NvtFwCombiner.Architecture.Tests (273/273)."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb",
+  "reviewedHead": "201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb",
+  "pathStateDigest": "c31965a904812c543e7c902edfd29a71ec55adb40842cd3ad0e463277775c864",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent fixed-head review of feature/1.1.13/process-start-typed at d75a4b585 against f3857d6f1: approved for the bounded R1 scope. SystemExternalProcessRunner translates a launch-time Win32Exception into ExternalProcessStartFailedException after releasing the existing capacity reservation; both staged processors map it through their existing typed Fail(...) path to external-tool.process.start-failed. ADR 0081 and decisions 85, 86, and 92 remain unchanged. The three added tests would fail if the translation or either processor mapping were removed. The architecture text matches the implementation. Separate follow-ups, logged as bugs: the runtime trust probe does not catch the new typed start failure, and the predecessor-comparison process-failure list must be reconciled before use with a candidate emitting this code. Batch 3 replays the reviewed commit onto trunk 50c0998e3 as b5d31f49b with an identical git patch-id (535f444b87be); verify --all at the reviewed batch head 201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb (949 s) passed every lane except the expected pre-finalization design-active record errors; an earlier run at 06e09e0ad had one environmental failure in test_release_package_policy (lock helper PermissionError under concurrent load; 3/3 isolated reruns and the full lane passed; BUG-20260927-launcher-cleanup-lock-thread-flake), which did not recur."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalProcessResult.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs",
+    "src/NvtFwCombiner.Infrastructure/ExternalTools/SystemExternalProcessRunner.cs"
+  ]
 }
