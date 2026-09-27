@@ -199,6 +199,10 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         {
             return Fail(ExternalProcessCleanupText.CapacityIssueCode, ExternalProcessCleanupText.CapacityMessage(exception));
         }
+        catch (ExternalProcessStartFailedException exception)
+        {
+            return Fail(ExternalProcessCleanupText.StartFailedIssueCode, ExternalProcessCleanupText.StartFailedMessage(exception));
+        }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             return Fail(

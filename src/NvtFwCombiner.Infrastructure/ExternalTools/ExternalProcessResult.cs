@@ -55,6 +55,17 @@ public sealed class ExternalProcessCleanupCapacityException(int inUseInvocations
     public int Limit { get; } = limit;
 }
 
+/// <summary>
+/// The operating system refused to start the approved external process: for example the approved executable was
+/// removed, blocked, or is not a valid Win32 application between the manifest SHA-256 check and the launch. No
+/// process was created, and the invocation's capacity reservation is already released before this exception is
+/// thrown, so this is a start-time failure, not a terminal-phase one (ADR 0081 is not affected).
+/// </summary>
+public sealed class ExternalProcessStartFailedException(Exception startException)
+    : Exception($"The external process could not be started ({startException.GetType().Name}).", startException)
+{
+}
+
 /// <summary>Shared fail-closed issue text for staged processors that consume a runner cleanup fact.</summary>
 internal static class ExternalProcessCleanupText
 {
@@ -63,6 +74,9 @@ internal static class ExternalProcessCleanupText
 
     /// <summary>Issue code when the runner refuses a new run because its invocation capacity is full.</summary>
     internal const string CapacityIssueCode = "external-tool.process.cleanup-capacity";
+
+    /// <summary>Issue code when the operating system refuses to start the approved external process.</summary>
+    internal const string StartFailedIssueCode = "external-tool.process.start-failed";
 
     /// <summary>
     /// Message for a capacity refusal: the invocations that are running or still cleaning up fill the capacity. It
@@ -73,6 +87,17 @@ internal static class ExternalProcessCleanupText
         ArgumentNullException.ThrowIfNull(exception);
         return "The external processor could not start because external-tool runs that are still running or still " +
             "cleaning up have filled the available capacity. Restart the application and try again.";
+    }
+
+    /// <summary>
+    /// Message for an operating-system start failure: names only the underlying OS exception type, matching the
+    /// other staged-processor failure messages, since raw OS text is not guaranteed to be stable or deterministic.
+    /// </summary>
+    internal static string StartFailedMessage(ExternalProcessStartFailedException exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        string reason = exception.InnerException?.GetType().Name ?? nameof(Exception);
+        return $"External processor could not be started ({reason}).";
     }
 
     /// <summary>Returns a sentence fragment that describes only the observed incomplete cleanup.</summary>

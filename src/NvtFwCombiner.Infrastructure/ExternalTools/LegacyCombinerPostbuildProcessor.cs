@@ -243,6 +243,13 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 ExternalProcessCleanupText.CapacityMessage(exception),
                 executedCommands);
         }
+        catch (ExternalProcessStartFailedException exception)
+        {
+            return Fail(
+                ExternalProcessCleanupText.StartFailedIssueCode,
+                ExternalProcessCleanupText.StartFailedMessage(exception),
+                executedCommands);
+        }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             return Fail(
