@@ -5,7 +5,7 @@
   "integrationBase": "241327de129cbbc1cd492070c3105ed91a03fe5f",
   "risk": "R2",
   "kind": "behavior",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "docs/adr/0079-test-architecture.md",
     "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
@@ -59,12 +59,24 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 design review by codex/gpt-6-astra for implementationOwner claude-code, against source base 9861d800ca78599799013f54e83b3863b31378e6: first review of proposal patch SHA-256 8ebd6f7308ed69b3cba2f8876df20ae2f47ecadc2d10367ce425a2b929da2286, ACCEPT-WITH-CHANGES (F-1 to F-3). Re-review of proposal-r2 patch SHA-256 d55a9ffcaeea97b9edd5e38da24321e749962748b6eee015ff6739c20a80337a: ACCEPT-WITH-CHANGES: F-1 and F-3 are closed by owner decisions 89-91, the revised CLI contract assertions, explicit four-file scope and exclusions, and best-effort cleanup wording. Design admission is acceptable provided the hang evidence is described as a suspected Avalonia headless-session startup stall whose root cause and relationship to this change remain undetermined. The original failure and separate bug remain open; passing reruns do not prove independence or resolution. Before admission, bind the record to the latest sealed checkpoint after batch 2b and include docs/adr/0079-test-architecture.md in mutablePaths for the dated amendment, preserving v5. This read-only review executed no builds or tests and does not constitute fixed-head integration approval or waive required verification. F-2 wording was then corrected in the record, the amendment and the bug text; that correction was not itself re-reviewed. The r2-to-r3 delta (rebase on e6e991af3 after #459: the MainWindow conflict and five test files) was accepted by the third review (ACCEPT, no new P0-P3 findings): Independent R2 design delta re-review by codex/gpt-6-astra for implementationOwner claude-code of proposal-r3 patch SHA-256 f671f571a64237de227dff54c4cbda27e786299db4f88287f7df6f4773a277d6 against base e6e991af32d76d99ad156a7f86baa662947db8d9. ACCEPT: no new P0–P3 findings. The six-file delta reconstructs r3, and the other 69 files match r2 applied to the new base. Both F08 save-outcome callbacks remain intact; all 169 assertions retain their content after path qualification, and scripted failures, holds, completion counts and persisted-value checks address the host’s actual local-state files. Directory-only injection preserves decision 89; existing handler-level test doubles are unchanged. Static scanning found no additional unhandled guarded call sites. All nine governed patch paths are covered by mutablePaths; its tenth governed path is the separately supplied ADR 0079 amendment, which must accompany admission while preserving v5. git apply --check passed without worktree or index writes. Recommend retaining findings-incorporated. No builds or tests were executed; the prior UiSmoke stall remains unresolved. This is design acceptance, not fixed-head integration approval."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "e0e3303250cdeae1199858f04226157b81e0a387",
+  "reviewedHead": "e0e3303250cdeae1199858f04226157b81e0a387",
+  "pathStateDigest": "9abbda398493aa6ca504abe7588667ceda13479b632c5e1d5d86cd90fff3e21d",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "approved",
+    "evidence": "Independent R2 final review by codex/gpt-6-astra for implementationOwner claude-code of TEST-LOCAL-STATE-1113-01 at exact head 5961a41e7ae0c2f6b8a79e59eedd120cd7efeb66, against base e6e991af32d76d99ad156a7f86baa662947db8d9 and integration checkpoint 241327de129cbbc1cd492070c3105ed91a03fe5f. APPROVED; no new P0–P3 findings. All 75 accepted r3 patch files reconstruct byte-for-byte to the reviewed head. Record-only admission precedes implementation and remains unchanged. All 27 mutable paths occur in the diff; ten governed paths have exactly one owner and seventeen auxiliary paths are valid. Non-governed changes, including Directory.Build.props, remain within the accepted patch. ADR 0079 preserves v5 byte-for-byte and appends the reviewed amendment with one separating newline. Decisions 89–91 are implemented without firmware, range, CRC, output-naming or profile changes. Existing build and narrow-test logs were inspected; no builds, tests or repository validator were executed by this reviewer. Retained dump analysis supports an Avalonia.Headless setup-failure stall and dispatcher ownership race; no direct causal link to this change is established, while timing influence remains unexcluded. The separate bug stays open and does not block this record’s finalization. Scoped Polytail PASS; finalization validation and integration/release gates remain required. Independent read-only batch integration review by codex/gpt-6-sol examined candidate head ec28cd0ae63ccb9eb71cbb2a6e69ad554310c20f against checkpoint 241327de129cbbc1cd492070c3105ed91a03fe5f. All 44 commits were accounted for: 10 board, 22 WS-GOV, and 12 record-related commits, with each admission preceding implementation. The four record blobs match their independently reviewed heads: TEST-LOCAL-STATE-1113-01 at 5961a41e7ae0c2f6b8a79e59eedd120cd7efeb66; PROCESS-CLEANUP-1113-01 at 496a4986910e133371c66d63d9d18849abe264fc; PREDECESSOR-VALIDATION-1113-01 at 82b481bf375e76109551261595afcc37e4eaac1a; and NAV-FOCUS-UNDERLINE-1113-01 at db5b6f6b0e3ee7a8149d39bc5e78e1047d7e1f05. The two shared mutable files are exact byte-for-byte combinations of disjoint source hunks. The proposed integration-path partition uniquely covers all 27 governed changes. WS-GOV changes are non-governed, and the board and bug-record conflict resolutions preserve the intended content; no private credentials or machine-specific values were found in added content. One P3 correction remains in the G0 scripts README, so the batch verdict is FINDINGS-INCORPORATED-REQUIRED. No build, tests, or verifier were run; record finalization and integration gates remain outstanding. Independent read-only mechanical review approved batch 2c candidate `e0e3303250cdeae1199858f04226157b81e0a387` relative to prior head `ec28cd0ae63ccb9eb71cbb2a6e69ad554310c20f`. The only post-review commits are `e912eea5f69f9c8d427b39cf63132b28d58fe623`, which restores the test file’s final LF without changing test content, and `e0e3303250cdeae1199858f04226157b81e0a387`, which corrects the G0 scripts README custody wording. The README wording closes finding F-1; its SHA-256 is `72e19e83281b02cb081fce9fe682010c2f84ffba1f251a4ba65f490e05464e1d`, the other ten script inventory hashes are unchanged, and all four reviewed record blobs are unchanged. No build or tests were run for this read-only verification."
+  },
+  "integrationPaths": [
+    "docs/adr/0079-test-architecture.md",
+    "src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs",
+    "src/NvtFwCombiner.Cli/CliApplication.cs",
+    "src/NvtFwCombiner.Desktop/Program.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/DesktopApplication.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/LocalJsonDocument.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/PresentationHostServices.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ReportHistoryFileStore.cs",
+    "src/NvtFwCombiner.Presentation.Avalonia/ShellPreferenceFileStore.cs"
+  ]
 }

@@ -5,7 +5,7 @@
   "integrationBase": "241327de129cbbc1cd492070c3105ed91a03fe5f",
   "risk": "R2",
   "kind": "release",
-  "state": "design-active",
+  "state": "final-complete",
   "mutablePaths": [
     "scripts/predecessor_validation.py",
     "scripts/v0916_parity_certification.py",
@@ -29,12 +29,16 @@
     "outcome": "findings-incorporated",
     "evidence": "Independent R2 stage-1 re-review by codex/gpt-6-astra, implementationOwner claude-code, against base e6e991af32d76d99ad156a7f86baa662947db8d9 and proposal patch SHA-256 65018cffd227838c005feb523592fabee4deba4d583a481c34a4ea00de70ffeb. Verdict: ACCEPT-WITH-CHANGES; design admission remains blocked. Remaining corrections concern transitive output-length binding and unavailable proofs, ledger-required precursor presence, release-scoped gap approvals, and independent value-rule mutation coverage. The transitive wrapper reuses the existing primitive and preserves its checks or failure code. The bounded record's paths, R2 risk and release kind are appropriate. In-memory reconstruction confirmed exact patch applicability without index or worktree writes. No builds, tests or repository verifiers were run. This review establishes neither byte parity nor integration or release approval. A third review against proposal patch SHA-256 7e5416677aff640c43844903a4606bf84e2d012c7270f0e5d4424920d0597208 closed those findings and kept admission blocked on the failure-code classification of invalid transitive routes. Independent fourth-round R2 stage-1 design re-review by codex/gpt-6-astra, implementationOwner claude-code, against base e6e991af32d76d99ad156a7f86baa662947db8d9 and proposal patch SHA-256 02971a707f0f88b5a26e8832ae23690b173e9fad6d32344acfd44b128566ec20. Verdict: ACCEPT. F-9 is closed: invalid routes require the five contract-defined shared execution failure codes, the self-comparison is removed, and positive and code-only negative cases cover candidate-TP and full-route dependency failures. Static review found the 23-rule removal harness checks expected test/subtest identities and paired failure codes/details, rejecting missing, unexpected, erroneous or mismatched failures. Earlier closures remain intact. In-memory reconstruction confirmed exact six-file patch applicability and matching worktree postimages. No builds, tests or repository verifiers were run; reported execution results remain author-supplied or reused evidence. Stage-1 design admission is recommended. Recorded contract and reader-schema follow-ups remain required; this review does not establish byte parity, final integration approval or release approval."
   },
-  "implementationHead": null,
-  "reviewedHead": null,
-  "pathStateDigest": null,
+  "implementationHead": "e0e3303250cdeae1199858f04226157b81e0a387",
+  "reviewedHead": "e0e3303250cdeae1199858f04226157b81e0a387",
+  "pathStateDigest": "0b30101251535853ddddc4636bf4b664e2220f6440ec4940d488fde50ce0388f",
   "finalReview": {
-    "reviewer": null,
-    "outcome": "pending",
-    "evidence": ""
-  }
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "approved",
+    "evidence": "Independent R2 stage-1 final review by codex/gpt-6-astra, implementationOwner claude-code, at exact head 82b481bf375e76109551261595afcc37e4eaac1a, against base e6e991af32d76d99ad156a7f86baa662947db8d9 and integrationBase 241327de129cbbc1cd492070c3105ed91a03fe5f. Verdict: APPROVED; no new findings. The six-file implementation diff is byte-for-byte identical to the accepted v4 proposal, SHA-256 02971a707f0f88b5a26e8832ae23690b173e9fad6d32344acfd44b128566ec20, with stable patch-id acc43d017dbfce9f40aba5403e2fea22b70c80b0. The record-only admission precedes implementation as its direct parent and remains unchanged. All five mutable paths changed; the two governed scripts have unique ownership and the three tests are valid auxiliary evidence. PLAN-P2 is non-governed. The parity script adds only six aliases to existing functions. No firmware bytes, write ranges, CRC/header behavior, output naming, profiles or Golden authority changed. Earlier findings remain closed. No builds, tests or repository verifiers were run during this review; execution evidence remains author-supplied. Stage-1 finalization is recommended through a direct-child evidence commit and successful staged validation. The handoff status update and recorded contract/schema follow-ups remain due. This approval establishes neither byte parity nor integration or release readiness. Independent read-only batch integration review by codex/gpt-6-sol examined candidate head ec28cd0ae63ccb9eb71cbb2a6e69ad554310c20f against checkpoint 241327de129cbbc1cd492070c3105ed91a03fe5f. All 44 commits were accounted for: 10 board, 22 WS-GOV, and 12 record-related commits, with each admission preceding implementation. The four record blobs match their independently reviewed heads: TEST-LOCAL-STATE-1113-01 at 5961a41e7ae0c2f6b8a79e59eedd120cd7efeb66; PROCESS-CLEANUP-1113-01 at 496a4986910e133371c66d63d9d18849abe264fc; PREDECESSOR-VALIDATION-1113-01 at 82b481bf375e76109551261595afcc37e4eaac1a; and NAV-FOCUS-UNDERLINE-1113-01 at db5b6f6b0e3ee7a8149d39bc5e78e1047d7e1f05. The two shared mutable files are exact byte-for-byte combinations of disjoint source hunks. The proposed integration-path partition uniquely covers all 27 governed changes. WS-GOV changes are non-governed, and the board and bug-record conflict resolutions preserve the intended content; no private credentials or machine-specific values were found in added content. One P3 correction remains in the G0 scripts README, so the batch verdict is FINDINGS-INCORPORATED-REQUIRED. No build, tests, or verifier were run; record finalization and integration gates remain outstanding. Independent read-only mechanical review approved batch 2c candidate `e0e3303250cdeae1199858f04226157b81e0a387` relative to prior head `ec28cd0ae63ccb9eb71cbb2a6e69ad554310c20f`. The only post-review commits are `e912eea5f69f9c8d427b39cf63132b28d58fe623`, which restores the test file’s final LF without changing test content, and `e0e3303250cdeae1199858f04226157b81e0a387`, which corrects the G0 scripts README custody wording. The README wording closes finding F-1; its SHA-256 is `72e19e83281b02cb081fce9fe682010c2f84ffba1f251a4ba65f490e05464e1d`, the other ten script inventory hashes are unchanged, and all four reviewed record blobs are unchanged. No build or tests were run for this read-only verification."
+  },
+  "integrationPaths": [
+    "scripts/predecessor_validation.py",
+    "scripts/v0916_parity_certification.py"
+  ]
 }
