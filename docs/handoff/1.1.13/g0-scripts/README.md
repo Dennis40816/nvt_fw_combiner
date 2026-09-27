@@ -1,6 +1,6 @@
 # NFC G0 owner scripts
 
-These scripts are owner review material kept outside the repository. They implement the G0 owner checklist (A1–A6, C1, and rollback) under owner decisions 65, 80, and 82. Review them independently before live use. The owner performs App creation, conversion, key storage, App installation, ruleset changes, and credential configuration. After the owner installs the token helper and `gh` wrapper, an agent may use those installed interfaces for authorized Git and `gh` operations as the App. The agent must not read a private key, DPAPI file, Bitwarden vault, credential store, or token.
+The reviewed source of these scripts is kept in the repository for review and traceability; the owner runs a verified copy installed outside every repository, worktree and AppData tree, and credentials and key files always stay outside the repository. They implement the G0 owner checklist (A1–A6, C1, and rollback) under owner decisions 65, 80, and 82. Review them independently before live use. The owner performs App creation, conversion, key storage, App installation, ruleset changes, and credential configuration. After the owner installs the token helper and `gh` wrapper, an agent may use those installed interfaces for authorized Git and `gh` operations as the App. The agent must not read a private key, DPAPI file, Bitwarden vault, credential store, or token.
 
 ## Requirements and operators
 

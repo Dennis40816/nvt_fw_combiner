@@ -68,8 +68,8 @@ a checkout keeps these bytes. The current inventory below includes the
 2026-09-27 local R1 correction to `NfcG0.Common.ps1` and its tests: legal
 repeated Git advisory arrays no longer fail scalar duplicate validation.
 Independent scoped review passed; the complete G0 suite passed 42/42. All
-other script files retain their G0SR4 bytes. The README describes the earlier
-script custody; this checklist adds the MSIX location requirements. Run only
+other script files retain their G0SR4 bytes. The README's custody sentence was
+corrected in batch 2c (text only); this checklist adds the MSIX location requirements. Run only
 your verified copy outside every repository and worktree. The original
 inventory remains in source commit `c61f10e3f1bfc03b287b256dd0526588cf2f4dc9`.
 
@@ -85,7 +85,7 @@ inventory remains in source commit `c61f10e3f1bfc03b287b256dd0526588cf2f4dc9`.
 | `Invoke-NfcGh.ps1` | A6: one `gh` call with an installation token | agent → App, after you install it | `b26088a795b659f0d34f88e9bec09908a9e45f18c683cae306233dfa6b227afb` |
 | `NfcG0.Common.ps1` | shared functions; independently reviewed Git advisory-array correction (2026-09-27) | (loaded by the others) | `d58661852446634454e8f09b1b6acba27af0325cf58892537618f73eed0e63a4` |
 | `tests/NfcG0.Tests.ps1` | offline fake-secret tests; 42/42 passed after the compatibility correction; original G0SR4 run was 38/38 | none | `030b2433480408d4930cc40a7b3f4a5e8404a810fc3baf0075b9adb6b7c03a83` |
-| `README.md` | the scripts' own instructions | (text) | `12b27fcb03b6dd095893ffc0f38134ede20339f133b508d44d11974071bff84a` |
+| `README.md` | the scripts' own instructions | (text) | `72e19e83281b02cb081fce9fe682010c2f84ffba1f251a4ba65f490e05464e1d` |
 
 ## What G0 changes
 
