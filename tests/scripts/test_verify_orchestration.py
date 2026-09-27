@@ -54,7 +54,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
     def test_all_rejects_each_skip_flag(self) -> None:
         for flag in ("--skip-python", "--skip-dotnet", "--skip-structure"):
-            with self.subTest(flag=flag), self.assertRaises(SystemExit) as raised:
+            with (
+                self.subTest(flag=flag),
+                patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+                self.assertRaises(SystemExit) as raised,
+            ):
                 MODULE.execute_verification(MODULE.parse_args(["--all", flag]))
             self.assertEqual("--all cannot be combined with skip flags", str(raised.exception))
 
