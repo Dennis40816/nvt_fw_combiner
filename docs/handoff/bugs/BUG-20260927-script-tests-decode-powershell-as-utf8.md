@@ -1,6 +1,6 @@
 # BUG-20260927-script-tests-decode-powershell-as-utf8: two script test modules fail on a zh-TW Windows console
 
-Status: open (pre-existing; seen in five of nine local full-verifier logs of batches 2a to 2c; not seen in CI)
+Status: fixed (test-only change in pull request #462; the observation below is kept as history)
 Severity: P3
 Found: 2026-09-27, Claude Code (Opus 5.5), in `python scripts/verify.py --all` at batch 2c head `e0e330325`
 Where: `tests/scripts/test_coverage_ci_contract.py` (`test_required_python_gate_checks_matrix_failure_before_running_worker`)
@@ -14,4 +14,7 @@ Expected: the tests pass regardless of the host console code page, for example b
 decoding with the console's encoding and asserting on the decoded text.
 Evidence: the batch 2c verifier log (local test area); a rerun of both modules on the board branch (15 failed, 36 passed).
 Owner: WS-TEST; an R1 test-only correction.
-Resolution:
+Resolution: fixed in pull request #462 by forcing UTF-8 output from the PowerShell processes the two modules start
+(`[Console]::OutputEncoding` set before each command; the `-File` call in the release-smoke test became an equivalent
+`-Command` call); assertions are unchanged. Locally 14 + 1 failures became 27/27 and 24/24 passes. A recurrence of these
+failures is a regression, not a known environment issue.
