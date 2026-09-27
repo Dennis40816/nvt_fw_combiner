@@ -89,7 +89,12 @@ All external combiner errors fail closed:
   `external-tool.process.cleanup-incomplete` before any staged file is read);
 - capacity full: a new run refused because external-tool runs that are still
   running or still cleaning up have filled the fixed capacity reports
-  `external-tool.process.cleanup-capacity` and asks the user to restart.
+  `external-tool.process.cleanup-capacity` and asks the user to restart;
+- process start refused by the operating system between the manifest hash
+  check and the launch (for example the approved executable was removed,
+  blocked, or is not a valid Win32 application): the runner translates the
+  raw start exception to `ExternalProcessStartFailedException` and each
+  processor reports `external-tool.process.start-failed`.
 
 ## Process lifetime
 

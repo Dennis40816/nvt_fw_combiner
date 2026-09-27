@@ -1,10 +1,11 @@
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.Infrastructure.VersionManagement;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>In a test process the default resolver of the four local-state files refuses the real folder.</summary>
+/// <summary>In a test process default local-state resolvers refuse the real folder.</summary>
 public sealed class LocalStateGuardTests
 {
     private const string ForbiddenSwitch = "NvtFwCombiner.LocalState.CurrentUserFolderForbidden";
@@ -27,6 +28,13 @@ public sealed class LocalStateGuardTests
             static () => CompositionHostServices.ResolveCurrentUserLocalStateDirectory());
     }
 
+    /// <summary>The version-manager default refuses a test process before resolving local application data.</summary>
+    [Fact]
+    public void VersionManagerDefaultPathFailsClosedInTestProcesses()
+    {
+        _ = Assert.Throws<InvalidOperationException>(JsonVersionManagerStateStore.GetDefaultPath);
+    }
+
     /// <summary>The public CLI resolves local state only to compose a host, and then it fails closed.</summary>
     [Fact]
     public async Task PublicCliFailsClosedWhenItWouldComposeOverTheCurrentUserFolder()
@@ -36,6 +44,22 @@ public sealed class LocalStateGuardTests
 
         _ = await Assert.ThrowsAsync<InvalidOperationException>(() => CliApplication.RunAsync(
             ["profiles"],
+            output,
+            error,
+            TestContext.Current.CancellationToken));
+        Assert.Equal(string.Empty, output.ToString());
+        Assert.Equal(string.Empty, error.ToString());
+    }
+
+    /// <summary>The public version self-test has no test path override and refuses default state resolution.</summary>
+    [Fact]
+    public async Task PublicCliVersionSelfTestFailsClosedOnDefaultVersionManagerState()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(() => CliApplication.RunAsync(
+            ["version-self-test", "--registry", "http://unsafe.example/registry.json"],
             output,
             error,
             TestContext.Current.CancellationToken));

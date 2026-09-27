@@ -258,12 +258,11 @@ public sealed class ProjectDependencyTests
 
     /// <summary>
     /// CLI regressions enter through the internal CLI overload, which composes the production host graph with
-    /// its default policy and external-tool discovery; they inject only their own local-state directory (board
-    /// decision 89, amending the CLI test contract of VERIFY-111-SHADOW-ROOT-01). The public overload differs
-    /// only by resolving the current user's folder.
+    /// its default policy and external-tool discovery; they inject two paths in their own isolated directory
+    /// (board decision 89, amended by VERSION-MANAGER-STATE-1113-01). The public overload retains both defaults.
     /// </summary>
     [Fact]
-    public void CliTestsInjectOnlyTheirLocalStateDirectoryIntoTheProductionCompositionRoot()
+    public void CliTestsInjectOnlyTheirIsolatedLocalStatePathsIntoTheProductionCompositionRoot()
     {
         DirectoryInfo root = FindRepositoryRoot();
         string harness = File.ReadAllText(Path.Combine(
@@ -277,7 +276,12 @@ public sealed class ProjectDependencyTests
             "NvtFwCombiner.Cli",
             "CliApplication.cs"));
 
-        Assert.Contains("CliApplication.RunAsync(args, output, error, () => localStateDirectory,", harness, StringComparison.Ordinal);
+        Assert.Contains("CliApplication.RunAsync(", harness, StringComparison.Ordinal);
+        Assert.Contains("() => localStateDirectory,", harness, StringComparison.Ordinal);
+        Assert.Contains(
+            "Path.Combine(localStateDirectory, JsonVersionManagerStateStore.StateFileName)",
+            harness,
+            StringComparison.Ordinal);
         Assert.Contains("IsolatedLocalState.CreateDirectory(", harness, StringComparison.Ordinal);
         foreach (string substitution in new[]
                  {
@@ -291,6 +295,10 @@ public sealed class ProjectDependencyTests
         }
 
         Assert.Contains("        Func<string> localStateDirectory,", application, StringComparison.Ordinal);
+        Assert.Contains("        string? versionManagerStatePath = null)", application, StringComparison.Ordinal);
+        Assert.Contains("statePath: versionManagerStatePath,", application, StringComparison.Ordinal);
+        Assert.Equal(1, application.Split("statePath: versionManagerStatePath,", StringSplitOptions.None).Length - 1);
+        Assert.Contains("            cancellationToken);", application, StringComparison.Ordinal);
         Assert.Contains(
             "var host = CompositionHostServices.Create(localStateDirectory());",
             application,

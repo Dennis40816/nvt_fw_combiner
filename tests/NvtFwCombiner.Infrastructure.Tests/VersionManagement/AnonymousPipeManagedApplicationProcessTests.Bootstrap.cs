@@ -20,7 +20,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             "NvtFwCombiner.Bootstrap.exe",
             bytes.LongLength,
             Convert.ToHexStringLower(SHA256.HashData(bytes)));
-        var handoff = new StableLauncherHandoff(workspace.Root, expectedIdentity: identity);
+        var handoff = new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"), identity);
 
         bool missing = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
         File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
@@ -39,7 +39,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
         File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
 
-        bool started = await new StableLauncherHandoff(workspace.Root)
+        bool started = await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"))
             .TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
         Assert.False(started);
@@ -60,7 +60,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             "NvtFwCombiner.Bootstrap.exe",
             bytes.LongLength,
             wrongSha256);
-        var handoff = new StableLauncherHandoff(workspace.Root, expectedIdentity: wrongIdentity);
+        var handoff = new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"), wrongIdentity);
 
         bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
@@ -131,7 +131,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         cancellation.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await new StableLauncherHandoff(workspace.Root).TryStartLauncherAsync(cancellation.Token));
+            await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json")).TryStartLauncherAsync(cancellation.Token));
     }
 
     /// <summary>Constructor authority is never derived from a caller-relative root or state path.</summary>
@@ -282,7 +282,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         cancellation.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await new StableLauncherHandoff(workspace.Root).StartAsync(
+            await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json")).StartAsync(
                 workspace.Root,
                 identity,
                 lease,
@@ -307,7 +307,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             new string('a', 64));
         var lease = new CountingExecutableLaunchLease(executable, workspace.Root);
 
-        ImmutableBootstrapStartResult result = await new StableLauncherHandoff(workspace.Root)
+        ImmutableBootstrapStartResult result = await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"))
             .StartAsync(
                 "relative-root",
                 identity,
@@ -328,7 +328,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             "not-a-windows-executable",
             TestContext.Current.CancellationToken);
 
-        bool started = await new StableLauncherHandoff(workspace.Root)
+        bool started = await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"))
             .TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
         Assert.False(started);

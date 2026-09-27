@@ -930,6 +930,34 @@ change remain undetermined. No direct causal link was identified by static
 review. Later passing runs do not close the failure; it stays open as
 `BUG-20260927-uismoke-headless-session-stall` (item 8).
 
+### Amendment 2026-09-27: version-manager test-state isolation (VERSION-MANAGER-STATE-1113-01)
+
+This extends items 2, 4 and 6 of the test local-state isolation amendment.
+`JsonVersionManagerStateStore.GetDefaultPath` remains the sole version-manager
+default-path resolver and applies the existing
+`NvtFwCombiner.LocalState.CurrentUserFolderForbidden` switch before reading
+`LOCALAPPDATA` or resolving the platform folder. An unset or false switch
+preserves the existing null-only environment fallback and path validation.
+
+Both launcher argument parsers resolve the default only after parsing, when no
+explicit state path was supplied. Explicit paths and existing
+argument-validation contracts remain intact.
+
+The existing internal CLI `RunAsync` overload accepts an optional
+version-manager state path, defaulting to null. `CliTestHarness` supplies a
+path within its invocation's isolated directory. The public overload,
+production composition graph, capability policy and external-tool discovery
+remain unchanged; no compatibility shim is introduced.
+
+Tests temporarily changing the process-wide switch or `LOCALAPPDATA` remain in
+a collection with `DisableParallelization=true` and restore both values in
+`finally`. Production default-path coverage is retained alongside
+guard-refusal coverage. A test-only Launcher project reference lets direct
+tests invoke both launcher parsers under the switch and prove that an explicit
+state path bypasses default resolution while malformed options retain their
+errors. Explicitly supplied paths and separate product processes remain
+outside this guard's guarantee.
+
 ## Amendment 2026-09-27: local UiSmoke partition (board decisions 113 and 128)
 
 - Status: Accepted (owner, 2026-09-27, board decisions 113 and 128 in the

@@ -83,9 +83,7 @@ class DeployUpdateSourceTests(unittest.TestCase):
                 import json
                 import os
                 import shutil
-                import subprocess
                 import sys
-                import time
                 from pathlib import Path
 
                 args = sys.argv[1:]
@@ -117,29 +115,6 @@ class DeployUpdateSourceTests(unittest.TestCase):
                         Path(os.environ["FAKE_TEMP_ATTACK_LOG"]).write_text(
                             "replaced", encoding="utf-8"
                         )
-                    if os.environ.get("FAKE_GH_POST_HASH_ATTACK"):
-                        attack_log = Path(os.environ["FAKE_POST_HASH_LOG"])
-                        subprocess.Popen(
-                            [
-                                sys.executable,
-                                str(Path(__file__).with_name("post_hash_attacker.py")),
-                                str(destination / os.environ["FAKE_PACKAGE_NAME"]),
-                                os.environ["FAKE_POST_HASH_LOG"],
-                            ],
-                            stdin=subprocess.DEVNULL,
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                            close_fds=True,
-                        )
-                        deadline = time.monotonic() + 5
-                        while time.monotonic() < deadline:
-                            if attack_log.exists() and attack_log.read_text(
-                                encoding="utf-8"
-                            ) == "ready":
-                                break
-                            time.sleep(0.005)
-                        else:
-                            raise SystemExit(45)
                     shutil.copyfile(package, destination / os.environ["FAKE_PACKAGE_NAME"])
                     if os.environ.get("FAKE_GH_UNKNOWN_ENTRY"):
                         (destination / "unexpected.txt").write_text(
@@ -195,79 +170,6 @@ class DeployUpdateSourceTests(unittest.TestCase):
             ).lstrip(),
             encoding="utf-8",
         )
-        (self.tools / "post_hash_attacker.py").write_text(
-            textwrap.dedent(
-                """
-                import sys
-                import time
-                import ctypes
-                from pathlib import Path
-
-                package = Path(sys.argv[1])
-                result = Path(sys.argv[2])
-                result.write_text("ready", encoding="utf-8")
-                saw_hash_lock = False
-                # The script opens the downloaded file with FileShare.Read
-                # for both of its hash checks, so a genuine hash-read lock
-                # rejects a write-mode open with exactly
-                # ERROR_SHARING_VIOLATION -- but that cannot tell which of
-                # the two checks (or something else entirely) held it, so
-                # this does not guarantee the mutation lands specifically
-                # between them. It still matters: without this filter, an
-                # unrelated failure (for example ERROR_FILE_NOT_FOUND before
-                # the download has even landed, or a transient holder that
-                # still permits writes, such as the fake gh copy that writes
-                # the file) gets mistaken for a hash lock, and this attacker
-                # mutates the file before the script ever hashes it at all.
-                ERROR_SHARING_VIOLATION = 32
-                kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-                create_file = kernel32.CreateFileW
-                create_file.argtypes = [
-                    ctypes.c_wchar_p,
-                    ctypes.c_uint32,
-                    ctypes.c_uint32,
-                    ctypes.c_void_p,
-                    ctypes.c_uint32,
-                    ctypes.c_uint32,
-                    ctypes.c_void_p,
-                ]
-                create_file.restype = ctypes.c_void_p
-                close_handle = kernel32.CloseHandle
-                close_handle.argtypes = [ctypes.c_void_p]
-                invalid_handle = ctypes.c_void_p(-1).value
-                deadline = time.monotonic() + 10
-                while time.monotonic() < deadline:
-                    ctypes.set_last_error(0)
-                    handle = create_file(
-                        str(package),
-                        0x40000000,
-                        0x00000001 | 0x00000002 | 0x00000004,
-                        None,
-                        3,
-                        0,
-                        None,
-                    )
-                    if handle == invalid_handle:
-                        if ctypes.get_last_error() == ERROR_SHARING_VIOLATION:
-                            saw_hash_lock = True
-                    else:
-                        close_handle(handle)
-                        if saw_hash_lock:
-                            with package.open("r+b") as stream:
-                                stream.seek(0)
-                                stream.write(b"post-hash-mutation")
-                                stream.truncate()
-                                stream.flush()
-                            result.write_text("mutated-after-lock", encoding="utf-8")
-                            raise SystemExit(0)
-                    if not saw_hash_lock:
-                        time.sleep(0.001)
-                result.write_text("attack-timeout", encoding="utf-8")
-                raise SystemExit(2)
-                """
-            ).lstrip(),
-            encoding="utf-8",
-        )
         interpreter = str(Path(sys.executable).resolve())
         (self.tools / "gh.cmd").write_text(
             f'@"{interpreter}" "%~dp0fake_gh.py" %*\r\n', encoding="utf-8"
@@ -290,7 +192,6 @@ class DeployUpdateSourceTests(unittest.TestCase):
                 "FAKE_PYTHON_LOG": str(self.python_log),
                 "FAKE_PACKAGE_NAME": self.package_name,
                 "FAKE_TEMP_ATTACK_LOG": str(self.root / "temp-attack.txt"),
-                "FAKE_POST_HASH_LOG": str(self.root / "post-hash-attack.txt"),
             }
         )
         environment.update(overrides)
@@ -633,67 +534,100 @@ class DeployUpdateSourceTests(unittest.TestCase):
         (temp_root / "unexpected.txt").unlink()
         temp_root.rmdir()
 
-    def test_downloaded_package_tampering_is_detected_and_never_admitted(self) -> None:
-        """A background attacker races to mutate the just-downloaded package
-        before the script can admit it.
+    def test_mutation_after_first_hash_check_is_rejected_by_second_hash_check(
+        self,
+    ) -> None:
+        """Deterministically prove the post-hash attack window from
+        BUG-20260927-deploy-post-hash-attack-test-race: a mutation landing
+        strictly after the script's first hash check on the just-downloaded
+        package (the "Downloaded package bytes..." check) and strictly
+        before its second hash check just before staging (the "verified
+        downloaded package" check) must still be rejected, and nothing may
+        be admitted.
 
-        This proves the invariant the script actually gives us under this
-        race: tampering is always detected by one of the script's two hash
-        checks (the initial "Downloaded package bytes" check, or the later
-        "verified downloaded package" re-check just before staging), and the
-        tampered bytes are never admitted. When the attacker's mutation
-        attempt loses the race entirely, the admitted bytes must still be
-        exactly the original package.
+        This uses a PowerShell script-debugger breakpoint
+        (Set-PSBreakpoint -Action) as a test-only synchronization seam --
+        no attacker subprocess, no lock polling, no sleeps, no timing
+        threshold, and no change to deploy-update-source.ps1. The
+        breakpoint is set on the exact source line that runs immediately
+        after the first hash stream has been read and disposed; its action
+        runs synchronously, inside the very PowerShell process executing
+        the script, before that line resumes, and mutates the downloaded
+        file's bytes in place. The mutation therefore always lands in the
+        intended window, every run: the assertion on the target line's
+        exact text below fails loudly (instead of silently no-op'ing the
+        breakpoint) if the script is ever restructured there.
 
-        It does NOT prove the mutation lands specifically between the two
-        checks -- the attacker's own lock detection (see
-        post_hash_attacker.py) cannot guarantee that timing, only that it
-        mutates no earlier than some read of the file under a deny-write
-        lock. Deterministically pinning the post-first-hash window needs a
-        synchronization point on the script side, which is out of scope for
-        a test-only correction; see the bug ledger entry
-        BUG-20260927-deploy-post-hash-attack-test-race.
+        Because the first check already holds the hash and length it
+        computed in memory before the mutation, it cannot see the change;
+        only the second check, which re-reads the file from disk, can
+        catch it. A deterministic failure here is proof that the second
+        check does that job.
         """
-        self.package = b"x" * (1024 * 1024)
-        self.release_package.write_bytes(self.package)
-        self._write_metadata()
-        deep_source = self.root.joinpath(*(f"d{index}" for index in range(24)))
-        deep_packages = deep_source / "packages"
-        deep_packages.mkdir(parents=True)
-        result = self._run(
-            environment=self._environment(FAKE_GH_POST_HASH_ATTACK="1"),
-            source=deep_source,
+        target_line = 443
+        expected_line_text = "$DownloadedIdentity = $DownloadedEvidence.Identity"
+        script_lines = SCRIPT.read_text(encoding="utf-8").splitlines()
+        actual_line_text = script_lines[target_line - 1].strip()
+        self.assertEqual(
+            expected_line_text,
+            actual_line_text,
+            "deploy-update-source.ps1 moved the post-first-hash-check line; "
+            "update target_line/expected_line_text in this test to match "
+            "whatever line now runs immediately after the first hash "
+            "stream ($DownloadedStream) is disposed.",
         )
-        import time
 
-        attack_log = self.root / "post-hash-attack.txt"
-        deadline = time.monotonic() + 3
-        while time.monotonic() < deadline and (
-            not attack_log.exists()
-            or attack_log.read_text(encoding="utf-8") == "ready"
-        ):
-            time.sleep(0.01)
-        self.assertTrue(attack_log.exists(), "the tamper attacker did not report")
-        self.assertEqual("mutated-after-lock", attack_log.read_text())
-        admitted = deep_packages / self.package_name
-        if result.returncode == 0:
-            # The attacker never found a mutation window before admission:
-            # the admitted bytes must still be exactly the original package.
-            self.assertEqual(
-                hashlib.sha256(self.package).hexdigest(),
-                hashlib.sha256(admitted.read_bytes()).hexdigest(),
-            )
-        else:
-            # Tampering happened and was rejected by one of the two hash
-            # checks -- this test does not pin which one -- but the
-            # tampered bytes must never be admitted either way.
-            self.assertTrue(
-                "verified downloaded package" in result.stderr
-                or "Downloaded package bytes do not match published Release "
-                "metadata." in result.stderr,
-                result.stderr,
-            )
-            self.assertFalse(admitted.exists())
+        breakpoint_log = self.root / "breakpoint-fired.txt"
+        script_literal = str(SCRIPT).replace("'", "''")
+        source_literal = str(self.source).replace("'", "''")
+        breakpoint_log_literal = str(breakpoint_log).replace("'", "''")
+        command = textwrap.dedent(
+            f"""
+            $ErrorActionPreference = 'Stop'
+            Set-PSBreakpoint -Script '{script_literal}' -Line {target_line} -Action {{
+                $path = Get-Variable -Name DownloadedPath -ValueOnly -ErrorAction Stop
+                $stream = [IO.FileStream]::new(
+                    $path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite,
+                    [IO.FileShare]::Read)
+                try {{
+                    $firstByte = $stream.ReadByte()
+                    $stream.Position = 0
+                    $stream.WriteByte([byte]($firstByte -bxor 1))
+                    $stream.Flush($true)
+                }} finally {{
+                    $stream.Dispose()
+                }}
+                Add-Content -LiteralPath '{breakpoint_log_literal}' -Value 'fired'
+            }} | Out-Null
+            & '{script_literal}' -Version '{self.version}' -CatalogPublishedAtUtc '{self.published_at}' -SourceRoot '{source_literal}' -Confirm:$false
+            """
+        )
+        result = subprocess.run(
+            [
+                str(POWERSHELL),
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                command,
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=self._environment(),
+        )
+        self.assertTrue(
+            breakpoint_log.exists(),
+            "the synchronization breakpoint never fired -- the post-hash "
+            "attack window was not exercised at all:\n" + result.stderr,
+        )
+        self.assertNotEqual(0, result.returncode, result.stderr)
+        self.assertIn("verified downloaded package", result.stderr)
+        self.assertEqual([], self._python_calls())
+        self.assertFalse((self.packages / self.package_name).exists())
 
 
 if __name__ == "__main__":

@@ -6144,7 +6144,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Run every public gate. This is the CI/Codex completion command.",
+        help="Run the complete local verification suite. Cannot be combined with skip flags.",
     )
     parser.add_argument(
         "--structure-only",

@@ -25,12 +25,12 @@ public sealed partial class CompositionHostServices
 {
     /// <summary>
     /// Names the runtime switch a process sets to forbid the current user's local-state folder. Every test project
-    /// sets it, so the default resolver of preferences, report history, toolchain runtime and Event Buffer format
-    /// refuses before any of their local-state IO. It does not cover explicitly injected paths, the version-manager
-    /// state resolver or child product processes.
+    /// sets it, so the default resolvers of preferences, report history, toolchain runtime, Event Buffer format
+    /// and version-manager state refuse before local-state IO. Explicit paths and child product processes are outside
+    /// this guard.
     /// </summary>
     internal const string CurrentUserLocalStateForbiddenSwitch =
-        "NvtFwCombiner.LocalState.CurrentUserFolderForbidden";
+        JsonVersionManagerStateStore.CurrentUserLocalStateForbiddenSwitch;
 
     private const string LocalStateFolderName = "NvtFwCombiner";
     private const string ToolchainRuntimeFileName = "toolchain-runtime.v1.json";

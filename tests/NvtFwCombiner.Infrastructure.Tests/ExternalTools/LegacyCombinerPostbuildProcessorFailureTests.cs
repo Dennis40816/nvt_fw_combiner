@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
@@ -148,6 +149,30 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("external-tool.process.cleanup-capacity", Assert.Single(result.Issues).Code);
+        Assert.Equal(1, runner.RunCount);
+    }
+
+    /// <summary>
+    /// BUG-20260926-process-start-failure-escapes-typed-result: an OS start failure translated by the runner into
+    /// <see cref="ExternalProcessStartFailedException"/> maps to the typed start-failure issue instead of escaping.
+    /// </summary>
+    [Fact]
+    public async Task OperatingSystemStartFailureMapsToTypedIssue()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new ExternalProcessStartFailedException(new Win32Exception(2)));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.start-failed-v1", "test_fw.bin");
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            "run-start-failed", profile.ProcessorId, profile.ToolBindingId, CreateFirmwareImage(), [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+
+        ExternalProcessorResult result = await workspace.CreateProcessor(sha256, runner, [profile])
+            .TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.process.start-failed", Assert.Single(result.Issues).Code);
         Assert.Equal(1, runner.RunCount);
     }
 

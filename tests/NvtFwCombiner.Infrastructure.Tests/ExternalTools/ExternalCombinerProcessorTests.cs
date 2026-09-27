@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Configuration;
@@ -273,6 +274,25 @@ public sealed class ExternalCombinerProcessorTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("external-tool.process.cleanup-capacity", Assert.Single(result.Issues).Code);
+        Assert.Equal(1, runner.RunCount);
+    }
+
+    /// <summary>
+    /// BUG-20260926-process-start-failure-escapes-typed-result: an OS start failure translated by the runner into
+    /// <see cref="ExternalProcessStartFailedException"/> maps to the typed start-failure issue instead of escaping.
+    /// </summary>
+    [Fact]
+    public async Task TransformMapsOperatingSystemStartFailureToTypedIssue()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new ExternalProcessStartFailedException(new Win32Exception(2)));
+        ExternalCombinerProcessor processor = workspace.CreateProcessor(sha256, runner);
+
+        ExternalProcessorResult result = await processor.TransformAsync(Request(), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.process.start-failed", Assert.Single(result.Issues).Code);
         Assert.Equal(1, runner.RunCount);
     }
 

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using NvtFwCombiner.Platform.Processes;
 
@@ -33,6 +34,9 @@ public sealed partial class SystemExternalProcessRunner : IExternalProcessRunner
     /// <exception cref="ExternalProcessCleanupCapacityException">
     /// The capacity of invocations that are running or still cleaning up is full; no process is started.
     /// </exception>
+    /// <exception cref="ExternalProcessStartFailedException">
+    /// The operating system refused to start the approved external process; no process is started.
+    /// </exception>
     public async ValueTask<ExternalProcessResult> RunAsync(
         ExternalProcessStartInfo startInfo,
         CancellationToken cancellationToken)
@@ -55,6 +59,15 @@ public sealed partial class SystemExternalProcessRunner : IExternalProcessRunner
 #pragma warning disable CA2000 // The invocation custody owns the process and releases it when its work settles.
             process = ProcessLaunchGate.Start(CreateProcessStartInfo(startInfo));
 #pragma warning restore CA2000
+        }
+        catch (Win32Exception exception)
+        {
+            // The OS refused the launch (for example the approved executable was removed, blocked, or is not a
+            // valid Win32 application between the manifest hash check and the launch). Translate it to the one
+            // stable start-failure signal every caller already has a typed path for, instead of letting the raw
+            // BCL exception escape (BUG-20260926-process-start-failure-escapes-typed-result).
+            _seams.Capacity.Release();
+            throw new ExternalProcessStartFailedException(exception);
         }
         catch
         {

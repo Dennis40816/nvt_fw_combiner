@@ -212,6 +212,13 @@
           "NvtFwCombiner.Profiles": "[1.0.0, )"
         }
       },
+      "nvtfwcombiner.launcher": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.VersionManagement.Application": "[1.0.0, )",
+          "NvtFwCombiner.VersionManagement.Infrastructure": "[1.0.0, )"
+        }
+      },
       "nvtfwcombiner.platform": {
         "type": "Project"
       },

@@ -272,6 +272,7 @@ EXPECTED_PROJECT_REFERENCES = {
     "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj": {
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj",
         "src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
         "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
@@ -295,6 +296,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
         "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
+        "src/NvtFwCombiner.VersionManagement.Infrastructure/NvtFwCombiner.VersionManagement.Infrastructure.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),

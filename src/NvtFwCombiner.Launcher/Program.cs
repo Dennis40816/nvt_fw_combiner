@@ -81,7 +81,7 @@ internal static class Program
     {
         ArgumentNullException.ThrowIfNull(args);
         string managedRoot = AppContext.BaseDirectory;
-        string statePath = JsonVersionManagerStateStore.GetDefaultPath();
+        string? statePath = null;
         for (int index = 0; index < args.Length; index++)
         {
             string value = index + 1 < args.Length
@@ -99,6 +99,8 @@ internal static class Program
                     throw new ArgumentException("Unknown launcher option.", nameof(args));
             }
         }
-        return (Path.GetFullPath(managedRoot), Path.GetFullPath(statePath));
+        return (
+            Path.GetFullPath(managedRoot),
+            Path.GetFullPath(statePath ?? JsonVersionManagerStateStore.GetDefaultPath()));
     }
 }
