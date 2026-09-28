@@ -1,6 +1,6 @@
 # BUG-20260928-b2-joint-recovery-entry-health-unavailable: Bootstrap recovery entry gate fails
 
-Status: open (pre-existing cold-start health deadline; product decision needed)
+Status: deferred to the Launcher tranche (pre-existing cold-start health deadline; board decision 160)
 Severity: P2
 Found: 2026-09-28, Codex (codex/gpt-6-astra), while running ADR 0077 B2 joint gates,
 at feature/1.1.13/b2a-prebuilt-catalog@8e74ece67.
@@ -22,7 +22,7 @@ was restored in locked mode using only installed local packages. The command
 failed 1/1 with the same expected/actual result (655 ms reported test time).
 The test-area evidence directory `v1113-b2-blocker-fixes` retains
 `base-restore.log`, `base-recovery.log` and `base-recovery.trx`.
-Owner: commander to route the pre-existing failure to the managed launcher/test owner.
+Owner: the Launcher tranche (board decision 160, 2026-09-28): not pursued in 1.1.13 or 1.1.14 because `1.2.0` is expected to ship as a single executable. Local runs of this test can fail on a cold start; CI passes.
 Initial disposition: Classified pre-existing relative to B2; no product or assertion
 change, per the owner's base-failure stop rule. One baseline test run; no B2
 bisect. The detached baseline worktree was removed after collecting evidence.
