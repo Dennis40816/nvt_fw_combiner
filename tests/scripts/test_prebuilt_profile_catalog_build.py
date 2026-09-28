@@ -59,10 +59,13 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
             cache = Path(os.environ.get("NUGET_PACKAGES", str(Path.home() / ".nuget/packages")))
 
             def run(*args):
+                # The telemetry collector can outlive dotnet and lock its working
+                # directory on Windows, preventing TemporaryDirectory cleanup.
                 return subprocess.run(["dotnet", *map(str, args)], cwd=root, capture_output=True,
                                       text=True, encoding="utf-8", errors="replace", timeout=240,
                                       env=dict(os.environ, MSBUILDDISABLENODEREUSE="1",
-                                               DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER="1"))
+                                               DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER="1",
+                                               AVALONIA_TELEMETRY_OPTOUT="1"))
 
             for dependency in [*root.glob("src/*/*.csproj"), *root.glob("eng/*/*.csproj")]:
                 lock = json.loads(dependency.with_name("packages.lock.json").read_bytes())

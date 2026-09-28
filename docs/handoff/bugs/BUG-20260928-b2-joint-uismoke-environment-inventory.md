@@ -17,7 +17,7 @@ Evidence: `python -m unittest discover -s tests/scripts -p test_verify_orchestra
 failed at the variable inventory assertion. The test-area evidence directory
 `v1113-b2-joint-8e74ece67` retains the complete log.
 Owner: Codex, B2 implementer, feature/1.1.13/b2a-prebuilt-catalog.
-Resolution: Fixed by the commit carrying this update. The B2 probe introduced
+Resolution: Fixed in `4be9ca1a4`. The B2 probe introduced
 `NFC_STARTUP_TRACE_PATH` without extending the source inventory. Classify it as
 process-local: `ProfileCatalogProbeTests.RunAsync` sets only the child's
 `ProcessStartInfo.Environment` to `workspace.PathFor("forbidden-trace.json")`.
