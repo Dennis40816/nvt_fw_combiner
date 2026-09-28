@@ -11,7 +11,8 @@
   one transition-cost bullet under Consequences (recorded at the commander's
   direction after G1-A's fixed-head review, 2026-09-27) differ from the
   accepted draft.
-- Date: 2026-09-26; revised 2026-09-27; accepted 2026-09-27.
+- Date: 2026-09-26; revised 2026-09-27; accepted 2026-09-27;
+  amended 2026-09-29 (board decision 165).
 - Owners (board decision 102, three roles recorded separately, today all held
   by the repository owner): the **governance owner** (governance rules,
   permissions, approval policy), the **firmware owner** and the **release
@@ -71,6 +72,50 @@
   [log](../handoff/1.1.13/WS-GOV.md#accepted-owner-decisions-carried-from-1112)). "Board
   decision N" means the numbered owner decisions in the
   [1.1.12 board](../handoff/1.1.12.md).
+
+## Amendment: R0/R1 pull request merges (2026-09-29, decision 165)
+
+Board decision 165 adopts the approval split proposed by decision 158 for
+1.1.14. This amendment supersedes the earlier all-path CODEOWNERS default and
+the all-risk owner-approval wording in items 4, 7 and 8 and their procedural
+summaries. It takes effect for a protected target only after this change merges
+and the owner verifies that target's effective ruleset. `main` and release
+branch rulesets are outside this amendment.
+
+- `.github/CODEOWNERS` assigns `@Dennis40816` to exactly the path patterns
+  whose floor in `authority-policy.json` is R2 or R3. The policy is the
+  classifier; a consistency test fails on either side's unmatched pattern.
+  CODEOWNERS, the authority checker and the policy files are themselves R3
+  governance paths. An R0/R1 path has no CODEOWNERS entry unless another
+  R2/R3 pattern also matches it.
+- Every pull request has an independent, complete, non-rejecting review record
+  bound by both `commit_id` and block `head` to its exact head. Its GitHub
+  principal must be on the base and head policy reviewer allowlists, its
+  `reviewer` identifier must differ from the block's `implementationOwner`,
+  and `openP0P1` is zero. The authority check enforces these observable facts
+  for R0 through R3. Agents may share one GitHub App principal; session
+  independence remains a reviewer/commander evidence judgment.
+- The authority check compares declared risk with the stricter base/head path
+  floor. A declared R2/R3 change with no classified R2/R3 path fails closed:
+  it needs an owner-approved exact-head classification/ownership change and a
+  new run before merge. An unclassified new location has no CODEOWNERS entry
+  and follows the same stop.
+- For R0/R1, the exact-head review record and green required checks permit a
+  merge without owner approval. For R2/R3, GitHub's native
+  `require_code_owner_review` supplies owner approval; the authority check
+  does not parse or decide approving reviews. The owner still judges role
+  evidence where a role is required.
+- The owner changes only the applicable trunk/feature rulesets' pull-request
+  parameters: `require_code_owner_review: true`,
+  `required_approving_review_count: 0`, and
+  `require_last_push_approval: true`; required checks, including
+  `governance / authority`, stay required. The read-only
+  `.github/workflows/authority.yml` and its base-authority execution model do
+  not change. A review edit or withdrawal does not rerun the check or revoke
+  an earlier green conclusion; the commander reruns and inspects the live
+  record immediately before merge. GitHub's effective behavior with zero
+  required approvals plus last-push approval is verified by two trial pull
+  requests before relying on this split.
 
 ## Context
 
