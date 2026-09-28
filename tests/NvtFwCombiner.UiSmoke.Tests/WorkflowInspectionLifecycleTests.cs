@@ -7,6 +7,20 @@ public sealed class WorkflowInspectionLifecycleTests
 {
     private static readonly ShellTextResources Text = ShellTextResources.For(ShellLanguage.English);
 
+    /// <summary>An absent mode retains its idle lifecycle; an unknown mode cannot borrow it.</summary>
+    [Fact]
+    public void InspectionSetDistinguishesAbsentAndUnknownModes()
+    {
+        var inspections = new WorkflowInspectionSet(
+            static () => { }, "standard-merge", "ab-merge", "general-merge");
+
+        WorkflowInspectionLifecycle absent = inspections[string.Empty];
+        Assert.Same(absent, inspections["standard-merge"]);
+        Assert.NotSame(absent, inspections["ab-merge"]);
+        Assert.NotSame(absent, inspections["general-merge"]);
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => inspections["unknown-mode"]);
+    }
+
     /// <summary>Cancel targets the latest queued selection and a later request starts with a fresh generation.</summary>
     [Fact]
     public async Task NewSelectionCancelsAndRejectsTheOlderAttempt()
