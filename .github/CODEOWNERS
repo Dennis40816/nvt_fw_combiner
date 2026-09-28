@@ -1,16 +1,110 @@
-# Add company subject-matter reviewers when their GitHub identities are approved.
-* @Dennis40816
-
-# High-risk firmware semantics and contracts.
-/profiles/ @Dennis40816
-/docs/contracts/ @Dennis40816
-/docs/adr/ @Dennis40816
-/tools/crc-worker/ @Dennis40816
-/tests/NvtFwCombiner.GoldenRegression.Tests/ @Dennis40816
-
-# Repository governance and release controls.
-/.github/ @Dennis40816
-/.codex/ @Dennis40816
-/.agents/ @Dennis40816
+# R2/R3 path patterns from docs/governance/authority-policy.json.
+# Keep this set identical to the classifier; tests/scripts/test_authority_policy.py checks it.
+# firmware (R3)
+/profiles/** @Dennis40816
+/testdata/** @Dennis40816
+/refcode/** @Dennis40816
+/tools/crc-worker/** @Dennis40816
+/tests/NvtFwCombiner.GoldenRegression.Tests/** @Dennis40816
+/src/NvtFwCombiner.Domain/** @Dennis40816
+/src/NvtFwCombiner.Profiles/** @Dennis40816
+/src/NvtFwCombiner.Contracts/** @Dennis40816
+/src/NvtFwCombiner.Application/Composition/** @Dennis40816
+/src/NvtFwCombiner.Application/ExternalTools/** @Dennis40816
+/src/NvtFwCombiner.Application/FlashMaps/** @Dennis40816
+/src/NvtFwCombiner.Application/Metadata/** @Dennis40816
+/src/NvtFwCombiner.Application/Capabilities/** @Dennis40816
+/src/NvtFwCombiner.Infrastructure/Composition/** @Dennis40816
+/src/NvtFwCombiner.Infrastructure/ExternalTools/** @Dennis40816
+/src/NvtFwCombiner.Infrastructure/FlashMaps/** @Dennis40816
+/src/NvtFwCombiner.Infrastructure/Metadata/** @Dennis40816
+/src/NvtFwCombiner.Infrastructure/Capabilities/** @Dennis40816
+# contracts (R3)
+/docs/contracts/** @Dennis40816
+# external-tools (R3)
+/external-tools/** @Dennis40816
+# release (R3)
+/.github/workflows/** @Dennis40816
+/.github/actions/** @Dennis40816
+/VERSION @Dennis40816
+/docs/ci/release-package.md @Dennis40816
+/CHANGELOG.md @Dennis40816
+/LICENSE @Dennis40816
+/THIRD_PARTY_NOTICES.md @Dennis40816
+# firmware-scripts (R3)
+/scripts/ab_merge_fixture_validation.py @Dennis40816
+/scripts/create_candidate_ic_intake.py @Dennis40816
+/scripts/create_ctrlram_universal_sentinel.py @Dennis40816
+/scripts/diagnostic_golden_validation.py @Dennis40816
+/scripts/intake_ic_reference.py @Dennis40816
+# firmware-release-scripts (R3)
+/scripts/canonical_golden_validation.py @Dennis40816
+/scripts/external_tool_policy.py @Dennis40816
+/scripts/v0916_parity_certification.py @Dennis40816
+/scripts/release_source_pins.py @Dennis40816
+# release-scripts (R3)
+/scripts/create_update_catalog.py @Dennis40816
+/scripts/update_source_registry_policy.py @Dennis40816
+/scripts/edit_update_source_registry.py @Dennis40816
+/scripts/package.ps1 @Dennis40816
+/scripts/package-distribution-launcher.ps1 @Dennis40816
+/scripts/publish-github.ps1 @Dennis40816
+/scripts/publish-github.sh @Dennis40816
+/scripts/render_release_notes.py @Dennis40816
+/scripts/sign-release.ps1 @Dennis40816
+/scripts/sign-release.sh @Dennis40816
+/scripts/sign_release.py @Dennis40816
+/scripts/signing_policy.py @Dennis40816
+/scripts/smoke-release.ps1 @Dennis40816
+/scripts/deploy-update-source.ps1 @Dennis40816
+# release-approval-policy (R3)
+/scripts/release_promotion_policy.py @Dennis40816
+# approval-authority (R3)
+/docs/governance/authority-policy.json @Dennis40816
+/docs/governance/authority-policy.schema.json @Dennis40816
+/scripts/authority_check.py @Dennis40816
+/tests/scripts/test_authority_check.py @Dennis40816
+/tests/scripts/test_authority_policy.py @Dennis40816
+/.github/workflows/authority.yml @Dennis40816
+/.github/CODEOWNERS @Dennis40816
 /AGENTS.md @Dennis40816
-/scripts/ @Dennis40816
+/docs/governance/development-execution-workflow.md @Dennis40816
+/docs/governance/branch-version-and-release-governance.md @Dennis40816
+/docs/policies/** @Dennis40816
+/docs/governance/change-records/** @Dennis40816
+/docs/governance/external-authority-attestations/** @Dennis40816
+/docs/governance/waivers/** @Dennis40816
+/docs/governance/trusted-initial-capability-checkpoint.v1.json @Dennis40816
+/docs/governance/frozen-evidence-pins.json @Dennis40816
+/docs/handoff/**/g0-scripts/** @Dennis40816
+# agent-instructions (R2)
+/.agents/** @Dennis40816
+/.codex/** @Dennis40816
+/.claude/** @Dennis40816
+/**/AGENTS.md @Dennis40816
+# decisions-and-specifications (R2)
+/docs/governance/** @Dennis40816
+/docs/adr/** @Dennis40816
+/docs/specs/** @Dennis40816
+/SPEC.md @Dennis40816
+/docs/architecture/experience-and-access-policy.md @Dennis40816
+/docs/architecture/nfc_roadmap.md @Dennis40816
+/docs/architecture/supported-ic-matrix.md @Dennis40816
+/docs/architecture/ic-workflow-flowcharts.md @Dennis40816
+# repository-tooling (R2)
+/.github/** @Dennis40816
+/scripts/** @Dennis40816
+/tests/scripts/** @Dennis40816
+/eng/** @Dennis40816
+/third-party/** @Dennis40816
+# repository-configuration (R2)
+/CONTRIBUTING.md @Dennis40816
+/SECURITY.md @Dennis40816
+/**/Directory.Build.* @Dennis40816
+/**/Directory.Packages.props @Dennis40816
+/global.json @Dennis40816
+/**/NuGet.config @Dennis40816
+/*.slnx @Dennis40816
+/**/.gitattributes @Dennis40816
+/**/.gitignore @Dennis40816
+/**/.editorconfig @Dennis40816

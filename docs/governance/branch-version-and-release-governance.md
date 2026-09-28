@@ -64,7 +64,8 @@ Under [ADR 0080 items 10-12](../adr/0080-governance-reset.md#branches-releases-a
    merge pull request. Its approvals cite the release evidence it brings back.
    Decision 66's pre-G1-B catch-up procedure ended with G1-B.
 4. Ordinary trunk merges into feature branches are allowed. Reviewed heads
-   default to rebase, followed by renewed review and approval on the new head
+   default to rebase, followed by renewed review and any required code-owner
+   approval on the new head
    (board decision 117). G1-B itself only rebases under its cutover plan.
 5. Follow the execution workflow's [single-writer procedure](development-execution-workflow.md#single-writer).
    A chat handoff never overrides the current Git tree.
@@ -82,10 +83,15 @@ release-note entry, and rollback or compatibility impact.
 
 Admit it only when the completed review record binds its exact head, its target
 follows the branch model above, P0/P1 findings are closed, required CI/tests are
-green, and R3 evidence and approvals are complete. Every review thread must be
-resolved, including on a release pull request. Resolution alone does not prove
-that review finished; the completed exact-head review record does. The three
-release boundaries retain their P0/P1 check. Check merge-tree equivalence when
+green, and R2/R3 code-owner approvals and R3 role evidence are complete.
+After its ruleset change is active on `1.1.x` or an applicable protected feature
+target, board decision 165 lets R0/R1 pull requests merge without owner
+approval once their independent exact-head review record and required checks
+are green; R2/R3 paths are assigned to the owner by `.github/CODEOWNERS`.
+`main` and release-branch approval rules remain unchanged. Every review thread
+must be resolved, including on a release pull request. Resolution alone does
+not prove that review finished; the completed exact-head review record does.
+The three release boundaries retain their P0/P1 check. Check merge-tree equivalence when
 the host creates a merge commit.
 
 ## Recover A Release
