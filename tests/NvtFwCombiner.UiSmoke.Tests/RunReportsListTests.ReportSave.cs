@@ -97,8 +97,8 @@ public sealed partial class RunReportsListTests
         Assert.Contains(failure == "open" ? "denied" : failure.Replace('-', ' '), reports.ReportToastText, StringComparison.Ordinal);
 
         await modal.SaveReportAsync(CreateSaveProvider("none", reports));
-        Assert.Equal(reports.Text.FormatReportSavedBestEffortToast("saved.json"), reports.ReportToastText);
-        Assert.Contains("does not guarantee atomic replacement", reports.ReportToastText, StringComparison.Ordinal);
+        Assert.Equal(reports.Text.FormatReportSavedToast("saved.json", bestEffortProviderWrite: true), reports.ReportToastText);
+        Assert.Contains("Atomic replacement is not guaranteed", reports.ReportToastText, StringComparison.Ordinal);
         Assert.Equal(json, reports.LoadedReportJson);
     }
 
@@ -150,7 +150,7 @@ public sealed partial class RunReportsListTests
         Assert.Equal((true, true), Assert.Single(successObservations));
         Assert.Equal(original, Encoding.UTF8.GetString(stream.ToArray()));
         Assert.Equal(newer, reports.LoadedReportJson);
-        Assert.Equal(reports.Text.FormatReportSavedBestEffortToast("saved.json"), reports.ReportToastText);
+        Assert.Equal(reports.Text.FormatReportSavedToast("saved.json", bestEffortProviderWrite: true), reports.ReportToastText);
     }
 
     /// <summary>Both native cancellation forms leave the loaded report intact and permit another attempt.</summary>

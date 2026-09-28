@@ -296,9 +296,7 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
     /// <summary>Shows a compact notification after the report is written to disk.</summary>
     public void NotifyReportSaved(string destinationName, bool bestEffortProviderWrite = false)
     {
-        SetReportToast(bestEffortProviderWrite
-            ? Text.FormatReportSavedBestEffortToast(destinationName)
-            : Text.FormatReportSavedToast(destinationName));
+        SetReportToast(Text.FormatReportSavedToast(destinationName, bestEffortProviderWrite));
     }
 
     /// <summary>Reports a failed save without replacing the loaded report or its history.</summary>
