@@ -186,6 +186,76 @@ public sealed partial class VersionManagementSettingsTests
         Assert.Equal(1, handoff.Attempts);
     }
 
+    /// <summary>Synchronous launcher I/O cannot block recovery at the host deadline.</summary>
+    [AvaloniaFact]
+    public async Task SynchronousLauncherStallRecoversBeforeLateWorkIsReleased()
+    {
+        using var handoff = new SynchronouslyStalledLauncherHandoff();
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", new RecordingVersionExperience(
+                Snapshot(retentionReviewDue: false)), handoff), ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        var expiry = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var recovered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int deadlines = 0;
+        window.CloseDeadlineFactory = _ => ++deadlines == 3 ? expiry.Task : Task.CompletedTask;
+        Task<bool> release = Task.Run(async () =>
+        {
+            try
+            {
+                await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                expiry.SetResult();
+                return await Task.WhenAny(recovered.Task,
+                    Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)) == recovered.Task;
+            }
+            finally
+            {
+                handoff.Release();
+            }
+        });
+
+        window.RequestStableLauncherRestart();
+        window.Close();
+        await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        recovered.SetResult();
+        bool recoveredBeforeRelease = await release;
+        await handoff.Finished.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.True(recoveredBeforeRelease);
+        Assert.True(handoff.CancellationObserved);
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+        Assert.True(window.IsEnabled);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+    }
+
+    private sealed class SynchronouslyStalledLauncherHandoff : IStableLauncherHandoff, IDisposable
+    {
+        private readonly ManualResetEventSlim _release = new();
+        private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal Task Entered => _entered.Task;
+        internal Task Finished => _finished.Task;
+        internal bool CancellationObserved { get; private set; }
+        internal void Release()
+        {
+            _release.Set();
+        }
+        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        {
+            _entered.SetResult();
+            _release.Wait(TestContext.Current.CancellationToken);
+            CancellationObserved = cancellationToken.WaitHandle.WaitOne(0);
+            _finished.SetResult();
+            return ValueTask.FromResult(true);
+        }
+        public void Dispose()
+        {
+            _release.Dispose();
+        }
+    }
+
     /// <summary>An already expired host deadline never admits launcher start.</summary>
     [AvaloniaFact]
     public async Task ExpiredHandoffDeadlineDoesNotCallLauncher()

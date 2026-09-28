@@ -152,6 +152,8 @@ public sealed partial class MainWindow
         return started;
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
+        Justification = "The late launcher observer owns cancellation disposal after the start task settles.")]
     private async Task<bool> TryStartStableLauncherAsync()
     {
         if (!_restartThroughStableLauncher ||
@@ -165,18 +167,18 @@ public sealed partial class MainWindow
         {
             return false;
         }
-        using var cancellation = new CancellationTokenSource();
+        var cancellation = new CancellationTokenSource();
+        CancellationToken startToken = cancellation.Token;
         using var stopDeadlineObserver = new CancellationTokenSource();
         Task deadlineObserver = CancelLauncherAtDeadlineAsync(
             deadline, cancellation, stopDeadlineObserver.Token);
+        Task<bool>? start = null;
         try
         {
-            Task<bool> start = handoff.TryStartLauncherAsync(cancellation.Token).AsTask();
-            if (deadline.IsCompleted || await Task.WhenAny(start, deadline) != start)
+            start = Task.Run(() => handoff.TryStartLauncherAsync(startToken).AsTask(), startToken);
+            if (await Task.WhenAny(start, deadline) != start || deadline.IsCompleted)
             {
                 cancellation.Cancel();
-                _ = start.ContinueWith(completed => _ = completed.Exception,
-                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
                 return false;
             }
             bool started = await start;
@@ -185,8 +187,39 @@ public sealed partial class MainWindow
         }
         finally
         {
-            stopDeadlineObserver.Cancel();
-            await deadlineObserver;
+            try
+            {
+                stopDeadlineObserver.Cancel();
+                await deadlineObserver;
+            }
+            finally
+            {
+                if (start is null)
+                {
+                    cancellation.Dispose();
+                }
+                else
+                {
+                    // Late I/O retains its cancellation source until the actual launcher call settles.
+                    _ = ObserveLauncherAndDisposeAsync(start, cancellation);
+                }
+            }
+        }
+    }
+
+    private static async Task ObserveLauncherAndDisposeAsync(Task<bool> start, CancellationTokenSource cancellation)
+    {
+        try
+        {
+            _ = await start.ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Late stable launcher work failed: {0}", exception);
+        }
+        finally
+        {
+            cancellation.Dispose();
         }
     }
 
