@@ -237,11 +237,13 @@ internal sealed class CatalogProbeCopy : IDisposable
         string project = Path.Combine(root, "tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj");
         string cache = Environment.GetEnvironmentVariable("NUGET_PACKAGES") ??
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
+        // A CI test job has no package cache; locked restore then uses the configured feeds.
+        string[] sources = Directory.Exists(cache) ? ["--source", cache] : [];
         foreach (string dependency in Directory.GetFiles(root, "*.csproj", SearchOption.AllDirectories))
         {
             JsonNode locked = JsonNode.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(dependency)!, "packages.lock.json")))!;
             string[] rid = locked["dependencies"]!.AsObject().ContainsKey("net10.0/win-x64") ? ["-r", "win-x64"] : [];
-            await RunBuildAsync(root, ["restore", dependency, "--no-dependencies", "--locked-mode", "--source", cache, "-p:NuGetAudit=false", .. rid]);
+            await RunBuildAsync(root, ["restore", dependency, "--no-dependencies", "--locked-mode", .. sources, "-p:NuGetAudit=false", .. rid]);
         }
         await RunBuildAsync(root, ["build", project, "--no-restore", "-nologo", "-m:1", "-p:UseSharedCompilation=false"]);
         return Path.Combine(root, "tests/NvtFwCombiner.CatalogProbe/bin/Debug/net10.0");

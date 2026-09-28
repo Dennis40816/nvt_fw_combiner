@@ -57,6 +57,8 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
                 shutil.copy2(ROOT / name, root / name)
             project = root / "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
             cache = Path(os.environ.get("NUGET_PACKAGES", str(Path.home() / ".nuget/packages")))
+            # A CI test job has no package cache; locked restore then uses the configured feeds.
+            sources = ["--source", str(cache)] if cache.is_dir() else []
 
             def run(*args):
                 # The telemetry collector can outlive dotnet and lock its working
@@ -70,7 +72,7 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
             for dependency in [*root.glob("src/*/*.csproj"), *root.glob("eng/*/*.csproj")]:
                 lock = json.loads(dependency.with_name("packages.lock.json").read_bytes())
                 rid = ["-r", "win-x64"] if "net10.0/win-x64" in lock["dependencies"] else []
-                restored = run("restore", dependency, "--no-dependencies", "--locked-mode", "--source", cache,
+                restored = run("restore", dependency, "--no-dependencies", "--locked-mode", *sources,
                                "-p:NuGetAudit=false", *rid)
                 self.assertEqual(0, restored.returncode, restored.stdout + restored.stderr)
             pack = project.parent / "bin/Debug/net10.0/profiles/built-in/prebuilt-profile-catalog.pack"
@@ -153,7 +155,7 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
             targets.write_bytes(original_targets)
             # Publish uses the actual Desktop graph and the same executable-only flags as packaging.
             desktop = root / "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj"
-            restored = run("restore", desktop, "-r", "win-x64", "--source", cache,
+            restored = run("restore", desktop, "-r", "win-x64", *sources,
                            "-p:NuGetAudit=false", "-p:PublishReadyToRun=true")
             self.assertEqual(0, restored.returncode, restored.stdout + restored.stderr)
             published = root / "published"
