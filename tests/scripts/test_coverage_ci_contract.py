@@ -31,7 +31,7 @@ CI_WORKFLOW_TEMPLATE = ROOT / "docs" / "ci" / "workflow-templates" / "ci.yml"
 SCHEDULED_SECURITY_TEMPLATE = (
     ROOT / "docs" / "ci" / "workflow-templates" / "scheduled-security.yml"
 )
-MAIN_PACKAGE_WORKFLOW = ROOT / ".github" / "workflows" / "main-package.yml"
+RELEASE_REHEARSAL_WORKFLOW = ROOT / ".github" / "workflows" / "release-rehearsal.yml"
 VERIFIER = ROOT / "scripts" / "verify.py"
 
 # A captured pwsh error view can truncate a line with an ellipsis, encoded in
@@ -268,12 +268,22 @@ class CoverageCiContractTests(unittest.TestCase):
         self.assertIn(install, policy)
         self.assertIn("python scripts/verify.py --structure-only", policy)
 
-    def test_package_job_fetches_the_fixed_coverage_baseline_revision(self) -> None:
-        workflow = MAIN_PACKAGE_WORKFLOW.read_text(encoding="utf-8")
-        package_job = workflow[workflow.index("  package:") :]
-
-        self.assertIn("python ./scripts/verify.py --all", package_job)
-        self.assertIn("fetch-depth: 0", package_job)
+    def test_rehearsal_job_uses_full_checkout_and_release_golden(self) -> None:
+        workflow = yaml.safe_load(
+            RELEASE_REHEARSAL_WORKFLOW.read_text(encoding="utf-8")
+        )
+        steps = workflow["jobs"]["package"]["steps"]
+        checkout = steps[0]
+        self.assertTrue(checkout["uses"].startswith("actions/checkout@"))
+        self.assertEqual(0, checkout["with"]["fetch-depth"])
+        self.assertIs(False, checkout["with"]["persist-credentials"])
+        commands = [step.get("run", "") for step in steps]
+        self.assertTrue(
+            any("python ./scripts/verify.py --release-golden" in command for command in commands)
+        )
+        self.assertFalse(
+            any("python ./scripts/verify.py --all" in command for command in commands)
+        )
 
     def test_structure_job_does_not_restore_or_own_evaluated_project_policy(
         self,
