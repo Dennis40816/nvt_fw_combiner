@@ -5046,6 +5046,74 @@ class VerifyOrchestrationTests(unittest.TestCase):
             verify_coverage.assert_called_once_with("dotnet", coverage)
             self.assertFalse(work.exists())
 
+    def test_infrastructure_coverage_shares_project_pool_with_core_peer(self) -> None:
+        core = MODULE.CI_DOTNET_SHARDS["core"]
+        infrastructure = next(
+            project for project in core
+            if project.name == MODULE.INFRASTRUCTURE_TEST_PROJECT
+        )
+        domain = next(
+            project for project in core
+            if project.name == "NvtFwCombiner.Domain.Tests"
+        )
+        rendezvous = threading.Barrier(2)
+        started: list[str] = []
+        lock = threading.Lock()
+
+        def run_project(stage: MODULE.LocalDotnetCoverageStage, *_args: object) -> None:
+            with lock:
+                started.append(stage.project.name)
+            rendezvous.wait(timeout=3)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            coverage = root / "coverage"
+            coverage.mkdir()
+
+            def prepare(
+                project: MODULE.CiDotnetProject, *_args: object, **_kwargs: object
+            ) -> MODULE.LocalDotnetCoverageStage:
+                return MODULE.LocalDotnetCoverageStage(
+                    project,
+                    root / project.name / "source",
+                    root / project.name / "shadow",
+                    root / project.name / f"{project.name}.dll",
+                    root / project.name / "discovered-tests.txt",
+                    root / project.name / "results",
+                    {},
+                    (),
+                )
+
+            with (
+                patch.object(
+                    MODULE, "flatten_ci_dotnet_projects",
+                    return_value=(infrastructure, domain),
+                ),
+                patch.object(
+                    MODULE, "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(
+                    MODULE, "prepare_local_dotnet_coverage_stage",
+                    side_effect=prepare,
+                ),
+                patch.object(
+                    MODULE, "run_local_dotnet_coverage_project",
+                    side_effect=run_project,
+                ),
+                patch.object(MODULE, "require_local_dotnet_sources_unchanged"),
+                patch.object(MODULE, "verify_coverage"),
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet", coverage, root / "work", {}, None,
+                    repository_root=root,
+                )
+
+        self.assertCountEqual(
+            (MODULE.INFRASTRUCTURE_TEST_PROJECT, "NvtFwCombiner.Domain.Tests"),
+            started,
+        )
+
     def test_invalid_collector_blocks_every_project_runner(self) -> None:
         project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
         with tempfile.TemporaryDirectory() as temporary:
@@ -6314,8 +6382,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(
             [
                 "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-                "tests/NvtFwCombiner.Infrastructure.Tests/"
-                "NvtFwCombiner.Infrastructure.Tests.csproj",
             ],
             [
                 project.relative_path

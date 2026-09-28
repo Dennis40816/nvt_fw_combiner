@@ -533,7 +533,6 @@ CI_DOTNET_SHARDS: dict[str, tuple[CiDotnetProject, ...]] = {
         CiDotnetProject(
             "tests/NvtFwCombiner.Infrastructure.Tests/"
             "NvtFwCombiner.Infrastructure.Tests.csproj",
-            requires_exclusive_local_coverage=True,
         ),
         CiDotnetProject(
             "tests/NvtFwCombiner.ProfileContract.Tests/"
@@ -6574,7 +6573,8 @@ def run_local_full_verification(args: argparse.Namespace) -> None:
     """Run exclusive sync, restore and build, then every workload in one lane pool.
 
     The .NET coverage lane is submitted first and counts against ``--jobs``; its
-    UiSmoke parts and Infrastructure stay exclusive inside it. Results keep
+    UiSmoke parts stay exclusive inside it. Infrastructure shares the remaining
+    project pool while its xUnit collections stay serial. Results keep
     declaration order, and SDK cleanup runs once after the pool.
     """
 
