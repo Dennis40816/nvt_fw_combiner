@@ -75,12 +75,16 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
                       <Border BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
-                      <Grid ColumnDefinitions="110,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace2}" Margin="0,2">
-                        <TextBlock Text="{Binding Role}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Role}" />
+                      <Grid ColumnDefinitions="110,*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" Margin="0,2">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace2}">
+                          <TextBlock Text="{Binding Role}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Role}" />
+                          <Path Grid.Column="1" Width="12" Height="12" VerticalAlignment="Center" IsVisible="{Binding HasWarning}"
+                                ToolTip.Tip="{Binding Warning}" AutomationProperties.Name="{Binding Warning}"
+                                Data="M12 3L22 20H2L12 3 M12 9V14 M12 17H12.01" Stretch="Uniform"
+                                Stroke="{DynamicResource NfcWarningTextBrush}" StrokeThickness="1.8" />
+                        </Grid>
                         <TextBlock Grid.Column="1" FontWeight="Medium" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FileName}" />
                         <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{Binding Size}" />
-                        <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Classes="warningText" IsVisible="{Binding HasWarning}"
-                                   Foreground="{DynamicResource NfcWarningTextBrush}" Text="{Binding Warning}" TextWrapping="Wrap" />
                         <ToolTip.Tip>
                           <StackPanel Spacing="3" MaxWidth="500">
                             <TextBlock Text="{Binding FileName}" TextWrapping="Wrap" />
@@ -98,26 +102,23 @@
                     <ItemsControl ItemsSource="{Binding ExpectedInputChecks}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                          <Grid ColumnDefinitions="170,*" ColumnSpacing="{DynamicResource NfcSpace12}">
-                            <TextBlock Classes="mutedText" Text="{Binding Label}" TextWrapping="Wrap" />
+                          <Grid ColumnDefinitions="110,*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" Margin="0,2">
+                            <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
                             <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
                           </Grid>
                         </DataTemplate>
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Grid ColumnDefinitions="170,*" ColumnSpacing="{DynamicResource NfcSpace12}" IsVisible="{Binding HasEventBufferChecks}">
-                      <TextBlock x:Name="OutputEventBufferFormatLabel" Classes="mutedText" Text="{Binding Text.OutputConfirmationEventLabel}" TextWrapping="Wrap" />
-                      <ItemsControl x:Name="OutputEventBufferFormatChecks" Grid.Column="1" ItemsSource="{Binding EventBufferChecks}">
+                    <ItemsControl x:Name="OutputEventBufferFormatChecks" ItemsSource="{Binding EventBufferChecks}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
-                            <Grid ColumnDefinitions="34,*" ColumnSpacing="{DynamicResource NfcSpace8}" Margin="0,0,0,2">
-                              <TextBlock Text="{Binding Label}" />
+                            <Grid ColumnDefinitions="110,*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" Margin="0,2">
+                              <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
                               <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
                             </Grid>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </Grid>
+                    </ItemsControl>
                   </StackPanel>
                 </Border>
                 </StackPanel>

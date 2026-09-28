@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -6,6 +7,7 @@ using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Bootstrap;
@@ -20,6 +22,91 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 [Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class OutputConfirmationWarningTests
 {
+    /// <summary>The canonical NT51950 OSD source has one warning, aligned checks and a single visible description.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OsdDpWarningAppearsOnceInAlignedConfirmation(bool chineseDark)
+    {
+        string caseFile = Path.Combine(CanonicalGoldenTestData.Root, "NT51950", "ab-merge", "osd-d03t02",
+            "single", "nt51950-ab-osd-d03t02-20260924", "provenance", "case.json");
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(caseFile));
+        JsonElement[] artifacts = [.. document.RootElement.GetProperty("artifacts").EnumerateArray()];
+        string Input(string id)
+        {
+            return CanonicalGoldenTestData.ArtifactPath(Assert.Single(artifacts,
+                artifact => artifact.GetProperty("artifactId").GetString() == id));
+        }
+        using TempWorkspace workspace = TempWorkspace.Create("confirmation-osd-dp");
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
+        CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
+            new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
+            [new("dp-ab-input", Input("dp-ab-input"), File.ReadAllBytes(Input("dp-ab-input"))),
+             new("tp-a-input", Input("tp-a-input"), File.ReadAllBytes(Input("tp-a-input"))),
+             new("tp-b-input", Input("tp-b-input"), File.ReadAllBytes(Input("tp-b-input")))],
+            AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
+        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(issue => issue.Code)));
+        CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(
+            prepared.Snapshot!, TestContext.Current.CancellationToken);
+        var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming,
+            () => ShellTextResources.For(chineseDark ? ShellLanguage.ChineseTraditional : ShellLanguage.English));
+        Open(vm, proposal);
+        vm.SetBundleEnabled(true);
+        vm.SetSourcesExpanded(true);
+        vm.SetParentDirectory(workspace.Root);
+        var modal = new OutputDeliveryConfirmationModal { DataContext = vm, IsOpen = true };
+        var window = new Window
+        {
+            Width = 980,
+            Height = 900,
+            Content = modal,
+            RequestedThemeVariant = chineseDark ? ThemeVariant.Dark : ThemeVariant.Light,
+        };
+        foreach (string style in new[] { "MainWindowStyles", "MainWindowButtonStyles", "MainWindowVisualStyles" })
+        {
+            var uri = new Uri($"avares://NvtFwCombiner.Presentation.Avalonia/Styles/{style}.axaml");
+            window.Styles.Add(new StyleInclude(uri) { Source = uri });
+        }
+        try
+        {
+            window.Show();
+            Render(window);
+            string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                _ = Directory.CreateDirectory(directory);
+                using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+                Assert.NotNull(frame);
+                string stage = Environment.GetEnvironmentVariable("NFC_VISUAL_STAGE") ?? "after";
+                frame.Save(Path.Combine(directory, $"nt51950-ab-osd-{stage}-{(chineseDark ? "dark-zh" : "light-en")}-confirmation.png"));
+            }
+            OutputConfirmationWarningRow warning = Assert.Single(vm.WarningRows);
+            Assert.Equal("DP AB Code", warning.Role);
+            Assert.Equal(vm.InputRows[0].Warning, warning.Detail);
+            Assert.Contains("1,048,576 bytes", warning.Detail, StringComparison.Ordinal);
+            Assert.Contains("524,288 bytes", warning.Detail, StringComparison.Ordinal);
+            Assert.True(vm.CanConfirm);
+            Border panel = modal.FindControl<Border>("BuildWarningsPanel")!;
+            _ = Assert.Single(modal.GetVisualDescendants().OfType<TextBlock>(), block =>
+                block.IsEffectivelyVisible && block.Text == warning.Detail);
+            Assert.DoesNotContain(modal.FindControl<ItemsControl>("SourceFilesList")!.GetVisualDescendants()
+                .OfType<TextBlock>(), block => block.Text == warning.Detail);
+            Avalonia.Controls.Shapes.Path icon = Assert.Single(modal.FindControl<ItemsControl>("SourceFilesList")!
+                .GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>(), path => path.IsEffectivelyVisible);
+            Assert.Equal(vm.InputRows[0].Warning, ToolTip.GetTip(icon));
+            Assert.Equal(vm.InputRows[0].Warning, AutomationProperties.GetName(icon));
+            TextBlock sourceRole = Assert.Single(modal.FindControl<ItemsControl>("SourceFilesList")!
+                .GetVisualDescendants().OfType<TextBlock>(), block => block.Text == "DP AB Code");
+            TextBlock checkRole = Assert.Single(modal.FindControl<Border>("SourceChecksPanel")!
+                .GetVisualDescendants().OfType<TextBlock>(), block => block.Text == "DP AB Code");
+            Assert.InRange(Math.Abs(sourceRole.TranslatePoint(default, modal)!.Value.X -
+                checkRole.TranslatePoint(default, modal)!.Value.X), 0, 1);
+            Assert.Equal(sourceRole.FontSize, checkRole.FontSize);
+            Assert.True(panel.IsEffectivelyVisible);
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>The production modal keeps typed warnings between summary and delivery without blocking Build.</summary>
     [AvaloniaTheory]
     [InlineData(false, true)]

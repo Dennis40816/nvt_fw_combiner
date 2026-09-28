@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using System.Globalization;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Bootstrap;
@@ -24,14 +25,63 @@ public sealed class OutputConfirmationLabelTests
             chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         AuthoringInputSlotStatus status = StandardMergeFeedbackTests.Status(
             "DP_NONSTANDARD_SIZE_WARNING", AuthoringSlotLifecycle.Warning,
-            actualLength: 0x40001);
-        var input = new CompositionOutputInputSummary("dp-input", "dp-input", "dp.bin", 0x40001,
-            [], null, status.InspectionLifecycle, status.InspectionIssueCode)
+            actualLength: 0x100000, expectedOuterLengths: [0x80000]);
+        var input = new CompositionOutputInputSummary("dp-ab-input", "dp-ab-input", "dp.bin", 0x100000,
+            [0x80000], null, status.InspectionLifecycle, status.InspectionIssueCode)
         { Inspection = status.Inspection };
 
         string warning = text.FormatOutputInputWarning(input);
-        Assert.Contains(chinese ? "OSD 客製化" : "customized OSD", warning, StringComparison.Ordinal);
-        Assert.DoesNotContain("DP_NONSTANDARD_SIZE_WARNING", warning, StringComparison.Ordinal);
+        string expected = chinese
+            ? "DP BIN 大小 1,048,576 bytes，預期 524,288 bytes；可能是客製的 OSD 應用。請確認選擇的 BIN。"
+            : "DP BIN size is 1,048,576 bytes; expected 524,288 bytes. This may be a customized OSD application. Confirm the selected BIN.";
+        Assert.Equal(expected, warning);
+        Assert.Equal(expected, text.CreateInputIssueCard(status, "DP_AB BIN").Summary);
+        Assert.StartsWith(expected, text.GetInputSlotInspectionStatus(status), StringComparison.Ordinal);
+        Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", text.CreateInputIssueCard(status, "DP_AB BIN").DiagnosticCode);
+    }
+
+    /// <summary>Expected alternatives and absent expectations keep the observed length visible.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NonstandardDpWarningShowsEveryExpectedLengthAndActualOnlyFallback(bool chinese)
+    {
+        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        AuthoringInputSlotStatus multiple = StandardMergeFeedbackTests.Status("DP_NONSTANDARD_SIZE_WARNING",
+            AuthoringSlotLifecycle.Warning, actualLength: 0xC0000, expectedOuterLengths: [0x80000, 0x100000]);
+        string detail = text.GetInputIssueHelp("DP_NONSTANDARD_SIZE_WARNING", "warning",
+            inspection: multiple.Inspection)!.Value.Detail;
+        Assert.Contains("786,432 bytes", detail, StringComparison.Ordinal);
+        Assert.Contains("524,288 / 1,048,576 bytes", detail, StringComparison.Ordinal);
+
+        AuthoringInputSlotStatus noExpected = StandardMergeFeedbackTests.Status("DP_NONSTANDARD_SIZE_WARNING",
+            AuthoringSlotLifecycle.Warning, actualLength: 0xC0000, expectedOuterLengths: []);
+        string fallback = text.GetInputIssueHelp("DP_NONSTANDARD_SIZE_WARNING", "warning",
+            inspection: noExpected.Inspection)!.Value.Detail;
+        Assert.Contains("786,432 bytes", fallback, StringComparison.Ordinal);
+        Assert.Contains(chinese ? "此 IC 的預期大小" : "expected size for this IC", fallback, StringComparison.Ordinal);
+    }
+
+    /// <summary>DP warning byte separators follow the confirmation's current-culture byte labels.</summary>
+    [Fact]
+    public void NonstandardDpWarningUsesCurrentCultureForByteLengths()
+    {
+        CultureInfo original = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+            AuthoringInputSlotStatus status = StandardMergeFeedbackTests.Status("DP_NONSTANDARD_SIZE_WARNING",
+                AuthoringSlotLifecycle.Warning, actualLength: 0xC0000, expectedOuterLengths: [0x80000, 0x100000]);
+            string detail = ShellTextResources.For(ShellLanguage.English).GetInputIssueHelp(
+                "DP_NONSTANDARD_SIZE_WARNING", "warning", inspection: status.Inspection)!.Value.Detail;
+            Assert.Contains(0xC0000L.ToString("N0", CultureInfo.CurrentCulture) + " bytes", detail, StringComparison.Ordinal);
+            Assert.Contains(0x80000L.ToString("N0", CultureInfo.CurrentCulture) + " / " +
+                0x100000L.ToString("N0", CultureInfo.CurrentCulture) + " bytes", detail, StringComparison.Ordinal);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = original;
+        }
     }
 
     /// <summary>Length and metadata warnings survive together, without repeated advisory codes.</summary>
