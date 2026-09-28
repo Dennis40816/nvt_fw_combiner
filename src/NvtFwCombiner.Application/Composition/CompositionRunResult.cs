@@ -12,7 +12,6 @@ public sealed class CompositionRunResult
         ReadOnlyMemory<byte> immutableOutputBytes,
         CompositionRunReport report,
         string? committedOutputId,
-        string? previewToken,
         string? inspectionOutputSpaceId,
         string? inspectionReferenceSpaceId,
         byte[]? inspectionReferenceBytes,
@@ -38,7 +37,6 @@ public sealed class CompositionRunResult
         OutputBytes = immutableOutputBytes;
         Report = report;
         CommittedOutputId = string.IsNullOrWhiteSpace(committedOutputId) ? null : committedOutputId;
-        PreviewToken = string.IsNullOrWhiteSpace(previewToken) ? null : previewToken;
         OutcomeStatus = string.IsNullOrWhiteSpace(outcomeStatus)
             ? status.ToString()
             : outcomeStatus;
@@ -82,9 +80,6 @@ public sealed class CompositionRunResult
 
     /// <summary>Adapter-owned destination id when build committed output.</summary>
     public string? CommittedOutputId { get; }
-
-    /// <summary>Deterministic token returned by preview and required before build commit.</summary>
-    public string? PreviewToken { get; }
 
     /// <summary>Profile that produced, or was selected for, this typed result.</summary>
     public string ProfileId => Report.ProfileId;

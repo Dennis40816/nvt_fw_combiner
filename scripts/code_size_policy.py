@@ -29,7 +29,7 @@ PYTHON_RUNTIME_EXCLUDED_DIRECTORIES = frozenset(
 # Exact measured baselines, not allowances. Enrollment/growth needs owner approval
 # in the pull request; reductions lower the entry, and below 1,500 it is removed.
 HOTSPOT_LINES: dict[str, int] = {
-    "NvtFwCombiner.Application.Composition.CompositionRunService": 2_452,
+    "NvtFwCombiner.Application.Composition.CompositionRunService": 2_179,
     "NvtFwCombiner.Application.VersionManagement.VersionManagementExperience": 2_441,
     "NvtFwCombiner.Infrastructure.VersionManagement.WindowsStablePathCustody": 2_007,
     "NvtFwCombiner.Presentation.Avalonia.ViewModels.MergePresentationViewModel": 2_137,

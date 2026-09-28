@@ -477,7 +477,7 @@ public sealed class AbMergeFormatRuntimeTests
                 new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
             Assert.True(aliasRun.Succeeded, CompositionRunReportJson.Serialize(aliasRun));
             Assert.Equal(nextRun.OutputBytes.ToArray(), aliasRun.OutputBytes.ToArray());
-            Assert.Equal(nextRun.PreviewToken, aliasRun.PreviewToken);
+            Assert.Equal(nextRun.OutputSha256, aliasRun.OutputSha256);
             Assert.NotEqual(nextSummary.ConfigurationSourceSha256, aliasRun.Report.AbMergeFormat!.ConfigurationSourceSha256);
 
             // Fail the external processor after the shared execution admission, not the preflight gate.
@@ -592,8 +592,7 @@ public sealed class AbMergeFormatRuntimeTests
         {
             AbMergeFormat = summary,
         };
-        Assert.Same(summary, runRequest.WithApprovedPreviewToken("unchanged-preview-token").AbMergeFormat);
-        Assert.Equal("unchanged-preview-token", runRequest.WithApprovedPreviewToken("unchanged-preview-token").ApprovedPreviewToken);
+        Assert.Same(summary, runRequest.AbMergeFormat);
     }
 
     private sealed class HeldFormatDestination(CancellationToken cancellationToken) : ICompositionExecutionDestinationProvider, IDisposable

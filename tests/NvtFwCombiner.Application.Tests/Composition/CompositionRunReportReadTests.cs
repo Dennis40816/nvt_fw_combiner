@@ -130,7 +130,7 @@ public sealed class CompositionRunReportReadTests
             CompositionKind.Merge, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch,
             [], [], [], [], new OutputArtifactSummary("preview.bin", 0, "hash", committed: false));
         var result = new CompositionRunResult(CompositionExecutionStatus.Succeeded, ReadOnlyMemory<byte>.Empty,
-            report, null, null, null, null, null, null);
+            report, null, null, null, null, null);
         return JsonNode.Parse(CompositionRunReportJson.Serialize(result))!.AsObject();
     }
 }

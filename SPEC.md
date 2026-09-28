@@ -732,7 +732,6 @@ CompositionRequest
   compiledComposition
   immutableInputBindings{}
   outputOptions
-  previewToken?
 
 CompositionPlan
   initialization
@@ -1600,7 +1599,7 @@ to each `0.10.x` version.
   typed-draft, and Reload changes enter the same typed Application command
   path. One accepted user mutation advances `AuthoringRevision` exactly once
   and the same owner invalidates every stale inspection, readiness, naming,
-  memory, and Preview-token publication. Presentation retains only display and
+  and memory publication. Presentation retains only display and
   interaction state and cannot mutate or rebuild the canonical session. UI and
   CLI use the same commands and queries. Bootstrap `CompositionPlanningAdapter*`,
   workflow-specific `ICompositionAuthoringExperience`/

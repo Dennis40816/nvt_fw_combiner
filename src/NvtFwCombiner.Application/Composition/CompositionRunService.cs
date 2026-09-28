@@ -89,7 +89,6 @@ public sealed partial class CompositionRunService
         return RunAsync(
             request,
             commitOutput: false,
-            requireApprovedPreviewToken: false,
             progress: null,
             cancellationToken);
     }
@@ -104,7 +103,6 @@ public sealed partial class CompositionRunService
         return RunWithProgressAsync(
             request,
             commitOutput: false,
-            requireApprovedPreviewToken: false,
             progress,
             cancellationToken);
     }
@@ -119,12 +117,11 @@ public sealed partial class CompositionRunService
         return RunAsync(
             request,
             commitOutput: true,
-            requireApprovedPreviewToken: true,
             progress: null,
             cancellationToken);
     }
 
-    /// <summary>Executes approved-token Build and publishes bounded typed lifecycle phases.</summary>
+    /// <summary>Executes Build and publishes bounded typed lifecycle phases.</summary>
     public ValueTask<CompositionRunResult> BuildAsync(
         CompositionRunRequest request,
         CompositionRunProgressFeed progress,
@@ -135,7 +132,6 @@ public sealed partial class CompositionRunService
         return RunWithProgressAsync(
             request,
             commitOutput: true,
-            requireApprovedPreviewToken: true,
             progress,
             cancellationToken);
     }
@@ -154,7 +150,6 @@ public sealed partial class CompositionRunService
         return RunAsync(
             request,
             commitOutput: build,
-            requireApprovedPreviewToken: false,
             progress: null,
             cancellationToken);
     }
@@ -175,7 +170,6 @@ public sealed partial class CompositionRunService
         return RunWithProgressAsync(
             request,
             commitOutput: build,
-            requireApprovedPreviewToken: false,
             progress,
             cancellationToken);
     }
@@ -183,7 +177,6 @@ public sealed partial class CompositionRunService
     private async ValueTask<CompositionRunResult> RunWithProgressAsync(
         CompositionRunRequest request,
         bool commitOutput,
-        bool requireApprovedPreviewToken,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken)
     {
@@ -194,7 +187,6 @@ public sealed partial class CompositionRunService
             return await RunAsync(
                     request,
                     commitOutput,
-                    requireApprovedPreviewToken,
                     progress,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -208,7 +200,6 @@ public sealed partial class CompositionRunService
     private async ValueTask<CompositionRunResult> RunAsync(
         CompositionRunRequest request,
         bool commitOutput,
-        bool requireApprovedPreviewToken,
         CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
@@ -217,42 +208,6 @@ public sealed partial class CompositionRunService
         DateTimeOffset startedAtUtc = _clock.UtcNow;
         var progressPublisher = new CompositionRunProgressPublisher(request, commitOutput, progress);
         progressPublisher.Report(CompositionRunPhase.Preparing);
-        if (requireApprovedPreviewToken && request.ApprovedPreviewToken is null)
-        {
-            var previewRequired = CompositionExecutionResult.Failed([
-                new CompositionIssue(
-                    "build.preview-token.required",
-                    "Build requires an approved preview token before output can be committed."),
-            ]);
-            DateTimeOffset failedAtUtc = _clock.UtcNow;
-            progressPublisher.Report(CompositionRunPhase.PreparingReport);
-            CompositionRunReport failedReport = CreateReport(
-                request,
-                previewRequired,
-                [],
-                [],
-                startedAtUtc,
-                failedAtUtc,
-                committed: false,
-                validations: [
-                    .. CreateSkippedInputLoadValidations(request.CompiledComposition)
-                        .Select(static evaluation => evaluation.Summary),
-                    .. CreateSkippedFinalOutputValidations(request.CompiledComposition)
-                        .Select(static evaluation => evaluation.Summary),
-                ]);
-            return new CompositionRunResult(
-                previewRequired.Status,
-                ReadOnlyMemory<byte>.Empty,
-                failedReport,
-                committedOutputId: null,
-                previewToken: null,
-                inspectionOutputSpaceId: null,
-                inspectionReferenceSpaceId: null,
-                inspectionReferenceBytes: null,
-                inspectionOutputBytes: null,
-                acceptedGeneralMappingDraft: request.AcceptedGeneralMappingDraft,
-                resolvedCapability: request.ResolvedCapability);
-        }
 
         progressPublisher.Report(CompositionRunPhase.ReadingInputs);
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
@@ -351,14 +306,6 @@ public sealed partial class CompositionRunService
             finalOutputAccepted && outputDifferencesAccepted
             ? CompositionExecutionStatus.Succeeded
             : CompositionExecutionStatus.Failed;
-        string? previewToken = runStatus == CompositionExecutionStatus.Succeeded
-            ? CalculatePreviewToken(
-                request,
-                execution,
-                boundInputs.InputSummaries,
-                outputName.FileName,
-                outputName.Summary)
-            : null;
 
         string? committedOutputId = null;
         CompositionOutputCommitReceipt? commitReceipt = null;
@@ -368,56 +315,45 @@ public sealed partial class CompositionRunService
         ReadOnlyMemory<byte>? bundledDeliveryBytes = null;
         if (commitOutput && runStatus == CompositionExecutionStatus.Succeeded)
         {
-            if (requireApprovedPreviewToken &&
-                !string.Equals(request.ApprovedPreviewToken, previewToken, StringComparison.Ordinal))
+            progressPublisher.Report(CompositionRunPhase.CommittingOutput);
+            CompositionOutputCommitReceipt receipt;
+            if (bundledDeliveryPlan is not null)
             {
-                runIssues.Add(new CompositionIssue(
-                    "build.preview-token.mismatch",
-                    "Build request does not match the approved preview token."));
-                runStatus = CompositionExecutionStatus.Failed;
+                ReadOnlyMemory<byte> deliveryBytes = SliceDeliveryBytes(
+                    execution.OutputBytes,
+                    bundledDeliveryPlan.SourceRange,
+                    bundledDeliveryPlan.DeliveryKind);
+                bundledDeliveryBytes = deliveryBytes;
+                ICompositionOutputBundleWriter bundleWriter = _outputWriter as ICompositionOutputBundleWriter ??
+                    throw new InvalidOperationException(
+                        "A prepared bundle additional delivery requires an atomic bundle writer.");
+                receipt = await bundleWriter.CommitBundleAsync(
+                        outputName.FileName,
+                        execution.OutputBytes,
+                        [
+                            new CompositionOutputBundleCommitArtifact(
+                                "additional-delivery",
+                                bundledDeliveryPlan.DeliveryKind,
+                                bundledDeliveryPlan.FileName,
+                                deliveryBytes),
+                        ],
+                        cancellationToken)
+                    .ConfigureAwait(false);
             }
             else
             {
-                progressPublisher.Report(CompositionRunPhase.CommittingOutput);
-                CompositionOutputCommitReceipt receipt;
-                if (bundledDeliveryPlan is not null)
-                {
-                    ReadOnlyMemory<byte> deliveryBytes = SliceDeliveryBytes(
-                        execution.OutputBytes,
-                        bundledDeliveryPlan.SourceRange,
-                        bundledDeliveryPlan.DeliveryKind);
-                    bundledDeliveryBytes = deliveryBytes;
-                    ICompositionOutputBundleWriter bundleWriter = _outputWriter as ICompositionOutputBundleWriter ??
-                        throw new InvalidOperationException(
-                            "A prepared bundle additional delivery requires an atomic bundle writer.");
-                    receipt = await bundleWriter.CommitBundleAsync(
-                            outputName.FileName,
-                            execution.OutputBytes,
-                            [
-                                new CompositionOutputBundleCommitArtifact(
-                                    "additional-delivery",
-                                    bundledDeliveryPlan.DeliveryKind,
-                                    bundledDeliveryPlan.FileName,
-                                    deliveryBytes),
-                            ],
-                            cancellationToken)
-                        .ConfigureAwait(false);
-                }
-                else
-                {
-                    receipt = await _outputWriter!
-                        .CommitAsync(outputName.FileName, execution.OutputBytes, cancellationToken)
-                        .ConfigureAwait(false);
-                }
-
-                bundleDeliverySummary = ValidateCommitReceipt(
-                    request,
-                    receipt,
-                    outputName.FileName,
-                    execution.OutputBytes);
-                commitReceipt = receipt;
-                committedOutputId = receipt.OutputId;
+                receipt = await _outputWriter!
+                    .CommitAsync(outputName.FileName, execution.OutputBytes, cancellationToken)
+                    .ConfigureAwait(false);
             }
+
+            bundleDeliverySummary = ValidateCommitReceipt(
+                request,
+                receipt,
+                outputName.FileName,
+                execution.OutputBytes);
+            commitReceipt = receipt;
+            committedOutputId = receipt.OutputId;
         }
 
         List<DeliveryArtifactSummary> deliverySummaries = [];
@@ -534,7 +470,6 @@ public sealed partial class CompositionRunService
             runStatus == CompositionExecutionStatus.Succeeded ? execution.OutputBytes : ReadOnlyMemory<byte>.Empty,
             report,
             committedOutputId,
-            commitOutput ? null : previewToken,
             inspectionOutputSpaceId,
             inspectionReferenceSpaceId,
             inspectionReferenceBytes,

@@ -218,7 +218,7 @@ public sealed partial class CompositionRunRequestV2Tests
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
         AssertBindingSnapshotCannotBeMutated(request);
         CompositionRunResult build = await service.BuildAsync(
-            request.WithApprovedPreviewToken(Assert.IsType<string>(preview.PreviewToken)),
+            request,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
@@ -234,9 +234,9 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.Equal("caller-output.bin", writer.FileName);
     }
 
-    /// <summary>Verifies an allowed V2 output override remains part of Preview-to-Build approval identity.</summary>
+    /// <summary>Verifies Build revalidates an allowed output override changed since Preview.</summary>
     [Fact]
-    public async Task V2OutputOverrideChangeInvalidatesApprovedBuild()
+    public async Task V2OutputOverrideChangeIsValidatedAndCommittedByBuild()
     {
         CompiledComposition composition = CreateV2RuntimeExecutable(allowOutputOverride: true);
         var writer = new RecordingOutputWriter();
@@ -257,18 +257,19 @@ public sealed partial class CompositionRunRequestV2Tests
 
         CompositionRunResult preview = await service.PreviewAsync(previewRequest, CancellationToken.None);
         CompositionRunResult build = await service.BuildAsync(
-            changedOutputRequest.WithApprovedPreviewToken(Assert.IsType<string>(preview.PreviewToken)),
+            changedOutputRequest,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
-        Assert.Equal(CompositionExecutionStatus.Failed, build.Status);
-        Assert.Null(build.CommittedOutputId);
-        Assert.False(writer.WasCalled);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, build.Status);
+        Assert.NotNull(build.CommittedOutputId);
+        Assert.True(writer.WasCalled);
+        Assert.Equal("other-output.bin", writer.FileName);
     }
 
-    /// <summary>Verifies original filename provenance cannot be changed after preview without invalidating Build approval.</summary>
+    /// <summary>Verifies Build reports validated original filename provenance changed since Preview.</summary>
     [Fact]
-    public async Task V2OriginalFileNameChangeInvalidatesApprovedBuild()
+    public async Task V2OriginalFileNameChangeIsValidatedAndReportedByBuild()
     {
         CompiledComposition composition = CreateV2RuntimeExecutable();
         var writer = new RecordingOutputWriter();
@@ -285,13 +286,14 @@ public sealed partial class CompositionRunRequestV2Tests
 
         CompositionRunResult preview = await service.PreviewAsync(previewRequest, CancellationToken.None);
         CompositionRunResult build = await service.BuildAsync(
-            changedNameRequest.WithApprovedPreviewToken(Assert.IsType<string>(preview.PreviewToken)),
+            changedNameRequest,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
-        Assert.Equal(CompositionExecutionStatus.Failed, build.Status);
-        Assert.Null(build.CommittedOutputId);
-        Assert.False(writer.WasCalled);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, build.Status);
+        Assert.NotNull(build.CommittedOutputId);
+        Assert.True(writer.WasCalled);
+        Assert.Equal("renamed.bin", Assert.Single(build.Report.Inputs).OriginalFileName);
     }
 
     /// <summary>Verifies V2 Replace uses the shared Application engine to clone the exact reference, pad DP input, and preserve Preview-to-Build output parity.</summary>
@@ -330,7 +332,7 @@ public sealed partial class CompositionRunRequestV2Tests
 
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
         CompositionRunResult build = await service.BuildAsync(
-            request.WithApprovedPreviewToken(Assert.IsType<string>(preview.PreviewToken)),
+            request,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);

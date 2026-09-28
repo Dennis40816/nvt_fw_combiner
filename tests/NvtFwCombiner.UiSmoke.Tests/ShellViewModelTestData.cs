@@ -86,7 +86,6 @@ internal static class ShellViewModelTestData
             source.OutputBytes,
             report,
             committedOutputId,
-            source.PreviewToken,
             inspection?.OutputSpaceId,
             inspection?.ReferenceSpaceId,
             inspection?.ReferenceBytes.ToArray(),
