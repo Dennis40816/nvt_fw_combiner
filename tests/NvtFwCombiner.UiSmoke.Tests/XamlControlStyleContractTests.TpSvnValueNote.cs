@@ -81,8 +81,8 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(12, note.Bounds.Height, 1);
             Point valueOrigin = value.TranslatePoint(default, svnCell)!.Value;
             Point noteOrigin = note.TranslatePoint(default, svnCell)!.Value;
-            string? captureDir = Environment.GetEnvironmentVariable("NFC_TPSVN_CAPTURE_DIR");
-            string? captureStage = Environment.GetEnvironmentVariable("NFC_TPSVN_CAPTURE_STAGE");
+            string? captureDir = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            string? captureStage = Environment.GetEnvironmentVariable("NFC_VISUAL_STAGE");
             if (!string.IsNullOrWhiteSpace(captureDir) && !string.IsNullOrWhiteSpace(captureStage))
             {
                 Assert.True(note.Focus(NavigationMethod.Tab));
@@ -259,8 +259,8 @@ public sealed partial class XamlControlStyleContractTests
             ShapePath triangle = Assert.Single(content.GetVisualDescendants().OfType<ShapePath>());
             Assert.Contains("firmwareSlotFactNoteWarningIcon", triangle.Classes);
             Assert.Equal(FirmwareSlotFactViewModel.WarningIconPathData, note.Warnings[0].IconPathData);
-            string? captureDir = Environment.GetEnvironmentVariable("NFC_TPSVN_CAPTURE_DIR");
-            string? captureStage = Environment.GetEnvironmentVariable("NFC_TPSVN_CAPTURE_STAGE");
+            string? captureDir = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            string? captureStage = Environment.GetEnvironmentVariable("NFC_VISUAL_STAGE");
             if (!string.IsNullOrWhiteSpace(captureDir) && !string.IsNullOrWhiteSpace(captureStage))
             {
                 _ = Directory.CreateDirectory(captureDir);

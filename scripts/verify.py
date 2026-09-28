@@ -559,6 +559,7 @@ UISMOKE_TEST_PROJECT = "NvtFwCombiner.UiSmoke.Tests"
 # Caller-set capture and input overrides of UiSmoke; the verifier never sets them.
 LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES = (
     "NFC_VISUAL_OUTPUT_DIR",
+    "NFC_VISUAL_STAGE",
     "NFC_UI_REFERENCE_CAPTURE_DIR",
     "NFC_REPORT_VISUAL_INPUT",
 )

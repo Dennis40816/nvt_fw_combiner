@@ -6226,7 +6226,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     verify_coverage.assert_not_called()
                     self.assertFalse(work.exists())
         self.assertEqual(
-            {"NFC_VISUAL_OUTPUT_DIR", "NFC_UI_REFERENCE_CAPTURE_DIR", "NFC_REPORT_VISUAL_INPUT"},
+            {"NFC_VISUAL_OUTPUT_DIR", "NFC_VISUAL_STAGE", "NFC_UI_REFERENCE_CAPTURE_DIR", "NFC_REPORT_VISUAL_INPUT"},
             set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES),
         )
         # A subset such as release Golden is never partitioned, so it keeps the overrides.
