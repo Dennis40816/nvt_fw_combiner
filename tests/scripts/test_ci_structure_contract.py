@@ -22,6 +22,21 @@ class CiStructureContractTests(unittest.TestCase):
 
         self.assertIn("fetch-depth: 0", structure_job)
 
+    def test_ci_push_checks_main_and_integration_trunk(self) -> None:
+        for relative in (
+            ".github/workflows/ci.yml",
+            "docs/ci/workflow-templates/ci.yml",
+        ):
+            with self.subTest(workflow=relative):
+                workflow = yaml.load(
+                    (ROOT / relative).read_text(encoding="utf-8"),
+                    Loader=yaml.BaseLoader,
+                )
+                self.assertEqual(
+                    ["main", "1.1.x"], workflow["on"]["push"]["branches"]
+                )
+                self.assertIn("pull_request", workflow["on"])
+
     def test_ci_jobs_bind_one_exact_event_source_and_current_base(self) -> None:
         expected_ref = "${{ github.event.pull_request.head.sha || github.sha }}"
         expected_base = "${{ github.event.pull_request.base.sha }}"
