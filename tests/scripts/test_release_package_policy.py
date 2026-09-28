@@ -845,6 +845,40 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         read.assert_called_once()
         sleep.assert_not_called()
 
+    @unittest.skipUnless(PWSH, "PowerShell 7 is required")
+    def test_package_path_budget_accepts_boundary_and_rejects_overflow(self) -> None:
+        # Invoke the production function without running package builds or Git operations.
+        command = r"""
+$ErrorActionPreference = 'Stop'
+$Tokens = $null
+$Errors = $null
+$Ast = [Management.Automation.Language.Parser]::ParseFile($args[0], [ref]$Tokens, [ref]$Errors)
+$Function = $Ast.Find({ param($Node)
+    $Node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+    $Node.Name -eq 'Assert-PackageRelativePathLength'
+}, $true)
+if ($null -eq $Function) { throw 'Missing package path budget gate.' }
+. ([scriptblock]::Create($Function.Extent.Text))
+Assert-PackageRelativePathLength -RelativePaths @('README.txt', ('a' * 216))
+foreach ($Path in @(('a' * 217), (('a' * 215) + [char]0xd83d + [char]0xde00))) {
+    $Rejected = $false
+    try { Assert-PackageRelativePathLength -RelativePaths @('README.txt', $Path) }
+    catch {
+        if ($_.Exception.Message -notlike '*216 UTF-16*') { throw }
+        $Rejected = $true
+    }
+    if (-not $Rejected) { throw 'Overlong package path was accepted.' }
+}
+"""
+        with tempfile.TemporaryDirectory() as temp:
+            driver = Path(temp) / "path-budget.ps1"
+            driver.write_text(command, encoding="utf-8")
+            result = subprocess.run(
+                [str(PWSH), "-NoProfile", "-File", str(driver), str(PACKAGE_SCRIPT)],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
+            )
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_rehearsal_uses_stable_release_build_without_publication_authority(self) -> None:
         rehearsal_path = ROOT / ".github/workflows/release-rehearsal.yml"
         self.assertFalse((ROOT / ".github/workflows/main-package.yml").exists())
@@ -1621,6 +1655,7 @@ finally {
             "manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected",
             result.stdout,
         )
+        self.assertIn("Package relative-path budget passed: at most 216 UTF-16 code units.", result.stdout)
         self.assertIn(
             "Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected",
             result.stdout,

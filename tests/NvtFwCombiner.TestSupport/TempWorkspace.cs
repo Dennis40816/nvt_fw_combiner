@@ -21,6 +21,12 @@ public sealed class TempWorkspace : IDisposable
         return new TempWorkspace(root);
     }
 
+    /// <summary>Creates a short, atomically reserved workspace for copied SDK graphs.</summary>
+    public static TempWorkspace CreateShort()
+    {
+        return new TempWorkspace(Directory.CreateTempSubdirectory().FullName);
+    }
+
     /// <summary>Returns a path under the workspace root.</summary>
     public string PathFor(string relativePath)
     {
