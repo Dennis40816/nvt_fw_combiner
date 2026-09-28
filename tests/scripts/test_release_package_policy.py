@@ -363,10 +363,22 @@ def release_admission_fixture(
             "mergeCommit": {"oid": RELEASE_MAIN_SHA},
             "headRefOid": RELEASE_REVIEW_HEAD_SHA,
             "reviewDecision": "APPROVED",
-            "author": {"login": "owner"},
+            "author": {"login": "release-author"},
         },
         "api": api,
         "paginated": {
+            f"repos/{repository}/commits/{RELEASE_MAIN_SHA}/pulls?per_page=100": [
+                [{
+                    "number": 406,
+                    "state": "closed",
+                    "merged_at": "2026-09-01T00:00:00Z",
+                    "merge_commit_sha": RELEASE_MAIN_SHA,
+                    "base": {"ref": "main"},
+                    "head": {"ref": "1.1.1", "sha": RELEASE_REVIEW_HEAD_SHA},
+                    "user": {"login": "release-author"},
+                }],
+                [],
+            ],
             f"repos/{repository}/rules/branches/main?per_page=100": [
                 [{"type": "creation"}],
                 [required_rule],
@@ -381,7 +393,8 @@ def release_admission_fixture(
                         "state": "APPROVED",
                         "commit_id": RELEASE_REVIEW_HEAD_SHA,
                         "submitted_at": "2026-09-01T00:01:00Z",
-                        "user": {"login": "human-reviewer"},
+                        "body": "",
+                        "user": {"login": "Dennis40816", "id": 146855708},
                     }
                 ],
                 [],
@@ -597,10 +610,14 @@ if "page" in form:
         )
     elif endpoint.endswith("/check-runs"):
         fixture_endpoint = endpoint + "?filter=latest&per_page=100"
-    elif endpoint.endswith("/actions/workflows/ci.yml/runs") or endpoint.endswith("/jobs") or endpoint.endswith("/tags"):
+    elif (endpoint.endswith("/actions/workflows/ci.yml/runs") or endpoint.endswith("/jobs")
+          or endpoint.endswith("/tags") or endpoint.endswith("/pulls")
+          or endpoint.endswith("/reviews") or endpoint.endswith("/comments")):
         fixture_endpoint = endpoint + "?per_page=100"
     else:
         raise SystemExit(93)
+    if fixture_endpoint not in fixture["paginated"] and endpoint in fixture["paginated"]:
+        fixture_endpoint = endpoint
     pages = fixture["paginated"][fixture_endpoint]
     if page_number <= len(pages):
         emit(pages[page_number - 1])
@@ -1388,6 +1405,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 ),
                 "NFC_REPOSITORY": "owner/repository",
                 "NFC_PULL_REQUEST": "406",
+                "NFC_PUBLISHED_AT": "2026-09-01T00:00:00Z",
                 "NFC_REQUESTED_SHA": RELEASE_MAIN_SHA,
                 "NFC_WORKFLOW_SHA": RELEASE_MAIN_SHA,
                 "NFC_WORKFLOW_REF": "refs/heads/main",
@@ -1404,7 +1422,6 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 "NFC_ARTIFACT_DIGEST": f"sha256:{'1' * 64}",
                 "NFC_REPOSITORY_OWNER": "owner",
                 "NFC_WORKFLOW_ACTOR": "owner",
-                "NFC_OWNER_SELF_APPROVAL_EXCEPTION": "false",
                 "FAKE_GITHUB_FIXTURE": str(fixture_path),
                 "FAKE_GITHUB_CALL_LOG": str(call_log),
             }
@@ -2761,6 +2778,62 @@ finally {
         self.assertNotIn("branches: [main]", rehearsal)
         self.assertNotIn("gh release", rehearsal)
 
+    def test_repository_validator_rejects_release_trigger_and_input_drift(self) -> None:
+        import validate_repository as repository_validator
+
+        release = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        original_read_text = Path.read_text
+
+        def validate_replaced(candidate: str) -> list[str]:
+            def read_text(path: Path, *args: Any, **kwargs: Any) -> str:
+                if path == RELEASE_WORKFLOW:
+                    return candidate
+                return original_read_text(path, *args, **kwargs)
+
+            errors: list[str] = []
+            with mock.patch.object(Path, "read_text", read_text):
+                repository_validator.validate_workflows(errors)
+            return errors
+
+        self.assertEqual([], validate_replaced(release))
+        changes = (
+            (
+                release.replace("branches: [main]", "branches: [other]", 1),
+                "completed main CI runs",
+            ),
+            (
+                release.replace(
+                    "        type: boolean\n",
+                    "        type: boolean\n      source_sha:\n        type: string\n",
+                    1,
+                ),
+                "only the dry_run fallback input",
+            ),
+            (
+                release.replace(
+                    "github.event.workflow_run.head_sha == github.sha",
+                    "github.event.workflow_run.head_sha != github.sha",
+                    1,
+                ),
+                "release candidate trigger must require successful exact-main push CI",
+            ),
+            (
+                release.replace(
+                    "collect-release-request", "collect-manual-request", 1
+                ),
+                "protected-main source and authority",
+            ),
+            (
+                release + "\n# owner_self_approval_exception\n",
+                "must not use a self-approval exception",
+            ),
+        )
+        for candidate, expected_error in changes:
+            with self.subTest(expected_error=expected_error):
+                self.assertTrue(
+                    any(expected_error in error for error in validate_replaced(candidate))
+                )
+
     def test_published_smoke_requires_successful_publication_not_skipped_ancestors(self) -> None:
         workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
         smoke = workflow["jobs"]["published-smoke"]
@@ -2889,8 +2962,10 @@ finally {
         self.assertIn(
             "review-head-sha: ${{ steps.admission.outputs.review-head-sha }}", release
         )
-        self.assertIn("$repositoryAdmission = Get-Content", release)
-        self.assertEqual(3, release.count("collect-repository-admission"))
+        self.assertIn("collect-review-snapshot", release)
+        self.assertIn("--pull-request $env:NFC_PULL_REQUEST", release)
+        self.assertIn("--published-at $env:NFC_PUBLISHED_AT", release)
+        self.assertEqual(2, release.count("collect-repository-admission"))
         self.assertEqual(2, promote.count("collect-repository-admission"))
         self.assertNotIn("comments(first: 1)", release)
         self.assertIn("ref: ${{ needs.candidate.outputs.workflow-sha }}", promote)
@@ -2994,20 +3069,24 @@ finally {
                     calls,
                 )
 
-    def test_candidate_check_projection_requires_all_name_matches_to_pass(
+    def test_candidate_delegates_review_check_projection_to_policy_owner(
         self,
     ) -> None:
         block = release_workflow_run_block(
             "candidate",
             "Collect and validate final PR review/check evidence",
         )
-        self.assertIn("$_.name -eq $requiredName", block)
-        self.assertIn("$_.headSha -ne $pr.headRefOid", block)
-        self.assertIn("$_.appSlug -ne 'github-actions'", block)
-        self.assertIn("$_.status -ne 'completed'", block)
-        self.assertIn("$_.conclusion -ne 'success'", block)
-        self.assertIn("$matches.Count -ge 1", block)
-        self.assertIn("$nonPassingMatches.Count -eq 0", block)
+        self.assertEqual(1, block.count("collect-review-snapshot"))
+        for argument in (
+            "--source-sha $env:NFC_SOURCE_SHA",
+            "--source-tree $env:NFC_SOURCE_TREE",
+            "--version $env:NFC_SOURCE_VERSION",
+            "--pull-request $env:NFC_PULL_REQUEST",
+            "--published-at $env:NFC_PUBLISHED_AT",
+        ):
+            self.assertIn(argument, block)
+        self.assertIn("if ($LASTEXITCODE -ne 0)", block)
+        self.assertIn("review-head-sha=$($snapshot.headSha)", block)
 
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"

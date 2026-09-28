@@ -1501,15 +1501,22 @@ def validate_workflows(errors: list[str]) -> None:
             errors.append(f"CI is missing coverage evidence marker: {marker}")
     release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
     required_release_markers = (
-        "workflow_dispatch",
-        "Exact reviewed release-branch head",
-        "Final reviewed pull request",
-        "NFC_WORKFLOW_REF -ne 'refs/heads/main'",
+        "Derive release request from merge commit",
+        "NFC_AUTOMATIC: ${{ github.event_name == 'workflow_run' }}",
+        "if ($env:NFC_AUTOMATIC -eq 'true') { '--automatic' }",
+        "collect-release-request",
+        "--version $version @automaticArgument",
+        "pull-request=$($request.pullRequest)",
+        "published-at=$($request.publishedAt)",
+        "Collect and validate final PR review/check evidence",
+        "collect-review-snapshot",
+        "--pull-request $env:NFC_PULL_REQUEST",
+        "$mainSha -ne $env:NFC_WORKFLOW_SHA",
         "$sourceSha = $mainSha",
         "source-branch=main",
         "validate-release-floor",
         "release-eligibility:",
-        "$env:NFC_RELEASE_POLICY validate-context",
+        "NFC_WORKFLOW_REF: refs/heads/main",
         "$env:NFC_RELEASE_POLICY validate-promotion-source",
         "environment: release",
         "Create or verify immutable annotated tag",
@@ -1518,6 +1525,57 @@ def validate_workflows(errors: list[str]) -> None:
         errors.append(
             "release workflow must use protected-main source and authority, a release floor, eligibility gate, and a protected human environment gate"
         )
+    try:
+        release_workflow = yaml.safe_load(release)
+    except yaml.YAMLError as error:
+        errors.append(f"cannot parse release workflow: {error}")
+        release_workflow = {}
+    if not isinstance(release_workflow, dict):
+        release_workflow = {}
+    events = release_workflow.get("on", release_workflow.get(True, {}))
+    if not isinstance(events, dict) or events.get("workflow_run") != {
+        "workflows": ["ci"],
+        "types": ["completed"],
+        "branches": ["main"],
+    }:
+        errors.append("release workflow must trigger on completed main CI runs")
+    dispatch = events.get("workflow_dispatch") if isinstance(events, dict) else None
+    inputs = dispatch.get("inputs") if isinstance(dispatch, dict) else None
+    dry_run = inputs.get("dry_run") if isinstance(inputs, dict) else None
+    if (
+        not isinstance(inputs, dict)
+        or set(inputs) != {"dry_run"}
+        or not isinstance(dry_run, dict)
+        or dry_run.get("required") is not True
+        or dry_run.get("default") is not False
+        or dry_run.get("type") != "boolean"
+    ):
+        errors.append(
+            "release manual dispatch must have only the dry_run fallback input"
+        )
+    jobs = release_workflow.get("jobs")
+    candidate = jobs.get("candidate") if isinstance(jobs, dict) else None
+    gate = candidate.get("if") if isinstance(candidate, dict) else None
+    if not isinstance(gate, str):
+        gate = ""
+    expected_gate = (
+        "${{ github.event_name == 'workflow_dispatch' || "
+        "(github.event.workflow_run.conclusion == 'success' && "
+        "github.event.workflow_run.event == 'push' && "
+        "github.event.workflow_run.head_branch == 'main' && "
+        "github.event.workflow_run.head_sha == github.sha && "
+        "github.sha == github.workflow_sha) }}"
+    )
+    if gate != expected_gate:
+        errors.append(
+            "release candidate trigger must require successful exact-main push CI"
+        )
+    if (
+        "owner_self_approval_exception" in release
+        or "NFC_OWNER_SELF_APPROVAL_EXCEPTION" in release
+        or "--owner-self-approval-exception" in release
+    ):
+        errors.append("automatic release must not use a self-approval exception")
     if "\n  promote:" in release and "\n  published-smoke:" in release:
         promote = release.split("\n  promote:", maxsplit=1)[1].split(
             "\n  published-smoke:", maxsplit=1
