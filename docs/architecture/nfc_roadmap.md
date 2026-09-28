@@ -29,12 +29,14 @@ of `1.1.13` so that it can be released on 2026-09-28:
 - **`1.1.14`** (decisions 154 and 157): rolling v0.9.16 parity stages 2-4 with
   the predecessor-validator follow-up; and the second half of WS-FLOW F1 (a
   profile-declared default output-directory anchor).
-- **`1.2.x`** (decision 161): whether to change the Header backup CRC handling.
-  Its root cause is recorded in 1.1.13; the owner judges it does not affect
-  firmware operation.
   The 1.1.14 display-convention work inventories consistency and optimization
   findings and allocates them to `1.2.x` versions without implementing them
   in `1.1.14` (decision 149).
+  The first formal ADR 0078 predecessor comparison also runs with `1.1.14`
+  (decision 162).
+- **`1.2.x`** (decision 161): whether to change the Header backup CRC handling.
+  Its root cause is recorded in 1.1.13; the owner judges it does not affect
+  firmware operation.
 - **`1.2.1`** (decision 153): re-grouping the tests inside the local .NET
   verification lane; the smaller L3 change (Infrastructure.Tests sharing the
   lane pool) stays in `1.1.13`.
