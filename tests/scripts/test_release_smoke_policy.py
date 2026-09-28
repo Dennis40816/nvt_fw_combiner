@@ -285,11 +285,8 @@ def test_stable_package_couples_one_version_scoped_launcher() -> None:
 
     assert "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj" in package
     assert "launcher/NvtFwCombiner.Launcher.exe" in package
-    assert (
-        "$IncludeManagedLauncher = -not ($AllowPrerelease -or $ManualOnly)" in package
-    )
-    assert "if ($ManualOnly) { '1.3' }" in package
-    assert "elseif ($IncludeManagedLauncher) { '1.2' }" in package
+    assert "$IncludeManagedLauncher = -not $AllowPrerelease" in package
+    assert "schemaVersion = if ($IncludeManagedLauncher) { '1.2' }" in package
     assert "$Manifest.versionManagementProtocolVersion = 1" in package
     assert "role = 'launcher'" in package
     assert "NvtFwCombiner.Bootstrap.exe" not in package
@@ -307,15 +304,13 @@ def test_release_smoke_rejects_bootstrap_in_update_and_checks_launcher_identity(
     assert "Version 1.0.0 and newer require the managed launcher contract." in smoke
 
 
-def test_manual_only_package_is_explicit_and_excludes_deployment_payloads() -> None:
+def test_manual_only_package_mode_is_retired_while_historical_smoke_remains() -> None:
     package = (ROOT / "scripts" / "package.ps1").read_text(encoding="utf-8-sig")
     smoke = (ROOT / "scripts" / "smoke-release.ps1").read_text(encoding="utf-8-sig")
 
-    assert "[switch]$ManualOnly" in package
-    assert "$Manifest.distributionMode = 'manual-only'" in package
-    assert "scripts/package.ps1 manual-only operator build" in package
+    assert "[switch]$ManualOnly" not in package
+    assert "$Manifest.distributionMode = 'manual-only'" not in package
     assert "scripts/package.ps1 manual-only operator build" in smoke
-    assert "if (-not $ManualOnly) {" in package
     assert (
         "Manual-only release package contains forbidden deployment or reference content."
         in smoke

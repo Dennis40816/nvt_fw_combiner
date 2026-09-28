@@ -34,9 +34,54 @@ REQUIRED_RELEASE_CHECKS = (
 )
 
 
+class ReleaseCleanupPolicyTests(unittest.TestCase):
+    def test_first_publication_requires_absent_tag_and_newer_stable_version(self) -> None:
+        tags = ["v1.1.11", "v1.1.12", "v0.9.19", "preview"]
+        MODULE.validate_release_floor("1.1.13", tags, tag_state="absent")
+        for version, state in (("1.1.12", "absent"), ("1.1.11", "absent"),
+                               ("1.1.13", "present")):
+            with self.subTest(version=version, state=state):
+                with self.assertRaises(ValueError):
+                    MODULE.validate_release_floor(version, tags, tag_state=state)
+
+    def test_release_eligibility_requires_terminal_parity_for_every_2x_or_later(self) -> None:
+        MODULE.validate_release_eligibility("1.1.13", "skipped")
+        for version in ("2.0.0", "2.0.1", "3.0.0"):
+            MODULE.validate_release_eligibility(version, "success")
+            for result in ("skipped", "failure", "cancelled"):
+                with self.subTest(version=version, result=result):
+                    with self.assertRaises(ValueError):
+                        MODULE.validate_release_eligibility(version, result)
+
+    def test_dry_run_manifest_is_not_promotable(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="release-dry-run-") as temporary:
+            root = Path(temporary)
+            for name in MODULE._candidate_asset_names("1.1.13"):
+                (root / name).write_bytes(b"candidate")
+            notes = root / "RELEASE-NOTES.md"
+            notes.write_text("notes\n", encoding="utf-8")
+            review = root.parent / f"{root.name}-review.json"
+            review.write_text("{}\n", encoding="utf-8")
+            try:
+                manifest = MODULE.create_candidate_manifest(
+                    root, version="1.1.13", source_sha=SHA, source_tree=TREE,
+                    run_id="99", workflow_sha=SHA, workflow_ref="refs/heads/main",
+                    notes_path=notes, review_snapshot_path=review, dry_run=True,
+                )
+                self.assertTrue(json.loads(manifest.read_text(encoding="utf-8"))["nonPromotable"])
+                with self.assertRaisesRegex(ValueError, "non-promotable"):
+                    MODULE.verify_candidate_manifest(
+                        manifest, source_sha=SHA, source_tree=TREE, run_id="99",
+                        workflow_sha=SHA, workflow_ref="refs/heads/main",
+                    )
+            finally:
+                review.unlink()
+
+
 def valid_repository_admission() -> dict[str, object]:
     return {
         "remoteMain": {"sha": SHA, "protected": True},
+        "sourceCi": ReleasePromotionPolicyTests.source_ci_evidence(),
         "mainRulesPaginationComplete": True,
         "mainRules": [
             {
@@ -145,6 +190,10 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         tools.mkdir()
         call_log = root / "gh-calls.jsonl"
         fake_gh = tools / "fake_gh.py"
+        ci = ReleasePromotionPolicyTests.source_ci_evidence()
+        ci["repository"] = "owner/repository"
+        ci["run"]["repository"]["full_name"] = "owner/repository"
+        ci["run"]["head_repository"]["full_name"] = "owner/repository"
         fake_gh.write_text(
             textwrap.dedent(
                 f"""
@@ -152,6 +201,8 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 import os
                 import sys
                 from pathlib import Path
+
+                ci = json.loads({json.dumps(ci)!r})
 
                 args = sys.argv[1:]
                 scenario = os.environ.get("FAKE_GH_SCENARIO", "success")
@@ -250,6 +301,12 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                     if value == "-f" and "=" in args[index + 1]
                 }}
                 page_number = int(form.get("page", "1"))
+                if endpoint == "repos/owner/repository/actions/workflows/ci.yml/runs":
+                    emit({{"total_count": 1, "workflow_runs": [ci["run"]] if page_number == 1 else []}})
+                if endpoint == "repos/owner/repository/actions/runs/80":
+                    emit(ci["run"])
+                if endpoint == "repos/owner/repository/actions/runs/80/attempts/2/jobs":
+                    emit({{"total_count": len(ci["jobs"]), "jobs": ci["jobs"] if page_number == 1 else []}})
                 if endpoint == "repos/owner/repository/branches/main":
                     if scenario == "gh_failure":
                         raise SystemExit(17)
@@ -385,6 +442,8 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 REVIEW_HEAD_SHA,
                 "--expected-tag",
                 "v1.1.1",
+                "--source-sha",
+                SHA,
                 "--output",
                 str(root / "admission.json"),
             ],
@@ -421,109 +480,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             (*MODULE._asset_names(version), *MODULE._installer_asset_names(version)),
             MODULE._candidate_asset_names(version),
         )
-        for maintenance_version in (
-            "0.9.17",
-            "0.9.18",
-            "0.9.19",
-            "1.0.0",
-            "1.0.5",
-        ):
-            with self.subTest(maintenance_version=maintenance_version):
-                self.assertEqual(
-                    MODULE._asset_names(maintenance_version),
-                    MODULE._candidate_asset_names(maintenance_version),
-                )
-
-    def create_version_only_repository(
-        self,
-        root: Path,
-        *,
-        base_version: str = "1.0.0",
-        extra_path: bool = False,
-        rename_path: bool = False,
-        mode_change: bool = False,
-    ) -> None:
-        self.git(root, "init", "--initial-branch=main")
-        self.git(root, "config", "user.name", "Release Test")
-        self.git(root, "config", "user.email", "release-test@example.invalid")
-        (root / "VERSION").write_text(f"{base_version}\n", encoding="utf-8")
-        (root / "note.txt").write_text("stable\n", encoding="utf-8")
-        self.git(root, "add", "VERSION", "note.txt")
-        self.git(root, "commit", "-m", "release 1.0.0")
-        self.git(root, "tag", "-a", "v1.0.0", "-m", "NVT FW Combiner v1.0.0")
-        (root / "VERSION").write_text("1.0.1\n", encoding="utf-8")
-        if extra_path:
-            (root / "extra.txt").write_text("not version-only\n", encoding="utf-8")
-            self.git(root, "add", "extra.txt")
-        if rename_path:
-            self.git(root, "mv", "note.txt", "renamed.txt")
-        self.git(root, "add", "VERSION")
-        if mode_change:
-            self.git(root, "update-index", "--chmod=+x", "VERSION")
-        self.git(root, "commit", "-m", "release 1.0.1 version only")
-
-    @staticmethod
-    def write_version_package(
-        path: Path,
-        *,
-        version: str,
-        source_sha: str,
-        stable_payload: bytes = b"stable-payload",
-        extra_path: bool = False,
-        product: str = "NVT FW Combiner",
-        package_root: str = "",
-    ) -> None:
-        payloads = {
-            "NvtFwCombiner.exe": f"application-{version}".encode(),
-            "launcher/NvtFwCombiner.Launcher.exe": f"launcher-{version}".encode(),
-            "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe": stable_payload,
-            "README.txt": f"NVT FW Combiner {version}\nstable instructions\n".encode(),
-            "LICENSE.txt": stable_payload,
-        }
-        files = [
-            {
-                "path": name,
-                "size": len(content),
-                "sha256": hashlib.sha256(content).hexdigest(),
-                "role": "launcher"
-                if name.startswith("launcher/")
-                else "application"
-                if name.endswith("Combiner.exe")
-                else "document",
-            }
-            for name, content in payloads.items()
-        ]
-        manifest = {
-            "schemaVersion": "1.2",
-            "product": product,
-            "version": version,
-            "sourceCommit": source_sha,
-            "sourceTag": f"v{version}",
-            "provenanceAsset": f"NvtFwCombiner-v{version}-win-x64.provenance.json",
-            "sbomAsset": f"NvtFwCombiner-v{version}-win-x64.spdx.json",
-            "runtimeIdentifier": "win-x64",
-            "files": files,
-            "launcher": {
-                "launcherVersion": version,
-                "protocolVersion": 1,
-                "executableRelativePath": "launcher/NvtFwCombiner.Launcher.exe",
-                "size": len(payloads["launcher/NvtFwCombiner.Launcher.exe"]),
-                "sha256": hashlib.sha256(
-                    payloads["launcher/NvtFwCombiner.Launcher.exe"]
-                ).hexdigest(),
-            },
-        }
-        manifest_bytes = (json.dumps(manifest, indent=2) + "\n").encode()
-        payloads["RELEASE-MANIFEST.json"] = manifest_bytes
-        payloads["SHA256SUMS.txt"] = "".join(
-            f"{hashlib.sha256(content).hexdigest()}  {name}\n"
-            for name, content in payloads.items()
-        ).encode()
-        if extra_path:
-            payloads["unexpected.txt"] = b"extra"
-        with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            for name, content in payloads.items():
-                archive.writestr(f"{package_root}{name}", content)
 
     @staticmethod
     def candidate_arguments() -> dict[str, object]:
@@ -533,400 +489,13 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "workflow_ref": "refs/heads/main",
             "source_sha": SHA,
             "source_branch": "main",
-            "source_version": "0.10.0",
+            "source_version": "1.1.13",
             "main_sha": SHA,
             "source_tree": TREE,
             "repository_owner": "release-owner",
             "workflow_actor": "release-owner",
             "owner_self_approval_exception": False,
         }
-
-    @staticmethod
-    def version_only_snapshot() -> dict[str, object]:
-        return {
-            "sourceVersion": "1.0.1",
-            "sourceSha": SHA,
-            "baseTag": "v1.0.0",
-            "baseTagCommit": "5" * 40,
-            "baseVersion": "1.0.0",
-            "parentShas": ["5" * 40],
-            "changedPaths": ["VERSION"],
-            "modeChanges": [],
-        }
-
-    def test_101_accepts_only_direct_version_file_content_change(self) -> None:
-        MODULE.validate_version_only_upgrade(self.version_only_snapshot())
-
-    def test_101_rejects_identity_lineage_and_diff_drift(self) -> None:
-        cases = (
-            ("sourceVersion", "1.0.2", "source VERSION"),
-            ("sourceSha", "invalid", "source SHA"),
-            ("baseTag", "v0.10.7", "base tag"),
-            ("baseTagCommit", "invalid", "peeled commit SHA"),
-            ("baseVersion", "0.10.7", "VERSION 1.0.0"),
-            ("parentShas", [], "direct single-parent child"),
-            ("parentShas", ["5" * 40, "6" * 40], "direct single-parent child"),
-            ("parentShas", ["6" * 40], "direct single-parent child"),
-            ("changedPaths", [], "canonical VERSION"),
-            ("changedPaths", ["VERSION", "README.md"], "canonical VERSION"),
-            ("changedPaths", ["RENAMED_VERSION"], "canonical VERSION"),
-            ("modeChanges", ["mode change 100644 => 100755 VERSION"], "file modes"),
-        )
-        for key, value, message in cases:
-            with self.subTest(key=key, value=value):
-                with self.assertRaisesRegex(ValueError, message):
-                    MODULE.validate_version_only_upgrade(
-                        {**self.version_only_snapshot(), key: value}
-                    )
-
-    def test_101_behavioral_git_lineage_accepts_only_version_file(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nfc-version-only-lineage-"
-        ) as temporary:
-            repository = Path(temporary)
-            self.create_version_only_repository(repository)
-
-            MODULE.validate_version_only_lineage(repository)
-
-    def test_101_behavioral_git_lineage_rejects_tag_and_diff_drift(self) -> None:
-        scenarios = (
-            ("wrong-base-version", {"base_version": "0.10.7"}, None),
-            ("extra-path", {"extra_path": True}, None),
-            ("renamed-path", {"rename_path": True}, None),
-            ("mode-change", {"mode_change": True}, None),
-            ("missing-tag", {}, "missing-tag"),
-            ("lightweight-tag", {}, "lightweight-tag"),
-            ("retargeted-tag", {}, "retargeted-tag"),
-            ("non-direct-child", {}, "non-direct-child"),
-        )
-        for name, options, mutation in scenarios:
-            with (
-                self.subTest(name=name),
-                tempfile.TemporaryDirectory(
-                    prefix=f"nfc-version-only-{name}-"
-                ) as temporary,
-            ):
-                repository = Path(temporary)
-                self.create_version_only_repository(repository, **options)
-                if mutation == "missing-tag":
-                    self.git(repository, "tag", "-d", "v1.0.0")
-                elif mutation == "lightweight-tag":
-                    base = self.git(repository, "rev-parse", "HEAD^")
-                    self.git(repository, "tag", "-d", "v1.0.0")
-                    self.git(repository, "tag", "v1.0.0", base)
-                elif mutation == "retargeted-tag":
-                    self.git(repository, "tag", "-d", "v1.0.0")
-                    self.git(
-                        repository,
-                        "tag",
-                        "-a",
-                        "v1.0.0",
-                        "-m",
-                        "retargeted",
-                        "HEAD",
-                    )
-                elif mutation == "non-direct-child":
-                    self.git(repository, "commit", "--allow-empty", "-m", "extra child")
-
-                with self.assertRaises(ValueError):
-                    MODULE.validate_version_only_lineage(repository)
-
-    def test_101_behavioral_git_lineage_rejects_merge_parent(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="nfc-version-only-merge-") as temporary:
-            repository = Path(temporary)
-            self.create_version_only_repository(repository)
-            base = self.git(repository, "rev-parse", "v1.0.0^{commit}")
-            self.git(repository, "branch", "side", base)
-            self.git(repository, "checkout", "side")
-            (repository / "side.txt").write_text("side\n", encoding="utf-8")
-            self.git(repository, "add", "side.txt")
-            self.git(repository, "commit", "-m", "side")
-            self.git(repository, "checkout", "main")
-            self.git(repository, "merge", "--no-ff", "side", "-m", "merge")
-
-            with self.assertRaisesRegex(ValueError, "single-parent"):
-                MODULE.validate_version_only_lineage(repository)
-
-    def test_101_package_equivalence_allows_declared_version_identity_only(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nfc-version-only-package-test-"
-        ) as temporary:
-            repository = Path(temporary) / "repository"
-            repository.mkdir()
-            self.create_version_only_repository(repository)
-            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
-            candidate_sha = self.git(repository, "rev-parse", "HEAD")
-            base_package = Path(temporary) / "base.zip"
-            candidate_package = Path(temporary) / "candidate.zip"
-            self.write_version_package(
-                base_package,
-                version="1.0.0",
-                source_sha=base_sha,
-            )
-            self.write_version_package(
-                candidate_package,
-                version="1.0.1",
-                source_sha=candidate_sha,
-            )
-
-            def version_reader(path: Path) -> tuple[str, str]:
-                version = "1.0.1" if b"1.0.1" in path.read_bytes() else "1.0.0"
-                return f"{version}.0", version
-
-            with mock.patch.object(
-                MODULE, "_read_windows_file_version", version_reader
-            ):
-                MODULE.validate_version_only_packages(
-                    repository,
-                    base_package,
-                    candidate_package,
-                    MODULE._sha256(base_package),
-                )
-
-    def test_101_package_equivalence_normalizes_versioned_archive_roots(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nfc-version-only-root-test-"
-        ) as temporary:
-            repository = Path(temporary) / "repository"
-            repository.mkdir()
-            self.create_version_only_repository(repository)
-            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
-            candidate_sha = self.git(repository, "rev-parse", "HEAD")
-            base_package = Path(temporary) / "base.zip"
-            candidate_package = Path(temporary) / "candidate.zip"
-            self.write_version_package(
-                base_package,
-                version="1.0.0",
-                source_sha=base_sha,
-                package_root="NvtFwCombiner-v1.0.0-win-x64/",
-            )
-            self.write_version_package(
-                candidate_package,
-                version="1.0.1",
-                source_sha=candidate_sha,
-                package_root="NvtFwCombiner-v1.0.1-win-x64/",
-            )
-
-            def version_reader(path: Path) -> tuple[str, str]:
-                version = "1.0.1" if b"1.0.1" in path.read_bytes() else "1.0.0"
-                return f"{version}.0", version
-
-            with mock.patch.object(
-                MODULE, "_read_windows_file_version", version_reader
-            ):
-                MODULE.validate_version_only_packages(
-                    repository,
-                    base_package,
-                    candidate_package,
-                    MODULE._sha256(base_package),
-                )
-
-    def test_101_reuses_only_manifest_bound_stable_worker(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nfc-version-only-worker-test-"
-        ) as temporary:
-            repository = Path(temporary) / "repository"
-            repository.mkdir()
-            self.create_version_only_repository(repository)
-            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
-            base_package = Path(temporary) / "base.zip"
-            destination = Path(temporary) / "out" / "Nfc.CrcWorker.exe"
-            self.write_version_package(
-                base_package,
-                version="1.0.0",
-                source_sha=base_sha,
-                package_root="NvtFwCombiner-v1.0.0-win-x64/",
-            )
-
-            MODULE.extract_version_only_stable_payload(
-                repository,
-                base_package,
-                destination,
-                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
-                MODULE._sha256(base_package),
-            )
-
-            self.assertEqual(destination.read_bytes(), b"stable-payload")
-
-    def test_101_package_validation_uses_the_single_captured_base_zip(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nfc-version-only-capture-"
-        ) as temporary:
-            repository = Path(temporary) / "repository"
-            repository.mkdir()
-            self.create_version_only_repository(repository)
-            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
-            candidate_sha = self.git(repository, "rev-parse", "HEAD")
-            base_package = Path(temporary) / "base.zip"
-            candidate_package = Path(temporary) / "candidate.zip"
-            self.write_version_package(
-                base_package, version="1.0.0", source_sha=base_sha
-            )
-            self.write_version_package(
-                candidate_package, version="1.0.1", source_sha=candidate_sha
-            )
-            expected_sha = MODULE._sha256(base_package)
-            original_read_bytes = Path.read_bytes
-            swapped = False
-
-            def read_then_swap(path: Path) -> bytes:
-                nonlocal swapped
-                payload = original_read_bytes(path)
-                if path.resolve() == base_package.resolve() and not swapped:
-                    swapped = True
-                    path.write_bytes(b"post-capture-counterfeit")
-                return payload
-
-            def version_reader(path: Path) -> tuple[str, str]:
-                version = "1.0.1" if b"1.0.1" in original_read_bytes(path) else "1.0.0"
-                return f"{version}.0", version
-
-            with (
-                mock.patch.object(Path, "read_bytes", read_then_swap),
-                mock.patch.object(MODULE, "_read_windows_file_version", version_reader),
-            ):
-                MODULE.validate_version_only_packages(
-                    repository, base_package, candidate_package, expected_sha
-                )
-            self.assertTrue(swapped)
-            self.assertEqual(b"post-capture-counterfeit", base_package.read_bytes())
-
-    def test_101_stable_payload_uses_the_single_captured_base_zip(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nfc-version-only-reuse-capture-"
-        ) as temporary:
-            repository = Path(temporary) / "repository"
-            repository.mkdir()
-            self.create_version_only_repository(repository)
-            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
-            base_package = Path(temporary) / "base.zip"
-            destination = Path(temporary) / "out/Nfc.CrcWorker.exe"
-            self.write_version_package(
-                base_package, version="1.0.0", source_sha=base_sha
-            )
-            expected_sha = MODULE._sha256(base_package)
-            original_read_bytes = Path.read_bytes
-            swapped = False
-
-            def read_then_swap(path: Path) -> bytes:
-                nonlocal swapped
-                payload = original_read_bytes(path)
-                if path.resolve() == base_package.resolve() and not swapped:
-                    swapped = True
-                    path.write_bytes(b"post-capture-counterfeit")
-                return payload
-
-            with mock.patch.object(Path, "read_bytes", read_then_swap):
-                MODULE.extract_version_only_stable_payload(
-                    repository,
-                    base_package,
-                    destination,
-                    "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
-                    expected_sha,
-                )
-            self.assertTrue(swapped)
-            self.assertEqual(b"stable-payload", destination.read_bytes())
-
-    def test_101_rejects_self_consistent_base_zip_with_wrong_external_digest(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nfc-version-only-worker-digest-reject-"
-        ) as temporary:
-            repository = Path(temporary) / "repository"
-            repository.mkdir()
-            self.create_version_only_repository(repository)
-            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
-            base_package = Path(temporary) / "counterfeit.zip"
-            self.write_version_package(
-                base_package,
-                version="1.0.0",
-                source_sha=base_sha,
-            )
-
-            with self.assertRaisesRegex(ValueError, "independently supplied"):
-                MODULE.extract_version_only_stable_payload(
-                    repository,
-                    base_package,
-                    Path(temporary) / "out" / "Nfc.CrcWorker.exe",
-                    "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
-                    "0" * 64,
-                )
-
-    def test_101_reuse_rejects_unapproved_payload(self) -> None:
-        with tempfile.TemporaryDirectory(
-            prefix="nfc-version-only-worker-reject-"
-        ) as temporary:
-            repository = Path(temporary) / "repository"
-            repository.mkdir()
-            self.create_version_only_repository(repository)
-            base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
-            base_package = Path(temporary) / "base.zip"
-            self.write_version_package(
-                base_package,
-                version="1.0.0",
-                source_sha=base_sha,
-            )
-
-            with self.assertRaisesRegex(ValueError, "not approved"):
-                MODULE.extract_version_only_stable_payload(
-                    repository,
-                    base_package,
-                    Path(temporary) / "out.bin",
-                    "LICENSE.txt",
-                    MODULE._sha256(base_package),
-                )
-
-    def test_101_package_equivalence_rejects_inventory_and_stable_payload_drift(
-        self,
-    ) -> None:
-        cases = (
-            ("inventory", {"extra_path": True}),
-            ("stable-payload", {"stable_payload": b"changed"}),
-            ("manifest", {"product": "Different Product"}),
-        )
-        for name, options in cases:
-            with (
-                self.subTest(name=name),
-                tempfile.TemporaryDirectory(
-                    prefix=f"nfc-version-only-package-{name}-"
-                ) as temporary,
-            ):
-                repository = Path(temporary) / "repository"
-                repository.mkdir()
-                self.create_version_only_repository(repository)
-                base_sha = self.git(repository, "rev-parse", "v1.0.0^{commit}")
-                candidate_sha = self.git(repository, "rev-parse", "HEAD")
-                base_package = Path(temporary) / "base.zip"
-                candidate_package = Path(temporary) / "candidate.zip"
-                self.write_version_package(
-                    base_package,
-                    version="1.0.0",
-                    source_sha=base_sha,
-                )
-                self.write_version_package(
-                    candidate_package,
-                    version="1.0.1",
-                    source_sha=candidate_sha,
-                    **options,
-                )
-
-                with (
-                    mock.patch.object(
-                        MODULE,
-                        "_read_windows_file_version",
-                        return_value=("1.0.1.0", "1.0.1"),
-                    ),
-                    self.assertRaises(ValueError),
-                ):
-                    MODULE.validate_version_only_packages(
-                        repository,
-                        base_package,
-                        candidate_package,
-                        MODULE._sha256(base_package),
-                    )
 
     def test_accepts_only_exact_reviewed_main_identity(self) -> None:
         MODULE.validate_candidate_context(
@@ -1094,9 +663,11 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
 
     def test_v113_rejects_review_head_ci_without_actual_source_ci(self) -> None:
         # A green PR tree is not a successful CI run on its final merge commit.
+        snapshot = valid_snapshot()
+        snapshot["repositoryAdmission"].pop("sourceCi")
         with self.assertRaisesRegex(ValueError, "source CI"):
             MODULE.validate_candidate_context(
-                valid_snapshot(),
+                snapshot,
                 **{**self.candidate_arguments(), "source_version": "1.1.3"},
             )
 
@@ -1132,14 +703,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         ):
             with self.subTest(jobs=jobs), self.assertRaisesRegex(ValueError, "source CI"):
                 MODULE.validate_source_ci({**source, "jobs": jobs}, source_sha=SHA)
-
-    def test_legacy_admission_does_not_require_or_interpret_source_ci(self) -> None:
-        for source in (None, {"run": "malformed legacy-irrelevant evidence"}):
-            snapshot = valid_snapshot()
-            snapshot["repositoryAdmission"]["sourceCi"] = source
-            MODULE.validate_candidate_context(
-                snapshot, **{**self.candidate_arguments(), "source_version": "1.1.2"},
-            )
 
     def test_admission_cli_forwards_actual_source_sha_to_the_collector(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1549,50 +1112,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         )
         read.assert_not_called()
 
-    def test_v110_ci_promotion_is_rejected_without_rewriting_history(self) -> None:
-        snapshot = valid_snapshot()
-        snapshot.pop("repositoryAdmission")
-        with self.assertRaisesRegex(ValueError, "manual-only operator release"):
-            MODULE.validate_candidate_context(
-                snapshot,
-                **{**self.candidate_arguments(), "source_version": "1.1.0"},
-            )
-        with self.assertRaisesRegex(ValueError, "manual-only operator release"):
-            MODULE.validate_promotion_source_state(
-                source_sha=SHA,
-                source_tree=TREE,
-                checkout_sha=SHA,
-                checkout_tree=TREE,
-                source_branch="main",
-                source_version="1.1.0",
-                source_branch_sha=SHA,
-                workflow_sha=SHA,
-                main_sha=SHA,
-                tag_state="present",
-                source_is_branch_ancestor=True,
-            )
-        with self.assertRaisesRegex(ValueError, "no repository admission evidence"):
-            MODULE.validate_candidate_context(
-                snapshot,
-                **{**self.candidate_arguments(), "source_version": "1.1.1"},
-            )
-
-        self.assertEqual(
-            ["historical.zip"],
-            MODULE.validate_existing_release(
-                {
-                    "tag_name": "v1.1.0",
-                    "draft": False,
-                    "prerelease": False,
-                    "immutable": False,
-                    "body": "historical notes",
-                    "assets": [{"name": "historical.zip"}],
-                },
-                expected_tag="v1.1.0",
-                expected_body="historical notes",
-            ),
-        )
-
     def test_v111_repository_admission_rejects_bad_required_check_evidence(
         self,
     ) -> None:
@@ -1683,63 +1202,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         expected_tag="v1.1.1",
                     )
 
-    def test_accepts_exact_reviewed_0917_maintenance_identity(self) -> None:
-        maintenance_sha = "5" * 40
-        snapshot = {
-            **valid_snapshot(),
-            "baseRefName": "0.9.17",
-            "mergeCommitSha": maintenance_sha,
-        }
-
-        MODULE.validate_candidate_context(
-            snapshot,
-            **{
-                **self.candidate_arguments(),
-                "requested_sha": maintenance_sha,
-                "source_sha": maintenance_sha,
-                "source_branch": "0.9.17",
-                "source_version": "0.9.17",
-            },
-        )
-
-    def test_accepts_exact_reviewed_0918_maintenance_identity(self) -> None:
-        maintenance_sha = "6" * 40
-        snapshot = {
-            **valid_snapshot(),
-            "baseRefName": "0.9.18",
-            "mergeCommitSha": maintenance_sha,
-        }
-
-        MODULE.validate_candidate_context(
-            snapshot,
-            **{
-                **self.candidate_arguments(),
-                "requested_sha": maintenance_sha,
-                "source_sha": maintenance_sha,
-                "source_branch": "0.9.18",
-                "source_version": "0.9.18",
-            },
-        )
-
-    def test_accepts_exact_reviewed_0919_maintenance_identity(self) -> None:
-        maintenance_sha = "7" * 40
-        snapshot = {
-            **valid_snapshot(),
-            "baseRefName": "0.9.19",
-            "mergeCommitSha": maintenance_sha,
-        }
-
-        MODULE.validate_candidate_context(
-            snapshot,
-            **{
-                **self.candidate_arguments(),
-                "requested_sha": maintenance_sha,
-                "source_sha": maintenance_sha,
-                "source_branch": "0.9.19",
-                "source_version": "0.9.19",
-            },
-        )
-
     def test_rejects_unapproved_or_mismatched_maintenance_source(self) -> None:
         maintenance_sha = "5" * 40
         snapshot = {
@@ -1761,7 +1223,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             with self.subTest(
                 source_branch=source_branch, source_version=source_version
             ):
-                with self.assertRaisesRegex(ValueError, "approved maintenance"):
+                with self.assertRaisesRegex(ValueError, "protected main"):
                     MODULE.validate_candidate_context(
                         snapshot,
                         **{
@@ -1772,19 +1234,8 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                     )
 
     def test_rejects_release_source_sha_or_pr_base_drift(self) -> None:
-        maintenance_sha = "5" * 40
-        snapshot = {
-            **valid_snapshot(),
-            "baseRefName": "0.9.17",
-            "mergeCommitSha": maintenance_sha,
-        }
-        arguments = {
-            **self.candidate_arguments(),
-            "requested_sha": maintenance_sha,
-            "source_sha": maintenance_sha,
-            "source_branch": "0.9.17",
-            "source_version": "0.9.17",
-        }
+        snapshot = valid_snapshot()
+        arguments = self.candidate_arguments()
 
         with self.assertRaisesRegex(ValueError, "source SHAs must be identical"):
             MODULE.validate_candidate_context(
@@ -1793,7 +1244,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             )
         with self.assertRaisesRegex(ValueError, "selected release source branch"):
             MODULE.validate_candidate_context(
-                {**snapshot, "baseRefName": "main"},
+                {**snapshot, "baseRefName": "maintenance"},
                 **arguments,
             )
         with self.assertRaisesRegex(ValueError, "current protected main"):
@@ -1990,20 +1441,14 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "owner_self_approval_exception": True,
         }
 
-        for source_version in ("1.0.8", "1.0.9", "1.1.999"):
+        for source_version in ("1.0.8", "1.0.9", "1.1.0", "1.1.999"):
             with self.subTest(source_version=source_version, expected="accepted"):
                 snapshot["repositoryAdmission"]["sourceCi"] = self.source_ci_evidence()
                 MODULE.validate_candidate_context(
                     snapshot, **{**arguments, "source_version": source_version}
                 )
 
-        with self.assertRaisesRegex(ValueError, "manual-only operator release"):
-            MODULE.validate_candidate_context(
-                snapshot, **{**arguments, "source_version": "1.1.0"}
-            )
-
         for source_branch, source_version in (
-            ("0.9.19", "0.9.19"),
             ("main", "1.0.7"),
             ("main", "1.2.0"),
             ("main", "1.2.1"),
@@ -2082,27 +1527,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 tag_state="present",
                 main_sha=SHA,
                 source_is_branch_ancestor=False,
-            )
-
-    def test_maintenance_promotion_requires_exact_current_branch_head(self) -> None:
-        maintenance_sha = "5" * 40
-        common = {
-            "source_sha": maintenance_sha,
-            "source_tree": TREE,
-            "checkout_sha": maintenance_sha,
-            "checkout_tree": TREE,
-            "source_branch": "0.9.19",
-            "source_version": "0.9.19",
-            "source_branch_sha": maintenance_sha,
-            "workflow_sha": SHA,
-            "main_sha": SHA,
-            "source_is_branch_ancestor": True,
-        }
-        MODULE.validate_promotion_source_state(**common, tag_state="absent")
-        with self.assertRaisesRegex(ValueError, "current release branch head"):
-            MODULE.validate_promotion_source_state(
-                **{**common, "source_branch_sha": "6" * 40},
-                tag_state="absent",
             )
 
     def test_existing_tag_must_be_annotated_exact_and_candidate_bound(self) -> None:
@@ -2196,60 +1620,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         source_sha=SHA,
                         expected_message=TAG_MESSAGE,
                     )
-
-    def test_existing_release_metadata_returns_zero_one_or_all_names_as_arrays(
-        self,
-    ) -> None:
-        names = ["one.zip", "two.json", "three.json", "manifest.json", "assets.sha256"]
-        for count in (0, 1, len(names)):
-            with self.subTest(count=count):
-                release = json.loads(
-                    json.dumps(
-                        {
-                            "tagName": "v0.9.14",
-                            "isDraft": False,
-                            "isPrerelease": False,
-                            "body": "complete notes\n",
-                            "assets": [{"name": name} for name in names[:count]],
-                        }
-                    )
-                )
-                actual = MODULE.validate_existing_release(
-                    release,
-                    expected_tag="v0.9.14",
-                    expected_body="complete notes",
-                )
-                self.assertIsInstance(actual, list)
-                self.assertEqual(names[:count], actual)
-
-        for key, value, message in (
-            ("tagName", "v0.9.15", "tag differs"),
-            ("isDraft", True, "still a draft"),
-            ("isPrerelease", True, "is a prerelease"),
-            ("body", "conflicting notes", "body conflicts"),
-        ):
-            with self.subTest(key=key):
-                release = {
-                    "tagName": "v0.9.14",
-                    "isDraft": False,
-                    "isPrerelease": False,
-                    "body": "complete notes",
-                    "assets": [],
-                    key: value,
-                }
-                with self.assertRaisesRegex(ValueError, message):
-                    MODULE.validate_existing_release(
-                        release,
-                        expected_tag="v0.9.14",
-                        expected_body="complete notes",
-                    )
-
-        with self.assertRaisesRegex(ValueError, "JSON array"):
-            MODULE.plan_release_asset_recovery(
-                Path("unused-manifest"),
-                Path("unused-published"),
-                "one.zip",
-            )
 
     def test_v111_release_requires_immutable_exact_rest_asset_metadata(self) -> None:
         expected_assets = valid_v111_expected_assets()
@@ -2441,33 +1811,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         expected_assets=malformed,
                     )
 
-    def test_v110_release_does_not_retroactively_require_strict_rest_fields(
-        self,
-    ) -> None:
-        self.assertEqual(
-            ["historical.zip"],
-            MODULE.validate_existing_release(
-                {
-                    "tag_name": "v1.1.0",
-                    "draft": False,
-                    "prerelease": False,
-                    "immutable": "not-a-boolean",
-                    "body": "historical notes",
-                    "assets": [
-                        {
-                            "name": "historical.zip",
-                            "state": None,
-                            "size": True,
-                            "digest": "not-a-digest",
-                        }
-                    ],
-                },
-                expected_tag="v1.1.0",
-                expected_body="historical notes",
-                expected_assets={"historical.zip": None},
-            ),
-        )
-
     def test_published_asset_metadata_adds_manifest_and_outer_checksum(self) -> None:
         with tempfile.TemporaryDirectory(prefix="published-metadata-") as temporary:
             root = Path(temporary)
@@ -2584,7 +1927,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 workflow_sha=SHA,
                 workflow_ref="refs/heads/main",
             )
-            self.assertEqual(3, len(manifest["assets"]))
+            self.assertEqual(8, len(manifest["assets"]))
 
             (root / MODULE._asset_names(version)[0]).write_bytes(b"tampered")
             with self.assertRaisesRegex(ValueError, "size mismatch|digest mismatch"):
@@ -2800,7 +2143,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             )
 
             self.assertNotIn(present_name, missing)
-            self.assertEqual(4, len(missing))
+            self.assertEqual(9, len(missing))
             (published / present_name).write_bytes(b"conflict")
             with self.assertRaisesRegex(ValueError, "digest conflicts"):
                 MODULE.plan_release_asset_recovery(manifest, published, [present_name])

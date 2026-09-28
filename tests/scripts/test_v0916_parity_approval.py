@@ -198,16 +198,13 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         )
         for job in contract["jobs"].values():
             self.assertEqual(
-                "${{ success() && needs.candidate.outputs.version == '2.0.0' }}",
+                "${{ success() && needs.candidate.outputs.dry-run != 'true' && needs.candidate.outputs.version == '2.0.0' }}",
                 job["if"],
             )
         promotion = contract["promotionGate"]
         self.assertEqual(
             "${{ !cancelled() && needs.candidate.result == 'success' && "
-            "((needs.candidate.outputs.version == '2.0.0' && "
-            "needs.v0916-parity-finalize.result == 'success') || "
-            "(startsWith(needs.candidate.outputs.version, '1.') && "
-            "needs.v0916-parity-finalize.result == 'skipped')) }}",
+            "needs.release-eligibility.result == 'success' }}",
             promotion["if"],
         )
         for step in promotion["steps"][2:]:
@@ -216,7 +213,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 step["if"],
             )
 
-    def test_candidate_validates_exact_h4_before_packaging_only_for_100(self) -> None:
+    def test_candidate_has_no_obsolete_100_package_source_gate(self) -> None:
         workflow = yaml.safe_load(
             (ROOT / ".github/workflows/release.yml").read_bytes()
         )
@@ -224,16 +221,8 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         names = [step["name"] for step in steps]
         authority_name = "Require exact v1.0.0 package-source authority"
         package_name = "Build closed-allowlist release package"
-        self.assertLess(names.index(authority_name), names.index(package_name))
-        authority = steps[names.index(authority_name)]
-        self.assertEqual(
-            "steps.identity.outputs.version == '1.0.0'", authority["if"]
-        )
-        self.assertIn(
-            "v0916_parity_certification.py validate-package-source",
-            authority["run"],
-        )
-        self.assertIn("--repository '${{ github.workspace }}'", authority["run"])
+        self.assertNotIn(authority_name, names)
+        self.assertIn(package_name, names)
 
     def test_workflow_semantics_reject_every_bypass_or_authority_drift(self) -> None:
         contract = json.loads(
@@ -753,7 +742,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
             "workflowBlobSha": workflow_blob_sha,
             "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
-            "workflowSemanticContractSha256": "0df7e35c35bedefd5b0595c2ee97b7e0ead35bdf4df855f4823185d75aaa03a8",
+            "workflowSemanticContractSha256": "b7b76a7242115c8b394c4bcb06d8f91cd96f3343d5bdb1c1ec9540186ede99a1",
             "workflowRun": {
                 "id": 123, "runAttempt": 1, "headSha": workflow_head,
                 "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
@@ -1125,7 +1114,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "workflowCommitSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "workflowBlobSha": "e" * 40,
                 "workflowRawSha256": "f" * 64,
-                "workflowSemanticContractSha256": "0df7e35c35bedefd5b0595c2ee97b7e0ead35bdf4df855f4823185d75aaa03a8",
+                "workflowSemanticContractSha256": "b7b76a7242115c8b394c4bcb06d8f91cd96f3343d5bdb1c1ec9540186ede99a1",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": "stable-candidate-123-1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",

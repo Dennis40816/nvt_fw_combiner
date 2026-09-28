@@ -9,7 +9,7 @@
     "actions": "read",
     "contents": "read"
   },
-  "topLevelSha256": "d961b41d1f5c8d489c1f5289a0b8b5ecf4b4a8416036b72e18cfd1f782b5b799",
+  "topLevelSha256": "bfddd7d18c372f6b145d43302beb6b815cff9c197535a35e21a57db2e6329342",
   "actionPins": {
     "checkout": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
     "setupPython": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
@@ -17,12 +17,13 @@
     "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
   },
   "jobInventorySha256": {
-    "candidate": "7b08b61f5483d9d3d674f3bb80d03021819ce84dcf15d05441de824194611447",
-    "promote": "5d01c660afb4797f18a0d650a6e65c1ee241440a7583e8db117bbab45c50cfb0",
+    "candidate": "5031fea02db7e7f3a30b0c3b3be7ad02ee7f4bba0aeff7a2a9214ae7e9b90c91",
+    "release-eligibility": "658c6b57f495be185d140c83ebe3742e72aa7807cba3d0d86567377daa4c5be5",
+    "promote": "df508bd1663f377a4d828b1f0db202256a44d0a79931676f342777915470f95e",
     "published-smoke": "6c9e6d9c9862ef70eb87125478e62a6c27183fee639b08ed1c8a553d799c4c53",
-    "v0916-parity-compare": "2c065e009b7a6380dfc6e1be051a30df983618d6bf1e8be7385fb52ff808f663",
-    "v0916-parity-attestation": "c50c30b681bfb736e4083baf50ce32cd8897a3f9becf7df4f4f4eb0413fc5bca",
-    "v0916-parity-finalize": "2df0f0b4f942e7fbcd05f1269e0881dc14cb2046b020a273e546018b742cb033"
+    "v0916-parity-compare": "deaf586551c8e858580a8f903947a6671de2caf5b9d2eba28d6502f71fc0e85f",
+    "v0916-parity-attestation": "1a45098a74d8ccda97d0cfb7ba96b05dbe745981101e033f4bbef15f56f4ec32",
+    "v0916-parity-finalize": "10fe6d7b91aba056d6a751fd8e42b03b620abd483ba4c78cd2e251a4ddb436e4"
   },
   "jobs": {
     "v0916-parity-compare": {
@@ -30,7 +31,7 @@
       "needs": [
         "candidate"
       ],
-      "if": "${{ success() && needs.candidate.outputs.version == '2.0.0' }}",
+      "if": "${{ success() && needs.candidate.outputs.dry-run != 'true' && needs.candidate.outputs.version == '2.0.0' }}",
       "runsOn": "windows-latest",
       "timeoutMinutes": 60,
       "environment": null,
@@ -91,7 +92,7 @@
         "candidate",
         "v0916-parity-compare"
       ],
-      "if": "${{ success() && needs.candidate.outputs.version == '2.0.0' }}",
+      "if": "${{ success() && needs.candidate.outputs.dry-run != 'true' && needs.candidate.outputs.version == '2.0.0' }}",
       "runsOn": "windows-latest",
       "timeoutMinutes": 30,
       "environment": "firmware-parity",
@@ -167,7 +168,7 @@
         "candidate",
         "v0916-parity-attestation"
       ],
-      "if": "${{ success() && needs.candidate.outputs.version == '2.0.0' }}",
+      "if": "${{ success() && needs.candidate.outputs.dry-run != 'true' && needs.candidate.outputs.version == '2.0.0' }}",
       "runsOn": "windows-latest",
       "timeoutMinutes": 30,
       "environment": null,
@@ -247,9 +248,9 @@
     "jobId": "promote",
     "needs": [
       "candidate",
-      "v0916-parity-finalize"
+      "release-eligibility"
     ],
-    "if": "${{ !cancelled() && needs.candidate.result == 'success' && ((needs.candidate.outputs.version == '2.0.0' && needs.v0916-parity-finalize.result == 'success') || (startsWith(needs.candidate.outputs.version, '1.') && needs.v0916-parity-finalize.result == 'skipped')) }}",
+    "if": "${{ !cancelled() && needs.candidate.result == 'success' && needs.release-eligibility.result == 'success' }}",
     "stepPrefixNames": [
       "Checkout protected release authority",
       "Setup pinned Python for release policy",
@@ -270,7 +271,7 @@
       "Publish or validate GitHub Release",
       "Verify published assets and source downloads"
     ],
-    "stepsSha256": "d2de88e55292e32dee0978856e7d877ea2d0aa087558af659c79a293fbd7ecba",
+    "stepsSha256": "0eb209ce1f7fbea2db5504f2ad8740d3363cc7e1f2636c23d3260c907b0da65c",
     "steps": [
       {
         "name": "Checkout protected release authority",

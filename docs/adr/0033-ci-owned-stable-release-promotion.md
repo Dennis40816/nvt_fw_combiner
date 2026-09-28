@@ -1,6 +1,6 @@
 # ADR 0033: Promote stable releases through one protected CI workflow
 
-- Status: Accepted; amended 2026-09-02 for multi-suite exact-check admission
+- Status: Accepted; amended 2026-09-28 for R-1 release workflow cleanup
 - Date: 2026-07-22
 - Owners: Product owner, release owner, security/repository owner
 
@@ -20,6 +20,38 @@ reachable from protected `main`, use least privilege, and retain an explicit
 human release-authority decision.
 
 ## Decision
+
+### R-1 amendment (2026-09-28)
+
+This amendment supersedes the historical version and maintenance exceptions
+described below. The release workflow and product source are the same exact
+current protected `main` SHA; the dispatch has no `source_branch` choice. A
+first publication requires an absent `vVERSION` tag and a `VERSION` greater
+than every existing stable tag. The read-only candidate checks that floor, and
+the write job checks it again immediately before creating the tag. An exact
+existing tag is accepted only by the same-run recovery path, with the original
+candidate artifact and digest and with `main` still at the workflow SHA.
+
+Every current candidate runs exact-source CI admission and
+`verify.py --release-golden`, builds the stable closed package, smokes it, and
+creates the notes, update-source handoff and candidate manifest. The retired
+v1.0.0/v1.0.1, v1.1.0 manual-only, pre-1.1.3 verification and pre-1.1.1
+admission branches remain historical release evidence, not executable paths.
+An immutable Release conflict requires a new version.
+
+A read-only `release / eligibility` job requires a successful terminal parity
+chain for every version from 2.0.0; 1.x requires the chain to be skipped. A
+failed, cancelled or skipped required chain fails the run. The 2.0.0 terminal
+certification obligation in ADR 0057 remains in force pending its joint
+firmware-owner and release-owner decision; the rolling comparison is additional.
+
+The default-off `dry_run` input runs the candidate on current protected `main`
+and marks its manifest `nonPromotable` and artifact name with a dry-run prefix.
+Its floor observation grants no eligibility. It never enters the protected
+`release` environment, creates a tag or Release, or runs published smoke. The
+three fresh admission boundaries and the write-job source isolation remain.
+R-2 replaces the historical `main-package` preview with a stable-package
+release rehearsal on a branch.
 
 `v0.9.14` will introduce one stable promotion workflow with pre-approval and
 post-approval phases.
