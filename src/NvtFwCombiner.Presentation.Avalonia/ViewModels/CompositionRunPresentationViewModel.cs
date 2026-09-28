@@ -176,11 +176,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
                 ActiveRunNumber = string.Empty;
                 ActiveRunMode = string.Empty;
                 ActiveRunDeviceContextRefreshSummary = string.Empty;
-                if (_windowMayPublish())
-                {
-                    _stateBindings.RefreshCommandState();
-                    NotifyActiveRunContextChanged();
-                }
+                PublishCurrentState();
             }
         }
         finally
@@ -193,6 +189,15 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             {
                 _ = attempt.Completion.TrySetResult();
             }
+        }
+    }
+
+    internal void PublishCurrentState()
+    {
+        if (_windowMayPublish())
+        {
+            _stateBindings.RefreshCommandState();
+            NotifyActiveRunContextChanged();
         }
     }
 

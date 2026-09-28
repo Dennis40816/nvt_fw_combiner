@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia;
@@ -141,6 +142,82 @@ public sealed partial class BuildOutcomeTests
         Assert.False(shell.RunSession.IsRunInProgress);
         Assert.Contains(nameof(CompositionRunPresentationViewModel.IsRunInProgress), notifications);
         Assert.Contains(nameof(CompositionRunPresentationViewModel.DisplayedDeviceIc), notifications);
+    }
+
+    /// <summary>Recovery replays idle bindings when the revoked run settled during handoff.</summary>
+    [AvaloniaFact]
+    public async Task RunCompletesDuringHandoffThenRecoveryPublishesIdle()
+    {
+        var handoff = new RunRecoveryHandoff();
+        PresentationHostServices original = PresentationTestHost.CreateServices("0.10.5");
+        var services = new PresentationHostServices(original.Composition, original.FileReveal,
+            original.SupportMatrix, original.SystemInformation, original.SystemDiagnosticsExporter,
+            original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
+            original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory,
+            null, null, handoff);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        CompositionRunContext context = shell.Merge.CaptureRunContext(ExperienceIds.StandardMerge, build: true);
+        UiRunResultViewModel before = context.Owner.LastRunResult;
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task run = shell.RunSession.RunCompositionAsync(context, true, async (_, _) =>
+        {
+            await release.Task;
+            return CreateRunResult(true, "revoked.bin");
+        }, (_, _) => { });
+        bool displayedBusy = shell.RunSession.IsRunInProgress;
+        var notifications = new List<string?>();
+        shell.RunSession.PropertyChanged += (_, args) =>
+        {
+            notifications.Add(args.PropertyName);
+            if (args.PropertyName == nameof(CompositionRunPresentationViewModel.IsRunInProgress))
+            {
+                displayedBusy = shell.RunSession.IsRunInProgress;
+            }
+        };
+        int deadlines = 0;
+        window.CloseDeadlineFactory = _ => ++deadlines <= 2
+            ? Task.CompletedTask : Task.Delay(TimeSpan.FromSeconds(10));
+        window.RequestStableLauncherRestart();
+        window.Close();
+        await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.HandingOff, window.ClosePhase);
+        notifications.Clear();
+        release.SetResult();
+        await run.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.False(shell.RunSession.IsRunInProgress);
+        Assert.True(displayedBusy);
+        Assert.DoesNotContain(nameof(CompositionRunPresentationViewModel.IsRunInProgress), notifications);
+
+        handoff.Fail();
+        await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+        Assert.False(displayedBusy);
+        Assert.Contains(nameof(CompositionRunPresentationViewModel.DisplayedDeviceIc), notifications);
+        Assert.Same(before, context.Owner.LastRunResult);
+        Assert.Null(context.Owner.ActiveAttemptId);
+        Assert.False(shell.BuildResult.IsOpen);
+    }
+
+    private sealed class RunRecoveryHandoff : IStableLauncherHandoff
+    {
+        private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<bool> _result = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal Task Entered => _entered.Task;
+        internal void Fail()
+        {
+            _result.SetResult(false);
+        }
+        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        {
+            _entered.SetResult();
+            return new(_result.Task);
+        }
     }
 
     /// <summary>The shell caller emits no terminal activity after its run receipt is revoked.</summary>
