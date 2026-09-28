@@ -17,7 +17,7 @@
     "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
   },
   "jobInventorySha256": {
-    "candidate": "5031fea02db7e7f3a30b0c3b3be7ad02ee7f4bba0aeff7a2a9214ae7e9b90c91",
+    "candidate": "8f7e798308d6b6e76ae03b75b64f7ffa02ca1900ad072c5527b63f653873e23b",
     "release-eligibility": "658c6b57f495be185d140c83ebe3742e72aa7807cba3d0d86567377daa4c5be5",
     "promote": "df508bd1663f377a4d828b1f0db202256a44d0a79931676f342777915470f95e",
     "published-smoke": "6c9e6d9c9862ef70eb87125478e62a6c27183fee639b08ed1c8a553d799c4c53",

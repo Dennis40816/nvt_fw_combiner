@@ -17,7 +17,7 @@ decisions are listed in risk order at the end of the log.
 Sources read at `8682dd269`, identical in content to the rebuilt `e60ba0062`
 (the files are unchanged since `v1.1.12`, `30b17e699`):
 [`release.yml`](../../../.github/workflows/release.yml) (1,236 lines),
-[`main-package.yml`](../../../.github/workflows/main-package.yml),
+`main-package.yml` (historical, replaced by R-2),
 [`release_promotion_policy.py`](../../../scripts/release_promotion_policy.py),
 `scripts/package.ps1`, [ADR 0033](../../adr/0033-ci-owned-stable-release-promotion.md),
 [ADR 0057](../../adr/0057-v0916-black-box-parity-certification.md),

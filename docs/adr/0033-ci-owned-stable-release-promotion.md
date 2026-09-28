@@ -1,6 +1,6 @@
 # ADR 0033: Promote stable releases through one protected CI workflow
 
-- Status: Accepted; amended 2026-09-28 for R-1 release workflow cleanup
+- Status: Accepted; amended 2026-09-28 for R-1/R-2 release workflow cleanup
 - Date: 2026-07-22
 - Owners: Product owner, release owner, security/repository owner
 
@@ -50,8 +50,13 @@ and marks its manifest `nonPromotable` and artifact name with a dry-run prefix.
 Its floor observation grants no eligibility. It never enters the protected
 `release` environment, creates a tag or Release, or runs published smoke. The
 three fresh admission boundaries and the write-job source isolation remain.
-R-2 replaces the historical `main-package` preview with a stable-package
-release rehearsal on a branch.
+R-2 replaces the historical `main-package` preview with manual
+`release-rehearsal.yml` on any selected branch. It uses the same pinned
+toolchain setup and stable package path as the candidate, including the managed
+Launcher for 1.x. It runs release Golden verification, package smoke, release
+notes and update-source handoff, and uploads build-only artifacts for three
+days. Its handoff timestamp is synthetic and grants no admission, approval,
+tag or publication authority.
 
 `v0.9.14` will introduce one stable promotion workflow with pre-approval and
 post-approval phases.

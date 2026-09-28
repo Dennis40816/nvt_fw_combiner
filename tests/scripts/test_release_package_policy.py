@@ -776,6 +776,30 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
+    def test_rehearsal_uses_stable_release_build_without_publication_authority(self) -> None:
+        rehearsal_path = ROOT / ".github/workflows/release-rehearsal.yml"
+        self.assertFalse((ROOT / ".github/workflows/main-package.yml").exists())
+        workflow = yaml.safe_load(rehearsal_path.read_text(encoding="utf-8"))
+        job = workflow["jobs"]["package"]
+        self.assertEqual({"workflow_dispatch": None}, workflow.get("on", workflow.get(True)))
+        self.assertEqual({"contents": "read"}, workflow["permissions"])
+        self.assertNotIn("environment", job)
+        steps = job["steps"]
+        self.assertTrue(any(step.get("uses") == "./.github/actions/setup-toolchain" for step in steps))
+        runs = "\n".join(str(step.get("run", "")) for step in steps)
+        self.assertIn("verify.py --release-golden", runs)
+        self.assertIn("package.ps1 -Version", runs)
+        self.assertNotIn("-AllowPrerelease", runs)
+        self.assertIn("smoke-release.ps1", runs)
+        self.assertIn("render_release_notes.py", runs)
+        self.assertIn("create_update_catalog.py", runs)
+        self.assertNotIn("create-manifest", runs)
+        self.assertNotIn("gh release", runs)
+        self.assertNotIn("secrets.", rehearsal_path.read_text(encoding="utf-8"))
+        uploads = [step for step in steps if step.get("uses", "").startswith("actions/upload-artifact@")]
+        self.assertEqual(2, len(uploads))
+        self.assertTrue(all(step["with"]["retention-days"] == 3 for step in uploads))
+
     """Exercises the packager and smoke policy without building release binaries."""
 
     def test_temp_root_uses_current_scratch_without_legacy_root_temp(self) -> None:
@@ -2121,7 +2145,7 @@ finally {
     def test_release_workflows_smoke_package_before_distribution(self) -> None:
         for workflow_path in (
             ROOT / ".github/workflows/release.yml",
-            ROOT / ".github/workflows/main-package.yml",
+            ROOT / ".github/workflows/release-rehearsal.yml",
         ):
             workflow = workflow_path.read_text(encoding="utf-8")
             package_index = workflow.index("scripts/package.ps1")
@@ -2672,11 +2696,11 @@ finally {
                         text=True,
                     )
 
-    def test_stable_release_is_ci_owned_and_main_preview_is_manual(self) -> None:
+    def test_stable_release_is_ci_owned_and_rehearsal_is_manual(self) -> None:
         release_workflow = (ROOT / ".github/workflows/release.yml").read_text(
             encoding="utf-8"
         )
-        main_package_workflow = (ROOT / ".github/workflows/main-package.yml").read_text(
+        rehearsal_workflow = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
             encoding="utf-8"
         )
 
@@ -2785,11 +2809,11 @@ finally {
             ),
             "dispatch inputs must enter PowerShell only through validated environment variables",
         )
-        self.assertNotIn("branches: [main]", main_package_workflow)
-        self.assertNotIn("gh release", main_package_workflow)
+        self.assertNotIn("branches: [main]", rehearsal_workflow)
+        self.assertNotIn("gh release", rehearsal_workflow)
         first_policy_call = release_workflow.index("release_promotion_policy.py")
         self.assertLess(
-            release_workflow.index("actions/setup-python@"),
+            release_workflow.index("uses: ./.github/actions/setup-toolchain"),
             first_policy_call,
             "release-authoritative Python policy must use the pinned interpreter",
         )
@@ -2851,7 +2875,7 @@ finally {
         self.assertIn("-cnotmatch", candidate)
         self.assertIn("published-at=$env:NFC_RELEASE_PUBLISHED_AT", candidate)
 
-        setup_python = candidate.index("Setup pinned Python for release policy")
+        setup_python = candidate.index("Setup release toolchain")
         identity = candidate.index("Lock release authority and candidate identity")
         package = candidate.index("Build closed-allowlist release package")
         smoke = candidate.index("Smoke candidate package")
@@ -3285,7 +3309,7 @@ finally {
             "- name: Require readable stable tag and Release state"
         )
         candidate_end = release_workflow.index(
-            "- name: Install pinned repository .NET SDK", candidate_start
+            "- name: Verify release source", candidate_start
         )
         candidate = release_workflow[candidate_start:candidate_end]
 
@@ -3369,7 +3393,10 @@ finally {
     def test_workflows_install_the_pinned_parity_yaml_dependency(self) -> None:
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
-        main_package = (ROOT / ".github/workflows/main-package.yml").read_text(
+        rehearsal = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
+            encoding="utf-8"
+        )
+        setup = (ROOT / ".github/actions/setup-toolchain/action.yml").read_text(
             encoding="utf-8"
         )
         worker_project = tomllib.loads(
@@ -3413,8 +3440,10 @@ finally {
         self.assertIn("PyYAML==6.0.3", dev_dependencies)
         self.assertNotIn("PyYAML==6.0.3", package_dependencies)
         self.assertIn("./tools/crc-worker[dev]", python_worker)
-        self.assertIn("./tools/crc-worker[dev,package]", candidate)
-        self.assertIn("./tools/crc-worker[dev,package]", main_package)
+        self.assertIn("uses: ./.github/actions/setup-toolchain", candidate)
+        self.assertIn("uses: ./.github/actions/setup-toolchain", rehearsal)
+        self.assertIn("actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1", setup)
+        self.assertIn("./tools/crc-worker[$env:NFC_WORKER_EXTRAS]", setup)
         self.assertIn(install, structure)
         self.assertIn(install, dotnet_build)
         self.assertNotIn(install, dotnet_test)

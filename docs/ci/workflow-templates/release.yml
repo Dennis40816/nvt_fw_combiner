@@ -26,6 +26,8 @@ permissions:
 # admission through the read-only Python policy. The source is always current
 # protected main. First publication requires an absent tag and a version above
 # every stable tag, checked at candidate and immediately before tag mutation.
+# The candidate uses .github/actions/setup-toolchain, shared with the manual
+# release rehearsal; that rehearsal has no promotion authority.
 # Same-run recovery validates an exact existing tag instead. A dry run labels
 # its manifest nonPromotable, prefixes its artifact, and skips promotion.
 # The release-eligibility job requires terminal parity success for every

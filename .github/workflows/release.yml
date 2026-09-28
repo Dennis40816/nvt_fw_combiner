@@ -99,12 +99,10 @@ jobs:
           ref: main
           fetch-depth: 0
           persist-credentials: false
-      - name: Setup pinned Python for release policy
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - name: Setup release toolchain
+        uses: ./.github/actions/setup-toolchain
         with:
-          python-version: '3.13'
-          cache: pip
-          cache-dependency-path: tools/crc-worker/pyproject.toml
+          worker-extras: dev,package
       - name: Lock release authority and candidate identity
         id: identity
         shell: pwsh
@@ -385,16 +383,6 @@ jobs:
         if: ${{ inputs.dry_run }}
         shell: pwsh
         run: '"Dry run: no release-floor eligibility or promotion authority." >> $env:GITHUB_STEP_SUMMARY'
-      - name: Install pinned repository .NET SDK
-        shell: pwsh
-        run: ./scripts/install-dotnet.ps1 -Scope Repository
-      - name: Add repository .NET to PATH
-        shell: pwsh
-        run: |
-          "${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "DOTNET_ROOT=${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Install verification and packaging dependencies
-        run: python -m pip install --disable-pip-version-check -e './tools/crc-worker[dev,package]'
       - name: Verify release source
         shell: pwsh
         env:

@@ -283,9 +283,11 @@ build path on current protected `main`, but marks the candidate manifest
 `nonPromotable` and prefixes the artifact name `dry-run-candidate`. Its floor
 report grants no eligibility; promotion and published smoke skip. Promotion
 verifies that a downloaded manifest has `nonPromotable: false` before it can
-create or reuse a tag. `main-package.yml` remains a historical preview until
-R-2 replaces it with `release-rehearsal.yml`; its 1.x Launcher mismatch is
-tracked for that replacement.
+create or reuse a tag. The manual `release-rehearsal.yml` runs on a selected
+branch with the stable package path, including the managed Launcher required by
+the 1.x contract. It verifies Golden outputs, package smoke, notes and the
+update-source handoff, and retains build-only artifacts for three days. Its
+synthetic handoff timestamp has no publication authority.
 
 Stable publication requires an immutable annotated tag, exact REST Release
 metadata and a complete closed asset set with uploaded state, byte sizes and
@@ -355,7 +357,7 @@ The owner-approved `v0.9.7` Windows inner-ZIP baseline was 57,501,699 bytes and
 the former 1% ratchet was 58,076,715 bytes. For the `0.9.11.10` startup phase,
 the owner approved composite ReadyToRun and replaced that ratchet with an exact
 80,000,000-byte complete-ZIP ceiling. The check runs before extraction and is
-therefore also the fail-fast gate in `main-package.yml`, `release.yml`, and the
+therefore also the fail-fast gate in `release-rehearsal.yml`, `release.yml`, and the
 reviewed workflow template.
 
 The byte ratchet does not authorize trimming, removal of the self-contained

@@ -1404,15 +1404,12 @@ def validate_workflows(errors: list[str]) -> None:
     dotnet_job = ci[ci.index("  dotnet:") :] if "  dotnet:" in ci else ""
     if "fetch-depth: 0" not in dotnet_job:
         errors.append("CI dotnet job must fetch the fixed coverage baseline revision")
-    main_package = (ROOT / ".github/workflows/main-package.yml").read_text(
+    rehearsal = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
         encoding="utf-8"
     )
-    if (
-        "python ./scripts/verify.py --all" in main_package
-        and "fetch-depth: 0" not in main_package
-    ):
+    if "fetch-depth: 0" not in rehearsal:
         errors.append(
-            "main package workflow must fetch the fixed coverage baseline revision"
+            "release rehearsal workflow must fetch the fixed coverage baseline revision"
         )
     for marker in (
         "name: python-coverage",

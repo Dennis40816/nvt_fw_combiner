@@ -52,8 +52,12 @@ package without a GitHub token in its execution step. A failed post-tag
 promotion can be rerun only within the same run while protected `main` remains
 at the candidate SHA; conflicting immutable Releases require a new version.
 
-`main-package.yml` is the historical preview path pending replacement by
-`release-rehearsal.yml` in R-2. Ordinary `main` pushes do not package. Draft
+`release-rehearsal.yml` is manually dispatched on the selected branch. It uses
+the same pinned toolchain setup and stable package path as the release candidate,
+then runs release Golden verification, package smoke, notes rendering and the
+update-source handoff. Its 3-day artifacts and synthetic handoff timestamp are
+build rehearsal evidence only; it has no admission, release environment, tag or
+publication authority. Ordinary `main` pushes do not package. Draft
 pull requests run policy checks; review-ready PRs and `main` pushes run the
 required CI matrix.
 
