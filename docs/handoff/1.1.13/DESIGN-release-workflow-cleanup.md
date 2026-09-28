@@ -401,7 +401,9 @@ policy loses the 360 version-only lines and gains the moved collection.
 | R-5 | Rolling comparison as an additional gate | Comparator item and its ADR; the terminal certification choice waits for 2.0.0 planning (decision 47) |
 | R-6 | RO-7 and RO-8 (decision 55); `ci.yml` adopts the composite action | CI failure-evidence change merged |
 
-R-1 and R-2 fit 1.1.13 after the independent re-review and the staging runs;
+R-1 and R-2 fit 1.1.13 after the independent re-review and the staging runs
+(for 1.1.13 the staging runs and the branch rehearsal are waived; see the
+verification section and board decision 156);
 R-3 follows G0; R-4 follows the governance ADR; R-5 follows the comparator.
 
 ## Verification
@@ -438,13 +440,23 @@ R-3 follows G0; R-4 follows the governance ADR; R-5 follows the comparator.
   identities and each negative case's result; "staging passed" alone is not
   evidence. The same list is the pre-release check for 1.1.13 when it ships
   with the current workflow.
+  **1.1.13 waiver (board decision 156, 2026-09-28).** For the 1.1.13 release
+  only, R-1 and R-2 merge without the staging repository and without the
+  pre-merge branch rehearsal, as a waiver stated on the merging pull request's
+  exact head and approved by the release owner. Kept safeguards: an
+  independent R3 fixed-head review with no open P0/P1 before the merge, and a
+  `dry_run` of the new release workflow on `main` that must pass before the
+  real release. The branch rehearsal cannot run before the merge because
+  `release-rehearsal.yml` is not yet on the default branch; the `dry_run`
+  covers its path. R-3 and later releases keep RO-9 and the rehearsal.
 - **Dry run on `main`:** after each release batch merges, a `dry_run` run
   exercises admission, Golden, package, smoke, notes, handoff and manifest.
   Its artifacts are marked non-promotable (manifest flag and name prefix), the
   promotion refuses them, `promote` and `published-smoke` do not run, and its
   floor report never makes a run eligible.
 - **Rehearsal (from R-2):** each batch branch runs `release-rehearsal.yml`
-  before its pull request merges and records the run.
+  before its pull request merges and records the run (waived for R-1 and R-2
+  in 1.1.13 by board decision 156).
 - **First real release** after each batch: the Release Closure Record names
   the batch and every run.
 
@@ -463,7 +475,7 @@ to the owner are in the [log](WS-GOV.md#owner-decisions-in-risk-order).
 | RO-5 reviewer evidence (board decision 49, with O-2) | Agent identity per the G0 checklist; product-neutral exact-head reviewer evidence; the exception and the Codex-only rule retire after the replacement is built and tested | An owner-only channel under one shared identity |
 | RO-6 `main-package` (board decision 67) | Release rehearsal, labeled as proving no promotion authority | Retiring it without a replacement; keeping it unrelated |
 | RO-7 and RO-8 (board decision 55) | Both, low priority, in the optional speed batch after the CI evidence work | Keeping the candidate serial and waiting for post-merge CI |
-| RO-9 staging (board decision 53) | A throwaway repository tests R-1 before it merges, with the failure and recovery cases; the owner deletes it afterwards | Relying on the first real release |
+| RO-9 staging (board decision 53) | A throwaway repository tests R-1 before it merges, with the failure and recovery cases; the owner deletes it afterwards (waived for 1.1.13 only by board decision 156, with an R3 review and a `dry_run` on `main`) | Relying on the first real release |
 | RO-10 additions (board decision 54) | All four: retire the v1.1.0 manual-only mode and older-version rules, replace the promote condition, replace the Codex-only review rule, add a dry-run mode | - |
 
 RO-2, RO-3, RO-4 and RO-6 were relayed by the commander on 2026-09-26 as
