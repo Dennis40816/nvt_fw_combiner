@@ -32,7 +32,9 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
 
             def run(*args):
                 return subprocess.run(["dotnet", *map(str, args)], cwd=root, capture_output=True,
-                                      text=True, encoding="utf-8", errors="replace", timeout=240)
+                                      text=True, encoding="utf-8", errors="replace", timeout=240,
+                                      env=dict(os.environ, MSBUILDDISABLENODEREUSE="1",
+                                               DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER="1"))
 
             for dependency in [*root.glob("src/*/*.csproj"), *root.glob("eng/*/*.csproj")]:
                 lock = json.loads(dependency.with_name("packages.lock.json").read_bytes())
@@ -55,6 +57,27 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
             self.assertFalse(list(output.glob("*PrebuiltProfileCatalogGenerator*")))
             deps = (output / "NvtFwCombiner.Bootstrap.deps.json").read_text(encoding="utf-8")
             self.assertNotIn("PrebuiltProfileCatalogGenerator", deps)
+            tool_output = root / "eng/prebuilt-profile-catalog/bin/Debug/net10.0"
+            admission_dll = "NvtFwCombiner.Infrastructure.dll"
+            previous_assembly = (tool_output / admission_dll).read_bytes()
+            admission_source = root / "src/NvtFwCombiner.Infrastructure/Bundles/PrebuiltProfileCatalogCodec.cs"
+            admission_source.write_bytes(admission_source.read_bytes() + b"\n// Build closure invalidation probe.\n")
+            rebuilt = run("build", project, "--no-restore", "-nologo")
+            self.assertEqual(0, rebuilt.returncode, rebuilt.stdout + rebuilt.stderr)
+            self.assertNotEqual(previous_assembly, (tool_output / admission_dll).read_bytes())
+            desktop = root / "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj"
+            host_built = run("build", desktop, "--no-restore", "-nologo")
+            self.assertEqual(0, host_built.returncode, host_built.stdout + host_built.stderr)
+            host_output = desktop.parent / "bin/Debug/net10.0"
+            self.assertFalse(list(host_output.glob("*PrebuiltProfileCatalogGenerator*")))
+            for assembly in tool_output.glob("*.dll"):
+                if "PrebuiltProfileCatalogGenerator" not in assembly.name:
+                    self.assertEqual(assembly.read_bytes(), (host_output / assembly.name).read_bytes(), assembly.name)
+            self.assertEqual(first, pack.read_bytes())
+            header_length = int.from_bytes(first[8:12], "little")
+            header = json.loads(first[12:12 + header_length])
+            staged_index = (output / "profiles/built-in/package-trust-index.json").read_bytes()
+            self.assertEqual(hashlib.sha256(staged_index).hexdigest(), header["trustIndex"]["sha256"])
             # An unlisted input must rerun actual runtime admission, even after a green build.
             index = json.loads((root / "profiles/built-in/package-trust-index.json").read_bytes())
             extra = root / "profiles/built-in" / index["bundles"][0]["bundleDirectory"] / "extra.json"
@@ -64,6 +87,36 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
             self.assertFalse(pack.exists(), "failed admission retained a copyable old pack")
             self.assertFalse(list((project.parent / "obj").rglob("*.pack")))
             extra.unlink()
+            schema = root / "docs/contracts" / index["bundles"][0]["materialization"]["compositionProfileSchemaFile"]
+            profile = next((root / "profiles/built-in" / index["bundles"][0]["bundleDirectory"] / "profiles").glob("*.json"))
+            for changed, delete in ((schema, False), (profile, True)):
+                successful = run("build", project, "--no-restore", "-nologo")
+                self.assertEqual(0, successful.returncode, successful.stdout + successful.stderr)
+                original = changed.read_bytes()
+                if delete:
+                    changed.unlink()
+                else:
+                    changed.write_bytes(original + b" ")
+                failed = run("build", project, "--no-restore", "-nologo")
+                self.assertNotEqual(0, failed.returncode, failed.stdout + failed.stderr)
+                self.assertFalse(pack.exists())
+                self.assertFalse(list((project.parent / "obj").rglob("*.pack")))
+                changed.write_bytes(original)
+            # Inject process failure/timeout in the isolated tool, keeping the same production MSBuild task.
+            tool_program = root / "eng/prebuilt-profile-catalog/Program.cs"
+            original_program = tool_program.read_bytes()
+            targets = root / "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalog.targets"
+            original_targets = targets.read_bytes()
+            for fault in (b"return 17;\n", b"Thread.Sleep(Timeout.Infinite);\n"):
+                tool_program.write_bytes(fault)
+                targets.write_bytes(original_targets.replace(b'Timeout="60000"', b'Timeout="1000"'))
+                failed = run("build", project, "--no-restore", "-nologo")
+                self.assertNotEqual(0, failed.returncode, failed.stdout + failed.stderr)
+                self.assertIn("MSB", failed.stdout)
+                self.assertFalse(pack.exists())
+                self.assertFalse(list((project.parent / "obj").rglob("*.pack")))
+            tool_program.write_bytes(original_program)
+            targets.write_bytes(original_targets)
             # Publish uses the actual Desktop graph and the same executable-only flags as packaging.
             desktop = root / "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj"
             restored = run("restore", desktop, "-r", "win-x64", "--source", cache,
@@ -78,6 +131,7 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
             packs = list(published.rglob("*.pack"))
             self.assertEqual([published / "profiles/built-in/prebuilt-profile-catalog.pack"], packs)
             self.assertEqual(first, packs[0].read_bytes())
+            self.assertEqual(staged_index, (published / "profiles/built-in/package-trust-index.json").read_bytes())
             self.assertFalse(list(published.rglob("*PrebuiltProfileCatalogGenerator*")))
             self.assertTrue((published / "NvtFwCombiner.Desktop.exe").is_file())
 

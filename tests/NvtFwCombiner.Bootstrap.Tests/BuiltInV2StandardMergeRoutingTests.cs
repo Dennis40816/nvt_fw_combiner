@@ -323,7 +323,9 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             }
         }
 
-        List<string> deployedFiles = ["package-trust-index.json", "ctrlram-postbuild-v2/catalog.json", "ctrlram-postbuild-v2/flash-map.json"];
+        List<string> deployedFiles = ["package-trust-index.json", "prebuilt-profile-catalog.pack", "ctrlram-postbuild-v2/catalog.json", "ctrlram-postbuild-v2/flash-map.json"];
+        Assert.Equal(File.ReadAllBytes(Path.Combine(materializedBuiltInRoot, "prebuilt-profile-catalog.pack")),
+            File.ReadAllBytes(Path.Combine(deployedBuiltInRoot, "prebuilt-profile-catalog.pack")));
         foreach (string bundleDirectory in bundleDirectories)
         {
             string sourceBundleRoot = Path.Combine(builtInRoot, bundleDirectory);

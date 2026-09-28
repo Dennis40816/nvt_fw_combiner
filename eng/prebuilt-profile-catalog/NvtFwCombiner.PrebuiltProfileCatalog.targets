@@ -1,6 +1,6 @@
 <Project>
   <!-- Invalidate before even the materializer's validation: a failed build cannot expose an old pack. -->
-  <Target Name="InvalidatePrebuiltProfileCatalog" BeforeTargets="MaterializeBuiltInProfileBundles">
+  <Target Name="InvalidatePrebuiltProfileCatalog" BeforeTargets="PrepareForBuild;MaterializeBuiltInProfileBundles">
     <PropertyGroup>
       <_NfcCatalogWork>$(IntermediateOutputPath)prebuilt-catalog</_NfcCatalogWork>
       <_NfcCatalogPack>$(BuiltInProfileMaterializedRoot)\prebuilt-profile-catalog.pack</_NfcCatalogPack>
