@@ -345,14 +345,15 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             string executableSha256,
             IExternalProcessRunner runner,
             IEnumerable<LegacyCombinerPostbuildProfile>? profiles = null,
-            ExternalRuntimeDeployment? runtimeDeployment = null)
+            ExternalRuntimeDeployment? runtimeDeployment = null,
+            string? stagingRoot = null)
         {
             _ = profiles;
             var registry = new ExternalCombinerToolRegistry([Manifest(executableSha256)]);
             return new LegacyCombinerPostbuildProcessor(
                 registry,
                 ToolRoot,
-                StagingRoot,
+                stagingRoot ?? StagingRoot,
                 runner,
                 runtimeDeployment);
         }
