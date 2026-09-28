@@ -272,9 +272,17 @@ path, size, and SHA-256. Preview packages produced with `-AllowPrerelease`
 remain schema `1.1` and intentionally omit the managed launcher because they
 are not admissible update payloads. Bootstrap is rejected from both forms.
 
-`release.yml` is dispatched from the exact current protected `main` SHA,
-which is also the product source. The final merged pull request must bind
-that commit and tree. The candidate collects fresh, complete GitHub evidence:
+`release.yml` starts automatically when `ci` completes successfully for a
+release pull request merge commit pushed to `main`. Its `workflow_run` CI head,
+event SHA and workflow SHA must agree. Ordinary main pushes and failed CI runs
+skip without publication. `workflow_dispatch` remains a fallback with only
+`dry_run`; neither path asks for a commit, pull request or timestamp. The exact
+current protected `main` workflow SHA is the product source. The policy derives
+exactly one merged release pull request for that commit, targeting `main`, and
+uses its `mergedAt` as canonical `publishedAt` metadata in the release notes and
+update Catalog/Registry handoff. This is the PR merge time, not the actual
+publication time. The final merged pull request must bind that commit and tree.
+The candidate collects fresh, complete GitHub evidence:
 main protection and required checks, exact-head review threads and approvals,
 stable tag rules, and the latest successful exact-source push-main CI attempt.
 It runs `python scripts/verify.py --release-golden` with fresh canonical case
@@ -282,6 +290,17 @@ execution, builds the stable closed package, smokes it, renders the complete
 CHANGELOG notes, creates the update-source handoff and a closed candidate
 manifest, and uploads short-lived artifacts. Input-only cases remain input-only;
 the release Golden gate does not relabel them.
+
+Before environment approval, the candidate job summary displays the version,
+full source SHA, release PR, release-notes SHA-256 and difference summary. The
+policy requires an exact-head approval by the release owner's GitHub principal;
+an App or machine approval cannot replace it, and `CHANGES_REQUESTED` fails
+closed. Product-neutral reviewer evidence names a principal on the protected-
+main allowlist, different from the PR author, and stores its runtime identifier
+separately. The push actor is not used as an approval. The self-approval
+exception and Codex-only version window are retired. The protected `release`
+environment remains the only human promotion action after the release PR is
+approved and merged.
 
 The first-publication floor requires `vVERSION` to be absent and `VERSION` to
 exceed every stable tag. The candidate and the same run block immediately

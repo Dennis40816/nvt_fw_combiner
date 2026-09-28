@@ -2716,126 +2716,50 @@ finally {
                     )
 
     def test_stable_release_is_ci_owned_and_rehearsal_is_manual(self) -> None:
-        release_workflow = (ROOT / ".github/workflows/release.yml").read_text(
-            encoding="utf-8"
-        )
-        rehearsal_workflow = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
-            encoding="utf-8"
-        )
-
-        self.assertIn("Exact reviewed release-branch head", release_workflow)
-        self.assertNotIn("source_branch:", release_workflow)
-        self.assertIn("$sourceSha = $mainSha", release_workflow)
-        self.assertIn("source-branch=main", release_workflow)
-        self.assertIn(
-            "permissions:\n  actions: read\n  contents: read",
-            release_workflow,
-        )
-        self.assertIn(
-            "candidate:\n"
-            "    name: release / candidate\n"
-            "    runs-on: windows-latest\n"
-            "    timeout-minutes: 60\n"
-            "    permissions:\n"
-            "      actions: read\n"
-            "      contents: read\n"
-            "      pull-requests: read\n"
-            "      issues: read\n"
-            "      checks: read\n"
-            "      statuses: read",
-            release_workflow,
-        )
-        self.assertIn("environment: release", release_workflow)
-        self.assertIn("contents: write", release_workflow)
-        self.assertIn("scripts/render_release_notes.py", release_workflow)
-        self.assertIn(
-            "python $env:NFC_RELEASE_POLICY validate-context", release_workflow
-        )
-        self.assertIn("owner_self_approval_exception:", release_workflow)
-        self.assertIn(
-            "NFC_REPOSITORY_OWNER: ${{ github.repository_owner }}", release_workflow
-        )
-        self.assertIn("NFC_WORKFLOW_ACTOR: ${{ github.actor }}", release_workflow)
-        self.assertIn("--owner-self-approval-exception", release_workflow)
-        self.assertIn("$codexReviewer = 'chatgpt-codex-connector'", release_workflow)
-        self.assertIn("Get-NormalizedReviewer", release_workflow)
-        self.assertIn("function Get-PaginatedGitHubArray", release_workflow)
-        self.assertIn(
-            "$pages = $pagesText | ConvertFrom-Json -NoEnumerate", release_workflow
-        )
-        self.assertIn("foreach ($page in $pages)", release_workflow)
-        self.assertIn("foreach ($item in $page)", release_workflow)
-        self.assertEqual(
-            1, release_workflow.count("gh api --paginate --slurp $endpoint")
-        )
-        self.assertNotIn("--jq 'add'", release_workflow)
-        self.assertIn("$requiredCheckNames = @(", release_workflow)
-        for required_check in (
-            "policy / polytail",
-            "python-worker / verify",
-            "dotnet / build-test",
-        ):
-            self.assertIn(required_check, release_workflow)
-        self.assertIn("$_.headSha -ne $pr.headRefOid", release_workflow)
-        self.assertIn("$_.appSlug -ne 'github-actions'", release_workflow)
-        self.assertIn("$_.status -ne 'completed'", release_workflow)
-        self.assertIn("$_.conclusion -ne 'success'", release_workflow)
-        self.assertIn("$matches.Count -ge 1", release_workflow)
-        self.assertIn("$nonPassingMatches.Count -eq 0", release_workflow)
-        self.assertEqual(3, release_workflow.count("collect-repository-admission"))
-        self.assertNotIn("comments(first: 1)", release_workflow)
-        self.assertNotIn("$checkRunPages = @(", release_workflow)
-        self.assertNotIn("validate-repository-admission", release_workflow)
-        self.assertNotIn("gh pr checks", release_workflow)
-        self.assertIn("pulls/$env:NFC_PULL_REQUEST/comments", release_workflow)
-        self.assertIn("issues/$env:NFC_PULL_REQUEST/comments", release_workflow)
-        self.assertIn("reviewedCommitPrefix", release_workflow)
-        self.assertIn("$reviewedCommitPattern =", release_workflow)
-        self.assertIn("[regex]::IsMatch(", release_workflow)
-        self.assertNotIn("$reviewedCommitMarker =", release_workflow)
-        self.assertEqual(1, release_workflow.count("git rev-parse 'HEAD^{tree}'"))
-        self.assertNotIn("git rev-parse HEAD^{tree}", release_workflow)
-        self.assertIn("codexReview = if ($codexReview.Count -eq 1)", release_workflow)
-        self.assertIn(
-            "NFC_RELEASE_POLICY: ./scripts/release_promotion_policy.py",
-            release_workflow,
-        )
-        self.assertIn(
-            "python $env:NFC_RELEASE_POLICY validate-promotion-source",
-            release_workflow,
-        )
-        self.assertIn("$env:NFC_RELEASE_POLICY validate-tag", release_workflow)
-        self.assertIn("$env:NFC_RELEASE_POLICY validate-release", release_workflow)
-        self.assertIn("Existing Release REST metadata", release_workflow)
-        self.assertIn("Published Release REST metadata", release_workflow)
-        self.assertIn(
-            "--expected-body $notesPath --manifest $manifestPath", release_workflow
-        )
-        self.assertIn("$env:NFC_RELEASE_POLICY create-manifest", release_workflow)
-        self.assertIn("$env:NFC_RELEASE_POLICY verify-manifest", release_workflow)
-        self.assertIn("$env:NFC_RELEASE_POLICY plan-recovery", release_workflow)
-        self.assertIn("review-snapshot.json", release_workflow)
-        self.assertIn("artifact-digest", release_workflow)
-        self.assertIn("git/tags", release_workflow)
-        self.assertIn("git/refs", release_workflow)
-        self.assertIn("actions/download-artifact@", release_workflow)
-        self.assertIn("gh release download", release_workflow)
-        self.assertNotIn("--generate-notes", release_workflow)
-        self.assertNotIn("pull_request_target", release_workflow)
-        self.assertFalse(
-            any(
-                "${{ inputs." in block for block in literal_run_blocks(release_workflow)
-            ),
-            "dispatch inputs must enter PowerShell only through validated environment variables",
-        )
-        self.assertNotIn("branches: [main]", rehearsal_workflow)
-        self.assertNotIn("gh release", rehearsal_workflow)
-        first_policy_call = release_workflow.index("release_promotion_policy.py")
-        self.assertLess(
-            release_workflow.index("uses: ./.github/actions/setup-toolchain"),
-            first_policy_call,
-            "release-authoritative Python policy must use the pinned interpreter",
-        )
+        release = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        rehearsal = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
+            encoding="utf-8")
+        workflow = yaml.safe_load(release)
+        events = workflow.get("on", workflow.get(True))
+        self.assertEqual(["ci"], events["workflow_run"]["workflows"])
+        self.assertEqual(["completed"], events["workflow_run"]["types"])
+        self.assertEqual(["main"], events["workflow_run"]["branches"])
+        self.assertEqual(["dry_run"], list(events["workflow_dispatch"]["inputs"]))
+        candidate = workflow["jobs"]["candidate"]
+        for clause in ("github.event.workflow_run.conclusion == 'success'",
+                       "github.event.workflow_run.event == 'push'",
+                       "github.event.workflow_run.head_sha == github.sha",
+                       "github.sha == github.workflow_sha"):
+            self.assertIn(clause, candidate["if"])
+        self.assertEqual({"actions": "read", "contents": "read",
+                          "pull-requests": "read", "issues": "read",
+                          "checks": "read", "statuses": "read"}, candidate["permissions"])
+        self.assertEqual({"actions": "read", "contents": "read"},
+                         workflow["permissions"])
+        steps = candidate["steps"]
+        request = next(step for step in steps if step.get("id") == "request")
+        self.assertIn("collect-release-request", request["run"])
+        self.assertIn("eligible=false", request["run"])
+        index = steps.index(request)
+        self.assertLess(index, next(i for i, step in enumerate(steps)
+                                    if step.get("id") == "identity"))
+        self.assertTrue(all("steps.request.outputs.eligible == 'true'" in step.get("if", "")
+                            for step in steps[index + 1:]))
+        for required in ("NFC_DRY_RUN: ${{ inputs.dry_run || false }}",
+                         "collect-review-snapshot", "Summarize candidate for release approval",
+                         "Release notes SHA-256", "Difference summary",
+                         "environment: release", "$sourceSha = $mainSha",
+                         "source-branch=main", "scripts/render_release_notes.py",
+                         "create-manifest", "verify-manifest", "plan-recovery",
+                         "gh release download"):
+            self.assertIn(required, release)
+        for retired in ("owner_self_approval_exception", "--owner-self-approval-exception",
+                        "$codexReviewer", "needs.trigger", "pull_request_target"):
+            self.assertNotIn(retired, release)
+        self.assertEqual(1, release.count("contents: write"))
+        self.assertFalse(any("${{ inputs." in block for block in literal_run_blocks(release)))
+        self.assertNotIn("branches: [main]", rehearsal)
+        self.assertNotIn("gh release", rehearsal)
 
     def test_published_smoke_requires_successful_publication_not_skipped_ancestors(self) -> None:
         workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
@@ -2863,7 +2787,8 @@ finally {
                 ):
                     collectors.append(block)
                     self.assertIn("--source-sha $env:NFC_SOURCE_SHA", block)
-        self.assertEqual(3, len(collectors))
+        self.assertEqual(2, len(collectors))
+        self.assertIn("collect-review-snapshot", RELEASE_WORKFLOW.read_text(encoding="utf-8"))
 
     def test_release_golden_follows_source_admission_for_every_candidate(self) -> None:
         workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
@@ -2875,7 +2800,7 @@ finally {
         self.assertNotIn("verify.py --all", verification["run"])
         self.assertIn("if ($LASTEXITCODE -ne 0)", verification["run"])
         admission_index = next(index for index, step in enumerate(steps)
-                               if "collect-repository-admission" in step.get("run", ""))
+                               if "collect-review-snapshot" in step.get("run", ""))
         package_index = next(index for index, step in enumerate(steps)
                              if step["name"] == "Build closed-allowlist release package")
         self.assertLess(admission_index, steps.index(verification))
@@ -2889,10 +2814,11 @@ finally {
         candidate = release[candidate_start:promote_start]
         promote = release[promote_start:smoke_start]
 
-        self.assertIn("published_at:", release)
-        self.assertIn("NFC_RELEASE_PUBLISHED_AT: ${{ inputs.published_at }}", release)
-        self.assertIn("-cnotmatch", candidate)
-        self.assertIn("published-at=$env:NFC_RELEASE_PUBLISHED_AT", candidate)
+        self.assertNotIn("published_at:", release)
+        self.assertIn("NFC_PUBLISHED_AT: ${{ steps.request.outputs.published-at }}", release)
+        self.assertIn("release PR merge time; not actual publication time", release)
+        self.assertIn("published-at=$($request.publishedAt)", candidate)
+        self.assertIn("$env:NFC_PUBLISHED_AT", candidate)
 
         setup_python = candidate.index("Setup release toolchain")
         identity = candidate.index("Lock release authority and candidate identity")
@@ -3392,19 +3318,14 @@ finally {
         )
 
         self.assertIn("ready_for_review", ci)
-        self.assertIn(
-            "Final reviewed pull request merged as this release-branch commit", release
-        )
-        self.assertIn(
-            "GitHub CLI cannot query `--required` after the final PR's head branch is closed.",
-            release,
-        )
+        self.assertIn("collect-release-request", release)
+        self.assertIn("collect-review-snapshot", release)
         self.assertIn("collect-repository-admission", release)
         self.assertIn("check-runs", promotion_policy)
         self.assertIn('"filter=latest"', promotion_policy)
         self.assertNotIn("gh pr checks", release)
-        self.assertIn("reviewDecision", release)
-        self.assertIn("headTree", release)
+        self.assertIn("reviewDecision", promotion_policy)
+        self.assertIn("headTree", promotion_policy)
         self.assertIn("contents: read", release)
         self.assertEqual(1, release.count("contents: write"))
         self.assertIn("environment: release", release)

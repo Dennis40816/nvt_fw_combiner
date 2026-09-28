@@ -14,6 +14,17 @@ the flow rules it relies on are in the
 are recorded in the [log](WS-GOV.md#design-review-2026-09-26); the owner
 decisions are listed in risk order at the end of the log.
 
+R-3 implementation status (2026-09-29): locally prepared for review. The
+owner's 2026-09-28 automatic-start decision supersedes the older RO-4 deferral;
+the commander records it as board decision 168. `workflow_run` starts from a
+successful `ci` main push on a release PR merge commit, and manual dispatch is
+the fallback. R-3 staging in the owner-operated throwaway repository remains
+required before integration.
+Pending confirmation: the existing v0.9.16 parity workflow semantic contract
+pins `workflow_dispatch` and candidate job hashes. The local R-3 workflow
+change fails `verify.py --structure-only` with `PARITY_WORKFLOW_MISMATCH`;
+changing that parity contract is outside this batch's authorized scope.
+
 Sources read at `8682dd269`, identical in content to the rebuilt `e60ba0062`
 (the files are unchanged since `v1.1.12`, `30b17e699`):
 [`release.yml`](../../../.github/workflows/release.yml) (1,236 lines),
