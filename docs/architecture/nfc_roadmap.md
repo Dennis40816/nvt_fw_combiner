@@ -27,9 +27,11 @@ The owner's 2026-09-28 decisions in the
 of `1.1.13` so that it can be released on 2026-09-28:
 
 - **`1.1.14`** (decisions 154 and 157): rolling v0.9.16 parity stages 2-4 with
-  the predecessor-validator follow-up; the second half of WS-FLOW F1 (a
-  profile-declared default output-directory anchor); and, unless the owner
-  supplies the six firmware facts first, the Header backup CRC investigation.
+  the predecessor-validator follow-up; and the second half of WS-FLOW F1 (a
+  profile-declared default output-directory anchor).
+- **`1.2.x`** (decision 161): whether to change the Header backup CRC handling.
+  Its root cause is recorded in 1.1.13; the owner judges it does not affect
+  firmware operation.
   The 1.1.14 display-convention work inventories consistency and optimization
   findings and allocates them to `1.2.x` versions without implementing them
   in `1.1.14` (decision 149).
