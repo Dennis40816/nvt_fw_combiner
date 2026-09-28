@@ -86,17 +86,27 @@ The following is the complete current inspection/report model. `Word` fields are
 other lengths are written explicitly. An alias IC uses the exact field list of its referenced
 layout and is not a second independently inferred model.
 
+Current-model correction (TP-SVN-MODEL-1113-01): the worksheet row `[0x0024, 0x0028)`
+"SVN auto-build version" is not a Header field of the current NFC models. Those four bytes are
+the separate TP SVN stamp at TP start + `0x24` (byte 0 flags, bytes 1-3 six BCD revision
+digits), modeled once as the `tp-svn` metadata definition, so the current NT51923, NT51926 and
+NT51917/NT51927/NT51928 models omit the row and their counts below are 24, 25 and 67. The
+worksheet tables keep the row as recorded evidence, and the retired NT51920 and NT51931 entries
+keep their historical counts. The copy of the stamp inside the Header copy is modeled separately
+(`tp-svn-header-copy`, CtrlRAM Replace layouts) and never shown. The FWConfig
+`u8AutoBuildSvnVer1-4` bytes are unrelated.
+
 ### IC-to-Layout Mapping
 
 | IC | Header layout | Model status | Field count |
 | --- | --- | --- | ---: |
-| NT51917 | NT51927 / 927 | Documented alias | 68 |
+| NT51917 | NT51927 / 927 | Documented alias | 67 |
 | NT51919 | NT51932 / 932 Type A/B | Documented alias | 19 |
 | NT51920 | 920&923 normal | Workbook | 25 |
-| NT51923 | 920&923 normal | Workbook | 25 |
-| NT51926 | 925&926 normal | Workbook | 26 |
-| NT51927 | 927 | Workbook + postbuild continuation | 68 |
-| NT51928 | NT51927 / 927 (non-NB only) | Documented alias | 68 |
+| NT51923 | 920&923 normal | Workbook | 24 |
+| NT51926 | 925&926 normal | Workbook | 25 |
+| NT51927 | 927 | Workbook + postbuild continuation | 67 |
+| NT51928 | NT51927 / 927 (non-NB only) | Documented alias | 67 |
 | NT51929 | NT51932 / 932 Type A/B | Documented alias | 19 |
 | NT51930 | 930 | Workbook | 44 |
 | NT51931 | 931 | Workbook | 49 |
@@ -118,7 +128,7 @@ layout and is not a second independently inferred model.
 | `[0x001C, 0x0020)` | DLM CRC 0 |
 | `[0x0020, 0x0021)` | Same code |
 | `[0x0021, 0x0024)` | SPI option |
-| `[0x0024, 0x0028)` | SVN auto-build version |
+| `[0x0024, 0x0028)` | SVN auto-build version (worksheet only; current models read the TP SVN stamp) |
 | `[0x0028, 0x002C)` | OV info |
 | `[0x0030, 0x0034)` | FW Config destination address in SRAM |
 | `[0x0038, 0x003C)` | FW Config start address in BIN |
@@ -164,7 +174,7 @@ Global fields:
 
 | Range | Field |
 | --- | --- |
-| `[0x0024, 0x0028)` | SVN auto-build version |
+| `[0x0024, 0x0028)` | SVN auto-build version (worksheet only; current models read the TP SVN stamp) |
 | `[0x0028, 0x002C)` | OV info |
 | `[0x0030, 0x0034)` | FW Config destination address in SRAM |
 | `[0x0038, 0x003C)` | FW Config start address in BIN |

@@ -334,11 +334,13 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
         }
 
         FileStamp imageStamp = FileStamp.FromBytes(image);
+        bool isCurrentStandardBase = baseInspection is not null &&
+            baseInspection.Kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
+            baseInspection.ReferenceStamp == imageStamp &&
+            inspection._artifactClassification.IsCurrent(baseInspection.ResolutionToken) &&
+            baseInspection.Issues.All(static issue => issue.Code != AuthoringSessionIssueCodes.StaleInspection);
         byte? standardEventBufferFormat = baseInspection is not null
-            ? baseInspection.Kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
-              baseInspection.ReferenceStamp == imageStamp &&
-              inspection._artifactClassification.IsCurrent(baseInspection.ResolutionToken) &&
-              baseInspection.Issues.All(static issue => issue.Code != AuthoringSessionIssueCodes.StaleInspection)
+            ? isCurrentStandardBase
                 ? baseInspection.StandardEventBufferFormatVersion
                 : null
             : StringComparer.Ordinal.Equals(standardMergeAddressSpaceId, CompositionAddressSpaceIds.TpInput) &&
@@ -346,6 +348,14 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
               firmwareConfig is { IsFirmwareVersionBarValid: true } config
                 ? FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
                     standardPlan, image, config.StructureStart)?.EventBufferFormatVersion
+                : null;
+        // TP-SVN-MODEL-1113-01: transport only; the Standard Base stamp comes from its same-capture
+        // classification, and the Standard TP stamp from the exact plan. Neither depends on FWConfig validity.
+        TpSvnObservation? standardTpSvn = baseInspection is not null
+            ? isCurrentStandardBase ? baseInspection.StandardTpSvn : null
+            : StringComparer.Ordinal.Equals(standardMergeAddressSpaceId, CompositionAddressSpaceIds.TpInput) &&
+              metadataAuthority.IsApplicable && metadataAuthority.Plan is { } svnPlan
+                ? TpSvnMetadataProjector.Read(svnPlan, CompositionAddressSpaceIds.TpInput, image)
                 : null;
 
         return new FirmwareInspectionSnapshot(
@@ -361,6 +371,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             ArtifactClassification = artifactClassification,
             FileStamp = imageStamp,
             StandardEventBufferFormatVersion = standardEventBufferFormat,
+            StandardTpSvn = standardTpSvn,
             DpMetadataPrerequisite = dpMetadata.Prerequisite,
         };
     }

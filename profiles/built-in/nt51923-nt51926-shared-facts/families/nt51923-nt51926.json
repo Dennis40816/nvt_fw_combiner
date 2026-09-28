@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51923-nt51926",
-  "familyVersion": "1.3.1",
+  "familyVersion": "1.3.2",
   "members": [
     {
       "memberId": "NT51923",
@@ -87,8 +87,8 @@
           },
           "definitionReference": {
             "familyId": "nt51929-nt51932",
-            "familyVersion": "1.3.1",
-            "familyContentHash": "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
             "structureId": "dpcmi"
           }
         }
@@ -107,8 +107,8 @@
           "artifactBindingId": "reference-base",
           "definitionReference": {
             "familyId": "nt51917-nt51927-nt51928-canonical-container",
-            "familyVersion": "1.4.0",
-            "familyContentHash": "e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af",
+            "familyVersion": "1.4.1",
+            "familyContentHash": "cb54fb90a1bf846cf737f5cd02de31c203540567dc66c209cad8a8e3ef0bbfb2",
             "structureId": "firmware-config-general-parameters"
           },
           "locator": {

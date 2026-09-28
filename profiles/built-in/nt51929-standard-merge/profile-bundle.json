@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51929-standard-merge-family",
-  "bundleVersion": "1.1.10-full-image-metadata.1",
+  "bundleVersion": "1.1.13-tp-svn.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5",
+  "contentHash": "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -25,28 +25,28 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "11744701bc46b62239fac1eb9a489f68fbd7685ce7d9f6940a86bdd8b1cea911"
+      "contentHash": "9faef5d32fb9620a6ad1a4cb801574c9b5247a063f6b9441e6d50b555d4e66ff"
     },
     {
       "entryId": "nt51929-nt51932-family",
       "kind": "firmware-family",
       "path": "families/nt51929-nt51932.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "d6517342dae5e1e6eab6cd591aa71eebae061076a571e678f05f98830fb03181"
+      "contentHash": "19fca2abf928a5d2ab576cc699ca5a186ba68c8a358cfc2d61c584091c2a2e0c"
     },
     {
       "entryId": "nt51929-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "cce5bb407fb26316cf88a9465b147ca2a09adc7b0836a1005d0d5529e3142aca"
+      "contentHash": "7cc1abc004def4eaa1e53dcb4418d8b7e86dc8fa7d9812f5a194ce50f1fe8363"
     },
     {
       "entryId": "nt51932-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "48542032bd2a466904a3a069434a3caef5b39ccc30b641f86c1b9b6947e79217"
+      "contentHash": "4ab4a7f4ac9124a1362ba2b591347aa2f70b5b317998de65530d601e9b5060cb"
     }
   ]
 }

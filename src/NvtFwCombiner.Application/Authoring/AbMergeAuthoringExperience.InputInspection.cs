@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Configuration;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -122,7 +123,15 @@ internal sealed partial class AbMergeAuthoringExperience
 
     private static AbMergeInputFacts ProjectAbInputFacts(AuthoringInputSlotStatus status, FormatResolution resolution)
     {
-        var facts = new AbMergeInputFacts(status.AddressSpaceId, status.Observation.Versions);
+        var facts = new AbMergeInputFacts(status.AddressSpaceId, status.Observation.Versions)
+        {
+            // TP-SVN-MODEL-1113-01: each accepted TP input's own stamp through the exact compiled plan; the
+            // DP AB input declares none. Independent of the Event Buffer format admission.
+            TpSvn = !status.BlocksBuild && resolution.Capability?.MetadataPlan is { } plan &&
+                status.AcceptedBytes is { } accepted
+                    ? TpSvnMetadataProjector.Read(plan, status.AddressSpaceId, accepted)
+                    : null,
+        };
         return resolution.Capability is null || resolution.Issues.Count != 0 || resolution.Format is not { } format
             ? facts : facts with { EventBufferFormat = ProjectEventBufferFormat(status.AddressSpaceId, format) };
     }

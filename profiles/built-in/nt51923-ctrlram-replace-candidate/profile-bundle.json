@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51923-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.16-candidate.2",
+  "bundleVersion": "1.1.13-tp-svn.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "67ff8e3e10a3bb079aa8f25732a189baaa384bdf7554a34fc97c057d6af5af96",
+  "contentHash": "86658f7a279fa34a49e49eea329c0e6b8679c575128482ca879a438c6408a5bc",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,28 +18,28 @@
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+      "contentHash": "695e43c4c89b647b83333a776dc26e2a27b925c46448048ef0c38e839456a0e3"
     },
     {
       "entryId": "nt51923-ctrlram-replace-family",
       "kind": "firmware-family",
       "path": "families/nt51923-ctrlram-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "7bf0338116d1093908bba31548c81bdf9aab9b77053224faff010db6bced4250"
+      "contentHash": "6bf52af27875bed593e07d63164590c0c208687834d6a07610f720d24bb48ae3"
     },
     {
       "entryId": "nt51923-ctrlram-replace-fw141-cascade3-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51923-ctrlram-replace-fw141-cascade3.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "5365db5e580298d0ab4cb118577108adf82e30cbe6dc35b71ed568111701e6b1"
+      "contentHash": "ccb53ef5ef9f5eb05b670f91391ad72793e75ef0ba1609e32fa1ed26e6536551"
     },
     {
       "entryId": "nt51923-ctrlram-replace-fw141-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51923-ctrlram-replace-fw141-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "238c810adb60ca785f639991142504e8128c6c18f3709b7848a9be060d380516"
+      "contentHash": "7786b2f326ab5981404cd75ad9442563f62864b4f1903b6b593e27260cba19b2"
     }
   ]
 }

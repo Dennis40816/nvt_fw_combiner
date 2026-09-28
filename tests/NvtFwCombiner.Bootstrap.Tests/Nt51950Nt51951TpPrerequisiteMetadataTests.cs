@@ -37,8 +37,8 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
                 FirmwareConfigDefinitionId);
         Assert.True(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(
             new FirmwareMetadataStructureDefinitionReferenceDocument(
-                "nt51929-nt51932", "1.3.1",
-                "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+                "nt51929-nt51932", "1.4.0",
+                "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
                 DpcmiMetadataContract.StructureId),
             out FirmwareMetadataStructureDefinition? dpcmiProvider));
         Assert.NotNull(dpcmiProvider);
@@ -218,8 +218,8 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
     {
         var exact = new FirmwareMetadataStructureDefinitionReferenceDocument(
                 "nt51929-nt51932",
-                "1.3.1",
-                "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+                "1.4.0",
+                "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
                 DpcmiMetadataContract.StructureId);
         FirmwareMetadataStructureDefinitionReferenceDocument changed =
             mismatch switch

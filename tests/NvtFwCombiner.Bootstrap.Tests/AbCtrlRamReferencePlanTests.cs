@@ -693,12 +693,12 @@ public sealed class AbCtrlRamReferencePlanTests
         IReadOnlyList<V2RuntimeReferenceBankReplaceRequest> requests, CompiledComposition? layoutOverride = null)
     {
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51919-nt51929-nt51932-ab-merge", "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793");
+            "nt51919-nt51929-nt51932-ab-merge", "f082c1b93f895aedd8b1614c860c7da4d1e93c5a2a91366b9b4348cc71b1ca39");
         V2CompositionPlanCompileResult compiled = ab.Compile("nt51929-ab-merge", "0.4.0", "NT51929", ExperienceIds.AbMerge,
             0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"]);
         Assert.True(compiled.IsCompiled);
         TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51929-ctrlram-replace-candidate", "309f29e33a8fb672e92ed441d6633fab829bee3bd4c94a93fd842a7f3bb157d0");
+            "nt51929-ctrlram-replace-candidate", "44aa7eedca9bece677656a1b34b340aec162e961e41d0f3124693fc29b705e0a");
         BankReferenceReplaceDefinition definition = ab.CreateBankReplaceDefinition(local, "NT51929",
             "nt51929-ab-merge", "0.4.0", "nt51929-ab-merge-512k",
             "nt51929-ctrlram-replace-fw200-single", "0.3.0", "nt51929-ctrlram-fw200-single-full-flash");

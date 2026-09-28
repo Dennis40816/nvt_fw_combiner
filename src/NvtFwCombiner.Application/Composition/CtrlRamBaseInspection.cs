@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -23,7 +24,7 @@ public sealed class CtrlRamBaseInspection
 {
     internal CtrlRamBaseInspection(CtrlRamBaseKind kind, CtrlRamAuthoringDraftState? effectiveDraft,
         IEnumerable<CtrlRamBaseBankInspection> banks, IEnumerable<CompositionIssue> issues, ResolutionToken resolutionToken,
-        FileStamp referenceStamp, byte? standardEventBufferFormatVersion = null)
+        FileStamp referenceStamp, byte? standardEventBufferFormatVersion = null, TpSvnObservation? standardTpSvn = null)
     {
         Kind = kind;
         EffectiveDraft = effectiveDraft;
@@ -32,6 +33,7 @@ public sealed class CtrlRamBaseInspection
         ResolutionToken = resolutionToken;
         ReferenceStamp = referenceStamp;
         StandardEventBufferFormatVersion = standardEventBufferFormatVersion;
+        StandardTpSvn = standardTpSvn;
     }
 
     /// <summary>Detected shape; blocking issues never demote an identified AB image to Standard.</summary>
@@ -48,6 +50,8 @@ public sealed class CtrlRamBaseInspection
     public FileStamp ReferenceStamp { get; }
     /// <summary>Canonical optional field from a unique exact Standard candidate or unanimous current TP-only candidates in this capture.</summary>
     public byte? StandardEventBufferFormatVersion { get; }
+    /// <summary>TP SVN stamp read through the unique exact Standard plan, or identical across every current TP-only candidate, from this capture.</summary>
+    public TpSvnObservation? StandardTpSvn { get; }
 }
 
 /// <summary>Facts read from one declared bank without producing a replacement plan.</summary>
@@ -55,7 +59,7 @@ public sealed class CtrlRamBaseBankInspection
 {
     internal CtrlRamBaseBankInspection(string bankId, ByteRange range, FirmwareConfigMetadataSnapshot? firmwareConfig,
         CompiledInputVersionObservation? tpVersion, CompiledInputVersionObservation? dpVersion,
-        byte? eventBufferFormatVersion, IEnumerable<CompositionIssue> issues)
+        byte? eventBufferFormatVersion, IEnumerable<CompositionIssue> issues, TpSvnObservation? tpSvn = null)
     {
         BankId = bankId;
         Range = range;
@@ -64,6 +68,7 @@ public sealed class CtrlRamBaseBankInspection
         DpVersion = dpVersion;
         EventBufferFormatVersion = eventBufferFormatVersion;
         Issues = Array.AsReadOnly(issues.ToArray());
+        TpSvn = tpSvn;
     }
 
     /// <summary>Exact a-bank or b-bank identity.</summary>
@@ -78,6 +83,8 @@ public sealed class CtrlRamBaseBankInspection
     public CompiledInputVersionObservation? DpVersion { get; }
     /// <summary>Bank-local canonical structure byte, or null when its optional read cannot resolve.</summary>
     public byte? EventBufferFormatVersion { get; }
+    /// <summary>This bank's own TP SVN stamp through the exact Standard plan of the bank length; its range stays bank-local.</summary>
+    public TpSvnObservation? TpSvn { get; }
     /// <summary>Bank-specific validation issues.</summary>
     public IReadOnlyList<CompositionIssue> Issues { get; }
 }

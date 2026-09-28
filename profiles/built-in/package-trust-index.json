@@ -7,8 +7,8 @@
     {
       "bundleDirectory": "nt51917-nt51927-general-merge-logical-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "998d3f724868b50a381834b798dce140f7877cf0e69205567288d632672a680c",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "649f0c646e612b41e092439c0ed1502d04b9dcee58a62de45902917612a60af6",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.5.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-tp-header-subjects.schema.json",
@@ -37,8 +37,8 @@
     {
       "bundleDirectory": "nt51919-nt51929-nt51932-general-merge-logical-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "54f5c973b51b99acf3447d2909fbc22270df52129d5aadaecf464b92cdcf5bd8",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "4f70de328604c8fe56fd407abb66ca87abbb46785c4c68dfdc988e73d0996d2b",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.5.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.1-tp-header.schema.json"
@@ -70,8 +70,8 @@
     {
       "bundleDirectory": "nt51923-nt51926-general-merge-logical-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "60bcf8b9abf814a302d80383270826586811ce0481a28673f776fb88e107b76b",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "d9769ec15efe2f5ed47a8414bae9cdf167769187e4ee108fe0c4653484ea6f64",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.5.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-tp-header-subjects.schema.json",
@@ -100,8 +100,8 @@
     {
       "bundleDirectory": "nt51928-general-merge-logical-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "e3a4443d3c845b57d3ba66723d659b26a9bd6602824d92571f77b74a053fef2a",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "6d733b20ac46fc0affe626ca43a6e06bdea640f3bc179850a9831f9e812e871e",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.5.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-tp-header-subjects.schema.json",
@@ -123,8 +123,8 @@
     {
       "bundleDirectory": "nt51950-nt51951-general-merge-logical-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.13-nvt-end-flag.1",
-      "contentHash": "fefeeefd3442379b733f2bf65d4695632ca6d0dfa3128e296d02ec8553e9b126",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "973966b55ab64092166b45dc000d8be60a49d4a93068611cddb835ce5e3496eb",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.5.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json",
@@ -153,11 +153,11 @@
     {
       "bundleDirectory": "nt51923-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.16-candidate.2",
-      "contentHash": "67ff8e3e10a3bb079aa8f25732a189baaa384bdf7554a34fc97c057d6af5af96",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "86658f7a279fa34a49e49eea329c0e6b8679c575128482ca879a438c6408a5bc",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
       },
       "runtimeRegistrations": [
         {
@@ -183,11 +183,11 @@
     {
       "bundleDirectory": "nt51926-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.16-candidate.2",
-      "contentHash": "8a6dc717feeb109ee265122b5796606297f1bbe14e11ec1e8da31d26678c26a7",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "241d2059770c4a88c2ec20e582652832e3ea3d0e51a07711a6827707e53b8cfa",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
       },
       "runtimeRegistrations": [
         {
@@ -237,11 +237,11 @@
     {
       "bundleDirectory": "nt51917-ctrlram-replace-alias-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.12-candidate.2",
-      "contentHash": "b4e12745789f522c3007a346d2370161db17a76a5eb94c367fd6c6cf40c2b45b",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "8873a5e5fe5c7190afb8c00b24557cf22200e0c3afbb95924e73cad7e4a3f200",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.schema.json",
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json",
         "canonicalFirmwareFamily": {
           "source": "nt51927-ctrlram-replace-candidate/families/nt51927-ctrlram-replace.json",
           "destination": "families/nt51927-ctrlram-replace.json"
@@ -280,11 +280,11 @@
     {
       "bundleDirectory": "nt51927-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.12-candidate.2",
-      "contentHash": "f44c1b82f3fc38905dee222a60be5b884f717b37cb3d8fafe8affd7c48353714",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "f4fb397c04a86535385f2299d58dc9295ee903ba3c17e289a37bf4ab315ed74c",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
       },
       "runtimeRegistrations": [
         {
@@ -319,11 +319,11 @@
     {
       "bundleDirectory": "nt51928-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.9.12-candidate.2",
-      "contentHash": "82a7a98f4883540595a3af22887fecef5f283fdff5e2af816b294c6345bd523d",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "ead5392a842068602a7ab8b6661fe872cb1e1dd435d89448f799caaa345805fb",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
       },
       "runtimeRegistrations": [
         {
@@ -358,11 +358,11 @@
     {
       "bundleDirectory": "nt51929-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.10.1-candidate.2",
-      "contentHash": "309f29e33a8fb672e92ed441d6633fab829bee3bd4c94a93fd842a7f3bb157d0",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "44aa7eedca9bece677656a1b34b340aec162e961e41d0f3124693fc29b705e0a",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
       },
       "runtimeRegistrations": [
         {
@@ -406,11 +406,11 @@
     {
       "bundleDirectory": "nt51932-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.10.1-candidate.2",
-      "contentHash": "7edb1c8b3b2d4d47963b4602000bd6c62fa43a52f55f6e70bdfac79a8c2c1fcc",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "4fae4735565c84a311f7586db75c274a77e58c96078779ad15a079cb2c55fe99",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
       },
       "runtimeRegistrations": [
         {
@@ -436,11 +436,11 @@
     {
       "bundleDirectory": "nt51950-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.13-nvt-end-flag.1",
-      "contentHash": "601c352d42d08feb4eb7affd7d998f8027e017ee6e9ea933d200eea632282f11",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "dd838e5d639ba6302b51e76421712a2e1311da52142a4e7e683384020ccd928e",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
       },
       "runtimeRegistrations": [
         {
@@ -466,11 +466,11 @@
     {
       "bundleDirectory": "nt51951-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.13-nvt-end-flag.1",
-      "contentHash": "59e947e701e3f36df03789783e312f15eaded9d9276f5a2dca28175d1ccec78f",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "6f13c26b5bf5a95d13e0b7004fc95ab5fa90da61c2cceee6b60ba41cdc9df1fa",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.schema.json"
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
       },
       "runtimeRegistrations": [
         {
@@ -496,8 +496,8 @@
     {
       "bundleDirectory": "nt51923-standard-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "803780d0835dab32b68bc92cf7c8e175aa338b6aaf0e0c7caaddd9712de4576f",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "26707141ccf58dc3da87e755f41b9851af44914c6a5b14e1dc81f7cd099dbbcd",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-tp-header-subjects.schema.json"
@@ -505,7 +505,7 @@
       "metadataProviderFamilies": [
         {
           "familyId": "nt51923-nt51926",
-          "familyVersion": "1.2.0"
+          "familyVersion": "1.2.1"
         }
       ],
       "runtimeRegistrations": [
@@ -526,8 +526,8 @@
     {
       "bundleDirectory": "nt51927-standard-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-standard-event-info.1",
-      "contentHash": "985a7d231a5a40f9c0cfe752dd43fea43dcfa05fb48128379fa020cef041fc04",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "59b51e5357fd7567315c6cc85289e2d5d78783e6ed027c421409c4a7f8cc6584",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-tp-header-subjects.schema.json"
@@ -535,7 +535,7 @@
       "metadataProviderFamilies": [
         {
           "familyId": "nt51917-nt51927-nt51928-canonical-container",
-          "familyVersion": "1.4.0"
+          "familyVersion": "1.4.1"
         }
       ],
       "runtimeRegistrations": [
@@ -556,8 +556,8 @@
     {
       "bundleDirectory": "nt51928-standard-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-standard-event-info.1",
-      "contentHash": "8145e2e6f9697607fc91748d21f802ef2a8613021899d52a80828325bc50bae5",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "0a511dbcfac0cfb6dcfc1a6faf5fe5818b6d0f6b3e267d6531c518c2917e949e",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json"
@@ -574,15 +574,15 @@
       "metadataProviderFamilies": [
         {
           "familyId": "nt51917-nt51927-nt51928-canonical-container",
-          "familyVersion": "1.5.1"
+          "familyVersion": "1.5.2"
         }
       ]
     },
     {
       "bundleDirectory": "nt51919-nt51929-nt51932-shared-facts",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "48c96d29b93cf7d78efc5266d6ead73e171f0012ddc5f7807242323327a5373f",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "8d214b985da301e115553f88702290867ac2698e781c82c7579bab50be5dba50",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.13.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json"
@@ -590,13 +590,13 @@
       "metadataProviderFamilies": [
         {
           "familyId": "nt51929-nt51932",
-          "familyVersion": "1.3.1"
+          "familyVersion": "1.4.0"
         }
       ],
       "familyDisclosureFamilies": [
         {
           "familyId": "nt51929-nt51932",
-          "familyVersion": "1.3.1"
+          "familyVersion": "1.4.0"
         }
       ],
       "runtimeRegistrations": []
@@ -604,8 +604,8 @@
     {
       "bundleDirectory": "nt51929-standard-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.1-tp-header.schema.json"
@@ -613,7 +613,7 @@
       "metadataProviderFamilies": [
         {
           "familyId": "nt51929-nt51932",
-          "familyVersion": "1.2.1"
+          "familyVersion": "1.2.2"
         }
       ],
       "runtimeRegistrations": [
@@ -640,8 +640,8 @@
     {
       "bundleDirectory": "nt51919-nt51929-nt51932-ab-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.11-ab-symmetry.1",
-      "contentHash": "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "f082c1b93f895aedd8b1614c860c7da4d1e93c5a2a91366b9b4348cc71b1ca39",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.17.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-bank-instances.schema.json"
@@ -673,8 +673,8 @@
     {
       "bundleDirectory": "nt51950-ab-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.13-nvt-end-flag.1",
-      "contentHash": "283f2c2e8d1f5dbeb17d27d07094d37b3644286a0bb9ca07b6ff17dcb43bff21",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "015f097c39810620d21464760ae783c3111d49c3d2c133ca4081fed23d080d5a",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.17.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-ab-format.schema.json"
@@ -706,8 +706,8 @@
     {
       "bundleDirectory": "nt51950-nt51951-standard-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.13-nvt-end-flag.1",
-      "contentHash": "17b45d347a18078e522b412d7c4c3000f01be4e81e091167cc5c78299988da49",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "ecffb254e15097f64f321e806bd9c6e8eeef478b5ae7f5d9ffd5e1eac8897e1f",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.16.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json"
@@ -729,15 +729,15 @@
       "metadataProviderFamilies": [
         {
           "familyId": "nt51950-nt51951-dp-perspective",
-          "familyVersion": "1.4.2"
+          "familyVersion": "1.4.3"
         }
       ]
     },
     {
       "bundleDirectory": "nt51923-nt51926-shared-facts",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "a00f57c20fdd8578fc3b5da83ce60edd7acbd2e87c20efc35a1a2d1e9dc8f2e8",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "e4e99efe60873f07ee230033aea175bb054bab9bab1a7730db6c57b85552b94c",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json"
@@ -745,7 +745,7 @@
       "metadataProviderFamilies": [
         {
           "familyId": "nt51923-nt51926",
-          "familyVersion": "1.3.1"
+          "familyVersion": "1.3.2"
         }
       ],
       "runtimeRegistrations": []
@@ -753,8 +753,8 @@
     {
       "bundleDirectory": "nt51917-nt51927-shared-facts",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "1.1.10-full-image-metadata.1",
-      "contentHash": "690c8b89d756f1d6ae7d36db842d948e4513fdb8ef06b1ec9b640777e8246e90",
+      "bundleVersion": "1.1.13-tp-svn.1",
+      "contentHash": "c76b575da7b28cbd920712fc2b0279f7872bb109c22fb788ee02ae72c2632f8d",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.3-full-image-metadata.schema.json"
@@ -762,7 +762,7 @@
       "metadataProviderFamilies": [
         {
           "familyId": "nt51927",
-          "familyVersion": "1.4.1"
+          "familyVersion": "1.4.2"
         }
       ],
       "runtimeRegistrations": []

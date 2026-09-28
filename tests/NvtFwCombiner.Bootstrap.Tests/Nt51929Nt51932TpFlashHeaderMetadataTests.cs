@@ -288,7 +288,8 @@ public sealed class Nt51929Nt51932TpFlashHeaderMetadataTests
             BuiltInV2RegistrationRegistry.FindAbMergeRegistration("NT51919", "nt51919-ab-merge-512k")!,
             inputLength: 0x80000);
 
-        Assert.Equal(5, plan.Entries.Count);
+        // Five TP Header entries plus the two display-only TP SVN stamps (TP-SVN-MODEL-1113-01).
+        Assert.Equal(7, plan.Entries.Count);
         Assert.Contains(plan.Entries, static entry => entry.SlotId == "tp-a-input");
         Assert.Contains(plan.Entries, static entry => entry.SlotId == "tp-b-input");
     }
