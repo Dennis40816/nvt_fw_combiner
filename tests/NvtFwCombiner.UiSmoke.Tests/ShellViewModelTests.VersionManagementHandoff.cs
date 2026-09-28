@@ -489,9 +489,11 @@ public sealed partial class VersionManagementSettingsTests
         }
     }
 
-    /// <summary>A real accepted activation during sealed flush reaches the window before final revoke.</summary>
-    [AvaloniaFact]
-    public async Task ActivationPreparedDuringSealingStartsLauncher()
+    /// <summary>A sealed activation reaches the window and cannot overwrite a newer handoff failure.</summary>
+    [AvaloniaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ActivationPreparedDuringSealingPreservesHandoffOutcome(bool started)
     {
         var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
         var prepareEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -561,9 +563,20 @@ public sealed partial class VersionManagementSettingsTests
         Task first = await Task.WhenAny(handoff.Entered, closed.Task)
             .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Assert.Same(handoff.Entered, first);
-        handoff.Release(started: true);
-        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        handoff.Release(started);
+        await (started ? closed.Task : window.CloseAttempt)
+            .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         await confirmation;
+        if (!started)
+        {
+            Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+            Assert.False(shell.Settings.IsVersionBusy);
+            Assert.True(shell.Settings.HasPendingRecoveryNotice);
+            Assert.Equal(PendingActivationRecoveryStatus.ConfirmedKept, shell.Settings.PendingRecoveryStatus);
+            Assert.True(shell.Settings.CanRetryPendingActivation);
+            Assert.Contains("could not be started", shell.Settings.VersionOperationStatus, StringComparison.Ordinal);
+            Assert.Contains("still pending", shell.Settings.PendingRecoveryMessage, StringComparison.Ordinal);
+        }
     }
 
     private sealed class HeldPreferenceWrite(ILocalFileStore inner, string preferencePath) : ILocalFileStore

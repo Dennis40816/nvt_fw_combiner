@@ -20,6 +20,7 @@ internal sealed partial class SettingsViewModel
     private long _updateSourceBrowseGeneration;
     private VersionManagementSnapshot? _pendingDurableSnapshot;
     private bool _hasFailedStableLauncherHandoff;
+    private long _handoffFailureGeneration;
     private Func<bool> _windowMayPublish = static () => true;
     internal Func<TimeSpan, CancellationTokenSource> RetryReadCancellationFactory { get; set; } =
         static duration => new CancellationTokenSource(duration);
@@ -650,6 +651,7 @@ internal sealed partial class SettingsViewModel
             return;
         }
         VersionConfirmationAction action = _pendingConfirmation;
+        long handoffFailureGeneration = _handoffFailureGeneration;
         CancelVersionConfirmation();
         using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
@@ -744,7 +746,8 @@ internal sealed partial class SettingsViewModel
             }
             // Durable acceptance is a window lifecycle decision even while screen publication is suspended.
             ActivationRequested?.Invoke(this, EventArgs.Empty);
-            if (!await WaitForWindowPublicationAsync())
+            if (!await WaitForWindowPublicationAsync() ||
+                handoffFailureGeneration != _handoffFailureGeneration)
             {
                 return;
             }
@@ -764,6 +767,7 @@ internal sealed partial class SettingsViewModel
     internal async Task<PendingActivationRecoveryStatus> HandleLauncherHandoffFailureAsync(
         CancellationToken recoveryToken)
     {
+        _handoffFailureGeneration++;
         _hasFailedStableLauncherHandoff = true;
         return await RecheckPendingActivationStatusAsync(recoveryToken);
     }
