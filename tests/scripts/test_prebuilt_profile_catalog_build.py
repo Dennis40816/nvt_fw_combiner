@@ -18,6 +18,34 @@ TARGET = ROOT / "eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMate
 class CatalogOutputLifecycleTests(unittest.TestCase):
     """Real SDK graph, offline restored closure, and isolated reviewed inputs."""
 
+    def test_shared_output_overrides_fail_before_destructive_invalidation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            expected = root / "obj/Debug/net10.0/materialized-profiles/built-in"
+            normal_output = root / "bin/Debug/net10.0"
+            shared = root / "shared"
+            for override in ("OutDir", "BuiltInProfileMaterializedRoot"):
+                with self.subTest(override=override):
+                    pack = shared / ("profiles/built-in/prebuilt-profile-catalog.pack" if override == "OutDir"
+                                     else "prebuilt-profile-catalog.pack")
+                    pack.parent.mkdir(parents=True, exist_ok=True)
+                    pack.write_bytes(b"other configuration owns this pack")
+                    driver = root / "driver.proj"
+                    target = ROOT / "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalog.targets"
+                    driver.write_text(f'''<Project><PropertyGroup>
+<IntermediateOutputPath>{escape(str(root / 'obj'))}/</IntermediateOutputPath>
+<_NfcExpectedMaterializedRoot>{escape(str(expected))}</_NfcExpectedMaterializedRoot>
+<BuiltInProfileMaterializedRoot>{escape(str(expected))}</BuiltInProfileMaterializedRoot>
+<OutputPath>{escape(str(normal_output))}/</OutputPath><OutDir>{escape(str(normal_output))}/</OutDir>
+</PropertyGroup><Import Project="{escape(str(target))}" />
+<Target Name="PrepareForBuild" /></Project>''', encoding="utf-8")
+                    result = subprocess.run(["dotnet", "msbuild", str(driver), "-t:PrepareForBuild", "-nologo",
+                                             f"-p:{override}={shared}/"], cwd=ROOT, capture_output=True,
+                                            text=True, encoding="utf-8", errors="replace", timeout=30)
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn("configuration/TFM/RID", result.stdout)
+                    self.assertEqual(b"other configuration owns this pack", pack.read_bytes())
+
     def test_clean_incremental_and_failed_generation_never_copy_a_stale_pack(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
