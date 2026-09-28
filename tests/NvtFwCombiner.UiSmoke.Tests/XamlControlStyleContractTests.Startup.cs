@@ -460,12 +460,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("!viewModel.OutputDelivery.IsOpen", lifecycle, StringComparison.Ordinal);
         Assert.Contains("setShellEnabled(succeeded);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("presentLoadingState();", lifecycle, StringComparison.Ordinal);
-        // Startup focus lands on the selected page's own nav tab (owner decision 32), not always Home.
-        Assert.Contains("SelectedNavigationButton(viewModel).Focus(NavigationMethod.Tab)", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("ShellPage.Home => HomeNavigationButton,", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("ShellPage.Merge => MergeNavigationButton,", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("ShellPage.Replace => ReplaceNavigationButton,", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("ShellPage.HexEditor => HomeNavigationButton,", lifecycle, StringComparison.Ordinal);
+        // Startup focuses the named shell surface while keyboard navigation retains its own visible ring.
+        Assert.Contains("ShellInteractionHost.Focus()", lifecycle, StringComparison.Ordinal);
         Assert.Contains("_preloadSession.CancelAndDrainAsync()", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("reloadCatalog", opened, StringComparison.Ordinal);
         Assert.Contains("RunStartupPreloadAsync(", retry, StringComparison.Ordinal);
