@@ -10,6 +10,30 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 /// <summary>Exact reviewed-byte identities must be present in the compiled admission assembly.</summary>
 public sealed class PrebuiltProfileCatalogBuildIdentityTests
 {
+    /// <summary>Both identity fields expose missing, duplicate and invalid failures without parsing messages.</summary>
+    [Theory]
+    [InlineData(0, "Missing")]
+    [InlineData(0, "Duplicate")]
+    [InlineData(0, "Invalid")]
+    [InlineData(1, "Missing")]
+    [InlineData(1, "Duplicate")]
+    [InlineData(1, "Invalid")]
+    public void MetadataFailureIdentifiesFieldAndKind(int field, string kind)
+    {
+        var attributes = new List<AssemblyMetadataAttribute>
+        {
+            new(BuiltInProfileBuildAdmissionIdentity.TrustIndexKey, new string('a', 64)),
+            new(BuiltInProfileBuildAdmissionIdentity.ManifestSetKey, new string('b', 64)),
+        };
+        if (kind == "Missing") { attributes.RemoveAt(field); }
+        else if (kind == "Duplicate") { attributes.Add(attributes[field]); }
+        else { attributes[field] = new(attributes[field].Key, "invalid"); }
+        Assert.Null(BuiltInProfileBuildAdmissionIdentity.TryRead(attributes, out BuildAdmissionIdentityFailure? failure));
+        Assert.NotNull(failure);
+        Assert.Equal(field == 0 ? "TrustIndex" : "ManifestSet", failure.Field.ToString());
+        Assert.Equal(kind, failure.Kind.ToString());
+    }
+
     /// <summary>Independent canonical-array calculation verifies metadata was emitted before compilation.</summary>
     [Fact]
     public void CompiledAdmissionIdentityMatchesReviewedBytes()

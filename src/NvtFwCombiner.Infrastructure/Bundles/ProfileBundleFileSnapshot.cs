@@ -4,6 +4,8 @@ using NvtFwCombiner.Infrastructure.Files;
 
 namespace NvtFwCombiner.Infrastructure.Bundles;
 
+internal enum ProfileBundleCaptureFailure { None, Missing, FileAccess, FileBound }
+
 /// <summary>One bounded private byte snapshot of a bundle manifest or listed entry file.</summary>
 internal sealed class ProfileBundleFileSnapshot
 {
@@ -25,6 +27,31 @@ internal sealed class ProfileBundleFileSnapshot
 
     /// <summary>The exact captured bytes; callers can copy them but cannot obtain writable storage.</summary>
     internal ReadOnlySpan<byte> Content => _content;
+
+    internal static ProfileBundleFileSnapshot Copy(string path, ReadOnlySpan<byte> content, int maximumBytes)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        if (content.Length > maximumBytes) { throw new InvalidDataException("Snapshot exceeds its byte limit."); }
+        byte[] owned = content.ToArray();
+        return new ProfileBundleFileSnapshot(path, Convert.ToHexStringLower(SHA256.HashData(owned)), owned);
+    }
+
+    internal static ProfileBundleFileSnapshot? TryReadPrebuilt(string applicationRoot, out ProfileBundleCaptureFailure failure)
+    {
+        failure = ProfileBundleCaptureFailure.FileAccess;
+        try
+        {
+            ProfileBundleFileSnapshot snapshot = ReadCore(applicationRoot,
+                "profiles/built-in/prebuilt-profile-catalog.pack", PrebuiltProfileCatalogFormat.MaximumFileBytes, out failure);
+            failure = ProfileBundleCaptureFailure.None;
+            return snapshot;
+        }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+        { failure = ProfileBundleCaptureFailure.Missing; return null; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
+        { return null; }
+    }
 
     internal static ProfileBundleFileSnapshot ReadManifest(
         string bundleRoot,
@@ -81,6 +108,13 @@ internal sealed class ProfileBundleFileSnapshot
         string manifestPath,
         int maximumBytes)
     {
+        return ReadCore(bundleRoot, manifestPath, maximumBytes, out _);
+    }
+
+    private static ProfileBundleFileSnapshot ReadCore(
+        string bundleRoot, string manifestPath, int maximumBytes, out ProfileBundleCaptureFailure failure)
+    {
+        failure = ProfileBundleCaptureFailure.FileAccess;
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleRoot);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         string fullPath = FileSystemPathGuard.ResolveExistingManifestFileUnderRoot(manifestPath, bundleRoot);
@@ -96,6 +130,7 @@ internal sealed class ProfileBundleFileSnapshot
         long length = stream.Length;
         if (length > maximumBytes)
         {
+            failure = ProfileBundleCaptureFailure.FileBound;
             throw new InvalidDataException(
                 $"Bundle file '{manifestPath}' exceeds the {maximumBytes}-byte limit.");
         }

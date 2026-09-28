@@ -5,6 +5,11 @@ using System.Text.Json.Nodes;
 
 namespace NvtFwCombiner.Infrastructure.Bundles;
 
+internal enum BuildAdmissionIdentityField { TrustIndex, ManifestSet }
+internal enum BuildAdmissionIdentityFailureKind { Missing, Duplicate, Invalid }
+internal sealed record BuildAdmissionIdentityFailure(
+    BuildAdmissionIdentityField Field, BuildAdmissionIdentityFailureKind Kind);
+
 /// <summary>Exact reviewed-byte identity emitted before the admission implementation is compiled.</summary>
 internal sealed record BuiltInProfileBuildAdmissionIdentity(string TrustIndexSha256, string ManifestSetSha256)
 {
@@ -18,15 +23,35 @@ internal sealed record BuiltInProfileBuildAdmissionIdentity(string TrustIndexSha
 
     internal static BuiltInProfileBuildAdmissionIdentity Read(IEnumerable<AssemblyMetadataAttribute> attributes)
     {
-        AssemblyMetadataAttribute[] snapshot = [.. attributes];
-        return new(ReadValue(TrustIndexKey), ReadValue(ManifestSetKey));
+        return TryRead(attributes, out BuildAdmissionIdentityFailure? failure) ??
+            throw new InvalidDataException($"Build admission identity {failure!.Field} is {failure.Kind}.");
+    }
 
-        string ReadValue(string key)
+    internal static BuiltInProfileBuildAdmissionIdentity? TryRead(out BuildAdmissionIdentityFailure? failure)
+    {
+        return TryRead(typeof(BuiltInProfileBuildAdmissionIdentity).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>(), out failure);
+    }
+
+    internal static BuiltInProfileBuildAdmissionIdentity? TryRead(
+        IEnumerable<AssemblyMetadataAttribute> attributes, out BuildAdmissionIdentityFailure? failure)
+    {
+        AssemblyMetadataAttribute[] snapshot = [.. attributes];
+        failure = ReadValue(TrustIndexKey, BuildAdmissionIdentityField.TrustIndex, out string? index);
+        if (failure is not null) { return null; }
+        failure = ReadValue(ManifestSetKey, BuildAdmissionIdentityField.ManifestSet, out string? manifests);
+        return failure is null ? new(index!, manifests!) : null;
+
+        BuildAdmissionIdentityFailure? ReadValue(string key, BuildAdmissionIdentityField field, out string? result)
         {
             string?[] values = [.. snapshot.Where(a => a.Key == key).Select(a => a.Value)];
-            return values.Length == 1 && values[0] is { } value && value.Length == 64 &&
-                value.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f'))
-                    ? value : throw new InvalidDataException("Missing, duplicate or noncanonical build admission identity: " + key);
+            result = null;
+            if (values.Length == 0) { return new(field, BuildAdmissionIdentityFailureKind.Missing); }
+            if (values.Length != 1) { return new(field, BuildAdmissionIdentityFailureKind.Duplicate); }
+            if (values[0] is not { Length: 64 } value ||
+                !value.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f')))
+            { return new(field, BuildAdmissionIdentityFailureKind.Invalid); }
+            result = value;
+            return null;
         }
     }
 

@@ -131,10 +131,7 @@ internal static class ProfileBundleLoader
         ArgumentNullException.ThrowIfNull(limits);
 
         ProfileBundleFileSnapshot manifestSnapshot = source.ReadManifest(limits.MaximumManifestBytes);
-        ProfileBundleSchemaValidator.ValidateManifest(manifestSnapshot, limits.MaximumJsonDepth);
-        ProfileBundleManifest manifest = ProfileBundleManifestNormalizer.Normalize(
-            DeserializeManifest(manifestSnapshot, limits.MaximumJsonDepth));
-        trustAnchor.Verify(manifest);
+        ProfileBundleManifest manifest = AdmitManifest(manifestSnapshot, trustAnchor, limits);
 
         ProfileBundleEntrySnapshotCollection entrySnapshots = source.CaptureEntries(
             manifest,
@@ -147,6 +144,16 @@ internal static class ProfileBundleLoader
             : throw new IOException("Bundle manifest changed during trusted bundle capture.");
 
         return new TrustedProfileBundle(manifestSnapshot, entrySnapshots, limits.MaximumJsonDepth);
+    }
+
+    internal static ProfileBundleManifest AdmitManifest(ProfileBundleFileSnapshot snapshot,
+        ProfileBundleTrustAnchor trustAnchor, ProfileBundleLoadLimits limits)
+    {
+        ProfileBundleSchemaValidator.ValidateManifest(snapshot, limits.MaximumJsonDepth);
+        ProfileBundleManifest manifest = ProfileBundleManifestNormalizer.Normalize(
+            DeserializeManifest(snapshot, limits.MaximumJsonDepth));
+        trustAnchor.Verify(manifest);
+        return manifest;
     }
 
     private static ProfileBundleDocument DeserializeManifest(

@@ -9,6 +9,31 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 /// <summary>Tests bounded private snapshots of bundle manifest and entry files.</summary>
 public sealed class ProfileBundleFileSnapshotTests
 {
+    /// <summary>Memory capture owns its bytes and enforces the same preallocation bound.</summary>
+    [Fact]
+    public void MemoryCaptureOwnsBoundedBytesWithoutGrantingTrust()
+    {
+        byte[] input = " { }\n"u8.ToArray();
+        var snapshot = ProfileBundleFileSnapshot.Copy("profile-bundle.json", input, input.Length);
+        Array.Fill(input, (byte)0);
+        Assert.Equal(" { }\n"u8.ToArray(), snapshot.Content.ToArray());
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleFileSnapshot.Copy("x.json", input, input.Length - 1));
+    }
+
+    /// <summary>The bounded capture reports data failures without exception-message parsing.</summary>
+    [Fact]
+    public void PackCaptureDistinguishesMissingAndFileBound()
+    {
+        using var workspace = TempWorkspace.Create("bounded-pack");
+        Assert.Null(ProfileBundleFileSnapshot.TryReadPrebuilt(workspace.Root, out ProfileBundleCaptureFailure failure));
+        Assert.Equal(ProfileBundleCaptureFailure.Missing, failure);
+        string path = workspace.PathFor("profiles/built-in/prebuilt-profile-catalog.pack");
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        using (FileStream stream = File.Create(path)) { stream.SetLength(PrebuiltProfileCatalogFormat.MaximumFileBytes + 1L); }
+        Assert.Null(ProfileBundleFileSnapshot.TryReadPrebuilt(workspace.Root, out failure));
+        Assert.Equal(ProfileBundleCaptureFailure.FileBound, failure);
+    }
+
     /// <summary>Raw export preserves whitespace, escapes and newlines without exposing writable storage.</summary>
     [Fact]
     public void RawContentIsTheOriginalCaptureAndCallerCopiesAreIsolated()
