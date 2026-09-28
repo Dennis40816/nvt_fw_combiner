@@ -204,6 +204,34 @@ public sealed partial class VersionManagementSettingsTests
         Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
     }
 
+    /// <summary>A synchronous result that arrives after its deadline cannot count as a handoff.</summary>
+    [AvaloniaFact]
+    public async Task LauncherResultAfterDeadlineIsRevoked()
+    {
+        var expiry = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handoff = new ExpiringLauncherHandoff(expiry.SetResult);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", new RecordingVersionExperience(
+                Snapshot(retentionReviewDue: false)), handoff), ShellPreferenceSnapshot.Default);
+        window.CloseDeadlineFactory = _ => expiry.Task;
+        window.RequestStableLauncherRestart();
+
+        Assert.False(await window.TryCompleteStableLauncherHandoffAsync());
+        Assert.Equal(1, handoff.Attempts);
+        Assert.True(window.IsEnabled);
+    }
+
+    private sealed class ExpiringLauncherHandoff(Action expire) : IStableLauncherHandoff
+    {
+        internal int Attempts { get; private set; }
+        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        {
+            Attempts++;
+            expire();
+            return ValueTask.FromResult(true);
+        }
+    }
+
     /// <summary>A failed handoff keeps pending activation; the next real Close exits without retrying.</summary>
     [AvaloniaFact]
     public async Task FailedHandoffSecondCloseKeepsPendingWithoutLauncherOrClear()

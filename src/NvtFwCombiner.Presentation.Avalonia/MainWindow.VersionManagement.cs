@@ -158,17 +158,46 @@ public sealed partial class MainWindow
             return false;
         }
         using var cancellation = new CancellationTokenSource();
-        Task<bool> start = handoff.TryStartLauncherAsync(cancellation.Token).AsTask();
-        if (await Task.WhenAny(start, deadline) != start)
+        using var stopDeadlineObserver = new CancellationTokenSource();
+        Task deadlineObserver = CancelLauncherAtDeadlineAsync(
+            deadline, cancellation, stopDeadlineObserver.Token);
+        try
         {
-            cancellation.Cancel();
-            _ = start.ContinueWith(completed => _ = completed.Exception,
-                CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-            return false;
+            Task<bool> start = handoff.TryStartLauncherAsync(cancellation.Token).AsTask();
+            if (deadline.IsCompleted || await Task.WhenAny(start, deadline) != start)
+            {
+                cancellation.Cancel();
+                _ = start.ContinueWith(completed => _ = completed.Exception,
+                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+                return false;
+            }
+            bool started = await start;
+            _stableLauncherStarted = started;
+            return started;
         }
-        bool started = await start;
-        _stableLauncherStarted = started;
-        return started;
+        finally
+        {
+            stopDeadlineObserver.Cancel();
+            await deadlineObserver;
+        }
+    }
+
+    private static async Task CancelLauncherAtDeadlineAsync(
+        Task deadline, CancellationTokenSource cancellation, CancellationToken stop)
+    {
+        try
+        {
+            await deadline.WaitAsync(stop).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception)
+        {
+            // A failed host deadline must still revoke launcher admission.
+        }
+        cancellation.Cancel();
     }
 
     private async Task ReportStableLauncherHandoffFailureAsync()
