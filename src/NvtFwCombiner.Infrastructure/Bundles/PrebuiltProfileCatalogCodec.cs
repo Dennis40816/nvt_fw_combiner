@@ -164,6 +164,21 @@ internal static class PrebuiltProfileCatalogCodec
 
     internal static PrebuiltProfileCatalogSnapshot Decode(ReadOnlyMemory<byte> bytes)
     {
+        return DecodeCore(bytes, out _);
+    }
+
+    internal static PrebuiltProfileCatalogSnapshot? TryDecode(ReadOnlyMemory<byte> bytes,
+        out PrebuiltProfileCatalogDecodeFailure failure)
+    {
+        failure = PrebuiltProfileCatalogDecodeFailure.Format;
+        try { return DecodeCore(bytes, out failure); }
+        catch (InvalidDataException) { return null; }
+    }
+
+    private static PrebuiltProfileCatalogSnapshot DecodeCore(ReadOnlyMemory<byte> bytes,
+        out PrebuiltProfileCatalogDecodeFailure failure)
+    {
+        failure = PrebuiltProfileCatalogDecodeFailure.Format;
         if (bytes.Length is < 13 or > PrebuiltProfileCatalogFormat.MaximumFileBytes ||
             !bytes.Span[..8].SequenceEqual("NFCPBCAT"u8))
         { throw new InvalidDataException("Invalid prebuilt catalog prefix or file bound."); }
@@ -180,14 +195,15 @@ internal static class PrebuiltProfileCatalogCodec
             if (!headerBytes.Span.SequenceEqual(PrebuiltProfileCatalogCanonicalJson.Encode(header)))
             { throw new InvalidDataException("Prebuilt catalog header is not canonical JSON."); }
             ReadOnlySpan<byte> body = bytes.Span[(12 + (int)length)..];
-            ValidateHeader(header, body);
+            ValidateHeader(header, body, ref failure);
             return new PrebuiltProfileCatalogSnapshot(header, body.ToArray());
         }
         catch (Exception error) when (error is JsonException or System.Text.DecoderFallbackException or InvalidOperationException or FormatException)
         { throw new InvalidDataException("Malformed prebuilt catalog header.", error); }
     }
 
-    private static void ValidateHeader(JsonElement header, ReadOnlySpan<byte> body)
+    private static void ValidateHeader(JsonElement header, ReadOnlySpan<byte> body,
+        ref PrebuiltProfileCatalogDecodeFailure failure)
     {
         Shape(header, "formatVersion", "trustIndex", "bundles", "body");
         if (Number(header, "formatVersion") != 1) { throw new InvalidDataException("Unknown prebuilt catalog version."); }
@@ -198,7 +214,7 @@ internal static class PrebuiltProfileCatalogCodec
         JsonElement bodyHeader = header.GetProperty("body");
         Shape(bodyHeader, "length", "sha256");
         if (Number(bodyHeader, "length") != body.Length || Digest(bodyHeader, "sha256") != Hash(body))
-        { throw new InvalidDataException("Prebuilt catalog body integrity differs."); }
+        { failure = PrebuiltProfileCatalogDecodeFailure.BodyIntegrity; throw new InvalidDataException("Prebuilt catalog body integrity differs."); }
         JsonElement bundles = header.GetProperty("bundles");
         if (bundles.ValueKind != JsonValueKind.Array || bundles.GetArrayLength() == 0)
         { throw new InvalidDataException("Prebuilt catalog requires bundles."); }
@@ -221,22 +237,26 @@ internal static class PrebuiltProfileCatalogCodec
                 if (Text(document, "kind") is not ("firmware-family" or "composition-profile"))
                 { throw new InvalidDataException("Invalid carried document kind."); }
                 _ = Text(document, "path"); _ = Text(document, "schemaId");
-                ValidateRange(document, "contentHash", body, ref offset);
+                ValidateRange(document, "contentHash", body, ref offset, ref failure);
             }
             JsonElement manifest = bundle.GetProperty("manifest");
             Shape(manifest, "offset", "length", "sha256");
-            ValidateRange(manifest, "sha256", body, ref offset);
+            ValidateRange(manifest, "sha256", body, ref offset, ref failure);
         }
         if (offset != body.Length) { throw new InvalidDataException("Prebuilt catalog has trailing body bytes."); }
     }
 
-    private static void ValidateRange(JsonElement value, string hashKey, ReadOnlySpan<byte> body, ref long offset)
+    private static void ValidateRange(JsonElement value, string hashKey, ReadOnlySpan<byte> body, ref long offset,
+        ref PrebuiltProfileCatalogDecodeFailure failure)
     {
         long start = Number(value, "offset"), length = Number(value, "length");
         if (start != offset || length == 0 || start > body.Length || length > body.Length - start)
         { throw new InvalidDataException("Prebuilt catalog ranges are not contiguous and bounded."); }
         if (Digest(value, hashKey) != Hash(body.Slice((int)start, (int)length)))
-        { throw new InvalidDataException("Prebuilt catalog range integrity differs."); }
+        {
+            failure = hashKey == "sha256" ? PrebuiltProfileCatalogDecodeFailure.ManifestIntegrity : PrebuiltProfileCatalogDecodeFailure.DocumentIntegrity;
+            throw new InvalidDataException("Prebuilt catalog range integrity differs.");
+        }
         offset = start + length;
     }
 

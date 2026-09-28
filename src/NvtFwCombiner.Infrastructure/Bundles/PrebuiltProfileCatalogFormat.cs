@@ -1,5 +1,7 @@
 namespace NvtFwCombiner.Infrastructure.Bundles;
 
+internal enum PrebuiltProfileCatalogDecodeFailure { Format, BodyIntegrity, ManifestIntegrity, DocumentIntegrity }
+
 /// <summary>ADR 0077 byte-container limits, independent of runtime admission.</summary>
 internal static class PrebuiltProfileCatalogFormat
 {

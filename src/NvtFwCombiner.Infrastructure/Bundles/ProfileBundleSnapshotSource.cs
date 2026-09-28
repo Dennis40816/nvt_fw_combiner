@@ -1,5 +1,23 @@
 namespace NvtFwCombiner.Infrastructure.Bundles;
 
+/// <summary>Immutable carried subset; construction requires the completed build-bound token.</summary>
+internal sealed class AcceptedProfileBundleSnapshotSource(AcceptedPrebuiltProfileCatalog accepted, string directory) : IProfileBundleSnapshotSource
+{
+    public ProfileBundleFileSnapshot ReadManifest(int maximumBytes)
+    {
+        ProfileBundleFileSnapshot snapshot = accepted.ManifestSnapshot(directory);
+        return snapshot.Length <= maximumBytes ? snapshot : throw new InvalidDataException("Accepted manifest exceeds the requested bound.");
+    }
+
+    public ProfileBundleEntrySnapshotCollection CaptureEntries(ProfileBundleManifest manifest, ProfileBundleEntrySnapshotLimits limits)
+    {
+        ArgumentNullException.ThrowIfNull(limits);
+        return ReferenceEquals(manifest, accepted.Manifest(directory))
+            ? ProfileBundleEntrySnapshotCollection.FromAccepted(accepted, directory)
+            : throw new ArgumentException("Manifest must belong to the accepted catalog.", nameof(manifest));
+    }
+}
+
 /// <summary>Captures manifest and entry snapshots from one closed bundle source.</summary>
 internal interface IProfileBundleSnapshotSource
 {

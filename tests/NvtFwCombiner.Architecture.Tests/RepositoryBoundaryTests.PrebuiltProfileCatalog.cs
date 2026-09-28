@@ -2,6 +2,27 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Only a private build-bound token opens the loader's single explicit schema exception.</summary>
+    [Fact]
+    public void PrebuiltSchemaExceptionRequiresTheAcceptedTokenAndSoleTrustedConstructorOwner()
+    {
+        string loader = ReadText("src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleLoader.cs");
+        string accepted = ReadText("src/NvtFwCombiner.Infrastructure/Bundles/AcceptedPrebuiltProfileCatalog.cs");
+        AssertContainsAll(loader, "Load(AcceptedPrebuiltProfileCatalog accepted, string bundleDirectory)",
+            "new AcceptedProfileBundleSnapshotSource(accepted, bundleDirectory)");
+        AssertContainsAll(accepted, "private AcceptedPrebuiltProfileCatalog(", "BuiltInProfileBuildAdmissionIdentity.TryRead(",
+            "BuiltInProfileBuildAdmissionIdentity.CalculateManifestSet(", "ProfileBundleLoader.AdmitManifest(");
+        Assert.Equal(1, CountOccurrences(accepted, "new AcceptedPrebuiltProfileCatalog("));
+        AssertDoesNotContainAny(accepted, "new TrustedProfileBundle(", "CatalogProjection", "Compiler", "Task.Run", "BuiltInV2BundleRegistry");
+        string sourceRoot = Path.Combine(Root.FullName, "src");
+        string[] constructors = [.. Directory.EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(p => !p.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            .Where(p => File.ReadAllText(p).Contains("new TrustedProfileBundle(", StringComparison.Ordinal))];
+        Assert.EndsWith("ProfileBundleLoader.cs", Assert.Single(constructors), StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(loader, "new TrustedProfileBundle("));
+        AssertDoesNotContainAny(loader, "skipValidation", "skipSchema", "bool prebuilt");
+    }
+
     /// <summary>The observation adapter is passive and the shipped protocol precedes ordinary host startup.</summary>
     [Fact]
     public void AdmissionObservationAndProbeCannotSelectOrTriggerUserServices()

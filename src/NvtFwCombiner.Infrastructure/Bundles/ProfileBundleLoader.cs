@@ -146,6 +146,16 @@ internal static class ProfileBundleLoader
         return new TrustedProfileBundle(manifestSnapshot, entrySnapshots, limits.MaximumJsonDepth);
     }
 
+    /// <summary>Only an accepted build-bound catalog can omit entry schema evaluation; all later gates remain.</summary>
+    internal static TrustedProfileBundle Load(AcceptedPrebuiltProfileCatalog accepted, string bundleDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(accepted);
+        var source = new AcceptedProfileBundleSnapshotSource(accepted, bundleDirectory);
+        ProfileBundleLoadLimits limits = BuiltInProfileBundleAdmissionSettings.Limits;
+        return new TrustedProfileBundle(source.ReadManifest(limits.MaximumManifestBytes),
+            source.CaptureEntries(accepted.Manifest(bundleDirectory), limits.EntrySnapshotLimits), limits.MaximumJsonDepth);
+    }
+
     internal static ProfileBundleManifest AdmitManifest(ProfileBundleFileSnapshot snapshot,
         ProfileBundleTrustAnchor trustAnchor, ProfileBundleLoadLimits limits)
     {
