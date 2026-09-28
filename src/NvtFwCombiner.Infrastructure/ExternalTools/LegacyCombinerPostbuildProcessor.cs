@@ -11,6 +11,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
     private const string BinDirectoryName = "BIN";
     private const string OutputDirectoryName = "output";
     private const string MapFileName = "map.txt";
+    private const int LegacyMaximumArgumentPathLength = 259;
 
     private readonly ExternalCombinerToolResolver _toolResolver;
     private readonly string _stagingRoot;
@@ -90,6 +91,23 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 "External processor staging directory escapes the approved staging root.");
         }
 
+        string outputDirectory = Path.Combine(runDirectory, OutputDirectoryName);
+        string binDirectory = Path.Combine(runDirectory, BinDirectoryName);
+        string firmwarePath = Path.Combine(outputDirectory, commandPlan.TargetFileName);
+        foreach (ExternalProcessorProtocolCommand command in commandPlan.Commands)
+        {
+            foreach (string argument in ResolveProtocolArguments(command, firmwarePath, binDirectory))
+            {
+                if (Path.IsPathFullyQualified(argument) &&
+                    argument.Length > LegacyMaximumArgumentPathLength)
+                {
+                    return Fail(
+                        "external-tool.argument-path.too-long",
+                        $"Legacy combiner command '{command.CommandId}' has an argument path of {argument.Length} characters; the maximum is {LegacyMaximumArgumentPathLength}.");
+                }
+            }
+        }
+
         List<ExternalProcessInvocation> executedCommands = [];
         try
         {
@@ -99,12 +117,9 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 return Fail("external-tool.staging.exists", "External processor staging directory already exists.");
             }
 
-            string outputDirectory = Path.Combine(runDirectory, OutputDirectoryName);
-            string binDirectory = Path.Combine(runDirectory, BinDirectoryName);
             _ = Directory.CreateDirectory(outputDirectory);
             _ = Directory.CreateDirectory(binDirectory);
 
-            string firmwarePath = Path.Combine(outputDirectory, commandPlan.TargetFileName);
             ReadOnlyMemory<byte> inputBytes = request.InputBytes;
             await File.WriteAllBytesAsync(firmwarePath, inputBytes, cancellationToken).ConfigureAwait(false);
             await File.WriteAllBytesAsync(Path.Combine(outputDirectory, MapFileName), [], cancellationToken)

@@ -8,6 +8,33 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 public sealed partial class LegacyCombinerPostbuildProcessorTests
 {
+    /// <summary>Rejects the legacy executable's maximum-length argument before staging bytes.</summary>
+    [Fact]
+    public async Task ArgumentPathAtLegacyLimitFailsBeforeStagingOrLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        const string runId = "run-long-path";
+        int padding = 260 - Path.Combine(workspace.Root, "x", runId, "output", "test_fw.bin").Length + 1;
+        string stagingRoot = Path.Combine(workspace.Root, new string('x', padding));
+        _ = Directory.CreateDirectory(stagingRoot);
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Must not launch."));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.long-path-v1", "test_fw.bin");
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            runId, profile.ProcessorId, profile.ToolBindingId, CreateFirmwareImage(), [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(
+            sha256, runner, stagingRoot: stagingRoot);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal("external-tool.argument-path.too-long", Assert.Single(result.Issues).Code);
+        Assert.Contains("260", result.Issues[0].Message, StringComparison.Ordinal);
+        Assert.Equal(0, runner.RunCount);
+        Assert.False(Directory.Exists(Path.Combine(stagingRoot, runId)));
+    }
+
     /// <summary>Rejecting a pre-existing directory must not delete another run's evidence.</summary>
     [Fact]
     public async Task RejectedExistingStagingPreservesSentinelWithoutLaunchingTool()
