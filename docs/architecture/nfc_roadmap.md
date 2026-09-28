@@ -50,9 +50,9 @@ of `1.1.13` so that it can be released on 2026-09-28:
 - **`1.2.x`** (decision 161): whether to change the Header backup CRC handling.
   Its root cause is recorded in 1.1.13; the owner judges it does not affect
   firmware operation.
-- **`1.2.1`** (decision 153): re-grouping the tests inside the local .NET
-  verification lane; the smaller L3 change (Infrastructure.Tests sharing the
-  lane pool) stays in `1.1.13`.
+- **`1.2.11`** (decision 153, moved by decision 175; its plan R13-01 is in `1.2.1`):
+  re-grouping the tests inside the local .NET verification lane; the smaller L3
+  change (Infrastructure.Tests sharing the lane pool) stays in `1.1.13`.
 - **`1.2.x`** (decision 154): the WS-TEST CI tiers and test-hygiene work tied
   to the G2 governance stage.
 
@@ -623,7 +623,7 @@ Moved to the [roadmap history](nfc_roadmap-history.md#local-full-verifier-parall
 Historical allocation: the owner merged the previous `1.1.6` and `1.1.7`
 milestones on 2026-09-05. The current sequence separates the workflow/gate
 audit (`1.1.8`), shared ownership (`1.2.1`) and documentation/minimality cleanup
-(`1.2.7`), retaining the work-package boundaries below.
+(`1.2.12`, decision 175), retaining the work-package boundaries below.
 Use capability, task difficulty, risk and coordination cost to select models
 and reasoning effort from all available models; disclose actual known model
 configuration, without permanent model-name roles. Audit skill inventory and
