@@ -66,7 +66,7 @@ remove items; the board decisions stay the authority for scope.
 | 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150) | three reviewable commits (UiSmoke 145/145); rebase onto the cutover trunk, then the non-UI remainder; Settings references (decision 150) wait for the owner |
 | 30 | G0: GitHub App, rulesets and settings, including A-5 | D6, D7 and A8 done on 2026-09-28; the owner confirms the rule insights for both D6 bypasses and the Bitwarden backup |
 
-## Waiting or open (19)
+## Waiting or open (18)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
@@ -86,11 +86,10 @@ remove items; the board decisions stay the authority for scope.
 | 56 | Private-string check rejects user-profile paths in new changes (rest of the public-paths bug) | open |
 | 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | release |
 | 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | release workflow cleanup R-1/R-2 |
-| 67 | G0 `gh` wrapper repository option conflict (`BUG-20260927-g0-gh-wrapper-repo-option-conflict`) | WS-GOV |
 | 70 | Local verify L3: Infrastructure.Tests shares the lane pool (about 2 min; decision 153) | a quiet machine for the measurement |
 | 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
 
-## Moved out (4)
+## Moved out (5)
 
 | # | Item | Now in |
 | --- | --- | --- |
@@ -98,6 +97,7 @@ remove items; the board decisions stay the authority for scope.
 | 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | 1.1.14 (decision 154) |
 | 49 | Test hygiene findings (WS-TEST T2-T4, G2) | 1.2.x (decision 154) |
 | 68 | Predecessor validator false inconsistency (`BUG-20260927-predecessor-validator-false-inconsistent`) | 1.1.14 (decision 154) |
+| 67 | G0 `gh` wrapper repository option conflict (`BUG-20260927-g0-gh-wrapper-repo-option-conflict`) | 1.1.14: the parameter rename needs an owner-controlled update of the installed wrapper and its G0 hash inventory (batch 6 review) |
 
 Not 1.1.13: the display-convention inventory (1.1.14, decision 39); the 1.2.1
 architecture and UI reviews and Launcher; CtrlRAM cold first-open and F14/F15
