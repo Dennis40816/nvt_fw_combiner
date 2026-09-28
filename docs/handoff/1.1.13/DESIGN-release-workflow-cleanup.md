@@ -14,9 +14,9 @@ the flow rules it relies on are in the
 are recorded in the [log](WS-GOV.md#design-review-2026-09-26); the owner
 decisions are listed in risk order at the end of the log.
 
-R-3 implementation status (2026-09-29): locally revised after independent R3
-review; the P1 admission failure and P2/P3 findings have local corrections and
-tests, pending renewed exact-head independent review. Board decision 168
+R-3 implementation status (2026-09-29): accepted by the renewed exact-head
+independent R3 review (openP0P1 0) after the P1 admission failure and the P2/P3
+findings were corrected and tested; integrated in the 1.1.14 integration branch B. Board decision 168
 authorized automatic start from a
 successful `ci` main push on a release PR merge commit; manual dispatch remains
 the fallback. Board decision 174 exempts 1.1.14 from RO-9 throwaway-repository

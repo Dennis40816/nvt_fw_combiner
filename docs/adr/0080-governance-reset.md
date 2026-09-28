@@ -73,10 +73,10 @@
   decision N" means the numbered owner decisions in the
   [1.1.12 board](../handoff/1.1.12.md).
 
-## Amendment: R0/R1 pull request merges (2026-09-29, decision 165)
+## Amendment: R0/R1 pull request merges (2026-09-29, decisions 165 and 172)
 
 Board decision 165 adopts the approval split proposed by decision 158 for
-1.1.14. This amendment supersedes the earlier all-path CODEOWNERS default and
+1.1.14, and board decision 172 implements it through CODEOWNERS. This amendment supersedes the earlier all-path CODEOWNERS default and
 the all-risk owner-approval and review-record wording in items 4, 6, 7 and 8
 and the G1-A check list in its "What it checks" and "It fails when" entries.
 It takes effect for a protected target only after this change merges
