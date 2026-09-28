@@ -120,6 +120,46 @@ materialized.
 
 ## Closed execution boundary
 
+### Derived built-in catalog and process identity
+
+[ADR 0077](../adr/0077-prebuilt-profile-catalog.md) adds exactly one external
+derived file, `profiles/built-in/prebuilt-profile-catalog.pack`, bounded to 4 MiB.
+It carries every indexed bundle, including on-demand bundles, without adding
+registrations or support authority. The index remains the sole admission list.
+
+Three hashes have distinct purposes: the canonical entry-array hash pins bundle
+entries (including schema hashes); compiled identity 1 pins exact reviewed index
+bytes; compiled identity 2 pins the canonical ordinal set of directory/raw-manifest
+SHA-256 pairs. The raw manifest identity additionally binds fields such as
+`bundleId` that the entry-array hash excludes. Runtime reuses the digest of the
+same index snapshot it parsed. Pack body/range checksums detect corruption and
+cannot substitute for either compiled identity.
+
+The registry loads the index first and fixes one source for the process on its
+first bundle load. A matching accepted pack uses the token-bound loader described
+in the [bundle contract](profile-bundle-v1.md#build-bound-built-in-admission).
+Damaged JSON/schema copies, missing listed files, broken entry arrays and
+admissible manifest-only edits then do not alter the admitted build identity.
+Absent/rejected packs preserve all existing JSON outcomes and add exactly one
+path-free Warning in `CapabilityCatalog`; the Warning alone never blocks Build.
+A valid index with different bytes, even whitespace alone, makes the pack
+ineligible and leaves JSON admission authoritative. A missing/invalid index
+prevents publication and cold-start Build and cannot be recovered from the pack;
+no completed source or pack-rejection Warning is fabricated.
+
+Once accepted, later bundle construction failures never trigger JSON fallback.
+Retry, cancellation, concurrent first access and `Reload Catalog` cannot replace
+the source, index or captured bytes; last-known-good publication behavior stays
+unchanged. Previously unopened JSON bundles retain their existing lazy capture.
+
+Delivery must preserve the complete pack/JSON correspondence: ADR 0077 decision 9
+requires B3 packaging regeneration, byte comparison, release inventory and actual
+headless `prebuilt` admission. Runtime acceptance alone does not prove those
+release gates. Current [R3 governance](../adr/0080-governance-reset.md) requires
+independent review and firmware-owner/release-owner approval at the final head.
+
+### Index lifetime
+
 The schema has `additionalProperties: false` at every authority-bearing level.
 Scripts, plugins, dynamic assemblies, executable paths, watch paths, mutable UI
 state, environment overrides, network locations, and hot reload are outside

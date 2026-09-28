@@ -13,9 +13,10 @@ public sealed class ProfileCatalogProbeTests
 {
     /// <summary>Catalog-only launch neither resolves user state nor creates trace/UI/configuration output.</summary>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ShippedProbeIsReadOnlyAndReportsActualCatalogPublication(bool damaged)
+    [InlineData("intact")]
+    [InlineData("index")]
+    [InlineData("missing-pack")]
+    public async Task ShippedProbeIsReadOnlyAndReportsActualCatalogPublication(string variant)
     {
         using var workspace = TempWorkspace.Create("profile-catalog-probe");
         string host = CopyHost(workspace);
@@ -23,10 +24,12 @@ public sealed class ProfileCatalogProbeTests
         JsonNode runtime = JsonNode.Parse(File.ReadAllBytes(config))!;
         runtime["runtimeOptions"]!["configProperties"]!["NvtFwCombiner.LocalState.CurrentUserFolderForbidden"] = true;
         File.WriteAllText(config, runtime.ToJsonString());
+        bool damaged = variant == "index";
         if (damaged)
         {
             File.WriteAllText(Path.Combine(host, "profiles", "built-in", "package-trust-index.json"), "{}");
         }
+        if (variant == "missing-pack") { File.Delete(Path.Combine(host, "profiles", "built-in", "prebuilt-profile-catalog.pack")); }
         Dictionary<string, string> before = Inventory(workspace.Root);
         (int exit, string output, string error) = await RunAsync(host, workspace, "--profile-catalog-probe-v1");
         Assert.Equal(string.Empty, error);
@@ -37,9 +40,9 @@ public sealed class ProfileCatalogProbeTests
         Assert.Equal("nfc-profile-catalog-probe-v1", json.RootElement.GetProperty("schemaVersion").GetString());
         Assert.Equal(!damaged, json.RootElement.GetProperty("catalogLoaded").GetBoolean());
         string? source = json.RootElement.GetProperty("admissionSource").GetString();
-        // B2b owns actual source publication. A missing observation must fail, never invent prebuilt.
-        Assert.Equal(!damaged && source is not null ? 0 : 1, exit);
-        Assert.True(source is null or "prebuilt" or "json");
+        Assert.Equal(damaged ? 1 : 0, exit);
+        Assert.Equal(damaged ? null : variant == "missing-pack" ? "json" : "prebuilt", source);
+        Assert.Equal(variant == "missing-pack" ? "missing" : null, json.RootElement.GetProperty("rejectionCode").GetString());
         Assert.Equal(before.OrderBy(p => p.Key, StringComparer.Ordinal), Inventory(workspace.Root).OrderBy(p => p.Key, StringComparer.Ordinal));
     }
 
