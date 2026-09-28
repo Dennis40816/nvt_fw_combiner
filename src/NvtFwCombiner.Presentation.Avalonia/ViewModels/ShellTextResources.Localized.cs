@@ -55,6 +55,12 @@ internal sealed partial class ShellTextResources
             LocalStateSaveFileInUseReason = Pick("the file is in use", "檔案正被其他程式使用"),
             LocalStateSaveTooLargeReason = Pick("the newest report is too large to keep", "最新的報告太大，無法保存"),
             LocalStateSaveUnexpectedReason = Pick("an unexpected error occurred", "發生未預期的錯誤"),
+            LocalStateSaveRedirectedReason = Pick(
+                "Windows redirected NFC's local state folder (usually when NFC is launched from another packaged app). Launch NFC directly",
+                "Windows 轉向了 NFC 的本機狀態資料夾（通常是從其他已封裝的 app 啟動 NFC）。請直接啟動 NFC"),
+            LocalStateSaveDiagnosticFormat = Pick("Diagnostic: {0}", "診斷資訊：{0}"),
+            LocalStateSaveRetryUnavailableReason = Pick(
+                "Retry is unavailable in this session.", "此程序無法重試。"),
             LocalStateReportHistoryLabel = Pick("Report history", "報告記錄"),
             LocalStatePreferencesLabel = Pick("Preferences", "偏好設定"),
             MessageCenterTitle = Pick("Message Center", "訊息中心"),

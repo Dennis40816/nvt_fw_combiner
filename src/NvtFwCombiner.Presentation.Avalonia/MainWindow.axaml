@@ -522,7 +522,7 @@
             FontSize="{DynamicResource NfcFontSize13}"
             Foreground="{DynamicResource NfcWarningTextMutedBrush}"
             Text="{ReflectionBinding Detail}"
-            TextTrimming="CharacterEllipsis"
+            TextWrapping="Wrap"
             ToolTip.Tip="{ReflectionBinding DetailToolTip}" />
         <Button
             x:Name="LocalStateSaveRetryButton"
@@ -534,6 +534,7 @@
             Classes="semanticAction secondary iconButton"
             AutomationProperties.Name="{ReflectionBinding RetryLabel}"
             Command="{ReflectionBinding RetryCommand}"
+            IsVisible="{ReflectionBinding IsRetryAvailable}"
             ToolTip.HorizontalOffset="-8"
             ToolTip.Placement="Left"
             ToolTip.Tip="{ReflectionBinding RetryLabel}"
