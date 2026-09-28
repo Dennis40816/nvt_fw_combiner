@@ -32,8 +32,10 @@
     <ItemGroup>
       <CatalogEvidenceFiles Include="..\NvtFwCombiner.CatalogProbe\bin\$(Configuration)\net10.0\**\*" />
     </ItemGroup>
+    <!-- "ceh" (catalog evidence host) stays short: the verifier session path plus the
+         built-in bundle paths must fit under MAX_PATH on machines without long paths. -->
     <Copy SourceFiles="@(CatalogEvidenceFiles)"
-          DestinationFiles="@(CatalogEvidenceFiles->'$(OutDir)catalog-evidence-host\%(RecursiveDir)%(Filename)%(Extension)')"
+          DestinationFiles="@(CatalogEvidenceFiles->'$(OutDir)ceh\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
   </Target>
 </Project>

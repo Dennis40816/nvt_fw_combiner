@@ -183,7 +183,7 @@ internal sealed class CatalogProbeCopy : IDisposable
 
     internal CatalogProbeCopy(string? source = null)
     {
-        source ??= Path.Combine(AppContext.BaseDirectory, "catalog-evidence-host");
+        source ??= Path.Combine(AppContext.BaseDirectory, "ceh");
         Assert.True(Directory.Exists(source), "The checkpoint-5 CatalogProbe child must be built and copied.");
         Root = _workspace.PathFor("host");
         foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
