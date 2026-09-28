@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using System.Globalization;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Bootstrap;
@@ -37,6 +38,50 @@ public sealed class OutputConfirmationLabelTests
         Assert.Equal(expected, text.CreateInputIssueCard(status, "DP_AB BIN").Summary);
         Assert.StartsWith(expected, text.GetInputSlotInspectionStatus(status), StringComparison.Ordinal);
         Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", text.CreateInputIssueCard(status, "DP_AB BIN").DiagnosticCode);
+    }
+
+    /// <summary>Expected alternatives and absent expectations keep the observed length visible.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NonstandardDpWarningShowsEveryExpectedLengthAndActualOnlyFallback(bool chinese)
+    {
+        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        AuthoringInputSlotStatus multiple = StandardMergeFeedbackTests.Status("DP_NONSTANDARD_SIZE_WARNING",
+            AuthoringSlotLifecycle.Warning, actualLength: 0xC0000, expectedOuterLengths: [0x80000, 0x100000]);
+        string detail = text.GetInputIssueHelp("DP_NONSTANDARD_SIZE_WARNING", "warning",
+            inspection: multiple.Inspection)!.Value.Detail;
+        Assert.Contains("786,432 bytes", detail, StringComparison.Ordinal);
+        Assert.Contains("524,288 / 1,048,576 bytes", detail, StringComparison.Ordinal);
+
+        AuthoringInputSlotStatus noExpected = StandardMergeFeedbackTests.Status("DP_NONSTANDARD_SIZE_WARNING",
+            AuthoringSlotLifecycle.Warning, actualLength: 0xC0000, expectedOuterLengths: []);
+        string fallback = text.GetInputIssueHelp("DP_NONSTANDARD_SIZE_WARNING", "warning",
+            inspection: noExpected.Inspection)!.Value.Detail;
+        Assert.Contains("786,432 bytes", fallback, StringComparison.Ordinal);
+        Assert.Contains(chinese ? "此 IC 的預期大小" : "expected size for this IC", fallback, StringComparison.Ordinal);
+    }
+
+    /// <summary>DP warning byte separators follow the confirmation's current-culture byte labels.</summary>
+    [Fact]
+    public void NonstandardDpWarningUsesCurrentCultureForByteLengths()
+    {
+        CultureInfo original = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+            AuthoringInputSlotStatus status = StandardMergeFeedbackTests.Status("DP_NONSTANDARD_SIZE_WARNING",
+                AuthoringSlotLifecycle.Warning, actualLength: 0xC0000, expectedOuterLengths: [0x80000, 0x100000]);
+            string detail = ShellTextResources.For(ShellLanguage.English).GetInputIssueHelp(
+                "DP_NONSTANDARD_SIZE_WARNING", "warning", inspection: status.Inspection)!.Value.Detail;
+            Assert.Contains(0xC0000L.ToString("N0", CultureInfo.CurrentCulture) + " bytes", detail, StringComparison.Ordinal);
+            Assert.Contains(0x80000L.ToString("N0", CultureInfo.CurrentCulture) + " / " +
+                0x100000L.ToString("N0", CultureInfo.CurrentCulture) + " bytes", detail, StringComparison.Ordinal);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = original;
+        }
     }
 
     /// <summary>Length and metadata warnings survive together, without repeated advisory codes.</summary>

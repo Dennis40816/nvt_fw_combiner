@@ -105,6 +105,7 @@ internal sealed partial class ReportReviewViewModel
             return [];
         }
         Dictionary<int, InputDiagnosticEvidence?> diagnostics = ParseInputDiagnostics(root, issues.GetArrayLength(), cancellationToken);
+        (string Code, long Actual, long[] Expected)? dpWarning = ParseDpWarningFacts(root);
         var result = new List<ReportLineViewModel>();
         foreach (JsonElement issue in issues.EnumerateArray())
         {
@@ -119,7 +120,9 @@ internal sealed partial class ReportReviewViewModel
                 GetStringOrNull(issue, "OperationId") ?? "run",
                 severity,
                 language,
-                diagnostics.GetValueOrDefault(result.Count)));
+                diagnostics.GetValueOrDefault(result.Count),
+                dpWarning is { } facts && code == facts.Code ? facts.Actual : null,
+                dpWarning is { } matching && code == matching.Code ? matching.Expected : null));
         }
         return result;
     }
@@ -128,7 +131,8 @@ internal sealed partial class ReportReviewViewModel
         IReadOnlyList<CompositionIssue> issues,
         ShellLanguage language,
         CancellationToken cancellationToken,
-        IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null)
+        IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null,
+        SourceEnvelopeRunSummary? sourceEnvelope = null)
     {
         Dictionary<int, InputDiagnosticEvidence?> diagnostics = IndexInputDiagnostics(inputDiagnostics, issues.Count);
         int index = 0;
@@ -140,7 +144,11 @@ internal sealed partial class ReportReviewViewModel
                     issue.OperationId ?? "run",
                     issue.Severity,
                     language,
-                    diagnostics.GetValueOrDefault(index++)),
+                    diagnostics.GetValueOrDefault(index++),
+                    sourceEnvelope is not null && issue.Code == sourceEnvelope.UnexpectedLengthIssueCode
+                        ? sourceEnvelope.ActualOutputLength : null,
+                    sourceEnvelope is not null && issue.Code == sourceEnvelope.UnexpectedLengthIssueCode
+                        ? sourceEnvelope.ExpectedOuterLengths : null),
             cancellationToken);
     }
 
@@ -165,9 +173,12 @@ internal sealed partial class ReportReviewViewModel
         string operationId,
         string severity,
         ShellLanguage language,
-        InputDiagnosticEvidence? evidence = null)
+        InputDiagnosticEvidence? evidence = null,
+        long? actualLength = null,
+        IReadOnlyList<long>? expectedOuterLengths = null)
     {
-        (string Title, string Detail)? help = ShellTextResources.For(language).GetInputIssueHelp(code, severity, evidence);
+        (string Title, string Detail)? help = ShellTextResources.For(language).GetInputIssueHelp(
+            code, severity, evidence, actualLength: actualLength, expectedOuterLengths: expectedOuterLengths);
         string badge = severity.ToLowerInvariant() switch
         {
             "error" => T(language, "Error", "錯誤"),
@@ -185,6 +196,27 @@ internal sealed partial class ReportReviewViewModel
             codeBlock: help is not null ? message : string.Empty,
             codeBlockLabel: T(language, "Original diagnostic", "原始診斷"), severity: severity,
             issueSummary: help?.Title ?? string.Empty, badges: [new(badge)], facts: facts);
+    }
+
+    private static (string Code, long Actual, long[] Expected)? ParseDpWarningFacts(JsonElement root)
+    {
+        if (!root.TryGetProperty("SourceEnvelope", out JsonElement envelope) || envelope.ValueKind != JsonValueKind.Object ||
+            !envelope.TryGetProperty("UnexpectedLengthIssueCode", out JsonElement code) || code.ValueKind != JsonValueKind.String ||
+            !envelope.TryGetProperty("ActualOutputLength", out JsonElement actual) || !actual.TryGetInt64(out long actualLength) ||
+            !envelope.TryGetProperty("ExpectedOuterLengths", out JsonElement expected) || expected.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+        long[] lengths = [];
+        try
+        {
+            lengths = [.. expected.EnumerateArray().Select(static length => length.GetInt64())];
+        }
+        catch (Exception exception) when (exception is FormatException or InvalidOperationException or OverflowException)
+        {
+            return null;
+        }
+        return (code.GetString() ?? string.Empty, actualLength, lengths);
     }
 
     private static string LegacySeverityForIssueCode(string code)

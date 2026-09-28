@@ -75,13 +75,16 @@ internal sealed partial class ShellTextResources
 
     // Display help for typed diagnostics only; this does not classify input bytes or severity.
     internal (string Title, string Detail)? GetInputIssueHelp(string code, string severity,
-        InputDiagnosticEvidence? evidence = null, CompiledInputArtifactInspectionResult? inspection = null)
+        InputDiagnosticEvidence? evidence = null, CompiledInputArtifactInspectionResult? inspection = null,
+        long? actualLength = null, IReadOnlyList<long>? expectedOuterLengths = null)
     {
         (string Title, string Detail)? help = severity.ToLowerInvariant() switch
         {
             "warning" => code switch
             {
-                "DP_NONSTANDARD_SIZE_WARNING" => DpSizeWarningText.Get(Language, inspection),
+                "DP_NONSTANDARD_SIZE_WARNING" => DpSizeWarningText.Get(Language,
+                    inspection?.ActualLength ?? actualLength ?? evidence?.ActualLength,
+                    inspection?.ExpectedOuterLengths ?? expectedOuterLengths),
                 "DP_UNIFORM_CONTENT_WARNING" => UniformInputHelp("DP"),
                 "TP_UNIFORM_CONTENT_WARNING" => UniformInputHelp("TP"),
                 "LDC_UNIFORM_CONTENT_WARNING" => UniformInputHelp("LDC"),

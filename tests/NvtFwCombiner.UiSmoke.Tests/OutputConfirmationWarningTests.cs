@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -90,6 +91,10 @@ public sealed class OutputConfirmationWarningTests
                 block.IsEffectivelyVisible && block.Text == warning.Detail);
             Assert.DoesNotContain(modal.FindControl<ItemsControl>("SourceFilesList")!.GetVisualDescendants()
                 .OfType<TextBlock>(), block => block.Text == warning.Detail);
+            Avalonia.Controls.Shapes.Path icon = Assert.Single(modal.FindControl<ItemsControl>("SourceFilesList")!
+                .GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>(), path => path.IsEffectivelyVisible);
+            Assert.Equal(vm.InputRows[0].Warning, ToolTip.GetTip(icon));
+            Assert.Equal(vm.InputRows[0].Warning, AutomationProperties.GetName(icon));
             TextBlock sourceRole = Assert.Single(modal.FindControl<ItemsControl>("SourceFilesList")!
                 .GetVisualDescendants().OfType<TextBlock>(), block => block.Text == "DP AB Code");
             TextBlock checkRole = Assert.Single(modal.FindControl<Border>("SourceChecksPanel")!
