@@ -77,8 +77,9 @@
 
 Board decision 165 adopts the approval split proposed by decision 158 for
 1.1.14. This amendment supersedes the earlier all-path CODEOWNERS default and
-the all-risk owner-approval wording in items 4, 7 and 8 and their procedural
-summaries. It takes effect for a protected target only after this change merges
+the all-risk owner-approval and review-record wording in items 4, 6, 7 and 8
+and the G1-A check list in its "What it checks" and "It fails when" entries.
+It takes effect for a protected target only after this change merges
 and the owner verifies that target's effective ruleset. `main` and release
 branch rulesets are outside this amendment.
 
@@ -90,13 +91,19 @@ branch rulesets are outside this amendment.
   R2/R3 pattern also matches it.
 - Every pull request has an independent, complete, non-rejecting review record
   bound by both `commit_id` and block `head` to its exact head. Its GitHub
-  principal must be on the base and head policy reviewer allowlists, its
-  `reviewer` identifier must differ from the block's `implementationOwner`,
-  and `openP0P1` is zero. The authority check enforces these observable facts
-  for R0 through R3. Agents may share one GitHub App principal; session
-  independence remains a reviewer/commander evidence judgment.
+  principal must be on the base and head policy reviewer allowlists, and
+  `openP0P1` is zero. Both `implementationOwner` and `reviewer` use a
+  `runtime/model` identifier. Another runtime uses `other-runtime` mode; a
+  fresh session of the author's runtime, including the same model, uses
+  `same-runtime-fresh-session` mode. The authority check compares runtimes
+  and requires the corresponding mode for R0 through R3. Agents may share one
+  GitHub App principal; whether the session was actually fresh remains a
+  reviewer/commander evidence judgment.
 - The authority check compares declared risk with the stricter base/head path
-  floor. A declared R2/R3 change with no classified R2/R3 path fails closed:
+  floor. Code ownership requires a case-sensitive R2/R3 policy match on a
+  GitHub-listed changed path; an unchanged copy source does not qualify.
+  A path that matches R2/R3 only without case sensitivity fails closed.
+  A declared R2/R3 change with no such code-owned path fails closed:
   it needs an owner-approved exact-head classification/ownership change and a
   new run before merge. An unclassified new location has no CODEOWNERS entry
   and follows the same stop.
@@ -110,9 +117,10 @@ branch rulesets are outside this amendment.
   `required_approving_review_count: 0`, and
   `require_last_push_approval: true`; required checks, including
   `governance / authority`, stay required. The read-only
-  `.github/workflows/authority.yml` and its base-authority execution model do
-  not change. A review edit or withdrawal does not rerun the check or revoke
-  an earlier green conclusion; the commander reruns and inspects the live
+  `.github/workflows/authority.yml` does not change. Its head checkout runs
+  the checker, with a separate base-authority comparison before merge. A review
+  edit or withdrawal does not rerun the check or revoke an earlier green
+  conclusion; the commander reruns and inspects the live
   record immediately before merge. GitHub's effective behavior with zero
   required approvals plus last-push approval is verified by two trial pull
   requests before relying on this split.

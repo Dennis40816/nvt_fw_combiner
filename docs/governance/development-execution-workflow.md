@@ -83,13 +83,17 @@ and any required code-owner approval on the new head.
 
 **Authority block.** The description carries exactly one fenced
 `nfc-authority` JSON block (template: `.github/pull_request_template.md`):
-`risk`, `roles`, `implementationOwner`, `ownedPaths` and, for each declared
-role, its `evidence` (`firmware-owner`: `golden`, `writeRanges`;
+`risk`, `roles`, `implementationOwner` (a `runtime/model` identifier),
+`ownedPaths` and, for each declared role, its `evidence` (`firmware-owner`:
+`golden`, `writeRanges`;
 `release-owner`: `release`; `governance-owner`: `change` and, for each
 unclassified path, a `classification`). The check takes the changed paths from
 the merge base of the live base tip and the head, both sides of renames and
-copies included, and applies the stricter of the base and head policies to
-each path. It fails when the block is missing or malformed, the declared risk
+copies included for classification, and applies the stricter of the base and
+head policies to each path. Code ownership needs a case-sensitive R2/R3 match
+on a GitHub-listed changed path, excluding an unchanged copy source. A path
+that matches R2/R3 only without case sensitivity fails closed. It fails when
+the block is missing or malformed, the declared risk
 is below the floor, a role the paths, a review record or a classification
 require is not declared, a declared role lacks its entries, any change has no
 valid independent review record on the head, a declared R2/R3 change has no
@@ -115,9 +119,11 @@ gh api repos/Dennis40816/nvt_fw_combiner/pulls/<n>/reviews -X POST \
 `verdict` (`accept`, `accept-with-changes` or `reject`), `openP0P1`, `state`
 (`complete` or `incomplete`) and `addedRoles`. It counts when its `commit_id`
 and `head` equal the head, it is complete and not rejecting, `openP0P1` is 0,
-and its author is on the reviewer list of both policies. Its `reviewer`
-identifier must differ from the block's `implementationOwner`; agents can
-share a GitHub App principal, so session independence remains procedural.
+and its author is on the reviewer list of both policies. A reviewer from
+another runtime uses `other-runtime`; a fresh session of the author's runtime,
+including the same model, uses `same-runtime-fresh-session`. The check compares
+the runtimes and modes; agents can share a GitHub App principal, so actual
+session independence remains procedural.
 The latest record of each listed principal decides.
 Posting or editing a review starts no run, and a new head needs a new record.
 
