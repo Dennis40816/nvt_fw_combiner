@@ -430,7 +430,8 @@ public sealed class LocalStateSaveNoticeTests
                 AssertBrush(part, part.Foreground, "NfcWarningTextMutedBrush");
                 AssertContrast(part.Foreground, host.Background, minimum: 4.5);
             }
-            Assert.Equal(TextTrimming.CharacterEllipsis, detail.TextTrimming);
+            Assert.Equal(TextTrimming.None, detail.TextTrimming);
+            Assert.Equal(TextWrapping.Wrap, detail.TextWrapping);
             Assert.Equal(notice.DetailToolTip, ToolTip.GetTip(detail));
             Panel icon = Assert.Single(host.GetVisualDescendants().OfType<Panel>(),
                 panel => panel.Children.Count == 2 && panel.Children.All(static child => child is ShapePath));
@@ -808,6 +809,92 @@ public sealed class LocalStateSaveNoticeTests
             $"Couldn't save your recent work state: {reason}. Your current work isn't affected.",
             notice.Detail);
         Assert.Equal($"Report history: {failure.Message}", notice.DetailToolTip);
+    }
+
+    /// <summary>A redirected local-state directory has an actionable reason and cannot be retried in this process.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RedirectedLocalStateShowsDiagnosticAndDisablesRetry(bool chinese)
+    {
+        ShellTextResources text = ShellTextResources.For(chinese
+            ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        var notice = new LocalStateSaveNoticeViewModel(() => text);
+        int retries = 0;
+        notice.Attach(LocalStateSaveTarget.Preferences, () => { retries++; return true; });
+        var failure = new IOException("Could not anchor local file directory (NTSTATUS 0xC000050B).",
+            unchecked((int)0x8007112B));
+
+        notice.ObserveSave(LocalStateSaveTarget.Preferences, failure);
+
+        Assert.Contains(chinese ? "Windows 轉向了 NFC 的本機狀態資料夾" :
+            "Windows redirected NFC's local state folder", notice.Detail, StringComparison.Ordinal);
+        Assert.Contains(chinese ? "請直接啟動 NFC" : "Launch NFC directly", notice.Detail,
+            StringComparison.Ordinal);
+        Assert.Contains("NTSTATUS 0xC000050B", notice.Detail, StringComparison.Ordinal);
+        Assert.Contains("NTSTATUS 0xC000050B", notice.AccessibleStatus, StringComparison.Ordinal);
+        Assert.Contains(chinese ? "此程序無法重試" : "Retry is unavailable in this session",
+            notice.AccessibleStatus, StringComparison.Ordinal);
+        Assert.False(notice.IsRetryAvailable);
+        Assert.False(notice.RetryCommand.CanExecute(null));
+        notice.RetryCommand.Execute(null);
+        Assert.Equal(0, retries);
+    }
+
+    /// <summary>A permanent failure does not prevent Retry for another recoverable target.</summary>
+    [Fact]
+    public void RetrySkipsRedirectedTargetButRequeuesRecoverableTarget()
+    {
+        var notice = new LocalStateSaveNoticeViewModel(() => ShellTextResources.For(ShellLanguage.English));
+        List<LocalStateSaveTarget> retries = [];
+        notice.Attach(LocalStateSaveTarget.Preferences, () => { retries.Add(LocalStateSaveTarget.Preferences); return true; });
+        notice.Attach(LocalStateSaveTarget.ReportHistory,
+            () => { retries.Add(LocalStateSaveTarget.ReportHistory); return true; });
+        notice.ObserveSave(LocalStateSaveTarget.Preferences,
+            new IOException("NTSTATUS 0xC000050B", unchecked((int)0x8007112B)));
+        notice.ObserveSave(LocalStateSaveTarget.ReportHistory, new IOException("sharing violation",
+            unchecked((int)0x80070020)));
+
+        Assert.True(notice.RetryCommand.CanExecute(null));
+        notice.RetryCommand.Execute(null);
+        Assert.Equal([LocalStateSaveTarget.ReportHistory], retries);
+    }
+
+    /// <summary>The redirected failure renders its diagnostic in the notice while the Retry control is absent.</summary>
+    [AvaloniaFact]
+    public async Task RedirectedNoticeRendersDiagnosticAndHidesRetry()
+    {
+        using var workspace = TempWorkspace.Create("local-state-redirect-notice");
+        (PresentationHostServices services, ScriptedStateFiles files) = await CreateScriptedServicesAsync(workspace);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services,
+            ShellPreferenceSnapshot.Default)
+        { Width = 1280, Height = 860 };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            files.Fail(files.PreferencesPath, static () => new IOException(
+                "Could not anchor local file directory (NTSTATUS 0xC000050B).",
+                unchecked((int)0x8007112B)));
+            var shell = (MainWindowViewModel)window.DataContext!;
+            shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
+            LocalStateSaveNoticeViewModel notice = Notice(window);
+            await WaitUntilAsync(() => notice.IsVisible);
+            window.UpdateLayout();
+
+            Border host = window.FindControl<Border>(NoticeHostName)!;
+            TextBlock detail = Assert.Single(host.GetVisualDescendants().OfType<TextBlock>(),
+                block => block.Text == notice.Detail);
+            Assert.True(detail.IsEffectivelyVisible);
+            Assert.Contains("NTSTATUS 0xC000050B", detail.Text, StringComparison.Ordinal);
+            Assert.True(detail.TextLayout.Height <= detail.Bounds.Height + 1);
+            Assert.Equal(notice.AccessibleStatus, AutomationProperties.GetName(host));
+            Assert.False(window.FindControl<Button>(RetryButtonName)!.IsVisible);
+        }
+        finally
+        {
+            await CloseAndFlushAsync(window);
+        }
     }
 
     /// <summary>A language change republishes the notice text; success of an unfailed state changes nothing.</summary>

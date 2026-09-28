@@ -25,10 +25,12 @@ internal sealed class LocalStateSaveNoticeViewModel : ObservableObject
     private const int ErrorLockViolation = unchecked((int)0x80070021);
     private const int ErrorHandleDiskFull = unchecked((int)0x80070027);
     private const int ErrorDiskFull = unchecked((int)0x80070070);
+    // HRESULT_FROM_WIN32(ERROR_REPARSE_POINT_ENCOUNTERED, 4395) from the atomic writer.
+    private const int ErrorReparsePointEncountered = unchecked((int)0x8007112B);
     private static readonly string[] PublishedPropertyNames =
     [
         nameof(IsVisible), nameof(Title), nameof(Detail), nameof(DetailToolTip), nameof(AccessibleStatus),
-        nameof(RetryLabel),
+        nameof(RetryLabel), nameof(IsRetryAvailable),
     ];
     private readonly Func<ShellTextResources> _text;
     private readonly Dictionary<LocalStateSaveTarget, Func<bool>> _retries = [];
@@ -40,22 +42,37 @@ internal sealed class LocalStateSaveNoticeViewModel : ObservableObject
     {
         ArgumentNullException.ThrowIfNull(text);
         _text = text;
-        RetryCommand = new RelayCommand(Retry, () => IsVisible && !_isDetached);
+        RetryCommand = new RelayCommand(Retry, () => IsRetryAvailable && !_isDetached);
     }
 
     public IRelayCommand RetryCommand { get; }
 
     public bool IsVisible => _failures.Count > 0;
 
+    public bool IsRetryAvailable => _failures.Values.Any(static failure => !IsRedirected(failure));
+
     public string Title => IsVisible ? _text().LocalStateSaveFailedTitle : string.Empty;
 
     /// <summary>One sentence whose reason follows the most recent unresolved failure.</summary>
-    public string Detail => LatestFailure is { } failure
-        ? string.Format(
-            CultureInfo.CurrentCulture,
-            _text().LocalStateSaveFailedDetailFormat,
-            DescribeReason(_text(), failure))
-        : string.Empty;
+    public string Detail
+    {
+        get
+        {
+            if (LatestFailure is not { } failure)
+            {
+                return string.Empty;
+            }
+
+            ShellTextResources text = _text();
+            string detail = string.Format(
+                CultureInfo.CurrentCulture,
+                text.LocalStateSaveFailedDetailFormat,
+                DescribeReason(text, failure));
+            return IsRedirected(failure)
+                ? $"{detail} {string.Format(CultureInfo.CurrentCulture, text.LocalStateSaveDiagnosticFormat, Diagnostic(failure))}"
+                : detail;
+        }
+    }
 
     /// <summary>Names each unsaved state with the diagnostic its save reported.</summary>
     public string DetailToolTip
@@ -70,7 +87,9 @@ internal sealed class LocalStateSaveNoticeViewModel : ObservableObject
         }
     }
 
-    public string AccessibleStatus => IsVisible ? $"{Title} — {Detail}" : string.Empty;
+    public string AccessibleStatus => IsVisible
+        ? $"{Title} — {Detail}" + (IsRetryAvailable ? string.Empty : $" {_text().LocalStateSaveRetryUnavailableReason}")
+        : string.Empty;
 
     /// <summary>The icon-only Retry button's tooltip and accessible name.</summary>
     public string RetryLabel => _text().RetryLabel;
@@ -138,6 +157,7 @@ internal sealed class LocalStateSaveNoticeViewModel : ObservableObject
     {
         return failure switch
         {
+            IOException { HResult: ErrorReparsePointEncountered } => text.LocalStateSaveRedirectedReason,
             UnauthorizedAccessException => text.LocalStateSaveAccessDeniedReason,
             ReportHistoryPersistenceException { Failure: ReportHistoryPersistenceFailure.EntryTooLargeToPersist } =>
                 text.LocalStateSaveTooLargeReason,
@@ -145,6 +165,11 @@ internal sealed class LocalStateSaveNoticeViewModel : ObservableObject
             IOException { HResult: ErrorSharingViolation or ErrorLockViolation } => text.LocalStateSaveFileInUseReason,
             _ => text.LocalStateSaveUnexpectedReason,
         };
+    }
+
+    private static bool IsRedirected(Exception failure)
+    {
+        return failure is IOException { HResult: ErrorReparsePointEncountered };
     }
 
     private static string TargetLabel(ShellTextResources text, LocalStateSaveTarget target)
@@ -161,14 +186,15 @@ internal sealed class LocalStateSaveNoticeViewModel : ObservableObject
 
     private void Retry()
     {
-        if (_isDetached)
+        if (_isDetached || !IsRetryAvailable)
         {
             return;
         }
 
         foreach (LocalStateSaveTarget target in _failures.Keys.ToArray())
         {
-            if (_retries.TryGetValue(target, out Func<bool>? retry))
+            if (_failures.TryGetValue(target, out Exception? failure) && !IsRedirected(failure) &&
+                _retries.TryGetValue(target, out Func<bool>? retry))
             {
                 // The outcome returns through ObserveSave; the notice stays until a save succeeds.
                 _ = retry();
