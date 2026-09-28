@@ -546,9 +546,9 @@ Describe 'NFC G0 process isolation with fake secrets' {
             $psi.UseShellExecute = $false
             $psi.RedirectStandardOutput = $true
             $psi.RedirectStandardError = $true
-            foreach ($arg in @('-NoProfile', '-File', $wrapper, '-Owner', 'owner', '-Repo', 'repo',
+            foreach ($arg in @('-NoProfile', '-File', $wrapper, '-Owner', 'owner', '-TargetRepository', 'repo',
                 '-ClientId', 'Iv1.fake', '-InstallationId', '1', '-DpapiPath', 'unused',
-                '/d', '/c', 'echo', '%GH_TOKEN%')) { [void]$psi.ArgumentList.Add($arg) }
+                '/d', '/c', 'echo', '%GH_TOKEN%', '--repo', 'owner/repo')) { [void]$psi.ArgumentList.Add($arg) }
             $proc = [Diagnostics.Process]::Start($psi)
             try {
                 $outTask = $proc.StandardOutput.ReadToEndAsync()
@@ -559,6 +559,7 @@ Describe 'NFC G0 process isolation with fake secrets' {
                 $proc.ExitCode | Should Be 0
                 $output.Contains('FAKE_TOKEN_12345') | Should Be $false
                 $output | Should Match '\[redacted\]'
+                $output | Should Match '--repo owner/repo'
                 $env:GH_TOKEN | Should Be 'parent-token'
             } finally { $proc.Dispose() }
 

@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Owner,
-    [Parameter(Mandatory)][string]$Repo,
+    [Parameter(Mandatory)][string]$TargetRepository,
     [Parameter(Mandatory)][string]$ClientId,
     [Parameter(Mandatory)][long]$InstallationId,
     [Parameter(Mandatory)][string]$DpapiPath,
@@ -21,7 +21,7 @@ try {
     $helper.RedirectStandardOutput = $true
     $helper.RedirectStandardError = $true
     foreach ($arg in @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'nfc-app-token-helper.ps1'),
-        '-Mode', 'token', '-Owner', $Owner, '-Repo', $Repo, '-ClientId', $ClientId,
+        '-Mode', 'token', '-Owner', $Owner, '-Repo', $TargetRepository, '-ClientId', $ClientId,
         '-InstallationId', [string]$InstallationId, '-DpapiPath', $DpapiPath)) {
         [void]$helper.ArgumentList.Add($arg)
     }
