@@ -29,10 +29,33 @@ public sealed partial class MainWindow
         IStorageProvider storageProvider,
         CancellationToken sessionToken)
     {
-        if (DataContext is not MainWindowViewModel viewModel)
+        if (ClosePhase != WindowClosePhase.Open || sessionToken.IsCancellationRequested ||
+            DataContext is not MainWindowViewModel viewModel)
         {
             return;
         }
+        ReportPresentationViewModel reports = viewModel.Reports;
+        long generation = reports.BeginReportProjection();
+        using var contextCancellation = CancellationTokenSource.CreateLinkedTokenSource(sessionToken);
+        void InvalidateContext(object? sender, EventArgs e)
+        {
+            contextCancellation.Cancel();
+        }
+        void ModalChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MessageCenterViewModel.IsOpen))
+            {
+                contextCancellation.Cancel();
+            }
+        }
+        bool IsContextCurrent()
+        {
+            return !contextCancellation.IsCancellationRequested &&
+                ClosePhase == WindowClosePhase.Open && ReferenceEquals(DataContext, viewModel) &&
+                ReferenceEquals(viewModel.Reports, reports);
+        }
+        DataContextChanged += InvalidateContext;
+        viewModel.MessageCenter.PropertyChanged += ModalChanged;
         try
         {
             IReadOnlyList<IStorageFile> files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -49,38 +72,40 @@ public sealed partial class MainWindow
             ],
             });
 
-            if (files.Count == 0)
+            if (!IsContextCurrent() || !reports.IsCurrentReportProjection(generation) || files.Count == 0)
             {
                 return;
             }
 
             IStorageFile file = files[0];
-            ReportPublicationResult result = await viewModel.Reports.LoadReportFileAsync(
+            ReportPublicationResult result = await reports.LoadReportFileAsync(
                 token => _hostServices.LocalFiles.ReadTextAsync(
                     _ => new ValueTask<Stream>(file.OpenReadAsync()),
                     MaximumStandaloneReportBytes,
                     token),
                 file.Name,
-                sessionToken);
-            if (result.Outcome == ReportPublicationOutcome.Published && viewModel.MessageCenter.IsOpen)
+                contextCancellation.Token);
+            if (IsContextCurrent() && result.Outcome == ReportPublicationOutcome.Published && viewModel.MessageCenter.IsOpen)
             {
                 viewModel.Reports.ShowReportCommand.Execute(null);
             }
         }
-        catch (OperationCanceledException) when (sessionToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (contextCancellation.IsCancellationRequested)
         {
-            // Window shutdown owns cancellation.
+            // Window shutdown or a dismissed/replaced picker context owns cancellation.
         }
         catch (Exception exception)
         {
-            if (!sessionToken.IsCancellationRequested)
+            if (IsContextCurrent())
             {
                 viewModel.Reports.SetShellToast(viewModel.Text.LoadRunReportLabel, exception.Message);
             }
         }
         finally
         {
-            if (!sessionToken.IsCancellationRequested &&
+            DataContextChanged -= InvalidateContext;
+            viewModel.MessageCenter.PropertyChanged -= ModalChanged;
+            if (IsContextCurrent() &&
                 trigger is { IsEffectivelyVisible: true } && !viewModel.Reports.IsReportModalOpen)
             {
                 _ = trigger.Focus();

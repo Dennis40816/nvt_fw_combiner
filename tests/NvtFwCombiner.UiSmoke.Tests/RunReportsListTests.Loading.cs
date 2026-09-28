@@ -98,6 +98,61 @@ public sealed partial class RunReportsListTests
         finally { await CloseAndFlushAsync(window); }
     }
 
+    /// <summary>A pending picker cannot import into a replaced or dismissed report context.</summary>
+    [AvaloniaTheory]
+    [InlineData("context")]
+    [InlineData("reopen")]
+    [InlineData("newer-report")]
+    [InlineData("close")]
+    public async Task ReportPickerDropsStaleSelection(string change)
+    {
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5"), ShellPreferenceSnapshot.Default);
+        window.Show();
+        await AwaitHistoryReadyAsync(window);
+        var shell = (MainWindowViewModel)window.DataContext!;
+        shell.MessageCenter.OpenRunReportsCommand.Execute(null);
+        var selected = new TaskCompletionSource<IReadOnlyList<IStorageFile>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int reads = 0;
+        using IStorageFile file = DispatchProxy.Create<IStorageFile, ReportStorageProxy>();
+        ((ReportStorageProxy)file).Call = (method, _) => method switch
+        {
+            "get_Name" => "stale.json",
+            "Dispose" => null,
+            "OpenReadAsync" => Read(),
+            _ => throw new NotSupportedException(method),
+        };
+        Task<Stream> Read()
+        {
+            reads++;
+            return Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(
+                ReportJsonSamples.Succeeded(runId: "stale"))));
+        }
+        IStorageProvider picker = DispatchProxy.Create<IStorageProvider, ReportStorageProxy>();
+        ((ReportStorageProxy)picker).Call = (_, _) => selected.Task;
+        Task loading = window.LoadReportJsonAsync(null, picker);
+        switch (change)
+        {
+            case "context": window.DataContext = PresentationTestHost.CreateViewModel(); break;
+            case "reopen":
+                shell.MessageCenter.CloseCommand.Execute(null);
+                shell.MessageCenter.OpenRunReportsCommand.Execute(null);
+                break;
+            case "newer-report":
+                shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "newer"), "newer.json");
+                break;
+            case "close": window.Close(); break;
+            default: throw new ArgumentOutOfRangeException(nameof(change));
+        }
+        string before = shell.Reports.LoadedReportJson;
+        selected.SetResult([file]);
+        await loading;
+        Assert.Equal(0, reads);
+        Assert.Equal(before, shell.Reports.LoadedReportJson);
+        Assert.False(shell.Reports.IsReportModalOpen);
+        await CloseAndFlushAsync(window);
+    }
+
     [SuppressMessage("Performance", "CA1852:Seal internal types", Justification = "DispatchProxy generates a runtime subclass.")]
     private class ReportStorageProxy : DispatchProxy
     {
