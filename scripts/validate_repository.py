@@ -1452,15 +1452,12 @@ def validate_workflows(errors: list[str]) -> None:
     dotnet_job = ci[ci.index("  dotnet:") :] if "  dotnet:" in ci else ""
     if "fetch-depth: 0" not in dotnet_job:
         errors.append("CI dotnet job must fetch the fixed coverage baseline revision")
-    main_package = (ROOT / ".github/workflows/main-package.yml").read_text(
+    rehearsal = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
         encoding="utf-8"
     )
-    if (
-        "python ./scripts/verify.py --all" in main_package
-        and "fetch-depth: 0" not in main_package
-    ):
+    if "fetch-depth: 0" not in rehearsal:
         errors.append(
-            "main package workflow must fetch the fixed coverage baseline revision"
+            "release rehearsal workflow must fetch the fixed coverage baseline revision"
         )
     for marker in (
         "name: python-coverage",
@@ -1476,11 +1473,10 @@ def validate_workflows(errors: list[str]) -> None:
         "Exact reviewed release-branch head",
         "Final reviewed pull request",
         "NFC_WORKFLOW_REF -ne 'refs/heads/main'",
-        "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18', '0.9.19')",
-        "'0.9.17' = '0.9.17'",
-        "'0.9.18' = '0.9.18'",
-        "'0.9.19' = '0.9.19'",
-        "$approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version",
+        "$sourceSha = $mainSha",
+        "source-branch=main",
+        "validate-release-floor",
+        "release-eligibility:",
         "$env:NFC_RELEASE_POLICY validate-context",
         "$env:NFC_RELEASE_POLICY validate-promotion-source",
         "environment: release",
@@ -1488,7 +1484,7 @@ def validate_workflows(errors: list[str]) -> None:
     )
     if any(marker not in release for marker in required_release_markers):
         errors.append(
-            "release workflow must use protected-main authority, an explicit release-source allowlist, and a protected human environment gate"
+            "release workflow must use protected-main source and authority, a release floor, eligibility gate, and a protected human environment gate"
         )
     if "\n  promote:" in release and "\n  published-smoke:" in release:
         promote = release.split("\n  promote:", maxsplit=1)[1].split(

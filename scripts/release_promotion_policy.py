@@ -4,14 +4,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import io
 import json
-import os
 import re
 import shutil
 import subprocess
-import tempfile
-import zipfile
 from pathlib import Path
 from datetime import datetime
 from typing import Any
@@ -32,31 +28,8 @@ REQUIRED_RELEASE_CHECKS = (
     "python-worker / verify",
     "dotnet / build-test",
 )
-STRICT_RELEASE_POLICY_VERSION = (1, 1, 1)
-SOURCE_CI_POLICY_VERSION = (1, 1, 3)
 MAX_GITHUB_PAGES = 100
 MAX_GITHUB_ITEMS = 10_000
-MAINTENANCE_RELEASES = {
-    "0.9.17": "0.9.17",
-    "0.9.18": "0.9.18",
-    "0.9.19": "0.9.19",
-}
-VERSION_ONLY_PACKAGE_PATHS = frozenset(
-    {
-        "NvtFwCombiner.exe",
-        "launcher/NvtFwCombiner.Launcher.exe",
-        "README.txt",
-        "RELEASE-MANIFEST.json",
-        "SHA256SUMS.txt",
-    }
-)
-VERSION_ONLY_EXECUTABLE_PATHS = (
-    "NvtFwCombiner.exe",
-    "launcher/NvtFwCombiner.Launcher.exe",
-)
-VERSION_ONLY_STABLE_REUSE_PATHS = frozenset(
-    {"external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe"}
-)
 
 
 def _require(condition: bool, message: str) -> None:
@@ -96,11 +69,41 @@ def _stable_version_parts(value: str, label: str) -> tuple[int, int, int]:
     return int(major), int(minor), int(patch)
 
 
-def _requires_strict_release_policy(version: str) -> bool:
-    return (
-        _stable_version_parts(version, "release version")
-        >= STRICT_RELEASE_POLICY_VERSION
-    )
+def validate_release_floor(version: str, tags: list[str], *, tag_state: str) -> None:
+    """Admit a first publication only above every existing stable tag."""
+
+    candidate = _stable_version_parts(version, "release version")
+    _require(tag_state == "absent", "stable release tag already exists")
+    _require(isinstance(tags, list), "stable tag inventory is malformed")
+    stable: list[tuple[int, int, int]] = []
+    for tag in tags:
+        _require(isinstance(tag, str), "stable tag inventory is malformed")
+        if tag.startswith("v") and STABLE_VERSION.fullmatch(tag[1:]):
+            stable.append(_stable_version_parts(tag[1:], "stable tag"))
+    _require(not stable or candidate > max(stable),
+             "release version must exceed every existing stable tag")
+
+
+def collect_release_floor(repository: str, version: str, *, tag_state: str) -> None:
+    _require(re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) is not None,
+             "release repository is malformed")
+    rows = _read_github_paginated_array(f"repos/{repository}/tags", "stable tags")
+    _require(all(isinstance(row, dict) and isinstance(row.get("name"), str)
+                 for row in rows), "stable tag inventory is malformed")
+    validate_release_floor(version, [row["name"] for row in rows],
+                           tag_state=tag_state)
+
+
+def validate_release_eligibility(version: str, parity_result: str) -> None:
+    parts = _stable_version_parts(version, "release version")
+    _require(parity_result in {"success", "skipped", "failure", "cancelled"},
+             "terminal parity job result is invalid")
+    if parts >= (2, 0, 0):
+        _require(parity_result == "success",
+                 "release requires a successful terminal parity chain")
+    else:
+        _require(parity_result == "skipped",
+                 "1.x release must not run terminal parity")
 
 
 def _validate_remote_main(snapshot: dict[str, Any], main_sha: str) -> None:
@@ -285,9 +288,9 @@ def validate_repository_admission(
     )
 
     _validate_remote_main(snapshot, main_sha)
-    if _stable_version_parts(expected_tag[1:], "release version") >= SOURCE_CI_POLICY_VERSION:
-        _require_sha(source_sha, "source CI SHA")
-        validate_source_ci(snapshot.get("sourceCi"), source_sha=source_sha)
+    source_sha = source_sha or main_sha
+    _require_sha(source_sha, "source CI SHA")
+    validate_source_ci(snapshot.get("sourceCi"), source_sha=source_sha)
 
     _require(
         snapshot.get("mainRulesPaginationComplete") is True,
@@ -472,23 +475,13 @@ def validate_repository_admission(
 
 
 def _validate_release_source(source_branch: str, source_version: str) -> None:
-    """Allow protected main or an explicitly owner-approved maintenance release."""
+    """Require a stable version on protected main."""
 
     _require(
         STABLE_VERSION.fullmatch(source_version) is not None,
         "release source VERSION must be stable SemVer",
     )
-    _require(
-        source_version != "1.1.0",
-        "v1.1.0 is a manual-only operator release and cannot be rebuilt or "
-        "recovered by CI; publish a new version",
-    )
-    if source_branch == "main":
-        return
-    _require(
-        MAINTENANCE_RELEASES.get(source_branch) == source_version,
-        "release source is not an approved maintenance branch/version",
-    )
+    _require(source_branch == "main", "release source must be protected main")
 
 
 def _normalize_transport_line_endings(value: str) -> str:
@@ -535,11 +528,8 @@ def validate_candidate_context(
         "requested and checkout source SHAs must be identical",
     )
     _validate_release_source(source_branch, source_version)
-    if source_branch == "main":
-        _require(
-            source_sha == main_sha,
-            "a main release source must be the current protected main SHA",
-        )
+    _require(source_sha == main_sha,
+             "a main release source must be the current protected main SHA")
     _require(
         isinstance(snapshot.get("number"), int) and snapshot["number"] > 0,
         "reviewed PR number is invalid",
@@ -627,19 +617,13 @@ def validate_candidate_context(
     _require(
         not failed, f"reviewed PR required checks are not passing: {', '.join(failed)}"
     )
-    if _requires_strict_release_policy(source_version):
-        admission = snapshot.get("repositoryAdmission")
-        _require(
-            isinstance(admission, dict),
-            "reviewed PR has no repository admission evidence",
-        )
-        validate_repository_admission(
-            admission,
-            main_sha=main_sha,
-            review_head_sha=head_sha,
-            expected_tag=f"v{source_version}",
-            source_sha=source_sha,
-        )
+    admission = snapshot.get("repositoryAdmission")
+    _require(isinstance(admission, dict),
+             "reviewed PR has no repository admission evidence")
+    validate_repository_admission(
+        admission, main_sha=main_sha, review_head_sha=head_sha,
+        expected_tag=f"v{source_version}", source_sha=source_sha,
+    )
 
 
 def _require_exact_head_codex_review(snapshot: dict[str, Any], head_sha: str) -> None:
@@ -702,17 +686,11 @@ def _installer_asset_names(version: str) -> tuple[str, str, str, str, str]:
     )
 
 
-def _publishes_installer_assets(version: str) -> bool:
-    parts = tuple(int(part) for part in version.split("."))
-    return parts >= (1, 0, 6)
-
-
 def _candidate_asset_names(version: str) -> tuple[str, ...]:
-    return (
-        (*_asset_names(version), *_installer_asset_names(version))
-        if _publishes_installer_assets(version)
-        else _asset_names(version)
-    )
+    version_assets = _asset_names(version)
+    if _stable_version_parts(version, "candidate version") < (1, 0, 6):
+        return version_assets
+    return (*version_assets, *_installer_asset_names(version))
 
 
 def create_candidate_manifest(
@@ -726,6 +704,7 @@ def create_candidate_manifest(
     workflow_ref: str,
     notes_path: Path,
     review_snapshot_path: Path,
+    dry_run: bool = False,
 ) -> Path:
     """Create a closed candidate manifest and versioned outer checksum asset."""
 
@@ -786,6 +765,7 @@ def create_candidate_manifest(
         "workflowSha": workflow_sha,
         "workflowRef": workflow_ref,
         "candidateRunId": run_id,
+        "nonPromotable": dry_run,
         "reviewEvidence": review_snapshot,
         "reviewSnapshotSha256": _sha256(review_snapshot_path),
         "releaseNotes": {
@@ -1307,17 +1287,13 @@ def collect_repository_admission(
         "tagRulesetsPaginationComplete": True,
         "tagRulesets": _collect_tag_rulesets(repository),
     }
-    if _stable_version_parts(expected_tag[1:], "release version") >= SOURCE_CI_POLICY_VERSION:
-        _require_sha(source_sha, "source CI SHA")
-        snapshot["sourceCi"] = _collect_source_ci(repository, source_sha)
-    if _requires_strict_release_policy(expected_tag[1:]):
-        validate_repository_admission(
-            snapshot,
-            main_sha=main_sha,
-            review_head_sha=review_head_sha,
-            expected_tag=expected_tag,
-            source_sha=source_sha,
-        )
+    source_sha = source_sha or main_sha
+    _require_sha(source_sha, "source CI SHA")
+    snapshot["sourceCi"] = _collect_source_ci(repository, source_sha)
+    validate_repository_admission(
+        snapshot, main_sha=main_sha, review_head_sha=review_head_sha,
+        expected_tag=expected_tag, source_sha=source_sha,
+    )
     return snapshot
 
 
@@ -1388,380 +1364,14 @@ def validate_promotion_source_state(
         "release workflow authority is no longer current protected main",
     )
     _validate_release_source(source_branch, source_version)
-    if source_branch == "main":
-        _require(
-            source_branch_sha == main_sha,
-            "main release branch identity differs from protected main",
-        )
+    _require(source_branch_sha == main_sha,
+             "main release branch identity differs from protected main")
     _validate_release_branch_position(
         tag_state=tag_state,
         source_sha=source_sha,
         source_branch_sha=source_branch_sha,
         source_is_branch_ancestor=source_is_branch_ancestor,
     )
-
-
-def validate_version_only_upgrade(snapshot: dict[str, Any]) -> None:
-    """Require 1.0.1 to be the direct, content-only VERSION child of v1.0.0."""
-
-    _require(isinstance(snapshot, dict), "version-only evidence must be an object")
-    source_sha = snapshot.get("sourceSha")
-    base_tag_commit = snapshot.get("baseTagCommit")
-    _require_sha(source_sha, "version-only source SHA")
-    _require_sha(base_tag_commit, "v1.0.0 peeled commit SHA")
-    _require(
-        snapshot.get("sourceVersion") == "1.0.1",
-        "version-only source VERSION must be 1.0.1",
-    )
-    _require(
-        snapshot.get("baseTag") == "v1.0.0",
-        "version-only base tag must be v1.0.0",
-    )
-    _require(
-        snapshot.get("baseVersion") == "1.0.0",
-        "v1.0.0 tag must contain VERSION 1.0.0",
-    )
-    parent_shas = snapshot.get("parentShas")
-    _require(
-        isinstance(parent_shas, list)
-        and len(parent_shas) == 1
-        and parent_shas[0] == base_tag_commit,
-        "1.0.1 must be the direct single-parent child of v1.0.0",
-    )
-    _require(
-        snapshot.get("changedPaths") == ["VERSION"],
-        "1.0.1 may change only the canonical VERSION file",
-    )
-    _require(
-        snapshot.get("modeChanges") == [],
-        "1.0.1 must not change file modes",
-    )
-
-
-def _git(repository: Path, *arguments: str) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(repository), *arguments],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout).strip()
-        raise ValueError(f"Git release evidence could not be read: {detail}")
-    return result.stdout.strip()
-
-
-def validate_version_only_lineage(repository: Path) -> None:
-    """Read Git directly and prove that 1.0.1 changes VERSION content only."""
-
-    repository = repository.resolve(strict=True)
-    _require(repository.is_dir(), "version-only repository must be a directory")
-    source_version = (repository / "VERSION").read_text(encoding="utf-8").strip()
-    source_sha = _git(repository, "rev-parse", "--verify", "HEAD^{commit}")
-    tag_type = _git(repository, "cat-file", "-t", "refs/tags/v1.0.0")
-    _require(tag_type == "tag", "v1.0.0 must be an annotated immutable tag")
-    base_tag_commit = _git(
-        repository, "rev-parse", "--verify", "refs/tags/v1.0.0^{commit}"
-    )
-    commit_parts = _git(repository, "rev-list", "--parents", "-n", "1", "HEAD").split()
-    base_version = _git(repository, "show", f"{base_tag_commit}:VERSION").strip()
-    range_spec = f"{base_tag_commit}..{source_sha}"
-    changed_paths = [
-        line
-        for line in _git(
-            repository, "diff", "--name-only", "--no-renames", range_spec
-        ).splitlines()
-        if line
-    ]
-    mode_changes = [
-        line
-        for line in _git(repository, "diff", "--summary", range_spec).splitlines()
-        if "mode change" in line
-    ]
-    validate_version_only_upgrade(
-        {
-            "sourceVersion": source_version,
-            "sourceSha": source_sha,
-            "baseTag": "v1.0.0",
-            "baseTagCommit": base_tag_commit,
-            "baseVersion": base_version,
-            "parentShas": commit_parts[1:],
-            "changedPaths": changed_paths,
-            "modeChanges": mode_changes,
-        }
-    )
-
-
-def _read_closed_zip(path: Path, captured: bytes | None = None) -> dict[str, bytes]:
-    _require(
-        captured is not None or path.is_file(), f"release package is missing: {path}"
-    )
-    entries: dict[str, bytes] = {}
-    identities: set[str] = set()
-    try:
-        with zipfile.ZipFile(
-            io.BytesIO(captured) if captured is not None else path
-        ) as archive:
-            for entry in archive.infolist():
-                if entry.is_dir():
-                    continue
-                name = entry.filename.replace("\\", "/")
-                _require(
-                    name == entry.filename
-                    and name != ""
-                    and not name.startswith("/")
-                    and all(part not in {"", ".", ".."} for part in name.split("/")),
-                    f"release package contains an unsafe path: {entry.filename}",
-                )
-                identity = name.casefold()
-                _require(
-                    identity not in identities, f"release package repeats path: {name}"
-                )
-                identities.add(identity)
-                entries[name] = archive.read(entry)
-    except zipfile.BadZipFile as exc:
-        raise ValueError(f"release package is not a valid ZIP: {path}") from exc
-    _require(bool(entries), "release package contains no files")
-    top_levels = {name.split("/", 1)[0] for name in entries}
-    if len(top_levels) == 1 and all("/" in name for name in entries):
-        prefix = f"{next(iter(top_levels))}/"
-        entries = {
-            name.removeprefix(prefix): content for name, content in entries.items()
-        }
-    return entries
-
-
-def _manifest_from_package(entries: dict[str, bytes]) -> dict[str, Any]:
-    raw = entries.get("RELEASE-MANIFEST.json")
-    _require(raw is not None, "release package has no RELEASE-MANIFEST.json")
-    try:
-        document = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError("release package manifest is invalid") from exc
-    _require(isinstance(document, dict), "release package manifest must be an object")
-    return document
-
-
-def _normalize_version_manifest(
-    manifest: dict[str, Any],
-    *,
-    version: str,
-    source_sha: str,
-) -> dict[str, Any]:
-    _require(manifest.get("version") == version, "package manifest version mismatch")
-    _require(
-        manifest.get("sourceTag") == f"v{version}", "package manifest tag mismatch"
-    )
-    _require(
-        manifest.get("sourceCommit") == source_sha, "package manifest source mismatch"
-    )
-    normalized = json.loads(json.dumps(manifest))
-    normalized["version"] = "<VERSION>"
-    normalized["sourceTag"] = "v<VERSION>"
-    normalized["sourceCommit"] = "<SOURCE-COMMIT>"
-    for key, suffix in (
-        ("provenanceAsset", ".provenance.json"),
-        ("sbomAsset", ".spdx.json"),
-    ):
-        expected = f"NvtFwCombiner-v{version}-win-x64{suffix}"
-        _require(manifest.get(key) == expected, f"package manifest {key} mismatch")
-        normalized[key] = f"NvtFwCombiner-v<VERSION>-win-x64{suffix}"
-    files = normalized.get("files")
-    _require(isinstance(files, list), "package manifest files must be an array")
-    file_paths: set[str] = set()
-    for entry in files:
-        _require(isinstance(entry, dict), "package manifest file entry is invalid")
-        path = entry.get("path")
-        _require(
-            isinstance(path, str) and path not in file_paths,
-            "package manifest repeats a path",
-        )
-        file_paths.add(path)
-        if path in VERSION_ONLY_PACKAGE_PATHS:
-            entry["size"] = "<VERSION-SIZE>"
-            entry["sha256"] = "<VERSION-SHA256>"
-    launcher = normalized.get("launcher")
-    _require(isinstance(launcher, dict), "package manifest launcher is missing")
-    _require(
-        launcher.get("launcherVersion") == version,
-        "package manifest launcher version mismatch",
-    )
-    launcher["launcherVersion"] = "<VERSION>"
-    launcher["size"] = "<VERSION-SIZE>"
-    launcher["sha256"] = "<VERSION-SHA256>"
-    return normalized
-
-
-def _normalized_hash_list(raw: bytes) -> dict[str, str]:
-    try:
-        lines = raw.decode("utf-8").splitlines()
-    except UnicodeDecodeError as exc:
-        raise ValueError("package SHA256SUMS.txt is not UTF-8") from exc
-    result: dict[str, str] = {}
-    for line in lines:
-        match = re.fullmatch(r"([0-9a-f]{64})  (\S.*)", line)
-        _require(match is not None, "package SHA256SUMS.txt is malformed")
-        digest, path = match.groups()
-        _require(path not in result, "package SHA256SUMS.txt repeats a path")
-        result[path] = (
-            "<VERSION-SHA256>" if path in VERSION_ONLY_PACKAGE_PATHS else digest
-        )
-    return result
-
-
-def _read_windows_file_version(path: Path) -> tuple[str, str]:
-    script = (
-        "$v=[Diagnostics.FileVersionInfo]::GetVersionInfo($env:NFC_VERSION_FILE);"
-        "[ordered]@{fileVersion=$v.FileVersion;productVersion=$v.ProductVersion}"
-        "|ConvertTo-Json -Compress"
-    )
-    environment = dict(os.environ)
-    environment["NFC_VERSION_FILE"] = str(path)
-    result = subprocess.run(
-        ["pwsh", "-NoProfile", "-NonInteractive", "-Command", script],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        env=environment,
-    )
-    _require(result.returncode == 0, "Windows executable version could not be read")
-    try:
-        value = json.loads(result.stdout)
-    except json.JSONDecodeError as exc:
-        raise ValueError("Windows executable version evidence is malformed") from exc
-    _require(isinstance(value, dict), "Windows executable version evidence is invalid")
-    return str(value.get("fileVersion", "")), str(value.get("productVersion", ""))
-
-
-def _require_executable_version(path: Path, version: str) -> None:
-    file_version, product_version = _read_windows_file_version(path)
-    _require(
-        file_version == f"{version}.0" and product_version == version,
-        f"Windows executable version metadata does not equal {version}: {path.name}",
-    )
-
-
-def validate_version_only_packages(
-    repository: Path,
-    base_package: Path,
-    candidate_package: Path,
-    base_package_sha256: str,
-) -> None:
-    """Prove the 1.0.1 package differs only at declared version-bearing paths."""
-
-    repository = repository.resolve(strict=True)
-    validate_version_only_lineage(repository)
-    base_sha = _git(repository, "rev-parse", "--verify", "refs/tags/v1.0.0^{commit}")
-    candidate_sha = _git(repository, "rev-parse", "--verify", "HEAD^{commit}")
-    resolved_base_package = base_package.resolve(strict=True)
-    base_package_bytes = resolved_base_package.read_bytes()
-    _require_sha256(base_package_sha256, "published 1.0.0 package SHA-256")
-    _require(
-        hashlib.sha256(base_package_bytes).hexdigest() == base_package_sha256,
-        "published 1.0.0 package does not match its independently supplied asset digest",
-    )
-    base_entries = _read_closed_zip(resolved_base_package, base_package_bytes)
-    candidate_entries = _read_closed_zip(candidate_package.resolve())
-    _require(
-        set(base_entries) == set(candidate_entries),
-        "1.0.0 and 1.0.1 package inventories differ",
-    )
-    _require(
-        VERSION_ONLY_PACKAGE_PATHS <= set(base_entries),
-        "version-only package allowlist is incomplete",
-    )
-    changed = {
-        path for path in base_entries if base_entries[path] != candidate_entries[path]
-    }
-    _require(
-        changed == VERSION_ONLY_PACKAGE_PATHS,
-        "package byte differences are not exactly the declared version-bearing paths",
-    )
-    base_manifest = _manifest_from_package(base_entries)
-    candidate_manifest = _manifest_from_package(candidate_entries)
-    _require(
-        _normalize_version_manifest(base_manifest, version="1.0.0", source_sha=base_sha)
-        == _normalize_version_manifest(
-            candidate_manifest, version="1.0.1", source_sha=candidate_sha
-        ),
-        "package manifests differ beyond declared version identity",
-    )
-    base_readme = (
-        base_entries["README.txt"].decode("utf-8").replace("1.0.0", "<VERSION>")
-    )
-    candidate_readme = (
-        candidate_entries["README.txt"].decode("utf-8").replace("1.0.1", "<VERSION>")
-    )
-    _require(base_readme == candidate_readme, "package README differs beyond version")
-    _require(
-        _normalized_hash_list(base_entries["SHA256SUMS.txt"])
-        == _normalized_hash_list(candidate_entries["SHA256SUMS.txt"]),
-        "package hash lists differ beyond version-bearing hashes",
-    )
-    with tempfile.TemporaryDirectory(prefix="nfc-version-only-package-") as temporary:
-        root = Path(temporary)
-        for version, entries in (("1.0.0", base_entries), ("1.0.1", candidate_entries)):
-            for relative_path in VERSION_ONLY_EXECUTABLE_PATHS:
-                destination = root / version / relative_path
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                destination.write_bytes(entries[relative_path])
-                _require_executable_version(destination, version)
-
-
-def extract_version_only_stable_payload(
-    repository: Path,
-    base_package: Path,
-    destination: Path,
-    relative_path: str,
-    base_package_sha256: str,
-) -> None:
-    """Reuse one unchanged, manifest-bound payload from the published 1.0.0 ZIP."""
-
-    _require(
-        relative_path in VERSION_ONLY_STABLE_REUSE_PATHS,
-        "requested package path is not approved for version-only reuse",
-    )
-    repository = repository.resolve(strict=True)
-    validate_version_only_lineage(repository)
-    base_sha = _git(repository, "rev-parse", "--verify", "refs/tags/v1.0.0^{commit}")
-    resolved_base_package = base_package.resolve(strict=True)
-    base_package_bytes = resolved_base_package.read_bytes()
-    _require_sha256(base_package_sha256, "published 1.0.0 package SHA-256")
-    _require(
-        hashlib.sha256(base_package_bytes).hexdigest() == base_package_sha256,
-        "published 1.0.0 package does not match its independently supplied asset digest",
-    )
-    entries = _read_closed_zip(resolved_base_package, base_package_bytes)
-    _require(relative_path in entries, "published 1.0.0 package payload is missing")
-    manifest = _manifest_from_package(entries)
-    _normalize_version_manifest(manifest, version="1.0.0", source_sha=base_sha)
-    manifest_files = manifest.get("files")
-    _require(
-        isinstance(manifest_files, list), "package manifest files must be an array"
-    )
-    matches = [
-        entry
-        for entry in manifest_files
-        if isinstance(entry, dict) and entry.get("path") == relative_path
-    ]
-    _require(len(matches) == 1, "published 1.0.0 manifest payload binding is missing")
-    payload = entries[relative_path]
-    digest = hashlib.sha256(payload).hexdigest()
-    _require(matches[0].get("size") == len(payload), "published payload size mismatch")
-    _require(matches[0].get("sha256") == digest, "published payload hash mismatch")
-    hashes = _normalized_hash_list(entries.get("SHA256SUMS.txt", b""))
-    _require(
-        hashes.get(relative_path) == digest, "published hash list payload mismatch"
-    )
-    _require(
-        not destination.exists(), "version-only payload destination already exists"
-    )
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_bytes(payload)
 
 
 def validate_existing_tag(
@@ -1821,7 +1431,6 @@ def validate_existing_release(
         and STABLE_VERSION.fullmatch(expected_tag[1:]) is not None,
         "existing Release expected tag is invalid",
     )
-    strict = _requires_strict_release_policy(expected_tag[1:])
     tag_name = release.get("tag_name", release.get("tagName"))
     is_draft = release.get("draft", release.get("isDraft"))
     is_prerelease = release.get("prerelease", release.get("isPrerelease"))
@@ -1831,24 +1440,23 @@ def validate_existing_release(
     )
     _require(is_draft is False, "existing Release is still a draft")
     _require(is_prerelease is False, "existing Release is a prerelease")
-    if strict:
+    _require(
+        release.get("immutable") is True,
+        "existing Release must be REST immutable",
+    )
+    _require(
+        isinstance(expected_assets, dict),
+        "immutable Release validation requires candidate asset metadata",
+    )
+    assert expected_assets is not None
+    for expected_name, expected_metadata in expected_assets.items():
         _require(
-            release.get("immutable") is True,
-            "existing Release must be REST immutable",
+            isinstance(expected_name, str)
+            and bool(expected_name)
+            and Path(expected_name).name == expected_name
+            and isinstance(expected_metadata, dict),
+            "candidate asset metadata is malformed",
         )
-        _require(
-            isinstance(expected_assets, dict),
-            "immutable Release validation requires candidate asset metadata",
-        )
-        assert expected_assets is not None
-        for expected_name, expected_metadata in expected_assets.items():
-            _require(
-                isinstance(expected_name, str)
-                and bool(expected_name)
-                and Path(expected_name).name == expected_name
-                and isinstance(expected_metadata, dict),
-                "candidate asset metadata is malformed",
-            )
     body = release.get("body")
     _require(isinstance(body, str), "existing Release body is missing")
     _require(
@@ -1867,38 +1475,37 @@ def validate_existing_release(
         )
         names.append(name)
     _require(len(names) == len(set(names)), "existing Release repeats an asset name")
-    if strict:
-        assert expected_assets is not None
+    assert expected_assets is not None
+    _require(
+        set(names) == set(expected_assets),
+        "existing Release asset set differs from the candidate",
+    )
+    for asset in assets:
+        name = asset["name"]
+        expected = expected_assets[name]
+        expected_size = expected.get("size")
+        expected_sha256 = expected.get("sha256")
         _require(
-            set(names) == set(expected_assets),
-            "existing Release asset set differs from the candidate",
+            isinstance(expected_size, int)
+            and not isinstance(expected_size, bool)
+            and expected_size >= 0,
+            f"candidate asset size is invalid: {name}",
         )
-        for asset in assets:
-            name = asset["name"]
-            expected = expected_assets[name]
-            expected_size = expected.get("size")
-            expected_sha256 = expected.get("sha256")
-            _require(
-                isinstance(expected_size, int)
-                and not isinstance(expected_size, bool)
-                and expected_size >= 0,
-                f"candidate asset size is invalid: {name}",
-            )
-            _require_sha256(expected_sha256, f"candidate asset digest: {name}")
-            _require(
-                asset.get("state") == "uploaded",
-                f"existing Release asset is not in uploaded state: {name}",
-            )
-            _require(
-                isinstance(asset.get("size"), int)
-                and not isinstance(asset.get("size"), bool)
-                and asset.get("size") == expected_size,
-                f"existing Release asset size differs from the candidate: {name}",
-            )
-            _require(
-                asset.get("digest") == f"sha256:{expected_sha256}",
-                f"existing Release asset digest differs from the candidate: {name}",
-            )
+        _require_sha256(expected_sha256, f"candidate asset digest: {name}")
+        _require(
+            asset.get("state") == "uploaded",
+            f"existing Release asset is not in uploaded state: {name}",
+        )
+        _require(
+            isinstance(asset.get("size"), int)
+            and not isinstance(asset.get("size"), bool)
+            and asset.get("size") == expected_size,
+            f"existing Release asset size differs from the candidate: {name}",
+        )
+        _require(
+            asset.get("digest") == f"sha256:{expected_sha256}",
+            f"existing Release asset digest differs from the candidate: {name}",
+        )
     return names
 
 
@@ -1961,6 +1568,8 @@ def verify_candidate_manifest(
         manifest.get("schemaVersion") == "1.0",
         "candidate manifest schema is unsupported",
     )
+    _require(manifest.get("nonPromotable") is False,
+             "candidate manifest is non-promotable")
     version = manifest.get("version")
     _require(
         isinstance(version, str) and STABLE_VERSION.fullmatch(version) is not None,
@@ -2141,10 +1750,18 @@ def parse_args() -> argparse.Namespace:
             manifest.add_argument("--version", required=True)
             manifest.add_argument("--notes", type=Path, required=True)
             manifest.add_argument("--review-snapshot", type=Path, required=True)
+            manifest.add_argument("--dry-run", action="store_true")
         else:
             manifest.add_argument("--manifest", type=Path, required=True)
     probe = subparsers.add_parser("probe-resource")
     probe.add_argument("--endpoint", required=True)
+    floor = subparsers.add_parser("validate-release-floor")
+    floor.add_argument("--repository", required=True)
+    floor.add_argument("--version", required=True)
+    floor.add_argument("--tag-state", choices=("absent", "present"), required=True)
+    eligibility = subparsers.add_parser("validate-release-eligibility")
+    eligibility.add_argument("--version", required=True)
+    eligibility.add_argument("--parity-result", required=True)
     promotion = subparsers.add_parser("validate-promotion-source")
     promotion.add_argument("--tag-state", choices=("absent", "present"), required=True)
     promotion.add_argument("--source-sha", required=True)
@@ -2161,19 +1778,6 @@ def parse_args() -> argparse.Namespace:
         choices=("true", "false"),
         required=True,
     )
-    version_only = subparsers.add_parser("validate-version-only-lineage")
-    version_only.add_argument("--repository", type=Path, required=True)
-    version_package = subparsers.add_parser("validate-version-only-package")
-    version_package.add_argument("--repository", type=Path, required=True)
-    version_package.add_argument("--base-package", type=Path, required=True)
-    version_package.add_argument("--base-package-sha256", required=True)
-    version_package.add_argument("--candidate-package", type=Path, required=True)
-    stable_payload = subparsers.add_parser("extract-version-only-stable-payload")
-    stable_payload.add_argument("--repository", type=Path, required=True)
-    stable_payload.add_argument("--base-package", type=Path, required=True)
-    stable_payload.add_argument("--base-package-sha256", required=True)
-    stable_payload.add_argument("--destination", type=Path, required=True)
-    stable_payload.add_argument("--path", required=True)
     tag = subparsers.add_parser("validate-tag")
     tag.add_argument("--tag-ref", type=Path, required=True)
     tag.add_argument("--tag-object", type=Path, required=True)
@@ -2249,6 +1853,7 @@ def main() -> int:
             workflow_ref=args.workflow_ref,
             notes_path=args.notes,
             review_snapshot_path=args.review_snapshot,
+            dry_run=args.dry_run,
         )
         print(manifest_path)
     elif args.command == "verify-manifest":
@@ -2262,6 +1867,10 @@ def main() -> int:
         )
     elif args.command == "probe-resource":
         print(probe_github_resource(args.endpoint))
+    elif args.command == "validate-release-floor":
+        collect_release_floor(args.repository, args.version, tag_state=args.tag_state)
+    elif args.command == "validate-release-eligibility":
+        validate_release_eligibility(args.version, args.parity_result)
     elif args.command == "validate-promotion-source":
         validate_promotion_source_state(
             tag_state=args.tag_state,
@@ -2275,23 +1884,6 @@ def main() -> int:
             workflow_sha=args.workflow_sha,
             main_sha=args.main_sha,
             source_is_branch_ancestor=args.source_is_branch_ancestor == "true",
-        )
-    elif args.command == "validate-version-only-lineage":
-        validate_version_only_lineage(args.repository)
-    elif args.command == "validate-version-only-package":
-        validate_version_only_packages(
-            args.repository,
-            args.base_package,
-            args.candidate_package,
-            args.base_package_sha256,
-        )
-    elif args.command == "extract-version-only-stable-payload":
-        extract_version_only_stable_payload(
-            args.repository,
-            args.base_package,
-            args.destination,
-            args.path,
-            args.base_package_sha256,
         )
     elif args.command == "validate-tag":
         validate_existing_tag(

@@ -30,32 +30,36 @@ G1-A, `main` in G2); until then the three checks above stay the required set.
 Procedures: `docs/governance/development-execution-workflow.md`, "Authority
 check".
 
-`release.yml` is always dispatched from the exact current protected `main`
-workflow definition for one explicit reviewed release-branch head and its final
-merged PR. The product source is normally `main`; the approved
-`0.9.17` / `0.9.17`, `0.9.18` / `0.9.18`, and `0.9.19` / `0.9.19`
-maintenance pairs may publish
-independently without merging their product commits into `main`. Its read-only candidate job uses pinned Python
-to prove the PR head tree, PR base, current-head approval, required checks,
-merge commit, workflow authority, checkout, and selected branch identity before
-it verifies, packages, smokes, and stages one closed immutable candidate. The
-protected `release` environment is the final tag confirmation. Only the
-approved promotion job receives `contents: write`; a first tag requires the
-candidate to remain the selected release-branch head and the workflow authority
-to remain current protected `main`. Same-run recovery of an exact tag permits
-later source-branch advancement only while the source stays reachable.
-Promotion creates or exactly verifies the annotated stable tag, publishes the
-prepared assets and CHANGELOG-derived notes, then revalidates tag/Release
-metadata and the downloaded release. The write-token job checks out only
-protected-main authority and never executes candidate code. A subsequent
-`contents: read` job downloads the package and runs protected-main smoke tooling
-in a token-free execution step. If promotion fails after tag creation, rerun
-only the failed promotion job in the same workflow run; zero/one/multi-asset
-partial states may add only missing matching assets, while tags and conflicting
-assets are never moved or overwritten. Development or local tags never publish
-a release.
+`release.yml` is dispatched only from the exact current protected `main` SHA,
+which is also the product source. Its candidate validates the merged release
+pull request, exact-source CI, fresh Golden execution, the stable version floor,
+closed package, smoke, notes, and update-source handoff. The candidate and
+pre-tag boundaries both require a version newer than every stable tag; an
+existing tag is accepted only for same-run promotion recovery. Every release
+from 2.0.0 requires a successful terminal parity chain. The read-only
+`release / eligibility` job fails a required chain that failed, was cancelled,
+or was skipped, instead of letting promotion silently skip.
 
-`main-package.yml` is a manual preview only. Ordinary `main` pushes no longer spend Windows minutes packaging or create fallback prereleases. Draft pull requests run the policy check; the Python and .NET matrices start when the PR becomes review-ready, while all `main` pushes retain the complete CI matrix.
+The default-off `dry_run` dispatch executes candidate admission and packaging on
+protected `main`, marks its manifest `nonPromotable`, and gives its artifact a
+`dry-run-candidate` prefix. It has no release-floor eligibility and never runs
+promotion or published smoke. Only the approved promotion job receives
+`contents: write` and the protected `release` environment. It revalidates
+live authority immediately before tag and Release mutations, creates or
+verifies the immutable annotated tag, publishes the prepared assets and notes,
+and verifies downloaded assets. A separate read-only job smokes the published
+package without a GitHub token in its execution step. A failed post-tag
+promotion can be rerun only within the same run while protected `main` remains
+at the candidate SHA; conflicting immutable Releases require a new version.
+
+`release-rehearsal.yml` is manually dispatched on the selected branch. It uses
+the same pinned toolchain setup and stable package path as the release candidate,
+then runs release Golden verification, package smoke, notes rendering and the
+update-source handoff. Its 3-day artifacts and synthetic handoff timestamp are
+build rehearsal evidence only; it has no admission, release environment, tag or
+publication authority. Ordinary `main` pushes do not package. Draft
+pull requests run policy checks; review-ready PRs and `main` pushes run the
+required CI matrix.
 
 All external actions are pinned to full immutable commit SHAs. Workflow permissions are least-privilege per workflow, checkout credentials are not persisted, and pull-request jobs receive no release environment secrets. Reviewed policy templates are retained under `docs/ci/workflow-templates/` for change review; the complete executable source of truth remains `.github/workflows/`.
 
