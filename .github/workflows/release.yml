@@ -482,7 +482,7 @@ jobs:
           NFC_RUN_ID: ${{ github.run_id }}
           NFC_DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          $dryRunArgument = if ($env:NFC_DRY_RUN -eq 'true') { @('--dry-run') } else { @() }
+          $dryRunArgument = @(if ($env:NFC_DRY_RUN -eq 'true') { '--dry-run' })
           $manifestPath = python $env:NFC_RELEASE_POLICY create-manifest `
             --asset-dir ./artifacts/release `
             --version $env:NFC_VERSION `

@@ -776,6 +776,21 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
+    def test_workflow_optional_splat_arguments_remain_arrays(self) -> None:
+        """PowerShell unrolls an if expression with one array item to a scalar."""
+
+        unsafe = re.compile(
+            r"\$\w+\s*=\s*if\s*\([^\r\n]*\)\s*\{\s*@\([^\r\n]*\)\s*\}\s*else\s*\{\s*@\(\s*\)\s*\}",
+            re.MULTILINE,
+        )
+        workflows = (
+            * (ROOT / ".github/workflows").glob("*.yml"),
+            * (ROOT / "docs/ci/workflow-templates").glob("*.yml"),
+        )
+        for workflow in workflows:
+            with self.subTest(workflow=workflow.relative_to(ROOT)):
+                self.assertEqual([], unsafe.findall(workflow.read_text(encoding="utf-8")))
+
     def test_rehearsal_uses_stable_release_build_without_publication_authority(self) -> None:
         rehearsal_path = ROOT / ".github/workflows/release-rehearsal.yml"
         self.assertFalse((ROOT / ".github/workflows/main-package.yml").exists())
