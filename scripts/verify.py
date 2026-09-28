@@ -2798,9 +2798,9 @@ def solution_package_lock_paths(
         if lock in paths:
             raise RuntimeError(f"duplicate solution package lock: {lock}")
         paths.append(lock)
-    if len(projects) != 26 or len(paths) != 26:
+    if len(projects) != 27 or len(paths) != 27:
         raise RuntimeError(
-            "solution package-lock inventory must contain exactly 26 projects and locks"
+            "solution package-lock inventory must contain exactly 27 projects and locks"
         )
     return tuple(paths)
 

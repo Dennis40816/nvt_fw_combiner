@@ -3552,7 +3552,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             _, solution = self.create_solution_lock_fixture(root, b'{"version":2,"dependencies":{"net10.0":{}}}')
-            self.assertEqual(26, len(MODULE.solution_package_lock_paths(root, solution)))
+            self.assertEqual(27, len(MODULE.solution_package_lock_paths(root, solution)))
             solution.write_text(solution.read_text(encoding="utf-8").replace(
                 "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj",
                 "eng/unlisted/Unlisted.csproj"), encoding="utf-8")
@@ -3563,10 +3563,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self, root: Path, lock_bytes: bytes
     ) -> tuple[Path, Path]:
         projects: list[Path] = []
-        for index in range(26):
+        for index in range(27):
             name = "Product" if index == 0 else f"Product{index:02d}"
             project = (root / "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
                        if index == 25 else root / "src" / name / f"{name}.csproj")
+            if index == 26:
+                project = root / "tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj"
             project.parent.mkdir(parents=True)
             project.write_text("<Project />", encoding="utf-8")
             (project.parent / "packages.lock.json").write_bytes(lock_bytes)
@@ -3583,6 +3585,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
             encoding="utf-8",
         )
         return lock, solution
+
+    def test_solution_lock_inventory_includes_catalog_probe_and_rejects_omission(self) -> None:
+        locks = MODULE.solution_package_lock_paths()
+        self.assertEqual(27, len(locks))
+        self.assertIn(ROOT / "tests/NvtFwCombiner.CatalogProbe/packages.lock.json", locks)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, solution = self.create_solution_lock_fixture(root, b'{"version":2,"dependencies":{}}')
+            solution.write_text(solution.read_text(encoding="utf-8").replace(
+                '<Project Path="tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj" />',
+                ''), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "exactly 27 projects and locks"):
+                MODULE.solution_package_lock_paths(root, solution)
 
     def test_solution_restore_restores_projection_before_rethrowing_failure(
         self,
