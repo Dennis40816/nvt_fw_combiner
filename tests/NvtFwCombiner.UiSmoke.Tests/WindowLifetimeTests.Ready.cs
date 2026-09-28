@@ -34,6 +34,8 @@ public sealed partial class WindowLifetimeTests
         ((LifetimeReportStorageProxy)file).Call = (name, _) => name switch
         {
             "get_Name" => "drained-save.json",
+            // A provider (non-local) destination keeps the stream write path; see the trunk's atomic local save.
+            "get_Path" => new Uri("https://storage.example/drained-save.json"),
             "OpenWriteAsync" => Task.FromResult<Stream>(stream),
             "Dispose" => null,
             _ => throw new NotSupportedException(name),
@@ -135,6 +137,8 @@ public sealed partial class WindowLifetimeTests
         ((LifetimeReportStorageProxy)file).Call = (name, _) => name switch
         {
             "get_Name" => "late-save.json",
+            // A provider (non-local) destination keeps the stream write path; see the trunk's atomic local save.
+            "get_Path" => new Uri("https://storage.example/late-save.json"),
             "OpenWriteAsync" => Task.FromResult<Stream>(stream),
             "Dispose" => null,
             _ => throw new NotSupportedException(name),
@@ -169,6 +173,8 @@ public sealed partial class WindowLifetimeTests
         ((LifetimeReportStorageProxy)file).Call = (name, _) => name switch
         {
             "get_Name" => "resumed-save.json",
+            // A provider (non-local) destination keeps the stream write path; see the trunk's atomic local save.
+            "get_Path" => new Uri("https://storage.example/resumed-save.json"),
             "OpenWriteAsync" => Task.FromResult<Stream>(stream),
             "Dispose" => null,
             _ => throw new NotSupportedException(name),
@@ -182,7 +188,7 @@ public sealed partial class WindowLifetimeTests
         Assert.DoesNotContain("Report saved", reports.ReportToastText, StringComparison.Ordinal);
         lease.Resume();
         await saving.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-        Assert.Equal(reports.Text.FormatReportSavedToast("resumed-save.json"), reports.ReportToastText);
+        Assert.Equal(reports.Text.FormatReportSavedToast("resumed-save.json", bestEffortProviderWrite: true), reports.ReportToastText);
     }
 
     /// <summary>A terminal result waits through handoff and wakes once on resume or final revocation.</summary>
