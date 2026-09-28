@@ -44,8 +44,8 @@ public sealed partial class RepositoryBoundaryTests
         AssertStartupStageOrder(
             program,
             "StartFromEnvironment()",
-            "PrepareStartup(",
-            "launch-options.parsed");
+            "launch-options.parsed",
+            "PrepareStartup(");
         Assert.Contains("ShellPreferenceFileStore.LoadAsync", program, StringComparison.Ordinal);
         Assert.Contains("launch-options.parsed", program, StringComparison.Ordinal);
         Assert.Contains("application-xaml.ready", application, StringComparison.Ordinal);

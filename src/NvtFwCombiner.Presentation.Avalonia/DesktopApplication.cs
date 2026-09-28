@@ -30,6 +30,7 @@ public static class DesktopApplication
         // UI option issues remain usable launch state and are shown by the startup report stage.
 
         var startupTrace = StartupTraceSession.StartFromEnvironment();
+        startupTrace.Mark("launch-options.parsed");
         (PresentationHostServices hostServices, Task<ShellPreferenceSnapshot> shellPreferences) =
             PrepareStartup(
                 hostServicesFactory,
