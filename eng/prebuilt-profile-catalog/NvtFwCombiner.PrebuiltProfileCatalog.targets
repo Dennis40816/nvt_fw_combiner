@@ -20,15 +20,11 @@
     <RemoveDir Directories="$(_NfcCatalogWork)" />
   </Target>
 
-  <!-- AssignTargetPaths can run before ResolveReferences. Make the tool build an explicit dependency. -->
+  <!-- Resolve the build-only ProjectReference in the normal graph and consume its exact output.
+       Overriding publish properties here would create second instances of shared dependencies
+       that write the same obj/bin paths concurrently. -->
   <Target Name="GeneratePrebuiltProfileCatalog" AfterTargets="MaterializeBuiltInProfileBundles"
           BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolveProjectReferences">
-    <MSBuild Projects="$(MSBuildThisFileDirectory)NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
-             Targets="GetTargetPath"
-             RemoveProperties="PublishSingleFile;IncludeNativeLibrariesForSelfExtract;EnableCompressionInSingleFile;PublishReadyToRun;PublishReadyToRunComposite;SelfContained;UseAppHost"
-             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);SelfContained=false;UseAppHost=false;PublishSingleFile=false;PublishReadyToRun=false;PublishReadyToRunComposite=false">
-      <Output TaskParameter="TargetOutputs" ItemName="_NfcCatalogTool" />
-    </MSBuild>
     <Error Condition="!Exists('@(_NfcCatalogTool)')" Text="The built profile catalog generator is missing." />
     <MakeDir Directories="$(_NfcCatalogWork)" />
     <Copy SourceFiles="$(BuiltInProfileTrustIndex)" DestinationFiles="$(_NfcCatalogIndex)" />

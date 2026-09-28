@@ -8,8 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\eng\prebuilt-profile-catalog\NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
                       ReferenceOutputAssembly="false" PrivateAssets="all" Private="false"
-                      GlobalPropertiesToRemove="PublishSingleFile;IncludeNativeLibrariesForSelfExtract;EnableCompressionInSingleFile;PublishReadyToRun;PublishReadyToRunComposite;SelfContained;UseAppHost"
-                      AdditionalProperties="SelfContained=false;UseAppHost=false;PublishSingleFile=false;PublishReadyToRun=false;PublishReadyToRunComposite=false" />
+                      OutputItemType="_NfcCatalogTool" />
     <ProjectReference Include="..\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />

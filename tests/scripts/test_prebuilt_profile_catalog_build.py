@@ -77,6 +77,9 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
             for attempt in range(2):
                 built = run("build", project, "--no-restore", "-nologo")
                 self.assertEqual(0, built.returncode, built.stdout + built.stderr)
+                for dependency in ("Domain", "Platform", "Contracts", "Application", "Profiles", "Infrastructure"):
+                    self.assertEqual(1, built.stdout.count(f"NvtFwCombiner.{dependency} -> "),
+                                     f"duplicate build instance for {dependency}:\n{built.stdout}")
                 self.assertTrue(pack.is_file(), f"attempt {attempt}: missing exact pack Content")
                 self.assertEqual(b"NFCPBCAT", pack.read_bytes()[:8])
                 if attempt == 0:
@@ -159,6 +162,9 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
                          "-p:PublishSingleFile=true", "-p:EnableCompressionInSingleFile=true",
                          "-p:PublishReadyToRun=true", "-p:PublishReadyToRunComposite=true")
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            for dependency in ("Domain", "Platform", "Contracts", "Application", "Profiles", "Infrastructure"):
+                self.assertEqual(1, result.stdout.count(f"NvtFwCombiner.{dependency} -> "),
+                                 f"duplicate publish build instance for {dependency}:\n{result.stdout}")
             packs = list(published.rglob("*.pack"))
             self.assertEqual([published / "profiles/built-in/prebuilt-profile-catalog.pack"], packs)
             self.assertEqual(first, packs[0].read_bytes())
