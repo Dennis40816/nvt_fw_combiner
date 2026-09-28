@@ -301,7 +301,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         Assert.Equal(0, writer.Count);
         int banks = (a ? 1 : 0) + (b ? 1 : 0);
         Assert.Equal(banks, processor.Calls);
-        CompositionRunResult build = await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), TestContext.Current.CancellationToken);
+        CompositionRunResult build = await service.BuildAsync(request, TestContext.Current.CancellationToken);
         AssertSucceeded(build);
         Assert.Equal(1, writer.Count);
         Assert.Equal(banks * 2, processor.Calls);
@@ -382,7 +382,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         CompositionRunRequest request = Request(Resolve(Compile(original, true, true, editVersions: true)));
         CompositionRunResult preview = await service.PreviewAsync(request, TestContext.Current.CancellationToken);
         AssertSucceeded(preview);
-        CompositionRunResult build = await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), TestContext.Current.CancellationToken);
+        CompositionRunResult build = await service.BuildAsync(request, TestContext.Current.CancellationToken);
         Assert.NotEqual(CompositionExecutionStatus.Succeeded, build.Status);
         Assert.Contains(build.Report.Issues, issue => issue.Code == (corruptBackup ? "test.version-invalid" : "test.tool.failure"));
         Assert.Equal(4, processor.Calls);

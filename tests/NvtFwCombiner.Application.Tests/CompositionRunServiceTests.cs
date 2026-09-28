@@ -13,7 +13,7 @@ public sealed partial class CompositionRunServiceTests
     private static readonly DateTimeOffset ThirdTimestamp = new(2026, 6, 28, 12, 0, 2, TimeSpan.Zero);
     private static readonly DateTimeOffset FourthTimestamp = new(2026, 6, 28, 12, 0, 3, TimeSpan.Zero);
 
-    /// <summary>Verifies synthetic standard merge preview returns output, token, hash, operations, and report metadata.</summary>
+    /// <summary>Verifies synthetic standard merge preview returns output, hash, operations, and report metadata.</summary>
     [Fact]
     public async Task PreviewRunsSyntheticStandardMergeWithoutCommittingOutput()
     {
@@ -25,7 +25,6 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], result.OutputBytes.ToArray());
         Assert.Null(result.CommittedOutputId);
-        Assert.NotNull(result.PreviewToken);
         Assert.False(result.Report.Output.Committed);
         Assert.Equal("synthetic-standard-merge", result.Report.ProfileId);
         Assert.Equal("NT-SYNTHETIC", result.Report.IcId);
@@ -52,7 +51,7 @@ public sealed partial class CompositionRunServiceTests
 
     /// <summary>Preview identity and report preserve the exact General admission snapshot.</summary>
     [Fact]
-    public async Task PreviewTokenChangesWhenGeneralAdmissionObservationChanges()
+    public async Task ReportPreservesGeneralAdmissionObservationChanges()
     {
         CompositionRunService service = CreateService(out _);
         CompositionRunRequest request = CreateRequest();
@@ -84,7 +83,6 @@ public sealed partial class CompositionRunServiceTests
             WithGeneralAdmission(request, secondAdmission),
             CancellationToken.None);
 
-        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
         Assert.Equal(
             4,
             Assert.Single(
@@ -95,16 +93,17 @@ public sealed partial class CompositionRunServiceTests
                 second.Report.GeneralAdmission!.InputResources).LengthBytes);
     }
 
-    /// <summary>Verifies synthetic standard merge build commits only after an approved preview token is supplied.</summary>
+    /// <summary>Verifies Build revalidates and commits the previewed synthetic standard merge output.</summary>
     [Fact]
-    public async Task BuildCommitsSyntheticStandardMergeOutputAfterPreviewApproval()
+    public async Task BuildRevalidatesAndCommitsSyntheticStandardMergeOutput()
     {
         CompositionRunService service = CreateService(out FakeOutputWriter writer);
         CompositionRunRequest request = CreateRequest();
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
 
         CompositionRunResult result = await service.BuildAsync(
-            request.WithApprovedPreviewToken(preview.PreviewToken!),
+            request,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
@@ -123,7 +122,7 @@ public sealed partial class CompositionRunServiceTests
 
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
         CompositionRunResult build = await service.BuildAsync(
-            request.WithApprovedPreviewToken(preview.PreviewToken!),
+            request,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
@@ -181,40 +180,23 @@ public sealed partial class CompositionRunServiceTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal("committed:synthetic-standard-merge.bin", result.CommittedOutputId);
-        Assert.Null(result.PreviewToken);
         Assert.True(result.Report.Output.Committed);
         Assert.Equal("synthetic-standard-merge.bin", writer.FileName);
         Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes);
     }
 
-    /// <summary>Verifies build fails before reading or committing when no preview token is approved.</summary>
+    /// <summary>Verifies Build revalidates and commits without a preview token.</summary>
     [Fact]
-    public async Task BuildRequiresApprovedPreviewTokenBeforeCommit()
+    public async Task BuildWithoutPreviewTokenRevalidatesAndCommits()
     {
         CompositionRunService service = CreateService(out FakeOutputWriter writer);
         CompositionRunRequest request = CreateRequest();
 
         CompositionRunResult result = await service.BuildAsync(request, CancellationToken.None);
 
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        Assert.False(writer.WasCalled);
-        CompositionIssue issue = Assert.Single(result.Report.Issues);
-        Assert.Equal("build.preview-token.required", issue.Code);
-    }
-
-    /// <summary>Verifies a mismatched preview token prevents output commit.</summary>
-    [Fact]
-    public async Task BuildRejectsPreviewTokenMismatch()
-    {
-        CompositionRunService service = CreateService(out FakeOutputWriter writer);
-        CompositionRunRequest request = CreateRequest().WithApprovedPreviewToken("not-the-preview-token");
-
-        CompositionRunResult result = await service.BuildAsync(request, CancellationToken.None);
-
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        Assert.False(writer.WasCalled);
-        CompositionIssue issue = Assert.Single(result.Report.Issues);
-        Assert.Equal("build.preview-token.mismatch", issue.Code);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.True(writer.WasCalled);
+        Assert.Equal("committed:synthetic-standard-merge.bin", result.CommittedOutputId);
     }
 
     /// <summary>Verifies approved numeric IC number selections can be bound to Replace run profiles.</summary>
@@ -236,7 +218,6 @@ public sealed partial class CompositionRunServiceTests
             request.CompiledComposition,
             request.ArtifactBindings.Values,
             request.OutputFileName,
-            request.ApprovedPreviewToken,
             request.IcNumberSelection,
             request.IsOutputFileNameOverride,
             request.AbMergeTopologySelection,
@@ -263,8 +244,7 @@ public sealed partial class CompositionRunServiceTests
                 "dp-input",
                 "dp-artifact",
                 "dp-input.bin",
-                CompiledInputArtifactClass.Auxiliary)],
-            approvedPreviewToken: "approved-preview-token"));
+                CompiledInputArtifactClass.Auxiliary)]));
 
         Assert.Contains("exactly match", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -368,33 +348,6 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("v2-test-input", Assert.Single(result.Report.Inputs).AddressSpaceId);
     }
 
-    /// <summary>Verifies preview approval fingerprints every initializer and explicit output selection.</summary>
-    [Fact]
-    public async Task PreviewTokenFingerprintsAllInitializersAndOutputSelection()
-    {
-        var service = new CompositionRunService(
-            new FakeArtifactReader(new Dictionary<string, byte[]>
-            {
-                ["v2-test-input-artifact"] = [0],
-            }),
-            new FakeClock(Enumerable.Range(0, 6).Select(offset => FirstTimestamp.AddSeconds(offset))));
-
-        CompositionRunResult baseline = await service.PreviewAsync(
-            CreateInitializerFingerprintRequest(scratchFillByte: 0, outputSpaceId: "output-image"),
-            CancellationToken.None);
-        CompositionRunResult changedInitializer = await service.PreviewAsync(
-            CreateInitializerFingerprintRequest(scratchFillByte: 1, outputSpaceId: "output-image"),
-            CancellationToken.None);
-        CompositionRunResult changedOutput = await service.PreviewAsync(
-            CreateInitializerFingerprintRequest(scratchFillByte: 0, outputSpaceId: "scratch"),
-            CancellationToken.None);
-
-        Assert.Equal(baseline.OutputBytes.ToArray(), changedInitializer.OutputBytes.ToArray());
-        Assert.Equal(baseline.OutputBytes.ToArray(), changedOutput.OutputBytes.ToArray());
-        Assert.NotEqual(baseline.PreviewToken, changedInitializer.PreviewToken);
-        Assert.NotEqual(baseline.PreviewToken, changedOutput.PreviewToken);
-    }
-
     /// <summary>Verifies artifact read failures are returned as structured run issues.</summary>
     [Fact]
     public async Task PreviewConvertsArtifactReadFailuresIntoRunIssues()
@@ -494,17 +447,6 @@ public sealed partial class CompositionRunServiceTests
         ArgumentException exception = Assert.Throws<ArgumentException>(() => CreateRequest(outputFileName: @"..\escape.bin"));
 
         Assert.Contains("Output file name", exception.Message, StringComparison.Ordinal);
-    }
-
-    /// <summary>Verifies preview approval retains the exact compiled composition artifact.</summary>
-    [Fact]
-    public void ApprovedPreviewTokenPreservesCompiledComposition()
-    {
-        CompositionRunRequest request = CreateRequest();
-
-        CompositionRunRequest approved = request.WithApprovedPreviewToken("approved-preview-token");
-
-        Assert.Same(request.CompiledComposition, approved.CompiledComposition);
     }
 
     /// <summary>Verifies run requests snapshot caller-provided binding collections.</summary>

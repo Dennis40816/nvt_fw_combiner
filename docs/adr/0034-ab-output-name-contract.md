@@ -1,8 +1,9 @@
 # ADR 0034: Render AB output names from execution snapshots
 
 - Status: Partially superseded by [ADR 0036](0036-output-destination-and-ab-naming-v2.md)
-  for automatic-name and collision behavior; immutable snapshot/token/report
-  provenance requirements remain accepted
+  for automatic-name and collision behavior. The 2026-09-25 owner decision
+  WS-FLOW F5 retires Preview-token approval; immutable snapshot and report
+  provenance requirements remain accepted.
 - Date: 2026-07-23
 - Owners: Product owner, architecture owner, firmware owner
 - Supersedes: The token-free AB output defaults in the `v0.9.14` pilot profiles
@@ -122,12 +123,11 @@ artifact.
 ### Date/time-zone and Preview-to-Build behavior
 
 `date` is UTC, not the host-local calendar, so tests and reports do not depend
-on a workstation time-zone setting.  `startedAtUtc` is the single run time
+on a workstation time-zone setting. `startedAtUtc` is the single run time
 authority; the renderer uses its UTC date for every automatic token in that
-run.  A Preview token binds the rendered filename and its token provenance.
-A Build using that preview token must reproduce the same automatic filename;
-crossing a UTC date boundary requires a new Preview rather than silently
-changing the publication target.
+run. Under WS-FLOW F5, Build validates and renders its own accepted request.
+A Build after a UTC date boundary may use a different automatic filename from
+an earlier Preview, and its report records the effective name and provenance.
 
 ### Report provenance
 
@@ -150,7 +150,7 @@ the same artifact hashes and immutable ranges the composition engine used.
 
 The compiler lowers a profile-declared AB output-name strategy and its source
 slots into a typed `CompiledOutputNamingRequirement`.  Application owns when a
-run resolves the name and binds it into reports, Preview tokens, and output
+run resolves the name and binds it into reports and output
 commit.  A narrow Application port/adaptor reads only the already accepted
 immutable snapshots using the existing CMI and FWConfig readers.  Bootstrap
 selects the directory and passes an explicit override intent; it does not
@@ -171,8 +171,8 @@ static behavior, and `replace-underscore` remains non-executable.
   immutability, and existing output directory policy are unchanged.
 - Non-AB profiles and existing token-free V2 profiles are behaviorally
   unchanged.
-- Stored Preview tokens bound to a pre-`v0.9.15` static output name cannot
-  authorize a new naming-contract build; callers must preview again.
+- At the `v0.9.15` activation, stored Preview tokens bound to a static name
+  could not authorize a naming-contract build. WS-FLOW F5 later retired tokens.
 - NT51950/NT51951 receive no profile/runtime registration or support-stage
   change in this migration.
 
@@ -184,9 +184,9 @@ static behavior, and `replace-underscore` remains non-executable.
 | Source authority | Changing UI/presentation text or input filenames cannot change the result; changing an accepted DP bank or TP snapshot value changes only its matching token. |
 | Snapshot boundary | DP1 and DP2 use their independent half-open banks; TP terminal metadata and DP CMI metadata in ignored trailing tails are not consumed. |
 | Unknowns | Each unavailable/invalid DP or TP value yields the exact `Dxxxx`/`Txxxx` placeholder and a non-blocking, reportable diagnostic; short inputs remain build-blocking before output. |
-| Time | A fake UTC clock proves invariant `yyyyMMdd`; a Preview/Build date change produces a Preview-token mismatch rather than a silent target change. |
+| Time | A fake UTC clock proves invariant `yyyyMMdd`; Build after a UTC date boundary validates and reports its own effective name. |
 | Override/collision | Automatic name commits by default, an explicit literal override wins when allowed, no-overwrite collision fails atomically, and `--overwrite` is the only clobber path. |
-| Report/review | Preview and Build report the same resolved tokens/provenance, bind the compilation fingerprint and input snapshot summaries, and expose no local path. |
+| Report/review | Each run reports its resolved tokens/provenance, binds the compilation fingerprint and input snapshot summaries, and exposes no local path. |
 | Regression | Existing token-free V2 profiles, AB byte placement/relocation, source immutability, and current NT51919/NT51929/NT51932 admission remain unchanged. |
 | Future candidates | Contract/schema tests prove NT51950/NT51951 cannot gain runtime support merely by the renderer being available. |
 
@@ -210,7 +210,7 @@ static behavior, and `replace-underscore` remains non-executable.
 The product/firmware owner accepted the compiler/Application/port boundary,
 CMI-bank and terminal-relative TP sources, unknown-placeholder behavior, and
 UTC calendar decision on 2026-07-23.  Architecture review remains required for
-the implemented compiler/Application/report/Preview-token change, and the normal
+the original compiler/Application/report change, and the normal
 profile, narrow behavior, regression, Polytail, CI, and Codex-review gates
 remain required before integration.  No approval here promotes NT51950 or
 NT51951, changes AB bytes, or waives any later release gate.

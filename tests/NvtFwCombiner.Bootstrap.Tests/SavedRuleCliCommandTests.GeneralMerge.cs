@@ -495,7 +495,6 @@ public sealed partial class SavedRuleCliCommandTests
         Assert.Equal(
             previewRoot.GetProperty("CompilationFingerprint").GetString(),
             buildRoot.GetProperty("CompilationFingerprint").GetString());
-        Assert.NotNull(preview.PreviewToken);
         JsonElement initialization = buildRoot.GetProperty("ImageInitialization");
         Assert.Equal(4, initialization.GetProperty("Capacity").GetInt64());
         Assert.Equal(0xA5, initialization.GetProperty("FillByte").GetInt32());
@@ -604,9 +603,9 @@ public sealed partial class SavedRuleCliCommandTests
             TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
-    /// <summary>Preview identity binds canonical Saved Rule content beyond id/version and path.</summary>
+    /// <summary>Report admission binds canonical Saved Rule content beyond id/version and path.</summary>
     [Fact]
-    public async Task GeneralMergePreviewTokenChangesWhenRuleSemanticHashChanges()
+    public async Task GeneralMergeReportSavedRuleHashChangesWhenRuleSemanticHashChanges()
     {
         using var workspace = TempWorkspace.Create();
         JsonObject firstJson = ValidGeneralMergeV2RuleObject();
@@ -639,7 +638,9 @@ public sealed partial class SavedRuleCliCommandTests
 
         Assert.True(first.Succeeded, CompositionRunReportJson.Serialize(first));
         Assert.True(second.Succeeded, CompositionRunReportJson.Serialize(second));
-        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+        Assert.NotEqual(
+            first.Report.GeneralAdmission?.SavedRule?.ContentHash,
+            second.Report.GeneralAdmission?.SavedRule?.ContentHash);
     }
 
     private static (

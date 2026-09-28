@@ -526,7 +526,8 @@ Original input file names are an unconditional v2 provenance/UI invariant
 rather than a configurable profile flag; a V2 runtime binding supplies its
 original plain filename and caller-declared typed slot assertion, which
 Application matches to the compiled slot and accepted extension before reading
-bytes. The original filename remains in reports and preview-token identity.
+bytes. The original filename remains in reports and is validated independently
+for each Preview or Build run.
 
 Legacy runtime templates are normally token-free. The exact AB Code v1
 compatibility template
@@ -543,8 +544,8 @@ boundary requires the accepted inspection and a current admission identity to
 match exact route id, capability fingerprint, metadata-plan resolution token,
 and authoring revision. A changed publication or revision is stale even when
 compiled bytes and the compilation fingerprint are otherwise identical. That
-identity is retained in the report and Preview-to-Build token, and Build
-requires a freshly captured matching admission.
+identity is retained in the report, and Build requires a freshly captured
+matching admission without relying on an earlier Preview.
 
 ADR 0046 separates that reviewed definition identity from per-compilation
 identity. `CapabilityFingerprint` binds the complete allowed capability
@@ -558,7 +559,7 @@ the compiled-plan fingerprint.
 A static template supplies the default output filename; dynamic renderers
 supply their automatic candidate. `allowOverride: false` requires that
 automatic result, while `allowOverride: true` accepts another Windows-safe
-caller filename that is bound to the Preview-to-Build token. Runtime admission
+caller filename that is validated for each run. Runtime admission
 requires the `reject` invalid-character policy. Older schema snapshots may
 retain `replace-underscore` only as non-executable legacy policy; schema 2.15
 rejects it. Output names still follow `output.fileNameTemplate`.

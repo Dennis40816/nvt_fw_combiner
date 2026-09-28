@@ -65,9 +65,9 @@ public sealed partial class CompositionRunServiceTests
         Assert.Null(failedReplace.InspectionSnapshot);
     }
 
-    /// <summary>Verifies rejected publication retains complete review bytes without exposing a publishable output.</summary>
+    /// <summary>Verifies Build retains complete review bytes after validated Replace execution.</summary>
     [Fact]
-    public async Task InspectionSnapshotSurvivesWhenSuccessfulReplaceExecutionFailsPublication()
+    public async Task BuildInspectionSnapshotRetainsSuccessfulReplaceOutput()
     {
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(
@@ -80,17 +80,17 @@ public sealed partial class CompositionRunServiceTests
             writer);
 
         CompositionRunResult result = await service.BuildAsync(
-            CreateMultiReferenceReplaceRequest().WithApprovedPreviewToken("mismatched-preview-token"),
+            CreateMultiReferenceReplaceRequest(),
             CancellationToken.None);
 
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        Assert.False(writer.WasCalled);
-        Assert.True(result.OutputBytes.IsEmpty);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.True(writer.WasCalled);
+        Assert.Equal([0x10, 0x99, 0x30, 0x40], result.OutputBytes.ToArray());
         CompositionRunInspectionSnapshot inspection = Assert.IsType<CompositionRunInspectionSnapshot>(
             result.InspectionSnapshot);
         Assert.Equal([0x10, 0x20, 0x30, 0x40], inspection.ReferenceBytes.ToArray());
         Assert.Equal([0x10, 0x99, 0x30, 0x40], inspection.OutputBytes.ToArray());
         Assert.Equal(result.Report.Output.Sha256, inspection.OutputSha256);
-        Assert.Contains(result.Report.Issues, issue => issue.Code == "build.preview-token.mismatch");
+        Assert.Empty(result.Report.Issues);
     }
 }

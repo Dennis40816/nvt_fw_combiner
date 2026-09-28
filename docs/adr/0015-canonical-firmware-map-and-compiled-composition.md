@@ -633,11 +633,20 @@ boundary. It contains the sole `CompositionPlan`, profile/bundle/map identity an
 selection and locator outcomes, alias/evidence provenance, validation stages, output-space and
 naming requirements, promotion/eligibility verdict, and compilation fingerprint.
 
-`CompositionRunRequest` must accept this compiled artifact, immutable artifact bindings, output
-options, and an optional Preview token. It must not accept a separately supplied plan and profile
-metadata. Preview and Build bind the compiled fingerprint, normalized input hashes, and output
-options; any changed bundle, map resolution, metadata fact, input, or output option invalidates
-approval. The duplicate `CompositionRunProfile` boundary is removed.
+`CompositionRunRequest` must accept this compiled artifact, immutable artifact bindings, and output
+options. It must not accept a separately supplied plan and profile metadata. Each Preview and each
+Build binds its own compiled fingerprint, normalized input hashes, and output options into its
+report. The duplicate `CompositionRunProfile` boundary is removed.
+
+The 2026-09-25 owner decision WS-FLOW F5 retires Preview-token approval. Build no longer consumes a
+Preview token: every Build re-reads its inputs, checks the accepted content stamps, and runs input
+validation, the engine, final-output validation, and the output-difference check before it commits.
+A Build therefore needs no earlier matching Preview, and a changed bundle, map resolution, metadata
+fact, input, or output option is validated as a new request instead of being rejected as a token
+mismatch. This amendment supersedes the Preview-token clauses of ADRs 0009, 0011, 0018, 0019, 0027,
+0030, 0035, 0047, and 0072. Where those ADRs bind input hashes, lengths, fingerprints, selected
+values, or output names into a Preview token, the same facts are now bound into each run's report;
+no accepted clause requires a Build to present a token.
 
 ### Composition engine amendment
 

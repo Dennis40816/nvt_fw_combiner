@@ -175,7 +175,7 @@ public sealed partial class CompositionRunRequestV2Tests
 
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
         CompositionRunResult build = await service.BuildAsync(
-            request.WithApprovedPreviewToken(Assert.IsType<string>(preview.PreviewToken)),
+            request,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);

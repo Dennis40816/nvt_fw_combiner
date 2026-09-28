@@ -490,7 +490,6 @@ public sealed partial class BuildOutcomeTests
             outputBytes,
             report,
             outputPath,
-            previewToken: null,
             inspectionOutputSpaceId: null,
             inspectionReferenceSpaceId: null,
             inspectionReferenceBytes: null,

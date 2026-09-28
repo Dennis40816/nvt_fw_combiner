@@ -51,7 +51,7 @@ public sealed partial class CompositionRunServiceTests
         reader.Set("dp-artifact", [1, 2, 9, 4]);
 
         CompositionRunResult build = await service.BuildAsync(
-            request.WithApprovedPreviewToken(preview.PreviewToken!),
+            request,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Failed, build.Status);
