@@ -11,6 +11,29 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Executes the shipped host with redirected streams and traps ordinary startup side effects.</summary>
 public sealed class ProfileCatalogProbeTests
 {
+    /// <summary>Malformed managed-host options exit with usage feedback before ordinary startup.</summary>
+    [Fact]
+    public async Task InvalidManagedHostValuesFailControllably()
+    {
+        using var workspace = TempWorkspace.Create("managed-host-arguments");
+        string host = CopyHost(workspace);
+        string[][] cases =
+        [
+            ["--managed-root"],
+            ["--managed-root", "--state-path"],
+            ["--managed-root", string.Empty],
+            ["--update-source-registry-path", string.Empty],
+        ];
+        foreach (string[] arguments in cases)
+        {
+            (int exit, string output, string error) = await RunAsync(host, workspace, arguments);
+
+            Assert.Equal(64, exit);
+            Assert.Equal(string.Empty, output);
+            Assert.Contains("error:", error, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Catalog-only launch neither resolves user state nor creates trace/UI/configuration output.</summary>
     [Theory]
     [InlineData("intact")]

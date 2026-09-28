@@ -25,6 +25,16 @@ public static class DesktopApplication
         ArgumentNullException.ThrowIfNull(startupFiles);
         ArgumentException.ThrowIfNullOrWhiteSpace(localStateDirectory);
         ArgumentNullException.ThrowIfNull(args);
+        UiLaunchOptions launchOptions = UiLaunchOptions.Parse(args);
+        if (launchOptions.Issues.Count > 0)
+        {
+            foreach (string issue in launchOptions.Issues)
+            {
+                Console.Error.WriteLine($"error: {issue}");
+            }
+            return 64;
+        }
+
         var startupTrace = StartupTraceSession.StartFromEnvironment();
         (PresentationHostServices hostServices, Task<ShellPreferenceSnapshot> shellPreferences) =
             PrepareStartup(
@@ -33,7 +43,6 @@ public static class DesktopApplication
                     startupFiles,
                     ShellPreferenceFileStore.PathIn(localStateDirectory)),
                 startupTrace);
-        var launchOptions = UiLaunchOptions.Parse(args);
         startupTrace.Mark("launch-options.parsed");
         App.SetStartup(hostServices, launchOptions, startupTrace, shellPreferences);
         return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);

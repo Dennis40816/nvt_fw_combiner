@@ -106,6 +106,18 @@ internal sealed partial class UiLaunchOptions
             unknownArguments.Add(argument);
         }
 
+        if (!string.IsNullOrWhiteSpace(reportPath))
+        {
+            try
+            {
+                _ = Path.GetFullPath(reportPath);
+            }
+            catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                issues.Add($"Invalid report path: {exception.Message}");
+            }
+        }
+
         if (inputOptions.Count > 0 && pageCount > 1) { issues.Add("Duplicate option '--page'."); }
         bool isAbMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.AbMerge;
         bool isStandardMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.StandardMerge;
