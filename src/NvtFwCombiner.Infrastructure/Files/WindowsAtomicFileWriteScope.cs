@@ -10,6 +10,9 @@ namespace NvtFwCombiner.Infrastructure.Files;
 internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScope
 {
     private const int SharingViolation = 32;
+    private const int StatusReparsePointEncountered = unchecked((int)0xC000050B);
+    // HRESULT_FROM_WIN32(ERROR_REPARSE_POINT_ENCOUNTERED, 4395).
+    private const int ErrorReparsePointEncountered = unchecked((int)0x8007112B);
     private const uint DirectoryAccess = 0x000000A3;
     private const uint DeleteAccess = 0x00010000;
     private const uint SynchronizeAccess = 0x00100000;
@@ -48,7 +51,7 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
         if (string.IsNullOrWhiteSpace(directoryPath))
         {
             throw new DirectoryNotFoundException(
-                $"Saved Rule target directory was not found: {directoryPath}");
+                $"Local file target directory was not found: {directoryPath}");
         }
 
         SafeFileHandle directoryHandle = OpenDirectory(directoryPath);
@@ -151,7 +154,7 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
         int nativeError = Marshal.GetLastPInvokeError();
         handle.Dispose();
         throw new IOException(
-            $"Could not open Saved Rule directory '{directoryPath}' (native error {nativeError}).");
+            $"Could not open local file directory '{directoryPath}' (native error {nativeError}).");
     }
 
     private static SafeFileHandle CreateAnchor(
@@ -200,8 +203,7 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
             }
 
             anchorHandle.Dispose();
-            throw new IOException(
-                $"Could not anchor Saved Rule directory (NTSTATUS 0x{status:X8}).");
+            throw AnchorFailureForStatus(status);
         }
         finally
         {
@@ -212,6 +214,14 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
 
             Marshal.FreeHGlobal(nameBuffer);
         }
+    }
+
+    internal static IOException AnchorFailureForStatus(int status)
+    {
+        string message = $"Could not anchor local file directory (NTSTATUS 0x{status:X8}).";
+        return status == StatusReparsePointEncountered
+            ? new IOException(message, ErrorReparsePointEncountered)
+            : new IOException(message);
     }
 
     private static unsafe void RequireExactDirectory(
@@ -230,8 +240,9 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
 
         if ((attributes.FileAttributes & FileAttributeReparsePoint) != 0)
         {
-            throw new UnauthorizedAccessException(
-                "Saved Rule target directories cannot be reparse points.");
+            throw new IOException(
+                "Local file target directories cannot be reparse points.",
+                ErrorReparsePointEncountered);
         }
 
         const int maximumPathLength = 32_768;
@@ -252,8 +263,9 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
                 Path.GetFullPath(expectedPath),
                 Path.GetFullPath(actualPath)))
         {
-            throw new UnauthorizedAccessException(
-                "Saved Rule target directory changed during secure open.");
+            throw new IOException(
+                "Local file target directory changed during secure open.",
+                ErrorReparsePointEncountered);
         }
     }
 
@@ -271,7 +283,7 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
     private static IOException NativeInspectionFailure(string path)
     {
         return new IOException(
-            $"Could not inspect Saved Rule directory '{path}' (native error {Marshal.GetLastPInvokeError()}).");
+            $"Could not inspect local file directory '{path}' (native error {Marshal.GetLastPInvokeError()}).");
     }
 
     [StructLayout(LayoutKind.Sequential)]
