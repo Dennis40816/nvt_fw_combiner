@@ -9,6 +9,130 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 Later changes remain assigned by the canonical roadmap.
 
+## [1.1.13]
+
+### Summary
+
+Relative to 1.1.12, this release has four themes:
+
+- **Faster start-up:** a pre-built profile catalog.
+- **Clearer firmware facts:** the TP SVN is shown, including A/B labels on AB inputs.
+- **Bounded window lifetime:** closing and version switching are limited in time and can recover.
+- **Safer runs:** every Build validates itself, committed outputs and reports are protected, save failures can be retried, and firmware markers are recognized only at the declared NVT end flag.
+
+Existing firmware support levels are unchanged. Internally, the release workflow was rebuilt, with a version floor, an eligibility gate before promotion and a non-promotable dry run. Governance moved to an authority check. The local verifier runs faster.
+
+Internal and process changes:
+
+- G1-A/G1-B added an authority check and completed the governance cutover for development records and agent guidance.
+- Local `verify.py --all` partitions UiSmoke and overlaps bounded lanes after the exclusive build. Measured local verification fell from about 24 to about 14 minutes for the recorded run shape; this is developer verification time, not application startup time. A headless UI stall now fails fast, and the memory coverage display rebuilds once per load.
+- CI also runs on pushes to the `1.1.x` trunk. The repository validator rejects user-profile paths in tracked text. The local .NET verifier lets Infrastructure tests share the parallel lane pool.
+- Predecessor-comparison contracts and validation were added, but the comparison executor and certification are not yet delivered. Test local-state isolation and process cleanup were strengthened.
+
+### Product changes
+
+#### 1. CLI reports preserve committed outputs and existing reports
+
+- Before → After: If `--report` failed after a Build, the CLI could omit the committed output receipt; a report path could also target a committed artifact, and a failed write could damage an existing report. The CLI now prints the committed output name, size and SHA-256 first, refuses report paths that name committed files, and writes reports through a staging file followed by a single rename. A later report failure is reported as a partial success without hiding the committed output.
+- Affected: CLI Build routes with `--report`; report destinations and bundled or additional committed outputs.
+- Support status: unchanged/support-neutral.
+- Compatibility: Successful report content and firmware output bytes, names and ranges are unchanged. For a committed Build, a later report failure retains exit code 0 with a `cli.report.failed` issue; scripts should check the reported issue when they require the report.
+- Verification: CLI receipt, artifact guard and atomic-write regressions cover committed and uncommitted runs, write failures, cancellation and preservation of an earlier destination. Final candidate verification remains required.
+- Limitations: A report write that fails after the output commits still leaves the requested report unavailable; the receipt identifies the committed output.
+
+#### 2. Save failures are visible and can be retried
+
+- Before → After: Failures saving report history or shell preferences could be silent. The desktop now keeps a status-bar notice for each unsaved state and offers Retry; the notice clears when that state is saved successfully. After a committed Build whose report is unavailable, the latest-output shortcut remains available without showing a Build completed dialog. A generated report that fails before publication leaves the prior loaded report and history intact.
+- Affected: desktop report history, shell preferences, generated reports and the latest-output shortcut.
+- Support status: unchanged/support-neutral.
+- Compatibility: Saved file formats, firmware output bytes, names and ranges are unchanged. A failed save leaves the prior committed local state in place.
+- Verification: UI save-notice and report-publication regressions exercise failures, retry, superseded saves and post-commit report failure. Final candidate verification remains required.
+- Limitations: The user must retry or trigger a later save after the underlying I/O or access problem is resolved.
+
+#### 3. Display OSD markers no longer override the declared NVT end flag
+
+- Before → After: A complete NVT marker elsewhere in Display OSD could make an NT51950 or NT51951 CtrlRAM Standard Base look like an invalid AB Base or block its Build. For layouts that declare an NVT end flag, firmware inspection and composition now use that exact marker position; unrelated markers do not count.
+- Affected: NT51950/NT51951 Standard and CtrlRAM Replace input inspection, AB Base classification, and the related metadata and Build paths.
+- Support status: unchanged/support-neutral; no route promotion is claimed.
+- Compatibility: Inputs missing the marker at the declared end flag are rejected even if a marker exists elsewhere. The layout, trust and capability fingerprints changed, so persisted state tied to old fingerprints becomes stale; saved General Merge rules tied to the previous NT51950/NT51951 family identity may stop resolving. Users may need to reload inputs and recreate affected rules. Output bytes, write ranges, CRC/Header behavior and naming are unchanged for accepted Golden cases.
+- Verification: End-flag and off-position marker regressions, declaration checks and the 11 applicable certified NT51950/NT51951 Golden output cases were recorded for the merged change. Fresh execution against the final release candidate remains required.
+- Limitations: A marker at the declared B-bank end flag remains B-bank evidence even when it lies in Display OSD content; the resulting invalid bank is rejected. Other families retain their listed compatibility-reader migration state.
+
+#### 4. Navigation, Replace selection and external tool failures are clearer
+
+- Before → After: Keyboard focus could resemble a second selected navigation tab, Replace selection rows could be missing on first entry, and an operating-system process-start error could escape as an unhandled exception. A file picker or save that finished after the user had moved on could also update the Hex Editor, Message Center, report save or output confirmation it no longer belonged to. Selected tabs now have a distinct underline and focus ring, Replace selection renders its rows on first entry, a failed external tool start returns a typed failure issue, and late picker and file I/O results are discarded when their screen has changed. The runtime trust probe also handles that start failure.
+- Affected: desktop Home/Merge/Replace navigation, Replace selection, Hex Editor load and save, Message Center, report save, output confirmation, and Build/Preview paths using external tools.
+- Support status: unchanged/support-neutral.
+- Compatibility: Firmware output bytes, ranges and naming are unchanged; scripts or diagnostics that inspect errors may see `external-tool.process.start-failed` instead of an uncaught start exception.
+- Verification: Navigation and first-entry UI regressions, process-runner and processor failure tests, and trust-probe start-failure tests accompany the merged changes. Final candidate verification remains required.
+- Limitations: A failed external tool start still prevents the affected operation from producing an output.
+
+#### 5. Build checks every run itself; long legacy tool paths fail early
+
+- Before → After:
+  - A Build could require an approval token from an earlier Preview, and the CLI printed a Preview approval token line after Preview.
+  - Every Build now re-reads its inputs and runs input validation, the engine, final-output validation and the output-difference check before it commits. No earlier Preview is required, and the CLI no longer prints that line.
+  - A legacy Combiner call whose argument path exceeds the legacy path limit now fails with `external-tool.argument-path.too-long` before any tool is deployed or started.
+- Affected: CLI Preview/Build output; Build readiness in the desktop and CLI; routes that use the legacy Combiner post-build step.
+- Support status: unchanged/support-neutral.
+- Compatibility: Firmware output bytes, ranges, order, CRC/Header behavior and naming are unchanged. Scripts that read the Preview approval token line must stop relying on it. A Build after a UTC date change may use the new date in an automatic output name, and its report records the effective name.
+- Verification: A regression test shows a Build without a token now revalidates and commits. The existing rejection tests for changed content and failed final validation remain. A long-path test fails before deployment. Final candidate verification remains required.
+- Limitations: The limit applies to the paths the legacy tool receives, which NFC stages under the system temporary folder (`nvt-fw-combiner\external-tools` under the Windows temporary folder, which Windows takes from `TMP` before `TEMP`). Moving the inputs or outputs does not help; if this error appears, point both `TMP` and `TEMP` to a shorter folder.
+
+#### 6. TP SVN is shown for TP inputs
+
+- Before → After: The TP firmware's 4-byte SVN (at TP start + `0x24`) was not shown, and three TP Header models described a misdeclared auto-build version field. Standard Merge, AB Merge and CtrlRAM Replace reference-base cards now show the SVN read-only, with its first-byte flags and its BCD revision. AB inputs are labelled `TP SVN (A)` and `TP SVN (B)` by bank. The unfilled FWConfig `u8AutoBuildSvnVer1-4` is modelled separately, and the misdeclared Header field is removed from the NT51923/NT51926/NT51927 TP Header models.
+- Affected: TP input cards in Standard Merge, AB Merge and CtrlRAM Replace; reports that list TP Header fields.
+- Support status: unchanged/support-neutral; the SVN is display-only.
+- Compatibility: Firmware output bytes, ranges, order, CRC/Header behavior and naming are unchanged. The identities of 19 families and 24 bundles change, so saved sessions and some saved General Merge and General Replace rules (notably NT51926 General Replace) from earlier versions stop resolving; reload the inputs and recreate those rules. In CtrlRAM reports, a Header-copy difference is now reported with the Header section as its subject instead of a field label.
+- Verification: Four A/B label cases in both languages, the TP SVN presentation tests and the Golden cases on the release candidate.
+- Limitations: The SVN is read-only; it is not validated against other firmware facts.
+
+#### 7. Faster start-up with a pre-built profile catalog
+
+- Before → After: Every start validated every built-in profile document before the profile catalog was ready. The built-in catalog is now generated and checked when the application is built. At start-up the application accepts it only when it matches the exact reviewed profile inputs; otherwise it falls back to the full check. In a pre-release measurement against v1.1.12 on the same machine (not idle), all start-up loading finished in 1.7-2.0 s for every launch instead of 3.0-3.2 s, and peak memory was lower.
+- Affected: application start-up; the release package gains the pre-built catalog file.
+- Support status: unchanged/support-neutral; the same profiles are admitted with the same results.
+- Compatibility: No user action. A damaged or mismatched catalog file is rejected and the application uses the full check.
+- Verification: Equivalence and damaged-file tests, package regeneration with byte comparison, and a smoke test that requires the pre-built path. A pre-release measurement against v1.1.12 (5 launches each, one pass, same session, machine not idle) found that every launch finished loading within 2,000 ms (1,718-1,984 ms). Peak private bytes of at most 308.6 MB and peak working set of at most 306.2 MB stay below the v1.1.12 maxima (351.6 MB and 324.3 MB). The GC heap after warm-up was 27.7 MB (limit 50 MB) and the EXE is 76,514,116 bytes (limit 80,000,000).
+- Limitations: Timings depend on the machine; the figures above are not a guarantee. In the same measurement the median time to the first window was 1,097 ms against 1,025 ms for v1.1.12, above ADR 0077's 20 ms regression guard. This is not the ADR 0077 acceptance measurement, which needs an idle session, a JSON-path variant and two passes. That acceptance was not run for 1.1.13; the owner released without it and it runs in 1.1.14.
+
+#### 8. Closing and version switching are bounded and recoverable
+
+- Before → After: Closing the window while a Build, save or version switch was running could wait without a limit, or leave a switch half done. Closing now drains running work within a bounded time, seals the window, and hands off to the launcher only while the handoff is still valid. If the launcher cannot start, the window stays open with the pending switch kept, and Settings offers Retry; no dialog appears. A second Close then exits without restarting the launcher. Late picker results for Report Load and the update-source folder are discarded.
+- Affected: closing the window, version switching from Settings, Report Load and Save, and the Settings update-source picker.
+- Support status: unchanged/support-neutral.
+- Compatibility: Firmware outputs are unchanged. There is no forced-close button; a close waits for the bounded drain.
+- Verification: Window lifetime UI tests (drain, seal, handoff deadline, revocation, recovery and the Settings Retry strip) and launcher handoff tests, including cancellation during verification.
+- Limitations: On a slow first start the launcher may report that installation health could not be checked completely; this is known from 1.1.12 and is not changed in 1.1.13.
+
+### Security
+
+No new external executable, update endpoint or permission is introduced.
+
+- The pre-built profile catalog is a new trust input. The application accepts it only when it matches the reviewed profile inputs compiled into the build; a damaged, mismatched or stale catalog is rejected, and the full profile check runs instead.
+- The package smoke check runs the application with a hidden `--profile-catalog-probe-v1` switch to prove that the shipped catalog is admitted. The switch loads the built-in profile catalog, prints one JSON result line and changes no files.
+- CLI reports now refuse destinations that would overwrite committed artifacts.
+- The release workflow checks the version floor at the candidate and before tagging. Dry-run artifacts cannot be promoted.
+
+The release candidate still requires the repository's trust, package and Golden gates.
+
+### Known issues
+
+- Correction to the 1.1.12 notes: the v1.1.12 release product source was `30b17e699`; the non-certifying v0.9.16 comparison cited there ran against `badc545b0`, not the released product source. Its 37-route observations must not be presented as a comparison of the released 1.1.12 source. A formal released-source comparison remains pending.
+- NT51950 AB CtrlRAM Replace can still differ from an owner-built reference in 32 bytes: the Header and Header-copy CRC words of both banks. The cause is now known. The reference postbuild starts from a fresh build whose Header CRC fields are zero, while NFC replays the postbuild on an already post-built TP. In both outputs the main CRCs and each copy's own Header CRC check out, and the copy keeps the values of an earlier postbuild pass, as the reference does. The owner judges that the difference does not affect firmware operation, and whether to change the handling is decided in 1.2.x.
+- This is the first release on the rebuilt stable release workflow. Its throwaway staging repository and pre-merge branch rehearsal were waived for this release only (owner decision 156). A `dry_run` of the new workflow on `main` must pass before publication.
+- No formal predecessor comparison against v1.1.12 or the v0.9.16 1.x mode was run for this release (owner decision 162). All owner-certified Golden cases are executed at the release candidate instead, and the first formal comparison runs with 1.1.14.
+- On a machine without Windows long paths, two catalog build tests cannot run inside the local verifier's session directory; CI runs them. A few local tests are timing-sensitive under heavy load. These are developer-tooling limits only.
+
+### Upgrade and rollback
+
+Extract the portable package into a separate directory and preserve existing settings and outputs. Keep the prior stable package for rollback. The merged NVT end-flag change can invalidate saved sessions and some General Merge rules tied to earlier capability or family fingerprints; reload inputs and recreate affected rules if they no longer resolve. C-7 (TP SVN display) also changes family and bundle identities, so the same guidance applies to sessions and to General Merge and General Replace rules (notably NT51926 General Replace) saved by 1.1.12 or earlier. No automatic saved-data migration is claimed.
+
+### Downloads and integrity
+
+The Windows x64 portable package is `NvtFwCombiner-v1.1.13-win-x64.zip`. It is self-contained and now carries the pre-built profile catalog. The coupled distribution Launcher is published as its separate five-asset set (EXE, manifest, SPDX, in-toto provenance and SHA-256). Publication requires exact-source protected CI, fresh execution of every applicable owner-certified Golden output case, packaging and smoke checks, plus the required owner approvals. Use the published checksums, SBOM and provenance to verify downloads. This draft does not certify or announce publication.
+
 ## [1.1.12]
 
 ### Summary
