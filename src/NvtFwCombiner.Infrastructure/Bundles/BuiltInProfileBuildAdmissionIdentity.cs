@@ -37,7 +37,7 @@ internal sealed record BuiltInProfileBuildAdmissionIdentity(string TrustIndexSha
         {
             array.Add(new JsonObject { ["bundleDirectory"] = directory, ["manifestSha256"] = hash });
         }
-        using JsonDocument document = JsonDocument.Parse(array.ToJsonString());
+        using var document = JsonDocument.Parse(array.ToJsonString());
         return Convert.ToHexStringLower(SHA256.HashData(PrebuiltProfileCatalogCanonicalJson.Encode(document.RootElement)));
     }
 

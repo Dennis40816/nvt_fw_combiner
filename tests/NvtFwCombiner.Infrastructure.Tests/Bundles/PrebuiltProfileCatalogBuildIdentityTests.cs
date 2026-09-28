@@ -16,7 +16,7 @@ public sealed class PrebuiltProfileCatalogBuildIdentityTests
     {
         string root = RepositoryPaths.FromRepositoryRoot("profiles", "built-in");
         byte[] index = File.ReadAllBytes(Path.Combine(root, "package-trust-index.json"));
-        using JsonDocument document = JsonDocument.Parse(index);
+        using var document = JsonDocument.Parse(index);
         string manifests = "[" + string.Join(',', document.RootElement.GetProperty("bundles").EnumerateArray()
             .Select(b => b.GetProperty("bundleDirectory").GetString()!).Order(StringComparer.Ordinal)
             .Select(d => "{\"bundleDirectory\":\"" + d + "\",\"manifestSha256\":\"" +

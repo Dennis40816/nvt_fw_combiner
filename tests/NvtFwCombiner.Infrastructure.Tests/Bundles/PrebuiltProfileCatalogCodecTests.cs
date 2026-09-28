@@ -130,7 +130,7 @@ public sealed class PrebuiltProfileCatalogCodecTests
     public void CanonicalJsonMatchesIndependentUnicodeAndControlVector()
     {
         using var json = System.Text.Json.JsonDocument.Parse("{\"z\":1,\"\u00e9\":\"/<>&\\u000f\\b\\t\\n\\f\\r\\\"\\\\\",\"a\":0}");
-        Assert.Equal("{\"a\":0,\"z\":1,\"\u00e9\":\"/<>&\\u000f\\b\\t\\n\\f\\r\\\"\\\\\"}",
+        Assert.Equal(/*lang=json,strict*/ "{\"a\":0,\"z\":1,\"\u00e9\":\"/<>&\\u000f\\b\\t\\n\\f\\r\\\"\\\\\"}",
             System.Text.Encoding.UTF8.GetString(PrebuiltProfileCatalogCanonicalJson.Encode(json.RootElement)));
     }
 

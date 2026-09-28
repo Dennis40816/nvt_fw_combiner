@@ -110,7 +110,7 @@ public sealed class PrebuiltProfileCatalogGenerationTests
         if (mutation == "dto-incompatible")
         {
             familySchema = $$$"""{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"{{{familyId}}}","type":"object"}""";
-            family = "{\"familyId\":42}";
+            family = /*lang=json,strict*/ "{\"familyId\":42}";
         }
         if (mutation == "aggregate")
         {
