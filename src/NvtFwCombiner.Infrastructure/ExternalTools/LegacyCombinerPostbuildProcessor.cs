@@ -74,15 +74,6 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         }
 
         ExternalCombinerToolManifest resolvedManifest = manifest!;
-        using ExternalRuntimeDeploymentResult? deployment = _runtimeDeployment is null
-            ? null
-            : await _runtimeDeployment.PrepareAsync(executablePath!, resolvedManifest.Sha256, cancellationToken).ConfigureAwait(false);
-        if (deployment?.Issue is { } deploymentIssue)
-        {
-            return ExternalProcessorResult.Failed([deploymentIssue]);
-        }
-        string executionPath = deployment?.ExecutablePath ?? executablePath!;
-
         string runDirectory = Path.GetFullPath(Path.Combine(_stagingRoot, request.RunId));
         if (!ExternalCombinerToolResolver.IsInsideDirectory(_stagingRoot, runDirectory))
         {
@@ -107,6 +98,15 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 }
             }
         }
+
+        using ExternalRuntimeDeploymentResult? deployment = _runtimeDeployment is null
+            ? null
+            : await _runtimeDeployment.PrepareAsync(executablePath!, resolvedManifest.Sha256, cancellationToken).ConfigureAwait(false);
+        if (deployment?.Issue is { } deploymentIssue)
+        {
+            return ExternalProcessorResult.Failed([deploymentIssue]);
+        }
+        string executionPath = deployment?.ExecutablePath ?? executablePath!;
 
         List<ExternalProcessInvocation> executedCommands = [];
         try
