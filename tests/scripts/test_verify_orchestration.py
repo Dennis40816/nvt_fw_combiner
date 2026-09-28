@@ -41,6 +41,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
     def test_structure_preflight_reports_missing_pyyaml_before_lane(self) -> None:
         output = io.StringIO()
         with (
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
             patch.object(MODULE.importlib.util, "find_spec", return_value=None),
             patch.object(MODULE, "run_selected_lanes") as run_selected,
             contextlib.redirect_stderr(output),
@@ -59,6 +60,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
     def test_skip_structure_preflights_pyyaml_for_repository_script_lane(self) -> None:
         output = io.StringIO()
         with (
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
             patch.object(MODULE.importlib.util, "find_spec", return_value=None),
             patch.object(MODULE, "run_selected_lanes") as run_selected,
             contextlib.redirect_stderr(output),
