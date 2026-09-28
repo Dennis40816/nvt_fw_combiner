@@ -365,11 +365,6 @@ HISTORICAL_PRIVATE_PATH_EVIDENCE = {
     "docs/governance/change-records/UI-114-MEMORY-CARDS-31.json",
     "docs/governance/waivers/REL-110-FULL-VERIFY-OWNER-WAIVER-01.md",
 }
-PRIVATE_PATH_TEXT_SUFFIXES = {
-    ".axaml", ".bat", ".cmd", ".cs", ".csproj", ".ini", ".json",
-    ".md", ".props", ".ps1", ".py", ".sh", ".slnx", ".targets",
-    ".txt", ".toml", ".xml", ".yaml", ".yml",
-}
 
 
 def _git_tracked_paths() -> list[Path] | None:
@@ -457,11 +452,13 @@ def validate_private_user_profile_paths(
     """Reject new private account paths while preserving named historical evidence."""
     for path in files:
         relative = path.relative_to(root).as_posix()
-        if (relative in HISTORICAL_PRIVATE_PATH_EVIDENCE or
-                path.suffix.lower() not in PRIVATE_PATH_TEXT_SUFFIXES):
+        if relative in HISTORICAL_PRIVATE_PATH_EVIDENCE:
             continue
         try:
-            lines = path.read_text(encoding="utf-8").splitlines()
+            content = path.read_bytes()
+            if b"\0" in content:
+                continue
+            lines = content.decode("utf-8").splitlines()
         except (OSError, UnicodeDecodeError):
             continue
         for line_number, line in enumerate(lines, 1):

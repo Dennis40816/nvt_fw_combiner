@@ -29,3 +29,33 @@ def test_allows_placeholder_accounts_and_other_path_roots(tmp_path: Path) -> Non
     validate_private_user_profile_paths([document], errors, root=tmp_path)
 
     assert errors == []
+
+
+def test_rejects_private_path_in_extensionless_tracked_text(tmp_path: Path) -> None:
+    document = tmp_path / "CODEOWNERS"
+    document.write_text("# C:/Users/" + "developer" + "/Desktop/reference\n", encoding="utf-8")
+    errors: list[str] = []
+
+    validate_private_user_profile_paths([document], errors, root=tmp_path)
+
+    assert errors == ["private user-profile path in CODEOWNERS:1"]
+
+
+def test_rejects_private_path_in_svg_tracked_text(tmp_path: Path) -> None:
+    document = tmp_path / "reference.svg"
+    document.write_text("<!-- C:/Users/" + "developer" + "/Desktop/reference -->\n", encoding="utf-8")
+    errors: list[str] = []
+
+    validate_private_user_profile_paths([document], errors, root=tmp_path)
+
+    assert errors == ["private user-profile path in reference.svg:1"]
+
+
+def test_skips_binary_content_with_embedded_null(tmp_path: Path) -> None:
+    document = tmp_path / "payload.bin"
+    document.write_bytes(b"\0C:/Users/developer/Desktop/reference\0")
+    errors: list[str] = []
+
+    validate_private_user_profile_paths([document], errors, root=tmp_path)
+
+    assert errors == []
