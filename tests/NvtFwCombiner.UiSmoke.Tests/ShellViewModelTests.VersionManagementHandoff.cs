@@ -114,7 +114,9 @@ public sealed partial class VersionManagementSettingsTests
         MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
         Task refreshing = shell.Settings.RefreshVersionAsync(isAutomatic: false);
         Assert.True(shell.Settings.IsVersionBusy);
-        window.CloseDeadlineFactory = _ => Task.CompletedTask;
+        int deadlines = 0;
+        window.CloseDeadlineFactory = _ => ++deadlines <= 2
+            ? Task.CompletedTask : Task.Delay(TimeSpan.FromSeconds(5));
         window.RequestStableLauncherRestart();
         window.Close();
         await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
