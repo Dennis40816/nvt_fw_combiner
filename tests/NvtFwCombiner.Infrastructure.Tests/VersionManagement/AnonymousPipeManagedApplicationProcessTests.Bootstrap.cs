@@ -52,6 +52,30 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             await handoff.TryStartLauncherAsync(cancellation.Token));
     }
 
+    /// <summary>Cancellation inside custody verification prevents native launcher creation.</summary>
+    [Fact]
+    public async Task StableLauncherHandoffCancellationDuringVerificationDoesNotLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
+        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
+        using var cancellation = new CancellationTokenSource();
+        bool verified = false;
+        var handoff = new StableLauncherHandoff(workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"), ManagedProcessTermination.Instance,
+            expectedIdentity: CreateBootstrapIdentity(workspace.Root),
+            validateLauncherForStart: lease =>
+            {
+                cancellation.Cancel();
+                verified = lease.TryValidateForStart();
+                return verified;
+            });
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await handoff.TryStartLauncherAsync(cancellation.Token));
+        Assert.True(verified);
+    }
+
     /// <summary>The legacy detached restart is unavailable without inherited exact authority.</summary>
     [Fact]
     public async Task StableLauncherHandoffWithoutExpectedIdentityFailsClosed()

@@ -20,6 +20,7 @@ public sealed class StableLauncherHandoff :
     private readonly Action? _afterExecutableAcquired;
     private readonly IManagedProcessTermination _termination;
     private readonly ManagedImmutableBootstrapIdentity? _expectedIdentity;
+    private readonly Func<IManagedExecutableLaunchLease, bool> _validateLauncherForStart;
 
     /// <summary>Creates a launcher handoff for one exact managed root.</summary>
     /// <param name="managedRoot">Stable launcher-owned root.</param>
@@ -43,7 +44,8 @@ public sealed class StableLauncherHandoff :
         IManagedProcessTermination termination,
         Action<string>? beforeProcessStart = null,
         Action? afterExecutableAcquired = null,
-        ManagedImmutableBootstrapIdentity? expectedIdentity = null)
+        ManagedImmutableBootstrapIdentity? expectedIdentity = null,
+        Func<IManagedExecutableLaunchLease, bool>? validateLauncherForStart = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         if (!Path.IsPathFullyQualified(managedRoot))
@@ -60,6 +62,7 @@ public sealed class StableLauncherHandoff :
         _beforeProcessStart = beforeProcessStart;
         _afterExecutableAcquired = afterExecutableAcquired;
         _expectedIdentity = expectedIdentity;
+        _validateLauncherForStart = validateLauncherForStart ?? (static lease => lease.TryValidateForStart());
     }
 
     /// <inheritdoc />
@@ -93,6 +96,11 @@ public sealed class StableLauncherHandoff :
             }
             using IManagedExecutableLaunchLease lease = acquired.Lease!;
             cancellationToken.ThrowIfCancellationRequested();
+            // Cancellation and start compete once; custody I/O cannot reserve admission.
+            // After admission wins, native creation owns the start through ResumeThread.
+            int admission = 0;
+            using CancellationTokenRegistration revocation = cancellationToken.Register(
+                () => Interlocked.CompareExchange(ref admission, 2, 0));
             Process? process = ProcessLaunchGate.StartContained(CreateBootstrapStartInfo(
                 lease.ExecutablePath,
                 _managedRoot,
@@ -104,7 +112,17 @@ public sealed class StableLauncherHandoff :
                     cancellationToken.ThrowIfCancellationRequested();
                     _beforeProcessStart?.Invoke(lease.ExecutablePath);
                     cancellationToken.ThrowIfCancellationRequested();
-                    return lease.TryValidateForStart();
+                    if (!_validateLauncherForStart(lease))
+                    {
+                        return false;
+                    }
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (Interlocked.CompareExchange(ref admission, 1, 0) != 0)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        return false;
+                    }
+                    return true;
                 });
             process?.Dispose();
             return process is not null;
