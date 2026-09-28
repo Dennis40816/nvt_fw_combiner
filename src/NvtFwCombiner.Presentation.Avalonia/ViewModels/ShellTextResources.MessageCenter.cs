@@ -116,41 +116,29 @@ internal sealed partial class ShellTextResources
     public string GetSystemDiagnosticMessage(ActionableSystemDiagnostic diagnostic)
     {
         ArgumentNullException.ThrowIfNull(diagnostic);
-        return diagnostic.Code switch
+        return SelectLanguage(diagnostic.Message, diagnostic.Code switch
         {
-            SystemDiagnosticCodes.CapabilityCatalogUnavailable => SelectLanguage(
-                diagnostic.Message,
-                "Capability 目錄無法使用，因此已停用 Build。"),
-            SystemDiagnosticCodes.CapabilityCatalogLastKnownGood => SelectLanguage(
-                diagnostic.Message,
-                "Capability 目錄重新載入失敗；目前仍使用最後已知正常版本。"),
-            SystemDiagnosticCodes.ExternalProcessorEnvironmentUnavailable => SelectLanguage(
-                diagnostic.Message,
-                "外部工具環境無法使用。"),
-            SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood => SelectLanguage(
-                diagnostic.Message,
-                "外部工具重新整理失敗；目前仍使用最後已知正常環境。"),
+            SystemDiagnosticCodes.PrebuiltCatalogUnused => "未使用預建 Profile 目錄；目前使用 JSON admission。",
+            SystemDiagnosticCodes.CapabilityCatalogUnavailable => "Capability 目錄無法使用，因此已停用 Build。",
+            SystemDiagnosticCodes.CapabilityCatalogLastKnownGood => "Capability 目錄重新載入失敗；目前仍使用最後已知正常版本。",
+            SystemDiagnosticCodes.ExternalProcessorEnvironmentUnavailable => "外部工具環境無法使用。",
+            SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood => "外部工具重新整理失敗；目前仍使用最後已知正常環境。",
             _ => diagnostic.Message,
-        };
+        });
     }
 
     public string GetSystemDiagnosticAction(ActionableSystemDiagnostic diagnostic)
     {
         ArgumentNullException.ThrowIfNull(diagnostic);
-        return diagnostic.Code switch
+        return SelectLanguage(diagnostic.Action, diagnostic.Code switch
         {
-            SystemDiagnosticCodes.CapabilityCatalogUnavailable => SelectLanguage(
-                diagnostic.Action,
-                "請修正目錄來源後重新載入。"),
-            SystemDiagnosticCodes.CapabilityCatalogLastKnownGood => SelectLanguage(
-                diagnostic.Action,
-                "請檢查目錄來源後重新載入。"),
+            SystemDiagnosticCodes.PrebuiltCatalogUnused => "請修復或重新安裝套件，然後重新啟動應用程式。",
+            SystemDiagnosticCodes.CapabilityCatalogUnavailable => "請修正目錄來源後重新載入。",
+            SystemDiagnosticCodes.CapabilityCatalogLastKnownGood => "請檢查目錄來源後重新載入。",
             SystemDiagnosticCodes.ExternalProcessorEnvironmentUnavailable or
-            SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood => SelectLanguage(
-                diagnostic.Action,
-                "請檢查外部工具 manifest 後重新整理。"),
+            SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood => "請檢查外部工具 manifest 後重新整理。",
             _ => diagnostic.Action,
-        };
+        });
     }
 
     public string FormatCapabilityActionBlocker(CapabilityActionBlocker blocker)

@@ -1,6 +1,9 @@
 using System.Text.Json;
+using System.Reflection;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -141,7 +144,17 @@ public sealed partial class FirmwareInspectionSlotTests
             "ab-merge",
             "nt51950-ab-boe-d82t80");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-runtime-readiness");
-        MainWindowViewModel viewModel = await PresentationTestHost.CreateConfiguredFormatViewModelAsync(workspace);
+        GatedAbReadinessProxy? readinessGate = null;
+        PresentationHostServices services = await PresentationTestHost.CreateConfiguredFormatServicesAsync(
+            workspace, "0.10.5", inner =>
+            {
+                IAbMergeAuthoring proxy = DispatchProxy.Create<IAbMergeAuthoring, GatedAbReadinessProxy>();
+                readinessGate = (GatedAbReadinessProxy)proxy;
+                readinessGate.Inner = inner;
+                return proxy;
+            });
+        MainWindowViewModel viewModel = PresentationTestHost.PublishCanonicalCatalog(
+            services, ShellViewModelFactory.Create(services, ShellLanguage.English));
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
@@ -170,6 +183,24 @@ public sealed partial class FirmwareInspectionSlotTests
             viewModel.RunSession.LastRunResult.Succeeded,
             viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Merge.CanBuildMerge);
+
+        var finalLease = new WindowPublicationLease();
+        viewModel.Merge.WindowPublication = finalLease;
+        int postCloseReadinessNotifications = 0;
+        viewModel.Merge.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MergePresentationViewModel.CanBuildMerge))
+            {
+                postCloseReadinessNotifications++;
+            }
+        };
+        readinessGate!.Arm();
+        Task refresh = viewModel.Merge.RefreshAbMergeActionReadinessAsync(TestContext.Current.CancellationToken);
+        await readinessGate.Started.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        finalLease.Revoke();
+        readinessGate.Release();
+        await refresh;
+        Assert.Equal(0, postCloseReadinessNotifications);
     }
 
     /// <summary>Informational AB facts cannot replace canonical session publication.</summary>
@@ -284,4 +315,45 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.False(viewModel.Merge.CanBuildMerge);
     }
 
+    /// <summary>Delays one action-readiness call until the test revokes publication.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1852:Seal internal types",
+        Justification = "DispatchProxy creates a runtime subclass.")]
+    public class GatedAbReadinessProxy : DispatchProxy
+    {
+        private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal IAbMergeAuthoring Inner { get; set; } = null!;
+        internal Task Started => _started.Task;
+        private bool _armed;
+
+        internal void Arm()
+        {
+            _armed = true;
+        }
+
+        internal void Release()
+        {
+            _ = _release.TrySetResult();
+        }
+
+        /// <inheritdoc />
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2012:Use ValueTasks correctly",
+            Justification = "DispatchProxy must forward the boxed ValueTask without consuming it.")]
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            ArgumentNullException.ThrowIfNull(targetMethod);
+            ArgumentNullException.ThrowIfNull(args);
+            return _armed && targetMethod.Name == nameof(IAbMergeAuthoring.GetActionReadinessAsync)
+                ? ReadAfterGateAsync((ActiveSessionSnapshot)args[0]!, (CancellationToken)args[1]!)
+                : targetMethod.Invoke(Inner, args);
+        }
+
+        private async ValueTask<CapabilityActionReadinessSnapshot?> ReadAfterGateAsync(
+            ActiveSessionSnapshot session, CancellationToken cancellationToken)
+        {
+            _ = _started.TrySetResult();
+            await _release.Task;
+            return await Inner.GetActionReadinessAsync(session, cancellationToken);
+        }
+    }
 }

@@ -104,13 +104,23 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                         candidate, standardConfig.StructureStart)
                     : null;
         }
+        // TP-SVN-MODEL-1113-01: the TP SVN stamp at TP start + 0x24 is read from the same capture through the same
+        // exact Standard plan, or only when every current TP-only candidate agrees; it never depends on FWConfig.
+        TpSvnObservation? standardTpSvn = kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
+            IsCurrentSnapshot(publication)
+                ? exactStandard?.MetadataPlan.ResolutionToken == publication.ResolutionToken
+                    ? TpSvnMetadataProjector.Read(exactStandard.MetadataPlan, CompositionAddressSpaceIds.TpInput, candidate)
+                    : consensusStandards is not null
+                        ? ReadConsensusTpSvn(consensusStandards, publication.ResolutionToken, candidate)
+                        : null
+                : null;
         return new(kind, kind == CtrlRamBaseKind.Unknown ? draft : draft as CtrlRamFirmwareVersionDraftState, [],
             !IsCurrentSnapshot(publication)
                 ? [new(AuthoringSessionIssueCodes.StaleInspection, "The catalog changed during Reference classification.")]
                 : kind == CtrlRamBaseKind.Unknown
                     ? [new("input.reference.unrecognized", "The captured Base is not an unambiguous Standard or trusted AB Reference.", CompositionSlotIds.ReplaceBase)]
                     : [],
-            publication.ResolutionToken, referenceStamp, standardEventBufferFormat);
+            publication.ResolutionToken, referenceStamp, standardEventBufferFormat, standardTpSvn);
     }
 
     private List<(CompiledComposition Layout, ResolvedCapability Capability)> CompileAbLayoutsForReference(
@@ -192,7 +202,12 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 eventBufferFormatVersion: valid
                     ? ReadBankEventBufferFormat(icId, publication.ResolutionToken,
                         hasStandard ? standard : null, hasStandard ? standardCapability : null, bytes, config)
-                    : null, bankIssues));
+                    : null, bankIssues,
+                // TP-SVN-MODEL-1113-01: each bank carries its own stamp, read bank-locally through the exact
+                // Standard plan of the bank length; A and B are never compared and FWConfig validity is not required.
+                tpSvn: hasStandard && bytes.Length == standard!.V2Details.Provenance.ResolvedMap.CapacityBytes
+                    ? TpSvnMetadataProjector.Read(standardCapability!.MetadataPlan, CompositionAddressSpaceIds.TpInput, bytes)
+                    : null));
             issues.AddRange(bankIssues);
         }
         if (facts.All(static bank => bank.FirmwareConfig is not null) &&
@@ -281,6 +296,17 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         byte? observed = ReadConsensusEventBufferFormat(capabilities, capturedPublication,
             acceptedTpBytes, expectedStructureStart);
         return IsCurrentSnapshot(publication) ? observed : null;
+    }
+
+    private static TpSvnObservation? ReadConsensusTpSvn(
+        IReadOnlyList<ResolvedCapability> candidates, ResolutionToken resolutionToken, ReadOnlyMemory<byte> candidate)
+    {
+        return candidates.All(capability => capability.ResolutionToken == resolutionToken &&
+                capability.MetadataPlan.ResolutionToken == resolutionToken)
+            ? TpSvnMetadataProjector.ReadConsensus(
+                [.. candidates.Select(static capability => capability.MetadataPlan)],
+                CompositionAddressSpaceIds.TpInput, candidate)
+            : null;
     }
 
     internal static byte? SelectCommonEventBufferFormat(

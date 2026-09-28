@@ -12,4 +12,5 @@ Expected: the wrapper forwards `gh` arguments that collide with its own paramete
 agents must omit. The G0 review already noted the wrapper is not a general transparent forwarder.
 Evidence: the failed and the successful invocation in the batch 2c session; pull request #461 authored by the App.
 Owner: WS-GOV (a reviewed script change, with the helper permission-set change for `workflows`).
+Allocation (2026-09-28): 1.1.14 (TODO 67; the rename needs an owner-controlled update of the installed wrapper and its G0 hash inventory).
 Resolution:

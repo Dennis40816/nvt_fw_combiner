@@ -1,0 +1,17 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)..\profile-bundle-materializer\NvtFwCombiner.ProfileBundleTrustIndex.tasks" />
+  <Target Name="ComputeBuiltInProfileAdmissionIdentity" BeforeTargets="GetAssemblyAttributes;CreateGeneratedAssemblyInfoInputsCacheFile">
+    <LoadProfileBundleTrustIndex
+      TrustIndexPath="$(MSBuildThisFileDirectory)..\..\profiles\built-in\package-trust-index.json"
+      TrustIndexSchemaPath="$(MSBuildThisFileDirectory)..\..\docs\contracts\profile-bundle-package-trust-index-v1.schema.json"
+      BuiltInProfileSourceRoot="$(MSBuildThisFileDirectory)..\..\profiles\built-in"
+      ProfileContractRoot="$(MSBuildThisFileDirectory)..\..\docs\contracts">
+      <Output TaskParameter="TrustIndexSha256" PropertyName="_NfcBuiltInTrustIndexSha256" />
+      <Output TaskParameter="ManifestSetSha256" PropertyName="_NfcBuiltInManifestSetSha256" />
+    </LoadProfileBundleTrustIndex>
+    <ItemGroup>
+      <AssemblyMetadata Include="NfcBuiltInTrustIndexSha256" Value="$(_NfcBuiltInTrustIndexSha256)" />
+      <AssemblyMetadata Include="NfcBuiltInManifestSetSha256" Value="$(_NfcBuiltInManifestSetSha256)" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -1,6 +1,6 @@
 # BUG-20260925-report-projection-loses-committed-output: report projection failure hides committed output
 
-Status: fixing
+Status: fixed (merged in the 1.1.12 integration, merge `48cd9544a`; released in v1.1.12)
 Severity: P1
 Found: 2026-09-25, Codex worker (GPT-6), while revalidating F07, at `feature/1.1.12/io-persistence`@`5882d7a57`
 Where: `src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs:190-220,338-360`
@@ -8,4 +8,4 @@ Observed: after a successful build returns, cancellation or report projection fa
 Expected: preserve and display the committed path, size and hash without rerunning processors, per `docs/architecture/post-v1.1.8-audit-handoff.md` AUD-03.
 Evidence: `ProjectAndApplyRunResultAsync` runs after `run(...)`, while the catch returns `null` for cancellation or publishes a `No output` failure for projection exceptions.
 Owner: Codex worker, `feature/1.1.12/io-persistence`
-Resolution:
+Resolution: the committed output is retained after a loose delivery is cancelled (`d4261e7ba`).

@@ -6,6 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\eng\prebuilt-profile-catalog\NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj" />
     <Compile Include="..\NvtFwCombiner.TestSupport\LegacyCombinerPostbuildCatalogAlias.cs"
              Link="LegacyCombinerPostbuildCatalogAlias.cs" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />

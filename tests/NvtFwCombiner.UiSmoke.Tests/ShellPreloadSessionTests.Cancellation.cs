@@ -4,6 +4,34 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellPreloadSessionTests
 {
+    /// <summary>Reentrant close inside an admitted callback still owns that callback until it settles.</summary>
+    [Fact]
+    public async Task ReentrantCloseDuringOptionalAdmissionTracksActualSettlement()
+    {
+        using ShellPreloadSession session = CreateSession();
+        session.AdoptReadyCatalog();
+        TaskCompletionSource entered = NewSignal();
+        TaskCompletionSource release = NewSignal();
+        Task preload = session.RunOptionalStagesAsync(
+            new(
+                static () => { },
+                _ =>
+                {
+                    session.StopAcceptingAndRevoke();
+                    entered.SetResult();
+                    return release.Task;
+                },
+                null,
+                static _ => Task.CompletedTask,
+                static (_, _, _) => Task.CompletedTask),
+            TestContext.Current.CancellationToken);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.False(session.AllUsersSettled.IsCompleted);
+        release.SetResult();
+        await preload.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await session.AllUsersSettled.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+    }
+
     /// <summary>Optional cancellation drains only remaining preload work and permits an explicit later retry.</summary>
     [Fact]
     public async Task OptionalCancellationDrainsRunningStagesWithoutCancellingCatalog()
@@ -106,5 +134,37 @@ public sealed partial class ShellPreloadSessionTests
 
         Assert.Equal(reportsAfterRetry, reports);
         Assert.Equal(2, historyRuns);
+    }
+
+    /// <summary>A bounded drain does not claim actual settlement while a worker ignores cancellation.</summary>
+    [Fact]
+    public async Task ClosedSessionWaitsForIgnoredCancellationBeforeRelease()
+    {
+        using ShellPreloadSession session = CreateSession();
+        session.AdoptReadyCatalog();
+        TaskCompletionSource started = NewSignal();
+        TaskCompletionSource release = NewSignal();
+        TaskCompletionSource deadline = NewSignal();
+        Task preload = session.RunOptionalStagesAsync(
+            new(
+                static () => { },
+                static _ => Task.CompletedTask,
+                null,
+                static _ => Task.CompletedTask,
+                async (_, _, _) =>
+                {
+                    started.SetResult();
+                    await release.Task;
+                }),
+            TestContext.Current.CancellationToken);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        session.StopAcceptingAndRevoke();
+        deadline.SetResult();
+        await session.DrainWithinDeadlineAsync(deadline.Task);
+        Assert.False(session.AllUsersSettled.IsCompleted);
+        release.SetResult();
+        await preload.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await session.AllUsersSettled.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }
 }

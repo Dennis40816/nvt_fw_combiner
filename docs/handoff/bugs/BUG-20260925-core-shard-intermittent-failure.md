@@ -17,6 +17,7 @@ Evidence: runs `36115221320` (failure) and `36098912021`/`36100314902` (same com
 then success). Candidate area, not confirmed: process and pipe tests under
 `tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/` (timing-sensitive).
 Owner: unassigned (triage in 1.1.13 unless it blocks the 1.1.12 release again)
+Allocation (2026-09-28): 1.1.14 for the H2/H3 follow-ups (TODO 53, batch 6 review).
 Resolution: not fixed. 2026-09-25: rerunning the failed jobs of run `36115221320` passed
 every check at the same commit, confirming the intermittency; PR #447 merged.
 

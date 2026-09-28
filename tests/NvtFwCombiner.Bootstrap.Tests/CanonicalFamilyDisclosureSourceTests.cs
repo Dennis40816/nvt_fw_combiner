@@ -55,8 +55,8 @@ public sealed class CanonicalFamilyDisclosureSourceTests
         _ = Assert.Single(provider.MetadataProviderFamilies);
         FirmwareFamilyResolutionDefinition family = Assert.Single(CanonicalCapabilityDisclosureInventory.ResolveDisclosureFamilies([provider]));
         Assert.Equal("nt51929-nt51932", family.FamilyId);
-        Assert.Equal("1.3.1", family.FamilyVersion);
-        Assert.Equal("d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8", family.FamilyContentHash);
+        Assert.Equal("1.4.0", family.FamilyVersion);
+        Assert.Equal("0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a", family.FamilyContentHash);
         IReadOnlyList<FirmwareFamilyResolutionDefinition> absent = CanonicalCapabilityDisclosureInventory.ResolveDisclosureFamilies(
             [provider with { FamilyDisclosureFamilies = [] }]);
         Assert.Empty(absent);
@@ -98,7 +98,7 @@ public sealed class CanonicalFamilyDisclosureSourceTests
                 {
                     BundleDirectory = mutation == "wrong-owning-bundle" ? "nt51927-standard-merge" : provider.BundleDirectory,
                     FamilyDisclosureFamilies = [new(mutation == "wrong-family" ? "absent-family" : "nt51929-nt51932",
-                        mutation == "wrong-version" ? "99.0.0" : "1.3.1")],
+                        mutation == "wrong-version" ? "99.0.0" : "1.4.0")],
                 };
                 return CanonicalCapabilityDisclosureInventory.Create(definitions, dynamicDefinitions,
                     CanonicalCapabilityDisclosureInventory.ResolveDisclosureFamilies([provider]));

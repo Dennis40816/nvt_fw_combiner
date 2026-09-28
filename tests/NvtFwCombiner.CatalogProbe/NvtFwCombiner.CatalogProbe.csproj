@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Bootstrap\NvtFwCombiner.Bootstrap.csproj" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\eng\prebuilt-profile-catalog\NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj" />
+    <Compile Include="..\NvtFwCombiner.Bootstrap.Tests\CanonicalCatalogSnapshotDigest.cs" Link="CanonicalCatalogSnapshotDigest.cs" />
+    <RuntimeHostConfigurationOption Include="NvtFwCombiner.LocalState.CurrentUserFolderForbidden" Value="true" />
+  </ItemGroup>
+</Project>

@@ -38,15 +38,17 @@ public sealed class LegacyTpFlashHeaderCanonicalMetadataTests
 
         Assert.Same(definition, nt51917.StructureDefinition.Definition);
         Assert.Same(definition, nt51928.StructureDefinition.Definition);
-        Assert.Equal("1.4.0", nt51927.FamilyDefinition.FamilyVersion);
-        Assert.Equal("1.5.1", nt51928.FamilyDefinition.FamilyVersion);
+        Assert.Equal("1.4.1", nt51927.FamilyDefinition.FamilyVersion);
+        Assert.Equal("1.5.2", nt51928.FamilyDefinition.FamilyVersion);
         Assert.NotEqual(
             nt51927.FamilyDefinition.FamilyContentHash,
             nt51928.FamilyDefinition.FamilyContentHash);
         Assert.Equal("nt51927-927-tp-flash-header", definition.DefinitionId);
         Assert.Equal(FirmwareMetadataStructureKind.TpFlashHeader, definition.StructureKind);
         Assert.Equal(0x460, definition.LengthBytes);
-        Assert.Equal(68, definition.Fields.Count);
+        // TP-SVN-MODEL-1113-01: TP start + 0x24 is the separate TP SVN stamp, not a Header field.
+        Assert.Equal(67, definition.Fields.Count);
+        Assert.DoesNotContain(definition.Fields, static field => field.FieldId == "svn-auto-build-version");
         Assert.Empty(definition.Assertions);
         Assert.All(
             [nt51917, nt51927, nt51928],
@@ -225,8 +227,11 @@ public sealed class LegacyTpFlashHeaderCanonicalMetadataTests
         Assert.NotSame(header23, header26);
         Assert.Equal("nt51923-normal-tp-flash-header", header23.DefinitionId);
         Assert.Equal("nt51926-normal-tp-flash-header", header26.DefinitionId);
-        Assert.Equal(25, header23.Fields.Count);
-        Assert.Equal(26, header26.Fields.Count);
+        // TP-SVN-MODEL-1113-01: the misdeclared little-endian SVN field is removed from both models.
+        Assert.Equal(24, header23.Fields.Count);
+        Assert.Equal(25, header26.Fields.Count);
+        Assert.All([header23, header26], static definition => Assert.DoesNotContain(
+            definition.Fields, static field => field.FieldId == "svn-auto-build-version"));
         Assert.All(
             [header23, header26],
             static definition =>

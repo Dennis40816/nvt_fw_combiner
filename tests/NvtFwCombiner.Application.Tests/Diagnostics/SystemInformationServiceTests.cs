@@ -9,6 +9,66 @@ namespace NvtFwCombiner.Application.Tests.Diagnostics;
 /// <summary>Protects the current-session diagnostic lifecycle from report/history coupling.</summary>
 public sealed class SystemInformationServiceTests
 {
+    /// <summary>Source observation never reloads and repeated refresh retains exactly one warning activation.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AdmissionObservationIsPassiveAndFallbackWarningIsDeduplicated(bool blocked)
+    {
+        var status = new StubAdmissionStatus();
+        var catalog = new StubCatalog(Result(blocked ? CanonicalSupportMatrixCatalogState.ColdStartBlocked :
+            CanonicalSupportMatrixCatalogState.Current, blocked ? null : Matrix()));
+        var service = new SystemInformationService("test", catalog, catalog,
+            new StubExternalEnvironmentLoader(), new StubRuntimeProbe(), new StubClock(), admissionStatus: status);
+        Assert.Null(service.BuiltInProfileAdmission);
+        Assert.DoesNotContain(service.Current.ActiveDiagnostics, d => d.Code == SystemDiagnosticCodes.PrebuiltCatalogUnused);
+        status.Current = new(BuiltInProfileAdmissionSource.Json, BuiltInProfileAdmissionRejectionReason.Missing);
+        Assert.Same(status.Current, service.BuiltInProfileAdmission);
+        Assert.Null(service.Current.BuiltInProfileAdmission);
+        for (int i = 0; i < 3; i++)
+        {
+            SystemInformationSnapshot snapshot = service.Refresh(reloadCatalog: i == 2, TestContext.Current.CancellationToken);
+            Assert.Same(status.Current, snapshot.BuiltInProfileAdmission);
+            ActionableSystemDiagnostic warning = Assert.Single(snapshot.ActiveDiagnostics, d => d.Code == SystemDiagnosticCodes.PrebuiltCatalogUnused);
+            Assert.Equal(SystemDiagnosticSeverity.Warning, warning.Severity);
+            Assert.Equal(SystemDiagnosticCategory.CapabilityCatalog, warning.Category);
+            Assert.Contains("restart", warning.Action, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(blocked, snapshot.IsBuildBlocked);
+        }
+        _ = Assert.Single(service.Activity, a => a.Code == SystemActivityCodes.DiagnosticActivated &&
+            a.SubjectId == SystemDiagnosticCodes.PrebuiltCatalogUnused);
+        Assert.Equal(1, catalog.ReloadCount);
+    }
+
+    /// <summary>Closed source and reason facts cannot render arbitrary diagnostics.</summary>
+    [Fact]
+    public void AcceptedAdmissionHasNoWarningAndClosedTokensRejectInvalidFacts()
+    {
+        var fact = new BuiltInProfileAdmission(BuiltInProfileAdmissionSource.Prebuilt);
+        var catalog = new StubCatalog(Result(CanonicalSupportMatrixCatalogState.Current, Matrix()));
+        var service = new SystemInformationService("test", catalog, catalog,
+            new StubExternalEnvironmentLoader(), new StubRuntimeProbe(), new StubClock(),
+            admissionStatus: new StubAdmissionStatus { Current = fact });
+        Assert.Same(fact, service.Current.BuiltInProfileAdmission);
+        Assert.Empty(service.Current.ActiveDiagnostics);
+        Assert.Equal("prebuilt", fact.SourceToken);
+        Assert.Null(fact.RejectionCode);
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new BuiltInProfileAdmission((BuiltInProfileAdmissionSource)99));
+        _ = Assert.Throws<ArgumentException>(() => new BuiltInProfileAdmission(BuiltInProfileAdmissionSource.Prebuilt,
+            BuiltInProfileAdmissionRejectionReason.Format));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new BuiltInProfileAdmission(BuiltInProfileAdmissionSource.Json,
+            (BuiltInProfileAdmissionRejectionReason)99));
+        Assert.Equal(["missing", "file-access", "file-bound", "format", "body-integrity", "trust-index-mismatch",
+            "bundle-set-mismatch", "manifest-set-mismatch", "manifest-admission", "document-set-mismatch",
+            "document-integrity", "entry-limits"], Enum.GetValues<BuiltInProfileAdmissionRejectionReason>()
+                .Select(reason => new BuiltInProfileAdmission(BuiltInProfileAdmissionSource.Json, reason).RejectionCode));
+    }
+
+    private sealed class StubAdmissionStatus : IBuiltInProfileAdmissionStatus
+    {
+        public BuiltInProfileAdmission? Current { get; set; }
+    }
+
     /// <summary>A cold catalog owns one global blocker that disappears after a successful refresh.</summary>
     [Fact]
     public void ColdCatalogBlocksBuildAndResolutionClearsTheActiveBadge()

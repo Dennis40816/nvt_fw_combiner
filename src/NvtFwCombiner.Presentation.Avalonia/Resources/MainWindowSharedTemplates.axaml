@@ -510,6 +510,37 @@
   </Border>
 </DataTemplate>
 
+<DataTemplate x:Key="FirmwareSlotFactNoteTooltipTemplate" DataType="vm:FirmwareSlotFactNote">
+  <StackPanel Spacing="{DynamicResource NfcSpace2}">
+    <ItemsControl IsVisible="{Binding HasWarnings}" ItemsSource="{Binding Warnings}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate DataType="vm:FirmwareSlotFactNoteWarning">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace4}">
+            <Path
+                Classes="firmwareSlotFactStateIcon firmwareSlotFactNoteWarningIcon"
+                Data="{Binding IconPathData}"
+                Height="12"
+                Stretch="Uniform"
+                VerticalAlignment="Center"
+                Width="12" />
+            <TextBlock Grid.Column="1" Classes="firmwareSlotFactNoteWarningText" Text="{Binding Text}" TextWrapping="Wrap" />
+          </Grid>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <ItemsControl ItemsSource="{Binding Rows}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate DataType="vm:FirmwareSlotFactNoteRow">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace4}">
+            <TextBlock Classes="firmwareSlotFactNoteLabel" Text="{Binding Label}" />
+            <TextBlock Grid.Column="1" Classes.monoText="{Binding IsTechnicalValue}" Text="{Binding Value}" TextWrapping="Wrap" />
+          </Grid>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</DataTemplate>
+
 <DataTemplate x:Key="FirmwareSlotInformationFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
   <Border
       AutomationProperties.Name="{Binding StateAutomationText}"
@@ -522,7 +553,9 @@
       Padding="0,4,16,4">
     <StackPanel Orientation="Vertical" Spacing="{DynamicResource NfcSpace2}">
       <TextBlock Classes="firmwareSlotFactLabel" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace4}" HorizontalAlignment="Stretch">
+      <!-- Decision 40: a value note left-aligns this row so its 12 px icon sits about 4 px after the value;
+           long values still trim, and facts without a note keep the stretched row and its state icon. -->
+      <Grid Classes.firmwareSlotFactNoteValueRow="{Binding HasNote}" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace4}">
         <TextBlock Classes="firmwareSlotFactValue" Text="{Binding Value}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" />
         <Path Grid.Column="1"
             AutomationProperties.Name="{Binding StateAutomationText}"
@@ -535,6 +568,24 @@
             Stretch="Uniform"
             ToolTip.Tip="{Binding StateAutomationText}"
             Width="12" />
+        <Path Grid.Column="1"
+            AutomationProperties.Name="{Binding StateAutomationText}"
+            behaviors:FocusToolTipBehavior.IsEnabled="True"
+            Classes="firmwareSlotFactStateIcon firmwareSlotFactNoteIcon"
+            Classes.noteWarning="{Binding IsNoteWarning}"
+            Data="{Binding NoteIconPathData}"
+            Focusable="True"
+            Height="12"
+            IsVisible="{Binding HasNote}"
+            Stretch="Uniform"
+            ToolTip.Placement="BottomEdgeAlignedLeft"
+            Width="12">
+          <ToolTip.Tip>
+            <ToolTip MaxWidth="360">
+              <ContentControl Content="{Binding Note}" ContentTemplate="{StaticResource FirmwareSlotFactNoteTooltipTemplate}" />
+            </ToolTip>
+          </ToolTip.Tip>
+        </Path>
       </Grid>
     </StackPanel>
   </Border>

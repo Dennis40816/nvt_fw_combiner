@@ -22,7 +22,11 @@ public sealed partial class ProfileBundleSchemaValidatorTests
             Schema("integer"),
             /*lang=json,strict*/ "{\"value\":1}");
 
+        long calls = ProfileBundleSchemaValidator.EntryValidationCalls;
+        long evaluations = ProfileBundleSchemaValidator.EntryEvaluations;
         ProfileBundleSchemaValidator.ValidateEntries(collection, 32);
+        Assert.True(ProfileBundleSchemaValidator.EntryValidationCalls > calls);
+        Assert.True(ProfileBundleSchemaValidator.EntryEvaluations > evaluations);
     }
 
     /// <summary>Verifies instance validation rejects a value outside the declared schema.</summary>

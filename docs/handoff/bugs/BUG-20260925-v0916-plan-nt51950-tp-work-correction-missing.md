@@ -8,4 +8,5 @@ Observed: the two executors differ in exactly 2,816 bytes over five half-open fi
 Expected: under ADR 0057 and the plan, an `exact-output` route without an approved correction must be byte-identical to v0.9.16; the formal comparator would fail this route with `PARITY_EXACT_MISMATCH`. The difference itself matches intended behavior (CHANGELOG 0.10.1, `99766df75`, #188, and the NT51950 alias case's owner-approved fact scope: writable Diff CtrlRAM prefix `[0x0000,0x0910)`, reference-preserved Diff NF tail `[0x0910,0x1400)`), so the plan, not the product, appears incomplete.
 Evidence: harness run `run-bc1` in the test area; row in `docs/handoff/1.1.12/parity/v0916-local-comparison.json`. ADR 0057 states the v1.0.0 lab closed eleven of twelve full-base CtrlRAM cases; this TP-work route uses its TP input directly, so that batch plausibly never compared it (not verified).
 Owner: unassigned; the owner disposes the difference; the 1.1.13 formal comparator work owns any plan change
+Allocation (2026-09-28): 1.1.14 with rolling parity P-2 (board decision 154).
 Resolution:

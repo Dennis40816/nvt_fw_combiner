@@ -14,6 +14,10 @@ internal static class Program
         {
             return probeExitCode;
         }
+        if (CompositionHostServices.TryHandleProfileCatalogProbe(args, Console.Out, out int catalogProbeExitCode))
+        {
+            return catalogProbeExitCode;
+        }
 
         (
             string? managedRoot,

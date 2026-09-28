@@ -20,8 +20,8 @@
   },
   "mapBinding": {
     "familyId": "nt51917-nt51927-nt51928-canonical-container",
-    "familyVersion": "1.5.1",
-    "familyContentHash": "1811281dae773f656b75e056161aeb38f3b5f8d808bfcdaacd8e695dcc089f1b",
+    "familyVersion": "1.5.2",
+    "familyContentHash": "e96791f6f0ed67bcad72869a6e6cc4b038114c5800bfa591d021958d82dffc44",
     "mapIds": [
       "nt51928-standard-merge-256k",
       "nt51928-standard-merge-512k"
@@ -36,7 +36,8 @@
     "requiredMetadataStructureIds": [
       "firmware-config-general-parameters",
       "dpcmi",
-      "nt51927-927-tp-flash-header"
+      "nt51927-927-tp-flash-header",
+      "tp-svn"
     ],
     "requiredCapabilityIds": []
   },
@@ -278,6 +279,14 @@
         "gen-flash-bin-v2-51928-golden",
         "tddi-flash-header-workbook-927"
       ]
+    },
+    {
+      "bindingId": "tp-svn-display",
+      "spaceId": "tp-input",
+      "structureId": "tp-svn",
+      "fieldIds": ["svn-flags", "svn-revision"],
+      "purposes": ["display"],
+      "evidenceRefs": ["owner-decision-2026-09-26-tp-svn-display"]
     }
   ],
   "regionAccessRules": [

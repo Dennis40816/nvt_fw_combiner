@@ -9,4 +9,5 @@ and does not include it, so a run that fails this way would not be classified as
 Expected: the comparator contract and its classification recognize the new code, under the parity P-2 contract owner.
 Evidence: the W6-B review.
 Owner: rolling parity P-2 (contract change, R2).
+Allocation (2026-09-28): 1.1.14 with rolling parity P-2 (board decision 154).
 Resolution:

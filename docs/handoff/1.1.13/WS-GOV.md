@@ -1301,3 +1301,10 @@ verified afterwards, and the board records it (G0 checklist, C3).
   rule insights showing both D6 bypasses (checklist C2 step 5 and D6; the App
   cannot read that admin view) and the Bitwarden backup confirmation
   (`docs/handoff/1.1.13.md`, G0 still-open list).
+- G0 owner confirmations (2026-09-28): this repository has no rule insights
+  view (Settings → Rules lists Rulesets only), so the D6 bypass evidence is
+  the repository Activity instead: the `9.9.x` force push `e6e991a` →
+  `54974d5` by Dennis40816 at 2026-09-27T17:17:46Z and the `9.9.x` deletion
+  by Dennis40816 at 17:18:02Z. The commander read both through the App
+  (Activity API) and a read-only browser capture kept in the test area; the
+  owner confirmed both, and confirmed the Bitwarden backup. G0 is complete.

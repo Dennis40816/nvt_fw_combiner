@@ -1,6 +1,6 @@
 # BUG-20260926-release-promote-skips-other-versions: the release promote job is skipped for every version outside 1.x and 2.0.0
 
-Status: open
+Status: fixing (in the 1.1.13 integration pull request of the 18:00 window, R-1 merge `4d2d642f7`)
 Severity: P3
 Found: 2026-09-26, Claude Code (Opus 5.5), while designing the release workflow cleanup (WS-GOV), at `feature/1.1.13/ws-gov`@`8682dd269`
 Where: `.github/workflows/release.yml:602-607` (`promote` `needs` and `if`); `published-smoke` (`:1019-1024`) depends on it.
@@ -8,4 +8,4 @@ Observed: `promote` runs only when the version is `2.0.0` and `v0916-parity-fina
 Expected: an admitted candidate that the release owner approves is promoted ([ADR 0033](../../adr/0033-ci-owned-stable-release-promotion.md)); [ADR 0057](../../adr/0057-v0916-black-box-parity-certification.md) defers its parity gate to 2.0.0 but does not exempt later versions from promotion. ADR 0033, `.github/AGENTS.md` and `.github/workflows/README.md` still state that the maintenance pairs may publish.
 Evidence: the `if:` expression at `release.yml:607`; `git log -S"startsWith(needs.candidate.outputs.version, '1.')" -- .github/workflows/release.yml` returns `ae932e245`. No release is affected before 2.0.1 or a maintenance release.
 Owner: unassigned; proposed fix in batch R-1 of the [release workflow cleanup design](../1.1.13/DESIGN-release-workflow-cleanup.md) (item 2).
-Resolution: not fixed.
+Resolution: R-1 replaces the promote condition with eligibility success and checks the version floor at the candidate and at pre-tag (`ee6c97e09`); closes when that pull request merges.

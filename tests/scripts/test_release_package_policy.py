@@ -43,7 +43,7 @@ CAPABILITY_POLICY_RELATIVE_PATH = Path(
 )
 CAPABILITY_POLICY_ROLE = "capabilityPolicy"
 CAPABILITY_POLICY_SHA256 = (
-    "7d0e87c9ebc9ac604acd7568548e2fb5823cdc1124233db25199662a28ba43e7"
+    "ec0083f0eaff02d22369db4d099b1f7cd759ef9c42ae21a5e11ab02e97b69014"
 )
 RUNTIME_CAPABILITY_POLICY = (
     ROOT
@@ -320,6 +320,21 @@ def release_admission_fixture(
         ): comparison,
         **tag_rulesets,
     }
+    source_run = {
+        "id": 80, "run_attempt": 2, "workflow_id": 12,
+        "head_sha": RELEASE_MAIN_SHA, "head_branch": "main", "event": "push",
+        "path": ".github/workflows/ci.yml",
+        "repository": {"full_name": repository},
+        "head_repository": {"full_name": repository},
+        "created_at": "2026-09-05T02:00:00Z",
+        "status": "completed", "conclusion": "success",
+    }
+    source_jobs = [
+        {"id": index + 100, "run_id": 80, "head_sha": RELEASE_MAIN_SHA,
+         "name": name, "status": "completed", "conclusion": "success"}
+        for index, name in enumerate(RELEASE_REQUIRED_CHECKS)
+    ]
+    api[f"repos/{repository}/actions/runs/80"] = source_run
     if scenario == "unprotected_main":
         api[f"repos/{repository}/branches/main"]["protected"] = False
     elif scenario == "open_p1":
@@ -377,6 +392,17 @@ def release_admission_fixture(
                 f"repos/{repository}/commits/{RELEASE_REVIEW_HEAD_SHA}/"
                 "check-runs?filter=latest&per_page=100"
             ): check_run_pages,
+            f"repos/{repository}/actions/workflows/ci.yml/runs?per_page=100": [
+                {"total_count": 1, "workflow_runs": [source_run]},
+                {"total_count": 1, "workflow_runs": []},
+            ],
+            f"repos/{repository}/actions/runs/80/attempts/2/jobs?per_page=100": [
+                {"total_count": len(source_jobs), "jobs": source_jobs},
+                {"total_count": len(source_jobs), "jobs": []},
+            ],
+            f"repos/{repository}/tags?per_page=100": [
+                [{"name": "v1.1.0"}], []
+            ],
         },
         "graphqlPages": review_thread_pages,
         "commentPages": comment_pages,
@@ -571,12 +597,20 @@ if "page" in form:
         )
     elif endpoint.endswith("/check-runs"):
         fixture_endpoint = endpoint + "?filter=latest&per_page=100"
+    elif endpoint.endswith("/actions/workflows/ci.yml/runs") or endpoint.endswith("/jobs") or endpoint.endswith("/tags"):
+        fixture_endpoint = endpoint + "?per_page=100"
     else:
         raise SystemExit(93)
     pages = fixture["paginated"][fixture_endpoint]
     if page_number <= len(pages):
         emit(pages[page_number - 1])
-    emit({"total_count": pages[0]["total_count"], "check_runs": []} if endpoint.endswith("/check-runs") else [])
+    if endpoint.endswith("/check-runs"):
+        emit({"total_count": pages[0]["total_count"], "check_runs": []})
+    if endpoint.endswith("/actions/workflows/ci.yml/runs"):
+        emit({"total_count": pages[0]["total_count"], "workflow_runs": []})
+    if endpoint.endswith("/jobs"):
+        emit({"total_count": pages[0]["total_count"], "jobs": []})
+    emit([])
 if endpoint not in fixture["api"]:
     raise SystemExit(94)
 emit(fixture["api"][endpoint])
@@ -742,6 +776,30 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
+    def test_rehearsal_uses_stable_release_build_without_publication_authority(self) -> None:
+        rehearsal_path = ROOT / ".github/workflows/release-rehearsal.yml"
+        self.assertFalse((ROOT / ".github/workflows/main-package.yml").exists())
+        workflow = yaml.safe_load(rehearsal_path.read_text(encoding="utf-8"))
+        job = workflow["jobs"]["package"]
+        self.assertEqual({"workflow_dispatch": None}, workflow.get("on", workflow.get(True)))
+        self.assertEqual({"contents": "read"}, workflow["permissions"])
+        self.assertNotIn("environment", job)
+        steps = job["steps"]
+        self.assertTrue(any(step.get("uses") == "./.github/actions/setup-toolchain" for step in steps))
+        runs = "\n".join(str(step.get("run", "")) for step in steps)
+        self.assertIn("verify.py --release-golden", runs)
+        self.assertIn("package.ps1 -Version", runs)
+        self.assertNotIn("-AllowPrerelease", runs)
+        self.assertIn("smoke-release.ps1", runs)
+        self.assertIn("render_release_notes.py", runs)
+        self.assertIn("create_update_catalog.py", runs)
+        self.assertNotIn("create-manifest", runs)
+        self.assertNotIn("gh release", runs)
+        self.assertNotIn("secrets.", rehearsal_path.read_text(encoding="utf-8"))
+        uploads = [step for step in steps if step.get("uses", "").startswith("actions/upload-artifact@")]
+        self.assertEqual(2, len(uploads))
+        self.assertTrue(all(step["with"]["retention-days"] == 3 for step in uploads))
+
     """Exercises the packager and smoke policy without building release binaries."""
 
     def test_temp_root_uses_current_scratch_without_legacy_root_temp(self) -> None:
@@ -1495,6 +1553,10 @@ finally {
             result.stdout,
         )
         self.assertIn(
+            "Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected",
+            result.stdout,
+        )
+        self.assertIn(
             "Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected",
             result.stdout,
         )
@@ -1605,68 +1667,6 @@ finally {
             f"VERSION '{repository_version}'",
             normalize_console_output(result.stdout + result.stderr),
         )
-
-    def test_manual_only_mode_reuses_packager_and_guards_reference_and_launcher_paths(
-        self,
-    ) -> None:
-        script = PACKAGE_SCRIPT.read_text(encoding="utf-8")
-
-        self.assertIn("[switch]$ManualOnly", script)
-        self.assertIn(
-            "$IncludeManagedLauncher = -not ($AllowPrerelease -or $ManualOnly)", script
-        )
-        self.assertIn("ManualOnly cannot be combined with AllowPrerelease", script)
-        self.assertIn(
-            "ManualOnly cannot be combined with ExternalToolPolicyDryRun", script
-        )
-        self.assertIn("ManualOnly is available only for v1.1.0", script)
-        self.assertIn("$ReferencePayloadEntries = @()", script)
-        self.assertIn("$ReferencePayloadEntries | ForEach-Object { $_.path }", script)
-        self.assertIn("if (-not $ManualOnly) {", script)
-        self.assertIn("-not $ManualOnly -and", script)
-        self.assertEqual(1, script.count("scripts/package-distribution-launcher.ps1"))
-
-    @unittest.skipUnless(
-        POWERSHELL, "PowerShell is required for Windows release-policy tests"
-    )
-    def test_manual_only_boundary_is_executable_before_poisoned_repository_access(
-        self,
-    ) -> None:
-        non_manual_modes = (
-            (),
-            ("-AllowPrerelease",),
-            ("-ExternalToolPolicyDryRun",),
-            ("-AllowPrerelease", "-ExternalToolPolicyDryRun"),
-        )
-        for version in ("1.1.0", "v1.1.0"):
-            for extra_arguments in non_manual_modes:
-                with self.subTest(version=version, extra_arguments=extra_arguments):
-                    result = self.run_poisoned_package_guard(version, *extra_arguments)
-                    output = normalize_console_output(result.stdout + result.stderr)
-                    self.assertNotEqual(0, result.returncode, output)
-                    self.assertIn("v1.1.0 requires the ManualOnly package mode", output)
-                    self.assertNotIn("POISONED_REPOSITORY_ACCESS", output)
-
-        for version in ("1.1.0", "v1.1.0"):
-            with self.subTest(version=version, mode="manual-only-crosses-guard"):
-                result = self.run_poisoned_package_guard(version, "-ManualOnly")
-                output = normalize_console_output(result.stdout + result.stderr)
-                self.assertNotEqual(0, result.returncode, output)
-                self.assertIn(
-                    "POISONED_REPOSITORY_ACCESS",
-                    output,
-                )
-
-        result = self.run_poisoned_package_guard("1.1.1", "-ManualOnly")
-        output = normalize_console_output(result.stdout + result.stderr)
-        self.assertNotEqual(0, result.returncode, output)
-        self.assertIn("ManualOnly is available only for v1.1.0", output)
-        self.assertNotIn("POISONED_REPOSITORY_ACCESS", output)
-
-        result = self.run_poisoned_package_guard("1.1.1")
-        output = normalize_console_output(result.stdout + result.stderr)
-        self.assertNotEqual(0, result.returncode, output)
-        self.assertIn("POISONED_REPOSITORY_ACCESS", output)
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
@@ -2149,7 +2149,7 @@ finally {
     def test_release_workflows_smoke_package_before_distribution(self) -> None:
         for workflow_path in (
             ROOT / ".github/workflows/release.yml",
-            ROOT / ".github/workflows/main-package.yml",
+            ROOT / ".github/workflows/release-rehearsal.yml",
         ):
             workflow = workflow_path.read_text(encoding="utf-8")
             package_index = workflow.index("scripts/package.ps1")
@@ -2193,8 +2193,7 @@ finally {
         )
         launcher_block = package_script[cleanup_index:]
         self.assertIn(
-            "if (-not $ManualOnly -and -not $AllowPrerelease -and "
-            "[version]$SemanticVersion -ge [version]'1.0.6')",
+            "if (-not $AllowPrerelease) {",
             launcher_block,
         )
         self.assertIn("$InvocationRepoRoot", launcher_block)
@@ -2202,7 +2201,7 @@ finally {
         self.assertIn("-Commit $Commit", launcher_block)
         self.assertIn("-ReleaseDisposition unsigned-owner-approved", launcher_block)
         self.assertLess(
-            launcher_block.index("-ge [version]'1.0.6'"),
+            launcher_block.index("if (-not $AllowPrerelease) {"),
             launcher_block.index("& $DistributionLauncherPackager"),
         )
 
@@ -2701,30 +2700,18 @@ finally {
                         text=True,
                     )
 
-    def test_stable_release_is_ci_owned_and_main_preview_is_manual(self) -> None:
+    def test_stable_release_is_ci_owned_and_rehearsal_is_manual(self) -> None:
         release_workflow = (ROOT / ".github/workflows/release.yml").read_text(
             encoding="utf-8"
         )
-        main_package_workflow = (ROOT / ".github/workflows/main-package.yml").read_text(
+        rehearsal_workflow = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
             encoding="utf-8"
         )
 
         self.assertIn("Exact reviewed release-branch head", release_workflow)
-        self.assertIn("source_branch:", release_workflow)
-        self.assertIn("- 0.9.17", release_workflow)
-        self.assertIn("- 0.9.18", release_workflow)
-        self.assertIn("- 0.9.19", release_workflow)
-        self.assertIn(
-            "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18', '0.9.19')",
-            release_workflow,
-        )
-        self.assertIn("'0.9.17' = '0.9.17'", release_workflow)
-        self.assertIn("'0.9.18' = '0.9.18'", release_workflow)
-        self.assertIn("'0.9.19' = '0.9.19'", release_workflow)
-        self.assertIn(
-            "$approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version",
-            release_workflow,
-        )
+        self.assertNotIn("source_branch:", release_workflow)
+        self.assertIn("$sourceSha = $mainSha", release_workflow)
+        self.assertIn("source-branch=main", release_workflow)
         self.assertIn(
             "permissions:\n  actions: read\n  contents: read",
             release_workflow,
@@ -2826,11 +2813,11 @@ finally {
             ),
             "dispatch inputs must enter PowerShell only through validated environment variables",
         )
-        self.assertNotIn("branches: [main]", main_package_workflow)
-        self.assertNotIn("gh release", main_package_workflow)
+        self.assertNotIn("branches: [main]", rehearsal_workflow)
+        self.assertNotIn("gh release", rehearsal_workflow)
         first_policy_call = release_workflow.index("release_promotion_policy.py")
         self.assertLess(
-            release_workflow.index("actions/setup-python@"),
+            release_workflow.index("uses: ./.github/actions/setup-toolchain"),
             first_policy_call,
             "release-authoritative Python policy must use the pinned interpreter",
         )
@@ -2863,15 +2850,14 @@ finally {
                     self.assertIn("--source-sha $env:NFC_SOURCE_SHA", block)
         self.assertEqual(3, len(collectors))
 
-    def test_release_golden_reuse_begins_after_source_admission_and_keeps_legacy_full_gate(self) -> None:
+    def test_release_golden_follows_source_admission_for_every_candidate(self) -> None:
         workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
         steps = workflow["jobs"]["candidate"]["steps"]
         verification = next(step for step in steps if step["name"] == "Verify release source")
         self.assertEqual("${{ steps.identity.outputs.version }}",
                          verification["env"]["NFC_SOURCE_VERSION"])
-        self.assertIn("-ge [version]'1.1.3'", verification["run"])
         self.assertIn("python ./scripts/verify.py --release-golden", verification["run"])
-        self.assertIn("else {\n  python ./scripts/verify.py --all", verification["run"])
+        self.assertNotIn("verify.py --all", verification["run"])
         self.assertIn("if ($LASTEXITCODE -ne 0)", verification["run"])
         admission_index = next(index for index, step in enumerate(steps)
                                if "collect-repository-admission" in step.get("run", ""))
@@ -2893,14 +2879,8 @@ finally {
         self.assertIn("-cnotmatch", candidate)
         self.assertIn("published-at=$env:NFC_RELEASE_PUBLISHED_AT", candidate)
 
-        setup_python = candidate.index("Setup pinned Python for release policy")
-        helper_copy = candidate.index(
-            "Copy-Item -LiteralPath ./scripts/create_update_catalog.py"
-        )
-        registry_policy_copy = candidate.index(
-            "Copy-Item -LiteralPath ./scripts/update_source_registry_policy.py"
-        )
-        detach = candidate.index("git checkout --detach")
+        setup_python = candidate.index("Setup release toolchain")
+        identity = candidate.index("Lock release authority and candidate identity")
         package = candidate.index("Build closed-allowlist release package")
         smoke = candidate.index("Smoke candidate package")
         notes = candidate.index("Render complete release notes from CHANGELOG")
@@ -2911,10 +2891,8 @@ finally {
         candidate_upload = candidate.index("Upload immutable candidate assets")
         handoff_upload = candidate.index("Upload update-source handoff")
 
-        self.assertLess(setup_python, helper_copy)
-        self.assertLess(helper_copy, registry_policy_copy)
-        self.assertLess(registry_policy_copy, detach)
-        self.assertLess(helper_copy, detach)
+        self.assertLess(setup_python, identity)
+        self.assertNotIn("git checkout --detach", candidate)
         self.assertLess(package, smoke)
         self.assertLess(smoke, notes)
         self.assertLess(notes, handoff)
@@ -2935,10 +2913,7 @@ finally {
         self.assertIn("'RELEASE-MANIFEST.json'", candidate)
         self.assertIn("update-catalog.v1.json", candidate)
         self.assertIn("update-source-registry.json", candidate)
-        self.assertIn(
-            "Copy-Item -LiteralPath ./docs/ci/update-source-registry.json.in",
-            candidate,
-        )
+        self.assertIn("NFC_UPDATE_SOURCE_REGISTRY_TEMPLATE=./docs/ci/update-source-registry.json.in", candidate)
         self.assertIn("--registry-template", candidate)
         self.assertIn("--registry-revision", candidate)
         self.assertIn("$env:GITHUB_RUN_ID", candidate)
@@ -3096,72 +3071,20 @@ finally {
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
     )
-    def test_live_branch_authority_runs_for_every_version_before_tag_mutation(
-        self,
-    ) -> None:
-        step_name = (
-            "Create or verify immutable annotated tag with fresh repository admission"
-        )
-        for version in ("0.9.19", "1.1.1"):
-            with self.subTest(version=version):
-                result, _, calls = self.run_release_workflow_step(
-                    "promote",
-                    step_name,
-                    source_version=version,
-                    source_branch=version if version == "0.9.19" else "main",
-                )
-                output = normalize_console_output(result.stdout + result.stderr)
-                self.assertEqual(0, result.returncode, output)
-                validators = [
-                    call
-                    for call in calls
-                    if call[0] == "python" and "validate-live-branch-authority" in call
-                ]
-                self.assertEqual(1, len(validators), calls)
-                collectors = [
-                    call
-                    for call in calls
-                    if call[0] == "python" and "collect-repository-admission" in call
-                ]
-                expected_collectors = (
-                    1
-                    if tuple(int(part) for part in version.split(".")) >= (1, 1, 1)
-                    else 0
-                )
-                self.assertEqual(expected_collectors, len(collectors), calls)
-                validator_index = calls.index(validators[0])
-                first_post_index = next(
-                    index
-                    for index, call in enumerate(calls)
-                    if call[:4] == ["gh", "api", "--method", "POST"]
-                )
-                self.assertLess(validator_index, first_post_index)
-
-    @unittest.skipUnless(
-        PWSH, "PowerShell 7 is required for exact release-workflow execution"
-    )
-    def test_v110_candidate_policy_rejects_before_package_and_promote(self) -> None:
+    def test_new_tag_rechecks_floor_and_live_authority_before_mutation(self) -> None:
         result, _, calls = self.run_release_workflow_step(
-            "candidate",
-            "Collect and validate final PR review/check evidence",
-            source_version="1.1.0",
+            "promote", "Create or verify immutable annotated tag with fresh repository admission"
         )
         output = normalize_console_output(result.stdout + result.stderr)
-        self.assertNotEqual(0, result.returncode, output)
-        self.assertIn("manual-only operator release", output)
-        self.assertFalse(
-            any(call[:2] == ["gh", "release"] for call in calls),
-            calls,
-        )
-
-        workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
-        candidate_steps = workflow["jobs"]["candidate"]["steps"]
-        names = [step.get("name") for step in candidate_steps]
-        self.assertLess(
-            names.index("Collect and validate final PR review/check evidence"),
-            names.index("Build closed-allowlist release package"),
-        )
-        self.assertIn("candidate", workflow["jobs"]["promote"]["needs"])
+        self.assertEqual(0, result.returncode, output)
+        for command in ("collect-repository-admission", "validate-live-branch-authority",
+                        "validate-release-floor"):
+            matches = [index for index, call in enumerate(calls)
+                       if call[0] == "python" and command in call]
+            self.assertEqual(1, len(matches), calls)
+            first_post = next(index for index, call in enumerate(calls)
+                              if call[:4] == ["gh", "api", "--method", "POST"])
+            self.assertLess(matches[0], first_post)
 
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
@@ -3231,93 +3154,6 @@ finally {
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
     )
-    def test_historical_present_tag_recovery_requires_fresh_ancestry(self) -> None:
-        step_name = (
-            "Create or verify immutable annotated tag with fresh repository admission"
-        )
-        result, _, calls = self.run_release_workflow_step(
-            "promote",
-            step_name,
-            source_version="0.9.19",
-            source_branch="0.9.19",
-            tag_state="present",
-            remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
-        )
-        output = normalize_console_output(result.stdout + result.stderr)
-        self.assertEqual(0, result.returncode, output)
-        compare_call = next(call for call in calls if "/compare/" in " ".join(call))
-        self.assertIn("--jq", compare_call)
-        jq_index = compare_call.index("--jq")
-        self.assertEqual(
-            "{baseSha: .base_commit.sha, mergeBaseSha: .merge_base_commit.sha, status: .status}",
-            compare_call[jq_index + 1],
-        )
-        self.assertTrue(
-            any(
-                call[0] == "python" and "validate-live-branch-authority" in call
-                for call in calls
-            )
-        )
-
-        result, _, calls = self.run_release_workflow_step(
-            "promote",
-            step_name,
-            scenario="invalid_recovery_ancestry",
-            source_version="0.9.19",
-            source_branch="0.9.19",
-            tag_state="present",
-            remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
-        )
-        output = normalize_console_output(result.stdout + result.stderr)
-        self.assertNotEqual(0, result.returncode, output)
-        self.assertIn("Fresh live branch authority policy failed", output)
-        self.assertTrue(
-            any(
-                call[0] == "python" and "validate-live-branch-authority" in call
-                for call in calls
-            )
-        )
-
-    @unittest.skipUnless(
-        PWSH, "PowerShell 7 is required for exact release-workflow execution"
-    )
-    def test_raw_compare_projection_failures_prevent_release_mutation(self) -> None:
-        for scenario in ("missing_compare_base", "malformed_compare_base"):
-            with self.subTest(scenario=scenario):
-                result, _, calls = self.run_release_workflow_step(
-                    "promote",
-                    "Publish or validate GitHub Release",
-                    scenario=scenario,
-                    source_version="0.9.19",
-                    source_branch="0.9.19",
-                    tag_state="present",
-                    remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
-                )
-                output = normalize_console_output(result.stdout + result.stderr)
-                self.assertNotEqual(0, result.returncode, output)
-                compare_call = next(
-                    call for call in calls if "/compare/" in " ".join(call)
-                )
-                jq_index = compare_call.index("--jq")
-                self.assertEqual(
-                    "{baseSha: .base_commit.sha, mergeBaseSha: .merge_base_commit.sha, status: .status}",
-                    compare_call[jq_index + 1],
-                )
-                self.assertFalse(
-                    any(
-                        call[:3]
-                        in (
-                            ["gh", "release", "create"],
-                            ["gh", "release", "upload"],
-                        )
-                        for call in calls
-                    ),
-                    calls,
-                )
-
-    @unittest.skipUnless(
-        PWSH, "PowerShell 7 is required for exact release-workflow execution"
-    )
     def test_release_create_revalidates_before_mutation(self) -> None:
         step_name = "Publish or validate GitHub Release"
         result, _, calls = self.run_release_workflow_step(
@@ -3350,113 +3186,16 @@ finally {
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
     )
-    def test_eligible_historical_upload_revalidates_without_strict_admission(
-        self,
-    ) -> None:
+    def test_release_authority_failure_prevents_create_mutation(self) -> None:
         result, _, calls = self.run_release_workflow_step(
-            "promote",
-            "Publish or validate GitHub Release",
-            source_version="0.9.19",
-            source_branch="0.9.19",
-            tag_state="present",
-            remote_source_sha=RELEASE_ADVANCED_SOURCE_SHA,
+            "promote", "Publish or validate GitHub Release", scenario="unprotected_main"
         )
         output = normalize_console_output(result.stdout + result.stderr)
-        self.assertEqual(0, result.returncode, output)
-        live_authority_calls = [
-            call
-            for call in calls
-            if call[0] == "python" and "validate-live-branch-authority" in call
-        ]
-        strict_admission_calls = [
-            call
-            for call in calls
-            if call[0] == "python" and "collect-repository-admission" in call
-        ]
-        upload_calls = [
-            call for call in calls if call[:3] == ["gh", "release", "upload"]
-        ]
-        self.assertEqual(1, len(live_authority_calls), calls)
-        self.assertEqual([], strict_admission_calls, calls)
-        self.assertEqual(1, len(upload_calls), calls)
-        self.assertGreaterEqual(
-            len(
-                [
-                    argument
-                    for argument in upload_calls[0]
-                    if argument.endswith(
-                        ("payload.bin", "candidate.json", "assets.sha256")
-                    )
-                ]
-            ),
-            3,
-            upload_calls[0],
-        )
-
-    @unittest.skipUnless(
-        PWSH, "PowerShell 7 is required for exact release-workflow execution"
-    )
-    def test_release_authority_failure_prevents_create_and_upload_mutations(
-        self,
-    ) -> None:
-        step_name = "Publish or validate GitHub Release"
-        cases = (
-            ("1.1.1", "absent", RELEASE_MAIN_SHA, "unprotected_main"),
-            (
-                "0.9.19",
-                "present",
-                RELEASE_ADVANCED_SOURCE_SHA,
-                "invalid_recovery_ancestry",
-            ),
-        )
-        for version, state, remote_source_sha, scenario in cases:
-            with self.subTest(version=version, scenario=scenario):
-                result, _, calls = self.run_release_workflow_step(
-                    "promote",
-                    step_name,
-                    scenario=scenario,
-                    source_version=version,
-                    source_branch="0.9.19" if version == "0.9.19" else "main",
-                    tag_state=state,
-                    remote_source_sha=remote_source_sha,
-                )
-                output = normalize_console_output(result.stdout + result.stderr)
-                self.assertNotEqual(0, result.returncode, output)
-                if version == "1.1.1":
-                    self.assertIn("repository admission policy failed", output)
-                    self.assertFalse(
-                        any(
-                            call[0] == "python"
-                            and "validate-live-branch-authority" in call
-                            for call in calls
-                        ),
-                        calls,
-                    )
-                else:
-                    self.assertIn("live branch authority failed", output)
-                    self.assertTrue(
-                        any(
-                            call[0] == "python"
-                            and "validate-live-branch-authority" in call
-                            for call in calls
-                        ),
-                        calls,
-                    )
-                self.assertFalse(
-                    any(
-                        call[:3]
-                        in (
-                            ["gh", "release", "create"],
-                            ["gh", "release", "upload"],
-                        )
-                        for call in calls
-                    ),
-                    calls,
-                )
-
-        release_block = release_workflow_run_block("promote", step_name)
-        self.assertNotIn("$comparison.head_commit.sha", release_block)
-        self.assertIn("headSha = $observedSourceSha", release_block)
+        self.assertNotEqual(0, result.returncode, output)
+        self.assertIn("repository admission policy failed", output)
+        self.assertFalse(any(call[:3] in (["gh", "release", "create"],
+                                          ["gh", "release", "upload"])
+                             for call in calls), calls)
 
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
@@ -3574,7 +3313,7 @@ finally {
             "- name: Require readable stable tag and Release state"
         )
         candidate_end = release_workflow.index(
-            "- name: Install pinned repository .NET SDK", candidate_start
+            "- name: Verify release source", candidate_start
         )
         candidate = release_workflow[candidate_start:candidate_end]
 
@@ -3583,28 +3322,17 @@ finally {
         self.assertIn("validate-tag", release_workflow)
         self.assertIn("validate-release", release_workflow)
 
-    def test_101_release_source_is_strictly_version_only_from_v100(self) -> None:
-        release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
-
-        self.assertIn("if ($version -eq '1.0.1')", release)
-        self.assertIn("validate-version-only-lineage", release)
-        self.assertIn("--repository '${{ github.workspace }}'", release)
-        self.assertIn("validate-version-only-package", release)
-        self.assertIn("gh release download v1.0.0", release)
-        self.assertIn("NvtFwCombiner-v1.0.0-win-x64.zip", release)
-        self.assertIn("NvtFwCombiner-v1.0.1-win-x64.zip", release)
-        self.assertIn("VersionOnlyBasePackage", release)
-        self.assertIn("VersionOnlyBasePackageSha256", release)
-        self.assertIn("matches[0].digest", release)
-        self.assertIn("^sha256:[0-9a-f]{64}$", release)
-        self.assertIn("--base-package-sha256", release)
-        self.assertLess(
-            release.index("Download published 1.0.0 base package"),
-            release.index("Build closed-allowlist release package"),
-        )
-        self.assertNotIn("git diff --name-only --no-renames", release)
-        self.assertNotIn("$changedPaths.Count -ne 1", release)
-        self.assertNotIn("$changedPaths[0] -ne 'VERSION'", release)
+    def test_retired_version_paths_are_absent_and_floor_is_explicit(self) -> None:
+        release = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        policy = (ROOT / "scripts/release_promotion_policy.py").read_text(encoding="utf-8")
+        package = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        for retired in ("validate-version-only-lineage", "validate-version-only-package",
+                        "VersionOnlyBasePackage", "ManualOnly", "0.9.19"):
+            self.assertNotIn(retired, release)
+        self.assertNotIn("extract-version-only-stable-payload", policy)
+        self.assertNotIn("VersionOnlyBasePackage", package)
+        self.assertNotIn("ManualOnly", package)
+        self.assertEqual(2, release.count("validate-release-floor"))
 
     def test_stable_promotion_waits_for_terminal_parity_evidence(self) -> None:
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
@@ -3615,9 +3343,13 @@ finally {
         ]
 
         self.assertIn("- candidate", promote)
-        self.assertIn("- v0916-parity-finalize", promote)
+        self.assertIn("- release-eligibility", promote)
         self.assertNotIn("- v0916-parity-attestation", promote)
-        self.assertIn("needs.v0916-parity-finalize.result == 'skipped'", promote)
+        self.assertIn("needs.release-eligibility.result == 'success'", promote)
+        eligibility = release[release.index("  release-eligibility:") : release.index("  promote:")]
+        self.assertIn("- v0916-parity-finalize", eligibility)
+        self.assertIn("needs.v0916-parity-finalize.result", eligibility)
+        self.assertIn("validate-release-eligibility", eligibility)
 
         steps = release[
             release.index("    steps:", release.index("  promote:")) : release.index(
@@ -3665,7 +3397,10 @@ finally {
     def test_workflows_install_the_pinned_parity_yaml_dependency(self) -> None:
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
-        main_package = (ROOT / ".github/workflows/main-package.yml").read_text(
+        rehearsal = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
+            encoding="utf-8"
+        )
+        setup = (ROOT / ".github/actions/setup-toolchain/action.yml").read_text(
             encoding="utf-8"
         )
         worker_project = tomllib.loads(
@@ -3709,8 +3444,10 @@ finally {
         self.assertIn("PyYAML==6.0.3", dev_dependencies)
         self.assertNotIn("PyYAML==6.0.3", package_dependencies)
         self.assertIn("./tools/crc-worker[dev]", python_worker)
-        self.assertIn("./tools/crc-worker[dev,package]", candidate)
-        self.assertIn("./tools/crc-worker[dev,package]", main_package)
+        self.assertIn("uses: ./.github/actions/setup-toolchain", candidate)
+        self.assertIn("uses: ./.github/actions/setup-toolchain", rehearsal)
+        self.assertIn("actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1", setup)
+        self.assertIn("./tools/crc-worker[$env:NFC_WORKER_EXTRAS]", setup)
         self.assertIn(install, structure)
         self.assertIn(install, dotnet_build)
         self.assertNotIn(install, dotnet_test)

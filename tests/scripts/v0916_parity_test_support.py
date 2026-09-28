@@ -45,7 +45,7 @@ def parity_workflow_fixture_from_contract(
     )
     jobs: dict[str, object] = {
         job_id: copy.deepcopy(production_workflow["jobs"][job_id])
-        for job_id in ("candidate", "promote", "published-smoke")
+        for job_id in ("candidate", "release-eligibility", "promote", "published-smoke")
     }
     for job_id, declared in contract["jobs"].items():
         job = {

@@ -1,6 +1,6 @@
 # BUG-20260926-tests-write-real-local-state: UI tests can write the developer's real local state files
 
-Status: open (the real file was observed changing during test runs; the code paths were found by reading, not yet pinned by a test)
+Status: fixed (merged into `1.1.x` by #461, merge `c524e7d2b`, 2026-09-27)
 Severity: P2
 Found: 2026-09-26, Claude Code (Opus 5.5), from the rolling-parity P-0.5 spike and a read-only lookup
 Where: `src/NvtFwCombiner.Presentation.Avalonia/LocalJsonDocument.cs` (`GetDefaultPath`), `ReportHistoryFileStore.DefaultHistoryPath`,
@@ -14,4 +14,4 @@ Expected: every test runs against an isolated local-state root that production c
 test run that touches the real folder. Parallel runs in separate worktrees must not share or overwrite each other's state.
 Evidence: file times of the real folder; code reading (lookup report, 2026-09-26). Not yet reproduced by a test.
 Owner: 1.1.13, a test-isolation fix (R1 unless the injection point changes production behavior).
-Resolution:
+Resolution: every test host is composed over an isolated local-state directory (`df02c1f4c`), and the `CurrentUserFolderForbidden` switch fails closed on the real per-user path; merged by #461.

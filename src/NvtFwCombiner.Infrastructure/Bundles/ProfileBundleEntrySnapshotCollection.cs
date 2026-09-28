@@ -70,6 +70,12 @@ internal sealed class ProfileBundleEntrySnapshotCollection
 
     internal IReadOnlyList<ProfileBundleEntrySnapshot> Entries { get; }
 
+    internal static ProfileBundleEntrySnapshotCollection FromAccepted(AcceptedPrebuiltProfileCatalog accepted, string directory)
+    {
+        ArgumentNullException.ThrowIfNull(accepted);
+        return new ProfileBundleEntrySnapshotCollection(accepted.Manifest(directory), accepted.Documents(directory));
+    }
+
     internal static ProfileBundleEntrySnapshotCollection Capture(
         string bundleRoot,
         string manifestPath,

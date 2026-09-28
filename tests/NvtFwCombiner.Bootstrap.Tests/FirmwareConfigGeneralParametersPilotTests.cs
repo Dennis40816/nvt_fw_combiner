@@ -302,8 +302,8 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         Assert.Equal(
             nt51927.FamilyDefinition.FamilyId,
             nt51928.FamilyDefinition.FamilyId);
-        Assert.Equal("1.4.0", nt51927.FamilyDefinition.FamilyVersion);
-        Assert.Equal("1.5.1", nt51928.FamilyDefinition.FamilyVersion);
+        Assert.Equal("1.4.1", nt51927.FamilyDefinition.FamilyVersion);
+        Assert.Equal("1.5.2", nt51928.FamilyDefinition.FamilyVersion);
         Assert.Equal(
             "firmware-config-general-parameters",
             nt51927.StructureDefinition.StructureId);

@@ -8,7 +8,7 @@ internal sealed partial class MainWindowViewModel
     /// <summary>Focused Preview/Build lifetime and progress presentation.</summary>
     public CompositionRunPresentationViewModel RunSession { get; }
 
-    private async Task RunCompositionAsync(
+    internal async Task RunCompositionAsync(
         CompositionRunContext context,
         bool build,
         CompositionRunWork run,
@@ -19,7 +19,9 @@ internal sealed partial class MainWindowViewModel
             SystemActivityCategory.Composition,
             context.Mode,
             context.Ic);
-        UiRunResultViewModel? result = await RunSession.RunCompositionAsync(context, build, run, loadErrorReport);
+        bool completionMayPublish = false;
+        UiRunResultViewModel? result = await RunSession.RunCompositionAsync(context, build, run, loadErrorReport, mayPublish => completionMayPublish = mayPublish);
+        if (!completionMayPublish || !RunSession.WindowMayPublish) { return; }
         bool succeeded = result?.Succeeded == true;
         RecordSystemActivity(new SystemActivityDraft(
             succeeded

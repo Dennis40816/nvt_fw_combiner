@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.TestSupport;
@@ -8,6 +9,27 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 /// <summary>Tests the package-owned exact bundle admission boundary.</summary>
 public sealed class ProfileBundlePackageTrustIndexLoaderTests
 {
+    /// <summary>Identity hashes the parsed bytes, including whitespace, and survives later disk changes.</summary>
+    [Fact]
+    public void DigestIdentifiesExactParsedSnapshotRatherThanReserializedIndex()
+    {
+        using TempWorkspace workspace = WriteIndex(Bundle());
+        string path = workspace.PathFor("package-trust-index.json");
+        byte[] original = File.ReadAllBytes(path);
+        ProfileBundlePackageTrustIndex first = ProfileBundlePackageTrustIndexLoader.Load(path);
+        File.AppendAllText(path, " \r\n");
+        byte[] changed = File.ReadAllBytes(path);
+        ProfileBundlePackageTrustIndex second = ProfileBundlePackageTrustIndexLoader.Load(path);
+        File.Delete(path);
+
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(original)), first.ActualSha256);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(changed)), second.ActualSha256);
+        Assert.NotEqual(first.ActualSha256, second.ActualSha256);
+        Assert.Equal(first.TrustIndexId, second.TrustIndexId);
+        Assert.Equal(first.TrustIndexVersion, second.TrustIndexVersion);
+        Assert.Equal(first.Bundles.Select(x => x.ContentHash), second.Bundles.Select(x => x.ContentHash));
+    }
+
     /// <summary>The file-size gate rejects an oversized index before allocating its snapshot.</summary>
     [Fact]
     public void LoadRejectsOversizedIndexAtFileBoundary()

@@ -10,6 +10,21 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Pins the ADR 0075 preconditions that make bundle preloading race-free and result-neutral.</summary>
 public sealed class BuiltInBundlePreloadTests
 {
+    /// <summary>Evidence is retained from the product lazy, including every on-demand bundle.</summary>
+    [Fact]
+    public void SelectedEvidenceUsesTheSameCatalogAndProjectionOnEveryAccess()
+    {
+        foreach (string directory in BuiltInV2BundleRegistry.All.Keys)
+        {
+            SelectedBuiltInBundleEvidence first = BuiltInV2BundleRegistry.GetSelectedBundleEvidence(directory);
+            SelectedBuiltInBundleEvidence second = BuiltInV2BundleRegistry.GetSelectedBundleEvidence(directory);
+            Assert.Equal("prebuilt", first.Admission.SourceToken);
+            Assert.Same(first.Catalog, second.Catalog);
+            Assert.Same(first.Projection, second.Projection);
+            Assert.Equal(first.Projection.ManifestSnapshot.ActualSha256, first.Catalog.ManifestSha256);
+        }
+    }
+
     /// <summary>The layer table names every opened trusted bundle once and excludes only logical candidates.</summary>
     [Fact]
     public void LayerTableMatchesTheTrustIndex()

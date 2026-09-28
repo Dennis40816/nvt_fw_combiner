@@ -29,10 +29,14 @@ internal static class BuiltInV2BundlePreload
     ];
 
     /// <summary>Bundle directories per dependency layer, pinned against the built reference graph by test.</summary>
+    /// <remarks>
+    /// TP-SVN-MODEL-1113-01: every CtrlRAM bundle's Header-copy TP SVN references the shared-facts
+    /// <c>tp-svn</c> definition, so those bundles load after the provider (ADR 0075 consequence).
+    /// </remarks>
     internal static IReadOnlyList<IReadOnlyList<string>> Layers { get; } =
     [
+        ["nt51919-nt51929-nt51932-shared-facts"],
         [
-            "nt51919-nt51929-nt51932-shared-facts",
             "nt51923-ctrlram-replace-candidate",
             "nt51917-ctrlram-replace-alias-candidate",
             "nt51926-ctrlram-replace-candidate",
@@ -42,8 +46,8 @@ internal static class BuiltInV2BundlePreload
             "nt51932-ctrlram-replace-candidate",
             "nt51950-ctrlram-replace-candidate",
             "nt51951-ctrlram-replace-candidate",
+            "nt51927-standard-merge",
         ],
-        ["nt51927-standard-merge"],
         [
             "nt51917-nt51927-shared-facts",
             "nt51923-nt51926-shared-facts",

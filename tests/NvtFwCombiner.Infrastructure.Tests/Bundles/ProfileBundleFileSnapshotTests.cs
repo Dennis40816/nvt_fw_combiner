@@ -9,6 +9,50 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 /// <summary>Tests bounded private snapshots of bundle manifest and entry files.</summary>
 public sealed class ProfileBundleFileSnapshotTests
 {
+    /// <summary>Memory capture owns its bytes and enforces the same preallocation bound.</summary>
+    [Fact]
+    public void MemoryCaptureOwnsBoundedBytesWithoutGrantingTrust()
+    {
+        byte[] input = " { }\n"u8.ToArray();
+        var snapshot = ProfileBundleFileSnapshot.Copy("profile-bundle.json", input, input.Length);
+        Array.Fill(input, (byte)0);
+        Assert.Equal(" { }\n"u8.ToArray(), snapshot.Content.ToArray());
+        _ = Assert.Throws<InvalidDataException>(() => ProfileBundleFileSnapshot.Copy("x.json", input, input.Length - 1));
+    }
+
+    /// <summary>The bounded capture reports data failures without exception-message parsing.</summary>
+    [Fact]
+    public void PackCaptureDistinguishesMissingAndFileBound()
+    {
+        using var workspace = TempWorkspace.Create("bounded-pack");
+        Assert.Null(ProfileBundleFileSnapshot.TryReadPrebuilt(workspace.Root, out ProfileBundleCaptureFailure failure));
+        Assert.Equal(ProfileBundleCaptureFailure.Missing, failure);
+        string path = workspace.PathFor("profiles/built-in/prebuilt-profile-catalog.pack");
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        using (FileStream stream = File.Create(path)) { stream.SetLength(PrebuiltProfileCatalogFormat.MaximumFileBytes + 1L); }
+        Assert.Null(ProfileBundleFileSnapshot.TryReadPrebuilt(workspace.Root, out failure));
+        Assert.Equal(ProfileBundleCaptureFailure.FileBound, failure);
+    }
+
+    /// <summary>Raw export preserves whitespace, escapes and newlines without exposing writable storage.</summary>
+    [Fact]
+    public void RawContentIsTheOriginalCaptureAndCallerCopiesAreIsolated()
+    {
+        using var workspace = TempWorkspace.Create("nfc-bundle-raw-snapshot");
+        byte[] expected = " \r\n{\"value\":\"\\u0061\"} \n"u8.ToArray();
+        string path = workspace.Write("profile-bundle.json", expected);
+        var snapshot = ProfileBundleFileSnapshot.ReadManifest(workspace.Root, "profile-bundle.json", 1024);
+        _ = snapshot.GetStrictJsonRoot(16);
+        File.Delete(path);
+
+        byte[] copy = snapshot.Content.ToArray();
+        Assert.Equal(expected, copy);
+        Array.Fill(copy, (byte)0);
+        Assert.Equal(expected, snapshot.Content.ToArray());
+        Assert.Equal(Hash(expected), snapshot.ActualSha256);
+        Assert.Equal("a", snapshot.GetStrictJsonRoot(16).GetProperty("value").GetString());
+    }
+
     /// <summary>Verifies one listed file is read, hashed, and parsed from its private snapshot.</summary>
     [Fact]
     public void ReadEntryReturnsVerifiedStrictJsonSnapshot()

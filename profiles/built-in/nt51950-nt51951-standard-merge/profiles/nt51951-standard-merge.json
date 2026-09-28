@@ -18,8 +18,8 @@
   },
   "mapBinding": {
     "familyId": "nt51950-nt51951-dp-perspective",
-    "familyVersion": "1.4.2",
-    "familyContentHash": "574fcdc65d603988ee0dbacdbf26e1ecf9e9c99ac6e42db7332cfb1b08b51433",
+    "familyVersion": "1.4.3",
+    "familyContentHash": "ae88f7e08efcf52d4eba0ee043ab9d609279691741c77e8d1eca660c60e2d74d",
     "mapIds": [
       "nt51951-standard-merge-256k",
       "nt51951-standard-merge-512k",
@@ -33,7 +33,8 @@
     ],
     "requiredMetadataStructureIds": [
       "firmware-config-general-parameters",
-      "nt51951-dpcmi-standard-merge"
+      "nt51951-dpcmi-standard-merge",
+      "tp-svn"
     ],
     "requiredCapabilityIds": []
   },
@@ -151,6 +152,14 @@
       "structureId": "nt51951-dpcmi-standard-merge",
       "fieldIds": ["jira-low", "dp-major", "dp-minor", "jira-high"],
       "purposes": ["validation", "output-naming", "display", "version"]
+    },
+    {
+      "bindingId": "tp-svn-display",
+      "spaceId": "tp-input",
+      "structureId": "tp-svn",
+      "fieldIds": ["svn-flags", "svn-revision"],
+      "purposes": ["display"],
+      "evidenceRefs": ["owner-decision-2026-09-26-tp-svn-display"]
     }
   ],
   "regionAccessRules": [

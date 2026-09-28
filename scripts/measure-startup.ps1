@@ -18,7 +18,10 @@ param(
     [ValidateSet('home', 'settings', 'merge', 'replace', 'hex-editor')]
     [string]$Page = 'home',
 
-    [switch]$RequirePreloadLifecycle
+    [switch]$RequirePreloadLifecycle,
+
+    [ValidateScript({ [StringComparer]::Ordinal.Equals($_, 'prebuilt') -or [StringComparer]::Ordinal.Equals($_, 'json') })]
+    [string]$RequireAdmissionSource = ''
 )
 
 Set-StrictMode -Version Latest
@@ -49,11 +52,13 @@ function Assert-ReleaseStartupPage {
 }
 
 function New-StartupMeasurementValidation {
-    param([Parameter(Mandatory = $true)][bool]$Required)
+    param([Parameter(Mandatory = $true)][bool]$Required, [string]$RequiredAdmissionSource = '')
 
     return [pscustomobject][ordered]@{
         mode = if ($Required) { 'preload-release' } else { 'standard' }
         releaseAdmissionPassed = $Required
+        requiredAdmissionSource = $RequiredAdmissionSource
+        admissionSourceRequirementPassed = $RequiredAdmissionSource -ne ''
     }
 }
 
@@ -478,7 +483,8 @@ function New-StartupSampleEvidence {
         [Parameter(Mandatory = $true)][long]$PeakWorkingSetBytes,
         [Parameter(Mandatory = $true)][long]$PrivateBytesAtWindow,
         [Parameter(Mandatory = $true)][long]$PrivateBytesAtTrace,
-        [Parameter(Mandatory = $true)][long]$PeakPrivateBytes
+        [Parameter(Mandatory = $true)][long]$PeakPrivateBytes,
+        [string]$RequiredAdmissionSource = ''
     )
 
     if (-not (Test-OrdinalValue `
@@ -487,7 +493,12 @@ function New-StartupSampleEvidence {
         @($Trace.stages).Count -eq 0) {
         throw 'The application wrote an unsupported or empty startup trace.'
     }
+    if ($RequiredAdmissionSource -ne '' -and -not (Test-OrdinalValue -Value $RequiredAdmissionSource -Allowed @('prebuilt', 'json'))) {
+        throw 'Admission source must be exactly prebuilt or json.'
+    }
+    $RequireLifecycle = $RequireLifecycle -or $RequiredAdmissionSource -ne ''
     $preloadLifecycle = Get-PreloadLifecycleEvidence -Trace $Trace -Required $RequireLifecycle
+    $observedAdmissionSource = $null
     $catalogReadyAfterWindow = $null
     if ($RequireLifecycle) {
         Assert-ReleaseTraceStages -Trace $Trace
@@ -508,9 +519,28 @@ function New-StartupSampleEvidence {
         }
         $catalogReadyAfterWindow = [Math]::Round($catalogElapsed - $openedElapsed, 3)
     }
+    if ($RequiredAdmissionSource -ne '') {
+        $prefix = 'startup-warmup.catalog-admission.'
+        $markers = @($Trace.stages | Where-Object { ([string]$_.name).StartsWith($prefix, [StringComparison]::Ordinal) })
+        if ($markers.Count -ne 1 -or -not [StringComparer]::Ordinal.Equals(
+                [string]$markers[0].name, $prefix + $RequiredAdmissionSource)) {
+            throw 'Startup trace must contain exactly one matching admission source marker.'
+        }
+        $admissionElapsed = ConvertTo-ValidatedElapsedMilliseconds -Value $markers[0].elapsedMilliseconds -StageName $markers[0].name
+        $stageNames = @($Trace.stages | ForEach-Object { [string]$_.name })
+        if ($admissionElapsed -lt $openedElapsed -or $admissionElapsed -gt $catalogElapsed -or
+            [Array]::IndexOf($stageNames, [string]$markers[0].name) -le [Array]::IndexOf($stageNames, 'main-window.opened') -or
+            [Array]::IndexOf($stageNames, [string]$markers[0].name) -ge [Array]::IndexOf($stageNames, 'startup-warmup.catalog-state.applied')) {
+            throw 'Startup trace contains an incorrectly ordered admission source marker.'
+        }
+        $observedAdmissionSource = $RequiredAdmissionSource
+    }
 
     return [ordered]@{
         processId = $ProcessId
+        requiredAdmissionSource = $RequiredAdmissionSource
+        observedAdmissionSource = $observedAdmissionSource
+        admissionSourceRequirementPassed = $RequiredAdmissionSource -ne ''
         processToWindowMilliseconds = [Math]::Round($WindowMilliseconds, 3)
         processToTraceMilliseconds = [Math]::Round($TraceReadyMilliseconds, 3)
         catalogReadyAfterWindowMilliseconds = $catalogReadyAfterWindow
@@ -532,7 +562,8 @@ function Invoke-StartupSample {
         [Parameter(Mandatory = $true)][string]$TracePath,
         [Parameter(Mandatory = $true)][string]$StartupPage,
         [Parameter(Mandatory = $true)][int]$Timeout,
-        [Parameter(Mandatory = $true)][bool]$RequireLifecycle
+        [Parameter(Mandatory = $true)][bool]$RequireLifecycle,
+        [string]$RequiredAdmissionSource = ''
     )
 
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
@@ -601,6 +632,7 @@ function Invoke-StartupSample {
         return New-StartupSampleEvidence `
             -Trace $trace `
             -RequireLifecycle $RequireLifecycle `
+            -RequiredAdmissionSource $RequiredAdmissionSource `
             -ProcessId $process.Id `
             -WindowMilliseconds $windowMilliseconds `
             -TraceReadyMilliseconds $traceReadyMilliseconds `
@@ -627,12 +659,13 @@ if ($MyInvocation.InvocationName -eq '.') {
     return
 }
 
+$requireReleaseEvidence = $RequirePreloadLifecycle.IsPresent -or $RequireAdmissionSource -ne ''
 Assert-ReleaseSampleCounts `
-    -Required $RequirePreloadLifecycle.IsPresent `
+    -Required $requireReleaseEvidence `
     -Warmups $WarmupRuns `
     -ScoredRuns $Runs
 Assert-ReleaseStartupPage `
-    -Required $RequirePreloadLifecycle.IsPresent `
+    -Required $requireReleaseEvidence `
     -StartupPage $Page
 
 $application = (Resolve-Path -LiteralPath $ApplicationPath -ErrorAction Stop).Path
@@ -656,13 +689,13 @@ try {
     $warmups = @()
     for ($index = 0; $index -lt $WarmupRuns; $index++) {
         $tracePath = Join-Path $traceRoot "warmup-$index.json"
-        $warmups += Invoke-StartupSample $application $tracePath $Page $TimeoutSeconds $RequirePreloadLifecycle.IsPresent
+        $warmups += Invoke-StartupSample $application $tracePath $Page $TimeoutSeconds $requireReleaseEvidence $RequireAdmissionSource
     }
 
     $samples = @()
     for ($index = 0; $index -lt $Runs; $index++) {
         $tracePath = Join-Path $traceRoot "run-$index.json"
-        $samples += Invoke-StartupSample $application $tracePath $Page $TimeoutSeconds $RequirePreloadLifecycle.IsPresent
+        $samples += Invoke-StartupSample $application $tracePath $Page $TimeoutSeconds $requireReleaseEvidence $RequireAdmissionSource
     }
 
     $expectedStageNames = @($samples[0].trace.stages | ForEach-Object { $_.name })
@@ -713,7 +746,7 @@ try {
 
     $result = [ordered]@{
         schemaVersion = 'nfc-startup-measurement-v3'
-        validation = New-StartupMeasurementValidation -Required $RequirePreloadLifecycle.IsPresent
+        validation = New-StartupMeasurementValidation -Required $requireReleaseEvidence -RequiredAdmissionSource $RequireAdmissionSource
         capturedUtc = [DateTimeOffset]::UtcNow.ToString('O')
         applicationPath = $application
         page = $Page
@@ -725,7 +758,7 @@ try {
         summary = [ordered]@{
             processToWindowMilliseconds = Get-MetricSummary @($samples.processToWindowMilliseconds)
             processToTraceMilliseconds = Get-MetricSummary @($samples.processToTraceMilliseconds)
-            firstWindowToCatalogReadyMilliseconds = if ($RequirePreloadLifecycle.IsPresent) {
+            firstWindowToCatalogReadyMilliseconds = if ($requireReleaseEvidence) {
                 Get-MetricSummary @($samples.catalogReadyAfterWindowMilliseconds)
             }
             else {

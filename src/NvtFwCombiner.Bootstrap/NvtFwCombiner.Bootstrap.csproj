@@ -2,9 +2,13 @@
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.GoldenRegression.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.CatalogProbe" />
     <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\eng\prebuilt-profile-catalog\NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false"
+                      OutputItemType="_NfcCatalogTool" />
     <ProjectReference Include="..\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
@@ -14,15 +18,9 @@
     <BuiltInProfileSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\built-in</BuiltInProfileSourceRoot>
     <ProfileContractRoot>$(MSBuildProjectDirectory)\..\..\docs\contracts</ProfileContractRoot>
     <BuiltInProfileTrustIndex>$(BuiltInProfileSourceRoot)\package-trust-index.json</BuiltInProfileTrustIndex>
-    <BuiltInProfileMaterializedRoot>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\materialized-profiles\built-in</BuiltInProfileMaterializedRoot>
+    <_NfcExpectedMaterializedRoot>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\materialized-profiles\built-in</_NfcExpectedMaterializedRoot>
+    <BuiltInProfileMaterializedRoot>$(_NfcExpectedMaterializedRoot)</BuiltInProfileMaterializedRoot>
   </PropertyGroup>
-  <ItemGroup>
-    <Content
-      Include="$(BuiltInProfileTrustIndex)"
-      Link="profiles\built-in\package-trust-index.json"
-      CopyToOutputDirectory="Always"
-      CopyToPublishDirectory="Always" />
-  </ItemGroup>
-
   <Import Project="..\..\eng\profile-bundle-materializer\NvtFwCombiner.ProfileBundleMaterializer.targets" />
+  <Import Project="..\..\eng\prebuilt-profile-catalog\NvtFwCombiner.PrebuiltProfileCatalog.targets" />
 </Project>

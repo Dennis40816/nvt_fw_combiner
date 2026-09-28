@@ -7,6 +7,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReplacePresentationViewModel
 {
+    internal WindowPublicationLease? WindowPublication { get; set; }
+
     private IReadOnlyList<AuthoringMappingState> _generalReplaceAuthoringStates = [];
     private GeneralMappingDraftState? _generalReplaceDraft;
     private GeneralAuthoringAdmissionResult? _generalReplaceAdmission;
@@ -181,6 +183,14 @@ internal sealed partial class ReplacePresentationViewModel
                         draft,
                         cancellationToken,
                         progress);
+                if (WindowPublication is not null &&
+                    !await WindowPublication.WaitToPublishAsync(
+                        () => isCurrent() && ReferenceEquals(_generalReplaceDraft, draft) &&
+                              StringComparer.Ordinal.Equals(ReplaceBaseSlot.FilePath, referencePath),
+                        cancellationToken))
+                {
+                    throw new OperationCanceledException(cancellationToken);
+                }
                 if (!isCurrent() || !ReferenceEquals(_generalReplaceDraft, draft) ||
                     !StringComparer.Ordinal.Equals(ReplaceBaseSlot.FilePath, referencePath))
                 {

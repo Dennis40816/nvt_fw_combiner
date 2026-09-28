@@ -2775,7 +2775,8 @@ def solution_package_lock_paths(
             relative.is_absolute()
             or relative.as_posix() != relative_text
             or not relative.parts
-            or relative.parts[0] not in {"src", "tests"}
+            or (relative.parts[0] not in {"src", "tests"} and relative_text !=
+                "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj")
             or any(part in {"", ".", ".."} for part in relative_text.split("/"))
             or relative.suffix.casefold() != ".csproj"
         ):
@@ -2796,9 +2797,9 @@ def solution_package_lock_paths(
         if lock in paths:
             raise RuntimeError(f"duplicate solution package lock: {lock}")
         paths.append(lock)
-    if len(projects) != 25 or len(paths) != 25:
+    if len(projects) != 27 or len(paths) != 27:
         raise RuntimeError(
-            "solution package-lock inventory must contain exactly 25 projects and locks"
+            "solution package-lock inventory must contain exactly 27 projects and locks"
         )
     return tuple(paths)
 

@@ -292,7 +292,7 @@ def _relative_source_path(
         return _path_under_root(candidate, root, filename)
 
     if normalized.startswith(
-        ("src/", "tests/", "tools/", "profiles/", "docs/", "scripts/")
+        ("src/", "tests/", "tools/", "profiles/", "docs/", "scripts/", "eng/")
     ):
         return _path_under_root(root / normalized, root, filename)
     candidates: set[str] = set()

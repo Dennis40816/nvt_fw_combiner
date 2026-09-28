@@ -173,7 +173,12 @@ class EvaluatedProjectItems:
     msbuild_sdks_path: Path
 
 
+PREBUILT_CATALOG_GENERATOR = "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+CATALOG_PROBE = "tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj"
+
 EXPECTED_PROJECTS = {
+    PREBUILT_CATALOG_GENERATOR,
+    CATALOG_PROBE,
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
     "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
@@ -202,6 +207,14 @@ EXPECTED_PROJECTS = {
 }
 
 EXPECTED_PROJECT_REFERENCES = {
+    CATALOG_PROBE: {
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+        PREBUILT_CATALOG_GENERATOR,
+    },
+    PREBUILT_CATALOG_GENERATOR: {
+        "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+    },
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj": set(),
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj": set(),
     "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj": {
@@ -229,6 +242,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
     },
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj": {
+        PREBUILT_CATALOG_GENERATOR,
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
@@ -271,6 +285,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj": {
+        PREBUILT_CATALOG_GENERATOR,
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj",
@@ -293,6 +308,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj": {
+        CATALOG_PROBE,
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
         "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
         "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
@@ -308,6 +324,7 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj",
         "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
@@ -1241,6 +1258,20 @@ def validate_restored_project_contracts(errors: list[str]) -> None:
             )
 
 
+def validate_prebuilt_generator_references(relative: str, root: ET.Element, errors: list[str]) -> None:
+    """Allow only the declared build-only host edge and the two test consumers."""
+    for reference in root.iter("ProjectReference"):
+        target = normalize_project_reference(ROOT / relative, reference.attrib["Include"])
+        if target != PREBUILT_CATALOG_GENERATOR:
+            continue
+        if relative in {CATALOG_PROBE, "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj"}:
+            continue
+        if (relative != "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
+                or reference.get("ReferenceOutputAssembly") != "false"
+                or reference.get("PrivateAssets") != "all"):
+            errors.append(f"generator reference must remain the declared build-only dependency: {relative}")
+
+
 def validate_solution_and_dependencies(errors: list[str]) -> None:
     solution_root = ET.parse(ROOT / "NvtFwCombiner.slnx").getroot()
     solution_projects = {
@@ -1269,6 +1300,7 @@ def validate_solution_and_dependencies(errors: list[str]) -> None:
                     f"production/test project includes refcode: {relative} -> {include}"
                 )
         validate_production_source_ownership(relative, root, errors)
+        validate_prebuilt_generator_references(relative, root, errors)
 
 
 def validate_contract_model(errors: list[str]) -> None:
@@ -1452,15 +1484,12 @@ def validate_workflows(errors: list[str]) -> None:
     dotnet_job = ci[ci.index("  dotnet:") :] if "  dotnet:" in ci else ""
     if "fetch-depth: 0" not in dotnet_job:
         errors.append("CI dotnet job must fetch the fixed coverage baseline revision")
-    main_package = (ROOT / ".github/workflows/main-package.yml").read_text(
+    rehearsal = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
         encoding="utf-8"
     )
-    if (
-        "python ./scripts/verify.py --all" in main_package
-        and "fetch-depth: 0" not in main_package
-    ):
+    if "fetch-depth: 0" not in rehearsal:
         errors.append(
-            "main package workflow must fetch the fixed coverage baseline revision"
+            "release rehearsal workflow must fetch the fixed coverage baseline revision"
         )
     for marker in (
         "name: python-coverage",
@@ -1476,11 +1505,10 @@ def validate_workflows(errors: list[str]) -> None:
         "Exact reviewed release-branch head",
         "Final reviewed pull request",
         "NFC_WORKFLOW_REF -ne 'refs/heads/main'",
-        "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18', '0.9.19')",
-        "'0.9.17' = '0.9.17'",
-        "'0.9.18' = '0.9.18'",
-        "'0.9.19' = '0.9.19'",
-        "$approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version",
+        "$sourceSha = $mainSha",
+        "source-branch=main",
+        "validate-release-floor",
+        "release-eligibility:",
         "$env:NFC_RELEASE_POLICY validate-context",
         "$env:NFC_RELEASE_POLICY validate-promotion-source",
         "environment: release",
@@ -1488,7 +1516,7 @@ def validate_workflows(errors: list[str]) -> None:
     )
     if any(marker not in release for marker in required_release_markers):
         errors.append(
-            "release workflow must use protected-main authority, an explicit release-source allowlist, and a protected human environment gate"
+            "release workflow must use protected-main source and authority, a release floor, eligibility gate, and a protected human environment gate"
         )
     if "\n  promote:" in release and "\n  published-smoke:" in release:
         promote = release.split("\n  promote:", maxsplit=1)[1].split(

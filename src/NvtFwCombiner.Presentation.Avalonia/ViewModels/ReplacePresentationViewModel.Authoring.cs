@@ -145,6 +145,11 @@ internal sealed partial class ReplacePresentationViewModel
     internal async Task RefreshCtrlRamActionReadinessAsync(
         CancellationToken cancellationToken)
     {
+        if (WindowPublication is not null &&
+            !await WindowPublication.WaitToPublishAsync(static () => true, cancellationToken))
+        {
+            return;
+        }
         ClearCtrlRamActionReadiness();
         ActiveSessionSnapshot? session = _ctrlRamReplaceSession.CurrentSnapshot;
         if (!IsCtrlRamReplaceModeSelected || session is null)
@@ -162,6 +167,14 @@ internal sealed partial class ReplacePresentationViewModel
                 CreateReplaceSlotPaths(),
                 session,
                 cancellationToken);
+        if (WindowPublication is not null &&
+            !await WindowPublication.WaitToPublishAsync(
+                () => ReferenceEquals(session, _ctrlRamReplaceSession.CurrentSnapshot) &&
+                    StringComparer.Ordinal.Equals(icId, SelectedIc) &&
+                    StringComparer.Ordinal.Equals(number, SelectedNumber), cancellationToken))
+        {
+            return;
+        }
         if (readiness is not null &&
             ReferenceEquals(session, _ctrlRamReplaceSession.CurrentSnapshot) &&
             StringComparer.Ordinal.Equals(icId, SelectedIc) &&

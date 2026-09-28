@@ -385,7 +385,7 @@ public sealed partial class RepositoryBoundaryTests
                 $"BuiltInProfileTrustIndex={item.IndexPath}",
                 $"BuiltInProfileSourceRoot={item.SourceRoot}",
                 $"BaseIntermediateOutputPath={Path.Combine(item.Workspace, "obj")}{Path.DirectorySeparatorChar}",
-                $"OutDir={Path.Combine(item.Workspace, "out")}{Path.DirectorySeparatorChar}");
+                $"BaseOutputPath={Path.Combine(item.Workspace, "out")}{Path.DirectorySeparatorChar}");
             targets.Add(new XElement(
                 "Target",
                 new XAttribute("Name", targetName),

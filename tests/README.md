@@ -45,7 +45,7 @@ one process and 155 s in three, all 1,720 cases passing.
 Owner: `run_local_full_verification` and `run_lanes` in
 [`verify.py`](../scripts/verify.py) (`VERIFY-LOCAL-OVERLAP-1113-01`, board
 decisions 107 and 130). This describes the complete local plan only: every
-`--all` run, including `main-package.yml`, and a run that only adds
+`--all` run and a run that only adds
 `--skip-structure`; a `--skip-python` or `--skip-dotnet` run does not use it.
 With structure enabled it first runs derived-data sync; then restore and the
 Release build run as exclusive phases; then one pool of at most `--jobs` lanes
@@ -939,8 +939,9 @@ parallelism inside its own process. CI test shards do not wait for the separate
 build producer: each restores/builds its own projects, then the finalizer checks
 both producers. Within `core`, its six projects execute in declared order.
 
-[`main-package.yml`](../.github/workflows/main-package.yml) is a separate manual
-workflow: full `--all` → package → `-SkipUiLaunch` smoke → artifact upload.
+[`release-rehearsal.yml`](../.github/workflows/release-rehearsal.yml) is a separate manual
+workflow: `--release-golden` → stable package → `-SkipUiLaunch` smoke → notes
+and update-source handoff → 3-day artifact upload.
 It is not an extra job automatically appended to every `ci.yml` run.
 For releases from v1.1.3, admitted exact-source CI is reused and the candidate
 executes `--release-golden`, not another complete `--all`.

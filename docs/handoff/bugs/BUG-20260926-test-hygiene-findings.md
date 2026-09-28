@@ -12,4 +12,5 @@ ceiling test scans `docs/handoff`.
 Expected: the WS-TEST ADR amends ADR 0027 and defines naming and coverage rules; WS-GOV G2 moves the document
 checks into the structure lane before prose-only pull requests skip product tests.
 Owner: WS-TEST and WS-GOV (1.1.13 design; implementation batches T2-T4 and G2).
+Allocation (2026-09-28): 1.2.x with WS-TEST G2 (board decision 154).
 Resolution: not fixed.

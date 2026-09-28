@@ -1,59 +1,13 @@
 # Minimal Windows Release Package
 
-## v1.1.0 controlled manual-only operator release
+## Historical v1.1.0 manual release
 
-v1.1.0 is the one bounded direct-package exception to the managed distribution
-flow. Construct it only through the existing packager:
-
-```powershell
-./scripts/package.ps1 -Version 1.1.0 -Commit <exact-main-sha> -ManualOnly
-```
-
-The operation publishes exactly three immutable assets: the Windows x64 ZIP,
-its SPDX SBOM, and its provenance JSON. Release notes must state that Launcher,
-Setup, Bootstrap, Catalog, Registry, automatic update, Version deployment, and
-reference/Golden evidence are absent. The provenance builder identity is
-`scripts/package.ps1 manual-only operator build`; it must not claim GitHub
-Actions constructed a locally built package.
-
-The exception is reciprocal and version-closed: every `v1.1.0` invocation that
-omits `-ManualOnly` fails before repository inspection, staging cleanup,
-restore, or build, including attempted `-AllowPrerelease` and
-`-ExternalToolPolicyDryRun` combinations. `-ManualOnly` remains invalid for
-every other version.
-
-The published v1.1.0 assets are read-only historical evidence. Stable CI
-candidate and promotion policies reject v1.1.0, so Actions never rebuilds,
-replays, replaces, or attaches assets to that manual-only Release. If any
-v1.1.0 asset or metadata is missing, damaged, or conflicting, recovery requires
-a new version; it is not repaired in place and receives no retroactive green or
-immutable claim. Other explicitly admitted pre-v1.1.1 recovery candidates keep
-their existing exact-source, exact-tag, exact-asset, and no-clobber gates.
-
-The controlled procedure is fail closed:
-
-1. Obtain an independent exact-head R3 implementation review and record the
-   complete dated owner waiver for the full verifier and managed workflow.
-2. Merge through protected `main`; prove the reviewed tree equals the merge
-   tree exactly. Stop if protected-main CI or any non-waived P0/P1 gate fails.
-3. Before building, prove tag `v1.1.0` is absent. Never move, replace, or
-   overwrite an existing stable tag or Release.
-4. Materialize one clean detached worktree at the exact current
-   `origin/main` merge SHA outside the fixed test area. Build once with the
-   command above while all temporary, NuGet, .NET, and PyInstaller paths remain
-   under `D:\NvtFwCombiner-TestArea`.
-5. Run narrow release-contract tests and `scripts/smoke-release.ps1` with a
-   visible Application startup. Record the exact source SHA/tree plus the
-   names, sizes, and SHA-256 digests of the ZIP, SPDX, and provenance assets.
-6. Obtain release-owner approval of those exact three digests. Create one
-   annotated tag whose message binds the source SHA/tree and all three digests,
-   then publish exactly those three assets to one GitHub Release.
-7. Download all three published assets into a fresh session beneath
-   `D:\NvtFwCombiner-TestArea`. Compare every digest, rerun closed package
-   smoke and worker self-test, and visibly start the downloaded Application.
-
-The v1.1.0 waiver never authorizes a claim that `verify.py --all` or the
-managed release workflow is green, and it cannot be reused by another release.
+v1.1.0 used an owner-approved, three-asset manual-only package. Its published
+ZIP, SPDX and provenance are immutable historical evidence; the release
+closure and CHANGELOG retain the procedure and approval. The `-ManualOnly`
+packager mode and its reciprocal guard have been retired from current code.
+A damaged or conflicting published asset requires a new version, never an
+in-place repair.
 
 ## Managed-version transition boundary
 
@@ -185,6 +139,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 ├─ profiles/
 │  └─ built-in/
 │     ├─ package-trust-index.json
+│     ├─ prebuilt-profile-catalog.pack
 │     ├─ <trust-index-declared bundle>/
 │     │  ├─ profile-bundle.json
 │     │  └─ <manifest-pinned runtime files>
@@ -224,14 +179,34 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 └─ SHA256SUMS.txt
 ```
 
-No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private owner-handoff firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, credentials, or Codex configuration is shipped. The reference payload retains exactly 25 Direct Goldens, three input-only evidence cases, and twelve source-closed fact-scoped aliases across Standard Merge, AB Merge, and CtrlRAM Replace under `reference/testdata/golden/canonical/`. `release-canonical-v1.json` independently pins the canonical README and all 40 case manifests by exact-byte SHA-256, 177 logical artifact declarations, and 174 unique paths; its projection has 215 canonical paths and 164 raw canonical BINs. The exact NT51929 input-only admission contains two neutral-named 524288-byte raw BIN entries in the outer ZIP and never a nested archive, raw bypass, expected output, Direct-Golden relabel, parity/support claim, or runtime route. Eleven Direct Goldens use full-output comparison; fourteen preserve their reviewed allowed-byte-difference scope. The two NT51927 CtrlRAM cascade input-only cases and their three dependent aliases are included for manual input testing under the owner's 2026-09-10 approval. Their 16 input BINs have no independent expected output. Aliases require an explicitly selected same-workflow Direct Golden or input-only direct evidence source; alias chains, missing sources and ambiguous classifications are rejected. The selected BAT and CONFIG provenance bytes have `reference` role only and are never registered or executed as tools, processors, or commands. `profiles/built-in/` contains the exact reviewed `package-trust-index.json`, only the bundles declared by that index, and the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping reference evidence or a candidate bundle changes no declared stage, blocker, runtime eligibility, support, or parity claim. The packager rejects an index or Golden identity that differs from reviewed source material and rejects extra bundle, runtime-catalog, canonical, or reference content. The canonical capability policy ships at `docs/contracts/canonical-capability-policy-v1.json`; its `capabilityPolicy` role and approved SHA-256 must match the runtime loader. The retired standalone `publicationPolicy` payload is forbidden because publication and evidence bind each exact canonical route and expected capability fingerprint in that one policy. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses fixed allowlists, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in both closed hash inventories.
+No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private owner-handoff firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, credentials, or Codex configuration is shipped. The reference payload retains exactly 25 Direct Goldens, three input-only evidence cases, and twelve source-closed fact-scoped aliases across Standard Merge, AB Merge, and CtrlRAM Replace under `reference/testdata/golden/canonical/`. `release-canonical-v1.json` independently pins the canonical README and all 40 case manifests by exact-byte SHA-256, 177 logical artifact declarations, and 174 unique paths; its projection has 215 canonical paths and 164 raw canonical BINs. The exact NT51929 input-only admission contains two neutral-named 524288-byte raw BIN entries in the outer ZIP and never a nested archive, raw bypass, expected output, Direct-Golden relabel, parity/support claim, or runtime route. Eleven Direct Goldens use full-output comparison; fourteen preserve their reviewed allowed-byte-difference scope. The two NT51927 CtrlRAM cascade input-only cases and their three dependent aliases are included for manual input testing under the owner's 2026-09-10 approval. Their 16 input BINs have no independent expected output. Aliases require an explicitly selected same-workflow Direct Golden or input-only direct evidence source; alias chains, missing sources and ambiguous classifications are rejected. The selected BAT and CONFIG provenance bytes have `reference` role only and are never registered or executed as tools, processors, or commands. `profiles/built-in/` contains the exact reviewed `package-trust-index.json`, one `prebuilt-profile-catalog.pack`, only the bundles declared by that index, and the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping reference evidence or a candidate bundle changes no declared stage, blocker, runtime eligibility, support, or parity claim. The packager rejects an index or Golden identity that differs from reviewed source material and rejects extra bundle, runtime-catalog, canonical, or reference content. The canonical capability policy ships at `docs/contracts/canonical-capability-policy-v1.json`; its `capabilityPolicy` role and approved SHA-256 must match the runtime loader. The retired standalone `publicationPolicy` payload is forbidden because publication and evidence bind each exact canonical route and expected capability fingerprint in that one policy. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses fixed allowlists, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in both closed hash inventories.
 
 ## Implemented commands
 
 ```powershell
-./scripts/package.ps1 -Version 1.0.0 -Commit <40-character-git-sha>
+./scripts/package.ps1 -Version 1.1.13 -Commit <exact-current-main-sha>
 ./scripts/package.ps1 -Version 0.0.0 -Commit 0000000000000000000000000000000000000000 -ExternalToolPolicyDryRun
 ```
+
+For v1.1.13 and later, the published application must contain exactly one
+`profiles/built-in/prebuilt-profile-catalog.pack`. Packaging runs the B2a
+generator again against the published trust index and materialized bundles,
+requires exact byte equality with the published pack, and includes that one
+file with the existing `builtInProfile` role in `RELEASE-MANIFEST.json` and
+`SHA256SUMS.txt`. It rejects a missing, altered, oversized, or extra pack.
+The pack is at most 4,194,304 bytes, `NvtFwCombiner.exe` at most 80,000,000
+bytes, and the completed ZIP at most 134,217,728 bytes. The policy dry-run
+uses a pack-selection byte fixture to reject missing, damaged, oversized,
+stale, and extra files without building or creating a release ZIP; it does
+not claim catalog admission.
+
+Release smoke independently checks pack ranges and hashes against the packaged
+trust index, manifests, and document bytes. After the closed hash inventories
+pass, it runs the shipped `NvtFwCombiner.exe --profile-catalog-probe-v1` even
+with `-SkipUiLaunch`; only a successful, single-line probe result with
+`admissionSource=prebuilt` and `catalogLoaded=true` passes. This package and
+smoke evidence does not replace exact-source CI, release Golden execution,
+release-owner review, or clean Windows validation.
 
 Normal packaging is source-identity closed before staging is cleared or any
 build tool runs: the requested lowercase full commit must equal the current Git
@@ -244,10 +219,6 @@ the invocation repository. The snapshot is removed in the final cleanup path,
 and a removal failure fails packaging while preserving the exact path for
 inspection. This closes the race in which the invocation checkout or a tracked
 file changes after preflight but before a later package read.
-
-Before that source-identity preflight, the parser enforces the one-release
-`v1.1.0`/`-ManualOnly` reciprocal guard. No alternate package mode can consume
-repository, temporary, restore, or build resources for v1.1.0.
 
 The second command above is the sole exception: the raw, exact `0.0.0` plus
 all-zero SHA sentinel runs only the deterministic external-tool/profile allowlist
@@ -301,166 +272,61 @@ path, size, and SHA-256. Preview packages produced with `-AllowPrerelease`
 remain schema `1.1` and intentionally omit the managed launcher because they
 are not admissible update payloads. Bootstrap is rejected from both forms.
 
-`main-package.yml` is a manually dispatched preview path using `-AllowPrerelease` and the repository `VERSION`; ordinary `main` pushes do not package. It uploads only a short-retention Actions artifact and never creates a fallback tag or prerelease.
+`release.yml` is dispatched from the exact current protected `main` SHA,
+which is also the product source. The final merged pull request must bind
+that commit and tree. The candidate collects fresh, complete GitHub evidence:
+main protection and required checks, exact-head review threads and approvals,
+stable tag rules, and the latest successful exact-source push-main CI attempt.
+It runs `python scripts/verify.py --release-golden` with fresh canonical case
+execution, builds the stable closed package, smokes it, renders the complete
+CHANGELOG notes, creates the update-source handoff and a closed candidate
+manifest, and uploads short-lived artifacts. Input-only cases remain input-only;
+the release Golden gate does not relabel them.
 
-`release.yml` is always dispatched from the exact current protected `main`
-workflow definition. From v1.1.1 onward it also queries the live remote-main
-SHA and boolean protected flag, the complete applied-rule inventory, and the
-active stable-tag rulesets rather than treating a local checkout name as proof.
-Before formal local verification, synchronize the approved source projections
-with the [derived-file preflight](../../CONTRIBUTING.md#derived-file-preflight).
-Its default check runs first in the existing structure gate. The explicit local
-write command is not a CI repair step or permission to refresh unrelated trust
-pins; Golden, historical and release-owner evidence remain independent.
-One bounded read-only collector in `scripts/release_promotion_policy.py` owns
-those GitHub reads and their validation; `release.yml` is still the sole owner
-of tag and Release mutations. The collector accepts only GET/GraphQL reads,
-follows every review-thread page plus every unresolved thread's comment pages,
-and fails on malformed, truncated, blank-cursor, or non-advancing pagination.
-It accepts one exact reviewed release-branch head plus the
-final merged PR that produced it. The product source is normally `main`; the
-explicitly approved independent maintenance pairs `0.9.17` / `0.9.17`,
-`0.9.18` / `0.9.18`, and `0.9.19` / `0.9.19` may publish without merging their product commits to
-`main`. A read-only candidate
-job proves that the workflow authority, selected branch head, checkout,
-requested SHA, final PR merge commit/base, reviewed PR-head tree, current-head
-approval, complete check-run pagination, and the exact PR-head `github-actions` check runs
-`policy / polytail`, `python-worker / verify`, and `dotnet / build-test` all
-describe that one candidate.
-Starting with v1.1.3, PR-head checks alone are insufficient: the collector also
-requires the actual source SHA's latest push-to-main run of
-`.github/workflows/ci.yml` in this repository. Run and job inventories must be
-complete; an ambiguous latest creation time, wrong repository/SHA/workflow,
-pending or failed run, or run/attempt change during collection blocks admission.
-Each of the three required jobs must occur exactly once and succeed in that
-same attempt. An older green run or an equal PR tree cannot replace this proof.
-The persisted source-CI snapshot contains only those run/repository/attempt and
-job identity, status and pagination fields consumed by admission. Raw API actor,
-commit-author, runner, step and unrelated URL metadata are not published in the
-candidate manifest; collection and before/after identity checks still use the
-complete observations before projecting this closed evidence shape.
-The stable `python-worker / verify` check includes all three repository-script
-shards: CI runs them on independent Windows matrix runners, then rejects any
-non-success matrix result before running the worker-only lane. Each invocation
-uses the existing verifier's exhaustive/disjoint partition, session custody and
-deadline. The v1.1.5 local `verify.py --all` path completes the derived-data
-check and shared SDK/restore, including restoration of tracked lock projections,
-before starting one bounded lane pool. Local public `--jobs` accepts 1–4 and
-defaults to three;
-four is opt-in for measured workloads, not a new default. The nested .NET
-snapshot-preparation and non-UI producer pools remain capped at three, with
-the UI producer still exclusive-first. Outer jobs do not cap every descendant
-process or thread globally. Structure postchecks may overlap the
-post-restore build and subsequent tests. The build-to-coverage lane starts first
-and retains one slot and deadline; scripts and CRC wait for successful build
-readiness within their own existing budgets. A failed or cancelled builder
-terminates pending readiness rather than leaving waiters blocked. Coverage
-failure does not revoke successful build readiness, but still fails the complete
-verification. Every required gate must pass before the overall result is PASS.
-Local script work is scheduled as complete test
-modules from the same exhaustive/disjoint inventory, with one shared deadline
-per original shard, starting at that shard's first module. Queue time after that
-start consumes the same budget; expired modules fail without starting. This does
-not increase the shard timeout or remove tests. SDK cleanup follows termination
-of all workloads, including failures. CI keeps its independent Windows matrix
-runners and original shard entry points; local scheduling does not replace
-source-CI or release-Golden evidence.
-This is refreshed at the existing candidate, pre-tag and Release-mutation
-boundaries. Earlier version policies remain unchanged, and this prerequisite
-does not itself waive required source CI or fresh Golden execution. Candidate
-and promotion jobs declare `actions: read` explicitly because job-level
-permissions replace workflow defaults; no new write permission is needed.
-The same snapshot fully paginates review threads;
-every unresolved thread needs one recognized P0-P3 marker, unresolved P0/P1
-blocks, and independent P2/P3 work may continue in parallel. The applied main
-rules must require exactly those three checks, while one active `refs/tags/v*`
-ruleset must prevent update and deletion. A visible `bypass_actors` value must
-be exactly `[]`; null, malformed, or non-empty values fail admission. GitHub
-omits `bypass_actors` from the
-detail response for a token without ruleset write access, so the protected
-environment's release owner separately inspects and attests that the matching
-ruleset has no bypass actors. From v1.1.3, after exact-source CI admission, the
-candidate runs `python scripts/verify.py --release-golden`: a fresh full-solution
-restore/build and the complete Bootstrap and GoldenRegression test projects,
-with canonical fixture/disposition validation and every direct case's referenced
-passed test identity. Cases sharing a test method must expose their exact canonical
-`caseId` as the first theory argument; their fresh TRX rows must match the entire
-declared case inventory one-to-one, with each case passed exactly once. A method
-name alone cannot certify multiple cases. Duplicate, undeclared, failed or skipped
-case rows block release. Ordinary discovery/skip identities remain unchanged.
-Existing discovery/execution reconciliation, approved skip policy,
-full output comparisons, case-local allowed differences, immutable test shadows,
-and cleanup remain enforced. Missing, failed or skipped required Golden cases
-block packaging. Input-only evidence remains input-only. Only this release mode
-omits repeated pre-build ownership/format checks already proved by admitted
-exact-source CI and omits the unused Coverlet coverage collection/attachments.
-It still requires a unique fresh TRX, exact discovery/execution identities,
-canonical production-output hashes and full solution build. Building only the
-two test projects is insufficient for that production-output contract.
-This mode does not claim full-suite coverage; that evidence belongs to the
-admitted exact-source CI. `verify.py --all` remains unchanged for full local
-verification and earlier release versions. The candidate then packages
-once, smokes the package, and renders a complete matching stable CHANGELOG
-section. A closed candidate manifest binds source SHA/tree, workflow SHA/ref,
-run id, final-review snapshot, release-note digest, and the exact
-ZIP/SBOM/provenance names, sizes, and SHA-256 values. A versioned outer checksum
-file binds those payloads and the candidate manifest; the Actions artifact
-digest is bound into the annotated-tag message.
+The first-publication floor requires `vVERSION` to be absent and `VERSION` to
+exceed every stable tag. The candidate and the same run block immediately
+before tag mutation both check it. Existing-tag same-run recovery validates
+the exact candidate tag and is exempt from the first-publication floor while
+protected `main` remains at the workflow SHA. The three candidate, pre-tag and
+pre-Release admission boundaries each collect fresh evidence. Only the
+protected `release` environment can unlock the `contents: write` promotion
+job; it runs protected-main policy and never executes package code.
 
-The protected `release` environment is the final tag confirmation. Only after
-approval does a narrow `contents: write` job check out the exact candidate
-workflow SHA and revalidate the downloaded candidate. Immediately before any
-new-tag or existing-tag Release mutation, every CI-eligible version re-reads
-exact remote main protection and the selected source-branch head through the
-same Python owner. v1.1.0 is not CI-eligible and fails during candidate
-admission. From v1.1.1 onward the workflow additionally gathers fresh ruleset,
-exact check-run, and review-thread evidence through the repository-admission
-owner at three separate temporal boundaries: candidate, immediately pre-tag,
-and immediately pre-Release. No boundary reuses another boundary's snapshot.
-The pre-tag collection, validation, and tag mutation share one workflow run
-block. The workflow never executes policy from a moving `main`. A new tag requires the candidate to remain
-the exact current selected release-branch head. Existing-tag recovery may
-observe a newer branch head only when fresh GitHub comparison evidence proves
-the candidate remains its ancestor. In both cases the workflow definition must
-remain the exact current protected `main`. For the approved pre-Launcher
-maintenance versions `v0.9.17`,
-`v0.9.18`, and `v0.9.19`, plus `v1.0.0` through `v1.0.5`, the job publishes
-exactly five assets: Windows ZIP, SPDX SBOM, provenance, candidate manifest,
-and outer SHA-256 list. Starting at `v1.0.6`, it publishes exactly ten: those
-five plus the closed five-asset
-Distribution Launcher evidence set. The validated release
-notes become the Release body. It revalidates the annotated tag object and
-peeled commit plus Release state/body. From v1.1.1 onward the REST Release must
-report `immutable=true` and exactly the candidate asset set; every name is
-unique and safe, every state is `uploaded`, and every byte size and
-`sha256:<candidate digest>` is exact. It then verifies GitHub-generated source
-archives, downloads every published asset into a fresh directory, and compares
-the exact name set and bytes again; REST metadata never replaces this independent
-hash gate. The write-token job never checks out or executes the
-selected product source. A separate `contents: read` job downloads the
-published ZIP plus its adjacent SPDX and provenance sidecars, then runs
-protected-main smoke tooling in a second step where neither `GH_TOKEN` nor
-`GITHUB_TOKEN` is exposed. The write-token job rereads the selected branch head
-immediately before creating a new tag object and fails if it advanced.
-The published-smoke job explicitly requires a non-cancelled run and successful
-candidate and promotion jobs. An inapplicable, skipped transitive parity job
-does not suppress smoke after successful publication; failed or skipped direct
-dependencies still block it. This condition does not grant write authority or
-replace any Golden execution or clean-machine evidence.
-A pre-approval failure creates no tag. If promotion fails after tag creation,
-rerun only the failed promotion job in the same workflow run so the original
-run id and artifact digest remain authoritative. Eligible historical releases
-may retain their bounded matching recovery behavior; an immutable
-v1.1.1-or-later Release
-must already be complete and cannot be repaired in place. Any
-moved/lightweight tag, conflicting body, extra name, or conflicting byte fails
-closed. A new workflow run cannot reuse the old stable version.
+The read-only `release / eligibility` job requires a successful terminal
+v0.9.16 parity chain for every version from 2.0.0; 1.x requires it to be
+skipped. A required failed, cancelled or skipped chain fails the run. The
+terminal obligation is deferred to 2.0.0, with the 2.0.0 retain/retire choice
+reserved for the firmware owner and release owner. Rolling comparison is a
+separate additional gate when adopted.
+
+The default-off `dry_run` input runs candidate admission and the complete
+build path on current protected `main`, but marks the candidate manifest
+`nonPromotable` and prefixes the artifact name `dry-run-candidate`. Its floor
+report grants no eligibility; promotion and published smoke skip. Promotion
+verifies that a downloaded manifest has `nonPromotable: false` before it can
+create or reuse a tag. The manual `release-rehearsal.yml` runs on a selected
+branch with the stable package path, including the managed Launcher required by
+the 1.x contract. It verifies Golden outputs, package smoke, notes and the
+update-source handoff, and retains build-only artifacts for three days. Its
+synthetic handoff timestamp has no publication authority.
+
+Stable publication requires an immutable annotated tag, exact REST Release
+metadata and a complete closed asset set with uploaded state, byte sizes and
+SHA-256 digests. The workflow then downloads and hashes published assets and
+checks both tag-derived source archives. A separate read-only job smokes the
+published package without a GitHub token in its execution step. An incomplete
+or conflicting immutable Release requires a new version; tags and assets are
+never moved or clobbered. A failed promotion can be rerun only in the same
+run with the same candidate digest while `main` still equals the workflow SHA.
 
 GitHub may return an annotated-tag message with CRLF transport line endings while the candidate artifact uses LF. Release validation canonicalizes only `CRLF` to `LF` on both messages before comparison; every logical line, field, ordering, and non-newline byte remains exact.
 
 Both package paths run `smoke-release.ps1 -SkipUiLaunch` before upload or publication. For v1.1.4, the owner's 2026-09-10 authorization admits the exact 40-case/177-declaration/174-unique-artifact/215-projected-path reference selection, including 164 BINs. All 25 Direct Golden output contracts are unchanged. Three input-only cases and their source-closed aliases remain explicitly non-parity evidence. Smoke verifies the pinned allowlist/README/case/artifact hashes, roles, source closure and physical package content. It rejects automatic tree selection, fabricated expected outputs, missing or cross-workflow alias sources, alias chains, ambiguous Direct/input classification, nested archives, transfer wrappers and unselected material. BAT/CONFIG provenance remains inert `reference` content. Materialized profiles, external tools, sidecars and worker self-test remain required. This does not satisfy visible startup or clean-machine acceptance; historical package evidence is not rewritten.
 
 ## Local package smoke
+
+The v1.1.13 headless catalog probe runs in both smoke modes. `-SkipUiLaunch`
+omits only the visible main-window check.
 
 After `scripts/package.ps1` produces a ZIP, run the deterministic local smoke before handing it to a reviewer:
 
@@ -515,7 +381,7 @@ The owner-approved `v0.9.7` Windows inner-ZIP baseline was 57,501,699 bytes and
 the former 1% ratchet was 58,076,715 bytes. For the `0.9.11.10` startup phase,
 the owner approved composite ReadyToRun and replaced that ratchet with an exact
 80,000,000-byte complete-ZIP ceiling. The check runs before extraction and is
-therefore also the fail-fast gate in `main-package.yml`, `release.yml`, and the
+therefore also the fail-fast gate in `release-rehearsal.yml`, `release.yml`, and the
 reviewed workflow template.
 
 The byte ratchet does not authorize trimming, removal of the self-contained
@@ -541,20 +407,20 @@ Release notes and operator handoff must not claim managed auto-upgrade from
 those predecessors. Ordinary verified Catalog updates resume after 1.0.2 is
 running.
 
-`v1.0.1` is not a product-fix release. Its source commit must be the direct
+Historically, `v1.0.1` was not a product-fix release. Its source commit must be the direct
 child of the immutable `v1.0.0` tag commit, that base must contain canonical
 `VERSION` `1.0.0`, and the complete Git diff may change exactly one path:
-`VERSION`, to `1.0.1`. The stable workflow enforces this before executing the
+`VERSION`, to `1.0.1`. The then-current stable workflow enforced this before executing the
 candidate. Assembly identity, package filename, inner/outer manifests,
 Catalog/Registry publication binding, SBOM, provenance, checksums, and release
 notes are mechanically regenerated release artifacts; no product/runtime,
 firmware, UI, configuration, dependency, refactor, or repository metadata
 change is admitted into the `1.0.1` source tree.
 
-Before the `v1.0.1` workflow reads or reuses any byte from the published
+Before the historical `v1.0.1` workflow read or reused any byte from the published
 `v1.0.0` ZIP, it obtains that exact asset's SHA-256 from authenticated GitHub
-Release metadata and compares the downloaded ZIP against it. The inner package
-manifest is then validated independently. A counterfeit ZIP with internally
+Release metadata and compared the downloaded ZIP against it. The inner package
+manifest was then validated independently. A counterfeit ZIP with internally
 self-consistent files and manifests therefore cannot become the trusted base
 for the version-only equivalence proof.
 

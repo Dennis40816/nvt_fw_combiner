@@ -51,6 +51,7 @@ public sealed class ProjectDependencyTests
             [
                 "NvtFwCombiner.Application",
                 "NvtFwCombiner.Infrastructure",
+                "NvtFwCombiner.PrebuiltProfileCatalogGenerator",
                 "NvtFwCombiner.VersionManagement.Application",
                 "NvtFwCombiner.VersionManagement.Infrastructure",
             ],
@@ -132,6 +133,7 @@ public sealed class ProjectDependencyTests
         Assert.Equal(
             [
                 "NvtFwCombiner.Bootstrap.Tests",
+                "NvtFwCombiner.CatalogProbe",
                 "NvtFwCombiner.Infrastructure",
                 "NvtFwCombiner.ProfileContract.Tests",
             ],
@@ -147,6 +149,7 @@ public sealed class ProjectDependencyTests
                 "NvtFwCombiner.Application.Tests",
                 "NvtFwCombiner.Bootstrap",
                 "NvtFwCombiner.Bootstrap.Tests",
+                "NvtFwCombiner.CatalogProbe",
                 "NvtFwCombiner.UiSmoke.Tests",
             ],
             FriendAssemblies("NvtFwCombiner.Application"));

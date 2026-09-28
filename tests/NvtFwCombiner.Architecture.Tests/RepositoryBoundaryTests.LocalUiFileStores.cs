@@ -44,10 +44,20 @@ public sealed partial class RepositoryBoundaryTests
         AssertDoesNotContainAny(stores, "File.", "JsonSerializerOptions");
         AssertContainsAll(codec, "JsonSerializerOptions", "JsonSerializer.DeserializeAsync");
         AssertContainsAll(mainWindow, "_reportHistoryPersistence.Queue", "_shellPreferencePersistence.Queue",
-            "e.Cancel = true", "IsEnabled = false", "viewModel.RunSession.CancelActiveRun();",
-            "finalViewModel.RunSession.CancelActiveRun();", "Task.WhenAll(",
-            "completion.WaitAsync(LocalStateCloseFlushTimeout)", "_reportHistoryPersistence.CompleteAsync()",
+            "e.Cancel = true", "IsEnabled = false", "CloseAttempt = RunCloseAttemptAsync();");
+        string lifetime = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs");
+        AssertContainsAll(lifetime, "viewModel.RunSession.CancelActiveRun();",
+            "viewModel.RunSession.RevokeActiveRun();", "Task.WhenAll(",
+            "WaitWithinCloseDeadlineAsync(work)", "WaitWithinCloseDeadlineAsync(completion)",
+            "_reportHistoryPersistence.CompleteAsync()",
             "_shellPreferencePersistence.CompleteAsync()");
+        AssertContainsAll(lifetime, "CloseDeadlineFactory(TimeSpan.FromSeconds(5))",
+            "Task.WhenAny(work, CloseDeadlineFactory");
+        Assert.True(lifetime.IndexOf("_preloadSession.StopAcceptingAndRevoke();", StringComparison.Ordinal) <
+            lifetime.IndexOf("WaitWithinCloseDeadlineAsync(work)", StringComparison.Ordinal));
+        Assert.True(lifetime.IndexOf("WaitWithinCloseDeadlineAsync(work)", StringComparison.Ordinal) <
+            lifetime.IndexOf("_reportHistoryPersistence.CompleteAsync()", StringComparison.Ordinal));
         AssertDoesNotContainAny(mainWindow, "ShellPreferenceFileStore.LoadInto(viewModel)",
             "ReportHistoryFileStore.Save(viewModel)", "ShellPreferenceFileStore.Save(viewModel)");
         AssertContainsAll(startupFactory,

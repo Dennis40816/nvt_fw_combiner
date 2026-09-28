@@ -3,16 +3,6 @@ name: release
 on:
   workflow_dispatch:
     inputs:
-      source_branch:
-        description: Reviewed release source branch
-        required: true
-        default: main
-        type: choice
-        options:
-          - main
-          - 0.9.17
-          - 0.9.18
-          - 0.9.19
       commit:
         description: Exact reviewed release-branch head (40-character lowercase SHA)
         required: true
@@ -25,6 +15,11 @@ on:
         description: Canonical UTC package publication timestamp (for example 2026-08-24T00:00:00Z)
         required: true
         type: string
+      dry_run:
+        description: Build and validate a non-promotable candidate on protected main
+        required: true
+        default: false
+        type: boolean
       owner_self_approval_exception:
         description: Sole repository-owner exception when GitHub forbids author approval; protected release approval still applies
         required: true
@@ -55,6 +50,7 @@ jobs:
       source-sha: ${{ steps.identity.outputs.source-sha }}
       source-tree: ${{ steps.identity.outputs.source-tree }}
       source-branch: ${{ steps.identity.outputs.source-branch }}
+      dry-run: ${{ steps.identity.outputs.dry-run }}
       workflow-sha: ${{ steps.identity.outputs.workflow-sha }}
       version: ${{ steps.identity.outputs.version }}
       tag: ${{ steps.identity.outputs.tag }}
@@ -72,7 +68,6 @@ jobs:
           NFC_RELEASE_COMMIT: ${{ inputs.commit }}
           NFC_RELEASE_PR: ${{ inputs.pull_request }}
           NFC_RELEASE_PUBLISHED_AT: ${{ inputs.published_at }}
-          NFC_RELEASE_SOURCE_BRANCH: ${{ inputs.source_branch }}
           NFC_OWNER_SELF_APPROVAL_EXCEPTION: ${{ inputs.owner_self_approval_exception }}
           NFC_WORKFLOW_REF: ${{ github.ref }}
           NFC_WORKFLOW_SHA: ${{ github.workflow_sha }}
@@ -89,9 +84,6 @@ jobs:
           if ($env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -notin @('true', 'false')) {
             throw 'The owner self-approval exception input is invalid.'
           }
-          if ($env:NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18', '0.9.19')) {
-            throw 'The release source branch is not approved.'
-          }
           if ($env:NFC_WORKFLOW_REF -ne 'refs/heads/main') {
             throw 'The release workflow must be dispatched from protected main.'
           }
@@ -107,71 +99,47 @@ jobs:
           ref: main
           fetch-depth: 0
           persist-credentials: false
-      - name: Setup pinned Python for release policy
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - name: Setup release toolchain
+        uses: ./.github/actions/setup-toolchain
         with:
-          python-version: '3.13'
-          cache: pip
-          cache-dependency-path: tools/crc-worker/pyproject.toml
+          worker-extras: dev,package
       - name: Lock release authority and candidate identity
         id: identity
         shell: pwsh
         env:
           NFC_REQUESTED_SHA: ${{ steps.request.outputs.requested-sha }}
-          NFC_SOURCE_BRANCH: ${{ inputs.source_branch }}
+          NFC_DRY_RUN: ${{ inputs.dry_run }}
           NFC_WORKFLOW_SHA: ${{ github.workflow_sha }}
         run: |
           $mainSha = git rev-parse HEAD
           if ($mainSha -ne $env:NFC_WORKFLOW_SHA) {
             throw 'The workflow definition must be the current protected main SHA.'
           }
-          $sourceRef = "refs/remotes/origin/$env:NFC_SOURCE_BRANCH"
-          $sourceSha = git rev-parse --verify $sourceRef
+          $sourceSha = $mainSha
           if ($sourceSha -ne $env:NFC_REQUESTED_SHA) {
-            throw 'The requested SHA must be the exact current release-branch head.'
+            throw 'The requested SHA must be the exact current protected main head.'
           }
-          $policyPath = Join-Path $env:RUNNER_TEMP 'release_promotion_policy.py'
-          Copy-Item -LiteralPath ./scripts/release_promotion_policy.py -Destination $policyPath
-          "NFC_RELEASE_POLICY=$policyPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          $catalogToolPath = Join-Path $env:RUNNER_TEMP 'create_update_catalog.py'
-          Copy-Item -LiteralPath ./scripts/create_update_catalog.py -Destination $catalogToolPath
-          $registryPolicyPath = Join-Path $env:RUNNER_TEMP 'update_source_registry_policy.py'
-          Copy-Item -LiteralPath ./scripts/update_source_registry_policy.py -Destination $registryPolicyPath
-          "NFC_UPDATE_CATALOG_TOOL=$catalogToolPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          $registryTemplatePath = Join-Path $env:RUNNER_TEMP 'update-source-registry.json.in'
-          Copy-Item -LiteralPath ./docs/ci/update-source-registry.json.in -Destination $registryTemplatePath
-          "NFC_UPDATE_SOURCE_REGISTRY_TEMPLATE=$registryTemplatePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          git checkout --detach $sourceSha
-          if ($LASTEXITCODE -ne 0) { throw 'The exact release source could not be checked out.' }
+          if ($env:NFC_DRY_RUN -notin @('true', 'false')) {
+            throw 'The dry-run input is invalid.'
+          }
+          "NFC_RELEASE_POLICY=./scripts/release_promotion_policy.py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NFC_UPDATE_CATALOG_TOOL=./scripts/create_update_catalog.py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NFC_UPDATE_SOURCE_REGISTRY_TEMPLATE=./docs/ci/update-source-registry.json.in" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $version = (Get-Content -LiteralPath ./VERSION -Raw).Trim()
           if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
             throw "VERSION must be stable SemVer; found '$version'."
           }
-          $approvedMaintenanceVersions = @{
-            '0.9.17' = '0.9.17'
-            '0.9.18' = '0.9.18'
-            '0.9.19' = '0.9.19'
-          }
-          if ($env:NFC_SOURCE_BRANCH -ne 'main' -and
-              $approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version) {
-            throw 'The maintenance branch and VERSION are not an approved release pair.'
-          }
-          if ($version -eq '1.0.1') {
-            python $env:NFC_RELEASE_POLICY validate-version-only-lineage `
-              --repository '${{ github.workspace }}'
-            if ($LASTEXITCODE -ne 0) {
-              throw 'Version 1.0.1 is not an exact version-only child of v1.0.0.'
-            }
-          }
           $tag = "v$version"
           $sourceTree = git rev-parse 'HEAD^{tree}'
-          $artifactName = "stable-candidate-${{ github.run_id }}-$sourceSha"
+          $artifactPrefix = if ($env:NFC_DRY_RUN -eq 'true') { 'dry-run-candidate' } else { 'stable-candidate' }
+          $artifactName = "$artifactPrefix-${{ github.run_id }}-$sourceSha"
           "source-sha=$sourceSha" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "source-tree=$sourceTree" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "source-branch=$env:NFC_SOURCE_BRANCH" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "source-branch=main" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "workflow-sha=$env:NFC_WORKFLOW_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "dry-run=$env:NFC_DRY_RUN" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "artifact-name=$artifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Collect and validate final PR review/check evidence
         id: admission
@@ -395,94 +363,39 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $releaseState.Trim() -notin @('absent', 'present')) {
             throw "Release '$env:NFC_TAG' state could not be proved."
           }
-      - name: Install pinned repository .NET SDK
+      - name: Enforce first-publication release floor
+        if: ${{ !inputs.dry_run }}
         shell: pwsh
-        run: ./scripts/install-dotnet.ps1 -Scope Repository
-      - name: Add repository .NET to PATH
-        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_VERSION: ${{ steps.identity.outputs.version }}
+          NFC_TAG: ${{ steps.identity.outputs.tag }}
         run: |
-          "${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "DOTNET_ROOT=${{ github.workspace }}\.dotnet" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Install verification and packaging dependencies
-        run: python -m pip install --disable-pip-version-check -e './tools/crc-worker[dev,package]'
+          $tagState = python $env:NFC_RELEASE_POLICY probe-resource `
+            --endpoint "repos/$env:NFC_REPOSITORY/git/ref/tags/$env:NFC_TAG"
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate tag state could not be proved.' }
+          python $env:NFC_RELEASE_POLICY validate-release-floor `
+            --repository $env:NFC_REPOSITORY --version $env:NFC_VERSION `
+            --tag-state $tagState.Trim()
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate release floor failed.' }
+      - name: Label dry-run floor as non-authorizing
+        if: ${{ inputs.dry_run }}
+        shell: pwsh
+        run: '"Dry run: no release-floor eligibility or promotion authority." >> $env:GITHUB_STEP_SUMMARY'
       - name: Verify release source
         shell: pwsh
         env:
           NFC_SOURCE_VERSION: ${{ steps.identity.outputs.version }}
         run: |
-          if ([version]$env:NFC_SOURCE_VERSION -ge [version]'1.1.3') {
-            python ./scripts/verify.py --release-golden
-          }
-          else {
-            python ./scripts/verify.py --all
-          }
+          python ./scripts/verify.py --release-golden
           if ($LASTEXITCODE -ne 0) { throw 'Release source verification failed.' }
-      - name: Require exact v1.0.0 package-source authority
-        if: steps.identity.outputs.version == '1.0.0'
-        shell: pwsh
-        run: |
-          python ./scripts/v0916_parity_certification.py validate-package-source `
-            --repository '${{ github.workspace }}'
-          if ($LASTEXITCODE -ne 0) {
-            throw 'Version 1.0.0 is not the exact admitted H4 package source.'
-          }
-      - name: Download published 1.0.0 base package
-        if: steps.identity.outputs.version == '1.0.1'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          NFC_REPOSITORY: ${{ github.repository }}
-        run: |
-          $baseRoot = Join-Path $env:RUNNER_TEMP 'nfc-v1.0.0-package'
-          New-Item -ItemType Directory -Force -Path $baseRoot | Out-Null
-          gh release download v1.0.0 `
-            --repo $env:NFC_REPOSITORY `
-            --pattern 'NvtFwCombiner-v1.0.0-win-x64.zip' `
-            --dir $baseRoot
-          if ($LASTEXITCODE -ne 0) { throw 'Published v1.0.0 package could not be downloaded.' }
-          $assetName = 'NvtFwCombiner-v1.0.0-win-x64.zip'
-          $releaseText = gh api "repos/$env:NFC_REPOSITORY/releases/tags/v1.0.0"
-          if ($LASTEXITCODE -ne 0) { throw 'Published v1.0.0 release metadata could not be read.' }
-          $release = $releaseText | ConvertFrom-Json
-          $matches = @($release.assets | Where-Object { $_.name -ceq $assetName })
-          if ($matches.Count -ne 1) { throw 'Published v1.0.0 package asset identity is ambiguous.' }
-          $assetDigest = [string]$matches[0].digest
-          if ($assetDigest -cnotmatch '^sha256:[0-9a-f]{64}$') {
-            throw 'Published v1.0.0 package has no authenticated GitHub SHA-256 digest.'
-          }
-          "NFC_BASE_PACKAGE_SHA256=$($assetDigest.Substring(7))" | `
-            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Build closed-allowlist release package
         shell: pwsh
         env:
           NFC_VERSION: ${{ steps.identity.outputs.version }}
           NFC_SOURCE_SHA: ${{ steps.identity.outputs.source-sha }}
-        run: |
-          $packageArguments = @{
-            Version = $env:NFC_VERSION
-            Commit = $env:NFC_SOURCE_SHA
-          }
-          if ($env:NFC_VERSION -ceq '1.0.1') {
-            $packageArguments.VersionOnlyBasePackage = Join-Path `
-              $env:RUNNER_TEMP 'nfc-v1.0.0-package/NvtFwCombiner-v1.0.0-win-x64.zip'
-            $packageArguments.VersionOnlyBasePackageSha256 = $env:NFC_BASE_PACKAGE_SHA256
-          }
-          ./scripts/package.ps1 @packageArguments
-      - name: Prove 1.0.1 package is version-only from published 1.0.0
-        if: steps.identity.outputs.version == '1.0.1'
-        shell: pwsh
-        env:
-          NFC_REPOSITORY: ${{ github.repository }}
-        run: |
-          $baseRoot = Join-Path $env:RUNNER_TEMP 'nfc-v1.0.0-package'
-          python $env:NFC_RELEASE_POLICY validate-version-only-package `
-            --repository '${{ github.workspace }}' `
-            --base-package (Join-Path $baseRoot 'NvtFwCombiner-v1.0.0-win-x64.zip') `
-            --base-package-sha256 $env:NFC_BASE_PACKAGE_SHA256 `
-            --candidate-package './artifacts/release/NvtFwCombiner-v1.0.1-win-x64.zip'
-          if ($LASTEXITCODE -ne 0) {
-            throw 'The v1.0.1 package differs from v1.0.0 beyond declared version identity.'
-          }
+        run: ./scripts/package.ps1 -Version $env:NFC_VERSION -Commit $env:NFC_SOURCE_SHA
       - name: Smoke candidate package
         shell: pwsh
         env:
@@ -567,7 +480,9 @@ jobs:
           NFC_WORKFLOW_SHA: ${{ github.workflow_sha }}
           NFC_WORKFLOW_REF: ${{ github.ref }}
           NFC_RUN_ID: ${{ github.run_id }}
+          NFC_DRY_RUN: ${{ inputs.dry_run }}
         run: |
+          $dryRunArgument = if ($env:NFC_DRY_RUN -eq 'true') { @('--dry-run') } else { @() }
           $manifestPath = python $env:NFC_RELEASE_POLICY create-manifest `
             --asset-dir ./artifacts/release `
             --version $env:NFC_VERSION `
@@ -577,7 +492,8 @@ jobs:
             --workflow-sha $env:NFC_WORKFLOW_SHA `
             --workflow-ref $env:NFC_WORKFLOW_REF `
             --notes ./artifacts/release/RELEASE-NOTES.md `
-            --review-snapshot ./artifacts/release-evidence/review-snapshot.json
+            --review-snapshot ./artifacts/release-evidence/review-snapshot.json `
+            @dryRunArgument
           if ($LASTEXITCODE -ne 0) { throw 'Candidate manifest generation failed.' }
           $manifestPath = $manifestPath.Trim()
           "manifest-name=$([IO.Path]::GetFileName($manifestPath))" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -599,12 +515,38 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  release-eligibility:
+    name: release / eligibility
+    needs:
+      - candidate
+      - v0916-parity-finalize
+    if: ${{ always() && needs.candidate.result == 'success' && needs.candidate.outputs.dry-run != 'true' }}
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout protected release policy
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.candidate.outputs.workflow-sha }}
+          persist-credentials: false
+      - name: Setup pinned Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Require release eligibility
+        shell: pwsh
+        env:
+          NFC_VERSION: ${{ needs.candidate.outputs.version }}
+          NFC_PARITY_RESULT: ${{ needs.v0916-parity-finalize.result }}
+        run: python ./scripts/release_promotion_policy.py validate-release-eligibility --version $env:NFC_VERSION --parity-result $env:NFC_PARITY_RESULT
+
   promote:
     name: release / promote
     needs:
       - candidate
-      - v0916-parity-finalize
-    if: ${{ !cancelled() && needs.candidate.result == 'success' && ((needs.candidate.outputs.version == '2.0.0' && needs.v0916-parity-finalize.result == 'success') || (startsWith(needs.candidate.outputs.version, '1.') && needs.v0916-parity-finalize.result == 'skipped')) }}
+      - release-eligibility
+    if: ${{ !cancelled() && needs.candidate.result == 'success' && needs.release-eligibility.result == 'success' }}
     runs-on: windows-latest
     timeout-minutes: 30
     environment: release
@@ -736,22 +678,17 @@ jobs:
           "@.Trim()
           $tagMessagePath = Join-Path $env:RUNNER_TEMP 'candidate-tag-message.txt'
           Set-Content -LiteralPath $tagMessagePath -Value $tagMessage -Encoding utf8NoBOM -NoNewline
-          if ([version]$env:NFC_SOURCE_VERSION -ge [version]'1.1.1') {
-            $repositoryAdmissionPath = Join-Path $env:RUNNER_TEMP 'pretag-repository-admission.json'
-            python $env:NFC_RELEASE_POLICY collect-repository-admission `
-              --repository $env:NFC_REPOSITORY `
-              --pull-request $env:NFC_PULL_REQUEST `
-              --main-sha $env:NFC_MAIN_SHA `
-              --review-head-sha $env:NFC_REVIEW_HEAD_SHA `
-              --source-sha $env:NFC_SOURCE_SHA `
-              --expected-tag $env:NFC_TAG `
-              --output $repositoryAdmissionPath
-            if ($LASTEXITCODE -ne 0) {
-              throw 'Fresh pre-tag repository admission policy failed.'
-            }
-          }
-          else {
-            Write-Host 'Strict repository admission starts at v1.1.1.'
+          $repositoryAdmissionPath = Join-Path $env:RUNNER_TEMP 'pretag-repository-admission.json'
+          python $env:NFC_RELEASE_POLICY collect-repository-admission `
+            --repository $env:NFC_REPOSITORY `
+            --pull-request $env:NFC_PULL_REQUEST `
+            --main-sha $env:NFC_MAIN_SHA `
+            --review-head-sha $env:NFC_REVIEW_HEAD_SHA `
+            --source-sha $env:NFC_SOURCE_SHA `
+            --expected-tag $env:NFC_TAG `
+            --output $repositoryAdmissionPath
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Fresh pre-tag repository admission policy failed.'
           }
           $mainBranchText = gh api "repos/$env:NFC_REPOSITORY/branches/main"
           if ($LASTEXITCODE -ne 0) { throw 'Fresh remote main protection evidence could not be read.' }
@@ -800,6 +737,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Fresh live branch authority policy failed.' }
           $endpoint = $tagEndpoint
           if ($tagState -eq 'absent') {
+            python $env:NFC_RELEASE_POLICY validate-release-floor `
+              --repository $env:NFC_REPOSITORY --version $env:NFC_SOURCE_VERSION `
+              --tag-state $tagState
+            if ($LASTEXITCODE -ne 0) { throw 'Fresh pre-tag release floor failed.' }
             $tagObject = gh api --method POST "repos/$env:NFC_REPOSITORY/git/tags" `
               -f "tag=$env:NFC_TAG" -f "message=$tagMessage" `
               -f "object=$env:NFC_SOURCE_SHA" -f 'type=commit' --jq .sha
@@ -846,23 +787,18 @@ jobs:
           NFC_WORKFLOW_SHA: ${{ needs.candidate.outputs.workflow-sha }}
         run: |
           function Assert-LiveReleaseMutationAuthority {
-            if ([version]$env:NFC_SOURCE_VERSION -ge [version]'1.1.1') {
-              $repositoryAdmissionPath = Join-Path $env:RUNNER_TEMP `
-                'release-mutation-repository-admission.json'
-              python $env:NFC_RELEASE_POLICY collect-repository-admission `
-                --repository $env:NFC_REPOSITORY `
-                --pull-request $env:NFC_PULL_REQUEST `
-                --main-sha $env:NFC_WORKFLOW_SHA `
-                --review-head-sha $env:NFC_REVIEW_HEAD_SHA `
-                --source-sha $env:NFC_SOURCE_SHA `
-                --expected-tag $env:NFC_TAG `
-                --output $repositoryAdmissionPath
-              if ($LASTEXITCODE -ne 0) {
-                throw 'Release-mutation repository admission policy failed.'
-              }
-            }
-            else {
-              Write-Host 'Strict repository admission starts at v1.1.1.'
+            $repositoryAdmissionPath = Join-Path $env:RUNNER_TEMP `
+              'release-mutation-repository-admission.json'
+            python $env:NFC_RELEASE_POLICY collect-repository-admission `
+              --repository $env:NFC_REPOSITORY `
+              --pull-request $env:NFC_PULL_REQUEST `
+              --main-sha $env:NFC_WORKFLOW_SHA `
+              --review-head-sha $env:NFC_REVIEW_HEAD_SHA `
+              --source-sha $env:NFC_SOURCE_SHA `
+              --expected-tag $env:NFC_TAG `
+              --output $repositoryAdmissionPath
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Release-mutation repository admission policy failed.'
             }
             $mainBranchText = gh api "repos/$env:NFC_REPOSITORY/branches/main"
             if ($LASTEXITCODE -ne 0) { throw 'Release-mutation remote main evidence could not be read.' }
@@ -1060,7 +996,7 @@ jobs:
     name: release / v0.9.16 parity compare
     needs:
       - candidate
-    if: ${{ success() && needs.candidate.outputs.version == '2.0.0' }}
+    if: ${{ success() && needs.candidate.outputs.dry-run != 'true' && needs.candidate.outputs.version == '2.0.0' }}
     runs-on: windows-latest
     timeout-minutes: 60
     permissions:
@@ -1101,7 +1037,7 @@ jobs:
     needs:
       - candidate
       - v0916-parity-compare
-    if: ${{ success() && needs.candidate.outputs.version == '2.0.0' }}
+    if: ${{ success() && needs.candidate.outputs.dry-run != 'true' && needs.candidate.outputs.version == '2.0.0' }}
     runs-on: windows-latest
     timeout-minutes: 30
     environment: firmware-parity
@@ -1170,7 +1106,7 @@ jobs:
     needs:
       - candidate
       - v0916-parity-attestation
-    if: ${{ success() && needs.candidate.outputs.version == '2.0.0' }}
+    if: ${{ success() && needs.candidate.outputs.dry-run != 'true' && needs.candidate.outputs.version == '2.0.0' }}
     runs-on: windows-latest
     timeout-minutes: 30
     permissions:

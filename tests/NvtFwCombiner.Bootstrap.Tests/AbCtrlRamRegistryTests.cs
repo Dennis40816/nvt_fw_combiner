@@ -112,7 +112,7 @@ public sealed class AbCtrlRamRegistryTests(ITestOutputHelper output)
     public void MissingParentAndChangedIdentityNeverReuseAnAdmission()
     {
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51919-nt51929-nt51932-ab-merge", "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793");
+            "nt51919-nt51929-nt51932-ab-merge", "f082c1b93f895aedd8b1614c860c7da4d1e93c5a2a91366b9b4348cc71b1ca39");
         BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51929", "1-ic")!;
         BankReferenceReplaceDefinition definition = binding.Definition;
         _ = Assert.Throws<ArgumentException>(() => ab.CreateBankReplaceDefinition(ab,

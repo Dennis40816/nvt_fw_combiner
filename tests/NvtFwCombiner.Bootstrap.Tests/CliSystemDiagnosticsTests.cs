@@ -9,6 +9,25 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Protects the CLI adapter over the shared typed System Information contract.</summary>
 public sealed class CliSystemDiagnosticsTests
 {
+    /// <summary>The CLI renders the shared fallback warning without turning JSON admission into a Build failure.</summary>
+    [Fact]
+    public async Task DoctorReportsTypedJsonAdmissionWarningWithoutFailureExit()
+    {
+        using var output = new StringWriter();
+        SystemInformationService service = CreateService(CanonicalSupportMatrixCatalogState.Current,
+            new CanonicalSupportMatrixSnapshot("test", "1", new string('a', 64), new ResolutionToken("test"), []),
+            new AdmissionStatus());
+        int exit = await CliApplication.RunDoctorAsync(service, output, TestContext.Current.CancellationToken);
+        Assert.Equal(0, exit);
+        Assert.Contains("JSON admission is in use", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("restart the application", output.ToString(), StringComparison.Ordinal);
+    }
+
+    private sealed class AdmissionStatus : IBuiltInProfileAdmissionStatus
+    {
+        public BuiltInProfileAdmission? Current { get; } = new(BuiltInProfileAdmissionSource.Json, BuiltInProfileAdmissionRejectionReason.Format);
+    }
+
     /// <summary>Doctor explicitly reloads the shared catalog and reports its typed lifecycle state.</summary>
     [Fact]
     public async Task DoctorUsesCanonicalSystemInformationLifecycle()
@@ -99,7 +118,8 @@ public sealed class CliSystemDiagnosticsTests
 
     private static SystemInformationService CreateService(
         CanonicalSupportMatrixCatalogState state,
-        CanonicalSupportMatrixSnapshot? matrix)
+        CanonicalSupportMatrixSnapshot? matrix,
+        IBuiltInProfileAdmissionStatus? admissionStatus = null)
     {
         var catalog = new StubCatalog(state, matrix);
         return new SystemInformationService(
@@ -109,7 +129,7 @@ public sealed class CliSystemDiagnosticsTests
             new ExternalProcessorEnvironmentLoader(static (_, _) =>
                 throw new NotSupportedException()),
             new StubRuntimeProbe(),
-            new StubClock());
+            new StubClock(), admissionStatus: admissionStatus);
     }
 
     private sealed class StubCatalog(

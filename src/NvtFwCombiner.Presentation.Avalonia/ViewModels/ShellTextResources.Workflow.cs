@@ -91,6 +91,32 @@ internal sealed partial class ShellTextResources
 
     public string FirmwareSlotDetailsLabel => SelectLanguage("Details", "詳細資訊");
 
+    // TP SVN value note (decisions 34 and 40). The owner's tooltip terms stay verbatim in both languages,
+    // like the TP Version and PID labels, until the owner decides otherwise; the warnings have owner zh-TW text.
+    public string TpSvnFlagsLabel => SelectLanguage("Flags:", "Flags:");
+
+    public string TpSvnRevisionLabel => SelectLanguage("Revision:", "Revision:");
+
+    public string TpSvnNoFlagsValue => SelectLanguage("none", "none");
+
+    public string TpSvnRevisionNotBcdValue => SelectLanguage("not BCD", "not BCD");
+
+    /// <summary>
+    /// Byte 0 has bits outside <c>0x80</c>, <c>0x40</c> and <c>0x20</c> (owner text; decision 93: a full stop
+    /// between the two sentences).
+    /// </summary>
+    public string FormatTpSvnUndefinedFlagBitsWarning(byte undefinedBits)
+    {
+        return SelectLanguage(
+            FormattableString.Invariant($"Undefined flag bits 0x{undefinedBits:X2}. InsertPID.py may be faulty."),
+            FormattableString.Invariant($"旗標位元組含未定義的位元 0x{undefinedBits:X2}。InsertPID.py 疑似有問題。"));
+    }
+
+    /// <summary>All four TP SVN bytes are zero (owner text; decision 93: a full stop between the two sentences).</summary>
+    public string TpSvnNotStampedWarning => SelectLanguage(
+        "No SVN stamp. InsertPID.py may not have run.",
+        "沒有 SVN stamp。InsertPID.py 可能沒有執行。");
+
     public string ModeSettingsLabel => SelectLanguage("Mode settings", "模式設定");
 
     public string CtrlRamViewBankLabel => SelectLanguage("View bank B", "檢視 B Bank");

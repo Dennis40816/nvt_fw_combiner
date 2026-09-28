@@ -1748,6 +1748,21 @@ to each `0.10.x` version.
     Inspection, formatting, copy, relocation, integrity, processor authority,
     memory projection, and report classification reference it rather than
     restating offsets.
+    The four bytes at TP start + `0x24` are the separate read-only TP SVN
+    stamp, not a TP Flash Header field. Byte 0 holds only the owner flags
+    `0x80` LOCAL_BUILD, `0x40` DIFF_EXIST and `0x20` NO_SVN_RECORD; bytes 1-3
+    hold six BCD revision digits. One `tp-svn` definition is declared once and
+    every TP code declares its own locator: each Standard TP input, each AB TP
+    A/B input, and bank A and bank B of an AB Reference. Undefined flag bits
+    (byte 0 `& 0x1F`) and an all-zero stamp are its only anomalies; `0x60`
+    with a nonzero revision is a normal Jenkins build. The SVN copy inside
+    the byte-code Header copy is modeled separately and read-only as
+    `tp-svn-header-copy` at the declared Header copy region + `0x24` of each
+    CtrlRAM Replace layout (bank-local in AB images; NT51926 per declared
+    firmware-version variant); it is never displayed, compared with the main
+    stamp or treated as a diagnostic. FWConfig `u8AutoBuildSvnVer1-4`,
+    including their FWConfig Backup copy, are neither read nor shown as TP
+    SVN.
 15. TP BIN offset, Flash image offset, Header stored address, and TP Backup
     placement delta are distinct typed concepts. Their definitions and allowed
     arithmetic are owned by the canonical firmware-coordinate vocabulary.
@@ -1995,9 +2010,14 @@ Presentation consumes the typed result and offers no manual Standard/AB override
     three responsive columns. Producers declare primary/detail presentation
     priority from typed observations and slot role, independent of list order
     or translated labels. TP/Base primary facts are available TP bank versions,
-    PID, Common FW and Event Buffer Format; DP slots prioritize DP Version and
-    Jira. IC Count and Base DP metadata use quiet Details disclosure. Warning,
-    pending and error facts remain visible. File identity precedes facts;
+    PID, Common FW, Event Buffer Format and TP SVN (`TP SVN (A)`/`TP SVN (B)`
+    for an AB Reference); DP slots prioritize DP Version and Jira. TP SVN shows
+    only its raw four bytes followed by a 12 px value icon: an outline
+    information circle whose tooltip lists `Flags:` and `Revision:`, or the
+    shared warning triangle whose tooltip first states the anomaly; the fact
+    keeps ordinary styling. IC Count and Base DP metadata use quiet Details
+    disclosure. Warning, pending and error facts remain visible. File
+    identity precedes facts;
     right-centered picker actions do not move when Details expands. The
     owner-approved 2026-09-22 v7 layout supersedes the four-primary-fact limit.
     Flash Reference facts come from its read-only inspection. AB facts identify

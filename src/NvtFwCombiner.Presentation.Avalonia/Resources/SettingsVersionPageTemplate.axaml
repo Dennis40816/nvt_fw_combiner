@@ -49,6 +49,22 @@
       <Border Margin="0,24,0,0" Classes="versionSectionDivider" />
     </StackPanel>
 
+    <Border x:Name="PendingRecoveryNotice" Padding="12" Classes="statusNotice warning"
+            AutomationProperties.Name="{Binding Settings.PendingRecoveryMessage}"
+            AutomationProperties.LiveSetting="Polite"
+            IsVisible="{Binding Settings.HasPendingRecoveryNotice}">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
+        <TextBlock Grid.Column="0" VerticalAlignment="Center" Classes="bodyStrongText"
+                   Text="{Binding Settings.PendingRecoveryMessage}" TextWrapping="Wrap" />
+        <Button x:Name="RetryPendingActivationButton" Grid.Column="1" VerticalAlignment="Center"
+                AutomationProperties.Name="{Binding Settings.RetryPendingActivationLabel}"
+                Classes="semanticAction secondary"
+                Command="{Binding Settings.RetryPendingActivationCommand}"
+                Content="{Binding Settings.RetryPendingActivationLabel}"
+                IsVisible="{Binding Settings.CanRetryPendingActivation}" />
+      </Grid>
+    </Border>
+
     <StackPanel x:Name="CurrentVersionSection" MinHeight="74" Spacing="{DynamicResource NfcSpace12}">
       <TextBlock Classes="sectionTitle versionSectionTitle" Text="{Binding Settings.CurrentVersionHeading}" />
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace12}">
@@ -268,6 +284,7 @@
     <TextBlock
         AutomationProperties.LiveSetting="Polite"
         Classes="captionText"
+        IsVisible="{Binding !Settings.HasPendingRecoveryNotice}"
         Text="{Binding Settings.VersionOperationStatus}"
         TextWrapping="Wrap" />
   </StackPanel>

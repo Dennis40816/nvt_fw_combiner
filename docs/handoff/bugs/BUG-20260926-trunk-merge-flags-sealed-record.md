@@ -1,6 +1,6 @@
 # BUG-20260926-trunk-merge-flags-sealed-record: merging the trunk into wave 2 makes every descendant fail the structure gate
 
-Status: worked around on 2026-09-26 (wave 2 and its feature branches rebuilt by rebase with identical trees); the root fix is WS-GOV
+Status: fixed (merged into `1.1.x` by #469, merge `8f5223860`, 2026-09-28)
 Severity: P1 (the required `policy / polytail` check fails for `feature/1.1.13/wave2` and every branch built on it, and would fail on `1.1.x` if wave 2 merged as it is)
 Found: 2026-09-26, Claude Code (Opus 5.5), while verifying the WS-GOV design commit, at `feature/1.1.13/ws-gov`@`c2b9c1468` (wave 2 `8682dd269` plus documents under `docs/handoff/` only)
 Where: merge `beb32b930` ("Merge 1.1.x (wave 1, #457) into the 1.1.13 wave 2 branch"); `scripts/validate_repository.py` `_record_changed_in_commits_after` and `_is_tree_transparent_containment_merge` (ADR 0061).
@@ -9,4 +9,4 @@ Expected: merging the trunk into a branch that has no records of its own does no
 Evidence: the verifier run above; the `rev-list`, `diff-tree -m`, tree and `merge-base --is-ancestor` checks recorded in the [WS-GOV log](../1.1.13/WS-GOV.md) checkpoint of 2026-09-26.
 Owner: commander (branch topology); root fix in WS-GOV ([ADR draft](../1.1.13/ADR-DRAFT-governance-reset.md), retiring history replay).
 Workaround (proposed, not applied): rebuild wave 2 as its own documentation-only commits rebased onto `9b2a7369e`, without the merge commit, then rebase the branches built on it (including `feature/1.1.13/ws-gov`). Until the WS-GOV fix lands, bring the trunk into a diverged branch by rebase, not merge, whenever the trunk sealed records after the branch point. Rewriting a pushed branch needs the owner's approval.
-Resolution: not fixed.
+Resolution: G1-B retired the capability-reuse records and removed the finalized-record history audit (`_record_changed_in_commits_after` and `_is_tree_transparent_containment_merge` exist at `47e01ebab` and not after #469), so a trunk merge can no longer flag a sealed record.

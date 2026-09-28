@@ -1,11 +1,13 @@
 using System.Collections.Frozen;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
+using NvtFwCombiner.Infrastructure.Diagnostics;
 using NvtFwCombiner.Profiles.V2;
 using V2CompositionProfileDefinition = NvtFwCombiner.Domain.Composition.CompositionProfileDefinition;
 
@@ -27,9 +29,41 @@ internal static class BuiltInV2BundleRegistry
                 bundle.BundleDirectory,
                 bundle.BundleVersion,
                 bundle.ContentHash,
-                TrustIndex.TrustAnchorBindingId),
+                TrustIndex.TrustAnchorBindingId,
+                () => LoadSelected(bundle)),
             StringComparer.Ordinal);
+
+    // Type initialization prepares the index and entries only. The first bundle load selects synchronously.
+    private static readonly Lazy<AcceptedPrebuiltProfileCatalog?> Selection = new(Select, LazyThreadSafetyMode.ExecutionAndPublication);
+
+    private static AcceptedPrebuiltProfileCatalog? Select()
+    {
+        AcceptedPrebuiltProfileCatalog? accepted = AcceptedPrebuiltProfileCatalog.TryAccept(AppContext.BaseDirectory,
+            TrustIndex, out BuiltInProfileAdmissionRejectionReason? reason);
+        BuiltInProfileAdmissionStatus.Instance.Publish(new(accepted is null
+            ? BuiltInProfileAdmissionSource.Json : BuiltInProfileAdmissionSource.Prebuilt, reason));
+        return accepted;
+    }
+
+    private static TrustedProfileBundle LoadSelected(ProfileBundlePackageTrustEntry entry)
+    {
+        AcceptedPrebuiltProfileCatalog? accepted = Selection.Value;
+        return accepted is not null ? ProfileBundleLoader.Load(accepted, entry.BundleDirectory) : ProfileBundleLoader.Load(
+            Path.Combine(AppContext.BaseDirectory, "profiles", "built-in", entry.BundleDirectory), "profile-bundle.json",
+            new(entry.ContentHash, TrustIndex.TrustAnchorBindingId), BuiltInProfileBundleAdmissionSettings.Limits);
+    }
+
+    /// <summary>Evidence from the actual selected lazy, never a second JSON load or projection.</summary>
+    internal static SelectedBuiltInBundleEvidence GetSelectedBundleEvidence(string bundleDirectory)
+    {
+        BuiltInV2Bundle bundle = All[bundleDirectory];
+        (TrustedProfileBundleDocumentProjection projection, TrustedProfileBundleCatalog catalog) = bundle.GetLoadedEvidence();
+        return new(BuiltInProfileAdmissionStatus.Instance.Current!, projection, catalog);
+    }
 }
+
+internal sealed record SelectedBuiltInBundleEvidence(BuiltInProfileAdmission Admission,
+    TrustedProfileBundleDocumentProjection Projection, TrustedProfileBundleCatalog Catalog);
 
 internal sealed class BuiltInV2Bundle
 {
@@ -37,12 +71,15 @@ internal sealed class BuiltInV2Bundle
     private readonly Lazy<TrustedProfileBundleCatalog> _catalog;
     private readonly string _bundleVersion;
     private readonly string _trustAnchorBindingId;
+    private readonly Func<TrustedProfileBundle>? _loadBundle;
+    private TrustedProfileBundleDocumentProjection? _projection;
 
     internal BuiltInV2Bundle(
         string bundleDirectory,
         string bundleVersion,
         string contentHash,
-        string trustAnchorBindingId)
+        string trustAnchorBindingId,
+        Func<TrustedProfileBundle>? loadBundle = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleDirectory);
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleVersion);
@@ -52,6 +89,7 @@ internal sealed class BuiltInV2Bundle
         _bundleVersion = bundleVersion;
         ContentHash = contentHash;
         _trustAnchorBindingId = trustAnchorBindingId;
+        _loadBundle = loadBundle;
         _catalog = new Lazy<TrustedProfileBundleCatalog>(LoadCatalog);
     }
 
@@ -820,19 +858,23 @@ internal sealed class BuiltInV2Bundle
     private TrustedProfileBundleCatalog LoadCatalog()
     {
         string bundleRoot = Path.Combine(AppContext.BaseDirectory, RelativeRoot);
-        TrustedProfileBundle bundle = ProfileBundleLoader.Load(
+        TrustedProfileBundle bundle = _loadBundle is not null ? _loadBundle() : ProfileBundleLoader.Load(
             bundleRoot,
             "profile-bundle.json",
             new ProfileBundleTrustAnchor(ContentHash, _trustAnchorBindingId),
-            new ProfileBundleLoadLimits(
-                maximumManifestBytes: 16384,
-                maximumJsonDepth: 32,
-                new ProfileBundleEntrySnapshotLimits(16, 131072, 262144, 8)));
-        return StringComparer.Ordinal.Equals(bundle.Manifest.BundleVersion, _bundleVersion)
-            ? TrustedProfileBundleCatalogProjection.Create(
-                bundle.CreateDocumentProjection(),
-                BuiltInCanonicalMetadataDefinitionResolver.Instance)
-            : throw new InvalidDataException(
+            BuiltInProfileBundleAdmissionSettings.Limits);
+        if (!StringComparer.Ordinal.Equals(bundle.Manifest.BundleVersion, _bundleVersion))
+        {
+            throw new InvalidDataException(
                 $"Bundle version '{bundle.Manifest.BundleVersion}' does not match the package trust index.");
+        }
+        _projection = bundle.CreateDocumentProjection();
+        return TrustedProfileBundleCatalogProjection.Create(_projection, BuiltInCanonicalMetadataDefinitionResolver.Instance);
+    }
+
+    internal (TrustedProfileBundleDocumentProjection Projection, TrustedProfileBundleCatalog Catalog) GetLoadedEvidence()
+    {
+        TrustedProfileBundleCatalog catalog = _catalog.Value;
+        return (_projection!, catalog);
     }
 }

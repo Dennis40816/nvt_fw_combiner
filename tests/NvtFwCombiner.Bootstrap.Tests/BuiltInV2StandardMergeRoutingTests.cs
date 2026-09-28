@@ -100,14 +100,14 @@ public sealed class BuiltInV2StandardMergeRoutingTests
 
     /// <summary>Verifies every registered IC selects one deployed V2 artifact without legacy fallback.</summary>
     [Theory]
-    [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "985a7d231a5a40f9c0cfe752dd43fea43dcfa05fb48128379fa020cef041fc04", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "803780d0835dab32b68bc92cf7c8e175aa338b6aaf0e0c7caaddd9712de4576f", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "803780d0835dab32b68bc92cf7c8e175aa338b6aaf0e0c7caaddd9712de4576f", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "985a7d231a5a40f9c0cfe752dd43fea43dcfa05fb48128379fa020cef041fc04", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "8145e2e6f9697607fc91748d21f802ef2a8613021899d52a80828325bc50bae5", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "59b51e5357fd7567315c6cc85289e2d5d78783e6ed027c421409c4a7f8cc6584", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "26707141ccf58dc3da87e755f41b9851af44914c6a5b14e1dc81f7cd099dbbcd", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "26707141ccf58dc3da87e755f41b9851af44914c6a5b14e1dc81f7cd099dbbcd", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "59b51e5357fd7567315c6cc85289e2d5d78783e6ed027c421409c4a7f8cc6584", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "0a511dbcfac0cfb6dcfc1a6faf5fe5818b6d0f6b3e267d6531c518c2917e949e", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
         string icId,
         string profileId,
@@ -249,7 +249,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("17b45d347a18078e522b412d7c4c3000f01be4e81e091167cc5c78299988da49", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("ecffb254e15097f64f321e806bd9c6e8eeef478b5ae7f5d9ffd5e1eac8897e1f", details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.V2Details.ProfileId);
         Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
@@ -323,7 +323,9 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             }
         }
 
-        List<string> deployedFiles = ["package-trust-index.json", "ctrlram-postbuild-v2/catalog.json", "ctrlram-postbuild-v2/flash-map.json"];
+        List<string> deployedFiles = ["package-trust-index.json", "prebuilt-profile-catalog.pack", "ctrlram-postbuild-v2/catalog.json", "ctrlram-postbuild-v2/flash-map.json"];
+        Assert.Equal(File.ReadAllBytes(Path.Combine(materializedBuiltInRoot, "prebuilt-profile-catalog.pack")),
+            File.ReadAllBytes(Path.Combine(deployedBuiltInRoot, "prebuilt-profile-catalog.pack")));
         foreach (string bundleDirectory in bundleDirectories)
         {
             string sourceBundleRoot = Path.Combine(builtInRoot, bundleDirectory);

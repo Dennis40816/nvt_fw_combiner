@@ -1,6 +1,6 @@
 # BUG-20260926-nav-focus-looks-selected: the Home focus underline looks like a second selected tab
 
-Status: open
+Status: fixed (merged into `1.1.x` by #461, merge `c524e7d2b`, 2026-09-27)
 Severity: P3
 Found: 2026-09-26, owner, on a headless release screenshot of the NT51950 AB Merge example
 Where: `src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml` (`ToggleButton.nav:focus-visible`);
@@ -15,4 +15,4 @@ Options: focus the selected page's navigation button instead of always Home; and
 indicator as an outline instead of an underline.
 Owner: 1.1.13 (R1 UI), owner decision 32: only the selected tab shows the blue underline; after F08,
 which also changes `MainWindow.axaml.cs`.
-Resolution: not fixed.
+Resolution: only the selected tab shows the underline; the underline and gap pixel regions share one boundary (`ec28cd0ae`), merged by #461.

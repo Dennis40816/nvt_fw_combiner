@@ -1,4 +1,5 @@
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -8,7 +9,8 @@ public sealed partial class MainWindow
 {
     private bool _restartThroughStableLauncher;
     private bool _stableLauncherStarted;
-    private bool _stableLauncherHandoffInProgress;
+    private bool _hasFailedStableLauncherHandoff;
+    private bool _closeAfterFailedHandoff;
 
     private async Task ReportManagedApplicationReadyAsync(CancellationToken cancellationToken)
     {
@@ -17,7 +19,8 @@ public sealed partial class MainWindow
             return;
         }
         ManagedApplicationStartupResult result = await startup.CompleteStartupAsync(cancellationToken);
-        if (DataContext is MainWindowViewModel viewModel)
+        if (!cancellationToken.IsCancellationRequested &&
+            DataContext is MainWindowViewModel viewModel)
         {
             viewModel.Settings.ApplyVersionSnapshot(result.Snapshot);
             viewModel.Settings.SetSourceChecking(result.Snapshot.State?.UpdateSource is not null);
@@ -41,12 +44,14 @@ public sealed partial class MainWindow
             }
             finally
             {
-                if (DataContext is MainWindowViewModel finalViewModel)
+                if (!cancellationToken.IsCancellationRequested &&
+                    DataContext is MainWindowViewModel finalViewModel)
                 {
                     finalViewModel.Settings.SetSourceChecking(false);
                 }
             }
-            if (DataContext is MainWindowViewModel checkedViewModel)
+            if (!cancellationToken.IsCancellationRequested &&
+                DataContext is MainWindowViewModel checkedViewModel)
             {
                 checkedViewModel.Settings.ApplyVersionSnapshot(checkedSnapshot);
                 bool authorityAvailable =
@@ -67,7 +72,14 @@ public sealed partial class MainWindow
 
     private async void Settings_UpdateSourceBrowseRequested(object? sender, EventArgs e)
     {
-        if (sender is not SettingsViewModel settings ||
+        await BrowseUpdateSourceAsync(sender, StorageProvider);
+    }
+
+    internal async Task BrowseUpdateSourceAsync(object? sender, IStorageProvider storageProvider)
+    {
+        CancellationToken sessionToken = _startupLoadCancellation.Token;
+        if (ClosePhase != WindowClosePhase.Open || sessionToken.IsCancellationRequested ||
+            sender is not SettingsViewModel settings ||
             DataContext is not MainWindowViewModel viewModel ||
             !ReferenceEquals(viewModel.Settings, settings) ||
             !viewModel.IsSettingsModalOpen ||
@@ -75,13 +87,14 @@ public sealed partial class MainWindow
         {
             return;
         }
-        IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(
+        IReadOnlyList<IStorageFolder> folders = await storageProvider.OpenFolderPickerAsync(
             new FolderPickerOpenOptions
             {
                 AllowMultiple = false,
                 Title = viewModel.Settings.UpdateSourceHeading,
             });
-        if (ReferenceEquals(DataContext, viewModel) &&
+        if (!sessionToken.IsCancellationRequested && ClosePhase == WindowClosePhase.Open &&
+            ReferenceEquals(DataContext, viewModel) &&
             ReferenceEquals(viewModel.Settings, settings) &&
             viewModel.IsSettingsModalOpen &&
             folders.Count == 1 && folders[0].TryGetLocalPath() is { } path)
@@ -92,18 +105,46 @@ public sealed partial class MainWindow
 
     private void Settings_ActivationRequested(object? sender, EventArgs e)
     {
+        if (ClosePhase is WindowClosePhase.Closing or WindowClosePhase.Closed)
+        {
+            return;
+        }
         RequestStableLauncherRestart();
-        Close();
+        if (ClosePhase is WindowClosePhase.Draining or WindowClosePhase.Sealing)
+        {
+            return;
+        }
+        if (ClosePhase is WindowClosePhase.HandingOff or WindowClosePhase.Recovering)
+        {
+            _deferredActivationRequested = true;
+            return;
+        }
+        if (ClosePhase == WindowClosePhase.Open)
+        {
+            Close();
+        }
     }
 
     internal void RequestStableLauncherRestart()
     {
-        _restartThroughStableLauncher = true;
+        if (!_closeAfterFailedHandoff)
+        {
+            _restartThroughStableLauncher = true;
+        }
     }
 
     internal async Task<bool> TryCompleteStableLauncherHandoffAsync()
     {
-        bool started = await TryStartStableLauncherAsync();
+        bool started;
+        try
+        {
+            started = await TryStartStableLauncherAsync();
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Stable launcher handoff failed: {0}", exception);
+            started = false;
+        }
         if (!started)
         {
             await ReportStableLauncherHandoffFailureAsync();
@@ -111,6 +152,8 @@ public sealed partial class MainWindow
         return started;
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
+        Justification = "The late launcher observer owns cancellation disposal after the start task settles.")]
     private async Task<bool> TryStartStableLauncherAsync()
     {
         if (!_restartThroughStableLauncher ||
@@ -119,20 +162,186 @@ public sealed partial class MainWindow
         {
             return false;
         }
-        bool started = await handoff.TryStartLauncherAsync(CancellationToken.None);
-        _stableLauncherStarted = started;
-        return started;
+        Task deadline = CloseDeadlineFactory(TimeSpan.FromSeconds(5));
+        if (deadline.IsCompleted)
+        {
+            return false;
+        }
+        var cancellation = new CancellationTokenSource();
+        CancellationToken startToken = cancellation.Token;
+        using var stopDeadlineObserver = new CancellationTokenSource();
+        Task deadlineObserver = CancelLauncherAtDeadlineAsync(
+            deadline, cancellation, stopDeadlineObserver.Token);
+        Task<bool>? start = null;
+        try
+        {
+            start = Task.Run(() => handoff.TryStartLauncherAsync(startToken).AsTask(), startToken);
+            if (await Task.WhenAny(start, deadline) != start || deadline.IsCompleted)
+            {
+                cancellation.Cancel();
+                return false;
+            }
+            bool started = await start;
+            _stableLauncherStarted = started;
+            return started;
+        }
+        finally
+        {
+            try
+            {
+                stopDeadlineObserver.Cancel();
+                await deadlineObserver;
+            }
+            finally
+            {
+                if (start is null)
+                {
+                    cancellation.Dispose();
+                }
+                else
+                {
+                    // Late I/O retains its cancellation source until the actual launcher call settles.
+                    _ = ObserveLauncherAndDisposeAsync(start, cancellation);
+                }
+            }
+        }
+    }
+
+    private static async Task ObserveLauncherAndDisposeAsync(Task<bool> start, CancellationTokenSource cancellation)
+    {
+        try
+        {
+            _ = await start.ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Late stable launcher work failed: {0}", exception);
+        }
+        finally
+        {
+            cancellation.Dispose();
+        }
+    }
+
+    private static async Task CancelLauncherAtDeadlineAsync(
+        Task deadline, CancellationTokenSource cancellation, CancellationToken stop)
+    {
+        try
+        {
+            await deadline.WaitAsync(stop).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception)
+        {
+            // A failed host deadline must still revoke launcher admission.
+        }
+        cancellation.Cancel();
     }
 
     private async Task ReportStableLauncherHandoffFailureAsync()
     {
+        _hasFailedStableLauncherHandoff = true;
+        if (ClosePhase == WindowClosePhase.HandingOff)
+        {
+            ClosePhase = WindowClosePhase.Recovering;
+        }
+        if (DataContext is MainWindowViewModel recoveryViewModel)
+        {
+            recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
+            var recoveryCancellation = new CancellationTokenSource();
+            Task<PendingActivationRecoveryStatus> recovery =
+                recoveryViewModel.Settings.HandleLauncherHandoffFailureAsync(recoveryCancellation.Token);
+            try
+            {
+                Task first = await Task.WhenAny(recovery, CloseDeadlineFactory(TimeSpan.FromSeconds(5)));
+                if (first == recovery)
+                {
+                    _ = await recovery;
+                }
+                else
+                {
+                    recoveryCancellation.Cancel();
+                    recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
+                }
+            }
+            catch (Exception exception)
+            {
+                System.Diagnostics.Trace.TraceError("Pending activation recovery failed: {0}", exception);
+                recoveryCancellation.Cancel();
+                recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
+            }
+            _ = ObserveRecoveryAndDisposeAsync(recovery, recoveryCancellation);
+        }
+        CancellationTokenSource previousSession = _startupLoadCancellation;
+        previousSession.Cancel();
+        _preloadSession.StopAcceptingAndRevoke();
+        _startupLoadCancellation = new();
+        RetireSession(previousSession);
+        OptionalPreloadStatusHost.DataContext = null;
+        _reportHistoryPersistence.Reopen();
+        _shellPreferencePersistence.Reopen();
+        _localStateSealed = false;
+        if (DataContext is MainWindowViewModel dirtyViewModel)
+        {
+            if (_preferenceChangedWhileSealed)
+            {
+                _shellPreferencePersistence.Queue(dirtyViewModel.ExportShellPreferences());
+                _preferenceChangedWhileSealed = false;
+            }
+            if (_historyChangedWhileSealed)
+            {
+                _reportHistoryPersistence.Queue(dirtyViewModel.Reports.ExportReportHistory());
+                _historyChangedWhileSealed = false;
+            }
+        }
+        _isReportHistoryPersistenceComplete = false;
+        _isReportHistoryClosePending = false;
         _isExitConfirmed = false;
+        // A later Close is an ordinary exit. Only a new Settings activation or Retry
+        // can request another launcher handoff.
+        _restartThroughStableLauncher = false;
+        _closeAfterFailedHandoff = false;
+        ClosePhase = WindowClosePhase.Open;
+        _finalClosePosted = false;
         IsEnabled = true;
-        bool activationCleared = true;
+        _windowPublication.Resume();
         if (DataContext is MainWindowViewModel viewModel)
         {
-            activationCleared = await viewModel.Settings.HandleLauncherHandoffFailureAsync();
+            viewModel.RunSession.PublishCurrentState();
+            viewModel.Merge.InspectionLifecycles.ForEach(lifecycle => lifecycle.PublishCurrentState());
+            viewModel.Replace.InspectionLifecycles.ForEach(lifecycle => lifecycle.PublishCurrentState());
+            viewModel.Settings.PublishPendingRecoveryStatus();
         }
-        _restartThroughStableLauncher = !activationCleared;
+        if (_deferredActivationRequested)
+        {
+            _deferredActivationRequested = false;
+            if (DataContext is MainWindowViewModel deferredViewModel &&
+                deferredViewModel.Settings.CanRetryPendingActivation)
+            {
+                _restartThroughStableLauncher = true;
+                Dispatcher.UIThread.Post(Close);
+            }
+        }
+    }
+
+    private static async Task ObserveRecoveryAndDisposeAsync(
+        Task<PendingActivationRecoveryStatus> recovery,
+        CancellationTokenSource cancellation)
+    {
+        try
+        {
+            _ = await recovery;
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError("Late pending activation recovery failed: {0}", exception);
+        }
+        finally
+        {
+            cancellation.Dispose();
+        }
     }
 }
