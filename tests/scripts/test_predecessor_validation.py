@@ -1082,6 +1082,27 @@ class V0916ModeValidationTests(unittest.TestCase):
                 expected = "PREDECESSOR_UNAPPROVED_DIFFERENCE" if differs else "PREDECESSOR_REPORT_INVALID"
                 self.assertEqual({expected}, codes(v0916_failures(world)))
 
+    def test_exact_output_missing_side_returns_report_failures(self) -> None:
+        for side in ("baseline", "candidate"):
+            for partial in (False, True):
+                for retain_evidence in (False, True):
+                    with self.subTest(side=side, partial=partial, retain_evidence=retain_evidence):
+                        world = v0916_world()
+                        self.assertEqual([], v0916_failures(world))
+                        route = independent_exact_route(world)
+                        route[side] = {} if partial else None
+                        route.update(result="inconsistent", failureCode="PREDECESSOR_UNAPPROVED_DIFFERENCE")
+                        if not retain_evidence:
+                            world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({})
+                        recount(world)
+
+                        failures = v0916_failures(world)
+                        self.assertEqual({"PREDECESSOR_REPORT_INVALID"}, codes(failures))
+                        self.assertTrue(all(failure.subject == route["planRouteId"] for failure in failures))
+                        if retain_evidence:
+                            self.assertTrue(any("output evidence for a side without that artifact" in failure.detail
+                                                for failure in failures))
+
     def test_transitive_evidence_is_the_primitive_result(self) -> None:
         self.assertEqual(validation.TransitiveEvidence(16, transitive_proof(), None), computed_transitive(16))
         self.assertEqual("PARITY_TAIL_MUTATED", computed_transitive(16, "tail").failure_code)

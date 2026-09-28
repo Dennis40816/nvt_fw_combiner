@@ -435,8 +435,11 @@ def scope_evidence_failures(
     evidence = evidence or {}
     for scope in SCOPES:
         member = "comparison" if scope == "output" else "precursorComparison"
-        left = None if baseline is None else _identity(baseline[scope])
-        right = None if candidate is None else _identity(candidate[scope])
+        for name, side in (("baseline", baseline), ("candidate", candidate)):
+            if side is not None and scope not in side:
+                failures.append(_failure("REPORT_INVALID", subject, f"{name} side is missing {scope}"))
+        left = None if baseline is None else _identity(baseline.get(scope))
+        right = None if candidate is None else _identity(candidate.get(scope))
         comparable = left is not None and right is not None
         if not comparable:
             if scope in evidence:
@@ -1108,13 +1111,17 @@ def _v0916_route_failures(
         )
     )
     output_differs = evidence.scopes.get("output") is not None
+    baseline_output = (route["baseline"] or {}).get("output")
+    candidate_output = (route["candidate"] or {}).get("output")
+    if disposition.proof_kind == "exact-output" and (route["baseline"] is None or route["candidate"] is None):
+        failures.append(_failure("REPORT_INVALID", subject, "an exact-output route is missing a report side"))
     if disposition.proof_kind == "exact-output" and route["result"] == "consistent" and output_differs:
         failures.append(_failure("UNAPPROVED_DIFFERENCE", subject, "a consistent exact-output route with differing bytes"))
     if (
         disposition.proof_kind == "exact-output"
         and not output_differs
-        and route["baseline"]["output"] is not None
-        and _identity(route["baseline"]["output"]) == _identity(route["candidate"]["output"])
+        and baseline_output is not None
+        and _identity(baseline_output) == _identity(candidate_output)
         and route["result"] != "consistent"
     ):
         failures.append(_failure("REPORT_INVALID", subject, "an exact-output route with equal outputs must be consistent"))
