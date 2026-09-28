@@ -100,9 +100,10 @@
 # repository-configuration (R2)
 /CONTRIBUTING.md @Dennis40816
 /SECURITY.md @Dennis40816
-/Directory.* @Dennis40816
+/**/Directory.Build.* @Dennis40816
+/**/Directory.Packages.props @Dennis40816
 /global.json @Dennis40816
-/NuGet.config @Dennis40816
+/**/NuGet.config @Dennis40816
 /*.slnx @Dennis40816
 /**/.gitattributes @Dennis40816
 /**/.gitignore @Dennis40816

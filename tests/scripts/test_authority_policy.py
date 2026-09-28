@@ -229,6 +229,26 @@ class AuthorityPolicyTests(unittest.TestCase):
         ):
             self.assertGreaterEqual(check.RISKS.index(POLICY.classify(path).floor), 2)
 
+    def test_nested_msbuild_configuration_is_owned_and_classified(self) -> None:
+        for path in (
+            "Directory.Build.props",
+            "src/Directory.Build.props",
+            "tests/Directory.Build.targets",
+            "src/Directory.Packages.props",
+            "src/NuGet.config",
+        ):
+            with self.subTest(path=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertGreaterEqual(check.RISKS.index(result.floor), 2)
+                self.assertFalse(result.unclassified)
+                self.assertTrue(
+                    any(
+                        entry.floor in {"R2", "R3"}
+                        and entry.matches(path, case_sensitive=True)
+                        for entry in POLICY.entries
+                    )
+                )
+
     def test_codeowners_mismatch_with_policy_fails(self) -> None:
         content = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")
         policy_bytes = (ROOT / check.POLICY_PATH).read_bytes()

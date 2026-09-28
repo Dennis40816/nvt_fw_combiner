@@ -252,10 +252,14 @@ class Entry:
     default: bool
     excludes: tuple[re.Pattern[str], ...]
 
-    def matches(self, path: str) -> bool:
-        if not any(pattern.fullmatch(path) for pattern in self.patterns):
+    def matches(self, path: str, *, case_sensitive: bool = False) -> bool:
+        def matches_pattern(pattern: re.Pattern[str]) -> bool:
+            match = re.fullmatch(pattern.pattern, path) if case_sensitive else pattern.fullmatch(path)
+            return match is not None
+
+        if not any(matches_pattern(pattern) for pattern in self.patterns):
             return False
-        return not (self.default and any(pattern.fullmatch(path) for pattern in self.excludes))
+        return not (self.default and any(matches_pattern(pattern) for pattern in self.excludes))
 
 
 @dataclass(frozen=True)
@@ -271,8 +275,10 @@ class Policy:
     principals: Mapping[str, frozenset[tuple[int, str]]]
     reviewers: frozenset[tuple[int, str]]
 
-    def classify(self, path: str) -> Classification:
-        matched = [entry for entry in self.entries if entry.matches(path)]
+    def classify(self, path: str, *, case_sensitive: bool = False) -> Classification:
+        matched = [
+            entry for entry in self.entries if entry.matches(path, case_sensitive=case_sensitive)
+        ]
         if not matched:
             return Classification(UNCLASSIFIED_FLOOR, frozenset({UNCLASSIFIED_ROLE}), True)
         floor = max((entry.floor for entry in matched), key=_risk_index)
@@ -390,7 +396,9 @@ def parse_authority_block(description: str) -> AuthorityBlock:
     _require(block["risk"] in RISKS, f"the authority block risk must be one of {RISKS}")
     roles = _role_list(block["roles"], "the authority block roles")
     _require(
-        _text(block["implementationOwner"]), "the authority block needs an implementationOwner"
+        isinstance(block["implementationOwner"], str)
+        and RUNTIME_MODEL.fullmatch(block["implementationOwner"]) is not None,
+        "implementationOwner must be a runtime/model identifier",
     )
     owned = block["ownedPaths"]
     _require(
@@ -422,6 +430,7 @@ class Review:
 class ReviewRecord:
     head: str
     reviewer: str
+    mode: str
     verdict: str
     open_p0_p1: int
     state: str
@@ -460,7 +469,13 @@ def parse_review_record(body: str) -> ReviewRecord:
     )
     roles = _role_list(record["addedRoles"], "the review record addedRoles")
     return ReviewRecord(
-        record["head"], record["reviewer"], record["verdict"], count, record["state"], roles
+        record["head"],
+        record["reviewer"],
+        record["mode"],
+        record["verdict"],
+        count,
+        record["state"],
+        roles,
     )
 
 
@@ -625,13 +640,13 @@ def evaluate(inputs: CheckInputs) -> Verdict:
                 added_roles |= record.added_roles
         latest = max(reviews, key=lambda review: (review.submitted_at, review.id))
         record, problem = _record_problem(latest, inputs.head_sha)
-        if (
-            problem is None
-            and record is not None
-            and block is not None
-            and record.reviewer.casefold() == block.implementation_owner.casefold()
-        ):
-            problem = "record reviewer is the implementation author"
+        if problem is None and record is not None and block is not None:
+            author_runtime = block.implementation_owner.split("/", 1)[0].casefold()
+            reviewer_runtime = record.reviewer.split("/", 1)[0].casefold()
+            if reviewer_runtime == author_runtime and record.mode != "same-runtime-fresh-session":
+                problem = "same runtime requires same-runtime-fresh-session review mode"
+            elif reviewer_runtime != author_runtime and record.mode != "other-runtime":
+                problem = "different runtime requires other-runtime review mode"
         if problem is None and record is not None:
             valid.append(f"{latest.login} review {latest.id} ({record.reviewer}, {record.verdict})")
         else:
@@ -669,11 +684,32 @@ def evaluate(inputs: CheckInputs) -> Verdict:
             )
             verdict.errors.append(f"required roles are not declared: {missing}{detail}")
         verdict.errors.extend(_evidence_errors(block, verdict.unclassified))
+        github_paths = {
+            path
+            for change in inputs.changes
+            for path in (change.paths[-1:] if change.status == "C" else change.paths)
+        }
+        for path in sorted(github_paths):
+            insensitive_owned = any(
+                entry.floor in {"R2", "R3"} and entry.matches(path)
+                for policy in policies
+                for entry in policy.entries
+            )
+            sensitive_owned = any(
+                entry.floor in {"R2", "R3"} and entry.matches(path, case_sensitive=True)
+                for policy in policies
+                for entry in policy.entries
+            )
+            if insensitive_owned and not sensitive_owned:
+                verdict.errors.append(
+                    f"path {path} matches an R2/R3 policy pattern only without case sensitivity; "
+                    "case-sensitive CODEOWNERS cannot request owner review"
+                )
         if _risk_index(block.risk) >= 2 and not any(
-            _risk_index(classification.floor) >= 2 and not classification.unclassified
-            for path, _ in rows
+            entry.floor in {"R2", "R3"} and entry.matches(path, case_sensitive=True)
+            for path in github_paths
             for policy in policies
-            for classification in (policy.classify(path),)
+            for entry in policy.entries
         ):
             verdict.errors.append(
                 "declared R2/R3 risk has no code-owned path; update the policy "

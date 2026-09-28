@@ -49,7 +49,7 @@ def description(**fields: Any) -> str:
     value = {
         "risk": "R1",
         "roles": roles,
-        "implementationOwner": "claude-code",
+        "implementationOwner": "claude-code/sonnet",
         "ownedPaths": ["src/NvtFwCombiner.Cli/"],
         "evidence": {role: EVIDENCE[role] for role in roles},
     }
@@ -186,7 +186,29 @@ class EvaluationTests(unittest.TestCase):
             "owner approval on the exact head",
         )
 
-    def test_review_by_implementation_author_does_not_count(self) -> None:
+    def test_case_only_matches_of_owned_paths_fail_closed(self) -> None:
+        for path in (
+            "Profiles/evil.json",
+            "src/NvtFwCombiner.domain/Evil.cs",
+            "src/Foo/Agents.md",
+        ):
+            with self.subTest(path=path):
+                text = description(risk="R3", roles=["governance-owner", "firmware-owner"])
+                verdict = check.evaluate(inputs([change("A", path)], text, (review(),)))
+                self.assert_fails(verdict, "case-sensitive CODEOWNERS")
+
+    def test_unchanged_copy_source_does_not_make_r1_destination_code_owned(self) -> None:
+        copied = change("C", "profiles/built-in/p.json", "docs/x.json")
+        text = description(risk="R3", roles=["firmware-owner"])
+        verdict = check.evaluate(inputs([copied], text, (review(),)))
+        self.assert_fails(verdict, "no code-owned path")
+
+    def test_case_exact_owned_destination_remains_code_owned(self) -> None:
+        copied = change("C", "docs/README.md", "profiles/p.json")
+        text = description(risk="R3", roles=["firmware-owner"])
+        self.assert_passes(check.evaluate(inputs([copied], text, (review(),))))
+
+    def test_same_runtime_without_fresh_session_mode_does_not_count(self) -> None:
         self.assert_fails(
             check.evaluate(
                 inputs(
@@ -195,8 +217,36 @@ class EvaluationTests(unittest.TestCase):
                     (review(BOT),),
                 )
             ),
-            "record reviewer is the implementation author",
+            "same runtime requires same-runtime-fresh-session",
         )
+
+    def test_same_runtime_fresh_session_can_review_same_model(self) -> None:
+        text = description(implementationOwner="codex/gpt-6-astra")
+        fresh = review(body=record_body(mode="same-runtime-fresh-session"))
+        self.assert_passes(check.evaluate(inputs([CODE], text, (fresh,))))
+
+    def test_same_runtime_different_model_requires_fresh_session_mode(self) -> None:
+        text = description(implementationOwner="codex/gpt-6-sol")
+        verdict = check.evaluate(inputs([CODE], text, (review(),)))
+        self.assert_fails(verdict, "same runtime requires same-runtime-fresh-session")
+
+    def test_other_runtime_mode_rejects_same_model(self) -> None:
+        text = description(implementationOwner="codex/gpt-6-astra")
+        verdict = check.evaluate(inputs([CODE], text, (review(),)))
+        self.assert_fails(verdict, "same runtime requires same-runtime-fresh-session")
+
+    def test_fresh_session_mode_rejects_different_runtime(self) -> None:
+        fresh = review(body=record_body(mode="same-runtime-fresh-session"))
+        verdict = check.evaluate(inputs([CODE], description(), (fresh,)))
+        self.assert_fails(verdict, "different runtime requires other-runtime")
+
+    def test_implementation_owner_needs_runtime_model(self) -> None:
+        for owner in ("claude-code", "<agent runtime or person>", ""):
+            with self.subTest(owner=owner):
+                verdict = check.evaluate(
+                    inputs([CODE], description(implementationOwner=owner), (review(),))
+                )
+                self.assert_fails(verdict, "implementationOwner must be a runtime/model identifier")
 
     def test_shared_app_principal_can_carry_independent_agent_review(self) -> None:
         self.assert_passes(check.evaluate(inputs([CODE], description(), (review(BOT),))))
