@@ -37,7 +37,8 @@ public sealed class OutputConfirmationWarningTests
             return CanonicalGoldenTestData.ArtifactPath(Assert.Single(artifacts,
                 artifact => artifact.GetProperty("artifactId").GetString() == id));
         }
-        using TempWorkspace workspace = TempWorkspace.Create("confirmation-osd-dp");
+        // The canonical source name is long; keep the destination short enough for the Windows bundle path limit.
+        using TempWorkspace workspace = TempWorkspace.CreateShort();
         CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
@@ -85,7 +86,7 @@ public sealed class OutputConfirmationWarningTests
             Assert.Equal(vm.InputRows[0].Warning, warning.Detail);
             Assert.Contains("1,048,576 bytes", warning.Detail, StringComparison.Ordinal);
             Assert.Contains("524,288 bytes", warning.Detail, StringComparison.Ordinal);
-            Assert.True(vm.CanConfirm);
+            Assert.True(vm.CanConfirm, vm.ValidationMessage);
             Border panel = modal.FindControl<Border>("BuildWarningsPanel")!;
             _ = Assert.Single(modal.GetVisualDescendants().OfType<TextBlock>(), block =>
                 block.IsEffectivelyVisible && block.Text == warning.Detail);
