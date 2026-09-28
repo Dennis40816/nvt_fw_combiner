@@ -355,6 +355,21 @@ FULL_ACTION_PIN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$")
 SEMVER = re.compile(
     r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
 )
+USER_PROFILE_PATH = re.compile(
+    r"(?i)(?<![A-Za-z0-9])[A-Za-z]:[\\/]+Users[\\/]+(?P<account>[^\\/\s\"'<>:]+)"
+)
+USER_PROFILE_PLACEHOLDERS = {"owner", "operator", "user", "username", "example", "public", "default"}
+HISTORICAL_PRIVATE_PATH_EVIDENCE = {
+    "docs/governance/change-records/DOC-HYGIENE-1113-PRIVATE-PATHS-01.json",
+    "docs/governance/change-records/LAUNCHER-106-UI-01.json",
+    "docs/governance/change-records/UI-114-MEMORY-CARDS-31.json",
+    "docs/governance/waivers/REL-110-FULL-VERIFY-OWNER-WAIVER-01.md",
+}
+PRIVATE_PATH_TEXT_SUFFIXES = {
+    ".axaml", ".bat", ".cmd", ".cs", ".csproj", ".ini", ".json",
+    ".md", ".props", ".ps1", ".py", ".sh", ".slnx", ".targets",
+    ".txt", ".toml", ".xml", ".yaml", ".yml",
+}
 
 
 def _git_tracked_paths() -> list[Path] | None:
@@ -434,6 +449,25 @@ def validate_forbidden_tracked_content(
             errors.append(
                 f"forbidden payload/generated/secret-like file is tracked: {relative}"
             )
+
+
+def validate_private_user_profile_paths(
+    files: Iterable[Path], errors: list[str], *, root: Path = ROOT
+) -> None:
+    """Reject new private account paths while preserving named historical evidence."""
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        if (relative in HISTORICAL_PRIVATE_PATH_EVIDENCE or
+                path.suffix.lower() not in PRIVATE_PATH_TEXT_SUFFIXES):
+            continue
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for line_number, line in enumerate(lines, 1):
+            if any(match.group("account").casefold() not in USER_PROFILE_PLACEHOLDERS
+                   for match in USER_PROFILE_PATH.finditer(line)):
+                errors.append(f"private user-profile path in {relative}:{line_number}")
 
 
 def is_allowed_binary_payload(relative: Path) -> bool:
@@ -1779,6 +1813,7 @@ def validate() -> list[str]:
     validate_claude_projections(tracked if tracked is not None else files, errors)
     validate_required_files(errors)
     validate_forbidden_tracked_content(files, errors)
+    validate_private_user_profile_paths(files, errors)
     validate_coverage_exclusion_policy(ROOT, files, errors)
     validate_structured_files(files, errors)
     validate_canonical_capability_policy_contract(errors)
