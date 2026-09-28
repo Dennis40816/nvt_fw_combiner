@@ -51,13 +51,14 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
 
     public IReadOnlyList<OutputConfirmationCheck> ExpectedInputChecks => Confirmation?.Inputs
         .Where(input => input.ExpectedLengths.Count > 0)
-        .Select(input => new OutputConfirmationCheck(Text.FormatExpectedInputSizeLabel(input.BindingId),
+        .Select(input => new OutputConfirmationCheck(ShellTextResources.GetOutputInputLabel(input.BindingId),
+            Text.FormatExpectedInputSizeLabel(input.BindingId) + ": " +
             string.Join(" / ", input.ExpectedLengths.Select(FormatInputBytes)))).ToArray() ?? [];
 
     public IReadOnlyList<OutputConfirmationCheck> EventBufferChecks => Confirmation?.Inputs
         .Where(input => input.EventBufferFormat is not null)
         .Select(input => new OutputConfirmationCheck(ShellTextResources.GetOutputInputLabel(input.BindingId),
-            $"0x{input.EventBufferFormat!.RawByte:X2} - {input.EventBufferFormat.DetectedDisplayName ?? input.EventBufferFormat.DisplayName}")).ToArray() ?? [];
+            $"{Text.OutputConfirmationEventLabel}: 0x{input.EventBufferFormat!.RawByte:X2} - {input.EventBufferFormat.DetectedDisplayName ?? input.EventBufferFormat.DisplayName}")).ToArray() ?? [];
 
     public bool HasEventBufferChecks => EventBufferChecks.Count > 0;
     public bool HasSourceChecks => ExpectedInputChecks.Count > 0 || HasEventBufferChecks;
