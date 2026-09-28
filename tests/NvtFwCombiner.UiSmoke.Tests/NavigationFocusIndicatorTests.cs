@@ -200,6 +200,7 @@ public sealed class NavigationFocusIndicatorTests
             Assert.True(expected.Focus(NavigationMethod.Tab));
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
             Assert.True(expected.IsFocused);
             Assert.Contains(":focus-visible", expected.Classes);
             Assert.All(others, other => Assert.False(other.IsFocused));
