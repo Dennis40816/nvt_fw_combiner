@@ -146,6 +146,10 @@
   <Style Selector="Path.firmwareSlotFactNoteIcon.noteWarning, Path.firmwareSlotFactNoteWarningIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcWarningTextBrush}" />
   </Style>
+  <Style Selector="TextBlock.firmwareSlotFactNoteWarningText, TextBlock.firmwareSlotFactNoteLabel, TextBlock.firmwareSlotFactNoteText">
+    <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+  </Style>
   <!-- Decision 94: the warning line carries the hexadecimal value (0x03); the UI font's contextual alternates
        would draw its x between digits as a multiplication sign, so they and ligatures stay off for this text. -->
   <Style Selector="TextBlock.firmwareSlotFactNoteWarningText">
@@ -157,6 +161,7 @@
   </Style>
   <Style Selector="Grid.firmwareSlotFactNoteValueRow">
     <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="ColumnSpacing" Value="{DynamicResource NfcSpace8}" />
   </Style>
   <Style Selector="TextBlock.slotStateDetail">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />

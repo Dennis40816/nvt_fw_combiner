@@ -200,6 +200,15 @@ uses a pack-selection byte fixture to reject missing, damaged, oversized,
 stale, and extra files without building or creating a release ZIP; it does
 not claim catalog admission.
 
+For 1.1.14, packaging rejects any file path relative to the package root longer
+than 216 UTF-16 code units before ZIP creation. The current longest selected
+path is 207 (a canonical NT51951 initial-code reference), leaving nine units
+of growth. An absolute package root of at most 42 units guarantees file paths
+of at most 259 including the separator, below legacy Windows MAX_PATH (260
+including NUL). The ZIP's top-level `NvtFwCombiner-v<version>-win-x64` directory
+counts toward that root budget. Existing reference names therefore limit
+extraction depth; this guard does not promise arbitrary deep extraction.
+
 Release smoke independently checks pack ranges and hashes against the packaged
 trust index, manifests, and document bytes. After the closed hash inventories
 pass, it runs the shipped `NvtFwCombiner.exe --profile-catalog-probe-v1` even

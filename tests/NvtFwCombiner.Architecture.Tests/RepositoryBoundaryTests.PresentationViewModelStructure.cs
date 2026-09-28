@@ -183,11 +183,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(1, CountOccurrences(mergeState, "WorkflowInspectionSet InspectionLifecycles"));
         Assert.Equal(1, CountOccurrences(replaceState, "WorkflowInspectionSet InspectionLifecycles"));
         Assert.Contains(
-            "InspectionLifecycles = new(NotifyCommandStateChanged, AbCodeMergeMode, GeneralMergeMode)",
+            "InspectionLifecycles = new(NotifyCommandStateChanged, NormalMergeMode, AbCodeMergeMode, GeneralMergeMode)",
             mergeOwner,
             StringComparison.Ordinal);
         Assert.Contains(
-            "InspectionLifecycles = new(NotifyCommandStateChanged, CtrlRamReplaceMode, GeneralReplaceMode)",
+            "InspectionLifecycles = new(NotifyCommandStateChanged, string.Empty, CtrlRamReplaceMode, GeneralReplaceMode)",
             replaceOwner,
             StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(inspectionLifecycle, "WorkflowInspectionLifecycle[] _lifecycles"));

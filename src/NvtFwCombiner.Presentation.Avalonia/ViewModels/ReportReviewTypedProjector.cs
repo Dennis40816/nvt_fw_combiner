@@ -38,7 +38,8 @@ internal static class ReportReviewTypedProjector
             report.Issues,
             language,
             cancellationToken,
-            report.InputDiagnostics);
+            report.InputDiagnostics,
+            report.SourceEnvelope);
         string compositionKind = report.CompositionKind.ToString();
         string startedAt = report.StartedAtUtc.ToString(
             "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz",

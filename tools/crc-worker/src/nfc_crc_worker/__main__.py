@@ -39,7 +39,7 @@ def main() -> int:
             )
         try:
             document = json.loads(raw_request.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        except ValueError as exc:
             raise WorkerError(
                 "CRC_PROTOCOL_INVALID_JSON",
                 "stdin is not one valid UTF-8 JSON document",

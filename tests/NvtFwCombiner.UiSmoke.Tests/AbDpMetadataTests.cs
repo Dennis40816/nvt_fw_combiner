@@ -52,22 +52,22 @@ public sealed class AbDpMetadataTests
         });
     }
 
-    /// <summary>Absent or zero Jira never creates a placeholder or displaces bank order.</summary>
+    /// <summary>Known DP banks retain their Jira row when the decoded tracker is zero.</summary>
     [Theory]
     [InlineData(null, null)]
     [InlineData(0, 0)]
     [InlineData(null, 607)]
     [InlineData(4095, 0)]
-    public void MissingTrackersAreOmitted(int? first, int? second)
+    public void ZeroTrackersRemainVisibleInBankOrder(int? first, int? second)
     {
         FirmwareSlotViewModel slot = CreateSlot(ShellLanguage.English,
             new(CompiledInputVersionKind.DpA, 6, 0, (ushort?)first),
             new(CompiledInputVersionKind.DpB, 9, 1, (ushort?)second));
 
-        string[] labels = ["DP1 Version", .. first > 0 ? new[] { "DP1 Jira Index" } : [],
-            "DP2 Version", .. second > 0 ? new[] { "DP2 Jira Index" } : []];
+        string[] labels = ["DP1 Version", "DP1 Jira Index", "DP2 Version", "DP2 Jira Index"];
         Assert.Equal(labels, slot.FirmwareFacts.Select(static fact => fact.Label));
-        Assert.DoesNotContain(slot.FirmwareFacts, static fact => fact.Value == "AUTO_PRJ-0");
+        Assert.Equal(first > 0 ? $"AUTO_PRJ-{first}" : "Invalid (AUTO_PRJ-0)", slot.FirmwareFacts[1].Value);
+        Assert.Equal(second > 0 ? $"AUTO_PRJ-{second}" : "Invalid (AUTO_PRJ-0)", slot.FirmwareFacts[3].Value);
     }
 
     /// <summary>Unreadable banks retain localized help and do not invent Jira values.</summary>

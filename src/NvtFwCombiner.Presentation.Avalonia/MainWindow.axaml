@@ -36,7 +36,11 @@
   </Window.Styles>
 
   <Grid>
-    <Grid x:Name="ShellInteractionHost" RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <Grid x:Name="ShellInteractionHost"
+          RowDefinitions="Auto,Auto,Auto,*,Auto"
+          Focusable="True"
+          KeyboardNavigation.IsTabStop="False"
+          AutomationProperties.Name="{Binding Text.ProductTitle}">
       <Grid.KeyBindings>
         <KeyBinding Gesture="Ctrl+H" Command="{Binding Reports.ShowReportHistoryCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding Reports.ClearReportHistoryCommand}" />
@@ -522,7 +526,7 @@
             FontSize="{DynamicResource NfcFontSize13}"
             Foreground="{DynamicResource NfcWarningTextMutedBrush}"
             Text="{ReflectionBinding Detail}"
-            TextTrimming="CharacterEllipsis"
+            TextWrapping="Wrap"
             ToolTip.Tip="{ReflectionBinding DetailToolTip}" />
         <Button
             x:Name="LocalStateSaveRetryButton"
@@ -534,6 +538,7 @@
             Classes="semanticAction secondary iconButton"
             AutomationProperties.Name="{ReflectionBinding RetryLabel}"
             Command="{ReflectionBinding RetryCommand}"
+            IsVisible="{ReflectionBinding IsRetryAvailable}"
             ToolTip.HorizontalOffset="-8"
             ToolTip.Placement="Left"
             ToolTip.Tip="{ReflectionBinding RetryLabel}"

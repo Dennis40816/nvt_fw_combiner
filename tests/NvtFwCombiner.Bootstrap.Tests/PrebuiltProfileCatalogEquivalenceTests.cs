@@ -137,7 +137,7 @@ public sealed class PrebuiltProfileCatalogEquivalenceTests
     public async Task AcceptedCatalogNormalizationFailureStaysPrebuiltAndMatchesJsonFailure()
     {
         // Keep the copied SDK graph below Windows MSBuild's legacy content-copy path bound.
-        using var fixture = TempWorkspace.Create("cn");
+        using var fixture = TempWorkspace.CreateShort();
         string output = await CatalogProbeCopy.BuildNormalizationFailureHostAsync(fixture.Root);
         using var prebuilt = new CatalogProbeCopy(output);
         using var json = new CatalogProbeCopy(output);

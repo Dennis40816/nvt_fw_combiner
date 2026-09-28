@@ -69,6 +69,12 @@ internal sealed partial class ShellTextResources
 
     public string LocalStateSaveUnexpectedReason { get; private init; } = string.Empty;
 
+    public string LocalStateSaveRedirectedReason { get; private init; } = string.Empty;
+
+    public string LocalStateSaveDiagnosticFormat { get; private init; } = string.Empty;
+
+    public string LocalStateSaveRetryUnavailableReason { get; private init; } = string.Empty;
+
     public string LocalStateReportHistoryLabel { get; private init; } = string.Empty;
 
     public string LocalStatePreferencesLabel { get; private init; } = string.Empty;

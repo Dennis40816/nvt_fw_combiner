@@ -38,6 +38,41 @@ import validate_repository as REPOSITORY_VALIDATOR  # noqa: E402
 
 
 class VerifyOrchestrationTests(unittest.TestCase):
+    def test_structure_preflight_reports_missing_pyyaml_before_lane(self) -> None:
+        output = io.StringIO()
+        with (
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+            patch.object(MODULE.importlib.util, "find_spec", return_value=None),
+            patch.object(MODULE, "run_selected_lanes") as run_selected,
+            contextlib.redirect_stderr(output),
+        ):
+            result = MODULE.execute_verification(MODULE.parse_args(["--structure-only"]))
+
+        self.assertEqual(1, result)
+        self.assertIn("missing Python verification modules: yaml", output.getvalue())
+        self.assertIn(
+            f"{sys.executable} -m pip install --disable-pip-version-check "
+            "--only-binary=:all: PyYAML==6.0.3",
+            output.getvalue(),
+        )
+        run_selected.assert_not_called()
+
+    def test_skip_structure_preflights_pyyaml_for_repository_script_lane(self) -> None:
+        output = io.StringIO()
+        with (
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+            patch.object(MODULE.importlib.util, "find_spec", return_value=None),
+            patch.object(MODULE, "run_selected_lanes") as run_selected,
+            contextlib.redirect_stderr(output),
+        ):
+            result = MODULE.execute_verification(
+                MODULE.parse_args(["--skip-structure", "--skip-dotnet"])
+            )
+
+        self.assertEqual(1, result)
+        self.assertIn("missing Python verification modules: yaml", output.getvalue())
+        run_selected.assert_not_called()
+
     def test_all_help_describes_complete_local_suite_without_completion_claim(self) -> None:
         output = io.StringIO()
         with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as raised:
@@ -6193,7 +6228,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     verify_coverage.assert_not_called()
                     self.assertFalse(work.exists())
         self.assertEqual(
-            {"NFC_VISUAL_OUTPUT_DIR", "NFC_UI_REFERENCE_CAPTURE_DIR", "NFC_REPORT_VISUAL_INPUT"},
+            {"NFC_VISUAL_OUTPUT_DIR", "NFC_VISUAL_STAGE", "NFC_UI_REFERENCE_CAPTURE_DIR", "NFC_REPORT_VISUAL_INPUT"},
             set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES),
         )
         # A subset such as release Golden is never partitioned, so it keeps the overrides.

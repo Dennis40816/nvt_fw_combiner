@@ -54,7 +54,7 @@ remove items; the board decisions stay the authority for scope.
 | 31 | WS-GOV governance reset (ADR 0080): G1-A (decision 145) and G1-B cutover (decision 146) | #463, #469 (`8f5223860`) |
 | 62 | Trust probe catches the typed process start failure | #470 (`93da007af`) |
 | 63 | Win32 start-failure handoff test reaches the start | #470 (`93da007af`) |
-| 64 | Launcher cleanup lock-thread flake | #470 (`93da007af`) |
+| 64 | Launcher cleanup lock-thread flake | #470 (`93da007af`); reopened 2026-09-28 under heavy load, follow-up in 1.1.14 |
 | 65 | Archived handoff history uses test-area-relative evidence paths | #470 (`93da007af`) |
 | 69 | Replace selection renders its rows on first entry | #470 (`93da007af`) |
 | 33 | F20/F21 residuals (stale picker and I/O results) | #475 (`4689ddf22`) |
@@ -76,22 +76,22 @@ remove items; the board decisions stay the authority for scope.
 | 35 | Release workflow cleanup R-2 | reviewed; in the 18:00 integration pull request (integration branch B) |
 | 41 | ADR 0077 B2a (R2) | reviewed; in the 18:00 integration pull request (integration branch B) |
 | 42 | ADR 0077 B2b trust policy (R3) | reviewed; in the 18:00 integration pull request (integration branch B) |
-| 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | draft ready; finalized at the release pull request |
+| 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | in the release pull request; owner semantic review of the frozen notes |
 | 43 | First window within the EXE size ceiling | reviewed; in the 18:00 integration pull request (integration branch B) |
 
-## Waiting or open (4)
+## Waiting or open (3)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
 | 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
 | 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | release workflow cleanup R-1/R-2 |
-| 71 | ADR 0078 predecessor comparison against v1.1.12 and the v0.9.16 1.x mode | the release candidate |
 | 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
 
-## Moved out (7)
+## Moved out (8)
 
 | # | Item | Now in |
 | --- | --- | --- |
+| 71 | ADR 0078 predecessor comparison against v1.1.12 and the v0.9.16 1.x mode | 1.1.14, with the comparator (decision 162 waives it for 1.1.13) |
 | 32 | Header backup CRC (R3), with the stale B-normalization Header CRC bug | 1.2.x decision; root cause recorded (decision 161) |
 | 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | 1.2.x (decision 154) |
 | 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | 1.1.14 (decision 154) |

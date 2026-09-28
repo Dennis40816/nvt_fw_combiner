@@ -11,7 +11,7 @@ internal enum FirmwareSlotFactNoteKind
 }
 
 /// <summary>One "Label value" tooltip line of a value note; the label carries its own punctuation.</summary>
-internal sealed record FirmwareSlotFactNoteRow(string Label, string Value, bool IsTechnicalValue = false);
+internal sealed record FirmwareSlotFactNoteRow(string Label, string Value);
 
 /// <summary>One warning tooltip line drawn with the shared warning triangle in the warning text colour.</summary>
 internal sealed record FirmwareSlotFactNoteWarning(string Text)

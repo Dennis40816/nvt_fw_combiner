@@ -20,7 +20,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 public sealed partial class XamlControlStyleContractTests
 {
     /// <summary>
-    /// Decision 40: the TP SVN icon is a 12 px outline icon about 4 px after the value, vertically centred,
+    /// The TP SVN icon is a 12 px outline icon one NfcSpace8 after the value, vertically centred,
     /// with a keyboard-reachable standard tooltip below and right of it; the existing warning fact keeps its
     /// stretched row and right-aligned state icon.
     /// </summary>
@@ -43,7 +43,7 @@ public sealed partial class XamlControlStyleContractTests
             new("TP SVN", "C3 80 13 30")
             {
                 Note = new FirmwareSlotFactNote(
-                    [new("Flags:", "LOCAL_BUILD, DIFF_EXIST"), new("Revision:", "801330", IsTechnicalValue: true)],
+                    [new("Flags:", "LOCAL_BUILD, DIFF_EXIST"), new("Revision:", "801330")],
                     [new("Undefined flag bits 0x03. InsertPID.py may be faulty.")]),
             },
         ]);
@@ -81,7 +81,22 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Equal(12, note.Bounds.Height, 1);
             Point valueOrigin = value.TranslatePoint(default, svnCell)!.Value;
             Point noteOrigin = note.TranslatePoint(default, svnCell)!.Value;
-            Assert.InRange(noteOrigin.X - (valueOrigin.X + value.Bounds.Width), 3, 5);
+            string? captureDir = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            string? captureStage = Environment.GetEnvironmentVariable("NFC_VISUAL_STAGE");
+            if (!string.IsNullOrWhiteSpace(captureDir) && !string.IsNullOrWhiteSpace(captureStage))
+            {
+                Assert.True(note.Focus(NavigationMethod.Tab));
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                _ = Directory.CreateDirectory(captureDir);
+                using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.Combine(captureDir, $"tpsvn-{captureStage}-{width}.png"));
+            }
+            Grid valueRow = Assert.IsType<Grid>(value.Parent);
+            double noteSpacing = Assert.IsType<double>(host.FindResource("NfcSpace8"));
+            Assert.Equal(noteSpacing, valueRow.ColumnSpacing);
+            Assert.InRange(noteOrigin.X - (valueOrigin.X + value.Bounds.Width), noteSpacing - 1, noteSpacing + 1);
             Assert.InRange(
                 noteOrigin.Y + (note.Bounds.Height / 2) - (valueOrigin.Y + (value.Bounds.Height / 2)), -1, 1);
             Assert.True(FocusToolTipBehavior.GetIsEnabled(note));
@@ -91,11 +106,25 @@ public sealed partial class XamlControlStyleContractTests
             Assert.True(note.Focus(NavigationMethod.Tab));
             Dispatcher.UIThread.RunJobs();
             Assert.True(ToolTip.GetIsOpen(note));
+            ToolTip tip = Assert.IsType<ToolTip>(ToolTip.GetTip(note));
+            TextBlock[] tipText = [.. tip.GetVisualDescendants().OfType<TextBlock>()
+                .Where(static block => block.IsEffectivelyVisible)];
+            Assert.Equal(5, tipText.Length);
+            FontFamily uiFont = Assert.IsType<FontFamily>(host.FindResource("NfcUiFontFamily"));
+            double fontSize = Assert.IsType<double>(host.FindResource("NfcFontSize12"));
+            Assert.All(tipText, block =>
+            {
+                Assert.Equal(uiFont, block.FontFamily);
+                Assert.Equal(fontSize, block.FontSize);
+            });
 
             ShapePath versionIcon = Assert.Single(versionCell.GetVisualDescendants().OfType<ShapePath>(),
                 static path => path.IsEffectivelyVisible);
             Assert.Contains("firmwareSlotFactStateIcon", versionIcon.Classes);
             Assert.DoesNotContain("firmwareSlotFactNoteIcon", versionIcon.Classes);
+            Grid versionRow = Assert.IsType<Grid>(versionIcon.Parent);
+            Assert.Equal(Assert.IsType<double>(host.FindResource("NfcSpace4")), versionRow.ColumnSpacing);
+            Assert.DoesNotContain("firmwareSlotFactNoteValueRow", versionRow.Classes);
             Point versionIconOrigin = versionIcon.TranslatePoint(default, versionCell)!.Value;
             Assert.InRange(versionCell.Bounds.Width - 16 - (versionIconOrigin.X + versionIcon.Bounds.Width), -1, 1);
         }
@@ -124,7 +153,7 @@ public sealed partial class XamlControlStyleContractTests
             new("TP SVN", "C3 80 13 30")
             {
                 Note = new FirmwareSlotFactNote(
-                    [new("Flags:", "LOCAL_BUILD, DIFF_EXIST"), new("Revision:", "801330", IsTechnicalValue: true)],
+                    [new("Flags:", "LOCAL_BUILD, DIFF_EXIST"), new("Revision:", "801330")],
                     [new("Undefined flag bits 0x03. InsertPID.py may be faulty.")]),
             },
         ]);
@@ -199,12 +228,14 @@ public sealed partial class XamlControlStyleContractTests
     public void TpSvnValueNoteTooltipLeadsWithTheWarningLine()
     {
         var host = new Window();
+        host.Styles.Add(new StyleInclude(ProductionVisualStylesUri) { Source = ProductionVisualStylesUri });
+        host.Styles.Add(new StyleInclude(ProductionFirmwareSlotStylesUri) { Source = ProductionFirmwareSlotStylesUri });
         host.Resources.MergedDictionaries.Add(new ResourceInclude(ProductionSharedTemplatesUri)
         {
             Source = ProductionSharedTemplatesUri,
         });
         var note = new FirmwareSlotFactNote(
-            [new("Flags:", "none"), new("Revision:", "000000", IsTechnicalValue: true)],
+            [new("Flags:", "none"), new("Revision:", "000000")],
             [new("No SVN stamp. InsertPID.py may not have run.")]);
         var content = new ContentControl
         {
@@ -212,6 +243,8 @@ public sealed partial class XamlControlStyleContractTests
             ContentTemplate = (IDataTemplate)host.FindResource("FirmwareSlotFactNoteTooltipTemplate")!,
         };
         host.Content = content;
+        host.Width = 360;
+        host.Height = 150;
 
         try
         {
@@ -226,6 +259,16 @@ public sealed partial class XamlControlStyleContractTests
             ShapePath triangle = Assert.Single(content.GetVisualDescendants().OfType<ShapePath>());
             Assert.Contains("firmwareSlotFactNoteWarningIcon", triangle.Classes);
             Assert.Equal(FirmwareSlotFactViewModel.WarningIconPathData, note.Warnings[0].IconPathData);
+            string? captureDir = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            string? captureStage = Environment.GetEnvironmentVariable("NFC_VISUAL_STAGE");
+            if (!string.IsNullOrWhiteSpace(captureDir) && !string.IsNullOrWhiteSpace(captureStage))
+            {
+                _ = Directory.CreateDirectory(captureDir);
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.Combine(captureDir, $"tpsvn-{captureStage}-tooltip.png"));
+            }
         }
         finally
         {

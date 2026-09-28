@@ -293,9 +293,12 @@ public sealed class OutputConfirmationTests
         {
             string expectedA = rawA == 0xA3 ? "0xA3 - Auto STLA v1" : rawA == 0xF1 ? "0xF1 - My_vendor" : "0x97 - Auto Desay";
             string expectedB = rawB == 0xA4 ? "0xA4 - Auto INX v7" : rawB == 0xF2 ? "0xF2 - My_vendor" : "0xA6 - Auto Desay Palminfo";
-            Assert.Equal([new OutputConfirmationCheck("TP A", expectedA), new OutputConfirmationCheck("TP B", expectedB)], vm.EventBufferChecks);
-            Assert.Equal(countA == 1 ? "524,288 bytes" : "1,048,576 bytes", Assert.Single(vm.ExpectedInputChecks).Value);
-            Assert.Equal(chineseDark ? "預期 DP 大小" : "Expected DP size", Assert.Single(vm.ExpectedInputChecks).Label);
+            string eventLabel = chineseDark ? "Event Buffer 格式" : "Event Buffer Format";
+            Assert.Equal([new OutputConfirmationCheck("TP A", $"{eventLabel}: {expectedA}"),
+                new OutputConfirmationCheck("TP B", $"{eventLabel}: {expectedB}")], vm.EventBufferChecks);
+            Assert.Equal((chineseDark ? "預期 DP 大小" : "Expected DP size") + ": " +
+                (countA == 1 ? "524,288 bytes" : "1,048,576 bytes"), Assert.Single(vm.ExpectedInputChecks).Value);
+            Assert.Equal("DP AB Code", Assert.Single(vm.ExpectedInputChecks).Label);
             Assert.Equal(["DP AB Code", "TP A", "TP B"], vm.InputRows.Select(row => row.Role));
         }
 
@@ -349,11 +352,10 @@ public sealed class OutputConfirmationTests
                 Control files = Assert.IsType<ItemsControl>(modal.FindControl<ItemsControl>("SourceFilesList"));
                 Control checks = Assert.IsType<Border>(modal.FindControl<Border>("SourceChecksPanel"));
                 Assert.True(checks.IsVisible);
-                TextBlock eventLabel = Assert.IsType<TextBlock>(modal.FindControl<TextBlock>("OutputEventBufferFormatLabel"));
-                Assert.Equal(chineseDark ? "Event Buffer 格式" : "Event Buffer Format", eventLabel.Text);
                 ItemsControl eventRows = Assert.IsType<ItemsControl>(modal.FindControl<ItemsControl>("OutputEventBufferFormatChecks"));
+                string eventLabel = chineseDark ? "Event Buffer 格式" : "Event Buffer Format";
                 TextBlock[] eventValues = [.. Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(eventRows).OfType<TextBlock>()
-                    .Where(block => block.Text?.StartsWith("0x", StringComparison.Ordinal) == true)];
+                    .Where(block => block.Text?.StartsWith(eventLabel, StringComparison.Ordinal) == true)];
                 Assert.Equal(2, eventValues.Length);
                 Assert.Equal(vm.EventBufferChecks.Select(check => check.Value), eventValues.Select(block => block.Text));
                 Point first = eventValues[0].TranslatePoint(default, modal)!.Value;

@@ -184,6 +184,18 @@ function Get-TreeDigest {
     return [Convert]::ToHexString($Digest).ToLowerInvariant()
 }
 
+function Assert-PackageRelativePathLength {
+    param([Parameter(Mandatory = $true)][string[]]$RelativePaths)
+
+    # Current inventory: 207 UTF-16 code units; allow nine for future growth.
+    # 42 (absolute package root) + 1 separator + 216 = 259, below MAX_PATH.
+    foreach ($RelativePath in $RelativePaths) {
+        if ($RelativePath.Length -gt 216) {
+            throw "Release package path exceeds 216 UTF-16 code units: $RelativePath"
+        }
+    }
+}
+
 function Write-PackageHashList {
     param(
         [Parameter(Mandatory = $true)][string]$PackageRoot,
@@ -1133,6 +1145,11 @@ function Invoke-ExternalToolPolicyDryRun {
             throw 'Unicode release hash-list path did not round-trip through UTF-8.'
         }
 
+        Assert-PackageRelativePathLength -RelativePaths @(
+            Get-ChildItem -LiteralPath $DryRunPackageRoot -File -Recurse |
+                ForEach-Object { [IO.Path]::GetRelativePath($DryRunPackageRoot, $_.FullName) }
+        )
+        Write-Host 'Package relative-path budget passed: at most 216 UTF-16 code units.'
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected.'
         Write-Host 'Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected.'
@@ -1773,6 +1790,8 @@ if (Compare-Object -ReferenceObject $Expected -DifferenceObject $Actual) {
     throw "Release package contents differ from the closed allowlist: $($Actual -join ', ')"
 }
 Assert-CanonicalJsonSchema -JsonPath $ManifestPath -SchemaPath $ReleaseManifestSchemaPath
+
+Assert-PackageRelativePathLength -RelativePaths $Actual
 
 $ZipPath = Join-Path $ReleaseRoot "$PackageName.zip"
 Compress-Archive -LiteralPath $PackageRoot -DestinationPath $ZipPath -CompressionLevel Optimal
