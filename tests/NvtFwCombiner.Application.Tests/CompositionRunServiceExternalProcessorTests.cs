@@ -70,7 +70,6 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(
             ["CRC_Enable", "C:\\staging\\run-external.run-crc\\output\\firmware.bin"],
             executedCommand.Arguments);
-        Assert.NotNull(result.PreviewToken);
     }
 
     /// <summary>Verifies Build rechecks the new image and cannot publish when postbuild output drifts after preview.</summary>
@@ -111,11 +110,10 @@ public sealed partial class CompositionRunServiceTests
 
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
         CompositionRunResult build = await service.BuildAsync(
-            request.WithApprovedPreviewToken(preview.PreviewToken!),
+            request,
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
-        Assert.NotNull(preview.PreviewToken);
         Assert.Equal(CompositionExecutionStatus.Failed, build.Status);
         Assert.Empty(build.OutputBytes.ToArray());
         Assert.Null(build.CommittedOutputId);
@@ -368,9 +366,9 @@ public sealed partial class CompositionRunServiceTests
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
     }
 
-    /// <summary>Verifies preview approval includes staged source-to-firmware mapping details.</summary>
+    /// <summary>Verifies compilation identity includes staged source-to-firmware mapping details.</summary>
     [Fact]
-    public async Task PreviewTokenChangesWhenStagedSourceBindingChanges()
+    public async Task CompilationFingerprintChangesWhenStagedSourceBindingChanges()
     {
         var processor = new FakeExternalProcessor(request =>
             ExternalProcessorResult.Success(request.InputBytes, [], []));
@@ -392,12 +390,12 @@ public sealed partial class CompositionRunServiceTests
             CancellationToken.None);
 
         Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
-        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+        Assert.NotEqual(first.Report.CompilationFingerprint, second.Report.CompilationFingerprint);
     }
 
-    /// <summary>Verifies preview approval binds the semantic sections used to explain postbuild writes.</summary>
+    /// <summary>Verifies compilation identity binds semantic sections used to explain postbuild writes.</summary>
     [Fact]
-    public async Task PreviewTokenChangesWhenWriteSectionProvenanceChanges()
+    public async Task CompilationFingerprintChangesWhenWriteSectionProvenanceChanges()
     {
         var processor = new FakeExternalProcessor(request =>
             ExternalProcessorResult.Success(request.InputBytes, [], []));
@@ -423,7 +421,7 @@ public sealed partial class CompositionRunServiceTests
             CancellationToken.None);
 
         Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
-        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
+        Assert.NotEqual(first.Report.CompilationFingerprint, second.Report.CompilationFingerprint);
     }
 
     /// <summary>Verifies external processor failures are returned as structured run issues.</summary>

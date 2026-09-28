@@ -992,7 +992,11 @@ T4b activation.
    then concerns the CI producers only; they still run each project
    unfiltered. Release-Golden subsets and the CI shard, finalizer and
    required-check paths are unchanged, as are the coverage policy and the
-   Infrastructure settings and exclusivity.
+   Infrastructure settings. On 2026-09-28, L3 removed project-level
+   exclusivity for Infrastructure.Tests because the 1.1.10 IdentityConflict
+   cause was never reproduced. Infrastructure.Tests now shares the .NET lane
+   project pool; xUnit collection serialization and per-test TempWorkspace
+   remain. UiSmoke stays exclusive.
 2. **Declaration, identity and filter.** `scripts/verify.py` declares the
    partition (`DOTNET_TEST_PARTITIONS`): explicit type lists for parts 1 and 2;
    part 3 is every discovered type not listed, so new types land there. A

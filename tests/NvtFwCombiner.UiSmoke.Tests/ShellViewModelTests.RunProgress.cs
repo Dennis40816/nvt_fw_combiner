@@ -697,7 +697,6 @@ public sealed partial class RunAndHexEditorTests
             outputBytes,
             report,
             committedOutputPath,
-            previewToken: null,
             inspectionOutputSpaceId: null,
             inspectionReferenceSpaceId: null,
             inspectionReferenceBytes: null,

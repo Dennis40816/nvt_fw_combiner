@@ -242,7 +242,6 @@ Run request and derived execution data:
 compiledComposition
 immutableInputBindings[]
 outputOptions
-previewToken?
 resolvedArtifacts
 versionTokens
 occupancySegments

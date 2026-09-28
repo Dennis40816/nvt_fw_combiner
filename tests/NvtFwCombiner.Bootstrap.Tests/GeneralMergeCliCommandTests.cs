@@ -105,9 +105,6 @@ public sealed partial class GeneralMergeCliCommandTests
 
         Assert.True(zero.Succeeded);
         Assert.True(ff.Succeeded);
-        Assert.NotNull(zero.PreviewToken);
-        Assert.NotNull(ff.PreviewToken);
-        Assert.NotEqual(zero.PreviewToken, ff.PreviewToken);
         using var zeroReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(zero));
         using var ffReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(ff));
         Assert.NotEqual(

@@ -77,9 +77,9 @@ host-created staging copies.
   overwrite their selected source firmware.
 - AB naming uses the same output identity/report path as all other workflows;
   it does not create an AB-only publisher.
-- Preview binds the effective output identity and compilation/input snapshots.
-  A changed override, selected input, compiled plan, or UTC date requires a
-  new Preview before Build.
+- Under the 2026-09-25 WS-FLOW F5 owner decision, each Build revalidates its
+  effective output identity, compilation, and accepted input snapshots. A
+  changed override or UTC date is reflected in that Build's report.
 - Profiles still declare their automatic template and whether an override is
   allowed; this ADR does not infer ranges, banks, topology, or processor
   authority.
@@ -91,5 +91,5 @@ host-created staging copies.
   target aliases any DP/TP/reference/replacement input path.
 - Test that report and CLI primary output fields always use the effective name.
 - Test AB token source independence from UI text, filenames, Jira, and ignored
-  TP tail bytes; test UTC date and Preview-to-Build identity.
+  TP tail bytes; test UTC date and each run's effective output identity.
 - Test atomic failure leaves an existing unrelated target unchanged.

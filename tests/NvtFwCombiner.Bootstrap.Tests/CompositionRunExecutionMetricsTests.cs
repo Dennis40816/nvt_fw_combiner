@@ -192,16 +192,8 @@ public sealed class CompositionRunExecutionMetricsTests
     {
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
-        string previewToken = Assert.IsType<string>(preview.PreviewToken);
-        CompositionRunRequest buildRequest = request.OutputNamingAdmission is { } namingAdmission
-            ? request.WithApprovedPreviewToken(
-                previewToken,
-                OutputNamingAdmissionIdentity.Capture(
-                    Assert.IsType<ResolvedCapability>(request.ResolvedCapability),
-                    namingAdmission.AuthoringRevision))
-            : request.WithApprovedPreviewToken(previewToken);
         return await service.BuildAsync(
-            buildRequest,
+            request,
             CancellationToken.None);
     }
 

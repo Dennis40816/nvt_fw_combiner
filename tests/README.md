@@ -53,7 +53,10 @@ runs the .NET coverage lane (submitted first, 1,200 s unless
 `--lane-timeout-seconds` is given, which then binds every lane), the structure
 postchecks, each script module under its shard's shared deadline, and the CRC
 worker. `--skip-structure` skips the sync and the structure postchecks.
-UiSmoke parts and Infrastructure stay exclusive inside the .NET lane.
+UiSmoke parts stay exclusive inside the .NET lane. Since the 2026-09-28 L3
+change, Infrastructure.Tests shares its project pool: project-level exclusivity
+was removed because the 1.1.10 IdentityConflict cause was never reproduced.
+xUnit collection serialization and per-test TempWorkspace remain.
 `--jobs=1` runs the same lanes serially in that order and keeps the UiSmoke
 partition. Results, the report and the failure list keep declaration order.
 A coverage child launch failure closes the pool's admission latch: no later

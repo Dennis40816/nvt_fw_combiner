@@ -355,6 +355,25 @@ FULL_ACTION_PIN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$")
 SEMVER = re.compile(
     r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){2}(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
 )
+USER_PROFILE_PATH = re.compile(
+    r"(?i)(?<![A-Za-z0-9])[A-Za-z]:[\\/]+Users[\\/]+(?P<account>[^\\/\s\"'<>:]+)"
+)
+USER_PROFILE_PLACEHOLDERS = {"owner", "operator", "user", "username", "example", "public", "default"}
+HISTORICAL_PRIVATE_PATH_EVIDENCE = {
+    # SHA-256 of each existing source line, with its allowed private-path occurrence count.
+    "docs/governance/change-records/DOC-HYGIENE-1113-PRIVATE-PATHS-01.json": {},
+    "docs/governance/change-records/LAUNCHER-106-UI-01.json": {
+        "9517b8a37942ff2a900a872a3ea2bc69bc0a3204e1ca5ecbf1c31b7f622c3e30": 1,
+    },
+    "docs/governance/change-records/UI-114-MEMORY-CARDS-31.json": {
+        "e31d9bc74001f29d6788d642642ecd427ed5b89629b586df6d59722119d2a32f": 1,
+    },
+    "docs/governance/waivers/REL-110-FULL-VERIFY-OWNER-WAIVER-01.md": {
+        "cb5fe6493ce33d4a19a050e3e2c5b7cfea8be44b62ce1f09dc4dc0989ce73f99": 2,
+        "6480bfbb05c9afd98d5e60d5dbd21011376cd8632799545d446b7a655d126c8d": 1,
+        "a330944505b62d34ca060af58ddc5c79dc8bcae72bf280923138ad9bdbb83e5c": 2,
+    },
+}
 
 
 def _git_tracked_paths() -> list[Path] | None:
@@ -434,6 +453,35 @@ def validate_forbidden_tracked_content(
             errors.append(
                 f"forbidden payload/generated/secret-like file is tracked: {relative}"
             )
+
+
+def validate_private_user_profile_paths(
+    files: Iterable[Path], errors: list[str], *, root: Path = ROOT
+) -> None:
+    """Reject new private account paths while preserving exact historical occurrences."""
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        remaining_evidence = HISTORICAL_PRIVATE_PATH_EVIDENCE.get(relative, {}).copy()
+        try:
+            content = path.read_bytes()
+            if b"\0" in content:
+                continue
+            lines = content.decode("utf-8").splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for line_number, line in enumerate(lines, 1):
+            private_count = sum(
+                match.group("account").casefold() not in USER_PROFILE_PLACEHOLDERS
+                for match in USER_PROFILE_PATH.finditer(line)
+            )
+            if private_count == 0:
+                continue
+            line_hash = hashlib.sha256(line.encode("utf-8")).hexdigest()
+            allowed_count = remaining_evidence.get(line_hash, 0)
+            if private_count > allowed_count:
+                errors.append(f"private user-profile path in {relative}:{line_number}")
+            else:
+                remaining_evidence[line_hash] = allowed_count - private_count
 
 
 def is_allowed_binary_payload(relative: Path) -> bool:
@@ -1779,6 +1827,7 @@ def validate() -> list[str]:
     validate_claude_projections(tracked if tracked is not None else files, errors)
     validate_required_files(errors)
     validate_forbidden_tracked_content(files, errors)
+    validate_private_user_profile_paths(files, errors)
     validate_coverage_exclusion_policy(ROOT, files, errors)
     validate_structured_files(files, errors)
     validate_canonical_capability_policy_contract(errors)

@@ -17,7 +17,6 @@ public sealed class CompositionRunRequest
         CompiledComposition compiledComposition,
         IEnumerable<InputArtifactBinding> artifactBindings,
         string outputFileName,
-        string? approvedPreviewToken = null,
         IcNumberSelection? icNumberSelection = null,
         bool outputFileNameIsOverride = false,
         TopologySelection? abMergeTopologySelection = null,
@@ -55,7 +54,6 @@ public sealed class CompositionRunRequest
         ArtifactBindings = new ReadOnlyDictionary<string, InputArtifactBinding>(copiedBindings);
         OutputFileName = outputFileName;
         IsOutputFileNameOverride = effectiveOutputFileNameIsOverride;
-        ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
         IcNumberSelection = icNumberSelection;
         AbMergeTopologySelection = abMergeTopologySelection;
         AdvisoryIssues = CopyAdvisoryIssues(advisoryIssues);
@@ -79,9 +77,6 @@ public sealed class CompositionRunRequest
 
     /// <summary>Whether the caller supplied an explicit UI/CLI filename override.</summary>
     public bool IsOutputFileNameOverride { get; }
-
-    /// <summary>Preview token that authorizes a matching build request.</summary>
-    public string? ApprovedPreviewToken { get; }
 
     /// <summary>IC number selected for Replace profile binding.</summary>
     public IcNumberSelection? IcNumberSelection { get; }
@@ -117,60 +112,6 @@ public sealed class CompositionRunRequest
 
     /// <summary>Execution-admitted format capture; absent for routes without format policy.</summary>
     internal AbMergeFormatRunSummary? AbMergeFormat { get; init; }
-
-    /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
-    public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
-        return OutputNamingAdmission is not null
-            ? throw new InvalidOperationException(
-                "Normal output naming requires a freshly captured build admission.")
-            : new CompositionRunRequest(
-                RunId,
-                CompiledComposition,
-                ArtifactBindings.Values,
-                OutputFileName,
-                previewToken,
-                IcNumberSelection,
-                IsOutputFileNameOverride,
-                AbMergeTopologySelection,
-                AdvisoryIssues,
-                GeneralAdmission,
-                OutputNamingInspection,
-                resolvedCapability: ResolvedCapability)
-            {
-                AbMergeFormat = AbMergeFormat,
-            };
-    }
-
-    /// <summary>
-    /// Returns a build request only when the freshly captured admission still
-    /// matches the accepted inspection used by the preview.
-    /// </summary>
-    public CompositionRunRequest WithApprovedPreviewToken(
-        string previewToken,
-        OutputNamingAdmissionIdentity currentAdmission)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
-        ArgumentNullException.ThrowIfNull(currentAdmission);
-        return new CompositionRunRequest(
-            RunId,
-            CompiledComposition,
-            ArtifactBindings.Values,
-            OutputFileName,
-            previewToken,
-            IcNumberSelection,
-            IsOutputFileNameOverride,
-            AbMergeTopologySelection,
-            AdvisoryIssues,
-            GeneralAdmission,
-            OutputNamingInspection,
-            currentAdmission,
-            ResolvedCapability)
-        {
-            AbMergeFormat = AbMergeFormat,
-        };
-    }
 
     private static void ValidateResolvedCapability(
         CompiledComposition compiledComposition,
