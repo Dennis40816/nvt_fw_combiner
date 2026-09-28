@@ -1110,6 +1110,14 @@ def _v0916_route_failures(
     output_differs = evidence.scopes.get("output") is not None
     if disposition.proof_kind == "exact-output" and route["result"] == "consistent" and output_differs:
         failures.append(_failure("UNAPPROVED_DIFFERENCE", subject, "a consistent exact-output route with differing bytes"))
+    if (
+        disposition.proof_kind == "exact-output"
+        and not output_differs
+        and route["baseline"]["output"] is not None
+        and _identity(route["baseline"]["output"]) == _identity(route["candidate"]["output"])
+        and route["result"] != "consistent"
+    ):
+        failures.append(_failure("REPORT_INVALID", subject, "an exact-output route with equal outputs must be consistent"))
     if disposition.proof_kind == "exact-output-with-approved-semantic-correction" and route["result"] == "consistent":
         row = disposition.row or {}
         observed = {

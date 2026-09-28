@@ -872,6 +872,14 @@ def route_of(world: dict[str, Any], proof_kind: str, source: str | None = None, 
     return matching[index]
 
 
+def independent_exact_route(world: dict[str, Any]) -> dict[str, Any]:
+    full_ids = {(route["transitive"] or {}).get("fullRouteId") for route in world["report"]["routes"]}
+    return next(
+        route for route in world["report"]["routes"]
+        if route["proofKind"] == "exact-output" and route["planRouteId"] not in full_ids
+    )
+
+
 class V0916ModeValidationTests(unittest.TestCase):
     """The v0.9.16 1.x mode on a fresh valid report: each change fails its own rule."""
 
@@ -933,6 +941,10 @@ class V0916ModeValidationTests(unittest.TestCase):
             route["candidate"]["output"]["sha256"] = "e" * 64
             world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({"output": spans(1, 0)})
             route["comparison"] = validation.range_projection(spans(1, 0))
+
+        def exact_inconsistent_without_bytes(world):
+            independent_exact_route(world).update(result="inconsistent", failureCode="PREDECESSOR_UNAPPROVED_DIFFERENCE")
+            recount(world)
 
         def transitive_full_route(world):
             route_of(world, "tp-prefix-transitive")["transitive"]["fullRouteId"] = SUCCESSOR_ROUTE
@@ -1013,6 +1025,7 @@ class V0916ModeValidationTests(unittest.TestCase):
         cases = {
             "exact-output-hash-without-evidence": (exact_hash_without_evidence, "PREDECESSOR_REPORT_INVALID", "identities and computed ranges disagree"),
             "exact-output-consistent-with-bytes": (exact_consistent_with_bytes, "PREDECESSOR_UNAPPROVED_DIFFERENCE", "exact-output route with differing bytes"),
+            "exact-output-inconsistent-without-bytes": (exact_inconsistent_without_bytes, "PREDECESSOR_REPORT_INVALID", "exact-output route with equal outputs must be consistent"),
             "transitive-full-route": (transitive_full_route, "PREDECESSOR_REPORT_INVALID", "another full route or TP length"),
             "transitive-tp-length": (transitive_tp_length, "PREDECESSOR_REPORT_INVALID", "another full route or TP length"),
             "transitive-reported-true-computed-false": (transitive_reported_true_computed_false, "PREDECESSOR_REPORT_INVALID", "differ from the computed proof"),
@@ -1043,6 +1056,31 @@ class V0916ModeValidationTests(unittest.TestCase):
                     any(failure.code == code and fragment in failure.detail for failure in failures),
                     f"{label}: expected {code} '{fragment}', got {failures}",
                 )
+
+    def test_exact_output_result_follows_evidence_in_both_directions(self) -> None:
+        for differs in (False, True):
+            with self.subTest(differs=differs):
+                world = v0916_world()
+                route = independent_exact_route(world)
+                if differs:
+                    route["candidate"]["output"]["sha256"] = "e" * 64
+                    ranges = spans(1, 0)
+                    world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({"output": ranges})
+                    route.update(
+                        comparison=validation.range_projection(ranges),
+                        result="inconsistent",
+                        failureCode="PREDECESSOR_UNAPPROVED_DIFFERENCE",
+                    )
+                recount(world)
+                self.assertEqual([], v0916_failures(world))
+
+                route.update(
+                    result="consistent" if differs else "inconsistent",
+                    failureCode=None if differs else "PREDECESSOR_UNAPPROVED_DIFFERENCE",
+                )
+                recount(world)
+                expected = "PREDECESSOR_UNAPPROVED_DIFFERENCE" if differs else "PREDECESSOR_REPORT_INVALID"
+                self.assertEqual({expected}, codes(v0916_failures(world)))
 
     def test_transitive_evidence_is_the_primitive_result(self) -> None:
         self.assertEqual(validation.TransitiveEvidence(16, transitive_proof(), None), computed_transitive(16))
