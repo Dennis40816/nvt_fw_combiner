@@ -21,6 +21,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.EndsWith("ProfileBundleLoader.cs", Assert.Single(constructors), StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(loader, "new TrustedProfileBundle("));
         AssertDoesNotContainAny(loader, "skipValidation", "skipSchema", "bool prebuilt");
+        string registry = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs");
+        AssertContainsAll(registry, "Lazy<AcceptedPrebuiltProfileCatalog?>", "LazyThreadSafetyMode.ExecutionAndPublication",
+            "BuiltInProfileAdmissionStatus.Instance.Publish", "GetSelectedBundleEvidence", "bundle.GetLoadedEvidence()");
+        Assert.Equal(1, CountOccurrences(registry, "AcceptedPrebuiltProfileCatalog.TryAccept("));
+        AssertDoesNotContainAny(registry, "Task.Run", "GetCustomAttributes", "AssemblyMetadataAttribute", "error.Message.Contains");
     }
 
     /// <summary>The observation adapter is passive and the shipped protocol precedes ordinary host startup.</summary>

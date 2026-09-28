@@ -36,10 +36,12 @@ public sealed class PrebuiltProfileCatalogProbeTests
             }, localFiles: files, toolchainConfiguration: toolchain);
         using var output = new StringWriter();
         Assert.True(CompositionHostServices.TryHandleProfileCatalogProbe(["--profile-catalog-probe-v1"], output,
-            () => (host.CanonicalCatalogLoader, host.CanonicalSupportMatrixQuery), new Status(null), out int exit));
-        Assert.Equal(1, exit);
+            () => (host.CanonicalCatalogLoader, host.CanonicalSupportMatrixQuery), BuiltInProfileAdmissionStatus.Instance, out int exit));
+        Assert.Equal(0, exit);
         using JsonDocument json = JsonDocument.Parse(output.ToString());
         Assert.True(json.RootElement.GetProperty("catalogLoaded").GetBoolean());
+        Assert.Equal("prebuilt", json.RootElement.GetProperty("admissionSource").GetString());
+        Assert.Null(json.RootElement.GetProperty("rejectionCode").GetString());
         Assert.Equal(0, externalLoads);
         Assert.Equal(0, configurationLoads);
         Assert.Equal(0, files.Calls);

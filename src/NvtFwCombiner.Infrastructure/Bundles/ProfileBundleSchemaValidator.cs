@@ -15,6 +15,11 @@ internal static class ProfileBundleSchemaValidator
     // so only schemas that passed every check are reused. Failures are never cached.
     private static readonly ConcurrentDictionary<EntrySchemaKey, JsonSchema> ValidatedEntrySchemas = new();
     private static readonly Lock SchemaBuildLock = new();
+    private static long _entryValidationCalls;
+    private static long _entryEvaluations;
+
+    internal static long EntryValidationCalls => Interlocked.Read(ref _entryValidationCalls);
+    internal static long EntryEvaluations => Interlocked.Read(ref _entryEvaluations);
 
     internal static void ValidateManifest(
         ProfileBundleFileSnapshot manifestSnapshot,
@@ -35,6 +40,7 @@ internal static class ProfileBundleSchemaValidator
         ProfileBundleEntrySnapshotCollection collection,
         int maximumJsonDepth)
     {
+        _ = Interlocked.Increment(ref _entryValidationCalls);
         ArgumentNullException.ThrowIfNull(collection);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumJsonDepth);
 
@@ -63,6 +69,7 @@ internal static class ProfileBundleSchemaValidator
 
             // The snapshot keeps this one strict parse for the document projection of the same load.
             JsonElement document = entry.FileSnapshot.GetStrictJsonRoot(maximumJsonDepth);
+            _ = Interlocked.Increment(ref _entryEvaluations);
             ValidateInstance(schema, document, entry.Entry.Path, entry.Entry.SchemaId);
         }
     }
