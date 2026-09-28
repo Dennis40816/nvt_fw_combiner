@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51929-nt51932",
-  "familyVersion": "1.1.0",
+  "familyVersion": "1.1.1",
   "members": [
     {
       "memberId": "NT51919",
@@ -91,8 +91,8 @@
           },
           "definitionReference": {
             "familyId": "nt51929-nt51932",
-            "familyVersion": "1.2.1",
-            "familyContentHash": "d6517342dae5e1e6eab6cd591aa71eebae061076a571e678f05f98830fb03181",
+            "familyVersion": "1.2.2",
+            "familyContentHash": "19fca2abf928a5d2ab576cc699ca5a186ba68c8a358cfc2d61c584091c2a2e0c",
             "structureId": "type-ab-tp-flash-header"
           }
         }

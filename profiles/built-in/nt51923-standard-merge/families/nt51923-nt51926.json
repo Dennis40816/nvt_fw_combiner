@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51923-nt51926",
-  "familyVersion": "1.2.0",
+  "familyVersion": "1.2.1",
   "members": [
     {
       "memberId": "NT51923",
@@ -97,7 +97,6 @@
             { "fieldId": "dlm-crc-0", "offset": 28, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "same-code", "offset": 32, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "spi-option", "offset": 33, "widthBytes": 3, "encoding": "unsigned-integer", "byteOrder": "little" },
-            { "fieldId": "svn-auto-build-version", "offset": 36, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "ov-info", "offset": 40, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "fw-config-destination-address-in-sram", "offset": 48, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "fw-config-start-address-in-bin", "offset": 56, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
@@ -131,7 +130,6 @@
               { "fieldId": "dlm-crc-0", "spanId": "complete-header", "subject": "dlm", "role": "integrity-value" },
               { "fieldId": "same-code", "spanId": "complete-header", "subject": "header", "role": "option" },
               { "fieldId": "spi-option", "spanId": "complete-header", "subject": "header", "role": "option" },
-              { "fieldId": "svn-auto-build-version", "spanId": "complete-header", "subject": "header", "role": "option" },
               { "fieldId": "ov-info", "spanId": "complete-header", "subject": "header", "role": "option" },
               { "fieldId": "fw-config-destination-address-in-sram", "spanId": "complete-header", "subject": "firmware-config", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
               { "fieldId": "fw-config-start-address-in-bin", "spanId": "complete-header", "subject": "firmware-config", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
@@ -193,7 +191,6 @@
             { "fieldId": "cascade-info", "offset": 32, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "spi-option", "offset": 33, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "t6-t4", "offset": 34, "widthBytes": 2, "encoding": "unsigned-integer", "byteOrder": "little" },
-            { "fieldId": "svn-auto-build-version", "offset": 36, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "ov-info", "offset": 40, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "fw-config-destination-address-in-sram", "offset": 48, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
             { "fieldId": "fw-config-start-address-in-bin", "offset": 56, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
@@ -228,7 +225,6 @@
               { "fieldId": "cascade-info", "spanId": "complete-header", "subject": "header", "role": "option" },
               { "fieldId": "spi-option", "spanId": "complete-header", "subject": "header", "role": "option" },
               { "fieldId": "t6-t4", "spanId": "complete-header", "subject": "header", "role": "option" },
-              { "fieldId": "svn-auto-build-version", "spanId": "complete-header", "subject": "header", "role": "option" },
               { "fieldId": "ov-info", "spanId": "complete-header", "subject": "header", "role": "option" },
               { "fieldId": "fw-config-destination-address-in-sram", "spanId": "complete-header", "subject": "firmware-config", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
               { "fieldId": "fw-config-start-address-in-bin", "spanId": "complete-header", "subject": "firmware-config", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
@@ -273,8 +269,8 @@
           "artifactBindingId": "tp-input",
           "definitionReference": {
             "familyId": "nt51917-nt51927-nt51928-canonical-container",
-            "familyVersion": "1.4.0",
-            "familyContentHash": "e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af",
+            "familyVersion": "1.4.1",
+            "familyContentHash": "cb54fb90a1bf846cf737f5cd02de31c203540567dc66c209cad8a8e3ef0bbfb2",
             "structureId": "firmware-config-general-parameters"
           },
           "locator": {
@@ -301,8 +297,8 @@
           "artifactBindingId": "dp-input",
           "definitionReference": {
             "familyId": "nt51929-nt51932",
-            "familyVersion": "1.3.1",
-            "familyContentHash": "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
             "structureId": "dpcmi"
           },
           "locator": {
@@ -314,6 +310,28 @@
         }
       ],
       "evidenceRefs": ["gen-flash-bin-v2-51923-golden", "gen-flash-bin-v2-51926-golden"]
+    },
+    {
+      "metadataSetId": "tp-svn-metadata",
+      "structures": [
+        {
+          "structureId": "tp-svn",
+          "artifactBindingId": "tp-input",
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
+            "structureId": "tp-svn"
+          },
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "tp-code",
+            "offset": 36,
+            "allowedResultRegionId": "tp-code"
+          }
+        }
+      ],
+      "evidenceRefs": ["owner-decision-2026-09-25-tp-svn-location-encoding", "ic-flashmap-mmap-autobuild-svn"]
     }
   ],
   "imageMaps": [
@@ -339,7 +357,8 @@
       "metadataSetIds": [
         "nt51923-normal-tp-flash-header-metadata",
         "firmware-config-general-parameters-metadata",
-        "dpcmi-metadata"
+        "dpcmi-metadata",
+        "tp-svn-metadata"
       ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51923-golden"
@@ -367,7 +386,8 @@
       "metadataSetIds": [
         "nt51926-normal-tp-flash-header-metadata",
         "firmware-config-general-parameters-metadata",
-        "dpcmi-metadata"
+        "dpcmi-metadata",
+        "tp-svn-metadata"
       ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51926-golden"
@@ -379,6 +399,8 @@
     "gen-flash-bin-v2-51923-golden",
     "gen-flash-bin-v2-51926-golden",
     "tddi-flash-header-workbook-920-923",
-    "tddi-flash-header-workbook-925-926"
+    "tddi-flash-header-workbook-925-926",
+    "owner-decision-2026-09-25-tp-svn-location-encoding",
+    "ic-flashmap-mmap-autobuild-svn"
   ]
 }

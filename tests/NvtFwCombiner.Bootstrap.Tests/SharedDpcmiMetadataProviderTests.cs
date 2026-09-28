@@ -15,8 +15,8 @@ public sealed class SharedDpcmiMetadataProviderTests
 {
     private const string Provider = "nt51919-nt51929-nt51932-shared-facts";
     private const string FamilyPath = "families/nt51929-nt51932.json";
-    private const string FamilyHash = "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8";
-    private const string ProviderHash = "48c96d29b93cf7d78efc5266d6ead73e171f0012ddc5f7807242323327a5373f";
+    private const string FamilyHash = "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a";
+    private const string ProviderHash = "8d214b985da301e115553f88702290867ac2698e781c82c7579bab50be5dba50";
 
     /// <summary>Production exact-identity resolution comes from the sole neutral metadata-only provider.</summary>
     [Fact]
@@ -25,14 +25,14 @@ public sealed class SharedDpcmiMetadataProviderTests
         ProfileBundlePackageTrustIndex index = BuiltInV2BundleRegistry.TrustIndex;
         Assert.Equal("1.1.10.7", index.TrustIndexVersion);
         ProfileBundlePackageTrustEntry provider = Assert.Single(index.Bundles, bundle =>
-            bundle.MetadataProviderFamilies.Any(family => family.FamilyId == "nt51929-nt51932" && family.FamilyVersion == "1.3.1"));
+            bundle.MetadataProviderFamilies.Any(family => family.FamilyId == "nt51929-nt51932" && family.FamilyVersion == "1.4.0"));
         Assert.Equal(Provider, provider.BundleDirectory);
-        Assert.Equal("1.1.10-full-image-metadata.1", provider.BundleVersion);
+        Assert.Equal("1.1.13-tp-svn.1", provider.BundleVersion);
         Assert.Equal(ProviderHash, provider.ContentHash);
         Assert.Empty(provider.RuntimeRegistrations);
         Assert.DoesNotContain(index.Bundles, static bundle => bundle.BundleDirectory == "nt51929-dp-replace");
         var reference = new FirmwareMetadataStructureDefinitionReferenceDocument(
-            "nt51929-nt51932", "1.3.1", FamilyHash, DpcmiMetadataContract.StructureId);
+            "nt51929-nt51932", "1.4.0", FamilyHash, DpcmiMetadataContract.StructureId);
         Assert.True(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(reference, out FirmwareMetadataStructureDefinition? definition));
         Assert.NotNull(definition);
         Assert.False(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(
@@ -64,7 +64,7 @@ public sealed class SharedDpcmiMetadataProviderTests
         TrustedProfileBundleCatalog sourceCatalog = BuiltInProfileMaterializationTestSupport.LoadSourceCandidateCatalog(
             providerWorkspace, Provider, ProviderHash);
         Assert.Empty(sourceCatalog.Profiles);
-        Assert.Equal("1.3.1", Assert.Single(sourceCatalog.Families).Family.FamilyVersion);
+        Assert.Equal("1.4.0", Assert.Single(sourceCatalog.Families).Family.FamilyVersion);
 
         AssertClosedInventory(providerWorkspace.Root);
         foreach (string bundle in new[] { Provider })

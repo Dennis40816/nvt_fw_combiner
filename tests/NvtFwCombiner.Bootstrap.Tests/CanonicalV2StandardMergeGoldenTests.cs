@@ -8,15 +8,15 @@ public sealed class CanonicalV2StandardMergeGoldenTests
 {
     /// <summary>Verifies every family member declares the V2 copy plan and produces owner-approved reference bytes.</summary>
     [Theory]
-    [InlineData("nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5", "NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x6000, true, false)]
-    [InlineData("nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5", "NT51929", "nt51929-standard-merge-gen-flash", "51929", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x6000, false, false)]
-    [InlineData("nt51929-standard-merge", "e043dad07ffd7670c96b07b7732a9889b33a4b00b143eba56ad02cac1bb59cb5", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x6000, false, false)]
-    [InlineData("nt51923-standard-merge", "803780d0835dab32b68bc92cf7c8e175aa338b6aaf0e0c7caaddd9712de4576f", "NT51923", "nt51923-standard-merge-gen-flash", "51923", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
-    [InlineData("nt51923-standard-merge", "803780d0835dab32b68bc92cf7c8e175aa338b6aaf0e0c7caaddd9712de4576f", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
-    [InlineData("nt51927-standard-merge", "985a7d231a5a40f9c0cfe752dd43fea43dcfa05fb48128379fa020cef041fc04", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
-    [InlineData("nt51927-standard-merge", "985a7d231a5a40f9c0cfe752dd43fea43dcfa05fb48128379fa020cef041fc04", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
-    [InlineData("nt51928-standard-merge", "8145e2e6f9697607fc91748d21f802ef2a8613021899d52a80828325bc50bae5", "NT51928", "nt51928-standard-merge-gen-flash", "51927", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
-    [InlineData("nt51928-standard-merge", "8145e2e6f9697607fc91748d21f802ef2a8613021899d52a80828325bc50bae5", "NT51928", "nt51928-standard-merge-gen-flash", "51928", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, true)]
+    [InlineData("nt51929-standard-merge", "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011", "NT51919", "nt51919-standard-merge-gen-flash-alias", "51929", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x6000, true, false)]
+    [InlineData("nt51929-standard-merge", "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011", "NT51929", "nt51929-standard-merge-gen-flash", "51929", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x6000, false, false)]
+    [InlineData("nt51929-standard-merge", "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011", "NT51932", "nt51932-standard-merge-gen-flash", "51932", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x6000, false, false)]
+    [InlineData("nt51923-standard-merge", "26707141ccf58dc3da87e755f41b9851af44914c6a5b14e1dc81f7cd099dbbcd", "NT51923", "nt51923-standard-merge-gen-flash", "51923", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
+    [InlineData("nt51923-standard-merge", "26707141ccf58dc3da87e755f41b9851af44914c6a5b14e1dc81f7cd099dbbcd", "NT51926", "nt51926-standard-merge-gen-flash", "51926", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
+    [InlineData("nt51927-standard-merge", "59b51e5357fd7567315c6cc85289e2d5d78783e6ed027c421409c4a7f8cc6584", "NT51917", "nt51917-standard-merge-gen-flash-alias", "51927", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
+    [InlineData("nt51927-standard-merge", "59b51e5357fd7567315c6cc85289e2d5d78783e6ed027c421409c4a7f8cc6584", "NT51927", "nt51927-standard-merge-gen-flash", "51927", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
+    [InlineData("nt51928-standard-merge", "0a511dbcfac0cfb6dcfc1a6faf5fe5818b6d0f6b3e267d6531c518c2917e949e", "NT51928", "nt51928-standard-merge-gen-flash", "51927", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, false)]
+    [InlineData("nt51928-standard-merge", "0a511dbcfac0cfb6dcfc1a6faf5fe5818b6d0f6b3e267d6531c518c2917e949e", "NT51928", "nt51928-standard-merge-gen-flash", "51928", "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin", 0x40000, false, true)]
     public async Task TrustedV2BundleMatchesDeclaredPlanAndOwnerApprovedGoldenBytes(
         string bundleDirectory,
         string bundleContentHash,

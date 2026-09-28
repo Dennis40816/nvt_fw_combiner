@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51932-ctrlram-replace",
-  "familyVersion": "0.4.0",
+  "familyVersion": "0.4.1",
   "members": [
     {
       "memberId": "NT51932",
@@ -505,6 +505,28 @@
       "evidenceRefs": [
         "nt51932-fw200-cascade3-auto-prj-525-owner-golden-20260718"
       ]
+    },
+    {
+      "metadataSetId": "tp-svn-header-copy-metadata",
+      "structures": [
+        {
+          "structureId": "tp-svn-header-copy",
+          "artifactBindingId": "reference-base",
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
+            "structureId": "tp-svn"
+          },
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "header-copy",
+            "offset": 36,
+            "allowedResultRegionId": "header-copy"
+          }
+        }
+      ],
+      "evidenceRefs": ["owner-decision-2026-09-26-tp-svn-header-copy", "owner-decision-2026-09-25-tp-svn-location-encoding"]
     }
   ],
   "imageMaps": [
@@ -528,7 +550,8 @@
         "nt51932-ctrlram-fw1x-single-full-flash"
       ],
       "metadataSetIds": [
-        "nt51932-fwconfig-backup-locator"
+        "nt51932-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
       ],
       "evidenceRefs": [
         "nt51932-fw200-cascade3-auto-prj-525-owner-golden-20260718"
@@ -556,7 +579,8 @@
         "nt51932-ctrlram-fw200-full-flash"
       ],
       "metadataSetIds": [
-        "nt51932-fwconfig-backup-locator"
+        "nt51932-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
       ],
       "evidenceRefs": [
         "nt51932-fw200-cascade3-auto-prj-525-owner-golden-20260718"
@@ -565,6 +589,8 @@
   ],
   "factAliases": [],
   "evidenceRefs": [
-    "nt51932-fw200-cascade3-auto-prj-525-owner-golden-20260718"
+    "nt51932-fw200-cascade3-auto-prj-525-owner-golden-20260718",
+    "owner-decision-2026-09-26-tp-svn-header-copy",
+    "owner-decision-2026-09-25-tp-svn-location-encoding"
   ]
 }

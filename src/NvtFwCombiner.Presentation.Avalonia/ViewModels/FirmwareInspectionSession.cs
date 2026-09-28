@@ -119,6 +119,11 @@ internal static class FirmwareInspectionProjection
             {
                 facts.Add(UiCompositionRunner.CreateEventBufferFact(commonRaw, text));
             }
+            if (abInput.TpSvn is { } tpSvn)
+            {
+                // Decision 36: each AB TP input is its own single-TP card with its own TP SVN.
+                facts.Add(UiCompositionRunner.CreateTpSvnFact(tpSvn, text));
+            }
         }
         return facts;
     }

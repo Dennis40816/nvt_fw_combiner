@@ -142,6 +142,7 @@ public sealed class FirmwareFamilyRelationshipBindingTests
                 DpcmiMetadataContract.StructureId,
                 "firmware-config-general-parameters",
                 "nt51927-927-tp-flash-header",
+                "tp-svn",
             ],
             nt51917.Entries
                 .Select(static entry => entry.StructureDefinition.Definition.DefinitionId)
@@ -237,8 +238,8 @@ public sealed class FirmwareFamilyRelationshipBindingTests
         {
             Assert.True(BuiltInCanonicalMetadataDefinitionResolver.Instance.TryResolve(
                 new FirmwareMetadataStructureDefinitionReferenceDocument(
-                    "nt51929-nt51932", "1.3.1",
-                    "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+                    "nt51929-nt51932", "1.4.0",
+                    "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
                     DpcmiMetadataContract.StructureId),
                 out FirmwareMetadataStructureDefinition? resolved));
             provider = Assert.IsType<FirmwareMetadataStructureDefinition>(resolved);

@@ -530,7 +530,7 @@ public sealed class AbCtrlRamAuthoringTests
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(bytes, out FirmwareConfigMetadata metadata));
         Assert.True(metadata.ChipNumber > 0);
         TrustedProfileBundleCatalog catalog = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51919-nt51929-nt51932-ab-merge", "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793");
+            "nt51919-nt51929-nt51932-ab-merge", "f082c1b93f895aedd8b1614c860c7da4d1e93c5a2a91366b9b4348cc71b1ca39");
         CompiledComposition original = catalog.Compile("nt51929-ab-merge", "0.4.0", "NT51929", ExperienceIds.AbMerge,
             0x80000, null, [], selectedInputSlotIds: ["tp-a-input"]).CompiledComposition!;
         V2CompiledCompositionDetails details = original.V2Details;

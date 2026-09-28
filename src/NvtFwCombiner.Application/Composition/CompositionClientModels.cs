@@ -31,6 +31,12 @@ public sealed record AbMergeInputFacts(
 {
     /// <summary>Optional admitted format from this input's primary FWConfig, not a current-settings lookup.</summary>
     public EventBufferFormatObservation? EventBufferFormat { get; init; }
+
+    /// <summary>
+    /// Read-only TP SVN stamp of this accepted AB TP input from the exact compiled plan; independent of the
+    /// Event Buffer format admission and never compared with the other TP input.
+    /// </summary>
+    public TpSvnObservation? TpSvn { get; init; }
 }
 
 /// <summary>Immutable display evidence from a successful AB format resolution; ranges remain in the source input.</summary>
@@ -162,6 +168,12 @@ public sealed record FirmwareInspectionSnapshot(
 
     /// <summary>Optional read-only common Event Buffer display byte for one captured AB TP input.</summary>
     public byte? AbCommonEventBufferFormatVersion { get; init; }
+
+    /// <summary>
+    /// Optional read-only TP SVN stamp of this exact Standard TP input, or of a current Standard CtrlRAM
+    /// Base, read from the same capture through the exact Standard plan; never a FWConfig field.
+    /// </summary>
+    public TpSvnObservation? StandardTpSvn { get; init; }
 
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
     public AbMergeInputFacts? AbMergeFacts { get; init; }

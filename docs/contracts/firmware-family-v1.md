@@ -134,9 +134,20 @@ their convergence onto the same family-owned facts is a separate migration
 gate and cannot be inferred from any relationship declaration.
 
 A metadata definition that is globally canonical across its declared
-consumers—`firmware-config-general-parameters` for all ICs, or DPCMI for every
-route that explicitly declares it—is not a partial-family fact. Maps bind that
-one definition through their own structure instances and locators. A
+consumers—`firmware-config-general-parameters` for all ICs, DPCMI for every
+route that explicitly declares it, or `tp-svn` for every TP code whose map
+declares a locator—is not a partial-family fact. Maps bind that
+one definition through their own structure instances and locators. `tp-svn`
+is the four-byte TP SVN stamp at TP start + `0x24` (byte 0 flags, bytes 1-3
+BCD revision), declared once by the neutral
+`nt51919-nt51929-nt51932-shared-facts` provider, which references no other
+family. It is not a TP Header field, and FWConfig `u8AutoBuildSvnVer1-4`
+remain separate fields that never supply or mirror it. The SVN copy inside
+the Header copy binds the same definition as its own read-only structure
+`tp-svn-header-copy`, located at `0x24` inside the layout's declared Header
+copy region (`header-copy`, or `final-header-backup` for the NT51917/27/28
+container), so its position follows the selected declared variant and is
+never inferred from bytes; no profile binds it for display or requires it. A
 `shared-fact-relationship` lists such a definition only if the owner explicitly
 establishes that the definition itself is restricted to that relationship;
 ordinary global reuse must not appear in `sharedFactReferences`.

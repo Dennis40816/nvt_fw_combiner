@@ -19,13 +19,15 @@
   },
   "mapBinding": {
     "familyId": "nt51919-nt51929-nt51932-ab-merge",
-    "familyVersion": "0.3.0",
-    "familyContentHash": "87eab2aa0deb505a0ca938f5000d66ca1e9f59739520b5e2afd43fcd544edd78",
+    "familyVersion": "0.3.1",
+    "familyContentHash": "a3e3746dbee412f1463bffb2d289eb29a749149d5554fcf0d97ad525f435bbe3",
     "mapIds": ["nt51932-ab-merge-512k"],
     "requiredRegionIds": ["ab-image", "a-cmi-dp-version", "b-cmi-dp-version", "tpa-code", "tpb-code"],
     "requiredMetadataStructureIds": [
       "type-ab-tpa-tp-flash-header",
-      "type-ab-tpb-tp-flash-header"
+      "type-ab-tpb-tp-flash-header",
+      "tp-a-svn",
+      "tp-b-svn"
     ],
     "requiredCapabilityIds": []
   },
@@ -219,6 +221,22 @@
         "uploaded-ab-combiner-51932",
         "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
       ]
+    },
+    {
+      "bindingId": "tp-a-svn-display",
+      "spaceId": "tp-a-input",
+      "structureId": "tp-a-svn",
+      "fieldIds": ["svn-flags", "svn-revision"],
+      "purposes": ["display"],
+      "evidenceRefs": ["owner-decision-2026-09-26-tp-svn-display"]
+    },
+    {
+      "bindingId": "tp-b-svn-display",
+      "spaceId": "tp-b-input",
+      "structureId": "tp-b-svn",
+      "fieldIds": ["svn-flags", "svn-revision"],
+      "purposes": ["display"],
+      "evidenceRefs": ["owner-decision-2026-09-26-tp-svn-display"]
     }
   ],
   "regionAccessRules": [

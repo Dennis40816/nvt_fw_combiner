@@ -16,8 +16,8 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51932-ctrlram-replace",
-    "familyVersion": "0.4.0",
-      "familyContentHash": "c192764cb4e9dfcd4ef0d08bada620c7e363332d1693b94b47639470d017f584",
+    "familyVersion": "0.4.1",
+      "familyContentHash": "9a0f4d86859c6f38a680f527828d534ee52949dc6fa0e1752d6e698c5c5e5771",
     "mapIds": [ "nt51932-ctrlram-fw200-cascade-full-flash" ],
     "requiredRegionIds": [
       "flash-image",

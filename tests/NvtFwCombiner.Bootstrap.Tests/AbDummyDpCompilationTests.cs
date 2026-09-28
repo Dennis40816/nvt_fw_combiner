@@ -96,8 +96,8 @@ public sealed class AbDummyDpCompilationTests
             ? "nt51950-ab-merge"
             : "nt51919-nt51929-nt51932-ab-merge";
         string hash = legacyProcessorFamily
-            ? "283f2c2e8d1f5dbeb17d27d07094d37b3644286a0bb9ca07b6ff17dcb43bff21"
-            : "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793";
+            ? "015f097c39810620d21464760ae783c3111d49c3d2c133ca4081fed23d080d5a"
+            : "f082c1b93f895aedd8b1614c860c7da4d1e93c5a2a91366b9b4348cc71b1ca39";
         using var workspace = TempWorkspace.Create("nfc-ab-dummy-compilation");
         TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
             workspace, bundle, hash);
@@ -155,16 +155,23 @@ public sealed class AbDummyDpCompilationTests
         // AB metadata remains TP-owned in Normal and Dummy modes: 919/929/932
         // have header bindings; 950/951 have independent primary observations.
         Assert.DoesNotContain(metadata.Entries, static entry => entry.SlotId == "dp-ab-input");
+        // TP-SVN-MODEL-1113-01 adds one display-only TP SVN entry per TP input.
+        Assert.Equal(["tp-a-svn", "tp-b-svn"], metadata.Entries
+            .Where(static entry => entry.Purposes.SequenceEqual([MetadataReferencePurpose.Display]))
+            .Select(static entry => entry.StructureDefinition.StructureId).Order(StringComparer.Ordinal));
         if (icId is "NT51919" or "NT51929" or "NT51932")
         {
-            Assert.Equal(5, metadata.Entries.Count);
+            Assert.Equal(7, metadata.Entries.Count);
             Assert.Contains(metadata.Entries, static entry => entry.SlotId == "tp-a-input");
             Assert.Contains(metadata.Entries, static entry => entry.SlotId == "tp-b-input");
         }
         else if (icId is "NT51950" or "NT51951")
         {
-            Assert.Equal(["tp-a-input", "tp-b-input"], metadata.Entries.Select(static entry => entry.SlotId));
-            Assert.All(metadata.Entries, static entry =>
+            MetadataPlanEntry[] primaries = [.. metadata.Entries.Where(static entry =>
+                entry.StructureDefinition.StructureId is "tp-a-primary-firmware-config" or "tp-b-primary-firmware-config")];
+            Assert.Equal(4, metadata.Entries.Count);
+            Assert.Equal(["tp-a-input", "tp-b-input"], primaries.Select(static entry => entry.SlotId));
+            Assert.All(primaries, static entry =>
                 Assert.Equal([MetadataReferencePurpose.Inspection], entry.Purposes));
         }
     }
@@ -208,6 +215,6 @@ public sealed class AbDummyDpCompilationTests
         Assert.NotNull(composition);
         Assert.NotNull(metadata);
         Assert.Contains(composition.V2Details.InputContract.Slots, static slot => slot.SlotId == "dp-ab-input");
-        Assert.Equal(5, metadata.Entries.Count);
+        Assert.Equal(7, metadata.Entries.Count);
     }
 }
