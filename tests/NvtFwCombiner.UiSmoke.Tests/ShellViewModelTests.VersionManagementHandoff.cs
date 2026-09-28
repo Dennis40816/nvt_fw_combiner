@@ -502,6 +502,44 @@ public sealed partial class VersionManagementSettingsTests
         }
     }
 
+    /// <summary>The window-wired inspection survives suspended progress and shows a terminal fault on reopen.</summary>
+    [AvaloniaFact]
+    public async Task InspectionFaultDuringHandoffIsPresentedAfterRecovery()
+    {
+        var handoff = new GatedWindowLifetimeHandoff();
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", new RecordingVersionExperience(
+                Snapshot(retentionReviewDue: false)), handoff), ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        WorkflowInspectionLifecycle lifecycle = shell.Merge.Inspection;
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<WorkflowInspectionAttemptState> inspection = lifecycle.StartAsync(
+            ShellTextResources.For(ShellLanguage.English),
+            async (progress, _, _) =>
+            {
+                progress.Report(new(0, 2));
+                await release.Task;
+                progress.Report(new(1, 2));
+                throw new IOException("inspection fault during handoff");
+            }, TestContext.Current.CancellationToken);
+        int deadlines = 0;
+        window.CloseDeadlineFactory = _ => ++deadlines <= 2
+            ? Task.CompletedTask : Task.Delay(TimeSpan.FromSeconds(5));
+        window.RequestStableLauncherRestart();
+        window.Close();
+        await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        release.SetResult();
+        Assert.Equal(WorkflowInspectionAttemptState.Failed,
+            await inspection.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        handoff.Release(started: false);
+        await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+        Assert.True(lifecycle.Loading.CanRetry);
+        Assert.Contains("IOException", lifecycle.Loading.Detail, StringComparison.Ordinal);
+    }
+
     /// <summary>A window result committed while a store is sealed is replayed after handoff recovery.</summary>
     [AvaloniaTheory]
     [InlineData(false)]

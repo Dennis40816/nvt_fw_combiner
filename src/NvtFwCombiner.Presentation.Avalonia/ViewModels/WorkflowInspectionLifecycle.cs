@@ -208,8 +208,7 @@ internal sealed class WorkflowInspectionLifecycle
         AuthoringInspectionProgress? previous;
         lock (_admissionLock)
         {
-            if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested ||
-                !(WindowPublication?.CanPublish ?? true))
+            if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested)
             {
                 throw new OperationCanceledException(requestCancellation);
             }
@@ -230,10 +229,15 @@ internal sealed class WorkflowInspectionLifecycle
             }
             _reportedProgress = progress;
         }
+        if (!(WindowPublication?.CanPublish ?? true))
+        {
+            return;
+        }
 
         void Deliver()
         {
-            if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested)
+            if (!IsCurrent(generation) || requestCancellation.IsCancellationRequested ||
+                !(WindowPublication?.CanPublish ?? true))
             {
                 return;
             }
@@ -292,6 +296,24 @@ internal sealed class WorkflowInspectionLifecycle
         {
             Loading.Complete();
         }
+    }
+
+    internal void PublishCurrentState()
+    {
+        if (State == WorkflowInspectionAttemptState.Idle ||
+            !(WindowPublication?.CanPublish ?? true))
+        {
+            return;
+        }
+        if (State is WorkflowInspectionAttemptState.Running or WorkflowInspectionAttemptState.Failed)
+        {
+            Present();
+        }
+        else
+        {
+            Loading.Complete();
+        }
+        PresentationObserver.Invoke(_statusChanged);
     }
 
     private void Present()

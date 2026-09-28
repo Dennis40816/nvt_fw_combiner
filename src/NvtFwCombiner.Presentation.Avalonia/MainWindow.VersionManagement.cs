@@ -240,6 +240,8 @@ public sealed partial class MainWindow
         _windowPublication.Resume();
         if (DataContext is MainWindowViewModel viewModel)
         {
+            viewModel.Merge.InspectionLifecycles.ForEach(lifecycle => lifecycle.PublishCurrentState());
+            viewModel.Replace.InspectionLifecycles.ForEach(lifecycle => lifecycle.PublishCurrentState());
             viewModel.Settings.PublishPendingRecoveryStatus();
         }
         if (_deferredActivationRequested)
