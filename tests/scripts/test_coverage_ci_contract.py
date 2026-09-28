@@ -31,8 +31,16 @@ CI_WORKFLOW_TEMPLATE = ROOT / "docs" / "ci" / "workflow-templates" / "ci.yml"
 SCHEDULED_SECURITY_TEMPLATE = (
     ROOT / "docs" / "ci" / "workflow-templates" / "scheduled-security.yml"
 )
-MAIN_PACKAGE_WORKFLOW = ROOT / ".github" / "workflows" / "main-package.yml"
+RELEASE_REHEARSAL_WORKFLOW = ROOT / ".github" / "workflows" / "release-rehearsal.yml"
 VERIFIER = ROOT / "scripts" / "verify.py"
+
+# A captured pwsh error view can truncate a line with an ellipsis, encoded in
+# whatever code page the host console uses (e.g. Big5 on a zh-TW Windows
+# host). Force UTF-8 so this subprocess's captured output decodes the same
+# way on every host, including CI.
+PWSH_FORCE_UTF8_OUTPUT = (
+    "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)"
+)
 
 
 class CoverageCiContractTests(unittest.TestCase):
@@ -93,7 +101,13 @@ class CoverageCiContractTests(unittest.TestCase):
                         environment = os.environ.copy()
                         environment["NFC_REPOSITORY_SCRIPTS_RESULT"] = result
                         completed = subprocess.run(
-                            [shell, "-NoProfile", "-NonInteractive", "-Command", gate["run"]],
+                            [
+                                shell,
+                                "-NoProfile",
+                                "-NonInteractive",
+                                "-Command",
+                                f"{PWSH_FORCE_UTF8_OUTPUT}; {gate['run']}",
+                            ],
                             env=environment,
                             capture_output=True,
                             text=True,
@@ -145,6 +159,53 @@ class CoverageCiContractTests(unittest.TestCase):
         self.assertNotIn("merge-multiple: true", finalizer)
         self.assertEqual(2, workflow.count("path: artifacts/ci-dotnet-upload/"))
         self.assertNotIn(".csproj", workflow)
+
+    def test_dotnet_evidence_artifacts_carry_their_run_attempt_to_the_finalizer(
+        self,
+    ) -> None:
+        for workflow_path in (CI_WORKFLOW, CI_WORKFLOW_TEMPLATE):
+            with self.subTest(workflow=workflow_path):
+                jobs = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))["jobs"]
+                uploads = {
+                    step["with"]["name"]: step["with"]
+                    for job_name in ("dotnet-build", "dotnet-test")
+                    for step in jobs[job_name]["steps"]
+                    if str(step.get("uses", "")).startswith("actions/upload-artifact@")
+                    and step["with"]["path"] == "artifacts/ci-dotnet-upload/"
+                }
+                self.assertEqual(
+                    {
+                        "dotnet-build-evidence-attempt-${{ github.run_attempt }}",
+                        "dotnet-test-${{ matrix.shard }}-evidence-attempt-"
+                        "${{ github.run_attempt }}",
+                    },
+                    set(uploads),
+                )
+                for name, upload in uploads.items():
+                    # Unique per attempt: an earlier attempt's artifact is never replaced.
+                    self.assertNotIn("overwrite", upload, name)
+                    self.assertEqual("error", upload["if-no-files-found"], name)
+                    self.assertEqual(3, upload["retention-days"], name)
+                steps = jobs["dotnet"]["steps"]
+                download = next(
+                    step
+                    for step in steps
+                    if str(step.get("uses", "")).startswith("actions/download-artifact@")
+                )
+                self.assertEqual("download-evidence", download["id"])
+                self.assertIs(True, download["continue-on-error"])
+                self.assertEqual("dotnet-*-evidence-attempt-*", download["with"]["pattern"])
+                self.assertNotIn("merge-multiple", download["with"])
+                self.assertNotIn("run-id", download["with"])
+                finalizer = next(
+                    step
+                    for step in steps
+                    if "--ci-dotnet-finalize" in str(step.get("run", ""))
+                )
+                self.assertEqual(
+                    "${{ steps.download-evidence.outcome }}",
+                    finalizer["env"]["NFC_CI_DOTNET_DOWNLOAD_OUTCOME"],
+                )
 
     def test_reviewed_template_preserves_draft_and_artifact_topology(self) -> None:
         workflow = CI_WORKFLOW_TEMPLATE.read_text(encoding="utf-8")
@@ -207,12 +268,22 @@ class CoverageCiContractTests(unittest.TestCase):
         self.assertIn(install, policy)
         self.assertIn("python scripts/verify.py --structure-only", policy)
 
-    def test_package_job_fetches_the_fixed_coverage_baseline_revision(self) -> None:
-        workflow = MAIN_PACKAGE_WORKFLOW.read_text(encoding="utf-8")
-        package_job = workflow[workflow.index("  package:") :]
-
-        self.assertIn("python ./scripts/verify.py --all", package_job)
-        self.assertIn("fetch-depth: 0", package_job)
+    def test_rehearsal_job_uses_full_checkout_and_release_golden(self) -> None:
+        workflow = yaml.safe_load(
+            RELEASE_REHEARSAL_WORKFLOW.read_text(encoding="utf-8")
+        )
+        steps = workflow["jobs"]["package"]["steps"]
+        checkout = steps[0]
+        self.assertTrue(checkout["uses"].startswith("actions/checkout@"))
+        self.assertEqual(0, checkout["with"]["fetch-depth"])
+        self.assertIs(False, checkout["with"]["persist-credentials"])
+        commands = [step.get("run", "") for step in steps]
+        self.assertTrue(
+            any("python ./scripts/verify.py --release-golden" in command for command in commands)
+        )
+        self.assertFalse(
+            any("python ./scripts/verify.py --all" in command for command in commands)
+        )
 
     def test_structure_job_does_not_restore_or_own_evaluated_project_policy(
         self,

@@ -34,8 +34,8 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         CompiledComposition composition = prepared.Snapshot!.ExactCapability!.CompiledComposition;
         var artifacts = paths.ToDictionary(static pair => pair.Value, static pair => File.ReadAllBytes(pair.Value));
         byte[] badTp = artifacts[paths[CompositionAddressSpaceIds.TpBInput]];
-        if (defect == "unreadable") { badTp[0x1FFC] = 0xFF; }
-        else { badTp[0x1017] = defect == "zero" ? (byte)0 : (byte)3; }
+        if (defect == "unreadable") { badTp[TpBackupStart + 0xFFC] = 0xFF; }
+        else { badTp[TpBackupStart + 0x17] = defect == "zero" ? (byte)0 : (byte)3; }
         InputArtifactBinding[] bindings = [.. paths.Select(pair =>
             AcceptedSessionExecutionInputs.CreateCompiledBinding(composition, pair.Key, pair.Value))];
         var request = new CompositionRunRequest("ab-count-direct", composition, bindings,

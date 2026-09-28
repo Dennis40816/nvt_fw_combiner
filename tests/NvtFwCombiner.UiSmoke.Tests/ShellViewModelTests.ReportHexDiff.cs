@@ -6,6 +6,7 @@ using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -15,7 +16,7 @@ public sealed partial class ReportReviewHistoryTests
     [Fact]
     public async Task ReportInspectionFixtureUsesProductionGeneralReplace()
     {
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(CompositionHostServices.Create());
+        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(CompositionHostServices.Create(IsolatedLocalState.CreateDirectory()));
         using JsonDocument json = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
 
         Assert.Equal(ExperienceIds.GeneralReplace, json.RootElement.GetProperty("ExperienceId").GetString());

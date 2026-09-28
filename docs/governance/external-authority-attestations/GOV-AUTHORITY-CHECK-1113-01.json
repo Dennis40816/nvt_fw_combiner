@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "GOV-AUTHORITY-CHECK-1113-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "e3fa0297535b0f1057dffa4421e1df5724ab5dfb",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved exact final-evidence head e3fa0297535b0f1057dffa4421e1df5724ab5dfb for GOV-AUTHORITY-CHECK-1113-01 on 2026-09-27, after approving the same change at the superseded heads 09164b942dbbe8c1bdf3977895ce625e4ec4d304 and 4c7dfc7f91c7cdd5fa400bce69ef4b41858a4a83. The new head rebuilds the reviewed G1-A commits on the 1.1.x trunk after #462 and #464, binds the admission to checkpoint c6add007169abd087d08964f0a7aabfba8a053a3, cites a bug by ID in one test docstring, and spells the checker's placeholder data value so that polytail_check does not read it as a code marker; the workflow and the checker's behavior are unchanged, which codex/gpt-6-astra confirmed. The change adds the ordinary pull request workflow .github/workflows/authority.yml (job governance / authority): pull_request events only, contents and pull-requests read, the automatic job token, no secret, no write step, no path filter, condition or continue-on-error, and actions pinned to the commit SHAs ci.yml already uses; the checker scripts/authority_check.py and the policy docs/governance/authority-policy.json with its schema, under ADR 0080 (Accepted, staged). Full verification at the implementation head fa87b19fd passed every lane except the expected design-active record check that the final-evidence commit resolves, and polytail_check passed on its own. The workflow is informative until the owner adds governance / authority as a required context. This approval does not change any ruleset, add a required check, waive the bootstrap approval, the governance-owner approval, the existing required checks, conversation resolution or the G1-A live acceptance cases, and is not a release approval."
+}

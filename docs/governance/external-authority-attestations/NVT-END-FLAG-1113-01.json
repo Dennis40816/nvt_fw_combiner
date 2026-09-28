@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "NVT-END-FLAG-1113-01",
+  "authorityType": "firmware-owner",
+  "reviewedHead": "38b85b15b861027972a9ca6945411f57220c4c47",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (firmware owner)",
+  "evidence": "The firmware owner explicitly approved exact final-evidence head 38b85b15b861027972a9ca6945411f57220c4c47 for NVT-END-FLAG-1113-01 on 2026-09-27, after first approving the same content at the superseded head 8ff601d7d94a150ad35b5b9bb2a62badb2903be0, which differed only in an unrelated skill sentence. The NT51950 and NT51951 NVT marker is counted only at each bank's layout-declared end-flag position (owner decisions 30, 35 and 37). The owner knowingly accepts that a uniformly filled TP input and a failed Backup preparation report Error, the B-bank boundary at 0x76FFC, and that older capability fingerprints, sessions and some saved General Merge rules stop matching. Under owner decision 48 the owner accepts the documented exception that the four synthetic-oracle expected hashes were rebuilt from their Git-blob definitions; the eleven owner-certified Golden cases keep their expected values with five direct full-output, three allowed-byte-difference and three fact-scoped-alias dispositions. This approval does not waive protected CI, the canonical verifier, actual-candidate Golden execution or any release gate."
+}

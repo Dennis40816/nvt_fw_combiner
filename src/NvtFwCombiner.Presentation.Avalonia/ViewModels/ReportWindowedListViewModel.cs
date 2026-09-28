@@ -1,6 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -9,7 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed class ReportWindowedListViewModel : ObservableObject
 {
     private readonly IReadOnlyList<object> _allItems;
-    private readonly ResettableObjectCollection _items = [];
+    private readonly ResettableObservableCollection<object> _items = [];
     private readonly int _pageSize;
     private readonly ShellLanguage _language;
     private readonly RelayCommand _previousPageCommand;
@@ -143,23 +141,4 @@ internal sealed class ReportWindowedListViewModel : ObservableObject
         _previousPageCommand.NotifyCanExecuteChanged();
         _nextPageCommand.NotifyCanExecuteChanged();
     }
-
-    private sealed class ResettableObjectCollection : ObservableCollection<object>
-    {
-        internal void ReplaceAll(IEnumerable<object> items)
-        {
-            ArgumentNullException.ThrowIfNull(items);
-            CheckReentrancy();
-            Items.Clear();
-            foreach (object item in items)
-            {
-                Items.Add(item);
-            }
-
-            OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
-            OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-        }
-    }
-
 }

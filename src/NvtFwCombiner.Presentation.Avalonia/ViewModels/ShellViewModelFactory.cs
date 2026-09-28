@@ -10,10 +10,12 @@ internal static class ShellViewModelFactory
         ShellLanguage language = ShellLanguage.English)
     {
         ArgumentNullException.ThrowIfNull(hostServices);
-        return new MainWindowViewModel(
+        var viewModel = new MainWindowViewModel(
             ApplicationVersionProvider.ShellLabel,
             ApplicationVersionProvider.InformationalVersion,
             language,
             hostServices);
+        viewModel.Reports.LocalFiles = hostServices.LocalFiles;
+        return viewModel;
     }
 }

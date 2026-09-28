@@ -98,7 +98,8 @@ public sealed partial class CompositionRunServiceTests
                     CompositionKind.Replace),
                 "fwconfig-final-output.bin",
                 IcNumberInputMode.SingleSelector,
-                [validation]),
+                [validation],
+                nvtEndFlagStart: 0x1000),
             [new InputArtifactBinding(
                 "reference-base",
                 "reference-base",

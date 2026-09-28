@@ -73,8 +73,13 @@ internal sealed class ToolchainRuntimeCandidateInspector(
                 if (staging is null) { return Rejected("runtime.trust.staging-failed", "A private trust-probe directory could not be acquired."); }
                 string snapshotPath = Path.Combine(stagingPath, "vcruntime140.dll");
                 await File.WriteAllBytesAsync(snapshotPath, runtime, cancellationToken).ConfigureAwait(false);
-                string? issue = await trustProbe.VerifyAsync(snapshotPath, sha256, cancellationToken).ConfigureAwait(false);
-                if (issue is not null) { return Rejected(issue, "Windows could not verify the selected Microsoft runtime."); }
+                RuntimeTrustProbeVerdict? verdict = await trustProbe.VerifyAsync(snapshotPath, sha256, cancellationToken).ConfigureAwait(false);
+                if (verdict is not null)
+                {
+                    return Rejected(
+                        verdict.IssueCode,
+                        verdict.UserMessage ?? "Windows could not verify the selected Microsoft runtime.");
+                }
             }
 
             string version = FileVersionInfo.GetVersionInfo(fullPath).FileVersion ?? "Unknown";

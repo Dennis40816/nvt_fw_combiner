@@ -77,17 +77,50 @@ public sealed partial class MessageCenterModal : UserControl
         object? sender,
         RoutedEventArgs e)
     {
-        if (DataContext is not MessageCenterViewModel viewModel ||
-            TopLevel.GetTopLevel(this)?.StorageProvider is not { } storageProvider)
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storageProvider)
         {
             return;
         }
 
-        IStorageFile? file = await FirmwareFilePickerDialogs.PickDiagnosticsSaveFileAsync(
-            storageProvider,
-            "nvt-fw-combiner-diagnostics.json");
-        string? path = file?.TryGetLocalPath();
-        if (!string.IsNullOrWhiteSpace(path))
+        await ExportWithPickerAsync(async () =>
+        {
+            using IStorageFile? file = await FirmwareFilePickerDialogs.PickDiagnosticsSaveFileAsync(
+                storageProvider,
+                "nvt-fw-combiner-diagnostics.json");
+            return file is null ? null : file.TryGetLocalPath() ??
+                throw new IOException("Diagnostics export requires a local destination.");
+        });
+    }
+
+    internal async Task ExportWithPickerAsync(Func<Task<string?>> pickPathAsync)
+    {
+        ArgumentNullException.ThrowIfNull(pickPathAsync);
+        if (DataContext is not MessageCenterViewModel viewModel || !viewModel.IsOpen)
+        {
+            return;
+        }
+
+        long contextGeneration = viewModel.ExportContextGeneration;
+        string? path;
+        try
+        {
+            path = await pickPathAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception)
+        {
+            if (ReferenceEquals(DataContext, viewModel) && viewModel.IsExportContextCurrent(contextGeneration))
+            {
+                viewModel.ReportExportFailure();
+            }
+            return;
+        }
+        if (!string.IsNullOrWhiteSpace(path) &&
+            ReferenceEquals(DataContext, viewModel) &&
+            viewModel.IsExportContextCurrent(contextGeneration))
         {
             await viewModel.ExportAsync(path, CancellationToken.None);
         }

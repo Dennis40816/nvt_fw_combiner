@@ -303,12 +303,17 @@ internal sealed partial class SettingsViewModel
             return;
         }
 
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsEventBufferFormatLoading = true;
         try
         {
             _eventBufferFormatConfigurationSession ??= await _eventBufferFormatConfigurationSessionFactory(CancellationToken.None);
             EventBufferFormatConfigurationOperationResult result = await _eventBufferFormatConfigurationSession
                 .ReloadAsync(CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
             ApplyEventBufferFormatState(result, preferDefaultsForUnavailable: true);
             if (reapply)
             {
@@ -318,12 +323,18 @@ internal sealed partial class SettingsViewModel
         catch (Exception)
         {
             _eventBufferFormatLoadStarted = false;
-            EventBufferFormatStatus = _textProvider().EventBufferFormatLoadFailedLabel;
+            if (await WaitForWindowPublicationAsync())
+            {
+                EventBufferFormatStatus = _textProvider().EventBufferFormatLoadFailedLabel;
+            }
         }
         finally
         {
-            IsEventBufferFormatLoading = false;
-            ReloadEventBufferFormatCommand.NotifyCanExecuteChanged();
+            if (MayPublishWindow)
+            {
+                IsEventBufferFormatLoading = false;
+                ReloadEventBufferFormatCommand.NotifyCanExecuteChanged();
+            }
         }
     }
 
@@ -331,6 +342,7 @@ internal sealed partial class SettingsViewModel
     private async Task ReloadEventBufferFormatAsync()
     {
         if (!CanReloadEventBufferFormat) { return; }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsEventBufferFormatBusy = true;
         try
         {
@@ -338,7 +350,10 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
-            IsEventBufferFormatBusy = false;
+            if (MayPublishWindow)
+            {
+                IsEventBufferFormatBusy = false;
+            }
         }
     }
 
@@ -349,10 +364,18 @@ internal sealed partial class SettingsViewModel
         {
             _eventBufferFormatReapplyFailed = ReapplyEventBufferFormatAsync is not null &&
                 !await ReapplyEventBufferFormatAsync();
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
         }
         catch (Exception)
         {
             // The configuration publication is already complete; report refresh failure separately.
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
             _eventBufferFormatReapplyFailed = true;
         }
         if (_eventBufferFormatConfigurationSession?.Current is { } current && current.Generation != generation)
@@ -370,11 +393,16 @@ internal sealed partial class SettingsViewModel
             return;
         }
 
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsEventBufferFormatBusy = true;
         try
         {
             EventBufferFormatConfigurationOperationResult result = await _eventBufferFormatConfigurationSession.SaveAsync(
                 [.. EventBufferFormatRows.Select(static row => row.ToDraft())], CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
             if (result.Succeeded)
             {
                 _eventBufferFormatReapplyFailed = false;
@@ -390,12 +418,15 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
-            IsEventBufferFormatBusy = false;
-            SetEventBufferFormatRowsEditingEnabled(true);
-            SaveEventBufferFormatCommand.NotifyCanExecuteChanged();
-            RestoreEventBufferFormatDefaultsCommand.NotifyCanExecuteChanged();
-            DiscardEventBufferFormatChangesCommand.NotifyCanExecuteChanged();
-            ConfirmEventBufferFormatCloseCommand.NotifyCanExecuteChanged();
+            if (MayPublishWindow)
+            {
+                IsEventBufferFormatBusy = false;
+                SetEventBufferFormatRowsEditingEnabled(true);
+                SaveEventBufferFormatCommand.NotifyCanExecuteChanged();
+                RestoreEventBufferFormatDefaultsCommand.NotifyCanExecuteChanged();
+                DiscardEventBufferFormatChangesCommand.NotifyCanExecuteChanged();
+                ConfirmEventBufferFormatCloseCommand.NotifyCanExecuteChanged();
+            }
         }
     }
 

@@ -219,7 +219,7 @@ public sealed class ReportHistoryControlTests
         }
 
         IReadOnlyList<ReportHistorySnapshot> persisted = await ReportHistoryFileStore.LoadAsync(
-            services.LocalFiles, ReportHistoryFileStore.DefaultHistoryPath, TestContext.Current.CancellationToken);
+            services.LocalFiles, ReportHistoryFileStore.PathIn(services.LocalStateDirectory), TestContext.Current.CancellationToken);
         Assert.Equal(retained.SourceName, Assert.Single(persisted).SourceName);
         Assert.DoesNotContain(persisted, entry => entry.SourceName == removed.SourceName);
 
@@ -246,7 +246,7 @@ public sealed class ReportHistoryControlTests
             await CloseAndFlushAsync(reopened);
         }
         Assert.Empty(await ReportHistoryFileStore.LoadAsync(
-            services.LocalFiles, ReportHistoryFileStore.DefaultHistoryPath, TestContext.Current.CancellationToken));
+            services.LocalFiles, ReportHistoryFileStore.PathIn(services.LocalStateDirectory), TestContext.Current.CancellationToken));
     }
 
     private static void SeedHistory(MainWindowViewModel shell)

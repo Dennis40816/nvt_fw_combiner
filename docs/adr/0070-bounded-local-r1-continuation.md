@@ -1,6 +1,7 @@
 # ADR 0070: Separate bounded local R1 work from integration admission
 
-- Status: Accepted
+- Status: Superseded by [ADR 0080 (G1-B)](0080-governance-reset.md#compatibility-and-migration).
+- Former status: Accepted
 - Date: 2026-09-09
 - Owner: Repository owner; requested fixing the restriction before further work
 - Risk: R2 governance applicability

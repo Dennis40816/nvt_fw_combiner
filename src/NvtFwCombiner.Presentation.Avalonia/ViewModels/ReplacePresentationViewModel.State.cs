@@ -80,11 +80,11 @@ internal sealed partial class ReplacePresentationViewModel
 
     public ObservableCollection<CtrlRamRegionViewModel> CtrlRamRegions { get; } = [];
 
-    public ObservableCollection<MemoryCoverageSegmentViewModel> ReplaceCoverageSegments { get; } = [];
+    public ResettableObservableCollection<MemoryCoverageSegmentViewModel> ReplaceCoverageSegments { get; } = [];
 
     public ObservableCollection<MemoryCoverageGroupViewModel> ReplaceCoverageGroups { get; } = [];
 
-    public ObservableCollection<MemoryCoverageSegmentViewModel> CtrlRamOverview { get; } = [];
+    public ResettableObservableCollection<MemoryCoverageSegmentViewModel> CtrlRamOverview { get; } = [];
     public ObservableCollection<MemoryFocusLaneViewModel> CtrlRamFocusLanes { get; } = [];
     public bool HasCtrlRamFocusLayout => IsCtrlRamReplaceModeSelected && (CtrlRamFocusLanes.Count > 0 || HasCtrlRamBankView);
     public string CtrlRamCapacityLabel => CtrlRamOverview.Count == 0 ? string.Empty :

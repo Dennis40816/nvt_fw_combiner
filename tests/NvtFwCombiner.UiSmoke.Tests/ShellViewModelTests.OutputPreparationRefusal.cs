@@ -48,7 +48,7 @@ public sealed partial class ShellNavigationSystemTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-preparation-refusal");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host);
         _ = workspace.Write("format.json", "invalid"u8.ToArray());
 
@@ -74,7 +74,7 @@ public sealed partial class ShellNavigationSystemTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-stale-preparation");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         var naming = new HeldOutputPreparation(host.CompositionOutputNaming);
         MainWindowViewModel viewModel = await CreateLoadedFormatAbViewModelAsync(workspace, host, outputNaming: naming);
         Task preparing = viewModel.Merge.RequestBuildOutputDeliveryAsync();

@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Infrastructure.Capabilities;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -12,7 +13,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.NotNull(typeof(CompositionHostServices).GetMethod(
             nameof(CompositionHostServices.Create),
             Type.EmptyTypes));
-        var host = CompositionHostServices.Create();
+        var host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
 
         List<CanonicalCapabilityCatalogLoadUpdate> first = await ReadUpdatesAsync(
             host.CanonicalCatalogLoader.LoadAsync(TestContext.Current.CancellationToken));

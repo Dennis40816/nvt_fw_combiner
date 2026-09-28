@@ -710,7 +710,8 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
 
     private static byte[] CreateAbTpImage(byte version, byte subVersion, byte chipCount)
     {
-        const int backupStart = 0x1000;
+        // The FWConfig Backup ends at the NT51950/NT51951 layout-declared NVT end flag [0x36FFC, 0x37000).
+        const int backupStart = 0x36000;
         byte[] bytes = CreatePattern(0x37000, version);
         bytes[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;
         bytes[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~version);

@@ -4,6 +4,8 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Desktop\NvtFwCombiner.Desktop.csproj"
+                      ReferenceOutputAssembly="false" Private="false" PrivateAssets="all" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Presentation.Avalonia\NvtFwCombiner.Presentation.Avalonia.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.DistributionLauncher\NvtFwCombiner.DistributionLauncher.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Bootstrap\NvtFwCombiner.Bootstrap.csproj" />
@@ -16,4 +18,22 @@
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
   </ItemGroup>
+  <Target Name="CopyCatalogProbeHost" AfterTargets="Build">
+    <MSBuild Projects="..\..\src\NvtFwCombiner.Desktop\NvtFwCombiner.Desktop.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)">
+      <Output TaskParameter="TargetOutputs" ItemName="_CatalogProbeHost" />
+    </MSBuild>
+    <PropertyGroup>
+      <_CatalogProbeHostDirectory>@(_CatalogProbeHost->'%(RootDir)%(Directory)')</_CatalogProbeHostDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <_CatalogProbeHostFiles Include="$(_CatalogProbeHostDirectory)**\*" />
+    </ItemGroup>
+    <!-- "cph" (catalog probe host) stays short: the verifier session path plus the
+         built-in bundle paths must fit under MAX_PATH on machines without long paths. -->
+    <RemoveDir Directories="$(OutDir)cph" />
+    <Copy SourceFiles="@(_CatalogProbeHostFiles)"
+          DestinationFiles="@(_CatalogProbeHostFiles->'$(OutDir)cph\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

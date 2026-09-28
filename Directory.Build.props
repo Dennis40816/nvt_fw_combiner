@@ -39,5 +39,7 @@
   </PropertyGroup>
   <ItemGroup Condition="'$(IsTestProject)' == 'true'">
     <PackageReference Include="coverlet.collector" PrivateAssets="all" />
+    <!-- Test processes must never resolve the developer's real local-state folder; see CompositionHostServices. -->
+    <RuntimeHostConfigurationOption Include="NvtFwCombiner.LocalState.CurrentUserFolderForbidden" Value="true" />
   </ItemGroup>
 </Project>

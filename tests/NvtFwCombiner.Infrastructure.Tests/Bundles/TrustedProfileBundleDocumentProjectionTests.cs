@@ -9,6 +9,36 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 /// <summary>Tests typed canonical document projection from trusted immutable bundle snapshots.</summary>
 public sealed class TrustedProfileBundleDocumentProjectionTests
 {
+    /// <summary>Export uses the admitted capture even when every carried source file is gone.</summary>
+    [Fact]
+    public void RawProjectionRetainsExactManifestAndOnlyCanonicalDocuments()
+    {
+        using TempWorkspace workspace = PrepareBundle(
+            out ProfileBundleTrustAnchor trustAnchor, out _, includeNonCanonicalEntries: true);
+        string manifestPath = workspace.PathFor("profile-bundle.json");
+        File.AppendAllText(manifestPath, " \r\n");
+        byte[] manifest = File.ReadAllBytes(manifestPath);
+        byte[] family = File.ReadAllBytes(workspace.PathFor("families/family.json"));
+        byte[] profile = File.ReadAllBytes(workspace.PathFor("profiles/profile.json"));
+        TrustedProfileBundle bundle = Load(workspace, trustAnchor);
+        File.Delete(manifestPath);
+        File.Delete(workspace.PathFor("families/family.json"));
+        File.Delete(workspace.PathFor("profiles/profile.json"));
+
+        TrustedProfileBundleDocumentProjection projection = bundle.CreateDocumentProjection();
+
+        Assert.Equal(manifest, projection.ManifestSnapshot.Content.ToArray());
+        Assert.Equal(Hash(manifest), projection.ManifestSha256);
+        Assert.Equal(["family-entry", "profile-entry"], projection.Documents.Select(x => x.Entry.EntryId));
+        Assert.Equal(family, projection.Documents[0].FileSnapshot.Content.ToArray());
+        Assert.Equal(profile, projection.Documents[1].FileSnapshot.Content.ToArray());
+        Assert.All(projection.Documents, entry =>
+            Assert.Equal(entry.Entry.ContentHash, Hash(entry.FileSnapshot.Content.ToArray())));
+        Assert.True(((IList<ProfileBundleEntrySnapshot>)projection.Documents).IsReadOnly);
+        Assert.Same(projection.ManifestSnapshot, bundle.CreateDocumentProjection().ManifestSnapshot);
+        Assert.Same(projection.Documents[0], bundle.CreateDocumentProjection().Documents[0]);
+    }
+
     /// <summary>Verifies the projection preserves every trusted identity and binds canonical document roots.</summary>
     [Fact]
     public void ProjectionPreservesTrustedIdentityAndDeserializesCanonicalDocuments()

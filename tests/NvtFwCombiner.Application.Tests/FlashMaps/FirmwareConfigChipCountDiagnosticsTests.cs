@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Tests.FlashMaps;
 
@@ -21,7 +22,7 @@ public sealed class FirmwareConfigChipCountDiagnosticsTests
         bytes[0x1017] = defect == "zero" ? (byte)0 : (byte)3;
         if (defect != "missing") { "\0NVT"u8.CopyTo(bytes.AsSpan(0x1FFC)); }
         if (defect == "duplicate") { "\0NVT"u8.CopyTo(bytes.AsSpan(0x2FFC)); }
-        CompositionIssue? issue = FirmwareConfigChipCountDiagnostics.AssessPositive(bytes, "tp-slot", out byte? actual);
+        CompositionIssue? issue = FirmwareConfigChipCountDiagnostics.AssessPositive(bytes, declaredEndFlag: FirmwareNvtEndFlagResolution.LegacyCompatibility, "tp-slot", out byte? actual);
         Assert.Equal<int?>(expectedCount, actual);
         Assert.Equal(code, issue?.Code);
         if (issue is not null)

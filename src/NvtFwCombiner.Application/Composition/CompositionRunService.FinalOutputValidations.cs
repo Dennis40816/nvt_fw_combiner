@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -11,6 +12,11 @@ public sealed partial class CompositionRunService
         ReadOnlyMemory<byte> outputBytes)
     {
         var evaluations = new List<FinalOutputValidationEvaluation>();
+        // NVT-END-FLAG-1113-01: FWConfig Backup checks read at the validated layout's declared NVT end flag, so a
+        // marker in a captured envelope tail or anywhere else never counts; a failed declaration is unreadable.
+        FirmwareNvtEndFlagResolution endFlag = compiledComposition.V2Details.Provenance.Context is MapBoundV2CompilationContext mapBound
+            ? mapBound.ResolvedMap.NvtEndFlagResolution
+            : FirmwareNvtEndFlagResolution.Unresolved;
         foreach (CompiledValidationRequirement requirement in compiledComposition.V2Details.Provenance.ValidationRequirements.Where(
                      static requirement => requirement.Stage == CompiledValidationStage.FinalOutput))
         {
@@ -18,14 +24,15 @@ public sealed partial class CompositionRunService
             {
                 CompiledBankScopedValidation bank => ValidateBankFinalOutput(inputBytes, outputBytes.Span, bank),
                 CompiledFirmwareConfigBackupVersionValidation firmwareConfig =>
-                    ValidateFirmwareConfigBackupVersion(outputBytes.Span, firmwareConfig),
+                    ValidateFirmwareConfigBackupVersion(outputBytes.Span, endFlag, firmwareConfig),
                 CompiledFirmwareConfigBackupPlacementAuthorityValidation authority =>
                     ValidateFirmwareConfigBackupPlacementAuthority(
                         inputBytes,
                         outputBytes.Span,
+                        endFlag,
                         authority),
                 CompiledFirmwareConfigBackupExpectedAddressValidation expected =>
-                    ValidateFirmwareConfigBackupExpectedAddress(outputBytes.Span, expected),
+                    ValidateFirmwareConfigBackupExpectedAddress(outputBytes.Span, endFlag, expected),
                 _ => new CompositionIssue(
                     requirement.IssueCode,
                     $"Final-output validation rule '{requirement.RuleId}' has no executable runtime evaluator.",
@@ -77,10 +84,12 @@ public sealed partial class CompositionRunService
 
     private static CompositionIssue? ValidateFirmwareConfigBackupVersion(
         ReadOnlySpan<byte> outputBytes,
+        FirmwareNvtEndFlagResolution endFlag,
         CompiledFirmwareConfigBackupVersionValidation requirement)
     {
         string severity = CompositionIssueSeverity.FromCompiled(requirement.Severity);
-        return !FirmwareConfigMetadataReader.TryReadBackup(outputBytes, out FirmwareConfigMetadata backupMetadata) ||
+        return !FirmwareConfigMetadataReader.TryReadBackup(
+                outputBytes, endFlag, out FirmwareConfigMetadata backupMetadata, out _) ||
             !backupMetadata.IsFirmwareVersionBarValid
             ? new CompositionIssue(
                 requirement.InvalidIssueCode,
@@ -100,10 +109,12 @@ public sealed partial class CompositionRunService
     private static CompositionIssue? ValidateFirmwareConfigBackupPlacementAuthority(
         IReadOnlyDictionary<string, byte[]> inputBytes,
         ReadOnlySpan<byte> outputBytes,
+        FirmwareNvtEndFlagResolution endFlag,
         CompiledFirmwareConfigBackupPlacementAuthorityValidation requirement)
     {
         if (!FirmwareConfigMetadataReader.TryReadBackup(
                 outputBytes,
+                endFlag,
                 out FirmwareConfigMetadata backupMetadata,
                 out int markerCount))
         {
@@ -141,6 +152,7 @@ public sealed partial class CompositionRunService
 
         if (!FirmwareConfigMetadataReader.TryReadBackup(
                 referenceBytes,
+                endFlag,
                 out FirmwareConfigMetadata referenceBackupMetadata,
                 out int referenceMarkerCount))
         {
@@ -184,11 +196,15 @@ public sealed partial class CompositionRunService
 
     private static CompositionIssue? ValidateFirmwareConfigBackupExpectedAddress(
         ReadOnlySpan<byte> outputBytes,
+        FirmwareNvtEndFlagResolution endFlag,
         CompiledFirmwareConfigBackupExpectedAddressValidation requirement)
     {
+        // Unchanged: an unreadable Backup is reported by the placement-authority error, not by this warning.
         return !FirmwareConfigMetadataReader.TryReadBackup(
                    outputBytes,
-                   out FirmwareConfigMetadata backupMetadata) ||
+                   endFlag,
+                   out FirmwareConfigMetadata backupMetadata,
+                   out _) ||
                backupMetadata.StructureStart == requirement.ExpectedStart
             ? null
             : new CompositionIssue(

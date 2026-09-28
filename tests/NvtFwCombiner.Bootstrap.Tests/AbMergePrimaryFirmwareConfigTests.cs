@@ -23,9 +23,15 @@ public sealed class AbMergePrimaryFirmwareConfigTests
     public void CompiledChoicesRetainSharedDefinitionAndSeparateNativeInputs(string icId, int count)
     {
         MetadataPlanDefinition plan = CreatePlan(icId, count);
-        Assert.Equal(["tp-a-input", "tp-b-input"], plan.Entries.Select(entry => entry.SlotId));
-        FirmwareMetadataStructure a = plan.Entries[0].StructureDefinition;
-        FirmwareMetadataStructure b = plan.Entries[1].StructureDefinition;
+        MetadataPlanEntry[] primaries = PrimaryEntries(plan);
+        Assert.Equal(["tp-a-input", "tp-b-input"], primaries.Select(entry => entry.SlotId));
+        // TP-SVN-MODEL-1113-01: the only other entries are the two display-only TP SVN stamps.
+        Assert.Equal(["tp-a-svn", "tp-b-svn"], plan.Entries.Except(primaries)
+            .Select(static entry => entry.StructureDefinition.StructureId).Order(StringComparer.Ordinal));
+        Assert.All(plan.Entries.Except(primaries), static entry =>
+            Assert.Equal([MetadataReferencePurpose.Display], entry.Purposes));
+        FirmwareMetadataStructure a = primaries[0].StructureDefinition;
+        FirmwareMetadataStructure b = primaries[1].StructureDefinition;
         Assert.NotSame(a, b);
         Assert.Same(a.Definition, b.Definition);
         BuiltInV2Registration provider = BuiltInV2RegistrationRegistry.StandardMergeByIc["NT51927"];
@@ -36,7 +42,7 @@ public sealed class AbMergePrimaryFirmwareConfigTests
         Assert.Same(canonical.Definition, a.Definition);
         Assert.Equal(36, a.Fields.Count);
         _ = Assert.Single(a.Relations);
-        Assert.All(plan.Entries, entry =>
+        Assert.All(primaries, entry =>
         {
             Assert.Equal([MetadataReferencePurpose.Inspection], entry.Purposes);
             Assert.Equal(entry.SlotId, entry.StructureDefinition.ArtifactBindingId);
@@ -50,10 +56,10 @@ public sealed class AbMergePrimaryFirmwareConfigTests
     [InlineData("NT51951", 0)]
     public void PrimaryBytesRemainSlotSpecificRegardlessOfBackup(string icId, int count)
     {
-        MetadataInspectionSnapshot snapshot = Inspect(CreatePlan(icId, count), CreateTp(0x97), CreateTp(0xA6));
-        Assert.Equal(2, snapshot.Results.Count);
-        AssertPrimary(snapshot.Results[0], "tp-a-input", 0x97, valid: true);
-        AssertPrimary(snapshot.Results[1], "tp-b-input", 0xA6, valid: true);
+        MetadataInspectionResult[] results = Primaries(Inspect(CreatePlan(icId, count), CreateTp(0x97), CreateTp(0xA6)));
+        Assert.Equal(2, results.Length);
+        AssertPrimary(results[0], "tp-a-input", 0x97, valid: true);
+        AssertPrimary(results[1], "tp-b-input", 0xA6, valid: true);
     }
 
     /// <summary>A decoded byte is not valid-format evidence when its canonical relation fails.</summary>
@@ -65,9 +71,9 @@ public sealed class AbMergePrimaryFirmwareConfigTests
     {
         byte[] tp = CreateTp(0x97);
         tp[Primary + 1] = 0;
-        MetadataInspectionSnapshot snapshot = Inspect(CreatePlan(icId, count), tp, CreateTp(0xA6));
-        AssertPrimary(snapshot.Results[0], "tp-a-input", 0x97, valid: false);
-        AssertPrimary(snapshot.Results[1], "tp-b-input", 0xA6, valid: true);
+        MetadataInspectionResult[] results = Primaries(Inspect(CreatePlan(icId, count), tp, CreateTp(0xA6)));
+        AssertPrimary(results[0], "tp-a-input", 0x97, valid: false);
+        AssertPrimary(results[1], "tp-b-input", 0xA6, valid: true);
     }
 
     /// <summary>The complete canonical structure, not only the format byte, must be in bounds.</summary>
@@ -76,18 +82,18 @@ public sealed class AbMergePrimaryFirmwareConfigTests
     [InlineData(0x22228)]
     public void TruncatedPrimaryDoesNotProduceAValue(int length)
     {
-        MetadataInspectionSnapshot snapshot = Inspect(CreatePlan("NT51951", 0), CreateTp(0x97)[..length], CreateTp(0xA6));
-        Assert.Equal(MetadataInspectionState.BlockedByArtifact, snapshot.Results[0].State);
-        Assert.Null(snapshot.Results[0].Resolution?.Resolved);
-        AssertPrimary(snapshot.Results[1], "tp-b-input", 0xA6, valid: true);
+        MetadataInspectionResult[] results = Primaries(Inspect(CreatePlan("NT51951", 0), CreateTp(0x97)[..length], CreateTp(0xA6)));
+        Assert.Equal(MetadataInspectionState.BlockedByArtifact, results[0].State);
+        Assert.Null(results[0].Resolution?.Resolved);
+        AssertPrimary(results[1], "tp-b-input", 0xA6, valid: true);
     }
 
     /// <summary>Exactly 41 bytes at primary are sufficient; no Backup is required by this binding.</summary>
     [Fact]
     public void CompletePrimaryWithoutBackupCanBeObserved()
     {
-        MetadataInspectionSnapshot snapshot = Inspect(CreatePlan("NT51951", 0), CreateTp(0x97)[..0x22229], CreateTp(0xA6));
-        AssertPrimary(snapshot.Results[0], "tp-a-input", 0x97, valid: true);
+        MetadataInspectionResult[] results = Primaries(Inspect(CreatePlan("NT51951", 0), CreateTp(0x97)[..0x22229], CreateTp(0xA6)));
+        AssertPrimary(results[0], "tp-a-input", 0x97, valid: true);
     }
 
     /// <summary>A missing TPA remains pending and cannot borrow TPB facts.</summary>
@@ -97,9 +103,10 @@ public sealed class AbMergePrimaryFirmwareConfigTests
         MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
             CreatePlan("NT51951", 0).Resolve(new ResolutionToken("ab-primary-test")),
             [new FirmwareArtifactPayload("tp-b-input", CreateTp(0xA6))]);
-        Assert.Equal(MetadataInspectionState.WaitingForArtifact, snapshot.Results[0].State);
-        Assert.Equal(FirmwareMetadataStructureResolutionFailure.MissingArtifact, snapshot.Results[0].Resolution?.Failure);
-        AssertPrimary(snapshot.Results[1], "tp-b-input", 0xA6, valid: true);
+        MetadataInspectionResult[] results = Primaries(snapshot);
+        Assert.Equal(MetadataInspectionState.WaitingForArtifact, results[0].State);
+        Assert.Equal(FirmwareMetadataStructureResolutionFailure.MissingArtifact, results[0].Resolution?.Failure);
+        AssertPrimary(results[1], "tp-b-input", 0xA6, valid: true);
     }
 
     /// <summary>The actual shared authoring path delivers metadata without replacing Backup versions.</summary>
@@ -108,7 +115,7 @@ public sealed class AbMergePrimaryFirmwareConfigTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ab-primary-authoring");
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         CompiledAuthoringSessionPreparation first = await PrepareAsync(host, 0x97);
@@ -116,8 +123,8 @@ public sealed class AbMergePrimaryFirmwareConfigTests
         Assert.True(first.Succeeded, string.Join(",", first.Issues.Select(issue => issue.Code)));
         Assert.True(second.Succeeded, string.Join(",", second.Issues.Select(issue => issue.Code)));
         MetadataInspectionSnapshot metadata = Assert.IsType<MetadataInspectionSnapshot>(first.Inspection!.MetadataInspection);
-        AssertPrimary(metadata.Results[0], "tp-a-input", 0x97, valid: true);
-        AssertPrimary(second.Inspection!.MetadataInspection!.Results[0], "tp-a-input", 0x84, valid: true);
+        AssertPrimary(Primaries(metadata)[0], "tp-a-input", 0x97, valid: true);
+        AssertPrimary(Primaries(second.Inspection!.MetadataInspection!)[0], "tp-a-input", 0x84, valid: true);
         Assert.Equal(first.Inspection.Statuses["tp-a-input"].Observation.Versions,
             second.Inspection.Statuses["tp-a-input"].Observation.Versions);
     }
@@ -141,6 +148,21 @@ public sealed class AbMergePrimaryFirmwareConfigTests
             out CompiledComposition? compiled, out IReadOnlyList<CompositionIssue> issues);
         Assert.Empty(issues);
         return registration.CreateMetadataPlan(Assert.IsType<CompiledComposition>(compiled));
+    }
+
+    private static bool IsPrimary(MetadataPlanEntry entry)
+    {
+        return entry.StructureDefinition.StructureId is "tp-a-primary-firmware-config" or "tp-b-primary-firmware-config";
+    }
+
+    private static MetadataPlanEntry[] PrimaryEntries(MetadataPlanDefinition plan)
+    {
+        return [.. plan.Entries.Where(IsPrimary)];
+    }
+
+    private static MetadataInspectionResult[] Primaries(MetadataInspectionSnapshot snapshot)
+    {
+        return [.. snapshot.Results.Where(static result => IsPrimary(result.PlanEntry.Definition))];
     }
 
     private static MetadataInspectionSnapshot Inspect(MetadataPlanDefinition plan, byte[] a, byte[] b)

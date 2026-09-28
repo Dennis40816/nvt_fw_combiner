@@ -486,7 +486,7 @@ public sealed partial class BundleCliCommandTests
         using var workspace = TempWorkspace.Create("nfc-cli-bundle-ab-additional-undeclared");
         CompositionHostServices host = CompositionHostServices.Create(
             new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools")),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
             null, TestContext.Current.CancellationToken)).Succeeded);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(

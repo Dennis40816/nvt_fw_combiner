@@ -11,71 +11,179 @@ exceptions. This runbook owns execution within those boundaries.
 ## Preflight
 
 For R1-R3 work, run `git status --short --branch`, preserve existing
-user changes, and record risk, affected authority/layers, acceptance criteria,
-human/evidence gates, narrow test, final gate, integration base, and owned
-mutable surfaces. Read the relevant source, contract/profile, and test once.
+user changes, and put the risk, affected authority/layers, acceptance criteria,
+human/evidence gates, narrow test, final gate, integration base, implementation
+owner and owned mutable surfaces in the pull request admission fields. Read
+the relevant source, contract/profile, and test once.
 
 Branch/version/release rules live in
 [`branch-version-and-release-governance.md`](branch-version-and-release-governance.md).
 
-## Capability-reuse gate (fail closed)
+## Admission
 
-### Bounded local R1 continuation
+Before changing production behavior, a semantic branch or an owner contract,
+complete owner search. Record the existing semantic owner, callers and typed
+contract, the search evidence and the disposition (`reuse`, `extend-owner`,
+`reject-duplicate`) in the [pull request admission fields](../../.github/pull_request_template.md).
+Unknown, unsearched or conflicting ownership blocks production changes.
+Renaming, relocating or wrapping a duplicate does not satisfy reuse.
+Diagnostic reads, characterization tests and planning may proceed while
+admission is incomplete. R2/R3 retain independent architecture/contract review.
 
-Under [ADR 0070](../adr/0070-bounded-local-r1-continuation.md), an explicitly
-authorized local R1 correction may proceed while prior integration records are
-unfinished. Before editing, the owner's authorization, existing semantic owner,
-source base, exact paths, acceptance criteria, narrow tests and residual gates
-must be recorded in the owner task discussion or existing handoff. A later
-commit may restate or link that evidence, not establish it retroactively.
-Resolve unknown or conflicting ownership before changing behavior.
+The pull request also names outcome and non-goals, declared risk and added
+roles, implementation owner and owned paths, affected authority, narrow tests
+and final gate, the exact-head review, R3 evidence and any waiver. These fields
+carry evidence; the authority check, required CI and owner approvals enforce
+their respective gates. The reviewer confirms in writing the byte, range,
+order, integrity and support impact (or its absence), existing semantic owner,
+callers and typed contract, and test evidence.
 
-This path applies only to an existing capability's bounded implementation or
-presentation correction. It excludes changes to architecture/public contracts,
-governance, ADRs/schemas, profiles, firmware bytes/ranges/order/integrity,
-support/evidence admission, permissions, CI and release policy. R2/R3 keep the
-recorded design admission and their authority-specific reviews below. A failing
-affected test or correctness finding must still be resolved for the local unit.
+Implement and test the authorized scope, then independently review the frozen
+exact head under the authority check below. R3 human authority and evidence
+remain separate prerequisites; a review verdict cannot supply them.
 
-Complete the narrow tests and scoped Polytail, then commit each coherent unit
-when the owner has authorized commits. A local R1 unit does not need a new
-overlapping JSON record or closure of all prior integration records merely to
-continue. Preserve existing record blobs; they are neither reusable permission
-nor something to rewrite to fit the new scope. Ask only for genuinely missing
-authority or a material unresolved decision, not a repeated sequencing waiver.
+## Single writer
 
-Local continuation is not an integration batch or a validator pass. Before
-integration, the complete candidate still needs valid, uniquely covering
-records and the checkpoint/review/evidence contract below. Missing or
-unresolved final ownership remain explicit integration blockers. Overlapping
-historical modifications use the final-only ownership partition in
-[ADR 0071](../adr/0071-final-integration-path-ownership.md); this local path
-supplies no activation, history rewrite or automatic finalization.
-Do not run a candidate gate merely to reopen a known record-only local blocker.
-When required at its actual stage, run it unchanged and report every failure.
+Every pull request names its implementation owner and owned paths. The
+commander assigns each mutable surface to one open workstream at a time on the
+board. Another workstream that needs it waits for the merge, or takes it over
+through a handoff recorded on the board and in both pull requests after the
+earlier writer has stopped. An overlap found at review or rebase stops both
+writers until the commander decides. CODEOWNERS routes reviews; it is not a
+write lock. Rulesets do not restrict a pull request's touched paths, and Git
+merge conflicts detect only textual overlap.
 
-### Recorded design admission and integration evidence
+## Waivers
 
-Before changing behavior outside the bounded local R1 path (including R2/R3),
-and before every formal integration admission, read and follow the complete
-[capability-reuse record contract](capability-reuse-record.md). It owns the
-staged-blob, schema, path coverage, immutable lifecycle, checkpoint/activation,
-merge normalization and external-attestation requirements; this runbook owns
-the execution sequence:
+A new waiver is a pull request statement bound to its head SHA and scope. It
+names the rule or tool, scope, reason, risk, owner, issue, approver, creation
+and expiry dates, and removal condition. The approver is the owner of the
+authority waived, approving the last push under ADR 0080 item 7 and naming the
+relevant role. A new head needs renewed approval. No waiver may weaken
+firmware range safety, processor write ranges, integrity order, secrets or
+signing, release allowlists, or independent Golden expectations. Existing
+waivers remain frozen evidence; this location grants no wider waiver power.
 
-1. Complete owner search and stage the `design-active` admission before
-   implementation; R2/R3 require independent architecture/contract admission.
-   Unknown, unsearched or conflicting ownership blocks production changes.
-   Renaming, relocating or wrapping a duplicate does not satisfy reuse.
-   Diagnostic reads, characterization tests and planning may proceed while
-   admission is incomplete.
-2. Implement and test the admitted scope, then commit and independently review
-   the frozen exact head as required by risk.
-3. Finalize the admitted records against that reviewed head under the contract,
-   stage them, and pass the repository validator before the evidence commit.
-4. Commit the final evidence as the reviewed head's direct child. R3 external
-   authority and evidence remain separate prerequisites, never supplied by a
-   record or reviewer verdict.
+## Authority check
+
+[ADR 0080](../adr/0080-governance-reset.md) (G1-A) adds the pull request check
+`governance / authority` (`.github/workflows/authority.yml`,
+`scripts/authority_check.py`) and its path map
+[`authority-policy.json`](authority-policy.json). It binds a branch once the
+owner has made the context required on that branch's ruleset.
+The check proves presence and form at the time it ran; the owner judges the
+evidence, and the procedures below close what the check leaves open (ADR 0080,
+safeguards P1 to P9). Once the context is required, a pull request whose head
+predates the workflow or checker reports a failure or no context at all, and
+either blocks the merge: rebase it onto the base, then renew its review record
+and approval on the new head.
+
+**Authority block.** The description carries exactly one fenced
+`nfc-authority` JSON block (template: `.github/pull_request_template.md`):
+`risk`, `roles`, `implementationOwner`, `ownedPaths` and, for each declared
+role, its `evidence` (`firmware-owner`: `golden`, `writeRanges`;
+`release-owner`: `release`; `governance-owner`: `change` and, for each
+unclassified path, a `classification`). The check takes the changed paths from
+the merge base of the live base tip and the head, both sides of renames and
+copies included, and applies the stricter of the base and head policies to
+each path. It fails when the block is missing or malformed, the declared risk
+is below the floor, a role the paths, a review record or a classification
+require is not declared, a declared role lacks its entries, an R1 to R3 change
+has no valid review record on the head, a policy is missing or invalid, or an
+API or Git call fails. A required or declared role makes the change R3.
+
+**Review record.** For R1-R3, another agent runtime reviews. If unavailable, a
+fresh session of the same runtime reviews, preferably with another model, and
+never shares the author's conversation. No process requires two agent products.
+The reviewer posts a comment review on the head through the API, never in the
+description:
+
+```text
+gh api repos/Dennis40816/nvt_fw_combiner/pulls/<n>/reviews -X POST \
+  -f commit_id=<head> -f event=COMMENT -F body=@review.md
+```
+
+`review.md` holds one fenced `nfc-review-record` block with the JSON object
+`head` (40-character SHA), `reviewer` (runtime and model, for example
+`codex/gpt-6-astra`), `mode` (`other-runtime` or `same-runtime-fresh-session`),
+`verdict` (`accept`, `accept-with-changes` or `reject`), `openP0P1`, `state`
+(`complete` or `incomplete`) and `addedRoles`. It counts when its `commit_id`
+and `head` equal the head, it is complete and not rejecting, `openP0P1` is 0,
+and its author is on the reviewer list of both policies; the latest record of
+each listed principal decides. Posting or editing a review starts no run, and a
+new head needs a new record.
+
+**R3 approval.** The owner approves the most recent reviewable push at its
+exact head, naming every required role: `firmware-owner`, `release-owner` and
+`governance-owner` as the authority policy, author or reviewer requires. The
+approver must be a code owner other than the pusher. Firmware authority retains
+byte and Golden evidence and the exact write-range audit; release authority
+retains release-policy evidence; governance authority retains the statement
+of the affected rule, permission or approval authority. A new head requires a
+new review and approval, even if its tree is identical.
+
+**Approval snapshot.** When the owner approves, the commander records in the
+pull request the head SHA, the authority block as approved and every valid
+review record with its review id, head, verdict and complete body.
+
+**Pre-merge verification** (commander, before asking for the merge):
+
+1. Base authority code. Compare the blob IDs of
+   `.github/workflows/authority.yml`, `scripts/authority_check.py`,
+   `docs/governance/authority-policy.schema.json` and
+   `docs/governance/authority-policy.json` at the base tip
+   (`git fetch origin <base>`, then `git rev-parse origin/<base>:<path>`) with
+   the evaluated-head column of the latest run's job summary, whose "Checker
+   that ran" line names the checker revision and blob that produced it. If the
+   pull request runs older versions it does not change, rebase it (and renew
+   the review record and the approval), or run the current base checker
+   against its head and attach the result, whose "Checker that ran" line must
+   name the base tip; a failure stops the merge:
+
+   ```text
+   git worktree add --detach <tmp>/base origin/<base>
+   git worktree add --detach <tmp>/head <head>
+   python <tmp>/base/scripts/authority_check.py --root <tmp>/head \
+     --repository Dennis40816/nvt_fw_combiner --pull-request <n>
+   ```
+
+   (`GITHUB_TOKEN` may hold a read-only token; unset, the public API is read
+   anonymously.) If the pull request changes these files on purpose, the
+   self-change check below applies.
+2. Re-run `governance / authority` (`gh run rerun <run-id>`) and wait for it.
+3. Confirm through the API that this run reports success for the current head
+   (`gh api repos/Dennis40816/nvt_fw_combiner/commits/<head>/check-runs`) and
+   that the owner's approving review is on that SHA after its most recent push
+   (`gh api repos/Dennis40816/nvt_fw_combiner/pulls/<n>/reviews`). For a new SHA
+   with an identical tree, ask for a new approval until D4 shows GitHub does.
+4. Compare the live authority block and valid review records with the
+   snapshot. Any difference, a body edit under the same review id included,
+   stops the merge until the owner reconfirms by a new approving review or a
+   comment naming the head SHA and the change; record the new snapshot.
+5. Merge with `gh pr merge <n> --merge --match-head-commit <head>` on the
+   owner's go-ahead. If anything changed after step 1, start again.
+
+The pull request records the snapshot, the blob IDs compared in step 1, and
+the run id and head SHA of steps 2 and 3.
+
+**Self-change check.** A pull request that changes the workflow, the checker,
+the policy or its schema runs its own version of the check. When the base has
+the checker, the commander runs the base checker against the head (step 1's
+commands) and attaches the result, the pull request states which verdicts the
+change alters and why, and the owner's approval states that the change was
+reviewed, the base checker's result was read and this pull request's own
+requirements were not lowered (or accepts the stated lowering).
+
+**Bootstrap approval.** G1-A's introduction into the trunk used the gates then
+in force on its base, with the historical authority and evidence retained in
+[its delivery and acceptance](../adr/0080-governance-reset.md#g1-a-delivery-and-acceptance).
+No base-checker result existed or was claimed. For the first release pull
+request bringing the check into `main`, if its base has no checker, ADR 0033
+and the release policy supply the base gates. An independent fixed-head review
+covers the check or confirms that its authority files have the trunk's blob
+IDs, citing G1-A's review. The owner's approval states that the base has no
+checker, which gates stood in, and that the introduced check was reviewed at
+that head. The check's own result there is informative only.
 
 ## Narrow test selection
 
@@ -132,13 +240,6 @@ Each checkpoint commit must be coherent, tested, and recoverable;
 documentation, tests, and review corrections that belong to the same outcome
 need not become separate ceremony commits. Stage only explicit owned files.
 Never stage, reset, amend, or revert another agent's changes.
-
-For governed work, create implementation commits first, perform the fixed-head
-review, then populate and commit the `final-complete` records as a separate
-evidence checkpoint. An intermediate commit that still contains a
-`design-active` record intentionally fails the final repository gate; it is not
-mergeable and cannot authorize another integration batch. It does not prohibit
-an independently authorized correction under the bounded local R1 path above.
 
 Before R1-R3 handoff: format changed files, run the affected narrow test, inspect
 the exact diff, apply scoped Polytail, and record residual evidence. The full

@@ -163,6 +163,9 @@ internal sealed partial class ShellNavigationViewModel : ObservableObject
         _pendingNavigation = null;
         _pendingExit = null;
         IsNavigationClearConfirmationOpen = false;
+        // Re-run activation for the unchanged page: the opening click already flipped its own
+        // ToggleButton locally, and only ApplySelectedPage corrects that (F-6, review of edd9a71b4).
+        _bindings.ApplySelectedPage(_bindings.SelectedPage());
     }
 
     private void CompleteNavigation(

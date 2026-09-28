@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import _thread
 import argparse
 import contextlib
 from fnmatch import fnmatch
 import hashlib
 import importlib.util
+import inspect
 import io
 import json
 import locale
 import os
+import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -34,6 +38,30 @@ import validate_repository as REPOSITORY_VALIDATOR  # noqa: E402
 
 
 class VerifyOrchestrationTests(unittest.TestCase):
+    def test_all_help_describes_complete_local_suite_without_completion_claim(self) -> None:
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as raised:
+            MODULE.parse_args(["--help"])
+
+        self.assertEqual(0, raised.exception.code)
+        help_text = " ".join(output.getvalue().split())
+        self.assertIn(
+            "Run the complete local verification suite. Cannot be combined with skip flags.",
+            help_text,
+        )
+        self.assertNotIn("Run every public gate.", help_text)
+        self.assertNotIn("This is the CI/Codex completion command.", help_text)
+
+    def test_all_rejects_each_skip_flag(self) -> None:
+        for flag in ("--skip-python", "--skip-dotnet", "--skip-structure"):
+            with (
+                self.subTest(flag=flag),
+                patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+                self.assertRaises(SystemExit) as raised,
+            ):
+                MODULE.execute_verification(MODULE.parse_args(["--all", flag]))
+            self.assertEqual("--all cannot be combined with skip flags", str(raised.exception))
+
     def test_release_golden_plan_covers_every_direct_canonical_case(self) -> None:
         with patch.object(MODULE, "current_dotnet_producer_platform", return_value="windows"):
             projects, cases = MODULE.release_golden_plan()
@@ -450,6 +478,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         skipped: int,
         identities: tuple[str, ...] | None = None,
         outcomes: tuple[str, ...] | None = None,
+        error_messages: dict[str, str] | None = None,
     ) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         identities = identities or tuple(
@@ -471,12 +500,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
         results = MODULE.ET.SubElement(root, "Results")
         for identity, outcome in zip(identities, outcomes, strict=True):
-            MODULE.ET.SubElement(
+            result = MODULE.ET.SubElement(
                 results,
                 "UnitTestResult",
                 testName=identity,
                 outcome=outcome,
             )
+            if error_messages and identity in error_messages:
+                error_info = MODULE.ET.SubElement(
+                    MODULE.ET.SubElement(result, "Output"), "ErrorInfo"
+                )
+                MODULE.ET.SubElement(error_info, "Message").text = error_messages[
+                    identity
+                ]
         summary = MODULE.ET.SubElement(root, "ResultSummary")
         MODULE.ET.SubElement(
             summary,
@@ -545,35 +581,71 @@ class VerifyOrchestrationTests(unittest.TestCase):
         )
         return json_report, cobertura_report
 
+    CI_RUN_ID = "36115221320"
+
+    @staticmethod
+    def ci_artifact_root(download_root: Path, owner: str, attempt: int = 1) -> Path:
+        return download_root / MODULE.ci_dotnet_evidence_artifact_name(owner, attempt)
+
+    def ci_run_environment(self, source_sha: str, *, attempt: int = 1) -> dict[str, str]:
+        return {
+            "GITHUB_SHA": source_sha,
+            "GITHUB_RUN_ID": self.CI_RUN_ID,
+            "GITHUB_RUN_ATTEMPT": str(attempt),
+        }
+
+    def ci_finalizer_environment(
+        self,
+        source_sha: str,
+        *,
+        attempt: int = 1,
+        build_result: str = "success",
+        test_result: str = "success",
+        download_outcome: str = "success",
+    ) -> dict[str, str]:
+        return {
+            **self.ci_run_environment(source_sha, attempt=attempt),
+            "NFC_CI_DOTNET_BUILD_RESULT": build_result,
+            "NFC_CI_DOTNET_TEST_RESULT": test_result,
+            "NFC_CI_DOTNET_DOWNLOAD_OUTCOME": download_outcome,
+        }
+
     def stage_complete_ci_dotnet_evidence(
         self,
         download_root: Path,
         source_sha: str,
         *,
         golden_total: int = 3,
+        attempt: int = 1,
+        owners: tuple[str, ...] | None = None,
     ) -> None:
         sdk_version = "10.0.301"
-        build_root = download_root / "dotnet-build-evidence"
-        build_log = build_root / "build/build.log"
-        build_log.parent.mkdir(parents=True)
-        build_log.write_text("build passed\n", encoding="utf-8")
-        self.write_ci_manifest(
-            build_root / "build/manifest.json",
-            {
-                "schemaVersion": 2,
-                "kind": "dotnet-build",
-                "sourceSha": source_sha,
-                "sdkVersion": sdk_version,
-                "success": True,
-                "files": {
-                    "build/build.log": hashlib.sha256(
-                        build_log.read_bytes()
-                    ).hexdigest()
+        provenance = {"runId": self.CI_RUN_ID, "runAttempt": attempt}
+        if owners is None or "build" in owners:
+            build_root = self.ci_artifact_root(download_root, "build", attempt)
+            build_log = build_root / "build/build.log"
+            build_log.parent.mkdir(parents=True)
+            build_log.write_text("build passed\n", encoding="utf-8")
+            self.write_ci_manifest(
+                build_root / "build/manifest.json",
+                {
+                    "schemaVersion": MODULE.CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
+                    "kind": "dotnet-build",
+                    "sourceSha": source_sha,
+                    **provenance,
+                    "sdkVersion": sdk_version,
+                    "success": True,
+                    "files": {
+                        "build/build.log": hashlib.sha256(
+                            build_log.read_bytes()
+                        ).hexdigest()
+                    },
                 },
-            },
-        )
+            )
         for shard, projects in MODULE.CI_DOTNET_SHARDS.items():
-            artifact_root = download_root / f"dotnet-test-{shard}-evidence"
+            if owners is not None and shard not in owners:
+                continue
+            artifact_root = self.ci_artifact_root(download_root, shard, attempt)
             shard_root = artifact_root / "shards" / shard
             shard_log = shard_root / "shard.log"
             shard_log.parent.mkdir(parents=True)
@@ -635,9 +707,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.write_ci_manifest(
                 shard_root / "manifest.json",
                 {
-                    "schemaVersion": 2,
+                    "schemaVersion": MODULE.CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
                     "kind": "dotnet-test-shard",
                     "sourceSha": source_sha,
+                    **provenance,
                     "sdkVersion": sdk_version,
                     "success": True,
                     "shard": shard,
@@ -827,65 +900,201 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual([160.0, 217.0], deadlines)
         cleanup.assert_called_once()
 
-    def test_public_full_plan_runs_dotnet_before_parallel_independent_lanes(
-        self,
-    ) -> None:
-        calls: list[tuple[list[str], int, int]] = []
-
-        def record_phase(lanes, *, jobs, lane_timeout_seconds):
-            calls.append(([lane.name for lane in lanes], jobs, lane_timeout_seconds))
-            if lanes[0].name == "dotnet-restore":
-                lanes[0].action(None)
+    @contextlib.contextmanager
+    def local_full_plan(self, *, scripts=(), isolated=None, restore=None, build=None):
+        """Patch only the leaves of execute_verification's local full plan."""
 
         with (
-            patch.dict(
-                os.environ,
-                {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""},
-                clear=False,
-            ),
-            patch.object(MODULE, "run_selected_lanes", side_effect=record_phase),
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
             patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
-            patch.object(MODULE, "run_dotnet_restore_plan") as build,
+            patch.object(MODULE, "verify_structure_sync"),
+            patch.object(MODULE, "run_dotnet_restore_plan", side_effect=restore) as restore_plan,
+            patch.object(
+                MODULE, "run_dotnet_post_restore_build_plan", side_effect=build
+            ) as build_plan,
+            patch.object(MODULE, "local_repository_script_lanes", return_value=scripts),
+            patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
             patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
-            contextlib.redirect_stdout(io.StringIO()),
         ):
-            result = MODULE.execute_verification(MODULE.parse_args(["--all"]))
+            yield restore_plan, build_plan, cleanup
+
+    def test_local_full_plan_overlaps_dotnet_coverage_with_script_lanes(self) -> None:
+        barrier = threading.Barrier(2)
+        met: list[str] = []
+
+        def meet(name: str) -> None:
+            barrier.wait(timeout=5)  # A serial schedule breaks the barrier.
+            met.append(name)
+
+        def isolated(name: str, _log: Path) -> None:
+            if name == "dotnet-coverage":
+                meet(name)
+
+        with (
+            self.local_full_plan(
+                scripts=(MODULE.VerificationLane("script", lambda _log: meet("script")),),
+                isolated=isolated,
+            ) as (restore, build, cleanup),
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
+            result = MODULE.execute_verification(MODULE.parse_args(["--skip-structure"]))
 
         self.assertEqual(0, result)
-        self.assertEqual(
-            [
-                (
-                    ["structure-sync"],
-                    MODULE.DEFAULT_VERIFY_JOBS,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-                (
-                    ["dotnet-restore"],
-                    MODULE.DEFAULT_VERIFY_JOBS,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-                (
-                    ["dotnet-build"],
-                    1,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-                (
-                    ["dotnet"],
-                    1,
-                    1200,
-                ),
-                (
-                    ["structure", *(lane.name for lane in MODULE.local_repository_script_lanes()), "python"],
-                    MODULE.DEFAULT_VERIFY_JOBS,
-                    MODULE.DEFAULT_LANE_TIMEOUT_SECONDS,
-                ),
-            ],
-            calls,
-        )
-        build.assert_called_once()
+        self.assertCountEqual(["dotnet-coverage", "script"], met)
+        self.assertEqual("selected-dotnet", restore.call_args.args[0])
         self.assertEqual("selected-dotnet", build.call_args.args[0])
         cleanup.assert_called_once()
         self.assertEqual("selected-dotnet", cleanup.call_args.args[0])
+
+    def test_local_full_pool_counts_dotnet_against_jobs(self) -> None:
+        for jobs in (3, 2):
+            with self.subTest(jobs=jobs):
+                lock = threading.Lock()
+                starts: list[str] = []
+                active: set[str] = set()
+                maximum = 0
+                together: list[set[str]] = []
+
+                def snapshot() -> None:
+                    with lock:
+                        together.append(set(active))
+
+                barrier = threading.Barrier(jobs, action=snapshot)
+
+                def workload(name: str) -> None:
+                    nonlocal maximum
+                    with lock:
+                        position = len(starts)
+                        starts.append(name)
+                        active.add(name)
+                        maximum = max(maximum, len(active))
+                    try:
+                        if position < jobs:
+                            barrier.wait(timeout=5)
+                    finally:
+                        with lock:
+                            active.discard(name)
+
+                scripts = tuple(
+                    MODULE.VerificationLane(
+                        f"script-{index}", lambda _log, i=index: workload(f"script-{i}")
+                    )
+                    for index in range(4)
+                )
+                with (
+                    self.local_full_plan(
+                        scripts=scripts, isolated=lambda name, _log: workload(name)
+                    ),
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
+                    result = MODULE.execute_verification(
+                        MODULE.parse_args(["--skip-structure", f"--jobs={jobs}"])
+                    )
+
+                self.assertEqual(0, result)
+                self.assertEqual(jobs, maximum)
+                self.assertEqual(1, len(together))
+                self.assertEqual(jobs, len(together[0]))
+                self.assertIn("dotnet-coverage", together[0])
+                self.assertCountEqual(
+                    ["dotnet-coverage", *(f"script-{index}" for index in range(4)), "python"],
+                    starts,
+                )
+
+    def test_local_full_pool_starts_no_lane_before_restore_and_build_finish(self) -> None:
+        for failing in (None, "restore", "build"):
+            with self.subTest(failing=failing):
+                lock = threading.Lock()
+                events: list[str] = []
+
+                def record(event: str) -> None:
+                    with lock:
+                        events.append(event)
+
+                def phase(name: str):
+                    def action(*_args: object, **_kwargs: object) -> None:
+                        if name == failing:
+                            raise RuntimeError(f"{name} probe")
+                        record(f"{name}-end")
+
+                    return action
+
+                with (
+                    self.local_full_plan(
+                        scripts=(
+                            MODULE.VerificationLane("script", lambda _log: record("start:script")),
+                        ),
+                        isolated=lambda name, _log: record(f"start:{name}"),
+                        restore=phase("restore"),
+                        build=phase("build"),
+                    ) as (_restore, _build, cleanup),
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
+                    result = MODULE.execute_verification(MODULE.parse_args(["--all"]))
+
+                self.assertEqual(0 if failing is None else 1, result)
+                cleanup.assert_called_once()
+                expected_prefix = {
+                    None: ["restore-end", "build-end"],
+                    "restore": [],
+                    "build": ["restore-end"],
+                }[failing]
+                self.assertEqual(expected_prefix, events[:len(expected_prefix)])
+                lane_starts = events[len(expected_prefix):]
+                if failing is not None:
+                    self.assertEqual([], lane_starts)
+                else:
+                    self.assertCountEqual(
+                        ["start:dotnet-coverage", "start:structure-postchecks",
+                         "start:script", "start:python"],
+                        lane_starts,
+                    )
+
+    def test_local_full_pool_gives_only_dotnet_its_lane_budget(self) -> None:
+        for flags, dotnet_budget, budget in (
+            ([], MODULE.LOCAL_DOTNET_COVERAGE_LANE_TIMEOUT_SECONDS,
+             MODULE.DEFAULT_LANE_TIMEOUT_SECONDS),
+            (["--lane-timeout-seconds=60"], 60, 60),
+            (["--lane-timeout-seconds=900"], 900, 900),
+        ):
+            with self.subTest(flags=flags):
+                clock = [1000.0]
+                budgets: dict[str, float] = {}
+
+                def observe(name: str) -> None:
+                    budgets[name] = MODULE.LANE_DEADLINE.get() - clock[0]
+                    clock[0] += 10
+
+                scripts = (
+                    MODULE.VerificationLane(
+                        "module-a", lambda _log: observe("module-a"), deadline_group="shard"
+                    ),
+                    MODULE.VerificationLane(
+                        "module-b", lambda _log: observe("module-b"), deadline_group="shard"
+                    ),
+                )
+                with (
+                    self.local_full_plan(
+                        scripts=scripts, isolated=lambda name, _log: observe(name)
+                    ),
+                    patch.object(MODULE, "monotonic", side_effect=lambda: clock[0]),
+                    contextlib.redirect_stdout(io.StringIO()),
+                    contextlib.redirect_stderr(io.StringIO()),
+                ):
+                    result = MODULE.execute_verification(
+                        MODULE.parse_args(["--skip-structure", "--jobs=1", *flags])
+                    )
+
+                self.assertEqual(0, result)
+                # The queued module keeps its shard's shared deadline, queue time included.
+                self.assertEqual(
+                    {"dotnet-coverage": dotnet_budget, "module-a": budget,
+                     "module-b": budget - 10, "python": budget},
+                    budgets,
+                )
 
     def test_explicit_local_full_deadline_still_bounds_dotnet_coverage(self) -> None:
         for deadline in (60, 900):
@@ -935,36 +1144,49 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertEqual([["structure-sync"]], calls)
 
-    def test_public_dotnet_failure_still_runs_independent_lanes_and_aggregates(self) -> None:
+    def test_local_full_pool_reports_and_fails_in_declaration_order(self) -> None:
+        lock = threading.Lock()
         completed: list[str] = []
+        others_finished = threading.Event()
+        stdout = io.StringIO()
         stderr = io.StringIO()
 
-        def isolated(name: str, _log: Path) -> None:
-            completed.append(name)
-            if name in {"dotnet-coverage", "python"}:
+        def finish(name: str, *, fail: bool = False) -> None:
+            with lock:
+                completed.append(name)
+                if {"script", "python"} <= set(completed):
+                    others_finished.set()
+            if fail:
                 raise RuntimeError(f"{name} failed")
 
+        def isolated(name: str, _log: Path) -> None:
+            if name == "dotnet-coverage":
+                if not others_finished.wait(5):
+                    raise AssertionError("the other lanes did not finish before .NET")
+            finish(name, fail=True)
+
         with (
-            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
-            patch.object(MODULE, "resolve_dotnet", return_value="selected-dotnet"),
-            patch.object(MODULE, "run_dotnet_restore_plan"),
-            patch.object(MODULE, "run_dotnet_post_restore_build_plan"),
-            patch.object(MODULE, "local_repository_script_lanes", return_value=(
-                MODULE.VerificationLane("script", lambda _log: completed.append("script")),
-            )),
-            patch.object(MODULE, "run_isolated_lane", side_effect=isolated),
-            patch.object(MODULE, "cleanup_dotnet_batch") as cleanup,
-            contextlib.redirect_stdout(io.StringIO()),
+            self.local_full_plan(
+                scripts=(MODULE.VerificationLane("script", lambda _log: finish("script")),),
+                isolated=isolated,
+            ) as (_restore, _build, cleanup),
+            contextlib.redirect_stdout(stdout),
             contextlib.redirect_stderr(stderr),
         ):
             self.assertEqual(1, MODULE.execute_verification(
                 MODULE.parse_args(["--skip-structure"])
             ))
-        self.assertEqual("dotnet-coverage", completed[0])
-        self.assertCountEqual(["dotnet-coverage", "script", "python"], completed)
-        self.assertIn("verification lanes failed: dotnet", stderr.getvalue())
-        self.assertIn("independent lanes also failed: verification lanes failed: python",
-                      stderr.getvalue())
+
+        self.assertEqual("dotnet-coverage", completed[-1])
+        self.assertIn("verification lanes failed: dotnet, python", stderr.getvalue())
+        output = stdout.getvalue()
+        headers = [output.index(f"=== {name} lane") for name in ("dotnet", "script", "python")]
+        self.assertEqual(sorted(headers), headers)
+        self.assertRegex(
+            output,
+            r"Verification lane summary: dotnet=FAIL \([0-9.]+s\), "
+            r"script=PASS \([0-9.]+s\), python=FAIL \([0-9.]+s\)",
+        )
         cleanup.assert_called_once()
 
     def test_public_build_or_pool_setup_failure_and_cancellation_still_cleanup(self) -> None:
@@ -1016,13 +1238,207 @@ class VerifyOrchestrationTests(unittest.TestCase):
             contextlib.redirect_stdout(io.StringIO()),
             contextlib.redirect_stderr(stderr),
         ):
+            # The serial form; the pool form is the admission-latch test below.
             self.assertEqual(1, MODULE.execute_verification(
-                MODULE.parse_args(["--skip-structure"])
+                MODULE.parse_args(["--skip-structure", "--jobs=1"])
             ))
         self.assertEqual(1, launch.call_count)
         script.assert_not_called()
         self.assertIn("coverage child launch probe", stderr.getvalue())
         cleanup.assert_called_once()
+
+    def test_setup_failure_closes_lane_admission_before_later_lanes_start(self) -> None:
+        lock = threading.Lock()
+        attempts: list[tuple[str, bool]] = []
+        blocked_started = threading.Event()
+        queued_attempted = threading.Event()
+        ran: list[str] = []
+        cancellation_seen: list[bool] = []
+        stderr = io.StringIO()
+        real_admission = MODULE.LaneAdmission
+        real_as_completed = MODULE.as_completed
+
+        class ObservedAdmission(real_admission):
+            def admit(self, name: str) -> bool:
+                admitted = super().admit(name)
+                with lock:
+                    attempts.append((name, admitted))
+                    if {"queued", "python"} <= {attempt for attempt, _ in attempts}:
+                        queued_attempted.set()
+                return admitted
+
+        def blocked(_log: Path) -> None:
+            blocked_started.set()
+            cancellation_seen.append(MODULE.PROCESS_CANCELLATION_REQUESTED.is_set())
+            if not queued_attempted.wait(5):
+                raise AssertionError("queued lanes were never attempted")
+            ran.append("blocked")
+
+        def isolated(name: str, _log: Path) -> None:
+            if name == "dotnet-coverage":
+                if not blocked_started.wait(5):
+                    raise AssertionError("the blocked lane was never admitted")
+                raise OSError("coverage child launch probe")
+            ran.append(name)
+
+        def hold_main_thread(futures):
+            if not queued_attempted.wait(5):
+                raise AssertionError("queued lanes were never attempted")
+            return real_as_completed(futures)
+
+        with (
+            self.local_full_plan(
+                scripts=(
+                    MODULE.VerificationLane("blocked", blocked),
+                    MODULE.VerificationLane("queued", lambda _log: ran.append("queued")),
+                ),
+                isolated=isolated,
+            ) as (_restore, _build, cleanup),
+            patch.object(MODULE, "LaneAdmission", ObservedAdmission),
+            patch.object(MODULE, "as_completed", side_effect=hold_main_thread),
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(stderr),
+        ):
+            result = MODULE.execute_verification(
+                MODULE.parse_args(["--skip-structure", "--jobs=2"])
+            )
+
+        self.assertEqual(1, result)
+        self.assertEqual(["blocked"], ran)
+        # Restore and build are earlier single-lane pools with their own latches.
+        self.assertEqual(
+            {("dotnet-restore", True), ("dotnet-build", True), ("dotnet", True),
+             ("blocked", True), ("queued", False), ("python", False)},
+            set(attempts),
+        )
+        self.assertEqual(6, len(attempts))
+        self.assertIn("dotnet coverage child launch/setup failed", stderr.getvalue())
+        self.assertIn("coverage child launch probe", stderr.getvalue())
+        self.assertNotIn("verification lanes failed", stderr.getvalue())
+        self.assertEqual([False], cancellation_seen)
+        self.assertFalse(MODULE.PROCESS_CANCELLATION_REQUESTED.is_set())
+        cleanup.assert_called_once()
+
+    @staticmethod
+    def process_ended(pid: int, timeout_seconds: float = 5) -> bool:
+        """Wait for a process to end without signalling it."""
+
+        if sys.platform == "win32":
+            import ctypes
+            from ctypes import wintypes
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel32.OpenProcess.restype = wintypes.HANDLE
+            kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+            kernel32.WaitForSingleObject.restype = wintypes.DWORD
+            kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+            synchronize_and_query = 0x00100000 | 0x00001000
+            handle = kernel32.OpenProcess(synchronize_and_query, False, pid)
+            if not handle:
+                return True
+            try:
+                return kernel32.WaitForSingleObject(handle, int(timeout_seconds * 1000)) == 0
+            finally:
+                kernel32.CloseHandle(handle)
+        deadline = time.monotonic() + timeout_seconds
+        while True:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.05)
+
+    def test_local_full_pool_interruption_terminates_the_coverage_tree_without_cleanup_child(
+        self,
+    ) -> None:
+        for mode in ("ctrl-c", "sigterm"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                pid_files = (root / "child.pid", root / "grandchild.pid")
+                grandchild = (
+                    "import os, pathlib, time; "
+                    f"pathlib.Path({str(pid_files[1])!r}).write_text(str(os.getpid())); "
+                    "time.sleep(20)"
+                )
+                child = (
+                    "import os, pathlib, subprocess, sys, time; "
+                    f"pathlib.Path({str(pid_files[0])!r}).write_text(str(os.getpid())); "
+                    f"subprocess.Popen([sys.executable, '-c', {grandchild!r}]); "
+                    "time.sleep(20)"
+                )
+                spawned: list[list[str]] = []
+                cleanup_cancellation: list[bool] = []
+                real_start = MODULE.start_owned_process
+                real_cleanup = MODULE.cleanup_dotnet_batch
+                expected = (
+                    KeyboardInterrupt if mode == "ctrl-c"
+                    else MODULE.VerificationTerminationRequested
+                )
+
+                def start(command, **kwargs):
+                    spawned.append(command)
+                    return real_start(command, **kwargs)
+
+                def isolated(name: str, log: Path) -> None:
+                    if name == "dotnet-coverage":
+                        MODULE.run([sys.executable, "-c", child], log_path=log)
+
+                def script(_log: Path) -> None:
+                    deadline = time.monotonic() + 10
+                    while not MODULE.PROCESS_CANCELLATION_REQUESTED.is_set():
+                        if time.monotonic() > deadline:
+                            raise AssertionError("the blocked script lane was never cancelled")
+                        time.sleep(0.01)
+
+                def interrupt_after_ready(_futures):
+                    deadline = time.monotonic() + 10
+                    while not all(path.exists() and path.read_text() for path in pid_files):
+                        if time.monotonic() > deadline:
+                            raise AssertionError("the coverage child tree never became ready")
+                        time.sleep(0.01)
+                    if self.process_ended(int(pid_files[0].read_text()), 0):
+                        raise AssertionError("the coverage child ended before the interruption")
+                    if mode == "ctrl-c":
+                        _thread.interrupt_main()
+                    else:
+                        signal.raise_signal(signal.SIGTERM)
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline:
+                        time.sleep(0.01)
+                    raise AssertionError("the interruption was not delivered")
+
+                def cleanup(*args: object) -> None:
+                    cleanup_cancellation.append(MODULE.PROCESS_CANCELLATION_REQUESTED.is_set())
+                    real_cleanup(*args)
+
+                try:
+                    with (
+                        MODULE.handle_external_termination(),
+                        self.local_full_plan(
+                            scripts=(MODULE.VerificationLane("script", script),),
+                            isolated=isolated,
+                        ),
+                        patch.object(MODULE, "start_owned_process", side_effect=start),
+                        patch.object(MODULE, "as_completed", side_effect=interrupt_after_ready),
+                        patch.object(MODULE, "cleanup_dotnet_batch", side_effect=cleanup),
+                        patch.object(MODULE, "stop_idle_build_workers") as stop_workers,
+                        contextlib.redirect_stdout(io.StringIO()),
+                        contextlib.redirect_stderr(io.StringIO()),
+                        self.assertRaises(expected),
+                    ):
+                        MODULE.execute_verification(MODULE.parse_args(["--skip-structure"]))
+                    self.assertTrue(all(
+                        self.process_ended(int(path.read_text())) for path in pid_files
+                    ))
+                    self.assertEqual([[sys.executable, "-c", child]], spawned)
+                    self.assertEqual([True], cleanup_cancellation)
+                    stop_workers.assert_not_called()
+                    self.assertFalse(MODULE.ACTIVE_PROCESSES)
+                finally:
+                    MODULE.PROCESS_CANCELLATION_REQUESTED.clear()
 
     def test_real_lane_interruption_keeps_cleanup_from_starting_a_child(self) -> None:
         for interruption in (KeyboardInterrupt(), MODULE.VerificationTerminationRequested(signal.SIGTERM)):
@@ -3132,13 +3548,27 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
             self.assertIn('"1.0.1"', lock_path.read_text(encoding="utf-8"))
 
+    def test_solution_locks_include_only_the_exact_declared_generator(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, solution = self.create_solution_lock_fixture(root, b'{"version":2,"dependencies":{"net10.0":{}}}')
+            self.assertEqual(27, len(MODULE.solution_package_lock_paths(root, solution)))
+            solution.write_text(solution.read_text(encoding="utf-8").replace(
+                "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj",
+                "eng/unlisted/Unlisted.csproj"), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "invalid solution project path"):
+                MODULE.solution_package_lock_paths(root, solution)
+
     def create_solution_lock_fixture(
         self, root: Path, lock_bytes: bytes
     ) -> tuple[Path, Path]:
         projects: list[Path] = []
-        for index in range(25):
+        for index in range(27):
             name = "Product" if index == 0 else f"Product{index:02d}"
-            project = root / "src" / name / f"{name}.csproj"
+            project = (root / "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+                       if index == 25 else root / "src" / name / f"{name}.csproj")
+            if index == 26:
+                project = root / "tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj"
             project.parent.mkdir(parents=True)
             project.write_text("<Project />", encoding="utf-8")
             (project.parent / "packages.lock.json").write_bytes(lock_bytes)
@@ -3155,6 +3585,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
             encoding="utf-8",
         )
         return lock, solution
+
+    def test_solution_lock_inventory_includes_catalog_probe_and_rejects_omission(self) -> None:
+        locks = MODULE.solution_package_lock_paths()
+        self.assertEqual(27, len(locks))
+        self.assertIn(ROOT / "tests/NvtFwCombiner.CatalogProbe/packages.lock.json", locks)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, solution = self.create_solution_lock_fixture(root, b'{"version":2,"dependencies":{}}')
+            solution.write_text(solution.read_text(encoding="utf-8").replace(
+                '<Project Path="tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj" />',
+                ''), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "exactly 27 projects and locks"):
+                MODULE.solution_package_lock_paths(root, solution)
 
     def test_solution_restore_restores_projection_before_rethrowing_failure(
         self,
@@ -4630,6 +5073,74 @@ class VerifyOrchestrationTests(unittest.TestCase):
             verify_coverage.assert_called_once_with("dotnet", coverage)
             self.assertFalse(work.exists())
 
+    def test_infrastructure_coverage_shares_project_pool_with_core_peer(self) -> None:
+        core = MODULE.CI_DOTNET_SHARDS["core"]
+        infrastructure = next(
+            project for project in core
+            if project.name == MODULE.INFRASTRUCTURE_TEST_PROJECT
+        )
+        domain = next(
+            project for project in core
+            if project.name == "NvtFwCombiner.Domain.Tests"
+        )
+        rendezvous = threading.Barrier(2)
+        started: list[str] = []
+        lock = threading.Lock()
+
+        def run_project(stage: MODULE.LocalDotnetCoverageStage, *_args: object) -> None:
+            with lock:
+                started.append(stage.project.name)
+            rendezvous.wait(timeout=3)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            coverage = root / "coverage"
+            coverage.mkdir()
+
+            def prepare(
+                project: MODULE.CiDotnetProject, *_args: object, **_kwargs: object
+            ) -> MODULE.LocalDotnetCoverageStage:
+                return MODULE.LocalDotnetCoverageStage(
+                    project,
+                    root / project.name / "source",
+                    root / project.name / "shadow",
+                    root / project.name / f"{project.name}.dll",
+                    root / project.name / "discovered-tests.txt",
+                    root / project.name / "results",
+                    {},
+                    (),
+                )
+
+            with (
+                patch.object(
+                    MODULE, "flatten_ci_dotnet_projects",
+                    return_value=(infrastructure, domain),
+                ),
+                patch.object(
+                    MODULE, "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(
+                    MODULE, "prepare_local_dotnet_coverage_stage",
+                    side_effect=prepare,
+                ),
+                patch.object(
+                    MODULE, "run_local_dotnet_coverage_project",
+                    side_effect=run_project,
+                ),
+                patch.object(MODULE, "require_local_dotnet_sources_unchanged"),
+                patch.object(MODULE, "verify_coverage"),
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet", coverage, root / "work", {}, None,
+                    repository_root=root,
+                )
+
+        self.assertCountEqual(
+            (MODULE.INFRASTRUCTURE_TEST_PROJECT, "NvtFwCombiner.Domain.Tests"),
+            started,
+        )
+
     def test_invalid_collector_blocks_every_project_runner(self) -> None:
         project = MODULE.CiDotnetProject("tests/Probe/Probe.Tests.csproj")
         with tempfile.TemporaryDirectory() as temporary:
@@ -4940,6 +5451,847 @@ class VerifyOrchestrationTests(unittest.TestCase):
             verify_coverage.assert_not_called()
             self.assertFalse(work.exists())
 
+    # Local UiSmoke partition (VERIFY-UISMOKE-PARTITION-1113-01, ADR 0079 item 9).
+
+    PARTITION_NAMESPACE = "Probe.Ui.Tests"
+
+    def partition_declaration(self, *listed_parts: tuple[str, ...]):
+        return MODULE.DotnetTestPartition(
+            self.PARTITION_NAMESPACE, listed_parts or (("Alpha",), ("Beta", "Gamma"))
+        )
+
+    def partition_cases(self, namespace: str | None = None) -> tuple[str, ...]:
+        namespace = namespace or self.PARTITION_NAMESPACE
+        return (
+            f"{namespace}.Alpha.One",
+            f"{namespace}.Alpha.Rows(value: 1)",
+            f"{namespace}.Alpha.Rows(value: 2)",
+            f"{namespace}.Beta.Two",
+            f"{namespace}.Gamma.Three",
+            f"{namespace}.AlphaBeta.Four",
+            f"{namespace}.Delta.Five",
+        )
+
+    @staticmethod
+    def partition_filter_selects(expression: str, fully_qualified_name: str) -> bool:
+        """Model VSTest's case-insensitive contains terms of the two filter shapes."""
+
+        folded = fully_qualified_name.casefold()
+        if "!~" in expression:
+            terms = expression.split("&")
+            if not all(term.startswith("FullyQualifiedName!~") for term in terms):
+                raise AssertionError(f"unexpected complement filter: {expression}")
+            return all(
+                term.removeprefix("FullyQualifiedName!~").casefold() not in folded
+                for term in terms
+            )
+        terms = expression.split("|")
+        if not all(term.startswith("FullyQualifiedName~") for term in terms):
+            raise AssertionError(f"unexpected listed filter: {expression}")
+        return any(
+            term.removeprefix("FullyQualifiedName~").casefold() in folded for term in terms
+        )
+
+    def write_partition_listing(
+        self,
+        directory: Path,
+        displays: tuple[str, ...],
+        fully_qualified: tuple[str, ...] | None = None,
+    ):
+        directory.mkdir(parents=True, exist_ok=True)
+        display = directory / "discovered-tests.txt"
+        self.write_vstest_discovery(display, displays)
+        names = (
+            sorted({MODULE.canonical_vstest_identity(case) for case in displays})
+            if fully_qualified is None
+            else fully_qualified
+        )
+        listing = directory / "discovered-fqn.txt"
+        listing.write_text("".join(f"{name}\r\n" for name in names), encoding="utf-8")
+        return MODULE.VstestDiscoveryListing(display, listing)
+
+    def write_partition_discoveries(self, root: Path, declaration, displays=None):
+        displays = displays or self.partition_cases()
+        unfiltered = self.write_partition_listing(root / "unfiltered", displays)
+        filtered = {}
+        for index in range(1, declaration.part_count + 1):
+            expression = MODULE.dotnet_partition_filter(
+                MODULE.DotnetPartitionPart(declaration, index)
+            )
+            filtered[index] = self.write_partition_listing(
+                root / f"part-{index}",
+                tuple(
+                    case
+                    for case in displays
+                    if self.partition_filter_selects(
+                        expression, MODULE.canonical_vstest_identity(case)
+                    )
+                ),
+            )
+        return unfiltered, filtered
+
+    @staticmethod
+    def write_partition_trx(
+        path: Path,
+        displays: tuple[str, ...],
+        *,
+        methods: tuple[tuple[str, str], ...] | None = None,
+        outcomes: tuple[str, ...] | None = None,
+        result_test_ids: tuple[str, ...] | None = None,
+        duplicate_definitions: bool = False,
+    ) -> None:
+        """Write a TRX whose results bind to UnitTest definitions through testId."""
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        outcomes = outcomes or tuple("Passed" for _ in displays)
+        root = MODULE.ET.Element(
+            "TestRun", xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010"
+        )
+        definitions = MODULE.ET.SubElement(root, "TestDefinitions")
+        results = MODULE.ET.SubElement(root, "Results")
+        for index, display in enumerate(displays):
+            test_id = f"{index:08x}-0000-0000-0000-000000000000"
+            class_name, method_name = (
+                methods[index]
+                if methods is not None
+                else MODULE.canonical_vstest_identity(display).rsplit(".", 1)
+            )
+            for _copy in range(2 if duplicate_definitions else 1):
+                definition = MODULE.ET.SubElement(
+                    definitions, "UnitTest", name=display, id=test_id
+                )
+                MODULE.ET.SubElement(
+                    definition, "TestMethod", className=class_name, name=method_name
+                )
+            MODULE.ET.SubElement(
+                results,
+                "UnitTestResult",
+                testId=test_id if result_test_ids is None else result_test_ids[index],
+                testName=display,
+                outcome=outcomes[index],
+            )
+        passed = outcomes.count("Passed")
+        failed = outcomes.count("Failed")
+        MODULE.ET.SubElement(
+            MODULE.ET.SubElement(root, "ResultSummary"),
+            "Counters",
+            total=str(len(displays)),
+            executed=str(passed + failed),
+            passed=str(passed),
+            failed=str(failed),
+        )
+        MODULE.ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
+
+    def write_partition_executions(self, root: Path, filtered) -> dict[int, Path]:
+        executed = {}
+        for index, listing in filtered.items():
+            displays = tuple(
+                line[4:]
+                for line in listing.display.read_text(encoding="utf-8").splitlines()
+                if line.startswith("    ")
+            )
+            executed[index] = root / f"executed-{index}" / "test-results.trx"
+            self.write_partition_trx(executed[index], displays)
+        return executed
+
+    def test_partition_grammar_binds_only_real_fully_qualified_names(self) -> None:
+        namespace = self.PARTITION_NAMESPACE
+        self.assertEqual(
+            {f"{namespace}.Foo.M": "Foo"},
+            MODULE.require_partition_identity_types(
+                namespace, frozenset({f"{namespace}.Foo.M"}), description="probe"
+            ),
+        )
+        for name in (
+            f"Other.{namespace}.Foo.M",
+            f"{namespace}.Sub.Foo.M",
+            f"{namespace}.Outer+Inner.M",
+            f"{namespace}.Gen`1.M",
+            f"{namespace}.F\u00f6\u00f6.M",
+            f"{namespace}.Foo.M(value: 1)",
+            f"{namespace}.Foo.M ",
+            f"{namespace}.Foo",
+        ):
+            with self.subTest(name=name), self.assertRaisesRegex(RuntimeError, "grammar"):
+                MODULE.require_partition_identity_types(
+                    namespace, frozenset({name}), description="probe"
+                )
+        for names in (
+            {f"{namespace}.Foo.A", f"{namespace}.foo.B"},
+            {f"{namespace}.Foo.A", f"{namespace}.Foo.a"},
+        ):
+            with self.subTest(names=names), self.assertRaisesRegex(RuntimeError, "only by case"):
+                MODULE.require_partition_identity_types(
+                    namespace, frozenset(names), description="probe"
+                )
+        with tempfile.TemporaryDirectory() as temporary:
+            listing = Path(temporary) / "discovered-fqn.txt"
+            with self.assertRaisesRegex(RuntimeError, "could not be read"):
+                MODULE.parse_vstest_fully_qualified_listing(listing)
+            listing.write_text("\r\n\r\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "empty"):
+                MODULE.parse_vstest_fully_qualified_listing(listing)
+            listing.write_bytes(b"\xff\xfeP\x00")
+            with self.assertRaisesRegex(RuntimeError, "not UTF-8"):
+                MODULE.parse_vstest_fully_qualified_listing(listing)
+            # A name repeated across discovery batches is one set member.
+            listing.write_text(
+                f"{namespace}.Foo.M\r\n{namespace}.Foo.M\r\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                frozenset({f"{namespace}.Foo.M"}),
+                MODULE.parse_vstest_fully_qualified_listing(listing),
+            )
+
+    def test_partition_filters_select_exact_types_and_the_complement(self) -> None:
+        namespace = self.PARTITION_NAMESPACE
+        declaration = self.partition_declaration()
+        filters = [
+            MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(declaration, index))
+            for index in (1, 2, 3)
+        ]
+        self.assertEqual(
+            [
+                f"FullyQualifiedName~{namespace}.Alpha.",
+                f"FullyQualifiedName~{namespace}.Beta.|FullyQualifiedName~{namespace}.Gamma.",
+                f"FullyQualifiedName!~{namespace}.Alpha.&FullyQualifiedName!~{namespace}.Beta."
+                f"&FullyQualifiedName!~{namespace}.Gamma.",
+            ],
+            filters,
+        )
+        identities = sorted({
+            MODULE.canonical_vstest_identity(case) for case in self.partition_cases()
+        })
+        selected = {
+            identity: [
+                index
+                for index, expression in enumerate(filters, 1)
+                if self.partition_filter_selects(expression, identity)
+            ]
+            for identity in identities
+        }
+        # "NS.Alpha." never selects the "NS.AlphaBeta" type; every identity lands once.
+        self.assertEqual([3], selected[f"{namespace}.AlphaBeta.Four"])
+        self.assertEqual([1], selected[f"{namespace}.Alpha.One"])
+        self.assertTrue(all(len(parts) == 1 for parts in selected.values()), selected)
+        with self.assertRaises(ValueError):
+            MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(declaration, 4))
+        command = MODULE.local_dotnet_vstest_command(
+            "dotnet",
+            Path("NvtFwCombiner.Infrastructure.Tests.dll"),
+            Path("adapter"),
+            Path("results"),
+            test_case_filter=filters[0],
+        )
+        self.assertLess(
+            command.index(f"--TestCaseFilter:{filters[0]}"), command.index("--")
+        )
+        for invalid, message in (
+            ((("Alpha",), ("Alpha",)), "appear once"),
+            ((("Alpha",), ("alpha",)), "appear once"),
+            ((("Alpha", "Alpha"),), "appear once"),
+            ((("Outer+Inner",),), "invalid partition type"),
+            ((("Alpha",), ()), "lists no type"),
+            ((), "2 to"),
+            ((("A",), ("B",), ("C",)), "2 to"),
+        ):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(RuntimeError, message):
+                MODULE.validate_dotnet_test_partition(
+                    MODULE.DotnetTestPartition(namespace, invalid)
+                )
+        with self.assertRaisesRegex(RuntimeError, "namespace"):
+            MODULE.validate_dotnet_test_partition(
+                MODULE.DotnetTestPartition("Probe..Tests", (("Alpha",),))
+            )
+
+        inventory = {project.name for project in MODULE.flatten_ci_dotnet_projects()}
+        self.assertEqual({MODULE.UISMOKE_TEST_PROJECT}, set(MODULE.DOTNET_TEST_PARTITIONS))
+        self.assertLessEqual(set(MODULE.DOTNET_TEST_PARTITIONS), inventory)
+        uismoke = MODULE.DOTNET_TEST_PARTITIONS[MODULE.UISMOKE_TEST_PROJECT]
+        MODULE.validate_dotnet_test_partition(uismoke)
+        self.assertEqual(MODULE.UISMOKE_TEST_PROJECT, uismoke.namespace)
+        self.assertEqual(3, uismoke.part_count)
+        self.assertLessEqual(uismoke.part_count, MODULE.MAXIMUM_LOCAL_DOTNET_JOBS)
+        self.assertEqual([25, 33], [len(types) for types in uismoke.listed_parts])
+        for index in range(1, uismoke.part_count + 1):
+            self.assertLess(
+                len(MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(uismoke, index))),
+                8192,
+            )
+
+    def test_exact_partition_admits_and_reconciles_the_declared_parts(self) -> None:
+        namespace = self.PARTITION_NAMESPACE
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Ui.Tests.csproj")
+        for declaration, stale in (
+            (self.partition_declaration(), ()),
+            (self.partition_declaration(("Alpha", "Missing"), ("Beta", "Gamma")), ("Missing",)),
+        ):
+            with self.subTest(stale=stale), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                unfiltered, filtered = self.write_partition_discoveries(root, declaration)
+                hashes = MODULE.DotnetPartitionAssemblyHashes("a" * 64, dict.fromkeys((1, 2, 3), "a" * 64))
+                inventory = MODULE.require_exact_partition(
+                    declaration, unfiltered, filtered, assembly_hashes=hashes, project=project
+                )
+                self.assertEqual(stale, inventory.stale_types)
+                self.assertEqual(
+                    [{"Alpha"}, {"Beta", "Gamma"}, {"AlphaBeta", "Delta"}],
+                    [set(types) for types in inventory.part_types],
+                )
+                # Theory rows keep their multiplicity and are never split.
+                self.assertEqual(2, inventory.part_cases[0][f"{namespace}.Alpha.Rows"])
+                self.assertEqual([3, 2, 2], [sum(cases.values()) for cases in inventory.part_cases])
+                executed = self.write_partition_executions(root, filtered)
+                MODULE.require_exact_partition(
+                    declaration,
+                    unfiltered,
+                    filtered,
+                    executed,
+                    hashes,
+                    project=project,
+                    producer_platform="windows",
+                )
+
+    def test_exact_partition_rejects_every_inexact_discovery_or_execution(self) -> None:
+        namespace = self.PARTITION_NAMESPACE
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.Ui.Tests.csproj")
+        declaration = self.partition_declaration()
+        hashes = MODULE.DotnetPartitionAssemblyHashes("a" * 64, dict.fromkeys((1, 2, 3), "a" * 64))
+        cases = self.partition_cases()
+
+        def admission(root, unfiltered, filtered, **_kwargs):
+            MODULE.require_exact_partition(
+                declaration, unfiltered, filtered, assembly_hashes=hashes, project=project
+            )
+
+        def unscheduled(root, unfiltered, filtered):
+            admission(root, unfiltered, {1: filtered[1], 2: filtered[2]})
+
+        def rewrite(index, displays, names=None):
+            def mutate(root, unfiltered, filtered):
+                target = unfiltered if index == 0 else filtered[index]
+                target.display.unlink()
+                target.fully_qualified.unlink()
+                self.write_partition_listing(target.display.parent, displays, names)
+                admission(root, unfiltered, filtered)
+
+            return mutate
+
+        def remove(kind):
+            def mutate(root, unfiltered, filtered):
+                getattr(filtered[2] if kind != "unfiltered" else unfiltered,
+                        "fully_qualified" if kind != "display" else "display").unlink()
+                admission(root, unfiltered, filtered)
+
+            return mutate
+
+        def post_run(change):
+            def mutate(root, unfiltered, filtered):
+                executed = self.write_partition_executions(root, filtered)
+                assembly = change(executed) or hashes
+                MODULE.require_exact_partition(
+                    declaration, unfiltered, filtered, executed, assembly,
+                    project=project, producer_platform="windows",
+                )
+
+            return mutate
+
+        def trx(index, displays, **options):
+            def change(executed):
+                self.write_partition_trx(executed[index], displays, **options)
+
+            return change
+
+        beta, gamma = f"{namespace}.Beta.Two", f"{namespace}.Gamma.Three"
+        part_one = cases[:3]
+        negatives = {
+            "declared part never scheduled": (unscheduled, "cover exactly parts"),
+            "unfiltered FQN listing missing": (remove("unfiltered"), "could not be read"),
+            "part discovery listing missing": (remove("display"), "could not be read"),
+            "part FQN listing missing": (remove("fully_qualified"), "could not be read"),
+            "filter not applied": (rewrite(1, cases), "filter was not applied"),
+            "identity in two parts": (rewrite(2, (beta, gamma, cases[0])), "differs from the declaration"),
+            "dropped identity": (rewrite(3, (f"{namespace}.AlphaBeta.Four",)), "differs from the declaration"),
+            "theory multiplicity drift": (rewrite(1, part_one[:2]), "differs from the declaration"),
+            "display imitates another part's type": (
+                rewrite(1, (*part_one, beta)), "differs from the declaration"),
+            "hidden sub-namespace type behind a display alias": (
+                rewrite(0, (*cases[:-1], f"{namespace}.Unlisted.M"),
+                        (*sorted({MODULE.canonical_vstest_identity(case) for case in cases[:-1]}),
+                         f"{namespace}.Sub.Hidden.M")),
+                "grammar"),
+            "real FQN differs from its display": (
+                rewrite(0, (*cases[:-1], f"{namespace}.Unlisted.M"),
+                        (*sorted({MODULE.canonical_vstest_identity(case) for case in cases[:-1]}),
+                         f"{namespace}.Hidden.M")),
+                "differ from the real fully qualified names"),
+            "nested type behind a legal display": (
+                rewrite(0, (*cases[:-1], f"{namespace}.Legal.M"),
+                        (*sorted({MODULE.canonical_vstest_identity(case) for case in cases[:-1]}),
+                         f"{namespace}.Outer+Inner.M")),
+                "grammar"),
+            "unparsable FQN listing line": (
+                rewrite(2, (beta, gamma), (beta, gamma, "not a test name")), "grammar"),
+            "assembly hash mismatch": (
+                post_run(lambda _executed: MODULE.DotnetPartitionAssemblyHashes(
+                    "a" * 64, {1: "a" * 64, 2: "b" * 64, 3: "a" * 64})),
+                "hash differs"),
+            "part TRX missing": (post_run(lambda executed: executed[2].unlink()), "TRX is missing"),
+            "part TRX extra identity": (
+                post_run(trx(2, (beta, gamma, f"{namespace}.Beta.Extra"))), "part 2:.*changed"),
+            "part TRX missing identity": (post_run(trx(2, (beta,))), "part 2:.*changed"),
+            "part TRX failed case": (
+                post_run(trx(2, (beta, gamma), outcomes=("Passed", "Failed"))), "failed test"),
+            "swapped display names": (
+                post_run(trx(2, (beta, gamma), methods=(
+                    (f"{namespace}.Gamma", "Three"), (f"{namespace}.Beta", "Two")))),
+                "is bound to test method"),
+            "result without a definition": (
+                post_run(trx(2, (beta, gamma), result_test_ids=("", "x"))),
+                "no unique test definition"),
+            "ambiguous definition": (
+                post_run(trx(2, (beta, gamma), duplicate_definitions=True)),
+                "no unique test definition"),
+        }
+        with self.assertRaisesRegex(RuntimeError, "selects no discovered type"), \
+                tempfile.TemporaryDirectory() as temporary:
+            empty = self.partition_declaration(("Alpha",), ("Missing",))
+            unfiltered, filtered = self.write_partition_discoveries(Path(temporary), empty)
+            MODULE.require_exact_partition(empty, unfiltered, filtered, project=project)
+        with self.assertRaisesRegex(RuntimeError, "only by case"), \
+                tempfile.TemporaryDirectory() as temporary:
+            unfiltered, filtered = self.write_partition_discoveries(Path(temporary), declaration)
+            MODULE.require_exact_partition(
+                self.partition_declaration(("alpha",), ("Beta", "Gamma")),
+                unfiltered, filtered, project=project,
+            )
+        for case, (mutate, message) in negatives.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                unfiltered, filtered = self.write_partition_discoveries(root, declaration)
+                with self.assertRaisesRegex(RuntimeError, message):
+                    mutate(root, unfiltered, filtered)
+
+    def test_partitioned_collector_runs_exact_parts_concurrently_and_exclusively(self) -> None:
+        names = tuple(f"P{index}.Tests" for index in range(5))
+        projects = tuple(
+            MODULE.CiDotnetProject(
+                f"tests/{name}/{name}.csproj",
+                requires_exclusive_local_coverage=name in {"P0.Tests", "P1.Tests"},
+            )
+            for name in names
+        )
+        declaration = MODULE.DotnetTestPartition("P0.Tests", (("Alpha",), ("Beta", "Gamma")))
+        displays = {
+            name: (
+                self.partition_cases("P0.Tests") if name == "P0.Tests"
+                else (f"{name}.Case.One", f"{name}.Case.Two")
+            )
+            for name in names
+        }
+        part_filters = {
+            MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(declaration, index)): index
+            for index in (1, 2, 3)
+        }
+        for failing_part in (None, 2):
+            with self.subTest(failing_part=failing_part), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                repository = root / "repository"
+                coverage = root / "coverage"
+                coverage.mkdir()
+                work = root / "work"
+                for name in names:
+                    output = repository / "tests" / name / "bin/Release/net10.0"
+                    output.mkdir(parents=True)
+                    (output / f"{name}.dll").write_bytes(name.encode("utf-8"))
+                    (output / "dependency.dll").write_bytes(b"dependency")
+                barrier = threading.Barrier(3)
+                lock = threading.Lock()
+                executions: list[tuple[str, int | None, Path, Path]] = []
+                active: list[str] = []
+                violations: list[str] = []
+                freshness: list[tuple[int, list[Path]]] = []
+                real_freshness = MODULE.require_local_dotnet_sources_unchanged
+
+                def option(command, prefix):
+                    return next(
+                        (part.removeprefix(prefix) for part in command if part.startswith(prefix)),
+                        None,
+                    )
+
+                def fake_run(command, *, environment=None, log_path=None, **_kwargs):
+                    del environment
+                    if command[1:] == ["--version"]:
+                        with log_path.open("a", encoding="utf-8") as log:
+                            log.write("10.0.303\n")
+                        return
+                    assembly = Path(command[2])
+                    name = assembly.stem
+                    expression = option(command, "--TestCaseFilter:")
+                    selected = tuple(
+                        case for case in displays[name]
+                        if expression is None or self.partition_filter_selects(
+                            expression, MODULE.canonical_vstest_identity(case))
+                    )
+                    if "--ListTests" in command:
+                        with log_path.open("a", encoding="utf-8") as log:
+                            log.write("VSTest version 18.6.0 (x64)\n")
+                            log.writelines(f"    {case}\n" for case in selected)
+                        return
+                    if "--ListFullyQualifiedTests" in command:
+                        Path(option(command, "--ListTestsTargetPath:")).write_text(
+                            "".join(f"{identity}\r\n" for identity in sorted(
+                                {MODULE.canonical_vstest_identity(case) for case in selected})),
+                            encoding="utf-8",
+                        )
+                        return
+                    part = part_filters.get(expression) if expression is not None else None
+                    results = Path(option(command, "--ResultsDirectory:"))
+                    with lock:
+                        partitioned = name == "P0.Tests"
+                        if any((other == "P0.Tests") != partitioned for other in active):
+                            violations.append(f"{name} overlapped {active}")
+                        active.append(name)
+                        executions.append((name, part, assembly, results))
+                    try:
+                        if part is not None:
+                            barrier.wait(timeout=5)
+                        failed = part is not None and part == failing_part
+                        self.write_partition_trx(
+                            results / "test-results.trx", selected,
+                            outcomes=tuple(
+                                "Failed" if failed and index == 0 else "Passed"
+                                for index in range(len(selected))),
+                        )
+                        self.write_ci_coverage_pair(results / "attachment", {})
+                    finally:
+                        with lock:
+                            active.remove(name)
+                    if failed:
+                        raise subprocess.CalledProcessError(1, command)
+
+                def observed_freshness(stages, *args):
+                    with lock:
+                        freshness.append((len(executions), [stage.shadow_output for stage in stages]))
+                    return real_freshness(stages, *args)
+
+                stdout = io.StringIO()
+                with (
+                    patch.object(MODULE, "DOTNET_TEST_PARTITIONS", {"P0.Tests": declaration}),
+                    patch.object(MODULE, "flatten_ci_dotnet_projects", return_value=projects),
+                    patch.object(MODULE, "resolve_coverlet_adapter_path", return_value=root / "adapter"),
+                    patch.object(
+                        MODULE, "find_project_release_output",
+                        side_effect=lambda project, repository_root: (
+                            repository_root / "tests" / project.name / "bin/Release/net10.0",
+                            Path("bin/Release/net10.0"),
+                        ),
+                    ),
+                    patch.object(MODULE, "canonical_production_release_outputs", return_value={}),
+                    patch.object(MODULE, "require_production_release_matches", return_value=()),
+                    patch.object(MODULE, "run", side_effect=fake_run),
+                    patch.object(MODULE, "run_lanes", wraps=MODULE.run_lanes) as run_lanes,
+                    patch.object(MODULE, "require_local_dotnet_sources_unchanged",
+                                 side_effect=observed_freshness),
+                    patch.object(MODULE, "verify_coverage") as verify_coverage,
+                    contextlib.redirect_stdout(stdout),
+                    contextlib.ExitStack() as stack,
+                ):
+                    if failing_part is not None:
+                        stack.enter_context(self.assertRaisesRegex(
+                            RuntimeError, r"local \.NET coverage projects failed: P0\.Tests\.part-2-of-3$"))
+                    MODULE.collect_local_dotnet_coverage(
+                        "dotnet", coverage, work, {}, None,
+                        repository_root=repository, work_owner_root=root,
+                    )
+
+                self.assertEqual([], violations)
+                order = [name for name, *_rest in executions]
+                self.assertEqual(["P0.Tests"] * 3 + ["P1.Tests"], order[:4])
+                self.assertCountEqual(names[2:], order[4:])
+                parts = [(part, assembly, results) for name, part, assembly, results in executions
+                         if name == "P0.Tests"]
+                self.assertCountEqual([1, 2, 3], [part for part, *_rest in parts])
+                self.assertEqual(3, len({assembly.parent for _part, assembly, _results in parts}))
+                self.assertEqual(
+                    {coverage / "P0.Tests" / f"part-{index}-of-3" for index in (1, 2, 3)},
+                    {results for *_rest, results in parts},
+                )
+                self.assertTrue(all(
+                    call.kwargs["lane_timeout_seconds"] == MODULE.LOCAL_DOTNET_COVERAGE_TIMEOUT_SECONDS
+                    for call in run_lanes.call_args_list
+                ))
+                part_calls = [call for call in run_lanes.call_args_list
+                              if call.args[0][0].name.startswith("P0.Tests.part-")]
+                self.assertEqual([3, 3], [call.kwargs["jobs"] for call in part_calls])
+                self.assertEqual(1, len(freshness))
+                self.assertEqual(len(executions), freshness[0][0])
+                self.assertEqual(len(names) + 2, len(set(freshness[0][1])))
+                evidence = json.loads(
+                    (coverage / "P0.Tests" / "partition.json").read_text(encoding="utf-8")
+                )
+                self.assertEqual(
+                    ("failed" if failing_part else "passed", 3, "10.0.303", "18.6.0", [3, 2, 2]),
+                    (evidence["verdict"], evidence["partCount"], evidence["sdkVersion"],
+                     evidence["vstestVersion"], [part["cases"] for part in evidence["parts"]]),
+                )
+                self.assertEqual(
+                    hashlib.sha256(b"P0.Tests").hexdigest(), evidence["assemblySha256"]
+                )
+                self.assertIn("P0.Tests partition admitted", stdout.getvalue())
+                if failing_part is None:
+                    verify_coverage.assert_called_once_with("dotnet", coverage)
+                else:
+                    verify_coverage.assert_not_called()
+                self.assertFalse(work.exists())
+
+    def run_partition_wiring_scenario(self, scenario: str, failure: str):
+        """Run the real collector over a fake VSTest for one wiring negative."""
+
+        name = "P0.Tests"
+        project = MODULE.CiDotnetProject(
+            f"tests/{name}/{name}.csproj", requires_exclusive_local_coverage=True
+        )
+        declaration = MODULE.DotnetTestPartition(name, (("Alpha",), ("Beta", "Gamma")))
+        cases = self.partition_cases(name)
+        swapped = ((f"{name}.Gamma", "Three"), (f"{name}.Beta", "Two"))
+        part_two = MODULE.dotnet_partition_filter(MODULE.DotnetPartitionPart(declaration, 2))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository = root / "repository"
+            coverage = root / "coverage"
+            output = repository / "tests" / name / "bin/Release/net10.0"
+            output.mkdir(parents=True)
+            (output / f"{name}.dll").write_bytes(b"assembly")
+            unfiltered_names = "".join(
+                f"{identity}\r\n"
+                for identity in sorted({MODULE.canonical_vstest_identity(case) for case in cases})
+            )
+            if scenario == "stale listing":
+                # A leftover with valid content; the fake VSTest then ignores the
+                # listing option, so only the fresh-listing guard can reject it.
+                (coverage / name).mkdir(parents=True)
+                (coverage / name / "discovered-fqn.txt").write_text(
+                    unfiltered_names, encoding="utf-8"
+                )
+            else:
+                coverage.mkdir()
+            executions: list[str | None] = []
+
+            def option(command, prefix):
+                return next(
+                    (part.removeprefix(prefix) for part in command if part.startswith(prefix)),
+                    None,
+                )
+
+            def fake_run(command, *, environment=None, log_path=None, **_kwargs):
+                del environment
+                if command[1:] == ["--version"]:
+                    with log_path.open("a", encoding="utf-8") as log:
+                        log.write("10.0.303\n")
+                    return
+                expression = option(command, "--TestCaseFilter:")
+                selected = tuple(
+                    case for case in cases
+                    if expression is None or self.partition_filter_selects(
+                        expression, MODULE.canonical_vstest_identity(case))
+                )
+                if "--ListTests" in command:
+                    with log_path.open("a", encoding="utf-8") as log:
+                        log.writelines(f"    {case}\n" for case in selected)
+                    return
+                if "--ListFullyQualifiedTests" in command:
+                    if scenario == "stale listing" and expression is None:
+                        return  # The option was ignored; no fresh listing appears.
+                    Path(option(command, "--ListTestsTargetPath:")).write_text(
+                        "".join(f"{identity}\r\n" for identity in sorted(
+                            {MODULE.canonical_vstest_identity(case) for case in selected})),
+                        encoding="utf-8",
+                    )
+                    return
+                executions.append(expression)
+                results = Path(option(command, "--ResultsDirectory:"))
+                # Exit 0 and a correct identity Counter; part 2 binds its two
+                # cases to each other's test methods in the swapped scenario.
+                self.write_partition_trx(
+                    results / "test-results.trx",
+                    selected,
+                    methods=(
+                        swapped
+                        if scenario == "swapped case" and expression == part_two
+                        else None
+                    ),
+                )
+                self.write_ci_coverage_pair(results / "attachment", {})
+
+            with (
+                patch.object(MODULE, "DOTNET_TEST_PARTITIONS", {name: declaration}),
+                patch.object(MODULE, "flatten_ci_dotnet_projects", return_value=(project,)),
+                patch.object(MODULE, "resolve_coverlet_adapter_path", return_value=root / "adapter"),
+                patch.object(
+                    MODULE, "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(MODULE, "canonical_production_release_outputs", return_value={}),
+                patch.object(MODULE, "require_production_release_matches", return_value=()),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+                contextlib.redirect_stdout(io.StringIO()) as stdout,
+                self.assertRaisesRegex(RuntimeError, failure),
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet", coverage, root / "work", {}, None,
+                    repository_root=repository, work_owner_root=root,
+                )
+
+            verify_coverage.assert_not_called()
+            self.assertFalse((root / "work").exists())
+            evidence = json.loads(
+                (coverage / name / "partition.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual("failed", evidence["verdict"])
+            return evidence, executions, stdout.getvalue()
+
+    def test_partitioned_collector_rejects_a_stale_listing_before_any_part_runs(self) -> None:
+        _evidence, executions, output = self.run_partition_wiring_scenario(
+            "stale listing", r"P0\.Tests\.part-1-of-3\.discovery"
+        )
+        self.assertEqual([], executions, "a part ran after a stale listing")
+        self.assertIn("VSTest listing exists before its discovery ran", output)
+
+    def test_partitioned_collector_fails_a_swapped_case_binding_after_a_clean_run(self) -> None:
+        evidence, executions, _output = self.run_partition_wiring_scenario(
+            "swapped case", "is bound to test method"
+        )
+        self.assertEqual(3, len(executions))
+        self.assertIn("is bound to test method", evidence["failure"])
+
+    def test_partitioned_collector_rejects_caller_set_overrides_before_discovery(self) -> None:
+        values = ("", "   ", "D:/capture")
+        names = list(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES)
+        if sys.platform == "win32":
+            names.append("nfc_visual_output_dir")
+        for name in names:
+            for value in values:
+                with self.subTest(name=name, value=value), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    work = root / "work"
+                    with (
+                        patch.object(MODULE, "resolve_coverlet_adapter_path") as adapter,
+                        patch.object(MODULE, "prepare_local_dotnet_coverage_stage") as prepare,
+                        patch.object(MODULE, "run") as run_command,
+                        patch.object(MODULE, "verify_coverage") as verify_coverage,
+                        self.assertRaisesRegex(RuntimeError, "forbids caller-set overrides: NFC_"),
+                    ):
+                        MODULE.collect_local_dotnet_coverage(
+                            "dotnet", root / "coverage", work, {name: value}, None,
+                            repository_root=root,
+                        )
+                    adapter.assert_not_called()
+                    prepare.assert_not_called()
+                    run_command.assert_not_called()
+                    verify_coverage.assert_not_called()
+                    self.assertFalse(work.exists())
+        self.assertEqual(
+            {"NFC_VISUAL_OUTPUT_DIR", "NFC_UI_REFERENCE_CAPTURE_DIR", "NFC_REPORT_VISUAL_INPUT"},
+            set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES),
+        )
+        # A subset such as release Golden is never partitioned, so it keeps the overrides.
+        project = next(
+            project for project in MODULE.flatten_ci_dotnet_projects()
+            if project.name == MODULE.UISMOKE_TEST_PROJECT
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            stage = MODULE.LocalDotnetCoverageStage(
+                project, root, root, root / f"{project.name}.dll", root, root, {}, ()
+            )
+            with (
+                patch.object(MODULE, "prepare_local_dotnet_coverage_stage",
+                             return_value=stage) as prepare,
+                patch.object(MODULE, "run_local_dotnet_coverage_project") as run_project,
+                patch.object(MODULE, "run_local_dotnet_partition") as partition,
+                patch.object(MODULE, "require_local_dotnet_sources_unchanged"),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                MODULE.collect_local_dotnet_coverage(
+                    "dotnet", root / "coverage", root / "work",
+                    {"NFC_VISUAL_OUTPUT_DIR": ""}, None, repository_root=root,
+                    projects=(project,), collect_coverage=False,
+                )
+            partition.assert_not_called()
+            self.assertNotIn("part", prepare.call_args.kwargs)
+            run_project.assert_called_once()
+
+    def test_ci_and_release_golden_owners_never_consult_the_local_partition(self) -> None:
+        for owner in (
+            MODULE.verify_ci_dotnet_test_shard,
+            MODULE.finalize_ci_dotnet_evidence,
+            MODULE.release_golden_plan,
+            MODULE.require_release_golden_results,
+        ):
+            source = inspect.getsource(owner)
+            with self.subTest(owner=owner.__name__):
+                for marker in (
+                    "DOTNET_TEST_PARTITIONS",
+                    "test_case_filter",
+                    "dotnet_partition",
+                    "local_dotnet_test_partitions",
+                    "require_exact_partition",
+                ):
+                    self.assertNotIn(marker, source)
+
+    def test_uismoke_writers_outside_the_session_are_isolated_per_compiled_type(self) -> None:
+        project_root = ROOT / "tests" / MODULE.UISMOKE_TEST_PROJECT
+        type_pattern = re.compile(
+            r"^(?:(?:public|internal|private|protected|sealed|static|abstract|partial|file)\s+)*"
+            r"(?:class|record|struct)\s+([A-Za-z_][A-Za-z0-9_]*)",
+            re.MULTILINE,
+        )
+        variable_pattern = re.compile(r'"(NFC_[A-Z0-9_]+)"')
+        root_pattern = re.compile(r'GetEnvironmentVariable\("NFC_TEST_AREA_ROOT"\)')
+        directory_pattern = re.compile(r'"evidence"\s*,\s*"([^"]+)"')
+        # ProfileCatalogProbeTests sets the child's trace path inside its own
+        # TempWorkspace to detect forbidden writes; it is not a caller override.
+        process_local = {"NFC_TEST_AREA_ROOT", "NFC_TEST_REPOSITORY_ROOT", "NFC_STARTUP_TRACE_PATH"}
+        allowed = process_local | set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES)
+        writers: dict[str, set[str]] = {}
+        variables: dict[str, set[str]] = {}
+        sources = sorted(
+            path for path in project_root.rglob("*.cs")
+            if not {"bin", "obj"} & set(path.relative_to(project_root).parts)
+        )
+        self.assertGreater(len(sources), 100)
+        for path in sources:
+            text = path.read_text(encoding="utf-8")
+            declarations = [(match.start(), match[1]) for match in type_pattern.finditer(text)]
+            for match in variable_pattern.finditer(text):
+                variables.setdefault(match[1], set()).add(path.name)
+            for match in root_pattern.finditer(text):
+                directory = directory_pattern.search(text, match.end(), match.end() + 200)
+                if directory is None:
+                    continue  # The root is read without naming a fixed directory.
+                owners = [name for start, name in declarations if start < match.start()]
+                self.assertTrue(owners, f"no compiled type owns {directory[0]} in {path.name}")
+                writers.setdefault(directory[1], set()).add(owners[-1])
+        self.assertEqual(set(), set(variables) - allowed, "unlisted NFC_* variable read by UiSmoke")
+        self.assertEqual(
+            set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES),
+            set(variables) - process_local,
+        )
+        self.assertEqual(
+            {name: owners for name, owners in writers.items() if len(owners) > 1}, {},
+            "a fixed test-area directory has more than one writer type",
+        )
+        self.assertLessEqual(
+            {
+                "v114-ctrlram-slot47": {"CtrlRamLaunchTests"},
+                "v114-memory-lift51": {"CtrlRamMemoryLayoutTests"},
+                "nav-focus-underline": {"NavigationFocusIndicatorTests"},
+            }.items(),
+            writers.items(),
+        )
+
     def test_python_lane_emits_one_json_report_before_policy_validation(self) -> None:
         commands: list[list[str]] = []
         python_collection = {
@@ -5059,8 +6411,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(
             [
                 "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj",
-                "tests/NvtFwCombiner.Infrastructure.Tests/"
-                "NvtFwCombiner.Infrastructure.Tests.csproj",
             ],
             [
                 project.relative_path
@@ -5763,7 +7113,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
             )
 
     def test_ci_dotnet_finalizer_fails_closed_when_evidence_is_missing(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            patch.dict(
+                os.environ, self.ci_finalizer_environment("7" * 40), clear=False
+            ),
+        ):
             with self.assertRaisesRegex(RuntimeError, r"missing.*\.NET CI evidence"):
                 MODULE.finalize_ci_dotnet_evidence(Path(temporary))
 
@@ -5774,23 +7129,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
             download_root = root / "ci-dotnet-downloads"
             self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
             load_manifest = MagicMock()
+            build_artifact = MODULE.ci_dotnet_evidence_artifact_name("build", 1)
 
             with (
                 patch.dict(
                     os.environ,
-                    {
-                        "GITHUB_SHA": source_sha,
-                        "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                        "NFC_CI_DOTNET_TEST_RESULT": "success",
-                    },
+                    self.ci_finalizer_environment(source_sha),
                     clear=False,
                 ),
                 patch.object(
                     MODULE,
                     "is_reparse_point",
                     side_effect=lambda path: (
-                        path.name == "manifest.json"
-                        and "dotnet-build-evidence" in path.parts
+                        path.name == "manifest.json" and build_artifact in path.parts
                     ),
                 ),
                 patch.object(MODULE, "load_ci_manifest", load_manifest),
@@ -5814,11 +7165,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 contextlib.redirect_stdout(output),
                 patch.dict(
                     os.environ,
-                    {
-                        "GITHUB_SHA": source_sha,
-                        "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                        "NFC_CI_DOTNET_TEST_RESULT": "success",
-                    },
+                    self.ci_finalizer_environment(source_sha),
                     clear=False,
                 ),
                 patch.object(MODULE, "ROOT", root),
@@ -5856,13 +7203,14 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 root = Path(temporary)
                 download_root = root / "ci-dotnet-downloads"
                 self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+                build_root = self.ci_artifact_root(download_root, "build")
                 build_result = "success"
                 if mutation == "hash":
-                    (
-                        download_root / "dotnet-build-evidence/build/build.log"
-                    ).write_text("mutated\n", encoding="utf-8")
+                    (build_root / "build/build.log").write_text(
+                        "mutated\n", encoding="utf-8"
+                    )
                 elif mutation == "extra":
-                    (download_root / "dotnet-build-evidence/unexpected.txt").write_text(
+                    (build_root / "unexpected.txt").write_text(
                         "unexpected\n", encoding="utf-8"
                     )
                 else:
@@ -5870,11 +7218,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 with (
                     patch.dict(
                         os.environ,
-                        {
-                            "GITHUB_SHA": source_sha,
-                            "NFC_CI_DOTNET_BUILD_RESULT": build_result,
-                            "NFC_CI_DOTNET_TEST_RESULT": "success",
-                        },
+                        self.ci_finalizer_environment(
+                            source_sha, build_result=build_result
+                        ),
                         clear=False,
                     ),
                     patch.object(MODULE, "ROOT", root),
@@ -5902,12 +7248,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 download_root = root / "ci-dotnet-downloads"
                 self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
                 core_manifest_path = (
-                    download_root
-                    / "dotnet-test-core-evidence/shards/core/manifest.json"
+                    self.ci_artifact_root(download_root, "core")
+                    / "shards/core/manifest.json"
                 )
                 if mutation == "cross-artifact":
                     collision = (
-                        download_root / "dotnet-test-ui-evidence/build/build.log"
+                        self.ci_artifact_root(download_root, "ui") / "build/build.log"
                     )
                     collision.parent.mkdir(parents=True)
                     collision.write_text("collision\n", encoding="utf-8")
@@ -5925,11 +7271,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 with (
                     patch.dict(
                         os.environ,
-                        {
-                            "GITHUB_SHA": source_sha,
-                            "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                            "NFC_CI_DOTNET_TEST_RESULT": "success",
-                        },
+                        self.ci_finalizer_environment(source_sha),
                         clear=False,
                     ),
                     patch.object(MODULE, "ROOT", root),
@@ -5964,7 +7306,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 root = Path(temporary)
                 download_root = root / "ci-dotnet-downloads"
                 self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
-                artifact_root = download_root / "dotnet-test-core-evidence"
+                artifact_root = self.ci_artifact_root(download_root, "core")
                 manifest_path = artifact_root / "shards/core/manifest.json"
                 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
                 first = manifest["projects"][0]
@@ -5988,11 +7330,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 with (
                     patch.dict(
                         os.environ,
-                        {
-                            "GITHUB_SHA": source_sha,
-                            "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                            "NFC_CI_DOTNET_TEST_RESULT": "success",
-                        },
+                        self.ci_finalizer_environment(source_sha),
                         clear=False,
                     ),
                     patch.object(MODULE, "ROOT", root),
@@ -6023,11 +7361,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             with (
                 patch.dict(
                     os.environ,
-                    {
-                        "GITHUB_SHA": source_sha,
-                        "NFC_CI_DOTNET_BUILD_RESULT": "success",
-                        "NFC_CI_DOTNET_TEST_RESULT": "success",
-                    },
+                    self.ci_finalizer_environment(source_sha),
                     clear=False,
                 ),
                 patch.object(MODULE, "ROOT", root),
@@ -6039,6 +7373,736 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE.finalize_ci_dotnet_evidence(download_root)
 
             self.assertEqual(["coverage"], events)
+
+    def test_ci_dotnet_finalizer_names_newest_failed_evidence_beside_successful_jobs(
+        self,
+    ) -> None:
+        source_sha = "c" * 40
+        for producer in ("build", "core"):
+            with (
+                self.subTest(producer=producer),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                download_root = root / "ci-dotnet-downloads"
+                self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+                manifest_path = self.ci_artifact_root(download_root, producer) / (
+                    "build/manifest.json"
+                    if producer == "build"
+                    else "shards/core/manifest.json"
+                )
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                manifest["success"] = False
+                self.write_ci_manifest(manifest_path, manifest)
+                with (
+                    # Attempt 2 re-ran the producer, but only attempt 1 was downloaded.
+                    patch.dict(
+                        os.environ,
+                        self.ci_finalizer_environment(source_sha, attempt=2),
+                        clear=False,
+                    ),
+                    patch.object(MODULE, "ROOT", root),
+                    patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                    patch.object(
+                        MODULE, "repository_sdk_version", return_value="10.0.301"
+                    ),
+                    patch.object(MODULE, "verify_coverage") as verify_coverage,
+                    self.assertRaisesRegex(
+                        RuntimeError,
+                        rf"^{producer} .NET CI evidence of run attempt 1, the newest "
+                        r"downloaded, reports a failed producer although its producer "
+                        r"job succeeded; .* start a new workflow run$",
+                    ),
+                ):
+                    MODULE.finalize_ci_dotnet_evidence(download_root)
+                verify_coverage.assert_not_called()
+
+    def test_ci_dotnet_finalizer_verifies_each_producers_newest_attempt(self) -> None:
+        # "Re-run failed jobs": core re-ran in attempt 3; the other producers carry over.
+        source_sha = "d" * 40
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            download_root = root / "ci-dotnet-downloads"
+            self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+            failed_path = (
+                self.ci_artifact_root(download_root, "core")
+                / "shards/core/manifest.json"
+            )
+            failed = json.loads(failed_path.read_text(encoding="utf-8"))
+            failed["success"] = False
+            failed["projects"] = []
+            self.write_ci_manifest(failed_path, failed)
+            self.stage_complete_ci_dotnet_evidence(
+                download_root, source_sha, attempt=3, owners=("core",)
+            )
+            output = io.StringIO()
+            with (
+                contextlib.redirect_stdout(output),
+                patch.dict(
+                    os.environ,
+                    self.ci_finalizer_environment(source_sha, attempt=3),
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+            ):
+                MODULE.finalize_ci_dotnet_evidence(download_root)
+
+            verify_coverage.assert_called_once_with("dotnet", root / "coverage/dotnet")
+            self.assertIn(".NET CI evidence: 8 projects,", output.getvalue())
+
+    def test_ci_dotnet_finalizer_rejects_unverifiable_attempt_provenance(self) -> None:
+        source_sha = "e" * 40
+        run_id = self.CI_RUN_ID
+        cases = {
+            "download-failed": ".NET CI evidence download did not succeed: failure",
+            "no-run-attempt": "GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT must name",
+            "unsuffixed-name": "unknown .NET CI evidence artifact: dotnet-test-core-evidence",
+            "unknown-producer": (
+                "unknown .NET CI evidence artifact: dotnet-test-extra-evidence-attempt-1"
+            ),
+            "zero-padded": (
+                "unknown .NET CI evidence artifact: dotnet-build-evidence-attempt-01"
+            ),
+            "future-attempt": (
+                ".NET CI evidence artifact is newer than run attempt 2: "
+                "dotnet-test-ui-evidence-attempt-3"
+            ),
+            "missing-producer": (
+                "missing .NET CI evidence producer artifacts: "
+                "dotnet-test-bootstrap-evidence"
+            ),
+            "manifest-attempt": (
+                f"core .NET CI evidence provenance does not match run {run_id} attempt 2"
+            ),
+            "manifest-run": (
+                f"build .NET CI evidence provenance does not match run {run_id} attempt 1"
+            ),
+            "boolean-attempt": (
+                f"build .NET CI evidence provenance does not match run {run_id} attempt 1"
+            ),
+        }
+        for case, message in cases.items():
+            with (
+                self.subTest(case=case),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                download_root = root / "ci-dotnet-downloads"
+                self.stage_complete_ci_dotnet_evidence(download_root, source_sha)
+                self.stage_complete_ci_dotnet_evidence(
+                    download_root, source_sha, attempt=2, owners=("core",)
+                )
+                environment = self.ci_finalizer_environment(source_sha, attempt=2)
+                build_manifest_path = (
+                    self.ci_artifact_root(download_root, "build") / "build/manifest.json"
+                )
+                if case == "download-failed":
+                    environment["NFC_CI_DOTNET_DOWNLOAD_OUTCOME"] = "failure"
+                elif case == "no-run-attempt":
+                    environment["GITHUB_RUN_ATTEMPT"] = ""
+                elif case in {
+                    "unsuffixed-name",
+                    "unknown-producer",
+                    "zero-padded",
+                    "future-attempt",
+                }:
+                    name = message.rsplit(": ", 1)[1]
+                    (download_root / name).mkdir()
+                elif case == "missing-producer":
+                    shutil.rmtree(self.ci_artifact_root(download_root, "bootstrap"))
+                elif case == "manifest-attempt":
+                    core_manifest_path = (
+                        self.ci_artifact_root(download_root, "core", 2)
+                        / "shards/core/manifest.json"
+                    )
+                    core_manifest = json.loads(
+                        core_manifest_path.read_text(encoding="utf-8")
+                    )
+                    core_manifest["runAttempt"] = 1
+                    self.write_ci_manifest(core_manifest_path, core_manifest)
+                else:
+                    build_manifest = json.loads(
+                        build_manifest_path.read_text(encoding="utf-8")
+                    )
+                    if case == "manifest-run":
+                        build_manifest["runId"] = "1"
+                    else:
+                        build_manifest["runAttempt"] = True
+                    self.write_ci_manifest(build_manifest_path, build_manifest)
+                with (
+                    patch.dict(os.environ, environment, clear=False),
+                    patch.object(MODULE, "ROOT", root),
+                    patch.object(MODULE, "COVERAGE_ROOT", root / "coverage"),
+                    patch.object(
+                        MODULE, "repository_sdk_version", return_value="10.0.301"
+                    ),
+                    patch.object(MODULE, "verify_coverage") as verify_coverage,
+                    self.assertRaisesRegex(RuntimeError, f"^{re.escape(message)}"),
+                ):
+                    MODULE.finalize_ci_dotnet_evidence(download_root)
+                verify_coverage.assert_not_called()
+
+    def test_ci_dotnet_shard_uploads_normalized_failed_evidence_and_names_failed_tests(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject("tests/First/First.csproj")
+        failed_identity = "Probe.Tests.Broken(value: 1)"
+        sentinel = "NFC-TRX-MESSAGE-SENTINEL"
+
+        def fake_run(command: list[str], **kwargs: object) -> None:
+            if "--ListTests" in command:
+                self.write_vstest_discovery(
+                    Path(str(kwargs["log_path"])),
+                    ("Probe.Tests.Passing", "Probe.Tests.Broken"),
+                )
+            elif "--Collect:XPlat Code Coverage" in command:
+                results = Path(
+                    next(
+                        argument.split(":", 1)[1]
+                        for argument in command
+                        if argument.startswith("--ResultsDirectory:")
+                    )
+                )
+                # A runner-absolute source path inside the producer repository.
+                source = str(MODULE.ROOT / "src/Probe/Probe.cs")
+                self.write_ci_trx(
+                    results / "test-results.trx",
+                    total=2,
+                    skipped=0,
+                    identities=("Probe.Tests.Passing", failed_identity),
+                    outcomes=("Passed", "Failed"),
+                    error_messages={failed_identity: f"{sentinel} at {source}:line 7"},
+                )
+                self.write_ci_coverage_pair(
+                    results / "attempt",
+                    {"Probe.dll": {source: {}}},
+                    class_filenames=(source,),
+                )
+                (results / "attempt/sequence.dmp").write_bytes(b"not evidence")
+                (results / "testhost.log").write_text("not evidence\n", encoding="utf-8")
+                raise subprocess.CalledProcessError(1, command)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            evidence_root = root / "artifacts/ci-dotnet-work"
+            upload_root = root / "artifacts/ci-dotnet-upload"
+            summary_path = root / "step-summary.md"
+            output = root / "output"
+            output.mkdir()
+            (output / f"{project.name}.dll").write_bytes(b"test assembly")
+            console = io.StringIO()
+            with (
+                contextlib.redirect_stdout(console),
+                patch.dict(
+                    os.environ,
+                    {
+                        **self.ci_run_environment("d" * 40, attempt=2),
+                        "GITHUB_STEP_SUMMARY": str(summary_path),
+                    },
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
+                patch.object(MODULE, "CI_DOTNET_EVIDENCE_ROOT", evidence_root),
+                patch.object(MODULE, "CI_DOTNET_UPLOAD_ROOT", upload_root),
+                patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (project,)}),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "require_logged_sdk_version"),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(
+                    MODULE, "run_solution_restore_preserving_lock_projections"
+                ),
+                patch.object(
+                    MODULE,
+                    "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(MODULE, "cleanup_dotnet_batch"),
+                self.assertRaisesRegex(RuntimeError, "First: Command"),
+            ):
+                MODULE.verify_ci_dotnet_test_shard("probe")
+
+            project_root = "shards/probe/results/First"
+            expected_evidence = {
+                f"{project_root}/discovered-tests.txt",
+                f"{project_root}/test-results.trx",
+                f"{project_root}/attempt/coverage.json",
+                f"{project_root}/attempt/coverage.cobertura.xml",
+            }
+            uploaded = {
+                path.relative_to(upload_root).as_posix()
+                for path in upload_root.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(
+                {"shards/probe/manifest.json", *expected_evidence}, uploaded
+            )
+            manifest = json.loads(
+                (upload_root / "shards/probe/manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertIs(False, manifest["success"])
+            self.assertEqual([], manifest["projects"])
+            self.assertEqual(expected_evidence, set(manifest["files"]))
+            self.assertEqual(
+                (self.CI_RUN_ID, 2), (manifest["runId"], manifest["runAttempt"])
+            )
+            # Option (i), pending owner acceptance: the TRX is uploaded unchanged.
+            uploaded_trx = (upload_root / project_root / "test-results.trx").read_bytes()
+            self.assertEqual(
+                (evidence_root / project_root / "test-results.trx").read_bytes(),
+                uploaded_trx,
+            )
+            self.assertIn(sentinel.encode("utf-8"), uploaded_trx)
+            # Coverage is uploaded only after the passing-evidence path normalization.
+            self.assertEqual(
+                {"Probe.dll": {"src/Probe/Probe.cs": {}}},
+                json.loads(
+                    (upload_root / project_root / "attempt/coverage.json").read_text(
+                        encoding="utf-8"
+                    )
+                ),
+            )
+            cobertura = MODULE.ET.parse(
+                upload_root / project_root / "attempt/coverage.cobertura.xml"
+            ).getroot()
+            self.assertEqual(
+                ["src/Probe/Probe.cs"],
+                [node.get("filename") for node in cobertura.iter("class")],
+            )
+            self.assertEqual(["."], [node.text for node in cobertura.iter("source")])
+            self.assertIn(
+                "  First: 1 failed test(s) in TRX\n"
+                f"    - {failed_identity}\n",
+                console.getvalue(),
+            )
+            summary = summary_path.read_text(encoding="utf-8")
+            self.assertIn("### .NET CI shard `probe` failures", summary)
+            self.assertIn(f"```text\n{failed_identity}\n```", summary)
+            for report in (console.getvalue(), summary):
+                self.assertNotIn(sentinel, report)
+
+    def test_ci_dotnet_shard_keeps_its_failure_when_failed_evidence_has_a_reparse_point(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject("tests/First/First.csproj")
+
+        def fake_run(command: list[str], **kwargs: object) -> None:
+            if "--ListTests" in command:
+                self.write_vstest_discovery(
+                    Path(str(kwargs["log_path"])), ("Probe.Tests.Broken",)
+                )
+            elif "--Collect:XPlat Code Coverage" in command:
+                results = Path(
+                    next(
+                        argument.split(":", 1)[1]
+                        for argument in command
+                        if argument.startswith("--ResultsDirectory:")
+                    )
+                )
+                self.write_ci_trx(
+                    results / "test-results.trx",
+                    total=1,
+                    skipped=0,
+                    identities=("Probe.Tests.Broken",),
+                    outcomes=("Failed",),
+                )
+                (results / "linked-attachment.xml").write_text("link\n", encoding="utf-8")
+                raise subprocess.CalledProcessError(1, command)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "NFC-RUNNER-ROOT-SENTINEL"
+            upload_root = root / "artifacts/ci-dotnet-upload"
+            summary_path = Path(temporary) / "step-summary.md"
+            output = root / "output"
+            output.mkdir(parents=True)
+            (output / f"{project.name}.dll").write_bytes(b"test assembly")
+            console = io.StringIO()
+            with (
+                contextlib.redirect_stdout(console),
+                patch.dict(
+                    os.environ,
+                    {
+                        **self.ci_run_environment("f" * 40),
+                        "GITHUB_STEP_SUMMARY": str(summary_path),
+                    },
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
+                patch.object(
+                    MODULE, "CI_DOTNET_EVIDENCE_ROOT", root / "artifacts/ci-dotnet-work"
+                ),
+                patch.object(MODULE, "CI_DOTNET_UPLOAD_ROOT", upload_root),
+                patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (project,)}),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "require_logged_sdk_version"),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(
+                    MODULE, "run_solution_restore_preserving_lock_projections"
+                ),
+                patch.object(
+                    MODULE,
+                    "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(MODULE, "cleanup_dotnet_batch"),
+                patch.object(
+                    MODULE,
+                    "is_reparse_point",
+                    side_effect=lambda path: path.name == "linked-attachment.xml",
+                ),
+                self.assertRaisesRegex(
+                    RuntimeError,
+                    r"^First: Command .*; First failure evidence not uploaded: "
+                    r"results failed the regular-file checks \(see shard\.log\)$",
+                ),
+            ):
+                MODULE.verify_ci_dotnet_test_shard("probe")
+
+            uploaded = {
+                path.relative_to(upload_root).as_posix()
+                for path in upload_root.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(
+                {"shards/probe/manifest.json", "shards/probe/shard.log"}, uploaded
+            )
+            manifest = json.loads(
+                (upload_root / "shards/probe/manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertIs(False, manifest["success"])
+            self.assertEqual({"shards/probe/shard.log"}, set(manifest["files"]))
+            # The raw diagnostic, runner path included, stays in the shard's own log.
+            shard_log = (upload_root / "shards/probe/shard.log").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn(
+                f"First failure evidence: {MODULE.CI_FAILURE_EVIDENCE_REJECTED}: ",
+                shard_log,
+            )
+            self.assertIn("reparse-point", shard_log)
+            self.assertIn("NFC-RUNNER-ROOT-SENTINEL", shard_log)
+            report = console.getvalue()
+            self.assertIn(
+                "  First: no readable TRX; see shard.log in "
+                "dotnet-test-probe-evidence-attempt-1\n"
+                f"    note: {MODULE.CI_FAILURE_EVIDENCE_REJECTED} (details in shard.log)\n",
+                report,
+            )
+            for text in (report, summary_path.read_text(encoding="utf-8")):
+                self.assertNotIn("NFC-RUNNER-ROOT-SENTINEL", text)
+                self.assertNotIn("reparse-point", text)
+
+    def test_ci_dotnet_shard_keeps_raw_coverage_paths_out_of_the_log_and_summary(
+        self,
+    ) -> None:
+        project = MODULE.CiDotnetProject("tests/First/First.csproj")
+
+        def fake_run(command: list[str], **kwargs: object) -> None:
+            if "--ListTests" in command:
+                self.write_vstest_discovery(
+                    Path(str(kwargs["log_path"])), ("Probe.Tests.Broken",)
+                )
+            elif "--Collect:XPlat Code Coverage" in command:
+                results = Path(
+                    next(
+                        argument.split(":", 1)[1]
+                        for argument in command
+                        if argument.startswith("--ResultsDirectory:")
+                    )
+                )
+                self.write_ci_trx(
+                    results / "test-results.trx",
+                    total=1,
+                    skipped=0,
+                    identities=("Probe.Tests.Broken",),
+                    outcomes=("Failed",),
+                )
+                # A source path outside the repository cannot be normalized.
+                outside = str(
+                    MODULE.ROOT.parent / "NFC-SOURCE-PATH-SENTINEL" / "Probe.cs"
+                )
+                self.write_ci_coverage_pair(
+                    results / "attempt",
+                    {"Probe.dll": {outside: {}}},
+                    class_filenames=(outside,),
+                )
+                raise subprocess.CalledProcessError(1, command)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "NFC-RUNNER-ROOT-SENTINEL" / "repository"
+            upload_root = root / "artifacts/ci-dotnet-upload"
+            summary_path = Path(temporary) / "step-summary.md"
+            output = root / "output"
+            output.mkdir(parents=True)
+            (output / f"{project.name}.dll").write_bytes(b"test assembly")
+            console = io.StringIO()
+            with (
+                contextlib.redirect_stdout(console),
+                patch.dict(
+                    os.environ,
+                    {
+                        **self.ci_run_environment("a" * 40),
+                        "GITHUB_STEP_SUMMARY": str(summary_path),
+                    },
+                    clear=False,
+                ),
+                patch.object(MODULE, "ROOT", root),
+                patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
+                patch.object(
+                    MODULE, "CI_DOTNET_EVIDENCE_ROOT", root / "artifacts/ci-dotnet-work"
+                ),
+                patch.object(MODULE, "CI_DOTNET_UPLOAD_ROOT", upload_root),
+                patch.dict(MODULE.CI_DOTNET_SHARDS, {"probe": (project,)}),
+                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
+                patch.object(
+                    MODULE,
+                    "resolve_coverlet_adapter_path",
+                    return_value=root / "adapter",
+                ),
+                patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
+                patch.object(MODULE, "require_logged_sdk_version"),
+                patch.object(MODULE, "run", side_effect=fake_run),
+                patch.object(
+                    MODULE, "run_solution_restore_preserving_lock_projections"
+                ),
+                patch.object(
+                    MODULE,
+                    "find_project_release_output",
+                    return_value=(output, Path("bin/Release/net10.0")),
+                ),
+                patch.object(MODULE, "cleanup_dotnet_batch"),
+                self.assertRaisesRegex(RuntimeError, r"^First: Command "),
+            ):
+                MODULE.verify_ci_dotnet_test_shard("probe")
+
+            project_root = "shards/probe/results/First"
+            uploaded = {
+                path.relative_to(upload_root).as_posix()
+                for path in upload_root.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(
+                {
+                    "shards/probe/manifest.json",
+                    "shards/probe/shard.log",
+                    f"{project_root}/discovered-tests.txt",
+                    f"{project_root}/test-results.trx",
+                },
+                uploaded,
+            )
+            shard_log = (upload_root / "shards/probe/shard.log").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn(
+                f"First failure evidence: {MODULE.CI_COVERAGE_NOT_NORMALIZED}: ",
+                shard_log,
+            )
+            self.assertIn("NFC-SOURCE-PATH-SENTINEL", shard_log)
+            summary = summary_path.read_text(encoding="utf-8")
+            for text in (console.getvalue(), summary):
+                self.assertIn(
+                    f"note: {MODULE.CI_COVERAGE_NOT_NORMALIZED} (details in shard.log)",
+                    text,
+                )
+                self.assertIn("Probe.Tests.Broken", text)
+                for sentinel in ("NFC-SOURCE-PATH-SENTINEL", "NFC-RUNNER-ROOT-SENTINEL"):
+                    self.assertNotIn(sentinel, text)
+
+    def test_ci_failed_project_evidence_keeps_only_canonical_normalized_reports(
+        self,
+    ) -> None:
+        identity = "Probe.Tests.Broken"
+        canonical = {"discovered-tests.txt", "test-results.trx"}
+        coverage = {"attempt/coverage.json", "attempt/coverage.cobertura.xml"}
+        unpaired = MODULE.CI_COVERAGE_NOT_PAIRED
+        unnormalized = MODULE.CI_COVERAGE_NOT_NORMALIZED
+        pairing_error = "exactly one TRX and one paired coverage"
+        cases: dict[str, tuple[set[str], bool, str | None, str | None]] = {
+            "extra-names": (canonical | coverage, True, None, None),
+            "second-trx": (canonical, True, unpaired, pairing_error),
+            "broken-trx": (canonical | coverage, False, None, None),
+            "partial-coverage": (canonical, True, unpaired, pairing_error),
+            "divergent-coverage": (
+                canonical,
+                True,
+                unpaired,
+                "divergent coverage attachments",
+            ),
+            "invalid-coverage": (
+                canonical,
+                True,
+                unnormalized,
+                "invalid Coverlet JSON evidence",
+            ),
+            "absolute-inside": (canonical | coverage, True, None, None),
+            "absolute-outside": (
+                canonical,
+                True,
+                unnormalized,
+                "NFC-SOURCE-PATH-SENTINEL",
+            ),
+            "empty-results": (set(), False, None, None),
+        }
+        for case, (expected, names_failure, reason, raw_detail) in cases.items():
+            with (
+                self.subTest(case=case),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary) / "repository"
+                results = root / "artifacts/ci-dotnet-work/results/First"
+                results.mkdir(parents=True)
+                source = "src/Probe/Probe.cs"
+                if case == "absolute-inside":
+                    source = str(root / "src/Probe/Probe.cs")
+                elif case == "absolute-outside":
+                    source = str(Path(temporary) / "NFC-SOURCE-PATH-SENTINEL/Probe.cs")
+                if case != "empty-results":
+                    self.write_vstest_discovery(
+                        results / "discovered-tests.txt", (identity,)
+                    )
+                    self.write_ci_trx(
+                        results / "test-results.trx",
+                        total=1,
+                        skipped=0,
+                        identities=(identity,),
+                        outcomes=("Failed",),
+                    )
+                    self.write_ci_coverage_pair(
+                        results / "attempt",
+                        {"Probe.dll": {source: {}}},
+                        class_filenames=(source,),
+                    )
+                if case == "extra-names":
+                    (results / "attempt/sequence.dmp").write_bytes(b"dump")
+                    (results / "attempt/coverage.json.bak").write_text("{}\n", encoding="utf-8")
+                    (results / "testhost.log").write_text("log\n", encoding="utf-8")
+                    (results / "nested").mkdir()
+                    (results / "nested/discovered-tests.txt").write_text(
+                        "other\n", encoding="utf-8"
+                    )
+                elif case == "second-trx":
+                    self.write_ci_trx(results / "nested/other.trx", total=1, skipped=0)
+                elif case == "broken-trx":
+                    (results / "test-results.trx").write_text("<TestRun", encoding="utf-8")
+                elif case == "partial-coverage":
+                    (results / "attempt/coverage.cobertura.xml").unlink()
+                elif case == "divergent-coverage":
+                    self.write_ci_coverage_pair(results / "other", {"Other.dll": {}})
+                elif case == "invalid-coverage":
+                    (results / "attempt/coverage.json").write_text(
+                        "not json", encoding="utf-8"
+                    )
+                with patch.object(MODULE, "ROOT", root):
+                    evidence = MODULE.collect_ci_failed_project_evidence(
+                        "First", results
+                    )
+
+                self.assertEqual(
+                    expected,
+                    {path.relative_to(results).as_posix() for path in evidence.paths},
+                )
+                self.assertEqual(
+                    (identity,) if names_failure else None, evidence.failed_tests
+                )
+                if reason is None or raw_detail is None:
+                    self.assertEqual((), evidence.omissions)
+                    self.assertEqual((), evidence.diagnostics)
+                else:
+                    # The public reason is fixed; only the diagnostic carries raw text.
+                    self.assertEqual((reason,), evidence.omissions)
+                    self.assertEqual(1, len(evidence.diagnostics))
+                    self.assertTrue(evidence.diagnostics[0].startswith(f"{reason}: "))
+                    self.assertIn(raw_detail, evidence.diagnostics[0])
+                    self.assertNotIn(raw_detail, evidence.omissions[0])
+                if coverage <= expected:
+                    self.assertEqual(
+                        {"Probe.dll": {"src/Probe/Probe.cs": {}}},
+                        json.loads(
+                            (results / "attempt/coverage.json").read_text(
+                                encoding="utf-8"
+                            )
+                        ),
+                    )
+                    cobertura = MODULE.ET.parse(
+                        results / "attempt/coverage.cobertura.xml"
+                    ).getroot()
+                    self.assertEqual(
+                        ["src/Probe/Probe.cs"],
+                        [node.get("filename") for node in cobertura.iter("class")],
+                    )
+
+    def test_ci_failed_test_report_is_bounded_and_sanitized(self) -> None:
+        many = tuple(f"Probe.Tests.Case{index:02d}" for index in range(55))
+        evidence = MODULE.CiFailedProjectEvidence
+        with tempfile.TemporaryDirectory() as temporary:
+            summary_path = Path(temporary) / "summary.md"
+            console = io.StringIO()
+            with (
+                contextlib.redirect_stdout(console),
+                patch.dict(
+                    os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}, clear=False
+                ),
+            ):
+                MODULE.report_ci_failed_tests(
+                    "core",
+                    "dotnet-test-core-evidence-attempt-2",
+                    (
+                        ("Many.Tests", evidence((), many)),
+                        ("Crashed.Tests", evidence((), None)),
+                        ("Empty.Tests", evidence((), ())),
+                        ("Odd.Tests", evidence((), ("Probe.`Odd`\n```Case",))),
+                        (
+                            "Partial.Tests",
+                            evidence(
+                                (),
+                                ("Probe.Tests.Partial",),
+                                ("coverage not uploaded: invalid `x`\nevidence",),
+                            ),
+                        ),
+                    ),
+                )
+            summary = summary_path.read_text(encoding="utf-8")
+            for text in (console.getvalue(), summary):
+                self.assertIn("Probe.Tests.Case49", text)
+                self.assertNotIn("Probe.Tests.Case50", text)
+                self.assertIn("... 5 more in the TRX", text)
+                self.assertIn(
+                    "Crashed.Tests: no readable TRX; see shard.log in "
+                    "dotnet-test-core-evidence-attempt-2",
+                    text.replace("**", ""),
+                )
+                self.assertIn(
+                    "Empty.Tests: no failed test in TRX; see shard.log",
+                    text.replace("**", ""),
+                )
+                self.assertIn("Probe.'Odd' '''Case", text)
+                self.assertIn("note: coverage not uploaded: invalid 'x' evidence", text)
+            self.assertEqual(3, summary.count("```text"))
+
+        with (
+            patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}, clear=False),
+            contextlib.redirect_stdout(io.StringIO()) as quiet,
+        ):
+            MODULE.report_ci_failed_tests(
+                "core", "dotnet-test-core-evidence-attempt-1", ()
+            )
+        self.assertEqual("", quiet.getvalue())
 
     def test_ci_dotnet_shard_continues_after_ordinary_project_failure(self) -> None:
         first = MODULE.CiDotnetProject("tests/First/First.csproj")
@@ -6064,7 +8128,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
             output.mkdir()
             (output / f"{second.name}.dll").write_bytes(b"test assembly")
             with (
-                patch.dict(os.environ, {"GITHUB_SHA": "3" * 40}, clear=False),
+                patch.dict(
+                    os.environ, self.ci_run_environment("3" * 40), clear=False
+                ),
                 patch.object(MODULE, "ROOT", root),
                 patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
                 patch.object(MODULE, "CI_DOTNET_EVIDENCE_ROOT", evidence_root),
@@ -6170,7 +8236,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
             output.mkdir()
             (output / f"{project.name}.dll").write_bytes(b"test assembly")
             with (
-                patch.dict(os.environ, {"GITHUB_SHA": "9" * 40}, clear=False),
+                patch.dict(
+                    os.environ, self.ci_run_environment("9" * 40), clear=False
+                ),
                 patch.object(MODULE, "ROOT", root),
                 patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
                 patch.object(
@@ -6231,7 +8299,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
             root = Path(temporary)
             resolve_adapter = MagicMock(return_value=root / "adapter")
             with (
-                patch.dict(os.environ, {"GITHUB_SHA": "4" * 40}, clear=False),
+                patch.dict(
+                    os.environ, self.ci_run_environment("4" * 40), clear=False
+                ),
                 patch.object(MODULE, "ROOT", root),
                 patch.object(MODULE, "SOLUTION", root / "NvtFwCombiner.slnx"),
                 patch.object(

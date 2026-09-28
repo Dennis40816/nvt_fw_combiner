@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -12,19 +13,26 @@ public sealed class CanonicalCatalogSnapshotDigestTests
 {
     // Pinned from the published snapshot of base 186036f8e (v1.1.11 product
     // behavior plus the Startup A unit 1/2 load changes, which keep results).
+    // Re-pinned by NVT-END-FLAG-1113-01 (ADR 0076): the policy source hash,
+    // the NT51950/NT51951 capability fingerprints and the dp-perspective
+    // family version/hash changed; every section length is unchanged.
+    // Re-pinned by TP-SVN-MODEL-1113-01: the policy source hash, every route
+    // capability fingerprint and the re-pinned family versions/hashes changed;
+    // static routes gain their display-only TP SVN metadata entries (length
+    // 98164 -> 108496); the other section lengths are unchanged.
     // A change here is a published catalog change and needs its own review.
     private const string PinnedSha256 =
-        "37ef0e538b60207086022067cf8aa6330a269d599242e5c4146af0d0cd92bf13";
-    private const int PinnedLength = 483_532;
+        "2039f8287e34d954c42ce534cc4c8e2e895509469a15f7d1fdbfbba0b56d5c0c";
+    private const int PinnedLength = 493_864;
     private const int SequentialReloads = 5;
     private const int ConcurrentLoads = 4;
 
     private static readonly (string Name, int Length, string Sha256)[] PinnedSections =
     [
-        ("catalog", 341, "3761dd12c7d885df046442f8524120c52ae9df5be2420af665785767917aadc5"),
-        ("static-routes", 98_164, "8b89f41a7ffa923a93fbd5e7311987dab7533b67f636d2d8d748b80f61e609c8"),
-        ("dynamic-routes", 248_943, "c8d036f838a38624434215e57934ad2cb1813b08abf0f78381d3bad42c1b81af"),
-        ("full-image-plans", 106_364, "fa2db5740e4b3de6cdf84a3edc3b387c98ffc7cdc710be469587b16a6dbe7947"),
+        ("catalog", 341, "caa1524334282a2ba0c50e5f4299fef5c5d612455016ed281272bcc8ba18706f"),
+        ("static-routes", 108_496, "bd79eb2c64579f10aa1c7cbccd519d66151cbcdf0e5ab6f25f72e8727e4daf01"),
+        ("dynamic-routes", 248_943, "09e512443a71fe7ba7cfd8e3ce5fc8acbcd72e3119bee86bb3260915146f833d"),
+        ("full-image-plans", 106_364, "3052ae411884f7c44713a18286360b2d4f1d410bf0c4bc97ab2c3f3c9dea2df9"),
         ("disclosure", 18_861, "c5f8148381d38b36373194f60de8a6450df680f910394a9dc257ad32ac32fe2f"),
         ("selector", 10_835, "41e00a86903342faa9c1a739234d06a3bf9f1423cba74b24ad83a0da1ac89d55"),
         ("certification", 24, "eb0edc192f3394a161de752c7d53cef86dd32bf94e352929b9f715db1efd5353"),
@@ -102,7 +110,7 @@ public sealed class CanonicalCatalogSnapshotDigestTests
     [Fact]
     public async Task FreshHostGraphPublishesThePinnedSnapshot()
     {
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CapabilityCatalogReloadResult? result = null;
         await foreach (CanonicalCapabilityCatalogLoadUpdate update in
                        host.CanonicalCatalogLoader.LoadAsync(TestContext.Current.CancellationToken))

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51927-ctrlram-replace",
-  "familyVersion": "0.6.0",
+  "familyVersion": "0.6.1",
   "members": [
     {
       "memberId": "NT51917",
@@ -948,6 +948,28 @@
       "evidenceRefs": [
         "nt51927-fw141-single-auto-prj-529-owner-golden-20260717"
       ]
+    },
+    {
+      "metadataSetId": "tp-svn-header-copy-metadata",
+      "structures": [
+        {
+          "structureId": "tp-svn-header-copy",
+          "artifactBindingId": "reference-base",
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
+            "structureId": "tp-svn"
+          },
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "final-header-backup",
+            "offset": 36,
+            "allowedResultRegionId": "final-header-backup"
+          }
+        }
+      ],
+      "evidenceRefs": ["owner-decision-2026-09-26-tp-svn-header-copy", "owner-decision-2026-09-25-tp-svn-location-encoding"]
     }
   ],
   "imageMaps": [
@@ -962,7 +984,7 @@
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51927-ctrlram-fw132-twochip-tp-work" ],
-      "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51927-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51927-2chip-self-20260705-expected-derived",
         "ctrlram-replace-perfect-family-51917-to-51927"
@@ -982,7 +1004,7 @@
         "nt51927-ctrlram-fw132-twochip-tp-work",
         "nt51927-full-flash-tail"
       ],
-      "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51927-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51927-2chip-self-20260705-expected-derived",
         "ctrlram-replace-perfect-family-51917-to-51927"
@@ -999,7 +1021,7 @@
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51927-ctrlram-fw140-threechip-tp-work" ],
-      "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51927-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51927-3chip-self-20260705-expected-derived",
         "ctrlram-replace-perfect-family-51917-to-51927"
@@ -1019,7 +1041,7 @@
         "nt51927-ctrlram-fw140-threechip-tp-work",
         "nt51927-full-flash-tail"
       ],
-      "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51927-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51927-3chip-self-20260705-expected-derived",
         "ctrlram-replace-perfect-family-51917-to-51927"
@@ -1036,7 +1058,7 @@
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51927-ctrlram-fw141-single-tp-work" ],
-      "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51927-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
         "ctrlram-replace-perfect-family-51917-to-51927"
@@ -1056,7 +1078,7 @@
         "nt51927-ctrlram-fw141-single-tp-work",
         "nt51927-full-flash-tail"
       ],
-      "metadataSetIds": [ "nt51927-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51927-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
         "ctrlram-replace-perfect-family-51917-to-51927"
@@ -1068,6 +1090,8 @@
     "nt51927-fw141-single-auto-prj-529-owner-golden-20260717",
     "nt51927-2chip-self-20260705-expected-derived",
     "nt51927-3chip-self-20260705-expected-derived",
-    "ctrlram-replace-perfect-family-51917-to-51927"
+    "ctrlram-replace-perfect-family-51917-to-51927",
+    "owner-decision-2026-09-26-tp-svn-header-copy",
+    "owner-decision-2026-09-25-tp-svn-location-encoding"
   ]
 }

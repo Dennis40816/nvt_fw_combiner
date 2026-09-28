@@ -92,8 +92,9 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         byte? standardEventBufferFormat = null;
         if (kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
             IsCurrentSnapshot(publication) &&
-            FirmwareConfigMetadataReader.TryReadBackup(candidate.Span, out FirmwareConfigMetadata standardConfig,
-                out _) && standardConfig.IsFirmwareVersionBarValid)
+            FirmwareConfigMetadataReader.TryReadBackup(candidate.Span,
+                ResolveStandardNvtEndFlag(exactStandard, consensusStandards),
+                out FirmwareConfigMetadata standardConfig, out _) && standardConfig.IsFirmwareVersionBarValid)
         {
             standardEventBufferFormat = exactStandard?.MetadataPlan.ResolutionToken == publication.ResolutionToken
                 ? FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
@@ -103,13 +104,23 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                         candidate, standardConfig.StructureStart)
                     : null;
         }
+        // TP-SVN-MODEL-1113-01: the TP SVN stamp at TP start + 0x24 is read from the same capture through the same
+        // exact Standard plan, or only when every current TP-only candidate agrees; it never depends on FWConfig.
+        TpSvnObservation? standardTpSvn = kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
+            IsCurrentSnapshot(publication)
+                ? exactStandard?.MetadataPlan.ResolutionToken == publication.ResolutionToken
+                    ? TpSvnMetadataProjector.Read(exactStandard.MetadataPlan, CompositionAddressSpaceIds.TpInput, candidate)
+                    : consensusStandards is not null
+                        ? ReadConsensusTpSvn(consensusStandards, publication.ResolutionToken, candidate)
+                        : null
+                : null;
         return new(kind, kind == CtrlRamBaseKind.Unknown ? draft : draft as CtrlRamFirmwareVersionDraftState, [],
             !IsCurrentSnapshot(publication)
                 ? [new(AuthoringSessionIssueCodes.StaleInspection, "The catalog changed during Reference classification.")]
                 : kind == CtrlRamBaseKind.Unknown
                     ? [new("input.reference.unrecognized", "The captured Base is not an unambiguous Standard or trusted AB Reference.", CompositionSlotIds.ReplaceBase)]
                     : [],
-            publication.ResolutionToken, referenceStamp, standardEventBufferFormat);
+            publication.ResolutionToken, referenceStamp, standardEventBufferFormat, standardTpSvn);
     }
 
     private List<(CompiledComposition Layout, ResolvedCapability Capability)> CompileAbLayoutsForReference(
@@ -158,14 +169,18 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         int plausibleBanks = hasStandard ? banks.Count(bank => CompiledFirmwareArtifactClassifier.Classify(standard!,
             reference.Span.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length))).Kind ==
                 CompiledFirmwareArtifactKind.FlashCode) : 0;
+        // NVT-END-FLAG-1113-01: the AB layout declares each bank's NVT end flag in bank-local coordinates; only that
+        // position is bank evidence and markers anywhere else in the bank never count. A migration-inventory layout
+        // keeps the existing compatibility read; a failed declaration gives no marker evidence.
+        FirmwareNvtEndFlagResolution bankEndFlag = layout.V2Details.Provenance.ResolvedMap.NvtEndFlagResolution;
         var facts = new List<CtrlRamBaseBankInspection>(2);
         var issues = new List<CompositionIssue>();
         bool oneNvtMarkerPerBank = true;
         foreach (FirmwareRegion bank in banks)
         {
             ReadOnlyMemory<byte> bytes = reference.Slice(checked((int)bank.Range.Start), checked((int)bank.Range.Length));
-            bool readable = FirmwareConfigMetadataReader.TryReadBackup(bytes.Span, out FirmwareConfigMetadata config,
-                out int markers);
+            bool readable = FirmwareConfigMetadataReader.TryReadBackup(bytes.Span, bankEndFlag,
+                out FirmwareConfigMetadata config, out int markers);
             oneNvtMarkerPerBank &= markers == 1;
             bool valid = readable && config.IsFirmwareVersionBarValid && config.ChipNumber > 0;
             CompositionIssue[] bankIssues = valid ? [] :
@@ -187,7 +202,12 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 eventBufferFormatVersion: valid
                     ? ReadBankEventBufferFormat(icId, publication.ResolutionToken,
                         hasStandard ? standard : null, hasStandard ? standardCapability : null, bytes, config)
-                    : null, bankIssues));
+                    : null, bankIssues,
+                // TP-SVN-MODEL-1113-01: each bank carries its own stamp, read bank-locally through the exact
+                // Standard plan of the bank length; A and B are never compared and FWConfig validity is not required.
+                tpSvn: hasStandard && bytes.Length == standard!.V2Details.Provenance.ResolvedMap.CapacityBytes
+                    ? TpSvnMetadataProjector.Read(standardCapability!.MetadataPlan, CompositionAddressSpaceIds.TpInput, bytes)
+                    : null));
             issues.AddRange(bankIssues);
         }
         if (facts.All(static bank => bank.FirmwareConfig is not null) &&
@@ -204,6 +224,22 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                 CompositionSlotIds.ReplaceBase));
         }
         return new([.. facts], [.. issues], validation.HasTrustedAbStructure, oneNvtMarkerPerBank);
+    }
+
+    /// <summary>
+    /// F-1: the declaration of the exact Standard layout, or the one shared by every consensus Standard layout. No
+    /// candidate, disagreeing candidates or a failed declaration give <see cref="FirmwareNvtEndFlagResolution.Unresolved"/>,
+    /// so the event-buffer read is skipped instead of searching the whole image.
+    /// </summary>
+    internal static FirmwareNvtEndFlagResolution ResolveStandardNvtEndFlag(
+        ResolvedCapability? exactStandard, IReadOnlyList<ResolvedCapability>? consensusStandards)
+    {
+        return FirmwareNvtEndFlagResolution.Common(exactStandard is not null
+            ? [exactStandard.CompiledComposition.V2Details.Provenance.ResolvedMap.NvtEndFlagResolution]
+            : consensusStandards is { Count: > 0 }
+                ? [.. consensusStandards.Select(static capability =>
+                    capability.CompiledComposition.V2Details.Provenance.ResolvedMap.NvtEndFlagResolution)]
+                : []);
     }
 
     private sealed record AbReferenceCandidateAssessment(
@@ -260,6 +296,17 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         byte? observed = ReadConsensusEventBufferFormat(capabilities, capturedPublication,
             acceptedTpBytes, expectedStructureStart);
         return IsCurrentSnapshot(publication) ? observed : null;
+    }
+
+    private static TpSvnObservation? ReadConsensusTpSvn(
+        IReadOnlyList<ResolvedCapability> candidates, ResolutionToken resolutionToken, ReadOnlyMemory<byte> candidate)
+    {
+        return candidates.All(capability => capability.ResolutionToken == resolutionToken &&
+                capability.MetadataPlan.ResolutionToken == resolutionToken)
+            ? TpSvnMetadataProjector.ReadConsensus(
+                [.. candidates.Select(static capability => capability.MetadataPlan)],
+                CompositionAddressSpaceIds.TpInput, candidate)
+            : null;
     }
 
     internal static byte? SelectCommonEventBufferFormat(

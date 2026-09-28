@@ -425,10 +425,17 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             Path.Combine("profiles", "built-in", "nt51919-nt51929-nt51932-shared-facts",
                 "families", "nt51929-nt51932.json"));
         FirmwareMetadataStructureDefinition dpcmi = Assert.Single(
-            Assert.Single(dpcmiFamily.MetadataSets).Structures).Definition;
+            Assert.Single(dpcmiFamily.MetadataSets, static set =>
+                set.MetadataSetId == "nt51929-initial-code-metadata").Structures).Definition;
         var dpcmiReference = new FirmwareMetadataStructureDefinitionReferenceDocument(
             dpcmiFamily.FamilyId, dpcmiFamily.FamilyVersion, dpcmiHash, dpcmi.DefinitionId);
-        var dpcmiResolver = new ExactSourceEnvelopeDefinitionResolver((dpcmiReference, dpcmi));
+        // TP-SVN-MODEL-1113-01: the same neutral provider also declares the one tp-svn definition.
+        FirmwareMetadataStructureDefinition tpSvn = Assert.Single(
+            Assert.Single(dpcmiFamily.MetadataSets, static set =>
+                set.MetadataSetId == "tp-svn-metadata").Structures).Definition;
+        var tpSvnReference = new FirmwareMetadataStructureDefinitionReferenceDocument(
+            dpcmiFamily.FamilyId, dpcmiFamily.FamilyVersion, dpcmiHash, tpSvn.DefinitionId);
+        var dpcmiResolver = new ExactSourceEnvelopeDefinitionResolver((dpcmiReference, dpcmi), (tpSvnReference, tpSvn));
 
         string firmwareJson = File.ReadAllText(Path.Combine(FindSourceEnvelopeRepositoryRoot(),
             "profiles", "built-in", "nt51927-standard-merge", "families", "nt51927-nt51928.json"));
@@ -443,6 +450,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             Hash(firmwareJson), firmwareConfig.DefinitionId);
         return new ExactSourceEnvelopeDefinitionResolver(
             (dpcmiReference, dpcmi),
+            (tpSvnReference, tpSvn),
             (firmwareReference, firmwareConfig));
     }
 

@@ -153,7 +153,7 @@ Shell
 - IC and Number remain in the same fixed Device context location across Merge and Replace, and are hidden on Home, Settings, and Hex Editor.
 - Breadcrumb history stays visible across Home, Settings, Merge, Replace, and Hex Editor so users can return to earlier page levels.
 - Replace UI requires shared Number selection before showing profile-specific regions. First UI should render two-option IC count choices as text and render three-or-more concrete count choices as numeric selection, with future room for Other/custom exceptions.
-- Changing IC or Number invalidates workflow-local state that depends on profile context: available modes, selected profile, slot cards, memory coverage, validation issues, preview tokens, and build readiness must be refreshed before Preview or Build can run.
+- Changing IC or Number invalidates workflow-local state that depends on profile context: available modes, selected profile, slot cards, memory coverage, validation issues, and build readiness must be refreshed before Preview or Build can run.
 - Saved Rules controls remain hidden in the first UI release.
 - Reports and diagnostics are secondary surfaces opened from Preview/Build report modals; Settings may expose diagnostics configuration/export, but not run-specific evidence as a top-level page. The report modal may link to a dedicated in-modal History view, but history entries must not be rendered inline above the current report by default. Until the modal/history surface is complete, the shell may provide a non-navigational `Load report JSON` action that renders existing report JSON into a compact review panel.
 - Reports must tie UI state, operation trace, external processor invocation, mutation ranges, and output hash via `runId`.

@@ -5,6 +5,7 @@
 - Owners: Repository owner; release/tooling maintainers
 - Supersedes: None
 - Superseded by: None
+- Amended by ADR 0080 item 18
 
 ## Context
 
@@ -28,7 +29,7 @@ gate runs the read-only check before expensive validation. Agents may perform
 the authorized local synchronization themselves, then review the diff and check
 all providers before formal verification; this is not another approval round.
 
-The four providers cover the protected workflow contract and its raw-identity
+The original four providers cover the protected workflow contract and its raw-identity
 projections, the exact CI documentation mirror, reviewed policy/index/Golden-allowlist
 trust pins in their existing loader/package/smoke/test consumers, and authorized
 `VERSION` projections into the two numeric SPEC/verification-report headers.
@@ -50,6 +51,24 @@ projection. The historical development-tag index needs no entry per version
 bump; actual release/tag identity still follows the release policy.
 Existing package, Catalog, Registry and intake generators keep their artifact-
 stage ownership; this command does not generate or publish releases.
+
+## Claude projections (ADR 0080 item 18)
+
+The `claude-projections` provider reads the canonical skill manifest, skill
+bodies and `.codex/agents/*.toml`. It projects skills at the same directory
+depth, adding `disable-model-invocation: true` only for explicit invocation.
+Agent projections omit model selection; read-only roles receive only
+`Read, Grep, Glob`. `.claude/settings.local.json` is local and ignored.
+
+Declared creatable outputs still belong to the input snapshot. Absence is a
+snapshot state: check mode reports drift without creating directories. Local
+write mode creates missing parents only below `.claude/`, checks every path
+component for reparses, and creates files with mode `0644`. Existing files
+retain their mode. Convergence, concurrent-edit and CI-write checks still
+apply; publication of an absent file cannot overwrite a racing creator.
+The synchronizer never deletes. Repository validation requires tracked skill
+and agent projections to equal the expected set, so stale files require an
+explicit reviewed removal when canonical sources are removed or renamed.
 
 ## Alternatives and consequences
 

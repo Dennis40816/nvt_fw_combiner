@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Infrastructure.Bundles;
 
@@ -54,18 +55,19 @@ internal sealed class TrustedProfileBundleDocumentProjection
         "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json";
 
     internal TrustedProfileBundleDocumentProjection(
-        string manifestSha256,
+        ProfileBundleFileSnapshot manifestSnapshot,
         ProfileBundleManifest manifest,
         IReadOnlyList<ProfileBundleEntrySnapshot> entries,
         int maximumJsonDepth)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(manifestSha256);
+        ArgumentNullException.ThrowIfNull(manifestSnapshot);
         ArgumentNullException.ThrowIfNull(manifest);
         ArgumentNullException.ThrowIfNull(entries);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumJsonDepth);
 
         var families = new List<TrustedFirmwareFamilyDocumentEntry>();
         var profiles = new List<TrustedCompositionProfileDocumentEntry>();
+        var documents = new List<ProfileBundleEntrySnapshot>();
         foreach (ProfileBundleEntrySnapshot entry in entries)
         {
             ArgumentNullException.ThrowIfNull(entry);
@@ -78,7 +80,8 @@ internal sealed class TrustedProfileBundleDocumentProjection
                         ValidateAndClone(
                             entry,
                             maximumJsonDepth,
-                            ProfileBundleJsonContext.Default.FirmwareFamilyDocument)));
+                            ProfileBundleSemanticJsonContext.Default.FirmwareFamilyDocument)));
+                    documents.Add(entry);
                     break;
                 case ProfileBundleEntryKind.CompositionProfile:
                     RequireCanonicalSchema(entry.Entry, CompositionProfileSchemaId);
@@ -87,7 +90,8 @@ internal sealed class TrustedProfileBundleDocumentProjection
                         ValidateAndClone(
                             entry,
                             maximumJsonDepth,
-                            ProfileBundleJsonContext.Default.CompositionProfileDocument)));
+                            ProfileBundleSemanticJsonContext.Default.CompositionProfileDocument)));
+                    documents.Add(entry);
                     break;
                 case ProfileBundleEntryKind.Schema:
                 case ProfileBundleEntryKind.EvidenceManifest:
@@ -105,7 +109,9 @@ internal sealed class TrustedProfileBundleDocumentProjection
         Array.Sort(profileSnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.Identity.EntryId, right.Identity.EntryId));
 
-        ManifestSha256 = manifestSha256;
+        ManifestSnapshot = manifestSnapshot;
+        Documents = Array.AsReadOnly(documents.OrderBy(
+            static entry => entry.Entry.EntryId, StringComparer.Ordinal).ToArray());
         BundleId = manifest.BundleId;
         BundleVersion = manifest.BundleVersion;
         BundleContentHash = manifest.ContentHash;
@@ -114,7 +120,13 @@ internal sealed class TrustedProfileBundleDocumentProjection
         Profiles = Array.AsReadOnly(profileSnapshot);
     }
 
-    internal string ManifestSha256 { get; }
+    internal string ManifestSha256 => ManifestSnapshot.ActualSha256;
+
+    /// <summary>The original manifest capture, retained without re-reading or reserialization.</summary>
+    internal ProfileBundleFileSnapshot ManifestSnapshot { get; }
+
+    /// <summary>Only DTO-compatible family/profile captures, ordinal by entryId; no schema payloads.</summary>
+    internal IReadOnlyList<ProfileBundleEntrySnapshot> Documents { get; }
 
     internal string BundleId { get; }
 

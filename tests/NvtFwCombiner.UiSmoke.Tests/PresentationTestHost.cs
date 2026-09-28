@@ -2,6 +2,7 @@ using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -19,16 +20,19 @@ internal static class PresentationTestHost
     }
 
     internal static async Task<PresentationHostServices> CreateConfiguredFormatServicesAsync(
-        TempWorkspace workspace, string version)
+        TempWorkspace workspace, string version,
+        Func<IAbMergeAuthoring, IAbMergeAuthoring>? abMergeAuthoringDecorator = null)
     {
         CompositionHostServices host = CompositionHostServices.Create(
             new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value),
-            NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load, configurationPath: workspace.PathFor("format.json"));
+            NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load,
+            workspace.PathFor("local-state"), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(
             TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(),
             TestContext.Current.CancellationToken)).Succeeded);
-        return CreateServices(version, host, static authoring => authoring);
+        return CreateServices(version, host, static authoring => authoring,
+            abMergeAuthoring: abMergeAuthoringDecorator?.Invoke(host.AbMergeAuthoring));
     }
 
     private static readonly Lazy<ExternalProcessorRuntimeEnvironment> ExternalEnvironment =
@@ -131,6 +135,22 @@ internal static class PresentationTestHost
         return CreateServices(applicationVersion, static authoring => authoring);
     }
 
+    /// <summary>Creates a shell host whose local-state IO goes through <paramref name="localFiles"/>.</summary>
+    internal static async Task<(PresentationHostServices Services, string LocalStateDirectory)> CreateServicesAsync(
+        ILocalFileStore localFiles)
+    {
+        ArgumentNullException.ThrowIfNull(localFiles);
+        string directory = IsolatedLocalState.CreateDirectory("ui-shell");
+        // The legacy lazy external-tool loader waits synchronously; never initialize it on the UI dispatcher.
+        PresentationHostServices services = await Task.Run(
+            () => CreateServices(ApplicationVersionProvider.InformationalVersion, static authoring => authoring, directory),
+            TestContext.Current.CancellationToken);
+        return (new PresentationHostServices(services.Composition, services.FileReveal, services.SupportMatrix,
+            services.SystemInformation, services.SystemDiagnosticsExporter, services.RawBinaryEditorFileSessions,
+            services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, localFiles,
+            services.LocalStateDirectory), directory);
+    }
+
     internal static PresentationHostServices CreateServicesWithCatalogPolicy(
         string applicationVersion,
         Func<CanonicalCapabilityPolicySnapshot> loadPolicy)
@@ -139,7 +159,8 @@ internal static class PresentationTestHost
         var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
         CompositionHostServices host = CompositionHostServices.Create(
             externalEnvironment,
-            loadPolicy);
+            loadPolicy,
+            IsolatedLocalState.CreateDirectory("ui-host"));
         return CreateServices(
             applicationVersion,
             host,
@@ -155,7 +176,8 @@ internal static class PresentationTestHost
         var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
         CompositionHostServices host = CompositionHostServices.Create(
             externalEnvironment,
-            NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load);
+            NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load,
+            IsolatedLocalState.CreateDirectory("ui-host"));
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
@@ -174,6 +196,7 @@ internal static class PresentationTestHost
             host.CanonicalCatalogLoader,
             host.ExternalEnvironmentLoader,
             host.LocalFiles,
+            host.LocalStateDirectory,
             versionManagement,
             new Application.VersionManagement.ManagedApplicationStartupCoordinator(
                 Application.VersionManagement.ManagedAppVersion.Parse(applicationVersion),
@@ -184,10 +207,13 @@ internal static class PresentationTestHost
 
     internal static PresentationHostServices CreateServices(
         string applicationVersion,
-        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator)
+        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
+        string? localStateDirectory = null)
     {
         var externalEnvironment = new ExternalProcessorEnvironmentLoader(ExternalEnvironment.Value);
-        CompositionHostServices host = CompositionHostServices.Create(externalEnvironment);
+        CompositionHostServices host = CompositionHostServices.Create(
+            externalEnvironment,
+            localStateDirectory ?? IsolatedLocalState.CreateDirectory("ui-host"));
         return CreateServices(applicationVersion, host, generalAuthoringDecorator);
     }
 
@@ -197,7 +223,8 @@ internal static class PresentationTestHost
         Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
         IAbMergeAuthoring? abMergeAuthoring = null,
         ICompositionExecution? execution = null,
-        ICompositionOutputNaming? outputNaming = null)
+        ICompositionOutputNaming? outputNaming = null,
+        ICtrlRamAuthoring? ctrlRamAuthoring = null)
     {
         return new PresentationHostServices(
             new PresentationCompositionServices(
@@ -205,7 +232,7 @@ internal static class PresentationTestHost
                 host.StandardMergeAuthoring,
                 abMergeAuthoring ?? host.AbMergeAuthoring,
                 generalAuthoringDecorator(host.GeneralAuthoring),
-                host.CtrlRamAuthoring,
+                ctrlRamAuthoring ?? host.CtrlRamAuthoring,
                 host.FirmwareInspectionExperience,
                 outputNaming ?? host.CompositionOutputNaming,
                 execution ?? host.CompositionExecution),
@@ -217,6 +244,7 @@ internal static class PresentationTestHost
             host.CanonicalCatalogLoader,
             host.ExternalEnvironmentLoader,
             host.LocalFiles,
+            host.LocalStateDirectory,
             versionManagement: null,
             managedApplicationStartup: null,
             stableLauncherHandoff: null,
@@ -227,8 +255,10 @@ internal static class PresentationTestHost
     {
         var loader = new ExternalProcessorEnvironmentLoader(
             RepositoryPaths.FromRepositoryRoot("external-tools"));
-        Assert.True(((IExternalProcessorEnvironmentLoader)loader)
-            .LoadToCompletionAsync(null, CancellationToken.None)
+        // The first caller can be a headless test or a UiThreadTestContext. Loading on the thread pool
+        // keeps this blocking wait from deadlocking on that caller's single-threaded context.
+        Assert.True(Task.Run(() => ((IExternalProcessorEnvironmentLoader)loader)
+                .LoadToCompletionAsync(null, CancellationToken.None))
             .GetAwaiter().GetResult().Succeeded);
         ExternalProcessorEnvironmentLease lease = loader.AcquireCurrent();
         return new(lease.Processor, lease.ReadinessProvider, loader.Current.ManifestCount);
@@ -237,7 +267,7 @@ internal static class PresentationTestHost
     internal static Application.HexEditor.IRawBinaryEditorFileSessionFactory
         CreateRawBinaryEditorFileSessionFactory()
     {
-        return CompositionHostServices.Create().RawBinaryEditorFileSessions;
+        return CompositionHostServices.Create(IsolatedLocalState.CreateDirectory()).RawBinaryEditorFileSessions;
     }
 
     private sealed class UnmanagedApplicationReadySignal

@@ -19,7 +19,7 @@ public sealed partial class ExitConfirmationTests
         var files = new DelayedHexFiles(original.RawBinaryEditorFileSessions);
         var services = new PresentationHostServices(original.Composition, original.FileReveal, original.SupportMatrix,
             original.SystemInformation, original.SystemDiagnosticsExporter, files,
-            original.CanonicalCatalogLoader, original.ExternalEnvironmentLoader, original.LocalFiles);
+            original.CanonicalCatalogLoader, original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
         var shell = (MainWindowViewModel)window.DataContext!;
         window.Show();

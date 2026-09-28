@@ -1,7 +1,10 @@
 # ADR 0021 accepted-artifact snapshot consolidation amendment
 
-Status: accepted normative appendix to
-`0021-code-size-ratchet-and-convergence.md`.
+Status: **Superseded by ADR 0080 item 17**.
+
+The dynamic hotspot rule in [ADR 0080](0080-governance-reset.md#size-and-agent-instructions)
+owns current size enforcement. The former allocation and allowance policy below
+is historical evidence; retain its measurements and product decisions.
 
 ## 1.1.8 advisory source-size policy
 

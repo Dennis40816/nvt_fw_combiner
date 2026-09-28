@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
 using System.Xml.Linq;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
@@ -11,7 +12,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 public sealed class SpaciousPanelTests
 {
     /// <summary>Locks output and report blocks to one padded, spaced control contract.</summary>
-    [Fact]
+    [AvaloniaFact]
     public void OutputAndReportBlocksUseTheSpaciousPanelContract()
     {
         var panel = new SpaciousPanel();
@@ -60,7 +61,7 @@ public sealed class SpaciousPanelTests
     }
 
     /// <summary>Ensures the container measures and retains its real visual child.</summary>
-    [Fact]
+    [AvaloniaFact]
     public void SpaciousPanelMeasuresItsChildInsidePadding()
     {
         var child = new Border { Width = 80, Height = 40 };
@@ -77,7 +78,7 @@ public sealed class SpaciousPanelTests
     }
 
     /// <summary>The shared memory bar consumes available width without a fixed-width Viewbox.</summary>
-    [Fact]
+    [AvaloniaFact]
     public void ProportionalStackPanelArrangesChildrenByWeightAtAvailableWidth()
     {
         var first = new Border { Height = 20 };

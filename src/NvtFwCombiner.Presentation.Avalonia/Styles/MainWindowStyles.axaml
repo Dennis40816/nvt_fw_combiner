@@ -122,11 +122,22 @@
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <!-- FluentTheme's default ToggleButton/Button ClipToBounds is True, which clips the
+         :focus-visible ring below to nothing (it is a BoxShadow on PART_ContentPresenter that
+         extends outside the control's own bounds; F-3, review of 91214ef81). The nav bar's 4px
+         inter-item spacing and the header row's own padding leave enough room for the ring
+         without touching a neighboring tab or the header edge. -->
+    <Setter Property="ClipToBounds" Value="False" />
   </Style>
+  <!-- The ContentPresenter never carries a BorderThickness: giving it one (even bottom-only, even
+       via a sibling :checked rule) makes Avalonia's Border renderer clip the :focus-visible BoxShadow
+       ring below to nothing, because the ring and a real border stroke share the same clipped paint
+       pass (F-3, review of 91214ef81; verified by bisecting a minimal reproduction down to this one
+       setter). The selected-page underline is therefore a separate sibling Border
+       (Border.navSelectedUnderline below), not part of this ContentPresenter at all. -->
   <Style Selector="ToggleButton.nav /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0,0,0,2" />
     <Setter Property="CornerRadius" Value="0" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
   </Style>
@@ -142,22 +153,12 @@
   </Style>
   <Style Selector="ToggleButton.nav:checked">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <Style Selector="ToggleButton.nav:checked /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
-  </Style>
-  <Style Selector="ToggleButton.nav:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
-  </Style>
-  <Style Selector="ToggleButton.nav:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
   </Style>
   <Style Selector="ToggleButton.nav:disabled">
     <Setter Property="Opacity" Value="1" />
@@ -167,9 +168,31 @@
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcTextDisabledBrush}" />
   </Style>
+  <!-- The only "selected page" indicator: a sibling Border (see MainWindow.axaml), not the nav
+       ToggleButton's own ContentPresenter border, so the ContentPresenter never carries a
+       BorderThickness (see the comment above) and its :focus-visible BoxShadow ring renders
+       unclipped. Visible only for the selected page's own tab, regardless of hover/pressed/focus.
+       A 3px bottom margin holds it 3px clear of the tab's own bottom edge, so it never touches the
+       focus ring drawn just outside that edge: without a gap the two bars read as one continuous
+       line, especially in the dark theme where NfcAccentBrush and the ring's color are identical
+       (F-4, review of edd9a71b4). -->
+  <Style Selector="Border.navSelectedUnderline">
+    <Setter Property="Height" Value="2" />
+    <Setter Property="Margin" Value="0,0,0,3" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Bottom" />
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+  <!-- A full ring drawn as a BoxShadow, not the bottom-only selected underline and not the
+       ContentPresenter's own BorderBrush/BorderThickness, so keyboard focus on an unselected nav
+       tab never reads as a second selected page (BUG-20260926, owner decision 32) while the
+       selected tab's own underline (a separate sibling Border, above) stays visible when that same
+       tab is also focused (F-1, review of 6dee964a0). BoxShadow is an existing token pattern
+       (NfcWorkflowCardHoverShadow etc.) reused here as an independent focus layer instead of a new
+       mechanism. -->
   <Style Selector="ToggleButton.nav:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
-    <Setter Property="BorderThickness" Value="0,0,0,2" />
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcNavFocusRingShadow}" />
   </Style>
   <Style Selector="ToggleButton.segment">
     <Setter Property="MinHeight" Value="44" />

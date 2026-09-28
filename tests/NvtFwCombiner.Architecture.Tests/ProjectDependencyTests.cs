@@ -51,6 +51,7 @@ public sealed class ProjectDependencyTests
             [
                 "NvtFwCombiner.Application",
                 "NvtFwCombiner.Infrastructure",
+                "NvtFwCombiner.PrebuiltProfileCatalogGenerator",
                 "NvtFwCombiner.VersionManagement.Application",
                 "NvtFwCombiner.VersionManagement.Infrastructure",
             ],
@@ -132,6 +133,7 @@ public sealed class ProjectDependencyTests
         Assert.Equal(
             [
                 "NvtFwCombiner.Bootstrap.Tests",
+                "NvtFwCombiner.CatalogProbe",
                 "NvtFwCombiner.Infrastructure",
                 "NvtFwCombiner.ProfileContract.Tests",
             ],
@@ -147,6 +149,7 @@ public sealed class ProjectDependencyTests
                 "NvtFwCombiner.Application.Tests",
                 "NvtFwCombiner.Bootstrap",
                 "NvtFwCombiner.Bootstrap.Tests",
+                "NvtFwCombiner.CatalogProbe",
                 "NvtFwCombiner.UiSmoke.Tests",
             ],
             FriendAssemblies("NvtFwCombiner.Application"));
@@ -256,9 +259,13 @@ public sealed class ProjectDependencyTests
         }
     }
 
-    /// <summary>Public CLI regressions retain the real default composition root.</summary>
+    /// <summary>
+    /// CLI regressions enter through the internal CLI overload, which composes the production host graph with
+    /// its default policy and external-tool discovery; they inject two paths in their own isolated directory
+    /// (board decision 89, amended by VERSION-MANAGER-STATE-1113-01). The public overload retains both defaults.
+    /// </summary>
     [Fact]
-    public void PublicCliTestsRetainTheDefaultProductionCompositionRoot()
+    public void CliTestsInjectOnlyTheirIsolatedLocalStatePathsIntoTheProductionCompositionRoot()
     {
         DirectoryInfo root = FindRepositoryRoot();
         string harness = File.ReadAllText(Path.Combine(
@@ -272,10 +279,49 @@ public sealed class ProjectDependencyTests
             "NvtFwCombiner.Cli",
             "CliApplication.cs"));
 
-        Assert.Contains("CliApplication.RunAsync", harness, StringComparison.Ordinal);
+        Assert.Contains("CliApplication.RunAsync(", harness, StringComparison.Ordinal);
+        Assert.Contains("() => localStateDirectory,", harness, StringComparison.Ordinal);
         Assert.Contains(
-            "var host = CompositionHostServices.Create();",
+            "Path.Combine(localStateDirectory, JsonVersionManagerStateStore.StateFileName)",
+            harness,
+            StringComparison.Ordinal);
+        Assert.Contains("IsolatedLocalState.CreateDirectory(", harness, StringComparison.Ordinal);
+        foreach (string substitution in new[]
+                 {
+                     "CompositionHostServices.Create",
+                     "ExternalProcessorEnvironmentLoader",
+                     "CapabilityPolicy",
+                     "RepositoryPaths",
+                 })
+        {
+            Assert.DoesNotContain(substitution, harness, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("        Func<string> localStateDirectory,", application, StringComparison.Ordinal);
+        Assert.Contains("        string? versionManagerStatePath = null)", application, StringComparison.Ordinal);
+        Assert.Contains("statePath: versionManagerStatePath,", application, StringComparison.Ordinal);
+        Assert.Equal(1, application.Split("statePath: versionManagerStatePath,", StringSplitOptions.None).Length - 1);
+        Assert.Contains("            cancellationToken);", application, StringComparison.Ordinal);
+        Assert.Contains(
+            "var host = CompositionHostServices.Create(localStateDirectory());",
             application,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CompositionHostServices.ResolveCurrentUserLocalStateDirectory,",
+            application,
+            StringComparison.Ordinal);
+        string bootstrap = File.ReadAllText(Path.Combine(
+            root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionHostServices.cs"));
+        Assert.Contains(
+            "return Create(BuiltInCanonicalCapabilityPolicy.Load, localStateDirectory);",
+            bootstrap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "return Create(new ExternalProcessorEnvironmentLoader(session), loadPolicy, localStateDirectory,",
+            bootstrap,
             StringComparison.Ordinal);
     }
 

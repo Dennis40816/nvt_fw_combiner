@@ -26,6 +26,8 @@ public enum SystemDiagnosticSeverity
 /// <summary>Stable diagnostic codes emitted by the System Information lifecycle.</summary>
 public static class SystemDiagnosticCodes
 {
+    /// <summary>The process selected JSON admission after rejecting the derived pack.</summary>
+    public const string PrebuiltCatalogUnused = "system.catalog.prebuilt-unused";
     /// <summary>No canonical publication exists after a load attempt.</summary>
     public const string CapabilityCatalogUnavailable = "system.catalog.unavailable";
 
@@ -70,7 +72,8 @@ public sealed class SystemInformationSnapshot
         string? publicationToken,
         IEnumerable<string> catalogIssueCodes,
         ExternalProcessorEnvironmentStatus externalEnvironment,
-        IEnumerable<ActionableSystemDiagnostic> activeDiagnostics)
+        IEnumerable<ActionableSystemDiagnostic> activeDiagnostics,
+        BuiltInProfileAdmission? builtInProfileAdmission = null)
     {
         Generation = generation;
         ObservedAtUtc = observedAtUtc;
@@ -87,10 +90,14 @@ public sealed class SystemInformationSnapshot
         ExternalEnvironment = externalEnvironment ??
             throw new ArgumentNullException(nameof(externalEnvironment));
         ActiveDiagnostics = Array.AsReadOnly([.. activeDiagnostics]);
+        BuiltInProfileAdmission = builtInProfileAdmission;
     }
 
     /// <summary>Monotonic generation within this process session.</summary>
     public long Generation { get; }
+
+    /// <summary>Completed built-in source decision, or null before selection.</summary>
+    public BuiltInProfileAdmission? BuiltInProfileAdmission { get; }
 
     /// <summary>UTC observation time.</summary>
     public DateTimeOffset ObservedAtUtc { get; }

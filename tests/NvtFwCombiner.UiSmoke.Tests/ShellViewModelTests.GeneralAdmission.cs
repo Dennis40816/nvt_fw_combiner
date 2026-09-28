@@ -1,12 +1,223 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
+using Avalonia.Headless.XUnit;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class GeneralWorkflowTests
 {
+    /// <summary>Close keeps a noncancelled General preparation in its bounded work drain.</summary>
+    [AvaloniaFact]
+    public async Task WindowCloseDrainsGeneralMergePreparationBeforeSealing()
+    {
+        using var workspace = TempWorkspace.Create("w6a-general-close-drain");
+        DelayedGeneralAuthoring? delayedAuthoring = null;
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.5", inner =>
+            delayedAuthoring = new DelayedGeneralAuthoring(inner));
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        try
+        {
+            window.Show();
+            await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+            MainWindowViewModel viewModel = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            viewModel.ShowMergeCommand.Execute(null);
+            viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+            viewModel.Merge.GeneralMergeOutputLength = "0x20";
+            GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+            await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId,
+                workspace.Write("input.bin", [0x10, 0x11, 0x12, 0x13]),
+                TestContext.Current.CancellationToken);
+            mapping.Length = "0x4";
+            await delayedAuthoring!.FirstPreparationStarted.WaitAsync(
+                TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            var neverExpires = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            window.CloseDeadlineFactory = _ => neverExpires.Task;
+            window.RequestStableLauncherRestart();
+            window.Close();
+            Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
+            Assert.False(window.CloseAttempt.IsCompleted);
+            delayedAuthoring.ReleaseFirstPreparation();
+            await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            delayedAuthoring?.ReleaseFirstPreparation();
+        }
+    }
+
+    /// <summary>A completed General Merge preparation waits for resume or final revocation.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GeneralMergePreparationWaitsForWindowDecision(bool finalClose)
+    {
+        using var workspace = TempWorkspace.Create("w6a-general-merge-publication");
+        DelayedGeneralAuthoring? delayedAuthoring = null;
+        using var uiThread = new UiThreadTestContext();
+        try
+        {
+            await uiThread.InvokeAsync(async () =>
+            {
+                MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(inner =>
+                    delayedAuthoring = new DelayedGeneralAuthoring(inner));
+                viewModel.ShowMergeCommand.Execute(null);
+                viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+                viewModel.Merge.GeneralMergeOutputLength = "0x20";
+                GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+                await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId,
+                    workspace.Write("input.bin", [0x10, 0x11, 0x12, 0x13]),
+                    TestContext.Current.CancellationToken);
+                var lease = new WindowPublicationLease();
+                viewModel.Merge.WindowPublication = lease;
+                mapping.Length = "0x4";
+                await delayedAuthoring!.FirstPreparationStarted.WaitAsync(
+                    TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                lease.Suspend();
+                delayedAuthoring.ReleaseFirstPreparation();
+                await delayedAuthoring.FirstPreparationCompleted.WaitAsync(
+                    TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                await Task.Yield();
+                Assert.False(viewModel.Merge.Inspection.ActiveTask.IsCompleted);
+                Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+                if (finalClose)
+                {
+                    lease.Revoke();
+                }
+                else
+                {
+                    lease.Resume();
+                }
+                await viewModel.Merge.Inspection.ActiveTask.WaitAsync(
+                    TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                Assert.Equal(!finalClose, viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+            });
+        }
+        finally
+        {
+            delayedAuthoring?.ReleaseFirstPreparation();
+        }
+    }
+
+    /// <summary>A superseded General Merge result cannot publish stale readiness on lease resume.</summary>
+    [Fact]
+    public async Task GeneralMergePreparationSupersededWhileSuspendedKeepsNewBlocker()
+    {
+        using var workspace = TempWorkspace.Create("w6a-general-merge-supersede");
+        DelayedGeneralAuthoring? delayedAuthoring = null;
+        using var uiThread = new UiThreadTestContext();
+        try
+        {
+            await uiThread.InvokeAsync(async () =>
+            {
+                MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(inner =>
+                    delayedAuthoring = new DelayedGeneralAuthoring(inner));
+                viewModel.ShowMergeCommand.Execute(null);
+                viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+                viewModel.Merge.GeneralMergeOutputLength = "0x20";
+                GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+                await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId,
+                    workspace.Write("input.bin", [0x10, 0x11, 0x12, 0x13]),
+                    TestContext.Current.CancellationToken);
+                var lease = new WindowPublicationLease();
+                viewModel.Merge.WindowPublication = lease;
+                mapping.Length = "0x4";
+                await delayedAuthoring!.FirstPreparationStarted.WaitAsync(
+                    TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                lease.Suspend();
+                Task stale = viewModel.Merge.Inspection.ActiveTask;
+                delayedAuthoring.ReleaseFirstPreparation();
+                await delayedAuthoring.FirstPreparationCompleted.WaitAsync(
+                    TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                Assert.False(stale.IsCompleted);
+                mapping.Length = "0x10";
+                Task current = viewModel.Merge.Inspection.ActiveTask;
+                Assert.NotSame(stale, current);
+                bool staleReadinessPublished = false;
+                viewModel.Merge.PreviewMergeCommand.CanExecuteChanged += (_, _) =>
+                    staleReadinessPublished |= viewModel.Merge.PreviewMergeCommand.CanExecute(null);
+                lease.Resume();
+                await current.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                await stale.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+                Assert.False(staleReadinessPublished);
+                Assert.Equal("0x10", mapping.Length);
+            });
+        }
+        finally
+        {
+            delayedAuthoring?.ReleaseFirstPreparation();
+        }
+    }
+
+    /// <summary>General Replace preparation publishes only after resume and never after final revocation.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GeneralReplacePreparationWaitsForWindowDecision(bool finalClose)
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        using var workspace = TempWorkspace.Create("w6a-general-replace-publication");
+        string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
+        string inputPath = workspace.Write("replacement.bin", [0x10, 0x11, 0x12, 0x13]);
+        DelayedGeneralAuthoring? delayedAuthoring = null;
+        using var uiThread = new UiThreadTestContext();
+        try
+        {
+            await uiThread.InvokeAsync(async () =>
+            {
+                MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(inner =>
+                    delayedAuthoring = new DelayedGeneralAuthoring(inner, delayReplace: true));
+                viewModel.WorkflowSession.SelectedIc = "NT51926";
+                OpenReplace(viewModel, ExperienceIds.GeneralReplace);
+                await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath,
+                    TestContext.Current.CancellationToken).WaitAsync(
+                        TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+                mapping.TargetStartAddress = "0x100";
+                mapping.Length = "0x4";
+                await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId, inputPath,
+                    TestContext.Current.CancellationToken).WaitAsync(
+                        TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                await viewModel.Replace.Inspection.ActiveTask.WaitAsync(
+                    TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                var lease = new WindowPublicationLease();
+                viewModel.Replace.WindowPublication = lease;
+                delayedAuthoring!.ArmReplacePreparation();
+                mapping.TargetStartAddress = "0x101";
+                await delayedAuthoring.FirstPreparationStarted.WaitAsync(
+                    TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                lease.Suspend();
+                Task pending = viewModel.Replace.Inspection.ActiveTask;
+                delayedAuthoring.ReleaseFirstPreparation();
+                await delayedAuthoring.FirstPreparationCompleted.WaitAsync(
+                    TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                Assert.False(pending.IsCompleted);
+                if (finalClose)
+                {
+                    lease.Revoke();
+                }
+                else
+                {
+                    lease.Resume();
+                }
+                await pending.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                Assert.Equal(finalClose
+                        ? WorkflowInspectionAttemptState.Cancelled
+                        : WorkflowInspectionAttemptState.Failed,
+                    viewModel.Replace.Inspection.State);
+                Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+            });
+        }
+        finally
+        {
+            delayedAuthoring?.ReleaseFirstPreparation();
+        }
+    }
+
     /// <summary>General Merge command state and Memory Layout consume the same canonical admission result.</summary>
     [Fact]
     public async Task GeneralMergeCanonicalAdmissionBlocksInvalidAndOverlappingMappings()
@@ -81,15 +292,23 @@ public sealed partial class GeneralWorkflowTests
         }
     }
 
-    private sealed class DelayedGeneralAuthoring(IGeneralAuthoring inner) : IGeneralAuthoring
+    private sealed class DelayedGeneralAuthoring(IGeneralAuthoring inner, bool delayReplace = false) : IGeneralAuthoring
     {
         private readonly TaskCompletionSource _firstPreparationStarted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _releaseFirstPreparation =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _firstPreparationCompleted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         private int _preparationCount;
+        private bool _armReplacePreparation;
 
         internal Task FirstPreparationStarted => _firstPreparationStarted.Task;
+        internal Task FirstPreparationCompleted => _firstPreparationCompleted.Task;
+        internal void ArmReplacePreparation()
+        {
+            _armReplacePreparation = true;
+        }
 
         public GeneralAuthoringAdmissionResult GetMergeAdmission(
             string icId,
@@ -123,21 +342,23 @@ public sealed partial class GeneralWorkflowTests
             CancellationToken cancellationToken,
             IProgress<AuthoringInspectionProgress>? progress = null)
         {
-            if (Interlocked.Increment(ref _preparationCount) == 1)
+            if (!delayReplace && Interlocked.Increment(ref _preparationCount) == 1)
             {
                 _firstPreparationStarted.SetResult();
                 await _releaseFirstPreparation.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            return await inner.PrepareMergeSessionAsync(
+            GeneralAuthoringSessionPreparation prepared = await inner.PrepareMergeSessionAsync(
                 session,
                 icId,
                 draft,
                 cancellationToken,
                 progress).ConfigureAwait(false);
+            _ = _firstPreparationCompleted.TrySetResult();
+            return prepared;
         }
 
-        public ValueTask<GeneralAuthoringSessionPreparation> PrepareReplaceSessionAsync(
+        public async ValueTask<GeneralAuthoringSessionPreparation> PrepareReplaceSessionAsync(
             AuthoringSessionState session,
             string icId,
             string number,
@@ -146,14 +367,25 @@ public sealed partial class GeneralWorkflowTests
             CancellationToken cancellationToken,
             IProgress<AuthoringInspectionProgress>? progress = null)
         {
-            return inner.PrepareReplaceSessionAsync(
+            if (delayReplace && _armReplacePreparation)
+            {
+                _armReplacePreparation = false;
+                _firstPreparationStarted.SetResult();
+                await _releaseFirstPreparation.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            GeneralAuthoringSessionPreparation prepared = await inner.PrepareReplaceSessionAsync(
                 session,
                 icId,
                 number,
                 referencePath,
                 draft,
                 cancellationToken,
-                progress);
+                progress).ConfigureAwait(false);
+            if (delayReplace)
+            {
+                _ = _firstPreparationCompleted.TrySetResult();
+            }
+            return prepared;
         }
 
         internal void ReleaseFirstPreparation()

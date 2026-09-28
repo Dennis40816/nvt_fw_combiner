@@ -46,7 +46,7 @@ internal sealed partial class ReplacePresentationViewModel
             return;
         }
         MemoryLayoutBankLocator bank = layout.Banks.Single(item => item.BankId == _viewedCtrlRamBankId);
-        ReplaceRows(CtrlRamOverview, UiCompositionRunner.GetMemoryOverview(layout, Text, bank));
+        CtrlRamOverview.ReplaceAll(UiCompositionRunner.GetMemoryOverview(layout, Text, bank));
         RefreshReplaceCoverageGroups();
     }
 
@@ -314,8 +314,8 @@ internal sealed partial class ReplacePresentationViewModel
         HasMemoryLayoutDisplayError = false;
         ReplaceMemoryRangeLabel = rangeLabel;
         ReplaceRows(ReplaceMemoryRows, rows);
-        ReplaceRows(ReplaceCoverageSegments, coverageSegments);
-        ReplaceRows(CtrlRamOverview, overview ?? []);
+        ReplaceCoverageSegments.ReplaceAll(coverageSegments);
+        CtrlRamOverview.ReplaceAll(overview ?? []);
         RefreshReplaceCoverageGroups();
     }
 

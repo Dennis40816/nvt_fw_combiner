@@ -52,40 +52,59 @@ manifest, or Catalog version into a different identity.
 
 ## Establish Branch Authority
 
-1. Keep `main` stable and release-capable.
-2. Create the owner-selected integration branch named exactly for the version,
-   such as `0.9.12`, from the peeled predecessor tag/current reviewed `main`.
-3. Record predecessor tag, peeled SHA, main SHA, and tree identity.
-4. Create independently reviewable work as `feature/<version>/<topic>` from that
-   version branch. Merge it back to that version branch, never directly to
-   `main`.
-5. Use one writer for each mutable surface, a read-only reviewer/supervisor, and
-   a separate integrator for final admission. A chat handoff never overrides the
-   current Git tree.
+Under [ADR 0080 items 10-12](../adr/0080-governance-reset.md#branches-releases-and-ci):
+
+1. `main` holds released code and `v*` tags. The minor-line trunk (`1.1.x`)
+   receives `feature/<version>/<topic>` pull requests.
+2. Cut the release branch `X.Y.Z` from the trunk at feature freeze. It takes
+   release fixes, which merge back into the trunk, and opens the release pull
+   request into `main` with a merge commit. Delete it after its tag under the
+   branch-cleanup authority below.
+3. After publication, merge `main` back into the trunk through an ordinary
+   merge pull request. Its approvals cite the release evidence it brings back.
+   Decision 66's pre-G1-B catch-up procedure ended with G1-B.
+4. Ordinary trunk merges into feature branches are allowed. Reviewed heads
+   default to rebase, followed by renewed review and approval on the new head
+   (board decision 117). G1-B itself only rebases under its cutover plan.
+5. Follow the execution workflow's [single-writer procedure](development-execution-workflow.md#single-writer).
+   A chat handoff never overrides the current Git tree.
 
 Names and timestamps are hints, not authority. Before reconstruction or replay,
 verify ancestry, tree/patch differences, open PR intent, and a recovery ref. A
-branch that started before the final predecessor tag is not a valid release base
-merely because its name contains the new version.
+branch name alone never proves the predecessor or reviewed release authority.
 
 ## Admit Work To A Version
 
-Every feature PR must state:
+Every pull request uses the [admission template](../../.github/pull_request_template.md)
+and states its release outcome, affected workflows/ICs/modes/profiles/contracts
+and address spaces, support promotion or support-neutral status, user-facing
+release-note entry, and rollback or compatibility impact.
 
-```text
-primary release outcome and non-goals
-risk class and affected layers
-workflows, ICs, modes, profiles, contracts, and address spaces affected
-support promotion or explicit support-neutral status
-narrow tests, final verification, and human gates
-user-facing release-note entry
-rollback or compatibility impact
-```
+Admit it only when the completed review record binds its exact head, its target
+follows the branch model above, P0/P1 findings are closed, required CI/tests are
+green, and R3 evidence and approvals are complete. Every review thread must be
+resolved, including on a release pull request. Resolution alone does not prove
+that review finished; the completed exact-head review record does. The three
+release boundaries retain their P0/P1 check. Check merge-tree equivalence when
+the host creates a merge commit.
 
-Admit the PR only when its exact head is reviewed, its target is the exact version
-branch, P0/P1 findings are closed, required CI/tests are green, and R3 evidence is
-not hidden behind a TODO. Merge-tree equivalence must be checked when the host
-creates a merge commit.
+## Recover A Release
+
+Recovery follows the tag and Release state:
+
+- No tag yet: fix through a pull request into `main` and dispatch a new run.
+- Tag created, publication incomplete and recoverable: re-run only the failed
+  promotion in the same run. The same run id, candidate artifact and digest,
+  and live authority with `main` still at the workflow SHA must hold. Nothing
+  merges into `main` first. Existing-tag validation applies; the
+  first-publication floor that requires an absent tag does not.
+- Immutable Release incomplete or conflicting: the owner decides a new
+  version; the immutable Release is never repaired in place.
+
+While a tagged release is incomplete, nothing merges into `main`. Advancing it
+ends same-run recovery, and a new run cannot reuse the tagged version. A new
+release checks the floor at the candidate and again at the pre-tag boundary.
+History is never rewritten. The Release Closure Record lists every failed run.
 
 ## Require Complete Release Notes
 

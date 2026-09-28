@@ -42,9 +42,10 @@
     "jobInventorySha256": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["candidate", "promote", "published-smoke", "v0916-parity-compare", "v0916-parity-attestation", "v0916-parity-finalize"],
+      "required": ["candidate", "release-eligibility", "promote", "published-smoke", "v0916-parity-compare", "v0916-parity-attestation", "v0916-parity-finalize"],
       "properties": {
         "candidate": { "$ref": "#/$defs/sha256" },
+        "release-eligibility": { "$ref": "#/$defs/sha256" },
         "promote": { "$ref": "#/$defs/sha256" },
         "published-smoke": { "$ref": "#/$defs/sha256" },
         "v0916-parity-compare": { "$ref": "#/$defs/sha256" },
@@ -71,7 +72,7 @@
         "needs": {
           "prefixItems": [
             { "const": "candidate" },
-            { "const": "v0916-parity-finalize" }
+            { "const": "release-eligibility" }
           ],
           "items": false
         },

@@ -119,6 +119,12 @@ internal static class FirmwareInspectionProjection
             {
                 facts.Add(UiCompositionRunner.CreateEventBufferFact(commonRaw, text));
             }
+            if (abInput.TpSvn is { } tpSvn)
+            {
+                // Decision 40: each AB TP input labels its own stamp with the input bank.
+                facts.Add(UiCompositionRunner.CreateTpSvnFact(tpSvn, text,
+                    $"TP SVN ({(abInput.AddressSpaceId == CompositionAddressSpaceIds.TpAInput ? "A" : "B")})"));
+            }
         }
         return facts;
     }

@@ -64,7 +64,7 @@ public sealed class FirmwareConfigVersionWritePlan
 
     /// <summary>
     /// Creates writes from metadata read through
-    /// <see cref="FirmwareConfigMetadataReader.TryReadBackup(ReadOnlySpan{byte}, out FirmwareConfigMetadata)"/>.
+    /// <see cref="FirmwareConfigMetadataReader.TryReadBackup(ReadOnlySpan{byte}, NvtFwCombiner.Domain.Firmware.FirmwareNvtEndFlagResolution, out FirmwareConfigMetadata, out int)"/>.
     /// A malformed source FW/bar pair is rejected before any output mutation can be planned.
     /// </summary>
     public static FirmwareConfigVersionWritePlan CreateFromCanonicalBackup(

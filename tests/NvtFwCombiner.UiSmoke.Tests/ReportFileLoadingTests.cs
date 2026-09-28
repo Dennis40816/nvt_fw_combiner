@@ -20,7 +20,7 @@ public sealed class ReportFileLoadingTests
         string json = ReportJsonSamples.Succeeded(runId: "report-file-parity");
         string path = workspace.PathFor("parity.json");
         await File.WriteAllTextAsync(path, json, TestContext.Current.CancellationToken);
-        ILocalFileStore files = CompositionHostServices.Create().LocalFiles;
+        ILocalFileStore files = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory()).LocalFiles;
         MainWindowViewModel startup = PresentationTestHost.CreateViewModel();
         MainWindowViewModel manual = PresentationTestHost.CreateViewModel();
         startup.Reports.ReportHistoryEntries.CollectionChanged +=
@@ -74,7 +74,7 @@ public sealed class ReportFileLoadingTests
         viewModel.Reports.LoadReportJson(currentJson, "current.json");
 
         ReportPublicationResult result = await viewModel.Reports.LoadReportFileAsync(
-            token => CompositionHostServices.Create().LocalFiles.ReadTextAsync(
+            token => CompositionHostServices.Create(IsolatedLocalState.CreateDirectory()).LocalFiles.ReadTextAsync(
                 path,
                 MaximumReportBytes,
                 token),
@@ -90,7 +90,7 @@ public sealed class ReportFileLoadingTests
         _ = Assert.Throws<InvalidOperationException>(() => MainWindow.RequireStartupPublication(
             new(ReportPublicationOutcome.Failed)));
 
-        ILocalFileStore files = CompositionHostServices.Create().LocalFiles;
+        ILocalFileStore files = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory()).LocalFiles;
         MainWindowViewModel invalidArguments = PresentationTestHost.CreateViewModel();
         InvalidOperationException invalidArgumentsFailure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             MainWindow.ApplyStartupReportAsync(

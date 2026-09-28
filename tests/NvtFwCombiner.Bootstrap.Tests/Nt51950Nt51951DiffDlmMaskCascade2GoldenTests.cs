@@ -24,6 +24,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
     private const int FirmwareConfigLength = 0x0780;
     private const int Nt51950TemplateCapacity = 0x40000;
     private const int NonstandardEnvelopeLength = 0x60000;
+    private const string PreparationNotAdmitted = "profile.v2.compile.preparation-not-admitted";
 
     /// <summary>The direct fixture independently locks reconstruction, preservation, and golden-only dummy quality.</summary>
     [Fact]
@@ -188,11 +189,12 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
     }
 
     /// <summary>
-    /// Known 1.1.12 limitation, fail-closed: a complete NVT marker inside the Display OSD tail of a nonstandard
-    /// envelope makes the FWConfig Backup ambiguous, so Build fails without writing an output.
+    /// NVT-END-FLAG-1113-01 (owner decision 30): a complete NVT marker inside the Display OSD tail of a nonstandard
+    /// envelope is outside the declared end flag (0x36FFC), so it is neither counted nor rejected: every FWConfig
+    /// Backup validation passes and the complete Base, tail marker included, is kept byte for byte.
     /// </summary>
     [Fact]
-    public async Task Nt51950CascadeEnvelopeTailNvtMarkerFailsClosedAsync()
+    public async Task Nt51950CascadeEnvelopeTailNvtMarkerIsIgnoredAsync()
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-envelope-tail-marker");
@@ -200,13 +202,55 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         byte[] marker = [0x00, 0x4E, 0x56, 0x54];
         marker.CopyTo(reference.AsSpan(Nt51950TemplateCapacity + 0x1000));
         string referencePath = workspace.Write("reference.bin", reference);
-        string outputPath = workspace.PathFor("must-not-exist.bin");
+        string outputPath = workspace.PathFor("output.bin");
+        var processor = new CountingPassThroughProcessor();
 
         CompositionRunResult result = await RunNt51950Async(
-            evidence, referencePath, evidence.DiffDlm.Path, outputPath, new CountingPassThroughProcessor());
+            evidence, referencePath, evidence.DiffDlm.Path, outputPath, processor);
 
-        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.False(File.Exists(outputPath));
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal(1, processor.CallCount);
+        Assert.Equal(reference, File.ReadAllBytes(outputPath));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
+        _ = Assert.Single(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            static issue => issue.GetProperty("Code").GetString() == "DP_NONSTANDARD_SIZE_WARNING");
+        Assert.DoesNotContain(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            static issue => issue.GetProperty("Code").GetString() == "replace.ctrlram.fwconfig-backup-placement-invalid");
+    }
+
+    /// <summary>
+    /// NVT-END-FLAG-1113-01: when the declared end flag no longer holds the marker, a marker in the OSD tail does not
+    /// stand in for it: the envelope Base is not admitted before any processor invocation or output, with the same
+    /// issues as the same envelope without the end flag.
+    /// </summary>
+    [Fact]
+    public void Nt51950CascadeEnvelopeWithMarkerOnlyInTheTailFailsClosed()
+    {
+        OwnerCase evidence = ReadOwnerCase();
+        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade2-envelope-moved-marker");
+        byte[] missingEndFlag = ReconstructReference(evidence).AsSpan(0, NonstandardEnvelopeLength).ToArray();
+        missingEndFlag[0x36FFC + 1] ^= 0xFF;
+        byte[] tailMarker = [.. missingEndFlag];
+        byte[] marker = [0x00, 0x4E, 0x56, 0x54];
+        marker.CopyTo(tailMarker.AsSpan(Nt51950TemplateCapacity + 0x1000));
+
+        IReadOnlyList<CompositionIssue> moved = PrepareRejected(
+            CreateSlotPaths(evidence, workspace.Write("moved.bin", tailMarker), evidence.DiffDlm.Path),
+            workspace.PathFor("moved-must-not-exist.bin"),
+            "NT51950");
+        IReadOnlyList<CompositionIssue> missing = PrepareRejected(
+            CreateSlotPaths(evidence, workspace.Write("missing.bin", missingEndFlag), evidence.DiffDlm.Path),
+            workspace.PathFor("missing-must-not-exist.bin"),
+            "NT51950");
+
+        Assert.Contains(moved, static issue => issue.Code == PreparationNotAdmitted);
+        Assert.DoesNotContain(moved, static issue =>
+            issue.Code.StartsWith("input.bank-reference.", StringComparison.Ordinal));
+        Assert.Equal(
+            missing.Select(static issue => issue.Code).Order(StringComparer.Ordinal),
+            moved.Select(static issue => issue.Code).Order(StringComparer.Ordinal));
     }
 
     /// <summary>A nonstandard length whose Standard prefix is not a Standard Flash stays unrecognized.</summary>
@@ -413,9 +457,13 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
     }
 
-    /// <summary>A coherent marker-derived Backup at any address other than fixed 0x36000 fails closed.</summary>
+    /// <summary>
+    /// A coherent marker-derived Backup at any address other than fixed 0x36000 fails closed: without the marker at
+    /// the layout-declared end flag (0x36FFC) the Base is not admitted to its canonical map (NVT-END-FLAG-1113-01),
+    /// before the fixed-placement Build validation and any processor invocation.
+    /// </summary>
     [Fact]
-    public async Task WrongFixedFirmwareConfigBackupPlacementFailsClosedAsync()
+    public void WrongFixedFirmwareConfigBackupPlacementFailsClosed()
     {
         const int wrongBackupStart = BackupStart - 0x1000;
         OwnerCase evidence = ReadOwnerCase();
@@ -425,19 +473,11 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         reference.AsSpan(BackupStart + 0x0FFC, 4).Clear();
         string referencePath = workspace.Write("reference.bin", reference);
 
-        CompositionRunResult result = await RunAsync(
-            evidence,
-            referencePath,
-            evidence.DiffDlm.Path,
-            workspace.PathFor("must-not-exist.bin"),
-            new CountingPassThroughProcessor());
+        IReadOnlyList<CompositionIssue> issues = PrepareRejected(
+            CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
+            workspace.PathFor("must-not-exist.bin"));
 
-        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
-        Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() ==
-                     CompositionPlanningIssueCodes.ReplaceCtrlRamFirmwareConfigBackupPlacementInvalid);
+        Assert.Contains(issues, static issue => issue.Code == PreparationNotAdmitted);
     }
 
     /// <summary>The registered, hash-pinned Combiner differs from the owner tool only in the four approved CRC words.</summary>
@@ -622,12 +662,13 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
 
     private static IReadOnlyList<CompositionIssue> PrepareRejected(
         IReadOnlyDictionary<string, string> slotPaths,
-        string outputPath)
+        string outputPath,
+        string icId = "NT51951")
     {
         (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
             CtrlRamReplaceTestSupport.Prepare(
                 BootstrapTestHost.Canonical,
-                "NT51951",
+                icId,
                 "cascade",
                 slotPaths,
                 firmwareVersionEdit: null);

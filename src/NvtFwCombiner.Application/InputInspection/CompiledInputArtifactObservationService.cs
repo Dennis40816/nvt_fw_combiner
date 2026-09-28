@@ -114,9 +114,11 @@ internal static class CompiledInputArtifactObservationService
         {
             return CompiledReferenceBankInspection.Observe(composition, acceptedSnapshot, inspection);
         }
+        // NVT-END-FLAG-1113-01: a Base or TP input is read at the end flag its layout declares, if any.
+        FirmwareNvtEndFlagResolution endFlag = DeclaredNvtEndFlag(composition);
         if (slot.Role == ReferenceBaseRole)
         {
-            return new([DecodeTp(CompiledInputVersionKind.TpReferenceFirmwareConfig, acceptedSnapshot)], []);
+            return new([DecodeTp(CompiledInputVersionKind.TpReferenceFirmwareConfig, acceptedSnapshot, endFlag)], []);
         }
 
         CompiledOutputNamingRequirement naming = composition.V2Details.OutputNamingRequirement;
@@ -130,10 +132,12 @@ internal static class CompiledInputArtifactObservationService
             DpRole => ObserveDp(composition, sourceBytes, inspection),
             TpARole => [DecodeTp(
                 CompiledInputVersionKind.TpA,
-                acceptedSnapshot)],
+                acceptedSnapshot,
+                endFlag)],
             TpBRole => [DecodeTp(
                 CompiledInputVersionKind.TpB,
-                acceptedSnapshot)],
+                acceptedSnapshot,
+                endFlag)],
             _ => throw new InvalidOperationException(
                 $"AB Code naming declares unsupported compiled input role '{slot.Role}'."),
         };
@@ -192,11 +196,21 @@ internal static class CompiledInputArtifactObservationService
             trackerId == 0 ? null : trackerId);
     }
 
+    /// <summary>The NVT end-flag declaration of a map-bound composition; unresolved without a map.</summary>
+    internal static FirmwareNvtEndFlagResolution DeclaredNvtEndFlag(CompiledComposition composition)
+    {
+        return composition.V2Details.Provenance.Context is MapBoundV2CompilationContext mapBound
+            ? mapBound.ResolvedMap.NvtEndFlagResolution
+            : FirmwareNvtEndFlagResolution.Unresolved;
+    }
+
     internal static CompiledInputVersionObservation DecodeTp(
         CompiledInputVersionKind kind,
-        ReadOnlyMemory<byte> snapshot)
+        ReadOnlyMemory<byte> snapshot,
+        FirmwareNvtEndFlagResolution declaredEndFlag)
     {
-        return FirmwareConfigMetadataReader.TryReadBackup(snapshot.Span, out FirmwareConfigMetadata metadata) &&
+        return FirmwareConfigMetadataReader.TryReadBackup(snapshot.Span, declaredEndFlag,
+                out FirmwareConfigMetadata metadata, out _) &&
             metadata.IsFirmwareVersionBarValid
                 ? new CompiledInputVersionObservation(
                     kind,

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VERIFY-ALL-HELP-1113-47",
+  "capability": "Accurate help for the existing --all local verification option",
+  "integrationBase": "e3fa0297535b0f1057dffa4421e1df5724ab5dfb",
+  "risk": "R2",
+  "kind": "governance",
+  "state": "final-complete",
+  "mutablePaths": [
+    "scripts/verify.py",
+    "tests/scripts/test_verify_orchestration.py"
+  ],
+  "implementationOwner": "codex/gpt-6-sol",
+  "searchEvidence": [
+    "scripts/verify.py:6141-6160,6292-6325,6573-6639,6642-6680,6706-6735",
+    ".github/workflows/ci.yml:56,90,125,164,220,261; .github/workflows/main-package.yml:41",
+    "scripts/validate_repository.py:1698-1744,1747-1779"
+  ],
+  "semanticOwner": "scripts/verify.py:parse_args",
+  "terminalContract": "The --all help is exactly 'Run the complete local verification suite. Cannot be combined with skip flags.' and does not claim CI/Codex completion or all public gates; parsing and execution behavior remain unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-astra",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent two-round read-only R2 design review by codex/gpt-6-astra for implementationOwner codex/gpt-6-sol, NFC 1.1.13 TODO 47. Round 1 found one P2: the proposed public-gate wording overstated --all coverage and did not fix the final help string. Round 2 reviewed 47-design-v2.md and confirms that finding is incorporated: the exact text is “Run the complete local verification suite. Cannot be combined with skip flags.” Planned tests exercise rendered argparse help, whitespace normalization, SystemExit(0), the complete replacement text, removal of both old claims, and exact rejection of all three skip flags. The design preserves existing parsing, scheduling, partitioning, concurrency, and CI/release behavior. No new findings were identified. Relevant verifier, test, validator, and execution-workflow sources at HEAD 5cae4b591e9450ac25b4a253436f26c6d7484b64 are unchanged from f3857d6f1. Verdict: PASS for design only; recommended designReview.outcome: findings-incorporated. Formal admission, implementation verification, and frozen integration gates remain pending; checkpoint replay was not executed. Neither review modified files or Git state or ran tests, verifiers, builds, or network operations."
+  },
+  "implementationHead": "201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb",
+  "reviewedHead": "201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb",
+  "pathStateDigest": "4846e7d16950ef47e6c2c6d319967d8dec8fb04cc2ee48776149819683b1ab41",
+  "finalReview": {
+    "reviewer": "claude/sonnet-5",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent read-only R2 fixed-head review by claude/sonnet-5 for implementationOwner codex/gpt-6-sol at exact head 752f309edc967573da5c81dc03f34c836129f34c: the sole functional change is the --all help string in scripts/verify.py, now exactly \"Run the complete local verification suite. Cannot be combined with skip flags.\", matching the approved design, plus two pinning tests in tests/scripts/test_verify_orchestration.py that assert the rendered argparse help and the exact skip-flag rejection for all three skip flags, with both old claims asserted absent. Every claim behind the new text was checked against the post-#464 verifier (sequential sync/restore/build, shared workload lane pool, UiSmoke partition batching, --jobs bounds, skip-flag guard, --release-golden as a separate mode). The diff touches exactly the record's two mutablePaths; no parsing, scheduling, partitioning, concurrency, or CI/release logic changed. test_verify_orchestration.py: 247 passed. Batch 3 replays the reviewed commit as 984e03aec with an identical git patch-id (b1386446549f); Follow-up after pull request #468 CI: test_all_rejects_each_skip_flag failed in the repository-scripts-s-z lane because CI runs it inside an internal lane (NFC_VERIFY_INTERNAL_LANE=1) and execute_verification rejects the parent-owned marker before the skip-flag guard. The commander (claude-code) cleared the marker in that test as the neighbouring tests do (201e5fec4; red with the marker before the fix, 247 passed with and without it after). Independent read-only fixed-diff review by codex/gpt-6-astra of 06e09e0ad..201e5fec4: APPROVED, no findings; the change preserves all three skip flags, SystemExit and the exact message, is within the record's mutablePaths, and the help test exits through argparse before the marker guard. verify --all at the reviewed batch head 201e5fec48bdddc875fe3e0a3c233e9f9d3e7dfb (949 s) passed every lane except the expected pre-finalization design-active record errors; an earlier run at 06e09e0ad had one environmental failure in test_release_package_policy (lock helper PermissionError under concurrent load; 3/3 isolated reruns and the full lane passed; BUG-20260927-launcher-cleanup-lock-thread-flake), which did not recur."
+  },
+  "integrationPaths": [
+    "scripts/verify.py"
+  ]
+}

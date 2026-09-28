@@ -42,16 +42,16 @@ internal sealed partial class MainWindowViewModel
         {
             Merge.CancelAbDummyDpCommand.Execute(null);
             OnPropertyChanged(nameof(SelectedPage));
-            OnPropertyChanged(nameof(IsHomeVisible));
-            OnPropertyChanged(nameof(IsMergeVisible));
-            OnPropertyChanged(nameof(IsReplaceVisible));
-            OnPropertyChanged(nameof(IsHexEditorVisible));
             OnPropertyChanged(nameof(IsDeviceContextVisible));
             OnPropertyChanged(nameof(IsCompositionActionRailVisible));
             OnPropertyChanged(nameof(IsLatestOutputActionVisible));
             WorkflowSession.PublishActiveNavigationContext();
         }
 
+        OnPropertyChanged(nameof(IsHomeVisible));
+        OnPropertyChanged(nameof(IsMergeVisible));
+        OnPropertyChanged(nameof(IsReplaceVisible));
+        OnPropertyChanged(nameof(IsHexEditorVisible));
         Navigation.UpdateState();
         NotifyHexEditorCommandStateChanged();
         if (pageChanged)

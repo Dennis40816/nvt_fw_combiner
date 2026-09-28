@@ -64,33 +64,33 @@ fixtures under the declared golden policy; other private evidence stays out.
 
 ## Delegation and model selection
 
-Choose whether to delegate from task difficulty, risk, independence, and the
-cost of coordination. A small coherent task may be completed by the primary
-agent. Use parallel agents when they can contribute independent, bounded work;
-keep one writer per mutable surface and preserve other writers' changes.
+Use one writer per mutable surface. Delegate independent, bounded work when
+its value exceeds coordination cost; preserve other writers' changes. An owner
+request to work personally keeps execution with the primary agent.
 
-Consider all models exposed by the current tools, not only models named in
-earlier tasks. Choose a model and reasoning effort sufficient for the task
-rather than assigning permanent roles to model names. Routine lookup or
-mechanical work may use a faster model; ambiguous architecture, firmware
-changes, and release/security review merit stronger reasoning. The primary
-agent may also implement. Explicit owner choices take precedence when supported
-by tooling.
+Select from the models actually exposed by the runtime, by capability,
+difficulty and risk. Explicit owner choices prevail when supported. Current
+dated tier defaults live in
+[`agent-model-routing.md`](docs/governance/agent-model-routing.md); a model
+choice never weakens review, evidence or approval requirements.
 
-Before dispatch, briefly disclose the configured model (or known inheritance),
-reasoning effort when exposed, role, read/write scope, and selection reason.
-Use tool configuration as evidence; do not infer a model from its prose or a
-role name. A small read-only assignment needs a clear question, scope, and
-expected evidence, not a full implementation checklist. The primary agent
-remains responsible for integration and evidence-backed conclusions.
-Reuse an existing worker and its evidence for related follow-ups. Give it the
-context needed for its bounded task, not an automatic full-history replay.
-Do not independently repeat its entire search; inspect the decisive evidence
-when needed, especially for firmware, coverage, or release conclusions.
+Before dispatch, disclose the configured model or known inheritance, exposed
+reasoning effort, role, read/write scope and selection reason. Tool configuration
+is evidence; never infer a model from prose or a role name. Give workers the
+bounded question, required context and expected evidence. Reuse workers and
+their evidence for follow-ups; the primary agent owns integration and checks
+decisive evidence for firmware, coverage and release conclusions.
 
-For multi-agent reconstruction, conflict-heavy integration, or R3 migration,
-use `.agents/skills/supervised-branch-development/SKILL.md`. Its detailed
-handoff format is for that coordination work, not a prerequisite for every task.
+For concurrent work, reconstruction, R3 migration or conflict-heavy integration,
+read the [handoff protocol](docs/handoff/README.md) for the dispatch envelope,
+version board and workstream logs. Every runtime records found bugs in its
+[bug ledger](docs/handoff/README.md#bug-ledger) before reporting; recording does
+not authorize an out-of-scope fix.
+
+One runtime is sufficient. Independent review prefers another runtime; when
+unavailable or out of capacity, use a fresh session of the same runtime,
+preferably another model, without the author's conversation. A runtime product
+is never a prerequisite; independent review and human gates still are.
 
 ## Canonical commands
 
@@ -122,11 +122,9 @@ ordinary Git or document inspection.
   Application owns terminal use-case decisions; adapters carry typed results;
   Presentation/CLI render them. Before adding, changing, moving, wrapping,
   splitting, replacing, or refactoring production behavior, a semantic branch,
-  or an owner contract, complete the
-  [fail-closed capability-reuse gate](docs/governance/development-execution-workflow.md#capability-reuse-gate-fail-closed).
-  Apply its bounded local R1 path when eligible: unfinished integration records
-  alone do not block authorized local corrections or require repeated waivers.
-  R2/R3 admission and formal integration/release checks remain required.
+  or an owner contract, complete owner search and record the semantic owner and
+  disposition (`reuse`, `extend-owner`, `reject-duplicate`) in the
+  [pull request admission fields](docs/governance/development-execution-workflow.md#admission).
   Extend the existing owner when its contract is insufficient. A second
   semantic path requires an approved migration seam and executable deletion
   milestone.
@@ -152,22 +150,21 @@ Assess the behavior and authority actually affected. For local work:
 | Risk | Required local/review gate |
 | --- | --- |
 | R0: inspection or ordinary non-normative documentation | Inspection: evidence-backed answer. Non-classifier-governed prose: diff and affected-link review; structure/consumer checks only when layout or parsed inputs are affected. No mandatory subagent or product test. |
-| R1: bounded behavior correction | Relevant behavioral tests and scoped correctness review. Broaden for affected shared behavior or an unresolved failure. |
+| R1: bounded behavior correction | Relevant behavioral tests and scoped correctness review, with a review record on the exact head. Broaden for affected shared behavior or an unresolved failure. |
 | R2: architecture, contract, or governance behavior | R1 plus review of the affected architecture/contract and scoped Polytail; independent review when that authority changes. |
-| R3 | R2 plus the human approval and independent evidence for the authority touched. |
+| R3 | R2 plus independent evidence and the owner's approval of the last push naming each affected role. |
 
 A task-specific owner decision about review applies only to that task. It
 does not waive test results, Golden evidence, external permissions, or protected
 checks, and must not be recorded as a permanent exemption for future work.
 
-Read-only assessment needs no production capability record. For ordinary R0
-prose, finish the authorized edit on the existing branch and report briefly;
-no new issue, capability record, fixed-head review, code-size census or handoff
-document is required. The validator classifies paths, not prose meaning:
-`AGENTS.md` and other classifier-governed documents retain their record and
-integration contract. Normative, governance, permission and executable-policy
-changes use their affected gates, not the R0 shortcut. Reuse an admitted batch
-only within its scope. Commit/publish authority and required CI are unchanged.
+Read-only assessment needs no implementation admission. For ordinary R0 prose,
+finish the authorized edit on the existing branch and report briefly; no new
+issue, fixed-head review, code-size census or handoff document is required.
+The authority policy classifies paths, not prose meaning: `AGENTS.md` and
+other governed documents retain their review and integration requirements.
+Normative, governance, permission and executable-policy changes use their
+affected gates. Commit/publish authority and required CI are unchanged.
 
 During development, run the affected tests after each coherent correction.
 A full-suite run belongs at a frozen integration/release boundary or a
@@ -188,7 +185,10 @@ authorized work. Required failing checks still block integration/publication.
 
 Firmware-semantic R3 requires firmware-owner review, byte/golden evidence, and
 exact write-range audit. Release/signing/permission R3 requires release-owner
-and release-policy evidence. Changes touching both require both gates.
+and release-policy evidence. Governance/approval R3 requires governance-owner
+review and evidence of the affected rule or authority change. Every affected
+role must be named in the owner's last-push approval; combined changes retain
+all applicable gates.
 
 Every release must execute all applicable owner-certified Golden output cases
 against its actual candidate source. Fixture hash checks and a test-project
@@ -218,20 +218,20 @@ mutations, or missing mandatory human evidence. GitHub mutations follow
 ## Skills and completion
 
 Find the relevant NFC authority and workflow skill through
-`docs/governance/agent-skill-routing.md`. Apply `.agents/skills/polytail/` to
+`docs/governance/agent-skill-routing.md`. Apply skill `nfc-review` to
 non-trivial R1-R3 changes with scope proportional to touched authority and the
 current review decision. Instruction edits do not reconfigure already-loaded
 agent developer instructions or executable CI policy; identify any remaining
 conflict and propose out-of-scope changes without silently applying them.
 
 Before a specification, architecture, terminology, or planning change becomes
-an implementation goal or ticket rewrite, use `$grill-with-docs` while owner
+an implementation goal or ticket rewrite, use skill `nfc-grill-with-docs` while owner
 decisions remain. Ask only unresolved material decisions; a clear owner request
 or an already accepted decision does not require a new interview. Record
 accepted results in the affected canonical owner and check consistency of the
-affected documents. Use `$to-tickets` only when ticket creation/rewrite is part
-of the request. Use explicit `$grilling` for a requested generic decision
-interview. Do not restore a separate `domain-modeling` workflow.
+affected documents. Use skill `nfc-to-tickets` only when ticket creation/rewrite is part
+of the request. Use the personal `grilling` skill for an explicitly requested generic
+interview, when available. Do not restore a separate `domain-modeling` workflow.
 
 When documentation updates are authorized, record accepted decisions in their
 existing canonical owner and synchronize affected entry links; use

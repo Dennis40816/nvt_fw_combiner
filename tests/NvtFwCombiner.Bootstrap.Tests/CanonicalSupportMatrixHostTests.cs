@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -102,7 +103,7 @@ public sealed class CanonicalSupportMatrixHostTests
     [Fact]
     public void FocusedQueryUsesTheSharedCanonicalCatalogPublication()
     {
-        var host = CompositionHostServices.Create();
+        var host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         ICanonicalSupportMatrixQuery query = host.CanonicalSupportMatrixQuery;
         CapabilityCatalogReloadResult reload =
             host.Catalog.Reload(

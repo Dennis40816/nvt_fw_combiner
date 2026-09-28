@@ -6,12 +6,14 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\eng\prebuilt-profile-catalog\NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj" />
     <Compile Include="..\NvtFwCombiner.TestSupport\LegacyCombinerPostbuildCatalogAlias.cs"
              Link="LegacyCombinerPostbuildCatalogAlias.cs" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.VersionManagement.Infrastructure\NvtFwCombiner.VersionManagement.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Launcher\NvtFwCombiner.Launcher.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.Domain\NvtFwCombiner.Domain.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.TestSupport\NvtFwCombiner.TestSupport.csproj" />

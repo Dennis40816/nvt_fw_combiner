@@ -19,6 +19,8 @@ internal sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     private readonly Func<string, long, CancellationToken, Task<RawBinaryEditorSearchResult>> _findAsciiAsync;
     private RawBinaryEditorState _state = new(false, 0, 0, 0, 0, false);
     private long? _activeInlineEditAddress;
+    private long _saveDialogGeneration;
+    private long _documentGeneration;
     private int _selectedColumnIndex = -1;
     private Dictionary<long, HexViewportSnapshot>? _selectionSnapshots;
     private Dictionary<long, string>? _selectionAddressLabels;
@@ -113,6 +115,21 @@ internal sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     /// <summary>True while Save requests a user confirmation before opening the Save As dialog.</summary>
     [ObservableProperty]
     public partial bool IsSaveConfirmationOpen { get; set; }
+
+    partial void OnIsSaveConfirmationOpenChanged(bool value)
+    {
+        _saveDialogGeneration = checked(_saveDialogGeneration + 1);
+    }
+
+    internal (long Dialog, long Document) CaptureSaveContext()
+    {
+        return (_saveDialogGeneration, _documentGeneration);
+    }
+
+    internal bool IsSaveContextCurrent((long Dialog, long Document) context)
+    {
+        return IsSaveConfirmationOpen && CanSave && context == CaptureSaveContext();
+    }
 
     /// <summary>Normalized source path for the in-memory document, never used as an output target.</summary>
     [ObservableProperty]
@@ -577,6 +594,7 @@ internal sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 
     private void UpdateState(RawBinaryEditorState state)
     {
+        _documentGeneration = checked(_documentGeneration + 1);
         _state = state;
         OnPropertyChanged(nameof(HasDocument));
         OnPropertyChanged(nameof(HasUnsavedChanges));

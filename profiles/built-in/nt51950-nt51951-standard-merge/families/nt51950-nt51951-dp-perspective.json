@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51950-nt51951-dp-perspective",
-  "familyVersion": "1.4.1",
+  "familyVersion": "1.4.3",
   "members": [
     { "memberId": "NT51950", "displayName": "NT51950" },
     { "memberId": "NT51951", "displayName": "NT51951" }
@@ -163,16 +163,16 @@
           "artifactBindingId": "tp-input",
           "definitionReference": {
             "familyId": "nt51917-nt51927-nt51928-canonical-container",
-            "familyVersion": "1.4.0",
-            "familyContentHash": "e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af",
+            "familyVersion": "1.4.1",
+            "familyContentHash": "cb54fb90a1bf846cf737f5cd02de31c203540567dc66c209cad8a8e3ef0bbfb2",
             "structureId": "firmware-config-general-parameters"
           },
           "locator": {
             "kind": "marker-relative",
             "searchRange": {
               "addressSpaceId": "flash",
-              "start": 40960,
-              "length": 184320
+              "start": 225276,
+              "length": 4
             },
             "markerHex": "004e5654",
             "selection": { "kind": "unique" },
@@ -191,16 +191,16 @@
           "artifactBindingId": "reference-base",
           "definitionReference": {
             "familyId": "nt51917-nt51927-nt51928-canonical-container",
-            "familyVersion": "1.4.0",
-            "familyContentHash": "e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af",
+            "familyVersion": "1.4.1",
+            "familyContentHash": "cb54fb90a1bf846cf737f5cd02de31c203540567dc66c209cad8a8e3ef0bbfb2",
             "structureId": "firmware-config-general-parameters"
           },
           "locator": {
             "kind": "marker-relative",
             "searchRange": {
               "addressSpaceId": "flash",
-              "start": 40960,
-              "length": 184320
+              "start": 225276,
+              "length": 4
             },
             "markerHex": "004e5654",
             "selection": { "kind": "unique" },
@@ -219,8 +219,8 @@
           "artifactBindingId": "dp-input",
           "definitionReference": {
             "familyId": "nt51929-nt51932",
-            "familyVersion": "1.3.1",
-            "familyContentHash": "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
             "structureId": "dpcmi"
           },
           "locator": {
@@ -262,8 +262,8 @@
           "artifactBindingId": "dp-replacement",
           "definitionReference": {
             "familyId": "nt51929-nt51932",
-            "familyVersion": "1.3.1",
-            "familyContentHash": "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
             "structureId": "dpcmi"
           },
           "locator": {
@@ -305,8 +305,8 @@
           "artifactBindingId": "dp-input",
           "definitionReference": {
             "familyId": "nt51929-nt51932",
-            "familyVersion": "1.3.1",
-            "familyContentHash": "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
             "structureId": "dpcmi"
           },
           "locator": {
@@ -339,8 +339,8 @@
           "artifactBindingId": "dp-replacement",
           "definitionReference": {
             "familyId": "nt51929-nt51932",
-            "familyVersion": "1.3.1",
-            "familyContentHash": "d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
             "structureId": "dpcmi"
           },
           "locator": {
@@ -364,6 +364,28 @@
         }
       ],
       "evidenceRefs": ["ic-flashmap-20260725-51950-dp-perspective"]
+    },
+    {
+      "metadataSetId": "tp-svn-metadata",
+      "structures": [
+        {
+          "structureId": "tp-svn",
+          "artifactBindingId": "tp-input",
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
+            "structureId": "tp-svn"
+          },
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "tp-overlay",
+            "offset": 36,
+            "allowedResultRegionId": "tp-overlay"
+          }
+        }
+      ],
+      "evidenceRefs": ["owner-decision-2026-09-25-tp-svn-location-encoding", "ic-flashmap-mmap-autobuild-svn"]
     }
   ],
   "imageMaps": [
@@ -385,7 +407,8 @@
         "firmware-config-standard-merge",
         "firmware-config-dp-replace",
         "nt51950-dpcmi-standard-merge",
-        "nt51950-dpcmi-dp-replace"
+        "nt51950-dpcmi-dp-replace",
+        "tp-svn-metadata"
       ],
       "evidenceRefs": ["standard-merge-51950-256k-golden"]
     },
@@ -407,7 +430,8 @@
         "firmware-config-standard-merge",
         "firmware-config-dp-replace",
         "nt51950-dpcmi-standard-merge",
-        "nt51950-dpcmi-dp-replace"
+        "nt51950-dpcmi-dp-replace",
+        "tp-svn-metadata"
       ],
       "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
     },
@@ -429,7 +453,8 @@
         "firmware-config-standard-merge",
         "firmware-config-dp-replace",
         "nt51950-dpcmi-standard-merge",
-        "nt51950-dpcmi-dp-replace"
+        "nt51950-dpcmi-dp-replace",
+        "tp-svn-metadata"
       ],
       "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
     },
@@ -451,7 +476,8 @@
         "firmware-config-standard-merge",
         "firmware-config-dp-replace",
         "nt51951-dpcmi-standard-merge",
-        "nt51951-dpcmi-dp-replace"
+        "nt51951-dpcmi-dp-replace",
+        "tp-svn-metadata"
       ],
       "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
     },
@@ -473,7 +499,8 @@
         "firmware-config-standard-merge",
         "firmware-config-dp-replace",
         "nt51951-dpcmi-standard-merge",
-        "nt51951-dpcmi-dp-replace"
+        "nt51951-dpcmi-dp-replace",
+        "tp-svn-metadata"
       ],
       "evidenceRefs": ["standard-merge-51951-512k-golden"]
     },
@@ -495,7 +522,8 @@
         "firmware-config-standard-merge",
         "firmware-config-dp-replace",
         "nt51951-dpcmi-standard-merge",
-        "nt51951-dpcmi-dp-replace"
+        "nt51951-dpcmi-dp-replace",
+        "tp-svn-metadata"
       ],
       "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
     }
@@ -540,7 +568,9 @@
     "standard-merge-51951-512k-golden",
     "legacy-v2-dp-perspective-parity-matrix",
     "ic-flashmap-20260725-51950-tp-firmware-config",
-    "ic-flashmap-20260725-51950-dp-perspective"
+    "ic-flashmap-20260725-51950-dp-perspective",
+    "owner-decision-2026-09-25-tp-svn-location-encoding",
+    "ic-flashmap-mmap-autobuild-svn"
   ],
   "fullImageMetadataViews": [
     {

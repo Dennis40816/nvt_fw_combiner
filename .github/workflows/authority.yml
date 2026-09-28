@@ -1,0 +1,37 @@
+name: authority
+
+# ADR 0080 (G1-A): the `governance / authority` pull request check. It runs on
+# every pull request, draft included, and on description edits, because the
+# declared risk, roles and evidence live in the description. It ends in success
+# or failure only: one job, no `if:`, no path filter, no `continue-on-error`.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  authority:
+    name: governance / authority
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout the pull request head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Check the authority of the live pull request
+        env:
+          # The automatic read-only job token; the check uses no repository secret.
+          GITHUB_TOKEN: ${{ github.token }}
+          NFC_REPOSITORY: ${{ github.repository }}
+          NFC_PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: python scripts/authority_check.py --repository "$NFC_REPOSITORY" --pull-request "$NFC_PULL_REQUEST" --summary "$GITHUB_STEP_SUMMARY"

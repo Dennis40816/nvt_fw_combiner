@@ -66,32 +66,37 @@ internal static partial class ReplaceCliCommandHandler
         string? automaticOutputDirectory = build && !bundleBuild && !hasExplicitOutput
             ? outputTarget.OutputDirectory
             : null;
-        CompositionRunResult result = await run(
-                outputPath,
-                automaticOutputDirectory,
-                outputBundle,
-                build,
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        if (options.Values.TryGetValue("--report", out string? reportPath))
+        CompositionRunResult result;
+        try
         {
-            string fullPath = Path.GetFullPath(reportPath);
-            ProtectedPathGuard.EnsureDoesNotAlias(
-                fullPath,
-                "Report path",
-                ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath),
-                nameof(reportPath));
-            await CliCompositionRunSupport.WriteReportJsonAsync(
-                    fullPath,
-                    CompositionRunReportJson.Serialize(result),
-                    output,
+            result = await run(
+                    outputPath,
+                    automaticOutputDirectory,
+                    outputBundle,
+                    build,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
+        catch (CompositionPreRunRefusalException refusal)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, refusal.Issues).ConfigureAwait(false);
+            return CompositionFailed;
+        }
 
-        await PrintCompositionRunResultAsync(result, icId, workflowId, output, error).ConfigureAwait(false);
-        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
+        string? reportPath = options.Values.GetValueOrDefault("--report");
+        await CliCompositionRunSupport.WriteReportJsonAsync(
+                result,
+                reportPath,
+                path => ProtectedPathGuard.EnsureDoesNotAlias(
+                    Path.GetFullPath(path),
+                    "Report path",
+                    ProtectedPathGuard.CreateProtectedPaths(bindings, outputPath),
+                    nameof(reportPath)),
+                () => PrintCompositionRunResultAsync(result, icId, workflowId, output, error),
+                output,
+                error,
+                cancellationToken)
+            .ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 

@@ -18,7 +18,7 @@ verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `1.1.12`
+Specification package version: `1.1.13`
 
 ## 1.1.8 clean-Windows runtime correction — 2026-09-16
 
@@ -586,9 +586,10 @@ The first long-path local package attempt failed before build. The short-path
 retry passed. Release run `33454068996` belongs to the frozen `v1.0.8`
 predecessor evidence and failed on shadow-output repository-root discovery; it
 was not a `v1.1.0` retry. The local command
-`python scripts/verify.py --structure-only`, run from
-`C:\Users\liusx\.codex\worktrees\1100\nvt_fw_combiner` between 09:21:50 and
-09:31:50 Asia/Taipei, reached the 600-second capability-history timeout. That
+`python scripts/verify.py --structure-only`, run from the owner's local
+`.codex/worktrees/1100/nvt_fw_combiner` checkout (not in the repository)
+between 09:21:50 and 09:31:50 Asia/Taipei, reached the 600-second
+capability-history timeout. That
 local timeout is distinct from post-merge `main` CI run `33462718850`, whose
 structure lane passed. `python scripts/verify.py --all` was not run. The
 managed release workflow and clean-Windows profile-load, synthetic

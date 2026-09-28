@@ -13,15 +13,33 @@ public static partial class CliApplication
     private const int SoftwareError = 70;
 
     /// <summary>Runs one command-line invocation and returns the process exit code.</summary>
-    public static async Task<int> RunAsync(
+    public static Task<int> RunAsync(
         string[] args,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
+        return RunAsync(
+            args,
+            output,
+            error,
+            CompositionHostServices.ResolveCurrentUserLocalStateDirectory,
+            cancellationToken);
+    }
+
+    /// <summary>Runs one invocation whose host graph resolves its local-state directory only when it is composed.</summary>
+    internal static async Task<int> RunAsync(
+        string[] args,
+        TextWriter output,
+        TextWriter error,
+        Func<string> localStateDirectory,
+        CancellationToken cancellationToken,
+        string? versionManagerStatePath = null)
+    {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
+        ArgumentNullException.ThrowIfNull(localStateDirectory);
         if (args is ["--version"] or ["version"])
         {
             await output.WriteLineAsync(Version).ConfigureAwait(false);
@@ -52,12 +70,12 @@ public static partial class CliApplication
                     locators => CompositionHostServices.CreateVersionManagementExperience(
                         Version,
                         managedRoot: null,
-                        statePath: null,
+                        statePath: versionManagerStatePath,
                         updateSourceRegistryPaths: locators),
                     cancellationToken).ConfigureAwait(false);
             }
 
-            var host = CompositionHostServices.Create();
+            var host = CompositionHostServices.Create(localStateDirectory());
             var services = new CliCompositionServices(
                 host.CompositionCapabilityExperience, host.SavedRuleAuthoring,
                 host.StandardMergeAuthoring, host.AbMergeAuthoring,

@@ -16,6 +16,9 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 {
     private const int DpLength = 0x80000;
     private const int TpLength = 0x40000;
+    // NT51950/NT51951 read the TP Backup only at the layout-declared end flag [0x36FFC, 0x37000); the whole-image
+    // compatibility read of the other AB families still finds this unique marker.
+    private const int TpBackupStart = 0x36000;
 
     /// <summary>Function-open AB profiles are exposed even while 950/951 certification evidence remains pending.</summary>
     [Fact]
@@ -61,7 +64,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             });
             using TempWorkspace workspace = TempWorkspace.Create("ab-format-input-geometry");
             CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-                loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+                loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
             IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
             Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
             byte[] tp = CreateTpImage(0x81, 0, length: 0x37000);
@@ -527,7 +530,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     {
         CompositionHostServices host = CompositionHostServices.Create(
             new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools")),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
@@ -622,7 +625,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         byte chipCount = 1,
         int length = TpLength)
     {
-        const int backupStart = 0x1000;
+        const int backupStart = TpBackupStart;
         const int markerStart = backupStart + 0xFFC;
         byte[] image = new byte[length];
         image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = version;

@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "adr": "docs/adr/0080-governance-reset.md",
+  "roles": {
+    "governance-owner": [{"login": "Dennis40816", "id": 146855708}],
+    "firmware-owner": [{"login": "Dennis40816", "id": 146855708}],
+    "release-owner": [{"login": "Dennis40816", "id": 146855708}]
+  },
+  "reviewers": [
+    {"login": "nfc-agent-dennis40816[bot]", "id": 334370883},
+    {"login": "Dennis40816", "id": 146855708}
+  ],
+  "entries": [
+    {
+      "id": "firmware",
+      "description": "Profiles, every fixture and Golden file, reference code, the CRC worker, the Golden tests and the firmware-semantic source owners confirmed by the firmware owner (board decision 111).",
+      "floor": "R3",
+      "roles": ["firmware-owner"],
+      "patterns": [
+        "profiles/**",
+        "testdata/**",
+        "refcode/**",
+        "tools/crc-worker/**",
+        "tests/NvtFwCombiner.GoldenRegression.Tests/**",
+        "src/NvtFwCombiner.Domain/**",
+        "src/NvtFwCombiner.Profiles/**",
+        "src/NvtFwCombiner.Contracts/**",
+        "src/NvtFwCombiner.Application/Composition/**",
+        "src/NvtFwCombiner.Application/ExternalTools/**",
+        "src/NvtFwCombiner.Application/FlashMaps/**",
+        "src/NvtFwCombiner.Application/Metadata/**",
+        "src/NvtFwCombiner.Application/Capabilities/**",
+        "src/NvtFwCombiner.Infrastructure/Composition/**",
+        "src/NvtFwCombiner.Infrastructure/ExternalTools/**",
+        "src/NvtFwCombiner.Infrastructure/FlashMaps/**",
+        "src/NvtFwCombiner.Infrastructure/Metadata/**",
+        "src/NvtFwCombiner.Infrastructure/Capabilities/**"
+      ]
+    },
+    {
+      "id": "contracts",
+      "description": "Every contract takes the firmware and release roles until the owner names files individually.",
+      "floor": "R3",
+      "roles": ["firmware-owner", "release-owner"],
+      "patterns": ["docs/contracts/**"]
+    },
+    {
+      "id": "external-tools",
+      "description": "External processors and their packaged allowlist.",
+      "floor": "R3",
+      "roles": ["firmware-owner", "release-owner"],
+      "patterns": ["external-tools/**"]
+    },
+    {
+      "id": "release",
+      "description": "Workflows, actions, the version, the release contract and the package inputs.",
+      "floor": "R3",
+      "roles": ["release-owner"],
+      "patterns": [
+        ".github/workflows/**",
+        ".github/actions/**",
+        "VERSION",
+        "docs/ci/release-package.md",
+        "CHANGELOG.md",
+        "LICENSE",
+        "THIRD_PARTY_NOTICES.md"
+      ]
+    },
+    {
+      "id": "firmware-scripts",
+      "description": "Scripts that create or validate firmware fixtures, Golden data or IC intake.",
+      "floor": "R3",
+      "roles": ["firmware-owner"],
+      "patterns": [
+        "scripts/ab_merge_fixture_validation.py",
+        "scripts/create_candidate_ic_intake.py",
+        "scripts/create_ctrlram_universal_sentinel.py",
+        "scripts/diagnostic_golden_validation.py",
+        "scripts/intake_ic_reference.py"
+      ]
+    },
+    {
+      "id": "firmware-release-scripts",
+      "description": "Golden expectations, processor policy, terminal parity certification and the release source pins.",
+      "floor": "R3",
+      "roles": ["firmware-owner", "release-owner"],
+      "patterns": [
+        "scripts/canonical_golden_validation.py",
+        "scripts/external_tool_policy.py",
+        "scripts/v0916_parity_certification.py",
+        "scripts/release_source_pins.py"
+      ]
+    },
+    {
+      "id": "release-scripts",
+      "description": "Packaging, publication, signing, update-source and release smoke scripts.",
+      "floor": "R3",
+      "roles": ["release-owner"],
+      "patterns": [
+        "scripts/create_update_catalog.py",
+        "scripts/update_source_registry_policy.py",
+        "scripts/edit_update_source_registry.py",
+        "scripts/package.ps1",
+        "scripts/package-distribution-launcher.ps1",
+        "scripts/publish-github.ps1",
+        "scripts/publish-github.sh",
+        "scripts/render_release_notes.py",
+        "scripts/sign-release.ps1",
+        "scripts/sign-release.sh",
+        "scripts/sign_release.py",
+        "scripts/signing_policy.py",
+        "scripts/smoke-release.ps1",
+        "scripts/deploy-update-source.ps1"
+      ]
+    },
+    {
+      "id": "release-approval-policy",
+      "description": "The release promotion policy, which also encodes the release approval policy (board decision 102).",
+      "floor": "R3",
+      "roles": ["release-owner", "governance-owner"],
+      "patterns": ["scripts/release_promotion_policy.py"]
+    },
+    {
+      "id": "approval-authority",
+      "description": "This policy and its schema, the authority checker, every repository file it reads, its tests and workflow, CODEOWNERS, the rule owners of ADR 0080, the waiver rules, the frozen evidence paths, the frozen-evidence pin file that G1-B adds (ADR 0080 item 2) and the G0 scripts and ruleset bodies.",
+      "floor": "R3",
+      "roles": ["governance-owner"],
+      "patterns": [
+        "docs/governance/authority-policy.json",
+        "docs/governance/authority-policy.schema.json",
+        "scripts/authority_check.py",
+        "tests/scripts/test_authority_check.py",
+        "tests/scripts/test_authority_policy.py",
+        ".github/workflows/authority.yml",
+        ".github/CODEOWNERS",
+        "AGENTS.md",
+        "docs/governance/development-execution-workflow.md",
+        "docs/governance/branch-version-and-release-governance.md",
+        "docs/policies/**",
+        "docs/governance/change-records/**",
+        "docs/governance/external-authority-attestations/**",
+        "docs/governance/waivers/**",
+        "docs/governance/trusted-initial-capability-checkpoint.v1.json",
+        "docs/governance/frozen-evidence-pins.json",
+        "docs/handoff/**/g0-scripts/**"
+      ]
+    },
+    {
+      "id": "agent-instructions",
+      "description": "Agent configuration, skills and every AGENTS.md.",
+      "floor": "R2",
+      "roles": [],
+      "patterns": [".agents/**", ".codex/**", ".claude/**", "**/AGENTS.md"]
+    },
+    {
+      "id": "decisions-and-specifications",
+      "description": "Governance documents, ADRs, specifications and the canonical architecture documents.",
+      "floor": "R2",
+      "roles": [],
+      "patterns": [
+        "docs/governance/**",
+        "docs/adr/**",
+        "docs/specs/**",
+        "SPEC.md",
+        "docs/architecture/experience-and-access-policy.md",
+        "docs/architecture/nfc_roadmap.md",
+        "docs/architecture/supported-ic-matrix.md",
+        "docs/architecture/ic-workflow-flowcharts.md"
+      ]
+    },
+    {
+      "id": "repository-tooling",
+      "description": "The rest of .github/ and scripts/, the script tests, build engineering and vendored third-party material.",
+      "floor": "R2",
+      "roles": [],
+      "patterns": [".github/**", "scripts/**", "tests/scripts/**", "eng/**", "third-party/**"]
+    },
+    {
+      "id": "repository-configuration",
+      "description": "Contribution and security documents and the build and repository configuration.",
+      "floor": "R2",
+      "roles": [],
+      "patterns": [
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "Directory.*",
+        "global.json",
+        "NuGet.config",
+        "*.slnx",
+        "**/.gitattributes",
+        "**/.gitignore",
+        "**/.editorconfig"
+      ]
+    },
+    {
+      "id": "code-and-documentation",
+      "description": "Default for the rest of src/, tests/ and docs/ and the README; the prose list is excluded.",
+      "floor": "R1",
+      "roles": [],
+      "default": true,
+      "patterns": ["src/**", "tests/**", "docs/**", "README.md"],
+      "excludes": ["docs/handoff/**/*.md"]
+    },
+    {
+      "id": "topic-test-inputs",
+      "description": "Handoff Markdown that a topic test reads, so it is not prose: tests/scripts/test_v0916_parity_1x_amendment.py reads the 1.1.12 board.",
+      "floor": "R1",
+      "roles": [],
+      "patterns": ["docs/handoff/1.1.12.md"]
+    },
+    {
+      "id": "prose",
+      "description": "Handoff Markdown that no product test or semantic verification reads; only generic document-structure checks may read it (joint definition with ADR 0079).",
+      "floor": "R0",
+      "roles": [],
+      "patterns": ["docs/handoff/**/*.md"]
+    }
+  ]
+}

@@ -51,6 +51,48 @@ public sealed partial class CompositionOutputNameResolverTests
         Assert.NotNull(result.Report.OutputNaming);
     }
 
+    /// <summary>Build renders its own UTC date after an earlier Preview crosses midnight.</summary>
+    [Fact]
+    public async Task BuildAfterUtcMidnightUsesItsOwnValidatedAutomaticName()
+    {
+        InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
+        CompiledComposition composition = CreateRuntimeComposition(fixture);
+        var accepted = new AcceptedOutputNamingInspection(
+            OutputNamingRouteId,
+            composition.CompilationFingerprint,
+            fixture.Plan,
+            fixture.Snapshot);
+        var writer = new RecordingOutputWriter();
+        var service = new CompositionRunService(
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["input-artifact"] = fixture.Bytes,
+            }),
+            new FakeClock([
+                RunTime,
+                RunTime.AddSeconds(1),
+                RunTime.AddDays(1),
+                RunTime.AddDays(1).AddSeconds(1),
+            ]),
+            writer);
+        var request = new CompositionRunRequest(
+            "normal-output-midnight",
+            composition,
+            [CreateInputBinding()],
+            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            outputNamingInspection: accepted,
+            outputNamingAdmission: CreateAdmission(composition, fixture));
+
+        CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
+        CompositionRunResult build = await service.BuildAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
+        Assert.Equal("NT51929_FlashCode_D8205T8004_20260728.bin", preview.Report.Output.FileName);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, build.Status);
+        Assert.Equal("NT51929_FlashCode_D8205T8004_20260729.bin", writer.FileName);
+        Assert.Equal(writer.FileName, build.Report.Output.FileName);
+    }
+
     /// <summary>A prepared bundle name retains its original UTC date across midnight execution.</summary>
     [Fact]
     public async Task PreparedBundleNameDoesNotRerenderAtBuildTime()
@@ -216,43 +258,9 @@ public sealed partial class CompositionOutputNameResolverTests
             outputNamingAdmission: admission));
     }
 
-    /// <summary>A normal-name preview requires a freshly captured matching admission before build.</summary>
+    /// <summary>Report retains the exact output-naming publication identity.</summary>
     [Fact]
-    public void PreviewCannotBeApprovedUnderAChangedPublication()
-    {
-        InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
-        CompiledComposition composition = CreateRuntimeComposition(fixture);
-        var accepted = new AcceptedOutputNamingInspection(
-            OutputNamingRouteId,
-            composition.CompilationFingerprint,
-            fixture.Plan,
-            fixture.Snapshot);
-        var request = new CompositionRunRequest(
-            "normal-output-preview-a",
-            composition,
-            [CreateInputBinding()],
-            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
-            outputNamingInspection: accepted,
-            outputNamingAdmission: CreateAdmission(composition, fixture));
-        var publicationB = new OutputNamingAdmissionIdentity(
-            accepted.RouteId,
-            composition.CompilationFingerprint,
-            new ResolutionToken("output-naming-publication-b"),
-            accepted.AuthoringRevision);
-
-        _ = Assert.Throws<InvalidOperationException>(() =>
-            request.WithApprovedPreviewToken("preview-a"));
-        _ = Assert.Throws<ArgumentException>(() =>
-            request.WithApprovedPreviewToken("preview-a", publicationB));
-        CompositionRunRequest approved = request.WithApprovedPreviewToken("preview-a", CreateAdmission(composition, fixture));
-        Assert.Null(request.AbMergeFormat);
-        Assert.Null(approved.AbMergeFormat);
-        Assert.Equal("preview-a", approved.ApprovedPreviewToken);
-    }
-
-    /// <summary>Report and preview token retain the exact output-naming publication identity.</summary>
-    [Fact]
-    public async Task PublicationIdentityParticipatesInReportAndPreviewToken()
+    public async Task PublicationIdentityParticipatesInReport()
     {
         InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
         CompiledComposition composition = CreateRuntimeComposition(fixture);
@@ -292,7 +300,9 @@ public sealed partial class CompositionOutputNameResolverTests
         CompositionRunResult previewA = await Preview(requestA);
         CompositionRunResult previewB = await Preview(requestB);
 
-        Assert.NotEqual(previewA.PreviewToken, previewB.PreviewToken);
+        Assert.NotEqual(
+            previewA.Report.OutputNaming?.Admission?.ResolutionToken,
+            previewB.Report.OutputNaming?.Admission?.ResolutionToken);
         OutputNamingAdmissionSummary summaryA = Assert.IsType<OutputNamingAdmissionSummary>(
             previewA.Report.OutputNaming?.Admission);
         Assert.Equal(admissionA.RouteId, summaryA.RouteId);

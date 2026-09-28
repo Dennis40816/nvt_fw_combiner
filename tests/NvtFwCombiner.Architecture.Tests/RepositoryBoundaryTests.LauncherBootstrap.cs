@@ -236,6 +236,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.LauncherBootstrap/NvtFwCombiner.LauncherBootstrap.csproj");
         string bootstrapProgram = ReadText("src/NvtFwCombiner.LauncherBootstrap/Program.cs");
         string launcherProgram = ReadText("src/NvtFwCombiner.Launcher/Program.cs");
+        string bootstrapParser = ReadText(
+            "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs");
         string desktopProgram = ReadText("src/NvtFwCombiner.Desktop/Program.cs");
         string composition = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
         string contracts = ReadText(
@@ -288,6 +290,12 @@ public sealed partial class RepositoryBoundaryTests
             "BootstrapAdmissionSignal.Capture()",
             "TryAcquireWriteLeaseAsync",
             "LauncherBootstrapCoordinator.StartupWriterLeaseTimeout");
+        Assert.True(
+            bootstrapParser.IndexOf("JsonVersionManagerStateStore.GetDefaultPath()", StringComparison.Ordinal) >
+            bootstrapParser.IndexOf("for (int index = 0; index < args.Length; index++)", StringComparison.Ordinal));
+        Assert.True(
+            launcherProgram.IndexOf("JsonVersionManagerStateStore.GetDefaultPath()", StringComparison.Ordinal) >
+            launcherProgram.IndexOf("for (int index = 0; index < args.Length; index++)", StringComparison.Ordinal));
         Assert.True(
             bootstrapRuntime.IndexOf("ManagedProcessLifetimeKind.Bootstrap", StringComparison.Ordinal) <
             bootstrapRuntime.IndexOf("BootstrapStartGate.Capture()", StringComparison.Ordinal));

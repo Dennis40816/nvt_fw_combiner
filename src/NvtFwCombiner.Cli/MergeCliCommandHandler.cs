@@ -151,35 +151,41 @@ internal static partial class MergeCliCommandHandler
             return UsageError;
         }
 
-        CompositionRunResult result = await services.Execution.ExecuteAsync(
-            new AcceptedCompositionExecutionRequest(
-                prepared.AcceptedSession!,
-                new Dictionary<string, string>(StringComparer.Ordinal),
-                action == "build",
-                outputPath: bundleBuild ? null : outputPath,
-                automaticOutputDirectory:
-                    action == "build" && !hasExplicitOutput && !bundleBuild
-                        ? outputTarget.OutputDirectory
-                        : null,
-                reportPath: action == "build"
-                    ? options.Values.GetValueOrDefault("--report")
-                    : null,
-                outputBundle: outputBundle),
-            new CompositionRunProgressFeed(),
-            cancellationToken).ConfigureAwait(false);
-        bool reportWritten = options.Values.TryGetValue("--report", out string? requestedReportPath);
-        if (reportWritten)
+        CompositionRunResult result;
+        try
         {
-            await CliCompositionRunSupport.WriteReportJsonAsync(
-                    requestedReportPath!,
-                    CompositionRunReportJson.Serialize(result),
-                    output,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            result = await services.Execution.ExecuteAsync(
+                new AcceptedCompositionExecutionRequest(
+                    prepared.AcceptedSession!,
+                    new Dictionary<string, string>(StringComparer.Ordinal),
+                    action == "build",
+                    outputPath: bundleBuild ? null : outputPath,
+                    automaticOutputDirectory:
+                        action == "build" && !hasExplicitOutput && !bundleBuild
+                            ? outputTarget.OutputDirectory
+                            : null,
+                    reportPath: action == "build"
+                        ? options.Values.GetValueOrDefault("--report")
+                        : null,
+                    outputBundle: outputBundle),
+                new CompositionRunProgressFeed(),
+                cancellationToken).ConfigureAwait(false);
         }
-
-        await PrintResultAsync(result, icId, output, error, reportWritten).ConfigureAwait(false);
-        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
+        catch (CompositionPreRunRefusalException refusal)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, refusal.Issues).ConfigureAwait(false);
+            return CompositionFailed;
+        }
+        bool reportWritten = options.Values.TryGetValue("--report", out string? requestedReportPath);
+        await CliCompositionRunSupport.WriteReportJsonAsync(
+                result,
+                requestedReportPath,
+                ensureReportPathAllowed: null,
+                () => PrintResultAsync(result, icId, output, error, reportWritten),
+                output,
+                error,
+                cancellationToken)
+            .ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 }

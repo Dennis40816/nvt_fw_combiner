@@ -1,10 +1,15 @@
 # ADR 0021: Code-Size Ratchet and Convergence
 
-- Status: Accepted
+- Status: **Superseded by ADR 0080 item 17**.
+
+The dynamic hotspot rule in [ADR 0080](0080-governance-reset.md#size-and-agent-instructions)
+owns current size enforcement. The former allocation and allowance policy below
+is historical evidence; retain its measurements and product decisions.
+
 - Date: 2026-07-15
 - Owners: Architecture owner
 
-Current source-count enforcement: the **1.1.8 advisory source-size policy** in
+Historical source-count enforcement: the **1.1.8 advisory source-size policy** in
 [the accepted-artifact amendment](0021-code-size-ratchet-accepted-artifact-amendment.md#118-advisory-source-size-policy)
 supersedes the historical blocking line-count and exact-ledger requirements
 below. Historical measurements remain evidence, not current admission budgets.

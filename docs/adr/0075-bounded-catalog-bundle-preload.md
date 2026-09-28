@@ -11,6 +11,12 @@ revision answers both.
 Amends: [ADR 0049](0049-unified-preload-lifecycle.md), section "Concurrency and
 bounds are explicit", only for the required catalog stage.
 
+Amended by: [ADR 0077](0077-prebuilt-profile-catalog.md), which completes
+pre-built-catalog acceptance on the serial layer-0 bundle before any worker
+starts, keeps the accepted pre-built catalog as immutable shared state that
+each worker reads only its own bundle's ranges from, and narrows the
+transient-input caveat to that one file for the built-in bundles it covers.
+
 ## Context
 
 The owner requires all startup loading to finish within 2,000 ms of process

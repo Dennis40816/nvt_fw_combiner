@@ -134,9 +134,20 @@ their convergence onto the same family-owned facts is a separate migration
 gate and cannot be inferred from any relationship declaration.
 
 A metadata definition that is globally canonical across its declared
-consumers—`firmware-config-general-parameters` for all ICs, or DPCMI for every
-route that explicitly declares it—is not a partial-family fact. Maps bind that
-one definition through their own structure instances and locators. A
+consumers—`firmware-config-general-parameters` for all ICs, DPCMI for every
+route that explicitly declares it, or `tp-svn` for every TP code whose map
+declares a locator—is not a partial-family fact. Maps bind that
+one definition through their own structure instances and locators. `tp-svn`
+is the four-byte TP SVN stamp at TP start + `0x24` (byte 0 flags, bytes 1-3
+BCD revision), declared once by the neutral
+`nt51919-nt51929-nt51932-shared-facts` provider, which references no other
+family. It is not a TP Header field, and FWConfig `u8AutoBuildSvnVer1-4`
+remain separate fields that never supply or mirror it. The SVN copy inside
+the Header copy binds the same definition as its own read-only structure
+`tp-svn-header-copy`, located at `0x24` inside the layout's declared Header
+copy region (`header-copy`, or `final-header-backup` for the NT51917/27/28
+container), so its position follows the selected declared variant and is
+never inferred from bytes; no profile binds it for display or requires it. A
 `shared-fact-relationship` lists such a definition only if the owner explicitly
 establishes that the definition itself is restricted to that relationship;
 ordinary global reuse must not appear in `sharedFactReferences`.
@@ -167,8 +178,12 @@ A terminal expected count cannot exceed `searchLength - markerLength + 1`.
 
 For a concrete FWConfig structure, profile authoring uses the canonical NVT Backup form: marker bytes
 `00 4E 56 54`, `unique` selection, and result offset `-0xFFC` from marker start, which is equivalent to
-terminal `T - 0xFFF`. The containing region is read-only locator evidence only; it never grants a write
-or Replace range. The generic family schema does not infer FWConfig semantics from a structure-id string,
+terminal `T - 0xFFF`. A search range exactly as long as the marker declares the layout's NVT end flag
+(ADR 0076): a map declares it for every canonical NVT Backup locator it selects at one position, or for
+none, and runtime readers of that layout count only the marker at that position. Only families in the
+named migration inventory may resolve without a declaration; any other unresolved declaration makes the
+Backup unreadable. The containing region is read-only locator evidence only; it never grants a write or
+Replace range. The generic family schema does not infer FWConfig semantics from a structure-id string,
 and V2 metadata lowering remains non-executable until field/assertion evidence is complete.
 
 Every metadata structure declares one stable `artifactBindingId`; it matches the `artifactId` in

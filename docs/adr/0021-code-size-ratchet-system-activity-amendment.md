@@ -1,5 +1,11 @@
 # ADR 0021 normative appendix — current-session System Activity
 
+Status: **Superseded by ADR 0080 item 17**.
+
+The dynamic hotspot rule in [ADR 0080](0080-governance-reset.md#size-and-agent-instructions)
+owns current size enforcement. The former allocation and allowance policy below
+is historical evidence; retain its measurements and product decisions.
+
 The owner approved the two-level System Activity history on 2026-08-22: one
 existing Application-owned System Information service retains a bounded,
 privacy-filtered current-session activity list; the default view shows
@@ -285,8 +291,9 @@ owner and installs exactly the displayed immutable plan. Recovery renders and
 submits only the Application-provided action. Healthy and noninteractive
 terminal outcomes retain their exit-code path.
 
-The canonical Light English reference is
-`C:/Users/liusx/.codex/generated_images/01a01764-d2b2-7a72-a402-a80fb60c775e/exec-69698ee9-674f-4c7e-9c50-bf043c89ddf5.png`, with the later owner-approved
+The canonical Light English reference is the owner-approved Setup image
+recorded in change record `LAUNCHER-106-UI-01` (local file, not in the
+repository), with the later owner-approved
 external 34-pixel pencil icon, bundled Inter/product font, and existing App
 icon. The project directly admits only the four centrally pinned Avalonia
 packages and linked product tokens/icon; it adds no DI, navigation framework,

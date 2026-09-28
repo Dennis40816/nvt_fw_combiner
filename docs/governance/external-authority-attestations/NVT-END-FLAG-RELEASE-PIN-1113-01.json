@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "taskId": "NVT-END-FLAG-RELEASE-PIN-1113-01",
+  "authorityType": "release-owner",
+  "reviewedHead": "38b85b15b861027972a9ca6945411f57220c4c47",
+  "decision": "approved",
+  "reviewer": "Dennis Liu (release owner)",
+  "evidence": "The release owner explicitly approved exact final-evidence head 38b85b15b861027972a9ca6945411f57220c4c47 for NVT-END-FLAG-RELEASE-PIN-1113-01 on 2026-09-27, after first approving the same content at the superseded head 8ff601d7d94a150ad35b5b9bb2a62badb2903be0, which differed only in an unrelated skill sentence. The approval covers only the four digest re-pins that follow the NVT end-flag change: release policy digest 7d0e87c9ebc9ac604acd7568548e2fb5823cdc1124233db25199662a28ba43e7 and package trust-index digest 8f2c052e12cc05592a01fa7ca32e95285eef1e566006114d12a55d7abb35ad2e. No release behavior, allowlist or permission changed. This approval does not waive the frozen-candidate verifier, protected CI, actual-candidate Golden execution, package or release gates."
+}

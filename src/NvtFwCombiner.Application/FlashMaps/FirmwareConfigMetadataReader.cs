@@ -1,4 +1,6 @@
 using System.Buffers.Binary;
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.FlashMaps;
 
@@ -11,7 +13,8 @@ public static class FirmwareConfigMetadataReader
 
     /// <summary>
     /// Reads FWConfig facts from an absolute address for evidence and inspection only.
-    /// Runtime consumers must use <see cref="TryReadBackup(ReadOnlySpan{byte}, out FirmwareConfigMetadata)"/>.
+    /// Runtime consumers must use
+    /// <see cref="TryReadBackup(ReadOnlySpan{byte}, FirmwareNvtEndFlagResolution, out FirmwareConfigMetadata, out int)"/>.
     /// </summary>
     public static bool TryReadAtAbsoluteAddress(
         ReadOnlySpan<byte> image,
@@ -71,6 +74,8 @@ public static class FirmwareConfigMetadataReader
     /// <summary>
     /// Reads the canonical FWConfig Backup located at the unique NVT End Flag terminal byte minus
     /// <c>0xFFF</c>. Multiple complete exact NVT markers are rejected to avoid selecting an ambiguous source.
+    /// Migration-only whole-image compatibility read (NVT-END-FLAG-1113-01); runtime consumers must use
+    /// <see cref="TryReadBackup(ReadOnlySpan{byte}, FirmwareNvtEndFlagResolution, out FirmwareConfigMetadata, out int)"/>.
     /// </summary>
     public static bool TryReadBackup(ReadOnlySpan<byte> image, out FirmwareConfigMetadata metadata)
     {
@@ -79,16 +84,66 @@ public static class FirmwareConfigMetadataReader
 
     /// <summary>
     /// Reads the canonical FWConfig Backup and reports the complete exact NVT marker count for diagnostics.
+    /// Existing whole-image compatibility read. Production code reads through a
+    /// <see cref="FirmwareNvtEndFlagResolution"/>; this overload is deleted with the empty migration inventory.
     /// </summary>
     public static bool TryReadBackup(
         ReadOnlySpan<byte> image,
         out FirmwareConfigMetadata metadata,
         out int markerCount)
     {
+        return TryReadBackupWithin(image, 0, image.Length, out metadata, out markerCount);
+    }
+
+    /// <summary>
+    /// NVT-END-FLAG-1113-01 (ADR 0076): reads the canonical FWConfig Backup of a layout through its resolved end-flag
+    /// declaration, in the image's own coordinates (a Base, a TP input or one bank). Declared: only the marker at the
+    /// end flag counts, so <paramref name="markerCount"/> is 0 or 1 and markers elsewhere are neither counted nor
+    /// rejected. Migration-inventory layout without a declaration: the existing compatibility read. Failed
+    /// resolution: unreadable, never a whole-image search.
+    /// </summary>
+    public static bool TryReadBackup(
+        ReadOnlySpan<byte> image,
+        FirmwareNvtEndFlagResolution resolution,
+        out FirmwareConfigMetadata metadata,
+        out int markerCount)
+    {
+        ArgumentNullException.ThrowIfNull(resolution);
+        if (!resolution.Succeeded)
+        {
+            metadata = default;
+            markerCount = 0;
+            return false;
+        }
+
+        if (resolution.EndFlag is not { } declaredEndFlag)
+        {
+            return TryReadBackupWithin(image, 0, image.Length, out metadata, out markerCount);
+        }
+
+        ByteRange position = declaredEndFlag.Position.Range;
+        if (position.EndExclusive > image.Length)
+        {
+            metadata = default;
+            markerCount = 0;
+            return false;
+        }
+
+        return TryReadBackupWithin(image, checked((int)position.Start), checked((int)position.EndExclusive),
+            out metadata, out markerCount);
+    }
+
+    private static bool TryReadBackupWithin(
+        ReadOnlySpan<byte> image,
+        int searchStart,
+        int searchEndExclusive,
+        out FirmwareConfigMetadata metadata,
+        out int markerCount)
+    {
         metadata = default;
         int? markerStart = null;
         markerCount = 0;
-        for (int offset = 0; offset <= image.Length - NvtBackupMarkerLength; offset++)
+        for (int offset = searchStart; offset <= searchEndExclusive - NvtBackupMarkerLength; offset++)
         {
             if (image[offset] != 0x00 ||
                 image[offset + 1] != (byte)'N' ||

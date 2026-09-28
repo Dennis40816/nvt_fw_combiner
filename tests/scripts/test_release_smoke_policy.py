@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import struct
 import zipfile
 from pathlib import Path
 
@@ -19,6 +20,14 @@ GOLDEN_PATH = Path(
     "topology-unscoped/nt51927-gen-flash/expected/nt51927-expected-output.bin"
 )
 
+# A captured pwsh error view can truncate a line with an ellipsis, encoded in
+# whatever code page the host console uses (e.g. Big5 on a zh-TW Windows
+# host). Force UTF-8 so this subprocess's captured output decodes the same
+# way on every host, including CI.
+PWSH_FORCE_UTF8_OUTPUT = (
+    "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)"
+)
+
 
 def run_release_functions(script_name: str, names: tuple[str, ...], command: str):
     """Execute the real PowerShell owners without launching the package entrypoint."""
@@ -32,6 +41,7 @@ def run_release_functions(script_name: str, names: tuple[str, ...], command: str
             "-NoProfile",
             "-Command",
             f"""
+{PWSH_FORCE_UTF8_OUTPUT}
 $ErrorActionPreference = 'Stop'
 $PSStyle.OutputRendering = 'PlainText'
 $tokens = $null; $errors = $null
@@ -55,6 +65,159 @@ foreach ($name in @({functions})) {{
         timeout=50,
         check=False,
     )
+
+
+def catalog_fixture(root: Path) -> tuple[Path, Path, Path, str]:
+    """Make a tiny independently encoded pack and its reviewed JSON peers."""
+    built_in = root / "profiles" / "built-in"
+    bundle = built_in / "example"
+    bundle.mkdir(parents=True)
+    document = b'{"familyId":"sample"}\n'
+    manifest = {
+        "entries": [
+            {
+                "entryId": "family",
+                "kind": "firmware-family",
+                "path": "families/sample.json",
+                "schemaId": "family-schema",
+                "contentHash": hashlib.sha256(document).hexdigest(),
+            }
+        ]
+    }
+    manifest_bytes = json.dumps(manifest, separators=(",", ":")).encode()
+    document_path = bundle / "families" / "sample.json"
+    document_path.parent.mkdir()
+    document_path.write_bytes(document)
+    (bundle / "profile-bundle.json").write_bytes(manifest_bytes)
+    index = {
+        "trustIndexId": "test-index",
+        "trustIndexVersion": "1",
+        "trustAnchorBindingId": "test-anchor",
+        "bundles": [
+            {"bundleDirectory": "example", "bundleVersion": "1", "contentHash": "a" * 64}
+        ],
+    }
+    index_path = built_in / "package-trust-index.json"
+    index_path.write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
+    index_hash = hashlib.sha256(index_path.read_bytes()).hexdigest()
+    body = document + manifest_bytes
+    header = {
+        "formatVersion": 1,
+        "trustIndex": {
+            "sha256": index_hash,
+            "trustIndexId": index["trustIndexId"],
+            "trustIndexVersion": index["trustIndexVersion"],
+            "trustAnchorBindingId": index["trustAnchorBindingId"],
+        },
+        "bundles": [
+            {
+                "bundleDirectory": "example",
+                "bundleVersion": "1",
+                "contentHash": "a" * 64,
+                "documents": [
+                    {**manifest["entries"][0], "offset": 0, "length": len(document)}
+                ],
+                "manifest": {
+                    "offset": len(document),
+                    "length": len(manifest_bytes),
+                    "sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+                },
+            }
+        ],
+        "body": {"length": len(body), "sha256": hashlib.sha256(body).hexdigest()},
+    }
+    header_bytes = json.dumps(header, sort_keys=True, separators=(",", ":")).encode()
+    pack = built_in / "prebuilt-profile-catalog.pack"
+    pack.write_bytes(b"NFCPBCAT" + struct.pack("<I", len(header_bytes)) + header_bytes + body)
+    return index_path, pack, document_path, index_hash
+
+
+@pytest.mark.parametrize("mutation", ["valid", "missing", "damaged", "oversized", "stale"])
+def test_prebuilt_pack_corresponds_to_packaged_json(tmp_path: Path, mutation: str) -> None:
+    index, pack, document, index_hash = catalog_fixture(tmp_path)
+    if mutation == "missing":
+        pack.unlink()
+    elif mutation == "damaged":
+        pack.write_bytes(pack.read_bytes()[:-1] + b"X")
+    elif mutation == "oversized":
+        pack.write_bytes(pack.read_bytes() + b"x" * 4_194_304)
+    elif mutation == "stale":
+        document.write_bytes(b'{"familyId":"changed"}\n')
+    root_arg = str(tmp_path).replace("'", "''")
+    hash_arg = index_hash.replace("'", "''")
+    result = run_release_functions(
+        "smoke-release.ps1",
+        ("Assert-SafeProfileBundlePath", "Assert-PackagedPrebuiltCatalog"),
+        f"Assert-PackagedPrebuiltCatalog -PackageRoot '{root_arg}' "
+        f"-ApprovedTrustIndexSha256 '{hash_arg}'",
+    )
+    output = result.stdout + result.stderr
+    if mutation == "valid":
+        assert result.returncode == 0, output
+    else:
+        assert result.returncode != 0
+        assert "Prebuilt catalog" in output, output
+
+
+@pytest.mark.parametrize("mutation", ["valid", "missing", "damaged", "oversized"])
+def test_packager_requires_regenerated_pack_bytes(tmp_path: Path, mutation: str) -> None:
+    _, pack, _, _ = catalog_fixture(tmp_path)
+    regenerated = tmp_path / "regenerated.pack"
+    regenerated.write_bytes(pack.read_bytes())
+    if mutation == "missing":
+        pack.unlink()
+    elif mutation == "damaged":
+        pack.write_bytes(pack.read_bytes()[:-1] + b"X")
+    elif mutation == "oversized":
+        pack.write_bytes(pack.read_bytes() + b"x" * 4_194_304)
+    root_arg = str(tmp_path).replace("'", "''")
+    generated_arg = str(regenerated).replace("'", "''")
+    result = run_release_functions(
+        "package.ps1",
+        ("Assert-MatchingPrebuiltCatalog",),
+        f"Assert-MatchingPrebuiltCatalog -PublishedRoot '{root_arg}' "
+        f"-RegeneratedPack '{generated_arg}'",
+    )
+    output = result.stdout + result.stderr
+    if mutation == "valid":
+        assert result.returncode == 0, output
+    else:
+        assert result.returncode != 0
+        assert "Prebuilt catalog" in output, output
+
+
+@pytest.mark.parametrize("mutation", ["valid", "missing", "wrong-role", "extra", "oversized"])
+def test_smoke_requires_one_bounded_pack_manifest_entry(mutation: str) -> None:
+    entries = [
+        {
+            "path": "profiles/built-in/prebuilt-profile-catalog.pack",
+            "role": "builtInProfile",
+            "size": 100,
+        }
+    ]
+    if mutation == "missing":
+        entries.clear()
+    elif mutation == "wrong-role":
+        entries[0]["role"] = "reference"
+    elif mutation == "extra":
+        entries.append(
+            {"path": "profiles/built-in/other.pack", "role": "builtInProfile", "size": 10}
+        )
+    elif mutation == "oversized":
+        entries[0]["size"] = 4_194_305
+    payload = json.dumps(entries, separators=(",", ":")).replace("'", "''")
+    result = run_release_functions(
+        "smoke-release.ps1",
+        ("Assert-PrebuiltCatalogManifestEntry",),
+        f"$entries = '{payload}' | ConvertFrom-Json; "
+        "Assert-PrebuiltCatalogManifestEntry -Entries @($entries)",
+    )
+    output = result.stdout + result.stderr
+    if mutation == "valid":
+        assert result.returncode == 0, output
+    else:
+        assert result.returncode != 0
+        assert "Prebuilt catalog" in output, output
 
 
 @pytest.mark.parametrize("version", ["1.1.7", "1.1.8", "1.1.10"])
@@ -250,15 +413,15 @@ def test_release_entrypoint_enforces_runtime_before_later_package_gates(
     with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
         for path, payload in payloads.items():
             archive.writestr(f"{package_name}/{path}", payload)
+    script = str(ROOT / "scripts/smoke-release.ps1").replace("'", "''")
+    package_path = str(archive_path).replace("'", "''")
     result = subprocess.run(
         [
             PWSH,
             "-NoProfile",
-            "-File",
-            str(ROOT / "scripts/smoke-release.ps1"),
-            "-PackagePath",
-            str(archive_path),
-            "-SkipUiLaunch",
+            "-Command",
+            f"{PWSH_FORCE_UTF8_OUTPUT}; "
+            f"& '{script}' -PackagePath '{package_path}' -SkipUiLaunch",
         ],
         capture_output=True,
         text=True,
@@ -276,11 +439,8 @@ def test_stable_package_couples_one_version_scoped_launcher() -> None:
 
     assert "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj" in package
     assert "launcher/NvtFwCombiner.Launcher.exe" in package
-    assert (
-        "$IncludeManagedLauncher = -not ($AllowPrerelease -or $ManualOnly)" in package
-    )
-    assert "if ($ManualOnly) { '1.3' }" in package
-    assert "elseif ($IncludeManagedLauncher) { '1.2' }" in package
+    assert "$IncludeManagedLauncher = -not $AllowPrerelease" in package
+    assert "schemaVersion = if ($IncludeManagedLauncher) { '1.2' }" in package
     assert "$Manifest.versionManagementProtocolVersion = 1" in package
     assert "role = 'launcher'" in package
     assert "NvtFwCombiner.Bootstrap.exe" not in package
@@ -298,15 +458,13 @@ def test_release_smoke_rejects_bootstrap_in_update_and_checks_launcher_identity(
     assert "Version 1.0.0 and newer require the managed launcher contract." in smoke
 
 
-def test_manual_only_package_is_explicit_and_excludes_deployment_payloads() -> None:
+def test_manual_only_package_mode_is_retired_while_historical_smoke_remains() -> None:
     package = (ROOT / "scripts" / "package.ps1").read_text(encoding="utf-8-sig")
     smoke = (ROOT / "scripts" / "smoke-release.ps1").read_text(encoding="utf-8-sig")
 
-    assert "[switch]$ManualOnly" in package
-    assert "$Manifest.distributionMode = 'manual-only'" in package
-    assert "scripts/package.ps1 manual-only operator build" in package
+    assert "[switch]$ManualOnly" not in package
+    assert "$Manifest.distributionMode = 'manual-only'" not in package
     assert "scripts/package.ps1 manual-only operator build" in smoke
-    assert "if (-not $ManualOnly) {" in package
     assert (
         "Manual-only release package contains forbidden deployment or reference content."
         in smoke

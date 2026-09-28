@@ -16,8 +16,8 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51951-ctrlram-replace",
-    "familyVersion": "0.6.0",
-      "familyContentHash": "a90570932c0c31218430e096beeda87560c1ac7b66389045b82a64385a4ab2fe",
+    "familyVersion": "0.6.2",
+      "familyContentHash": "f697bf53fba46bc8d0253aff05cd347d45a09e1dba571bfef9d0cab7234752b4",
     "mapIds": [
       "nt51951-ctrlram-fw200-single-tp-work",
       "nt51951-ctrlram-fw200-single-full-flash"

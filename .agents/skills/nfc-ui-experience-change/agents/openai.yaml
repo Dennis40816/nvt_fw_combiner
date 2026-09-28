@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Experience Change"
+  short_description: "Change NFC UI with approved-reference fidelity"
+  default_prompt: "Use $nfc-ui-experience-change to implement and verify this NFC Avalonia UI change against its approved reference."

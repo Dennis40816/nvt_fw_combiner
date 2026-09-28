@@ -1,525 +1,144 @@
-"""Behavioral tests for source-size review findings."""
+"""ADR 0080 dynamic hotspot enrollment and physical aggregate regressions."""
 
-from __future__ import annotations
-
-import json
-import tempfile
-import unittest
 from pathlib import Path
 
-from scripts.code_size_policy import (
-    CodeSizeLimits,
-    DEFAULT_LIMITS,
-    measure_code_size,
-    review_code_size_policy,
-    validate_code_size_policy,
-)
+import pytest
+
+from scripts import code_size_policy as policy
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+@pytest.fixture
+def root(tmp_path):
+    return tmp_path
 
 
-class CodeSizePolicyTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.temporary_directory = tempfile.TemporaryDirectory()
-        self.root = Path(self.temporary_directory.name)
-        (self.root / "src/Product").mkdir(parents=True)
-        (self.root / "profiles").mkdir()
-        (self.root / "docs/contracts").mkdir(parents=True)
-
-    def tearDown(self) -> None:
-        self.temporary_directory.cleanup()
-
-    def write(self, relative_path: str, content: str) -> None:
-        path = self.root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-
-    def test_repository_runtime_sources_are_completely_allocated(self) -> None:
-        snapshot = measure_code_size(REPOSITORY_ROOT)
-        self.assertGreater(snapshot.runtime_production_nonblank, 0)
-        self.assertEqual(
-            snapshot.runtime_production_nonblank,
-            snapshot.domain_profiles_nonblank
-            + snapshot.application_nonblank
-            + snapshot.bootstrap_cli_nonblank
-            + snapshot.infrastructure_contracts_worker_nonblank,
-        )
-        self.assertEqual([], validate_code_size_policy(REPOSITORY_ROOT))
-
-    def test_launcher_structure_record_matches_the_canonical_exact_ledger(self) -> None:
-        record = json.loads(
-            (REPOSITORY_ROOT / "docs/governance/change-records/LAUNCHER-STRUCTURE-RATCHET-104-01.json")
-            .read_text(encoding="utf-8")
-        )
-        evidence = " ".join(
-            [
-                *record["searchEvidence"],
-                record["terminalContract"],
-                record["designReview"]["evidence"],
-            ]
-        )
-
-        for value in (129_509, 91_851, 20_632, 40_425, 4_323, 26_471):
-            self.assertIn(f"{value:,}", evidence)
-
-    def test_default_policy_reports_ratchets_without_final_targets(self) -> None:
-        findings = review_code_size_policy(self.root)
-
-        self.assertTrue(
-            any("runtime production metric" in finding for finding in findings)
-        )
-        self.assertTrue(
-            any("Domain + Profiles metric" in finding for finding in findings)
-        )
-        self.assertTrue(any("Application metric" in finding for finding in findings))
-        self.assertTrue(
-            any(
-                "Bootstrap + CLI + Desktop host metric" in finding
-                for finding in findings
-            )
-        )
-        self.assertTrue(
-            any(
-                "Infrastructure + Contracts + CRC worker metric" in finding
-                for finding in findings
-            )
-        )
-        self.assertFalse(any("final target" in finding for finding in findings))
-
-    def limits(
-        self,
-        *,
-        production: int,
-        duplicates: int = 0,
-        partial_max: int = 100,
-        exact_partials: dict[str, int] | None = None,
-        named_partial_maximums: dict[str, int] | None = None,
-        runtime_baseline: int | None = None,
-        runtime_ratchet: int | None = None,
-        domain_profiles_ratchet: int | None = None,
-        application_ratchet: int | None = None,
-        bootstrap_cli_ratchet: int | None = None,
-        infrastructure_contracts_worker_ratchet: int | None = None,
-        full_production_ratchet: int | None = None,
-        runtime_production_allowance: int = 0,
-        application_allowance: int = 0,
-        bootstrap_cli_allowance: int = 0,
-        infrastructure_contracts_worker_allowance: int = 0,
-        full_production_allowance: int = 0,
-    ) -> CodeSizeLimits:
-        return CodeSizeLimits(
-            production_nonblank=production,
-            duplicate_json_nonblank=duplicates,
-            partial_type_default_max=partial_max,
-            partial_type_exact_ratchets=exact_partials or {},
-            partial_type_named_maximums=named_partial_maximums or {},
-            runtime_production_baseline=runtime_baseline,
-            runtime_production_ratchet=runtime_ratchet,
-            domain_profiles_ratchet=domain_profiles_ratchet,
-            application_ratchet=application_ratchet,
-            bootstrap_cli_ratchet=bootstrap_cli_ratchet,
-            infrastructure_contracts_worker_ratchet=(
-                infrastructure_contracts_worker_ratchet
-            ),
-            full_production_ratchet=full_production_ratchet,
-            runtime_production_allowance=runtime_production_allowance,
-            application_allowance=application_allowance,
-            bootstrap_cli_allowance=bootstrap_cli_allowance,
-            infrastructure_contracts_worker_allowance=(
-                infrastructure_contracts_worker_allowance
-            ),
-            full_production_allowance=full_production_allowance,
-        )
-
-    def review(self, limits: CodeSizeLimits) -> list[str]:
-        return review_code_size_policy(self.root, limits)
-
-    def test_accepts_an_exact_baseline_and_excludes_generated_directories(self) -> None:
-        self.write("src/Product/Program.cs", "namespace Product;\nclass Program {}\n")
-        self.write("src/Product/bin/Generated.cs", "one\ntwo\nthree\n")
-
-        snapshot = measure_code_size(self.root)
-
-        self.assertEqual(1, snapshot.production_files)
-        self.assertEqual(2, snapshot.production_nonblank)
-        self.assertEqual([], self.review(self.limits(production=2)))
-
-    def test_reports_production_growth_above_threshold_and_accepts_reduction(
-        self,
-    ) -> None:
-        self.write("src/Product/Program.cs", "one\ntwo\n")
-
-        growth = self.review(self.limits(production=1))
-        reduction = self.review(self.limits(production=3))
-
-        self.assertTrue(
-            any("exceeded threshold: 2 > 1" in finding for finding in growth)
-        )
-        self.assertEqual([], reduction)
-
-    def test_counts_only_redundant_exact_json_copies(self) -> None:
-        content = '{\n  "schemaVersion": "1.0"\n}\n'
-        self.write("profiles/profile.json", content)
-        self.write("docs/contracts/profile.json", content)
-
-        snapshot = measure_code_size(self.root)
-
-        self.assertEqual(1, snapshot.duplicate_json_groups)
-        self.assertEqual(1, snapshot.duplicate_json_copies)
-        self.assertEqual(3, snapshot.duplicate_json_nonblank)
-        growth = self.review(self.limits(production=0, duplicates=2))
-        reduction = self.review(self.limits(production=0, duplicates=4))
-
-        self.assertTrue(any("grew: 3 > ratchet 2" in finding for finding in growth))
-        self.assertTrue(
-            any(
-                "consider lowering the ratchet from 4 to 3" in finding
-                for finding in reduction
-            )
-        )
-
-    def test_reports_default_and_exact_partial_aggregate_thresholds(self) -> None:
-        declaration = "namespace Product;\npublic partial class Workbench {}\n"
-        self.write("src/Product/Workbench.One.cs", declaration)
-        self.write("src/Product/Workbench.Two.cs", declaration)
-
-        default_growth = self.review(self.limits(production=4, partial_max=3))
-        default_equal = self.review(self.limits(production=4, partial_max=4))
-        default_reduction = self.review(self.limits(production=4, partial_max=5))
-        exact_equal = self.review(
-            self.limits(
-                production=4,
-                partial_max=3,
-                exact_partials={"Product.Workbench": 4},
-            )
-        )
-        exact_growth = self.review(
-            self.limits(
-                production=4,
-                partial_max=3,
-                exact_partials={"Product.Workbench": 3},
-            )
-        )
-        exact_reduction = self.review(
-            self.limits(
-                production=4,
-                partial_max=3,
-                exact_partials={"Product.Workbench": 5},
-            )
-        )
-
-        self.assertTrue(any("threshold is 3" in finding for finding in default_growth))
-        self.assertEqual([], default_equal)
-        self.assertEqual([], default_reduction)
-        self.assertEqual([], exact_equal)
-        self.assertTrue(
-            any("grew: 4 > ratchet 3" in finding for finding in exact_growth)
-        )
-        self.assertTrue(
-            any(
-                "consider lowering the ratchet from 5 to 4" in finding
-                for finding in exact_reduction
-            )
-        )
-
-    def test_named_partial_threshold_accepts_reduction_without_rebaselining(
-        self,
-    ) -> None:
-        declaration = "namespace Product;\npublic partial class Workbench {}\n"
-        self.write("src/Product/Workbench.One.cs", declaration)
-        self.write("src/Product/Workbench.Two.cs", declaration)
-
-        accepted = self.review(
-            self.limits(
-                production=4,
-                partial_max=3,
-                named_partial_maximums={"Product.Workbench": 5},
-            )
-        )
-        growth = self.review(
-            self.limits(
-                production=4,
-                partial_max=5,
-                named_partial_maximums={"Product.Workbench": 3},
-            )
-        )
-
-        self.assertEqual([], accepted)
-        self.assertTrue(
-            any(
-                "partial aggregate Product.Workbench exceeded threshold: 4 > 3"
-                in finding
-                for finding in growth
-            )
-        )
-
-    def test_tracks_each_partial_type_once_per_source_file(self) -> None:
-        self.write(
-            "src/Product/Workbench.One.cs",
-            "namespace Product;\n"
-            "public partial class Auxiliary {}\n"
-            "public partial class Workbench {}\n"
-            "public partial class Workbench {}\n",
-        )
-        self.write(
-            "src/Product/Workbench.Two.cs",
-            "namespace Product;\npublic partial class Workbench {}\n",
-        )
-
-        snapshot = measure_code_size(self.root)
-        workbench = next(
-            aggregate
-            for aggregate in snapshot.partial_types
-            if aggregate.name == "Product.Workbench"
-        )
-
-        self.assertEqual(2, workbench.file_count)
-        self.assertEqual(6, workbench.nonblank_lines)
-
-    def test_measures_only_non_ui_runtime_csharp_and_worker_python(self) -> None:
-        self.write("src/Product/Program.cs", "one\n\ntwo\n")
-        self.write(
-            "src/NvtFwCombiner.Presentation.Avalonia/View.cs",
-            "excluded\nfrom-runtime-metric\n",
-        )
-        self.write("src/Product/View.axaml", "counted-by-existing-metric\n")
-        self.write("tools/crc-worker/src/worker.py", "worker\n\nline\n")
-        self.write("tools/crc-worker/src/__pycache__/cached.py", "ignored\n")
-
-        snapshot = measure_code_size(self.root)
-        findings = self.review(self.limits(production=5, runtime_baseline=4))
-
-        self.assertEqual(2, snapshot.runtime_production_files)
-        self.assertEqual(4, snapshot.runtime_production_nonblank)
-        self.assertTrue(
-            any(
-                "runtime production metric: 2 files / 4 nonblank lines "
-                "(baseline 4, delta +0)" in finding
-                for finding in findings
-            )
-        )
-
-    def test_worker_runtime_owns_package_names_but_omits_cache_and_env_dirs(
-        self,
-    ) -> None:
-        for directory in ("release", "artifacts", "bin", "obj"):
-            self.write(
-                f"tools/crc-worker/src/nfc_crc_worker/{directory}/runtime.py",
-                "owned = True\n",
-            )
-        for directory in (
-            ".mypy_cache",
-            ".pytest_cache",
-            ".ruff_cache",
-            ".venv",
-            "__pycache__",
-            "venv",
-        ):
-            self.write(
-                f"tools/crc-worker/src/nfc_crc_worker/{directory}/runtime.py",
-                "ignored = True\n",
-            )
-
-        snapshot = measure_code_size(self.root)
-
-        self.assertEqual(4, snapshot.runtime_production_files)
-        self.assertEqual(4, snapshot.runtime_production_nonblank)
-
-    def test_core_counts_measure_exact_roots_and_warn_without_blocking(self) -> None:
-        self.write("src/NvtFwCombiner.Domain/Domain.cs", "one\ntwo\n")
-        self.write("src/NvtFwCombiner.Profiles/Profile.cs", "one\ntwo\nthree\n")
-        self.write("src/Product/Program.cs", "outside-slice\n")
-
-        snapshot = measure_code_size(self.root)
-        limits = self.limits(
-            production=6,
-            runtime_ratchet=5,
-            domain_profiles_ratchet=4,
-        )
-
-        self.assertEqual(2, snapshot.domain_profiles_files)
-        self.assertEqual(5, snapshot.domain_profiles_nonblank)
-        self.assertEqual(
-            [],
-            validate_code_size_policy(self.root, limits),
-        )
-        self.assertEqual(
-            [],
-            validate_code_size_policy(
-                self.root,
-                self.limits(
-                    production=6,
-                    runtime_ratchet=7,
-                    domain_profiles_ratchet=6,
-                ),
-            ),
-        )
-        self.assertTrue(
-            any(
-                "Domain + Profiles metric: 2 files / 5 nonblank lines "
-                "(ratchet 4)" in finding
-                for finding in review_code_size_policy(self.root, limits)
-            )
-        )
-
-    def test_full_production_changes_warn_without_blocking(
-        self,
-    ) -> None:
-        self.write("src/Product/Program.cs", "one\ntwo\n")
-
-        for baseline, expected in ((1, "grew: 2 > ratchet 1"), (3, "improved:")):
-            with self.subTest(baseline=baseline):
-                limits = self.limits(production=2, full_production_ratchet=baseline)
-                self.assertEqual([], validate_code_size_policy(self.root, limits))
-                findings = self.review(limits)
-                self.assertEqual(1, len(findings))
-                self.assertIn("full production", findings[0])
-                self.assertIn(expected, findings[0])
-
-    def test_historical_allowance_is_an_advisory_reference(
-        self,
-    ) -> None:
-        self.write("src/Product/Program.cs", "one\ntwo\nthree\n")
-        limits = self.limits(
-            production=3,
-            full_production_ratchet=2,
-            full_production_allowance=1,
-        )
-
-        self.assertEqual([], validate_code_size_policy(self.root, limits))
-        self.write("src/Product/Program.cs", "one\ntwo\nthree\nfour\n")
-        self.assertEqual(
-            [],
-            validate_code_size_policy(self.root, limits),
-        )
-
-        self.assertEqual(
-            ["code-size review full production grew: 4 > ratchet 3"],
-            self.review(limits),
-        )
-
-    def test_slice_relocation_is_visible_without_a_line_count_blocker(self) -> None:
-        self.write("src/NvtFwCombiner.Domain/Domain.cs", "domain\n")
-        self.write("src/NvtFwCombiner.Application/App.cs", "application\n")
-        self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "bootstrap\n")
-        self.write("src/NvtFwCombiner.Desktop/Program.cs", "desktop-host\n")
-        self.write("src/NvtFwCombiner.Infrastructure/Adapter.cs", "infrastructure\n")
-        snapshot = measure_code_size(self.root)
-        limits = self.limits(
-            production=5,
-            runtime_ratchet=5,
-            domain_profiles_ratchet=1,
-            application_ratchet=1,
-            bootstrap_cli_ratchet=2,
-            infrastructure_contracts_worker_ratchet=1,
-        )
-        self.assertEqual(2, snapshot.bootstrap_cli_files)
-        self.assertEqual(2, snapshot.bootstrap_cli_nonblank)
-        self.assertEqual([], validate_code_size_policy(self.root, limits))
-
-        self.write(
-            "src/NvtFwCombiner.Application/App.cs",
-            "application\nrelocated-bootstrap-line\n",
-        )
-        self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "")
-
-        self.assertEqual([], validate_code_size_policy(self.root, limits))
-        findings = self.review(limits)
-        self.assertTrue(any(
-            "Application slice grew: 2 > ratchet 1" in finding
-            for finding in findings
-        ))
-        self.assertTrue(any(
-            "Bootstrap + CLI + Desktop host slice improved:" in finding
-            for finding in findings
-        ))
-
-    def test_complete_slice_ratchets_reject_unallocated_runtime_source(self) -> None:
-        self.write("src/NvtFwCombiner.Domain/Domain.cs", "domain\n")
-        self.write("src/NvtFwCombiner.Application/App.cs", "application\n")
-        self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "bootstrap\n")
-        self.write("src/NvtFwCombiner.Infrastructure/Adapter.cs", "infrastructure\n")
-        self.write("src/Unallocated/Hidden.cs", "unallocated\n")
-
-        self.assertEqual(
-            ["code-size runtime slice allocation mismatch: 4 != total 5"],
-            validate_code_size_policy(
-                self.root,
-                self.limits(
-                    production=5,
-                    runtime_ratchet=5,
-                    domain_profiles_ratchet=1,
-                    application_ratchet=1,
-                    bootstrap_cli_ratchet=1,
-                    infrastructure_contracts_worker_ratchet=1,
-                ),
-            ),
-        )
-
-    def test_launcher_bootstrap_is_allocated_to_existing_host_slice(self) -> None:
-        self.write("src/NvtFwCombiner.LauncherBootstrap/Program.cs", "bootstrap-anchor\n")
-        snapshot = measure_code_size(self.root)
-
-        self.assertEqual(1, snapshot.bootstrap_cli_files)
-        self.assertEqual(1, snapshot.bootstrap_cli_nonblank)
-        self.assertEqual(
-            [],
-            validate_code_size_policy(
-                self.root,
-                self.limits(
-                    production=1,
-                    runtime_ratchet=1,
-                    domain_profiles_ratchet=0,
-                    application_ratchet=0,
-                    bootstrap_cli_ratchet=1,
-                    infrastructure_contracts_worker_ratchet=0,
-                ),
-            ),
-        )
-
-    def test_platform_is_allocated_to_infrastructure_slice(self) -> None:
-        self.write("src/NvtFwCombiner.Platform/ProcessLaunchGate.cs", "platform-anchor\n")
-        snapshot = measure_code_size(self.root)
-
-        self.assertEqual(1, snapshot.infrastructure_contracts_worker_files)
-        self.assertEqual(1, snapshot.infrastructure_contracts_worker_nonblank)
-        self.assertEqual(
-            [],
-            validate_code_size_policy(
-                self.root,
-                self.limits(
-                    production=1,
-                    runtime_ratchet=1,
-                    domain_profiles_ratchet=0,
-                    application_ratchet=0,
-                    bootstrap_cli_ratchet=0,
-                    infrastructure_contracts_worker_ratchet=1,
-                ),
-            ),
-        )
-
-    def test_distribution_launcher_is_allocated_to_existing_host_slice(self) -> None:
-        self.write("src/NvtFwCombiner.DistributionLauncher/Program.cs", "launcher-anchor\n")
-        snapshot = measure_code_size(self.root)
-
-        self.assertEqual(1, snapshot.bootstrap_cli_files)
-        self.assertEqual(1, snapshot.bootstrap_cli_nonblank)
-        self.assertEqual(
-            [],
-            validate_code_size_policy(
-                self.root,
-                self.limits(
-                    production=1,
-                    runtime_ratchet=1,
-                    domain_profiles_ratchet=0,
-                    application_ratchet=0,
-                    bootstrap_cli_ratchet=1,
-                    infrastructure_contracts_worker_ratchet=0,
-                ),
-            ),
-        )
+def write(root, path, text):
+    target = root / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(text, encoding="utf-8")
 
 
-if __name__ == "__main__":
-    unittest.main()
+def sized_type(root, lines, *, name="Hot", declaration="class", file="Hot.cs"):
+    write(root, "src/Product/" + file,
+          f"namespace Product;\npublic {declaration} {name} {{\n"
+          + "// body\n" * (lines - 3) + "}\n")
+
+
+def test_unenrolled_type_at_threshold_requires_owner_approved_enrollment(root):
+    sized_type(root, 2000)
+    errors = policy.validate_code_size_policy(root, {})
+    assert len(errors) == 1
+    assert "Product.Hot" in errors[0] and "enroll" in errors[0]
+    assert "owner" in errors[0]
+
+
+@pytest.mark.parametrize("lines,action", [(2001, "raise"), (1999, "lower"), (1499, "remove")])
+def test_baseline_tracks_measurement_and_exit(root, lines, action):
+    sized_type(root, lines)
+    errors = policy.validate_code_size_policy(root, {"Product.Hot": 2000})
+    assert len(errors) == 1 and action in errors[0]
+    assert ("owner approval" in errors[0]) == (action == "raise")
+
+
+@pytest.mark.parametrize("lines", [1500, 1750, 1999, 2000, 2200])
+def test_enrolled_exact_baseline_is_valid_including_retention_band(root, lines):
+    sized_type(root, lines)
+    assert policy.validate_code_size_policy(root, {"Product.Hot": lines}) == []
+
+
+@pytest.mark.parametrize("lines", [1499, 1500, 1999])
+def test_unenrolled_type_below_entry_threshold_is_advisory(root, lines):
+    sized_type(root, lines)
+    assert policy.validate_code_size_policy(root, {}) == []
+
+
+def test_removed_type_must_be_removed_from_enrollment(root):
+    assert "remove" in policy.validate_code_size_policy(root, {"Product.Gone": 2000})[0]
+
+
+def test_reentry_requires_enrollment_after_exit(root):
+    sized_type(root, 1499)
+    assert "remove" in policy.validate_code_size_policy(root, {"Product.Hot": 2000})[0]
+    assert policy.validate_code_size_policy(root, {}) == []
+    sized_type(root, 2000)
+    assert "enroll" in policy.validate_code_size_policy(root, {})[0]
+
+
+@pytest.mark.parametrize("declaration", ["class", "partial class", "struct", "record", "record struct", "interface", "enum"])
+def test_single_file_types_are_measured(root, declaration):
+    sized_type(root, 2000, declaration=declaration)
+    aggregate, = policy.measure_code_size(root).type_aggregates
+    assert (aggregate.name, aggregate.file_count, aggregate.nonblank_lines) == ("Product.Hot", 1, 2000)
+    assert "enroll" in policy.validate_code_size_policy(root, {})[0]
+
+
+def test_split_and_two_type_files_count_whole_file_once_for_each_type(root):
+    write(root, "src/Product/One.cs", "namespace Product;\npartial class A {}\npartial class A {}\nclass B {}\n\n")
+    write(root, "src/Product/Two.cs", "namespace Product;\npartial class A {}\n")
+    aggregates = {a.name: (a.file_count, a.nonblank_lines) for a in policy.measure_code_size(root).type_aggregates}
+    assert aggregates == {"Product.A": (2, 6), "Product.B": (1, 4)}
+
+
+def test_namespace_nested_and_generic_identities_do_not_collide(root):
+    write(root, "src/Product/One.cs", "namespace First { class Outer { class Item {} } class Item {} }\nnamespace Second { class Item<T> {} class Item {} }\n")
+    names = {a.name for a in policy.measure_code_size(root).type_aggregates}
+    assert names == {"First.Outer", "First.Outer.Item", "First.Item", "Second.Item`1", "Second.Item"}
+
+
+def test_comments_and_literals_do_not_declare_types(root):
+    write(root, "src/Product/One.cs", 'namespace Product;\nclass Real { string x = "class Fake {}"; }\n// class Comment {}\n/* record Another {} */\n')
+    assert [a.name for a in policy.measure_code_size(root).type_aggregates] == ["Product.Real"]
+
+
+def test_global_types_and_delegates_are_measured(root):
+    write(root, "src/Product/One.cs", "class Global {}\npublic delegate void Callback(int x);\n")
+    assert {a.name for a in policy.measure_code_size(root).type_aggregates} == {"Global", "Callback"}
+
+
+@pytest.mark.parametrize("declaration,name", [
+    ("public delegate (int X, int Y) Callback();", "Product.Callback"),
+    ("public delegate System.Func<(int X, int Y)> Callback();", "Product.Callback"),
+    ("public delegate System.Func<(T X, T Y)> Callback<T>();", "Product.Callback`1"),
+    ("public delegate ref readonly (int X, int Y) Callback();", "Product.Callback"),
+    ("public delegate ref readonly (T X, T Y) Callback<T>();", "Product.Callback`1"),
+    ("public delegate ref (int X, int Y) Callback();", "Product.Callback"),
+    ("public delegate ref readonly int Callback();", "Product.Callback"),
+])
+def test_tuple_return_delegate_is_enrolled_by_its_declared_name(root, declaration, name):
+    write(root, "src/Product/Delegate.cs", "namespace Product;\n" + declaration + "\n" + "// body\n" * 1998)
+    aggregate, = policy.measure_code_size(root).type_aggregates
+    assert (aggregate.name, aggregate.nonblank_lines) == (name, 2000)
+    errors = policy.validate_code_size_policy(root, {})
+    assert len(errors) == 1 and name in errors[0] and "enroll" in errors[0]
+
+
+def test_anonymous_delegate_is_not_a_type(root):
+    write(root, "src/Product/Worker.cs", "namespace Product;\nclass Worker { System.Action<int> Run = delegate(int x) { }; }\n")
+    assert [a.name for a in policy.measure_code_size(root).type_aggregates] == ["Product.Worker"]
+
+
+def test_generated_and_build_directories_are_excluded(root):
+    sized_type(root, 2000)
+    for directory in ("obj", "bin", "generated", "Generated", "artifacts"):
+        write(root, f"src/Product/{directory}/Hidden.cs", "namespace Product;\nclass Hidden {}\n")
+    write(root, "src/Product/Hidden.g.cs", "namespace Product;\nclass Generated {}\n")
+    write(root, "tests/Outside.cs", "class TestOnly {}\n")
+    assert [a.name for a in policy.measure_code_size(root).type_aggregates] == ["Product.Hot"]
+
+
+def test_every_other_measurement_has_one_advisory_block(root):
+    sized_type(root, 1999)
+    write(root, "src/Product/View.axaml", "<View/>\n")
+    write(root, "tools/crc-worker/src/worker.py", "x = 1\n")
+    write(root, "profiles/a.json", "{}\n")
+    write(root, "docs/contracts/b.json", "{}\n")
+    findings = policy.review_code_size_policy(root)
+    assert len(findings) == 1
+    assert "2000 nonblank" in findings[0]
+    assert "runtime" in findings[0] and "duplicate JSON" in findings[0]
+    assert policy.validate_code_size_policy(root, {}) == []
+
+
+def test_repository_enrollment_matches_current_measurement():
+    repository = Path(__file__).resolve().parents[2]
+    assert policy.validate_code_size_policy(repository) == []

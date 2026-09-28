@@ -13,7 +13,7 @@ MODULE_PATH = (
     Path(__file__).resolve().parents[2]
     / ".agents"
     / "skills"
-    / "github-review-polling"
+    / "nfc-github-review-polling"
     / "scripts"
     / "poll_github_review.py"
 )

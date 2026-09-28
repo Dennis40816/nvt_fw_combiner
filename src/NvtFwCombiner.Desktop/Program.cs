@@ -14,6 +14,10 @@ internal static class Program
         {
             return probeExitCode;
         }
+        if (CompositionHostServices.TryHandleProfileCatalogProbe(args, Console.Out, out int catalogProbeExitCode))
+        {
+            return catalogProbeExitCode;
+        }
 
         (
             string? managedRoot,
@@ -33,17 +37,23 @@ internal static class Program
             CompositionHostServices.CaptureInheritedApplicationReadySignal();
         ManagedImmutableBootstrapIdentity? bootstrapIdentity =
             CompositionHostServices.CaptureInheritedManagedBootstrapIdentity(lifetime.Outcome);
-        return lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext
-            ? 22
-            : DesktopApplication.Run(
-                () => CreatePresentationHostServices(
-                    managedRoot,
-                    statePath,
-                    bootstrapIdentity,
-                    updateSourceRegistryPaths,
-                    applicationReady),
-                CompositionHostServices.CreateLocalFileStore(),
-                remaining);
+        if (lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.InvalidInheritedContext)
+        {
+            return 22;
+        }
+
+        string localStateDirectory = CompositionHostServices.ResolveCurrentUserLocalStateDirectory();
+        return DesktopApplication.Run(
+            () => CreatePresentationHostServices(
+                managedRoot,
+                statePath,
+                bootstrapIdentity,
+                updateSourceRegistryPaths,
+                applicationReady,
+                localStateDirectory),
+            CompositionHostServices.CreateLocalFileStore(),
+            localStateDirectory,
+            remaining);
     }
 
     private static PresentationHostServices CreatePresentationHostServices(
@@ -51,9 +61,10 @@ internal static class Program
         string? statePath,
         ManagedImmutableBootstrapIdentity? bootstrapIdentity,
         IReadOnlyList<string> updateSourceRegistryPaths,
-        IApplicationReadySignal applicationReadySignal)
+        IApplicationReadySignal applicationReadySignal,
+        string localStateDirectory)
     {
-        var host = CompositionHostServices.Create();
+        var host = CompositionHostServices.Create(localStateDirectory);
         ManagedAppVersion appVersion = ManagedAppVersion.Parse(DesktopApplication.InformationalVersion);
         IVersionManagementExperience versionManagement =
             CompositionHostServices.CreateVersionManagementExperience(
@@ -79,6 +90,7 @@ internal static class Program
             host.CanonicalCatalogLoader,
             host.ExternalEnvironmentLoader,
             host.LocalFiles,
+            host.LocalStateDirectory,
             versionManagement,
             CompositionHostServices.CreateManagedApplicationStartupCoordinator(
                 appVersion.ToString(),

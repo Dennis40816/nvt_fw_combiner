@@ -119,14 +119,26 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
             IReadOnlyList<ExternalProcessInvocation> executedCommands = [startInfo.ToExecutedCommand()];
             if (processResult.TimedOut)
             {
-                return Fail("external-tool.process.timeout", "External processor timed out.", executedCommands);
+                return Fail(
+                    "external-tool.process.timeout",
+                    "External processor timed out." + ExternalProcessCleanupText.Suffix(processResult),
+                    executedCommands);
             }
 
             if (processResult.ExitCode != 0)
             {
                 return Fail(
                     "external-tool.process.failed",
-                    $"External processor exited with code {processResult.ExitCode}.",
+                    $"External processor exited with code {processResult.ExitCode}." + ExternalProcessCleanupText.Suffix(processResult),
+                    executedCommands);
+            }
+
+            if (processResult.Cleanup != ExternalProcessCleanup.Complete)
+            {
+                // A process started by the tool may still write the staging directory: never import from it.
+                return Fail(
+                    ExternalProcessCleanupText.IssueCode,
+                    "External processor exited, but " + ExternalProcessCleanupText.Describe(processResult.Cleanup),
                     executedCommands);
             }
 
@@ -182,6 +194,14 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (ExternalProcessCleanupCapacityException exception)
+        {
+            return Fail(ExternalProcessCleanupText.CapacityIssueCode, ExternalProcessCleanupText.CapacityMessage(exception));
+        }
+        catch (ExternalProcessStartFailedException exception)
+        {
+            return Fail(ExternalProcessCleanupText.StartFailedIssueCode, ExternalProcessCleanupText.StartFailedMessage(exception));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

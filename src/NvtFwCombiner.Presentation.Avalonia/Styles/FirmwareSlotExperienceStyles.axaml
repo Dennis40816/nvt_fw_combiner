@@ -141,6 +141,23 @@
   <Style Selector="ToggleButton.slotStateAction.error Path.slotStateIcon, Border.firmwareSlotFact.error Path.firmwareSlotFactStateIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcDangerTextBrush}" />
   </Style>
+  <!-- TP-SVN-MODEL-1113-01 value notes: the info circle keeps the default secondary stroke; a warning note uses
+       the existing warning brush on the icon and its tooltip line only. Declared before :focus-visible. -->
+  <Style Selector="Path.firmwareSlotFactNoteIcon.noteWarning, Path.firmwareSlotFactNoteWarningIcon">
+    <Setter Property="Stroke" Value="{DynamicResource NfcWarningTextBrush}" />
+  </Style>
+  <!-- Decision 94: the warning line carries the hexadecimal value (0x03); the UI font's contextual alternates
+       would draw its x between digits as a multiplication sign, so they and ligatures stay off for this text. -->
+  <Style Selector="TextBlock.firmwareSlotFactNoteWarningText">
+    <Setter Property="Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
+    <Setter Property="FontFeatures" Value="-calt,-liga" />
+  </Style>
+  <Style Selector="TextBlock.firmwareSlotFactNoteLabel">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
+  </Style>
+  <Style Selector="Grid.firmwareSlotFactNoteValueRow">
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
   <Style Selector="TextBlock.slotStateDetail">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />

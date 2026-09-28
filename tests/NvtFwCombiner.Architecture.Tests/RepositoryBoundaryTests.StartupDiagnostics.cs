@@ -19,7 +19,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("NFC_STARTUP_TRACE_PATH", session, StringComparison.Ordinal);
         Assert.Contains("FileMode.CreateNew", sink, StringComparison.Ordinal);
         Assert.DoesNotContain("Directory.CreateDirectory", sink, StringComparison.Ordinal);
-        Assert.DoesNotContain("NvtFwCombiner.Application", diagnostics, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Application", sink, StringComparison.Ordinal);
+        Assert.Equal(["using NvtFwCombiner.Application.Diagnostics;"], session.Split('\n')
+            .Select(line => line.Trim()).Where(line => line.StartsWith("using NvtFwCombiner.Application", StringComparison.Ordinal)));
+        AssertDoesNotContainAny(diagnostics, "BuiltInV2Bundle", "ProfileBundleLoader", "Infrastructure");
+        Assert.Contains("MarkProfileAdmission(_hostServices.SystemInformation.BuiltInProfileAdmission)", window, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Domain", diagnostics, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Profiles", diagnostics, StringComparison.Ordinal);
         Assert.Contains("Func<PresentationHostServices>", program, StringComparison.Ordinal);
@@ -221,13 +225,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("673 removed and 2,103 added", sizeAdr, StringComparison.Ordinal);
         Assert.Contains("98,133 to **99,563**", baseline, StringComparison.Ordinal);
         Assert.Contains("67,981 to **68,109**", baseline, StringComparison.Ordinal);
-        Assert.Contains("full_production_ratchet=102_896", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("98,135 to **98,133**", baseline, StringComparison.Ordinal);
-        Assert.Contains("runtime_production_ratchet=70_056", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("domain_profiles_ratchet=20_627", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("application_ratchet=30_690", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("bootstrap_cli_ratchet=3_378", codeSizePolicy, StringComparison.Ordinal);
-        Assert.Contains("infrastructure_contracts_worker_ratchet=15_356", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("HOTSPOT_LINES", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("HOTSPOT_ENTRY_LINES = 2_000", codeSizePolicy, StringComparison.Ordinal);
+        Assert.Contains("HOTSPOT_EXIT_LINES = 1_500", codeSizePolicy, StringComparison.Ordinal);
+        Assert.DoesNotContain("_allowance", codeSizePolicy, StringComparison.Ordinal);
         Assert.Contains("Historical original PL-00 instrumentation/semantic-control envelope", baseline, StringComparison.Ordinal);
         Assert.Contains("except for the owner-approved 2026-08-18", specification, StringComparison.Ordinal);
         Assert.Contains("from 98,137 to 98,135", specification, StringComparison.Ordinal);

@@ -1193,19 +1193,19 @@ def _declared_final_evidence_entries(
     return entries
 
 
-def _validate_current_capability_governance(
+def _validate_current_frozen_evidence(
     repository: Path, package_source_head: str
 ) -> None:
     del package_source_head
     try:
         try:
-            from scripts.validate_repository import validate_capability_reuse_governance
+            from scripts.validate_repository import validate_frozen_evidence_pins
         except ModuleNotFoundError as error:
             if error.name != "scripts":
                 raise
-            from validate_repository import validate_capability_reuse_governance  # type: ignore[no-redef]
+            from validate_repository import validate_frozen_evidence_pins  # type: ignore[no-redef]
         errors: list[str] = []
-        validate_capability_reuse_governance(repository, errors)
+        validate_frozen_evidence_pins(repository, errors)
     except (ImportError, OSError, subprocess.SubprocessError):
         _fail("PARITY_AUTHORITY_MISMATCH")
     if errors:
@@ -1302,7 +1302,7 @@ def validate_repository_parity_package_source(
         ) or _sha256(git.file_bytes(commit, policy_path)) != expected_policy_sha256:
             _fail("PARITY_AUTHORITY_MISMATCH")
 
-    validator = governance_validator or _validate_current_capability_governance
+    validator = governance_validator or _validate_current_frozen_evidence
     validator(repository, package_source_head)
     return {
         "implementationHead": implementation_head,
@@ -6481,6 +6481,17 @@ def _sync_pin(payload: bytes, pattern: bytes, replacement: str, count: int = 1) 
     if len(matches) != count or len({match[2] for match in matches}) != 1:
         _fail("PARITY_WORKFLOW_MISMATCH", "missing, ambiguous or inconsistent derived pin")
     return re.sub(pattern, lambda match: match[1] + replacement.encode("ascii") + match[3], payload)
+
+
+# Public entry points for the non-terminal predecessor comparator (ADR 0078).
+# Each name is the existing function itself, so the terminal chain and the
+# comparator share one implementation; the terminal behavior is unchanged.
+resolve_case = _resolve_case
+cli_selection_token = _cli_selection_token
+cli_arguments = _cli_arguments
+input_option = _input_option
+normalize_raw_operation = _normalize_raw_operation
+normalize_raw_mutation = _normalize_raw_mutation
 
 
 WORKFLOW_SYNC_INPUTS = (

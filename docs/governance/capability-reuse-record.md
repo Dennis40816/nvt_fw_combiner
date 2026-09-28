@@ -1,8 +1,33 @@
 # Capability-reuse record
 
-Status: Active fail-closed production-change contract (schema v2).
+Status: Historical. Superseded by [ADR 0080 (G1-B)](../adr/0080-governance-reset.md#compatibility-and-migration).
+Former status: Active fail-closed production-change contract (schema v2).
 
-Use the [workflow's bounded local R1 path](development-execution-workflow.md#bounded-local-r1-continuation)
+## Reading frozen evidence
+
+This document preserves the retired mechanics for interpreting existing records,
+attestations and the trusted checkpoint. Its lifecycle terms describe the authority
+recorded at that historical source; they do not authorize a current change,
+finalization or new evidence file. Supersession takes effect with the authorized
+G1-B merge, including both stages, under ADR 0080 migration step 2.
+
+The [frozen evidence pins](frozen-evidence-pins.json) bind the three historical
+directories, including their READMEs, and the checkpoint in place. The validator
+checks HEAD, the index and raw working-tree bytes against that snapshot. A
+change restored before the checked head is not a history violation. The pins
+neither complete pending owner/Golden evidence nor turn an old approval into
+permission for a new change; transition obligations remain in the carrying
+pull request or board row under ADR 0080 migration step 3.
+
+Current changes use the [pull request admission and review workflow](development-execution-workflow.md#admission).
+Owner approvals replace the old attestation mechanism; new waivers are head-bound
+pull request statements under [Waivers](development-execution-workflow.md#waivers).
+The schema and historical sections below remain to read frozen evidence and
+preserve existing references, not to reopen the retired validator gate.
+
+## Retired contract wording
+
+Use the [historical bounded local R1 path](../adr/0070-bounded-local-r1-continuation.md)
 for eligible local corrections; it changes no record or validator semantics.
 R2/R3 design admission and every formal integration candidate require a
 Git-tracked JSON record under `docs/governance/change-records/` before their

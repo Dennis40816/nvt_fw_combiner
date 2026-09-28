@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "taskId": "DOC-HYGIENE-1113-PRIVATE-PATHS-01",
+  "capability": "Remove the developer's real Windows account name from governed documentation prose without changing skill behavior or ADR decisions",
+  "integrationBase": "38b85b15b861027972a9ca6945411f57220c4c47",
+  "risk": "R2",
+  "kind": "refactor",
+  "state": "final-complete",
+  "mutablePaths": [
+    ".agents/skills/assess-refactor-progress/SKILL.md",
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "git grep -n -i \"C:[\\\\/]Users[\\\\/]\" over the tracked tree at 557a9ee6a (feature/1.1.13/doc-hygiene)",
+    "docs/handoff/bugs/BUG-20260926-public-tree-local-user-paths.md",
+    "scripts/validate_repository.py: _is_capability_reuse_governed_path classifies .agents/skills/** and docs/adr/** as governed, minimum R2"
+  ],
+  "semanticOwner": ".agents/skills/assess-refactor-progress/SKILL.md validate-the-skill command prose; docs/adr/0021-code-size-ratchet-system-activity-amendment.md LAUNCHER-106-UI-01 evidence-reference prose. No Domain/Application/Profile ownership, no ADR decision content, and no sealed change-record or waiver content is touched.",
+  "terminalContract": "In the skill's Validate The Skill command, replace the hard-coded `C:/Users/<real-account>/.codex/...` prefix with the `$env:USERPROFILE` PowerShell variable so the command remains runnable for any local account. In the ADR, replace the restated private LAUNCHER-106-UI-01 image path with a cross-reference to that already-sealed change record ('local file, not in the repository') instead of duplicating the path outside the sealed record. No byte output, CRC/header behavior, profile, firmware semantic, ADR decision, or sealed change-record/waiver content changes. docs/architecture/0.9.x-completion-roadmap.md, docs/references/verification-report.md, and tests/README.md carry the same class of fix but are not governed paths under _is_capability_reuse_governed_path and are tracked only in the accompanying patch, not in this record's mutablePaths.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": "codex/gpt-6-luna",
+    "outcome": "findings-incorporated",
+    "evidence": "Independent review (codex/gpt-6-luna) confirmed all 6 path rewrites across the 5 changed files preserve original meaning, unchanged rules, numbers, and ADR decisions, and confirmed the governed/non-governed classification of the two R2 mutablePaths (.agents/skills/assess-refactor-progress/SKILL.md, docs/adr/0021-code-size-ratchet-system-activity-amendment.md) against scripts/validate_repository.py:1718-1724 _is_capability_reuse_governed_path. Reviewed at HEAD 557a9ee6ae1919c344c61426b049f9f0946d8eed (feature/1.1.13/doc-hygiene) against patch SHA-256 acd05e63be8e506abec13fb5fec436498e0ed45fdfbd562dd26663b25c6aa37c. Findings incorporated: implementationOwner corrected from primary-agent to claude-code, and the record moved from an invalid blocked state (non-empty mutablePaths, which the validator rejects) to design-active with this design review recorded."
+  },
+  "implementationHead": "3b8d466939689b4da670d7cea6c48f496cff25b4",
+  "reviewedHead": "3b8d466939689b4da670d7cea6c48f496cff25b4",
+  "pathStateDigest": "a850199e8a46808e6dfa87cfd0faa36ea0712ab9ab267184539b246d9790c4e6",
+  "finalReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent final review by codex/gpt-6-sol of exact head bc42b8a41108ee5c640ea9037461fc2d3aa7b7da against base 557a9ee6ae1919c344c61426b049f9f0946d8eed found no P0–P3 findings. The admission commit contains only the change record, the implementation commit contains only the two governed documents, and the preceding R0 commit contains only three non-governed prose documents. All six account-path rewrites preserve the cited evidence and leave rules, numbers, and decisions unchanged. The record fields, design-active state, implementation owner, and mutable paths match the reviewed diff. Remaining tracked user-profile matches are limited to sealed change records, a frozen waiver, placeholder test accounts, and a placeholder example in this record. Review was read-only; no build or tests were run. After batch 2a merged, the unpublished branch was rebuilt on the new trunk: the admission record changed only its integrationBase to the new evidence checkpoint 38b85b15b861027972a9ca6945411f57220c4c47, and the three prose and two governed documents are byte-identical to the reviewed head. Batch integration review by codex/gpt-6-sol approved reviewed head 235629b1669d184ff4b692acf42f6114c3bac04c for the six design-active records in this batch. Each record blob matches its independently reviewed head: DOC-HYGIENE at 2e4e1fbf72e0b5f2d65839439e615b86cebc51cf; CLI-EXEC-REFUSAL at 8ccf2224a30a44a0ccd8cf1c7d5d1211003b6321; ROLLING-PARITY-CONTRACTS and V0916-1X-AMENDMENT at c1918642e12b69d4cba60ca796f14ee118657542; TEST-ARCH-ADR at dc8133fc31f899750bf71bac7b289a3c4c519666; and NVT-READER-DOC at ad9e33b23b9aa1572c2e3c2b4585f64de49f92a5. All 34 mutable paths match their reviewed heads except the TEST-ARCH-ADR auxiliary test README, whose two independent local-reference prose edits compose without conflict with its ADR pointer; its path-state digest must bind the combined blob at H. All 19 commits are accounted for, admissions precede implementations, and each of the 25 changed governed paths has exactly one record owner. This read-only review did not run builds, tests, or verifiers and does not replace the required R3 owner attestation or integration gates. The rebuilt batch head is 3b8d466939689b4da670d7cea6c48f496cff25b4. Compared with reviewed head 235629b1669d184ff4b692acf42f6114c3bac04c, its only tree difference is the predecessor schema contract test's reference to the Domain issue-code constant; the serialized value is unchanged. The other 19 batch commits have matching patch-ids, and all six design-active record blobs are identical between the two heads, as confirmed by codex/gpt-6-luna."
+  },
+  "integrationPaths": [
+    ".agents/skills/assess-refactor-progress/SKILL.md",
+    "docs/adr/0021-code-size-ratchet-system-activity-amendment.md"
+  ]
+}

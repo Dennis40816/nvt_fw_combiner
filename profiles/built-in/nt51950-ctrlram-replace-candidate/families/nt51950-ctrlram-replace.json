@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51950-ctrlram-replace",
-  "familyVersion": "0.6.0",
+  "familyVersion": "0.6.2",
   "members": [
     {
       "memberId": "NT51950",
@@ -209,7 +209,7 @@
           "length": 4096,
           "locator": {
             "kind": "marker-relative",
-            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 225280 },
+            "searchRange": { "addressSpaceId": "flash", "start": 225276, "length": 4 },
             "markerHex": "004e5654",
             "selection": { "kind": "unique" },
             "resultOffset": -4092,
@@ -261,6 +261,28 @@
         "nt51950-fw200-single-auto-prj-676-owner-golden-20260717",
         "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias"
       ]
+    },
+    {
+      "metadataSetId": "tp-svn-header-copy-metadata",
+      "structures": [
+        {
+          "structureId": "tp-svn-header-copy",
+          "artifactBindingId": "reference-base",
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a",
+            "structureId": "tp-svn"
+          },
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "header-copy",
+            "offset": 36,
+            "allowedResultRegionId": "header-copy"
+          }
+        }
+      ],
+      "evidenceRefs": ["owner-decision-2026-09-26-tp-svn-header-copy", "owner-decision-2026-09-25-tp-svn-location-encoding"]
     }
   ],
   "imageMaps": [
@@ -275,7 +297,7 @@
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51950-ctrlram-fw200-tp-work" ],
-      "metadataSetIds": [ "nt51950-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51950-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51950-fw200-single-auto-prj-676-owner-golden-20260717"
       ]
@@ -294,7 +316,7 @@
         "nt51950-ctrlram-fw200-tp-work",
         "nt51950-ctrlram-fw200-full-flash-tail"
       ],
-      "metadataSetIds": [ "nt51950-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51950-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51950-fw200-single-auto-prj-676-owner-golden-20260717"
       ]
@@ -310,7 +332,7 @@
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [ "nt51950-ctrlram-fw200-tp-work" ],
-      "metadataSetIds": [ "nt51950-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51950-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51950-fw200-single-auto-prj-676-owner-golden-20260717",
         "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias"
@@ -330,7 +352,7 @@
         "nt51950-ctrlram-fw200-tp-work",
         "nt51950-ctrlram-fw200-full-flash-tail"
       ],
-      "metadataSetIds": [ "nt51950-fwconfig-backup-locator" ],
+      "metadataSetIds": [ "nt51950-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
       "evidenceRefs": [
         "nt51950-fw200-single-auto-prj-676-owner-golden-20260717",
         "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias"
@@ -340,6 +362,8 @@
   "factAliases": [],
   "evidenceRefs": [
     "nt51950-fw200-single-auto-prj-676-owner-golden-20260717",
-    "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias"
+    "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
+    "owner-decision-2026-09-26-tp-svn-header-copy",
+    "owner-decision-2026-09-25-tp-svn-location-encoding"
   ]
 }

@@ -142,7 +142,7 @@ public sealed partial class AbMergeCliCommandTests
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-cli-output-name");
         CompositionHostServices host = CompositionHostServices.Create(
             new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools")),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
@@ -416,15 +416,18 @@ public sealed partial class AbMergeCliCommandTests
         byte chipCount = 1,
         int length = 0x40000)
     {
+        // The Backup ends at the NT51950/NT51951 layout-declared NVT end flag [0x36FFC, 0x37000); the other AB
+        // families' whole-image compatibility read still finds this unique marker.
+        const int backupStart = 0x36000;
         byte[] image = new byte[length];
-        image[FirmwareConfigLayout.FirmwareVersionOffset] = firmwareVersion;
-        image[FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~firmwareVersion);
-        image[FirmwareConfigLayout.FirmwareSubVersionOffset] = firmwareSubVersion;
-        image[FirmwareConfigLayout.ChipNumberOffset] = chipCount;
-        image[0xFFC] = 0x00;
-        image[0xFFD] = (byte)'N';
-        image[0xFFE] = (byte)'V';
-        image[0xFFF] = (byte)'T';
+        image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = firmwareVersion;
+        image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = unchecked((byte)~firmwareVersion);
+        image[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = firmwareSubVersion;
+        image[backupStart + FirmwareConfigLayout.ChipNumberOffset] = chipCount;
+        image[backupStart + 0xFFC] = 0x00;
+        image[backupStart + 0xFFD] = (byte)'N';
+        image[backupStart + 0xFFE] = (byte)'V';
+        image[backupStart + 0xFFF] = (byte)'T';
         return image;
     }
 }

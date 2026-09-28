@@ -70,6 +70,14 @@ internal sealed class BuildResultViewModel : ObservableObject
         return true;
     }
 
+    /// <summary>Keeps a committed output reachable from the latest-output shortcut without claiming Build completion.</summary>
+    internal void RetainLatestCommittedOutput(string committedOutputPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(committedOutputPath);
+        LatestCommittedOutputPath = committedOutputPath;
+        NotifyStateChanged();
+    }
+
     public void Close()
     {
         if (!IsOpen && string.IsNullOrEmpty(OutputPath))

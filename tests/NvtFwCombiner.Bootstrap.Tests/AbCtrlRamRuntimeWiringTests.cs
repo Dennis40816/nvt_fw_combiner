@@ -23,12 +23,12 @@ public sealed class AbCtrlRamRuntimeWiringTests
     [InlineData(0, "version-bar", "input.bank-reference.version-bar")]
     [InlineData(0, "zero-count", "input.bank-reference.count-zero")]
     [InlineData(0, "different-count", "input.bank-reference.count")]
-    [InlineData(0, "duplicate-marker", "input.bank-reference.metadata-ambiguous")]
+    [InlineData(0, "moved-marker", "input.bank-reference.metadata-unreadable")]
     [InlineData(0, "missing-marker", "input.bank-reference.metadata-unreadable")]
     [InlineData(0x40000, "version-bar", "input.bank-reference.version-bar")]
     [InlineData(0x40000, "zero-count", "input.bank-reference.count-zero")]
     [InlineData(0x40000, "different-count", "input.bank-reference.count")]
-    [InlineData(0x40000, "duplicate-marker", "input.bank-reference.metadata-ambiguous")]
+    [InlineData(0x40000, "moved-marker", "input.bank-reference.metadata-unreadable")]
     [InlineData(0x40000, "missing-marker", "input.bank-reference.metadata-unreadable")]
     public void Nt51950OsdDamagedBankRemainsTerminalAb(int bankStart, string damage, string issueCode)
     {
@@ -42,7 +42,11 @@ public sealed class AbCtrlRamRuntimeWiringTests
             case "version-bar": reference[backup + 1] ^= 1; break;
             case "zero-count": reference[backup + 0x17] = 0; break;
             case "different-count": reference[backup + 0x17] = 2; break;
-            case "duplicate-marker": new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(reference, bankStart + 0x1000); break;
+            // NVT-END-FLAG-1113-01: a second marker away from the end flag is ignored, so only a moved marker damages the bank.
+            case "moved-marker":
+                reference[backup + 0xFFC] ^= 1;
+                new byte[] { 0, 0x4E, 0x56, 0x54 }.CopyTo(reference, bankStart + 0x1000);
+                break;
             case "missing-marker": reference[backup + 0xFFC] ^= 1; break;
             default: throw new ArgumentOutOfRangeException(nameof(damage));
         }
@@ -297,7 +301,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         Assert.Equal(0, writer.Count);
         int banks = (a ? 1 : 0) + (b ? 1 : 0);
         Assert.Equal(banks, processor.Calls);
-        CompositionRunResult build = await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), TestContext.Current.CancellationToken);
+        CompositionRunResult build = await service.BuildAsync(request, TestContext.Current.CancellationToken);
         AssertSucceeded(build);
         Assert.Equal(1, writer.Count);
         Assert.Equal(banks * 2, processor.Calls);
@@ -378,7 +382,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         CompositionRunRequest request = Request(Resolve(Compile(original, true, true, editVersions: true)));
         CompositionRunResult preview = await service.PreviewAsync(request, TestContext.Current.CancellationToken);
         AssertSucceeded(preview);
-        CompositionRunResult build = await service.BuildAsync(request.WithApprovedPreviewToken(preview.PreviewToken!), TestContext.Current.CancellationToken);
+        CompositionRunResult build = await service.BuildAsync(request, TestContext.Current.CancellationToken);
         Assert.NotEqual(CompositionExecutionStatus.Succeeded, build.Status);
         Assert.Contains(build.Report.Issues, issue => issue.Code == (corruptBackup ? "test.version-invalid" : "test.tool.failure"));
         Assert.Equal(4, processor.Calls);
@@ -471,11 +475,11 @@ public sealed class AbCtrlRamRuntimeWiringTests
         CompiledValidationRequirement? extraTestValidation = null)
     {
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51919-nt51929-nt51932-ab-merge", "ece8e9ee7a81b3f00ce04bd7c1aa053acde26835d75c3042bf1a86302d8de793");
+            "nt51919-nt51929-nt51932-ab-merge", "f082c1b93f895aedd8b1614c860c7da4d1e93c5a2a91366b9b4348cc71b1ca39");
         CompiledComposition layout = ab.Compile("nt51929-ab-merge", "0.4.0", "NT51929", ExperienceIds.AbMerge,
             0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"]).CompiledComposition!;
         TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51929-ctrlram-replace-candidate", "309f29e33a8fb672e92ed441d6633fab829bee3bd4c94a93fd842a7f3bb157d0");
+            "nt51929-ctrlram-replace-candidate", "44aa7eedca9bece677656a1b34b340aec162e961e41d0f3124693fc29b705e0a");
         BankReferenceReplaceDefinition definition = ab.CreateBankReplaceDefinition(local, "NT51929",
             "nt51929-ab-merge", "0.4.0", "nt51929-ab-merge-512k",
             "nt51929-ctrlram-replace-fw200-single", "0.3.0", "nt51929-ctrlram-fw200-single-full-flash");

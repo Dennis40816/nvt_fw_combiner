@@ -17,12 +17,45 @@ public sealed partial class MainWindow
         await LoadReportJsonAsync(sender as Control, StorageProvider);
     }
 
-    internal async Task LoadReportJsonAsync(Control? trigger, IStorageProvider storageProvider)
+    internal Task LoadReportJsonAsync(Control? trigger, IStorageProvider storageProvider)
     {
-        if (DataContext is not MainWindowViewModel viewModel)
+        Task work = LoadReportJsonCoreAsync(trigger, storageProvider, _startupLoadCancellation.Token);
+        ObserveSessionTask(work);
+        return work;
+    }
+
+    private async Task LoadReportJsonCoreAsync(
+        Control? trigger,
+        IStorageProvider storageProvider,
+        CancellationToken sessionToken)
+    {
+        if (ClosePhase != WindowClosePhase.Open || sessionToken.IsCancellationRequested ||
+            DataContext is not MainWindowViewModel viewModel)
         {
             return;
         }
+        ReportPresentationViewModel reports = viewModel.Reports;
+        long generation = reports.BeginReportProjection();
+        using var contextCancellation = CancellationTokenSource.CreateLinkedTokenSource(sessionToken);
+        void InvalidateContext(object? sender, EventArgs e)
+        {
+            contextCancellation.Cancel();
+        }
+        void ModalChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MessageCenterViewModel.IsOpen))
+            {
+                contextCancellation.Cancel();
+            }
+        }
+        bool IsContextCurrent()
+        {
+            return !contextCancellation.IsCancellationRequested &&
+                ClosePhase == WindowClosePhase.Open && ReferenceEquals(DataContext, viewModel) &&
+                ReferenceEquals(viewModel.Reports, reports);
+        }
+        DataContextChanged += InvalidateContext;
+        viewModel.MessageCenter.PropertyChanged += ModalChanged;
         try
         {
             IReadOnlyList<IStorageFile> files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -39,35 +72,41 @@ public sealed partial class MainWindow
             ],
             });
 
-            if (files.Count == 0)
+            if (!IsContextCurrent() || !reports.IsCurrentReportProjection(generation) || files.Count == 0)
             {
                 return;
             }
 
             IStorageFile file = files[0];
-            ReportPublicationResult result = await viewModel.Reports.LoadReportFileAsync(
+            ReportPublicationResult result = await reports.LoadReportFileAsync(
                 token => _hostServices.LocalFiles.ReadTextAsync(
                     _ => new ValueTask<Stream>(file.OpenReadAsync()),
                     MaximumStandaloneReportBytes,
                     token),
                 file.Name,
-                _startupLoadCancellation.Token);
-            if (result.Outcome == ReportPublicationOutcome.Published && viewModel.MessageCenter.IsOpen)
+                contextCancellation.Token);
+            if (IsContextCurrent() && result.Outcome == ReportPublicationOutcome.Published && viewModel.MessageCenter.IsOpen)
             {
                 viewModel.Reports.ShowReportCommand.Execute(null);
             }
         }
-        catch (OperationCanceledException) when (_startupLoadCancellation.IsCancellationRequested)
+        catch (OperationCanceledException) when (contextCancellation.IsCancellationRequested)
         {
-            // Window shutdown owns cancellation.
+            // Window shutdown or a dismissed/replaced picker context owns cancellation.
         }
         catch (Exception exception)
         {
-            viewModel.Reports.SetShellToast(viewModel.Text.LoadRunReportLabel, exception.Message);
+            if (IsContextCurrent())
+            {
+                viewModel.Reports.SetShellToast(viewModel.Text.LoadRunReportLabel, exception.Message);
+            }
         }
         finally
         {
-            if (trigger is { IsEffectivelyVisible: true } && !viewModel.Reports.IsReportModalOpen)
+            DataContextChanged -= InvalidateContext;
+            viewModel.MessageCenter.PropertyChanged -= ModalChanged;
+            if (IsContextCurrent() &&
+                trigger is { IsEffectivelyVisible: true } && !viewModel.Reports.IsReportModalOpen)
             {
                 _ = trigger.Focus();
             }

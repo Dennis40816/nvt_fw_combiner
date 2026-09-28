@@ -29,13 +29,14 @@ internal static class CompiledCompositionTestFactory
         IReadOnlyDictionary<string, string>? inputRolesByAddressSpace = null,
         IReadOnlyList<string>? outputRequiredTokenIds = null,
         CompiledInputLengthRequirement? inputLengthRequirement = null,
-        CompiledInputArtifactClass? nonReferenceArtifactClass = null)
+        CompiledInputArtifactClass? nonReferenceArtifactClass = null,
+        long? nvtEndFlagStart = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(identity);
         long capacity = plan.OutputInitialization.Capacity;
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap =
-            CreateResolvedMap(identity, capacity, mapId);
+            CreateResolvedMap(identity, capacity, mapId, nvtEndFlagStart);
         var provenance = new V2CompilationProvenance(
             new ProfileBundleIdentity(
                 "application-test-bundle",
@@ -185,8 +186,28 @@ internal static class CompiledCompositionTestFactory
         CreateResolvedMap(
             TestCompiledCompositionIdentity identity,
             long capacity,
-            string mapId)
+            string mapId,
+            long? nvtEndFlagStart)
     {
+        // NVT-END-FLAG-1113-01: the synthetic family is outside the migration inventory, so FWConfig Backup reads
+        // succeed only at an NVT end flag the map declares; without one they are unreadable.
+        FirmwareMetadataSet[] metadataSets = nvtEndFlagStart is long endFlagStart
+            ? [new FirmwareMetadataSet(
+                "application-test-fwconfig-backup",
+                [new FirmwareMetadataStructure(
+                    "application-test-fwconfig-backup",
+                    "application-test-artifact",
+                    0x80,
+                    new FirmwareMarkerRelativeLocator(
+                        new FirmwareAddressedRange("flash", new ByteRange(endFlagStart, 4)),
+                        [0x00, 0x4E, 0x56, 0x54],
+                        new FirmwareUniqueMarkerSelection(),
+                        FirmwareNvtEndFlag.BackupStartOffsetFromMarker,
+                        "root"),
+                    [],
+                    [])],
+                ["application-test-evidence"])]
+            : [];
         FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             mapId,
             "flash",
@@ -207,21 +228,27 @@ internal static class CompiledCompositionTestFactory
                     new ByteRange(0, capacity),
                     FirmwareWriteConstraint.Forbidden)],
                 ["application-test-evidence"])],
-            [],
+            metadataSets,
             ["application-test-evidence"]);
         var definition = new FirmwareFamilyResolutionDefinition(
             "application-test-family",
             "1.0.0",
             SyntheticSha256,
             [map],
+            metadataSets);
+        var inputs = new FirmwareMapResolutionInputs(
+            identity.IcId,
+            identity.ModeId,
+            capacity,
+            requestedTopology: null,
             []);
-        FirmwareMapResolutionResult result = definition.ResolveMap(
-            new FirmwareMapResolutionInputs(
-                identity.IcId,
-                identity.ModeId,
-                capacity,
-                requestedTopology: null,
-                []));
+        // A declaration adds no required structure: the map resolves from its selection alone, as a trusted profile.
+        FirmwareMapResolutionResult result = metadataSets.Length == 0
+            ? definition.ResolveMap(inputs)
+            : definition.ResolveMapWithinForProfile(
+                inputs,
+                new HashSet<string>(StringComparer.Ordinal) { mapId },
+                new HashSet<string>(StringComparer.Ordinal));
         return result.ResolvedMap ?? throw new InvalidOperationException(
             "Synthetic Application map did not resolve.");
     }

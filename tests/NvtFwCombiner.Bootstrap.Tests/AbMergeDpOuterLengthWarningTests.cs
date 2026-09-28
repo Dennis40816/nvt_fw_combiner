@@ -150,7 +150,7 @@ public sealed class AbMergeDpOuterLengthWarningTests
         var environment = new ExternalProcessorEnvironmentLoader(RepositoryPaths.FromRepositoryRoot("external-tools"));
         Assert.True((await ((IExternalProcessorEnvironmentLoader)environment)
             .LoadToCompletionAsync(null, TestContext.Current.CancellationToken)).Succeeded);
-        CompositionHostServices host = CompositionHostServices.Create(environment, loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        CompositionHostServices host = CompositionHostServices.Create(environment, loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         return host;

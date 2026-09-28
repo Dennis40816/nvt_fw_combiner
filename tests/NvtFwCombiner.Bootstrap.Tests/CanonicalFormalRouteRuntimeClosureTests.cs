@@ -355,7 +355,7 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
             RepositoryPaths.FromRepositoryRoot("external-tools"));
         CompositionHostServices host = CompositionHostServices.Create(
             environment,
-            loadPolicy: null,
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(),
             configurationPath: workspace.PathFor("event-buffer-format.v1.json"));
         Assert.True((await host.ExternalEnvironmentLoader.LoadToCompletionAsync(
             null,

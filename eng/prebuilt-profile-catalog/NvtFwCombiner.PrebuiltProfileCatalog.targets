@@ -1,0 +1,51 @@
+<Project>
+  <!-- Invalidate before even the materializer's validation: a failed build cannot expose an old pack. -->
+  <Target Name="InvalidatePrebuiltProfileCatalog" BeforeTargets="PrepareForBuild;MaterializeBuiltInProfileBundles">
+    <PropertyGroup>
+      <_NfcCatalogOutputDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(OutDir)'))</_NfcCatalogOutputDirectory>
+      <_NfcCatalogExpectedOutputDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(OutputPath)'))</_NfcCatalogExpectedOutputDirectory>
+      <_NfcCatalogMaterializedDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BuiltInProfileMaterializedRoot)'))</_NfcCatalogMaterializedDirectory>
+      <_NfcCatalogExpectedMaterializedDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(_NfcExpectedMaterializedRoot)'))</_NfcCatalogExpectedMaterializedDirectory>
+    </PropertyGroup>
+    <Error Condition="'$(_NfcCatalogOutputDirectory)' != '$(_NfcCatalogExpectedOutputDirectory)'"
+           Text="Profile catalog output must retain the SDK configuration/TFM/RID OutputPath; a shared OutDir is unsupported." />
+    <Error Condition="'$(_NfcCatalogMaterializedDirectory)' != '$(_NfcCatalogExpectedMaterializedDirectory)'"
+           Text="Profile catalog materialization must retain its configuration/TFM/RID root." />
+    <PropertyGroup>
+      <_NfcCatalogWork>$(IntermediateOutputPath)prebuilt-catalog</_NfcCatalogWork>
+      <_NfcCatalogPack>$(BuiltInProfileMaterializedRoot)\prebuilt-profile-catalog.pack</_NfcCatalogPack>
+      <_NfcCatalogIndex>$(_NfcCatalogWork)\package-trust-index.json</_NfcCatalogIndex>
+    </PropertyGroup>
+    <Delete Files="$(_NfcCatalogPack);$(OutDir)profiles\built-in\prebuilt-profile-catalog.pack" />
+    <RemoveDir Directories="$(_NfcCatalogWork)" />
+  </Target>
+
+  <!-- Resolve the build-only ProjectReference in the normal graph and consume its exact output.
+       Overriding publish properties here would create second instances of shared dependencies
+       that write the same obj/bin paths concurrently. -->
+  <Target Name="GeneratePrebuiltProfileCatalog" AfterTargets="MaterializeBuiltInProfileBundles"
+          BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolveProjectReferences">
+    <Error Condition="!Exists('@(_NfcCatalogTool)')" Text="The built profile catalog generator is missing." />
+    <MakeDir Directories="$(_NfcCatalogWork)" />
+    <Copy SourceFiles="$(BuiltInProfileTrustIndex)" DestinationFiles="$(_NfcCatalogIndex)" />
+    <PropertyGroup>
+      <_NfcCatalogDotnet>$(NetCoreRoot)dotnet</_NfcCatalogDotnet>
+      <_NfcCatalogDotnet Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(NetCoreRoot)dotnet.exe</_NfcCatalogDotnet>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_NfcCatalogDotnet)&quot; &quot;@(_NfcCatalogTool)&quot; &quot;$(BuiltInProfileMaterializedRoot)&quot; &quot;$(_NfcCatalogIndex)&quot; &quot;$(_NfcCatalogWork)\catalog.pack&quot;"
+          Timeout="60000" />
+    <Error Condition="!Exists('$(_NfcCatalogWork)\catalog.pack')" Text="Profile catalog generation produced no pack." />
+    <Move SourceFiles="$(_NfcCatalogWork)\catalog.pack" DestinationFiles="$(_NfcCatalogPack)" />
+    <ItemGroup>
+      <Content Include="$(_NfcCatalogPack)" Link="profiles\built-in\prebuilt-profile-catalog.pack"
+               CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+      <Content Include="$(_NfcCatalogIndex)" Link="profiles\built-in\package-trust-index.json"
+               CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+    </ItemGroup>
+    <OnError ExecuteTargets="CleanFailedPrebuiltProfileCatalog" />
+  </Target>
+  <Target Name="CleanFailedPrebuiltProfileCatalog">
+    <Delete Files="$(_NfcCatalogPack);$(OutDir)profiles\built-in\prebuilt-profile-catalog.pack" />
+    <RemoveDir Directories="$(_NfcCatalogWork)" />
+  </Target>
+</Project>

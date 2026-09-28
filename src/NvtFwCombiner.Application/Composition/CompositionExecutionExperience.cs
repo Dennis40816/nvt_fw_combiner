@@ -59,7 +59,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.StandardMerge, request.IcId, AuthoringDerivedResultKind.Inspection),
                 progress,
                 firstInputAddressSpaceId: null,
-                externalProcessor: null,
+                processorReadiness: null,
                 icNumberSelection: null,
                 abMergeTopologySelection: null,
                 additionalProtectedPaths: [],
@@ -79,19 +79,14 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         {
             throw new CompositionPreRunRefusalException(formatIssues);
         }
-        IExternalProcessor? externalProcessor = null;
+        CapabilityActionReadinessSnapshot? processorReadiness = null;
         RuntimeDependencyReadinessRequest runtimeRequest =
             RuntimeDependencyReadinessRequest.FromResolvedCapability(
                 capability,
                 request.AcceptedSession.AuthoringRevision);
         if (runtimeRequest.Dependencies.Count > 0)
         {
-            CompositionExternalProcessorLease runtime = _acquireExternalProcessor();
-            RequireRuntimeActionReadiness(
-                request,
-                capability,
-                runtime.Generation);
-            externalProcessor = runtime.Processor;
+            processorReadiness = RequireProcessorActionReadiness(request, capability);
         }
 
         CompositionExecutionDeliveryTarget? additionalDelivery = null;
@@ -132,7 +127,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput)
                 ? CompositionAddressSpaceIds.DpAbInput
                 : CompositionAddressSpaceIds.TpAInput,
-            externalProcessor,
+            processorReadiness,
             icNumberSelection: null,
             abMergeTopologySelection:
                 CapabilityPublicationCoherence.GetAcceptedAbMergeTopologySelection(capability),
@@ -173,7 +168,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 bindings,
                 bindings[0].ArtifactId,
                 request,
-                externalProcessor: null,
+                processorReadiness: null,
                 icNumberSelection: null,
                 artifacts,
                 progress,
@@ -216,18 +211,23 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 plan.InputBindings,
                 plan.VirtualArtifacts,
                 referenceAddressSpaceId);
-        IExternalProcessor? processor = composition.Plan.OrderedOperations.Any(
-            static operation =>
-                operation.Kind == CompositionOperationKind.RunExternalProcessor)
-                    ? _acquireExternalProcessor().Processor
-                    : null;
+        if (composition.Plan.OrderedOperations.Any(
+                static operation =>
+                    operation.Kind == CompositionOperationKind.RunExternalProcessor))
+        {
+            // General Replace compiles DP-only routes; a processor-backed plan is not supported and
+            // would first need the processor lease admission that CtrlRAM and AB use.
+            throw new InvalidOperationException(
+                "General Replace does not admit a processor-backed plan.");
+        }
+
         return await RunCompiledCompositionAsync(
             "ui-replace-general",
                 composition,
                 bindings,
                 bindings[0].ArtifactId,
                 request,
-                processor,
+                processorReadiness: null,
                 plan.IcNumberSelection ?? throw new InvalidOperationException(
                     "The accepted General Replace plan has no IC-number selection."),
                 artifacts,
@@ -247,8 +247,6 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         CancellationToken cancellationToken)
     {
         ResolvedCapability capability = AcceptedSessionExecutionInputs.RequireCapability(request.AcceptedSession, ExperienceIds.CtrlRamReplace, request.IcId, AuthoringDerivedResultKind.Inspection);
-        CompositionExternalProcessorLease runtime = _acquireExternalProcessor();
-        ArgumentOutOfRangeException.ThrowIfLessThan(runtime.Generation, 1);
         ActiveSessionSnapshot session = request.AcceptedSession;
         AcceptedCtrlRamExecutionPlan plan = capability.CtrlRamExecutionPlan ??
             throw new InvalidOperationException(
@@ -261,10 +259,8 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 "The accepted CtrlRAM firmware-version draft does not match its retained execution plan.");
         }
 
-        RequireRuntimeActionReadiness(
-            request,
-            capability,
-            runtime.Generation);
+        CapabilityActionReadinessSnapshot processorReadiness =
+            RequireProcessorActionReadiness(request, capability);
         CompiledComposition composition = capability.CompiledComposition;
         (InputArtifactBinding[] bindings, IReadOnlyDictionary<string, byte[]> artifacts) =
             AcceptedSessionExecutionInputs.CreateBindings(composition, session);
@@ -278,7 +274,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 bindings,
                 reference.ArtifactId,
                 request,
-                runtime.Processor,
+                processorReadiness,
                 plan.IcNumberSelection,
                 artifacts,
                 progress,
@@ -297,7 +293,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         ResolvedCapability capability,
         CompositionRunProgressFeed progress,
         string? firstInputAddressSpaceId,
-        IExternalProcessor? externalProcessor,
+        CapabilityActionReadinessSnapshot? processorReadiness,
         IcNumberSelection? icNumberSelection,
         TopologySelection? abMergeTopologySelection,
         IReadOnlyList<CompositionExecutionProtectedPath> additionalProtectedPaths,
@@ -321,7 +317,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             bindings,
             firstInput.ArtifactId,
             request,
-            externalProcessor,
+            processorReadiness,
             icNumberSelection,
             artifacts,
             progress,
@@ -341,7 +337,7 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         IReadOnlyList<InputArtifactBinding> bindings,
         string firstInputPath,
         AcceptedCompositionExecutionRequest request,
-        IExternalProcessor? externalProcessor,
+        CapabilityActionReadinessSnapshot? processorReadiness,
         IcNumberSelection? icNumberSelection,
         IReadOnlyDictionary<string, byte[]> artifacts,
         CompositionRunProgressFeed progress,
@@ -396,6 +392,22 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             outputFileName = request.PreviewOutputFileName;
         }
 
+        // The single admission point, before destination preparation: a processor-backed run's lease is
+        // acquired here and Admit checks it together with the catalog, with no await in between. The
+        // admitted run carries the inputs and the processor that execution then uses.
+        ProcessorLeaseAdmission? processorLease = processorReadiness is null
+            ? null
+            : new ProcessorLeaseAdmission(
+                processorReadiness.RuntimeDependencyGeneration,
+                _acquireExternalProcessor(),
+                _externalProcessorGenerationIsCurrent);
+        AcceptedSessionExecutionInputs admitted = AcceptedSessionCompositionExecution.Admit(
+            _capabilities,
+            request.AcceptedSession,
+            capability,
+            bindings,
+            artifacts,
+            processorLease);
         CompositionExecutionDestination destination = _destinations.Prepare(
             new CompositionExecutionDestinationRequest(
                 request.Build,
@@ -410,17 +422,12 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
             ? outputFileName
             : composition.V2Details.OutputNamingRequirement.FileNameTemplate;
         return await AcceptedSessionCompositionExecution.ExecuteAsync(
-                _capabilities,
+                admitted,
                 CreateRunId(runIdPrefix, request.Build),
-                request.AcceptedSession,
-                capability,
-                bindings,
-                artifacts,
                 executionOutputFileName,
                 request.Build,
                 _clock,
                 destination.OutputWriter,
-                externalProcessor,
                 destination.DeliveryWriter,
                 icNumberSelection,
                 (request.OutputPath is not null &&
@@ -499,10 +506,14 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         }
     }
 
-    private void RequireRuntimeActionReadiness(
+    /// <summary>
+    /// Validates the action readiness a processor-backed run was checked with and returns it. An invalid
+    /// or self-contradictory request is an invariant failure. Whether the runtime that readiness
+    /// recorded is still current is decided once, by the run's admission, which acquires the lease.
+    /// </summary>
+    private static CapabilityActionReadinessSnapshot RequireProcessorActionReadiness(
         AcceptedCompositionExecutionRequest request,
-        ResolvedCapability capability,
-        long runtimeDependencyGeneration)
+        ResolvedCapability capability)
     {
         CapabilityActionReadinessSnapshot readiness = request.ActionReadiness ??
             throw new InvalidOperationException(
@@ -510,8 +521,6 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
         ActiveSessionSnapshot session = request.AcceptedSession;
         if (readiness.ResolutionToken != session.ResolutionToken ||
             readiness.AuthoringRevision != session.AuthoringRevision ||
-            readiness.RuntimeDependencyGeneration != runtimeDependencyGeneration ||
-            !_externalProcessorGenerationIsCurrent(runtimeDependencyGeneration) ||
             !StringComparer.Ordinal.Equals(
                 readiness.RouteId,
                 capability.Identity.RouteId) ||
@@ -523,15 +532,14 @@ internal sealed class CompositionExecutionExperience : ICompositionExecution
                 capability.CompiledComposition.CompilationFingerprint))
         {
             throw new InvalidOperationException(
-                "Processor-backed action readiness does not match the accepted publication and runtime generation.");
+                "Processor-backed action readiness does not belong to the accepted publication.");
         }
 
         RequireAvailableAction(request, readiness);
-        if (runtimeDependencyGeneration < 1)
-        {
-            throw new InvalidOperationException(
+        return readiness.RuntimeDependencyGeneration >= 1
+            ? readiness
+            : throw new InvalidOperationException(
                 "Processor-backed available action readiness requires a positive runtime generation.");
-        }
     }
 
     private static void RequireGeneralReplaceActionReadiness(

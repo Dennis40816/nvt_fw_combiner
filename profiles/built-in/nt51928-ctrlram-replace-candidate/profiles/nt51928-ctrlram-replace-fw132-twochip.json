@@ -18,8 +18,8 @@
   },
   "mapBinding": {
     "familyId": "nt51928-ctrlram-replace",
-    "familyVersion": "0.4.0",
-    "familyContentHash": "56c3c811becf0c886ce59b70eab202c03d33560741fc8a764f23fe505f89f715",
+    "familyVersion": "0.4.1",
+    "familyContentHash": "f8976ba439b6c0b488395d12fbeaecbd13ee119e88b129108b3c2fcf9dc76cb2",
     "mapIds": [
       "nt51928-ctrlram-fw132-twochip-tp-work-212k",
       "nt51928-ctrlram-fw132-twochip-full-flash"

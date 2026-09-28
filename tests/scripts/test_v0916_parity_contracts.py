@@ -1959,7 +1959,7 @@ class V0916ParityContractTests(V0916ParityTestBase):
                     "PARITY_AUTHORITY_MISMATCH", captured.exception.code
                 )
 
-    def test_repository_package_source_requires_exact_closed_evidence_tail(self) -> None:
+    def package_source_reader_fixture(self):
         plan = json.loads(self.plan_path.read_text(encoding="utf-8"))
         source_contract_path = plan["candidateAuthority"][
             "sourceExecutorContract"
@@ -2060,6 +2060,31 @@ class V0916ParityContractTests(V0916ParityTestBase):
                     if path == "docs/contracts/v0916-parity-certification-v1.json"
                     else None
                 )
+
+        return Reader, implementation, binding, final_record, package_source, descendant, final_entries, attestation_entries
+
+    def test_default_hook_accepts_real_frozen_snapshot(self):
+        from tests.scripts.test_frozen_evidence_pins import FrozenEvidencePinTests
+        fixture = FrozenEvidencePinTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        Reader, _, _, _, head, _, _, _ = self.package_source_reader_fixture()
+        result = MODULE.validate_repository_parity_package_source(fixture.root, head=head, reader=Reader())
+        self.assertEqual(head, result["packageSourceHead"])
+
+    def test_default_hook_maps_frozen_drift_to_authority_mismatch(self):
+        from tests.scripts.test_frozen_evidence_pins import FrozenEvidencePinTests
+        fixture = FrozenEvidencePinTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        (fixture.root / fixture.record).write_bytes(b"changed")
+        Reader, _, _, _, head, _, _, _ = self.package_source_reader_fixture()
+        with self.assertRaises(MODULE.ParityError) as caught:
+            MODULE.validate_repository_parity_package_source(fixture.root, head=head, reader=Reader())
+        self.assertEqual("PARITY_AUTHORITY_MISMATCH", caught.exception.code)
+
+    def test_repository_package_source_requires_exact_closed_evidence_tail(self) -> None:
+        Reader, implementation, binding, final_record, package_source, descendant, final_entries, attestation_entries = self.package_source_reader_fixture()
 
         observed_governance: list[tuple[Path, str]] = []
         reader = Reader()

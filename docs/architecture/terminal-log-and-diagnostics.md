@@ -70,6 +70,8 @@ Every build run should have a stable `runId` that links:
 
 CLI Preview/Build commands may write the current application run report with `--report <path>`. This JSON is the machine-readable audit output used by CMD workflows and can later back the UI report modal/history view. It is not a replacement for the canonical `composition-report-v1` contract until that wire contract is promoted.
 
+A run the Application refuses before it starts (the typed pre-run refusal, for example after a catalog or tool-configuration reload; [ADR 0072, 2026-09-26 amendment](../adr/0072-event-buffer-format-configuration.md#2026-09-26-amendment-execution-admission-refusal-decision-68), which owns this rule) writes no report and no output. The CLI prints the refusal's issues on stderr and exits 1 on every Preview/Build route; the AB route prints `error: <code>: <message>`, and its issue code can come from the AB format admission (for example `AB_FORMAT_SESSION_STALE`). Other failures keep their existing exit codes (for example 70 for Standard Merge input, compilation and preparation failures). A non-refusal `InvalidOperationException` from the execution call is not turned into exit 1 by the refusal catches; the existing outer exception mappings are unchanged.
+
 A build/preview report must include:
 
 - product/app version;

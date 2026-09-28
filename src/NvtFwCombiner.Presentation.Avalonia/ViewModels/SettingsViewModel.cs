@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Capabilities;
@@ -28,6 +29,67 @@ internal sealed partial class SettingChoiceViewModel(string value, string label)
 
 internal sealed partial class SettingsViewModel : ObservableObject
 {
+    internal WindowPublicationLease? WindowPublication { get; set; }
+
+    private Task<bool> WaitForWindowPublicationAsync(CancellationToken cancellationToken = default)
+    {
+        return WindowPublication?.WaitToPublishAsync(static () => true, cancellationToken) ?? Task.FromResult(true);
+    }
+
+    private bool MayPublishWindow => WindowPublication?.CanPublish ?? true;
+
+    private readonly Lock _windowOperationsLock = new();
+    private TaskCompletionSource _windowOperationsIdle = CompletedIdleSignal();
+    private int _windowOperationsInFlight;
+
+    internal Task WhenOperationsIdleAsync()
+    {
+        lock (_windowOperationsLock)
+        {
+            return _windowOperationsIdle.Task;
+        }
+    }
+
+    private WindowOperationRegistration BeginWindowOperation()
+    {
+        lock (_windowOperationsLock)
+        {
+            if (_windowOperationsInFlight++ == 0)
+            {
+                _windowOperationsIdle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+        }
+        return new WindowOperationRegistration(this);
+    }
+
+    private static TaskCompletionSource CompletedIdleSignal()
+    {
+        var signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        signal.SetResult();
+        return signal;
+    }
+
+    private sealed class WindowOperationRegistration(SettingsViewModel owner) : IDisposable
+    {
+        private SettingsViewModel? _owner = owner;
+
+        public void Dispose()
+        {
+            SettingsViewModel? owner = Interlocked.Exchange(ref _owner, null);
+            if (owner is null)
+            {
+                return;
+            }
+            lock (owner._windowOperationsLock)
+            {
+                if (--owner._windowOperationsInFlight == 0)
+                {
+                    _ = owner._windowOperationsIdle.TrySetResult();
+                }
+            }
+        }
+    }
+
     private readonly string _appVersion;
     private readonly Func<ShellTextResources> _textProvider;
     private readonly IVersionManagementExperience? _versionManagement;
@@ -208,7 +270,10 @@ internal sealed partial class SettingsViewModel : ObservableObject
 
         if (section == SettingsSection.Version)
         {
-            _ = RefreshVersionAsync(isAutomatic: false);
+            Task refresh = RefreshVersionAsync(isAutomatic: false);
+            _ = refresh.ContinueWith(completed =>
+                Trace.TraceError("Settings version refresh failed: {0}", completed.Exception),
+                CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
         }
 
         if (section == SettingsSection.EventBufferFormat)

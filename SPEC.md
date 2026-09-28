@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`1.1.12 Release candidate; final release gates pending`
-> 文件版本：`1.1.12`
+> 文件狀態：`1.1.13 Release candidate; final release gates pending`
+> 文件版本：`1.1.13`
 > 文件基準日期：`2026-09-10`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
@@ -482,7 +482,14 @@ authority. Current AB DPCMI resolution uses its per-bank CMD Page ranges
 The reference's "last `NVT`" behavior is legacy evidence only. The canonical
 FWConfig Backup rule for all executable profiles is exactly one complete
 `00 4E 56 54` marker, with the Backup start at its terminal `T - 0xFFF`.
-Zero or multiple markers fail closed with
+Where a layout declares its NVT end flag (ADR 0076; currently every
+NT51950/NT51951 Standard, DP Replace, General, CtrlRAM and AB layout, at
+`0x36FFC` of each bank or TP input), only that position counts and a marker
+anywhere else is neither counted nor rejected. Only layouts in the named
+migration inventory resolve without a declaration; they keep their existing
+template locators and existing compatibility read. A declaration that cannot
+be resolved makes the Backup unreadable instead of searching the whole image.
+Zero or multiple counted markers fail closed with
 `Expected exactly one NVT marker (00 4E 56 54), but found {count}.`
 
 For an NT51919/NT51929/NT51932 Cascade **Dynamic DiffDLM** run, the canonical
@@ -564,7 +571,7 @@ See [`docs/adr/0006-external-combiner-tool-runner.md`](docs/adr/0006-external-co
 
 The current Python worker is a constrained pure CRC calculation prototype. It is not the sole production CRC/Header system. Production rewrite behavior must go through the external processor/tool runner and host-side independent diff verification.
 
-`polytail` 已正式定義為 repository skill：`.agents/skills/polytail/SKILL.md`。它用來防止 AI 產生 architecture drift、duplicate logic、fake tests、placeholder、silent error、broad suppression 與不可 review 的 code；不是第三方同名 package，也不是 Pylint 的別名。
+`nfc-review` 已正式定義為 repository skill：`.agents/skills/nfc-review/SKILL.md`。它用來防止 AI 產生 architecture drift、duplicate logic、fake tests、placeholder、silent error、broad suppression 與不可 review 的 code；不是第三方同名 package，也不是 Pylint 的別名。
 
 ### 5.3 Profile 與契約格式
 
@@ -725,7 +732,6 @@ CompositionRequest
   compiledComposition
   immutableInputBindings{}
   outputOptions
-  previewToken?
 
 CompositionPlan
   initialization
@@ -1593,7 +1599,7 @@ to each `0.10.x` version.
   typed-draft, and Reload changes enter the same typed Application command
   path. One accepted user mutation advances `AuthoringRevision` exactly once
   and the same owner invalidates every stale inspection, readiness, naming,
-  memory, and Preview-token publication. Presentation retains only display and
+  and memory publication. Presentation retains only display and
   interaction state and cannot mutate or rebuild the canonical session. UI and
   CLI use the same commands and queries. Bootstrap `CompositionPlanningAdapter*`,
   workflow-specific `ICompositionAuthoringExperience`/
@@ -1711,8 +1717,9 @@ to each `0.10.x` version.
     Header field. TP FW, Common FW, PID, observed IC Count,
     X/Y sensor totals, Display and TP resolution, maximum operable fingers,
     report IRQ type, and whether the outermost IC is used as Master are typed
-    fields from that structure. Runtime requires exactly one NVT marker and
-    reports the observed marker count when that invariant fails. It also
+    fields from that structure. Runtime requires exactly one counted NVT
+    marker (only the declared end flag counts where a layout declares it, ADR
+    0076) and reports the counted marker count when that invariant fails. It also
     applies one shared zero-value policy. When a resolved workflow does not use
     IC Count for topology, ranges, or placement, `Chip_Num = 0` emits warning
     `firmware-config.chip-count-zero` with the operator action
@@ -1741,6 +1748,21 @@ to each `0.10.x` version.
     Inspection, formatting, copy, relocation, integrity, processor authority,
     memory projection, and report classification reference it rather than
     restating offsets.
+    The four bytes at TP start + `0x24` are the separate read-only TP SVN
+    stamp, not a TP Flash Header field. Byte 0 holds only the owner flags
+    `0x80` LOCAL_BUILD, `0x40` DIFF_EXIST and `0x20` NO_SVN_RECORD; bytes 1-3
+    hold six BCD revision digits. One `tp-svn` definition is declared once and
+    every TP code declares its own locator: each Standard TP input, each AB TP
+    A/B input, and bank A and bank B of an AB Reference. Undefined flag bits
+    (byte 0 `& 0x1F`) and an all-zero stamp are its only anomalies; `0x60`
+    with a nonzero revision is a normal Jenkins build. The SVN copy inside
+    the byte-code Header copy is modeled separately and read-only as
+    `tp-svn-header-copy` at the declared Header copy region + `0x24` of each
+    CtrlRAM Replace layout (bank-local in AB images; NT51926 per declared
+    firmware-version variant); it is never displayed, compared with the main
+    stamp or treated as a diagnostic. FWConfig `u8AutoBuildSvnVer1-4`,
+    including their FWConfig Backup copy, are neither read nor shown as TP
+    SVN.
 15. TP BIN offset, Flash image offset, Header stored address, and TP Backup
     placement delta are distinct typed concepts. Their definitions and allowed
     arithmetic are owned by the canonical firmware-coordinate vocabulary.
@@ -1988,9 +2010,14 @@ Presentation consumes the typed result and offers no manual Standard/AB override
     three responsive columns. Producers declare primary/detail presentation
     priority from typed observations and slot role, independent of list order
     or translated labels. TP/Base primary facts are available TP bank versions,
-    PID, Common FW and Event Buffer Format; DP slots prioritize DP Version and
-    Jira. IC Count and Base DP metadata use quiet Details disclosure. Warning,
-    pending and error facts remain visible. File identity precedes facts;
+    PID, Common FW, Event Buffer Format and TP SVN (`TP SVN (A)`/`TP SVN (B)`
+    for an AB Reference); DP slots prioritize DP Version and Jira. TP SVN shows
+    only its raw four bytes followed by a 12 px value icon: an outline
+    information circle whose tooltip lists `Flags:` and `Revision:`, or the
+    shared warning triangle whose tooltip first states the anomaly; the fact
+    keeps ordinary styling. IC Count and Base DP metadata use quiet Details
+    disclosure. Warning, pending and error facts remain visible. File
+    identity precedes facts;
     right-centered picker actions do not move when Details expands. The
     owner-approved 2026-09-22 v7 layout supersedes the four-primary-fact limit.
     Flash Reference facts come from its read-only inspection. AB facts identify
@@ -2089,14 +2116,15 @@ Presentation consumes the typed result and offers no manual Standard/AB override
 #### Promotion and planning workflow
 
 Before an implementation goal or ticket rewrite is approved, unresolved
-architecture and terminology are closed through the explicit repository
-`grilling` workflow. `grill-with-docs` applies the same one-decision-at-a-time
-discipline and writes every accepted result immediately to its canonical
-specification/architecture owner through the current
-`nfc-architecture-change` and `to-spec` authorities. The former standalone
+architecture and terminology are closed through skill `nfc-grill-with-docs`.
+Its hybrid interview asks firmware, R3 and architecture decisions one at a time;
+related or low-risk decisions may share a round of at most four questions,
+each with a recommendation. It writes every accepted result immediately to its
+canonical specification/architecture owner through the current
+`nfc-architecture-change` and `nfc-to-spec` authorities. The former standalone
 `domain-modeling` workflow is not restored; its terminology consistency,
 concrete IC/IC Count stress cases, and canonical-document ownership rules are
-part of `grill-with-docs`. Ticket bodies and dependency edges are synchronized
+part of `nfc-grill-with-docs`. Ticket bodies and dependency edges are synchronized
 after the grill closes so issues do not become a competing draft specification.
 
 44. Product intent, user-visible terminology, workflow requirements, and global
@@ -2892,7 +2920,7 @@ mandatory at the risk level declared by the affected authority.
 No architecture or terminology decision remains open from this grill. Owner
 amendment on 2026-08-08 replaced the disproven numeric completion caps with the
 maximum-practical, evidence-backed candidate-ledger contract while retaining
-all exact ratchets and anti-gaming rules. `$to-tickets` synchronizes umbrella
+all exact ratchets and anti-gaming rules. `$nfc-to-tickets` synchronizes umbrella
 #229, ownership-bounded slices #230-#233, and the #197 dependency to that
 amendment. Each ticket remains outside implementation intake until the owner
 separately approves its exact scope for `ready-for-agent`. Route-specific R3
@@ -2926,7 +2954,7 @@ admission, reporting, delivery, and processor behavior could be deleted rather
 than relocated to its canonical owner. Exact gross/add/net and slice closure
 are recorded in the size assessment.
 
-The owner approved the `$to-tickets` graph on 2026-08-09. Stable repository
+The owner approved the `$nfc-to-tickets` graph on 2026-08-09. Stable repository
 planning ids LAR-01 through LAR-12 owned the vertical implementation slices and
 LAR-00 owned aggregate completion; their exact blocker graph remains in
 `docs/governance/0.10.x-ticket-dependency-plan.md` as completed traceability.

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51928-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.12-candidate.2",
+  "bundleVersion": "1.1.13-tp-svn.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "82a7a98f4883540595a3af22887fecef5f283fdff5e2af816b294c6345bd523d",
+  "contentHash": "ead5392a842068602a7ab8b6661fe872cb1e1dd435d89448f799caaa345805fb",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,35 +18,35 @@
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+      "contentHash": "695e43c4c89b647b83333a776dc26e2a27b925c46448048ef0c38e839456a0e3"
     },
     {
       "entryId": "nt51928-ctrlram-replace-family",
       "kind": "firmware-family",
       "path": "families/nt51928-ctrlram-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "56c3c811becf0c886ce59b70eab202c03d33560741fc8a764f23fe505f89f715"
+      "contentHash": "f8976ba439b6c0b488395d12fbeaecbd13ee119e88b129108b3c2fcf9dc76cb2"
     },
     {
       "entryId": "nt51928-ctrlram-replace-fw141-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51928-ctrlram-replace-fw141-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "70f4340576c5e40a2220c4fe9a9503726dcd3d744398fc7e0d4c6a24cf0627ce"
+      "contentHash": "e07bb132ab7f1ec126303b85b960769e332f2c6934ce4147770a69769514e52a"
     },
     {
       "entryId": "nt51928-ctrlram-replace-fw132-twochip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51928-ctrlram-replace-fw132-twochip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "405fc89c8acc6fcc1f7fe542c4df9fdbe92b9c1f7fa4535f8631d16c4836e592"
+      "contentHash": "6c1a89a888982e046dd62cec6da73e7352ea53b7ce6f6f32602969af2636b6a5"
     },
     {
       "entryId": "nt51928-ctrlram-replace-fw140-threechip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51928-ctrlram-replace-fw140-threechip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "fa7fd9a4f6cf4987d5649599dc906476630c1a79e5ee06562211cac8f39e1e9d"
+      "contentHash": "63de4b66fa179f3676052586579b7f74b3297c384a8c584c965a3dbf2bdf040c"
     }
   ]
 }

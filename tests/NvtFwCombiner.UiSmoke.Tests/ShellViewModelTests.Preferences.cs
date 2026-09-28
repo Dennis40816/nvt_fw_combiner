@@ -254,7 +254,10 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(ShellPreferenceSnapshot.Default, LoadPreferences(preferencesPath));
     }
 
-    /// <summary>Async preference persistence keeps the previous file when cancelled and atomically publishes the latest snapshot.</summary>
+    /// <summary>
+    /// Async preference persistence reports cancellation to its coordinator, keeps the previous file, and
+    /// atomically publishes the latest snapshot.
+    /// </summary>
     [Fact]
     public async Task ShellPreferenceFileStoreAsyncSavePreservesLastCompleteSnapshot()
     {
@@ -267,7 +270,8 @@ public sealed partial class ShellNavigationSystemTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await ShellPreferenceFileStore.SaveAsync(TestHost.LocalFiles, preferencesPath, cancelled, cancellation.Token);
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            ShellPreferenceFileStore.SaveAsync(TestHost.LocalFiles, preferencesPath, cancelled, cancellation.Token));
 
         Assert.Equal(original, LoadPreferences(preferencesPath));
 

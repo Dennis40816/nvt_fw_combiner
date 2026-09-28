@@ -11,8 +11,11 @@ public static class ShellPreferenceFileStore
     private const string PreferencesFileName = "preferences.v1.json";
     internal const long MaximumPreferencesFileBytes = 64L * 1024;
 
-    /// <summary>Gets the default local preference path for the current user.</summary>
-    public static string DefaultPreferencesPath => LocalJsonDocument.GetDefaultPath(PreferencesFileName);
+    /// <summary>Gets the preference path inside the host-composed local-state directory.</summary>
+    internal static string PathIn(string localStateDirectory)
+    {
+        return LocalJsonDocument.GetPath(localStateDirectory, PreferencesFileName);
+    }
 
     /// <summary>Loads a bounded preference snapshot without blocking framework initialization.</summary>
     internal static async Task<ShellPreferenceSnapshot> LoadAsync(ILocalFileStore files, string path)
@@ -40,6 +43,7 @@ public static class ShellPreferenceFileStore
         }
     }
 
+    /// <summary>Atomically saves one preference snapshot; failures and cancellation reach the caller.</summary>
     internal static async Task SaveAsync(
         ILocalFileStore files,
         string path,
@@ -48,28 +52,20 @@ public static class ShellPreferenceFileStore
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(preferences);
-        try
-        {
-            await files.WriteAsync(
-                    path,
-                    JsonSerializer.SerializeToUtf8Bytes(
-                        new ShellPreferenceFile(
-                            SchemaVersion,
-                            new(
-                                preferences.Theme,
-                                "Strict",
-                                preferences.Language,
-                                preferences.IsReducedMotionEnabled,
-                                preferences.ExpandInputDetailsByDefault)),
-                        LocalJsonDocument.Options),
-                    cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (Exception exception) when (exception is
-            ArgumentException or IOException or NotSupportedException or OperationCanceledException or
-            UnauthorizedAccessException)
-        {
-        }
+        await files.WriteAsync(
+                path,
+                JsonSerializer.SerializeToUtf8Bytes(
+                    new ShellPreferenceFile(
+                        SchemaVersion,
+                        new(
+                            preferences.Theme,
+                            "Strict",
+                            preferences.Language,
+                            preferences.IsReducedMotionEnabled,
+                            preferences.ExpandInputDetailsByDefault)),
+                    LocalJsonDocument.Options),
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private sealed record ShellPreferenceFile(int SchemaVersion, ShellPreferenceFileEntry? Preferences);

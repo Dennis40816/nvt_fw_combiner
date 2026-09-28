@@ -16,8 +16,8 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51927-ctrlram-replace",
-    "familyVersion": "0.6.0",
-    "familyContentHash": "2a37bf2c7c9dd0c4123a2c19da3e7600b9f3ec55d9a12f9da9cad0cdc25a2dbb",
+    "familyVersion": "0.6.1",
+    "familyContentHash": "d43e4f8a1dfbba9d1d44dff5cc2ddc7485800a4d3f4e45faa1f37d83a987efba",
     "mapIds": [
       "nt51927-ctrlram-fw132-twochip-tp-work-212k",
       "nt51927-ctrlram-fw132-twochip-full-flash"

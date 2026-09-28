@@ -1,12 +1,78 @@
+using System.ComponentModel;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.Infrastructure.Files;
 
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 public sealed partial class LegacyCombinerPostbuildProcessorTests
 {
+    /// <summary>Rejects the legacy executable's maximum-length argument before staging bytes.</summary>
+    [Fact]
+    public async Task ArgumentPathAtLegacyLimitFailsBeforeStagingOrLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        const string runId = "run-long-path";
+        int padding = 260 - Path.Combine(workspace.Root, "x", runId, "output", "test_fw.bin").Length + 1;
+        string stagingRoot = Path.Combine(workspace.Root, new string('x', padding));
+        _ = Directory.CreateDirectory(stagingRoot);
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Must not launch."));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.long-path-v1", "test_fw.bin");
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            runId, profile.ProcessorId, profile.ToolBindingId, CreateFirmwareImage(), [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(
+            sha256, runner, stagingRoot: stagingRoot);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal("external-tool.argument-path.too-long", Assert.Single(result.Issues).Code);
+        Assert.Contains("260", result.Issues[0].Message, StringComparison.Ordinal);
+        Assert.Equal(0, runner.RunCount);
+        Assert.False(Directory.Exists(Path.Combine(stagingRoot, runId)));
+    }
+
+    /// <summary>Rejects long invocation paths before attempting a selected runtime deployment.</summary>
+    [Fact]
+    public async Task LongArgumentPathFailsBeforeSelectedRuntimeDeployment()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        const string runId = "run-long-path";
+        int padding = 260 - Path.Combine(workspace.Root, "x", runId, "output", "test_fw.bin").Length + 1;
+        string stagingRoot = Path.Combine(workspace.Root, new string('x', padding));
+        _ = Directory.CreateDirectory(stagingRoot);
+        string deploymentRoot = Path.Combine(workspace.Root, "deployments");
+        var selection = new ToolchainRuntimeSelection(
+            ToolchainRuntimeSource.User,
+            Path.Combine(workspace.Root, "missing-runtime.dll"),
+            new string('0', 64));
+        var deployment = new ExternalRuntimeDeployment(
+            new(9, ToolchainRuntimeConfigurationStatus.Current, selection, selection, []),
+            new LocalFileStore(),
+            deploymentRoot);
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Must not launch."));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.long-path-runtime-v1", "test_fw.bin");
+        var selectionInput = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            runId, profile.ProcessorId, profile.ToolBindingId, CreateFirmwareImage(), [],
+            selectionInput, protocolPlan: CompileProtocolPlan(profile, selectionInput));
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(
+            sha256, runner, runtimeDeployment: deployment, stagingRoot: stagingRoot);
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal("external-tool.argument-path.too-long", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+        Assert.False(Directory.Exists(Path.Combine(stagingRoot, runId)));
+        Assert.False(Directory.Exists(deploymentRoot));
+    }
+
     /// <summary>Rejecting a pre-existing directory must not delete another run's evidence.</summary>
     [Fact]
     public async Task RejectedExistingStagingPreservesSentinelWithoutLaunchingTool()
@@ -74,6 +140,105 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         Assert.Equal(1, runner.RunCount);
         Assert.Empty(Directory.GetFileSystemEntries(workspace.StagingRoot));
+    }
+
+    /// <summary>
+    /// ADR 0081 mapping on a two-command plan. The staged firmware is locked against reading after the first
+    /// command, so a read would surface as external-tool.staging.io-failed (the Complete control row proves the
+    /// lock is effective). Incomplete cleanup stops the sequence before any staged read and before the second
+    /// command; timeout and a non-zero exit keep their codes and outrank it.
+    /// </summary>
+    [Theory]
+    [InlineData(ExternalProcessCleanup.TerminationUnconfirmed, false, 0, "external-tool.process.cleanup-incomplete")]
+    [InlineData(ExternalProcessCleanup.OutputStreamHeldOpen, false, 0, "external-tool.process.cleanup-incomplete")]
+    [InlineData(ExternalProcessCleanup.OutputReadFailed, false, 0, "external-tool.process.cleanup-incomplete")]
+    [InlineData(ExternalProcessCleanup.OutputStreamHeldOpen, true, -1, "external-tool.process.timeout")]
+    [InlineData(ExternalProcessCleanup.TerminationUnconfirmed, false, 7, "external-tool.process.failed")]
+    [InlineData(ExternalProcessCleanup.Complete, false, 0, "external-tool.staging.io-failed")]
+    public async Task CleanupOutcomeStopsSequenceBeforeAnyStagedRead(
+        ExternalProcessCleanup cleanup,
+        bool timedOut,
+        int exitCode,
+        string expectedCode)
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FileStream? readLock = null;
+        FakeProcessRunner runner = new(startInfo =>
+        {
+            readLock ??= new FileStream(
+                Path.Combine(startInfo.WorkingDirectory, "output", "test_fw.bin"),
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.None);
+            return new ExternalProcessResult(exitCode, timedOut, string.Empty, string.Empty) { Cleanup = cleanup };
+        });
+        LegacyCombinerPostbuildProfile profile = CreateCopyThenRestoreProfile();
+        Assert.Equal(2, profile.SingleCommands.Count);
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            "run-cleanup-incomplete", profile.ProcessorId, profile.ToolBindingId,
+            new byte[] { 0x10, 0x20, 0x30, 0x40, 0x99, 0x60 }, [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+        try
+        {
+            ExternalProcessorResult result = await workspace.CreateProcessor(sha256, runner, [profile])
+                .TransformAsync(request, CancellationToken.None);
+
+            Assert.False(result.Succeeded);
+            Assert.Equal(expectedCode, Assert.Single(result.Issues).Code);
+            Assert.Equal(1, runner.RunCount);
+            _ = Assert.Single(result.ExecutedCommands);
+        }
+        finally
+        {
+            readLock?.Dispose();
+        }
+    }
+
+    /// <summary>decision 92: a runner refusal for accumulated detached cleanup maps to the typed capacity issue.</summary>
+    [Fact]
+    public async Task CleanupCapacityRefusalMapsToTypedIssue()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new ExternalProcessCleanupCapacityException(8, 8));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.cleanup-capacity-v1", "test_fw.bin");
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            "run-cleanup-capacity", profile.ProcessorId, profile.ToolBindingId, CreateFirmwareImage(), [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+
+        ExternalProcessorResult result = await workspace.CreateProcessor(sha256, runner, [profile])
+            .TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.process.cleanup-capacity", Assert.Single(result.Issues).Code);
+        Assert.Equal(1, runner.RunCount);
+    }
+
+    /// <summary>
+    /// BUG-20260926-process-start-failure-escapes-typed-result: an OS start failure translated by the runner into
+    /// <see cref="ExternalProcessStartFailedException"/> maps to the typed start-failure issue instead of escaping.
+    /// </summary>
+    [Fact]
+    public async Task OperatingSystemStartFailureMapsToTypedIssue()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new ExternalProcessStartFailedException(new Win32Exception(2)));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.start-failed-v1", "test_fw.bin");
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        ExternalProcessorRequest request = new(
+            "run-start-failed", profile.ProcessorId, profile.ToolBindingId, CreateFirmwareImage(), [],
+            selection, protocolPlan: CompileProtocolPlan(profile, selection));
+
+        ExternalProcessorResult result = await workspace.CreateProcessor(sha256, runner, [profile])
+            .TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("external-tool.process.start-failed", Assert.Single(result.Issues).Code);
+        Assert.Equal(1, runner.RunCount);
     }
 
     /// <summary>Rejects execution when the compiled invocation did not select the adapter protocol plan.</summary>

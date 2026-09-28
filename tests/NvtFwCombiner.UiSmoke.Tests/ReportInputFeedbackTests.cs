@@ -144,6 +144,6 @@ public sealed class ReportInputFeedbackTests
     {
         return CompositionRunReportJson.Serialize(new CompositionRunResult(
             report.Issues.Any(static issue => issue.Severity == "error") ? CompositionExecutionStatus.Failed : CompositionExecutionStatus.Succeeded,
-            ReadOnlyMemory<byte>.Empty, report, null, null, null, null, null, null));
+            ReadOnlyMemory<byte>.Empty, report, null, null, null, null, null));
     }
 }

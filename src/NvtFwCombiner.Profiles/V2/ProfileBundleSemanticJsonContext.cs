@@ -4,7 +4,11 @@ using NvtFwCombiner.Contracts.Profiles;
 
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>Strict source-generated JSON metadata used only while consuming a trusted bundle projection.</summary>
+/// <summary>
+/// The one strict source-generated JSON metadata for canonical family and profile documents: the Infrastructure
+/// trusted projection verifies DTO compatibility with it, and the Profiles catalog factory deserializes the same
+/// trusted JSON trees with it.
+/// </summary>
 [JsonSourceGenerationOptions(
     AllowOutOfOrderMetadataProperties = true,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

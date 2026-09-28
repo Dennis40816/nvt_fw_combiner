@@ -1,12 +1,13 @@
-"""Measure repository source size and emit non-blocking maintainability findings."""
+"""Measure repository source size and enforce ADR 0080 dynamic hotspot enrollment."""
 
 from __future__ import annotations
 
 import hashlib
 import re
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Mapping
 
 
 EXCLUDED_DIRECTORY_NAMES = frozenset(
@@ -25,43 +26,27 @@ EXCLUDED_DIRECTORY_NAMES = frozenset(
 PYTHON_RUNTIME_EXCLUDED_DIRECTORIES = frozenset(
     {".mypy_cache", ".pytest_cache", ".ruff_cache", ".venv", "__pycache__", "venv"}
 )
-NAMESPACE_PATTERN = re.compile(
-    r"^\s*namespace\s+([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*[;{]",
-    re.MULTILINE,
-)
-PARTIAL_TYPE_PATTERN = re.compile(
-    r"\bpartial\s+(?:class|record(?:\s+(?:class|struct))?|struct)\s+([A-Za-z_]\w*)"
-)
+# Exact measured baselines, not allowances. Enrollment/growth needs owner approval
+# in the pull request; reductions lower the entry, and below 1,500 it is removed.
+HOTSPOT_LINES: dict[str, int] = {
+    "NvtFwCombiner.Application.Composition.CompositionRunService": 2_179,
+    "NvtFwCombiner.Application.VersionManagement.VersionManagementExperience": 2_441,
+    "NvtFwCombiner.Infrastructure.VersionManagement.WindowsStablePathCustody": 2_007,
+    "NvtFwCombiner.Presentation.Avalonia.MainWindow": 2_012,
+    "NvtFwCombiner.Presentation.Avalonia.ViewModels.MergePresentationViewModel": 2_158,
+    "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReplacePresentationViewModel": 2_208,
+    "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportReviewViewModel": 2_592,
+    "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources": 3_214,
+    "NvtFwCombiner.Presentation.Avalonia.ViewModels.SettingsViewModel": 2_216,
+    "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel": 2_833,
+    "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 3_900,
+}
+HOTSPOT_ENTRY_LINES = 2_000
+HOTSPOT_EXIT_LINES = 1_500
 
 
 @dataclass(frozen=True)
-class CodeSizeLimits:
-    """Review thresholds for production size, duplicate JSON, and partial aggregates."""
-
-    production_nonblank: int
-    duplicate_json_nonblank: int
-    partial_type_default_max: int
-    partial_type_exact_ratchets: dict[str, int]
-    partial_type_named_maximums: dict[str, int] = field(default_factory=dict)
-    runtime_production_baseline: int | None = None
-    runtime_production_ratchet: int | None = None
-    domain_profiles_ratchet: int | None = None
-    application_ratchet: int | None = None
-    bootstrap_cli_ratchet: int | None = None
-    infrastructure_contracts_worker_ratchet: int | None = None
-    full_production_ratchet: int | None = None
-    runtime_production_allowance: int = 0
-    domain_profiles_allowance: int = 0
-    application_allowance: int = 0
-    bootstrap_cli_allowance: int = 0
-    infrastructure_contracts_worker_allowance: int = 0
-    full_production_allowance: int = 0
-
-
-@dataclass(frozen=True)
-class PartialTypeAggregate:
-    """Nonblank C# lines owned by one partial type across source files."""
-
+class TypeAggregate:
     name: str
     file_count: int
     nonblank_lines: int
@@ -69,51 +54,14 @@ class PartialTypeAggregate:
 
 @dataclass(frozen=True)
 class CodeSizeSnapshot:
-    """Reproducible measurements used by the repository validator."""
-
     production_files: int
     production_nonblank: int
     duplicate_json_groups: int
     duplicate_json_copies: int
     duplicate_json_nonblank: int
-    partial_types: tuple[PartialTypeAggregate, ...]
+    type_aggregates: tuple[TypeAggregate, ...]
     runtime_production_files: int
     runtime_production_nonblank: int
-    domain_profiles_files: int
-    domain_profiles_nonblank: int
-    application_files: int
-    application_nonblank: int
-    bootstrap_cli_files: int
-    bootstrap_cli_nonblank: int
-    infrastructure_contracts_worker_files: int
-    infrastructure_contracts_worker_nonblank: int
-
-
-DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=144_850,
-    duplicate_json_nonblank=0,
-    partial_type_default_max=2_500,
-    partial_type_exact_ratchets={},
-    partial_type_named_maximums={
-        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 985,
-        "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources": 2_501,
-        "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel": 2_627,
-        "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_798,
-    },
-    runtime_production_baseline=45_214,
-    runtime_production_ratchet=70_056,
-    domain_profiles_ratchet=20_627,
-    application_ratchet=30_690,
-    bootstrap_cli_ratchet=3_378,
-    infrastructure_contracts_worker_ratchet=15_356,
-    full_production_ratchet=102_896,
-    runtime_production_allowance=32_168,
-    domain_profiles_allowance=555,
-    application_allowance=14_070,
-    bootstrap_cli_allowance=1_753,
-    infrastructure_contracts_worker_allowance=15_795,
-    full_production_allowance=41_954,
-)
 
 
 def is_physical_source_file(
@@ -144,6 +92,8 @@ def _matching_files(root: Path, directory: str, suffixes: frozenset[str]) -> lis
         path
         for path in search_root.rglob("*")
         if is_physical_source_file(path, root, suffixes)
+        and not any(part.casefold() == "generated" for part in path.relative_to(root).parts[:-1])
+        and not path.name.casefold().endswith((".g.cs", ".generated.cs"))
     )
 
 
@@ -179,7 +129,7 @@ def _worker_runtime_files(root: Path) -> list[Path]:
 
 
 def _runtime_production_files(root: Path) -> list[Path]:
-    """Return the fixed 0.10.x non-UI/runtime source measurement set."""
+    """Return the non-UI/runtime source measurement set."""
 
     csharp_files = [
         path
@@ -190,342 +140,157 @@ def _runtime_production_files(root: Path) -> list[Path]:
     return [*csharp_files, *worker_files]
 
 
-def _domain_profiles_files(root: Path) -> list[Path]:
-    """Return the fixed Canonical Core Domain + Profiles slice."""
-
-    return [
-        *_matching_files(root, "src/NvtFwCombiner.Domain", frozenset({".cs"})),
-        *_matching_files(root, "src/NvtFwCombiner.Profiles", frozenset({".cs"})),
-    ]
-
-
-def _application_files(root: Path) -> list[Path]:
-    """Return the fixed Canonical Core Application slice."""
-
-    return [
-        *_matching_files(root, "src/NvtFwCombiner.Application", frozenset({".cs"})),
-        *_matching_files(
-            root,
-            "src/NvtFwCombiner.VersionManagement.Application",
-            frozenset({".cs"}),
-        ),
-    ]
+# Mask comments and literals before recognizing declarations. Counting still
+# uses the original whole file, including nonblank comments and literal lines.
+CSHARP_NONCODE = re.compile(
+    r'//[^\n]*|/\*.*?\*/|(?P<raw>"{3,}).*?(?P=raw)|'
+    r'@"(?:""|[^"])*"|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'',
+    re.DOTALL,
+)
+CSHARP_TOKEN = re.compile(r"@?[A-Za-z_]\w*|[{};.<>,():]")
 
 
-def _bootstrap_cli_files(root: Path) -> list[Path]:
-    """Return the fixed Bootstrap, launcher, CLI, and desktop host slice."""
+def _delegate_name_index(tokens: list[str], declaration: int) -> int | None:
+    """Skip the complete return type, including tuples inside generic types."""
+    return_type = declaration + 1
+    while return_type < len(tokens) and tokens[return_type] in {"ref", "readonly"}:
+        return_type += 1
+    angle = parentheses = 0
+    for index in range(return_type, len(tokens)):
+        token = tokens[index]
+        if token in {";", "{", "}"}:
+            return None
+        if token == "(" and angle == 0 and parentheses == 0:
+            name = index - 1
+            if tokens[name] == ">":
+                depth = 1
+                name -= 1
+                while name > declaration and depth:
+                    depth += (tokens[name] == ">") - (tokens[name] == "<")
+                    name -= 1
+            if name > return_type and re.fullmatch(r"@?[A-Za-z_]\w*", tokens[name]):
+                return name
+        angle += (token == "<") - (token == ">")
+        parentheses += (token == "(") - (token == ")")
+    return None
 
-    return [
-        *_matching_files(root, "src/NvtFwCombiner.Bootstrap", frozenset({".cs"})),
-        *_matching_files(root, "src/NvtFwCombiner.Cli", frozenset({".cs"})),
-        *_matching_files(root, "src/NvtFwCombiner.Desktop", frozenset({".cs"})),
-        *_matching_files(
-            root,
-            "src/NvtFwCombiner.DistributionLauncher",
-            frozenset({".cs"}),
-        ),
-        *_matching_files(root, "src/NvtFwCombiner.Launcher", frozenset({".cs"})),
-        *_matching_files(
-            root,
-            "src/NvtFwCombiner.LauncherBootstrap",
-            frozenset({".cs"}),
-        ),
-    ]
 
-
-def _infrastructure_contracts_worker_files(root: Path) -> list[Path]:
-    """Return the fixed Canonical Core adapter, contract, and worker slice."""
-
-    return [
-        *_matching_files(
-            root,
-            "src/NvtFwCombiner.Infrastructure",
-            frozenset({".cs"}),
-        ),
-        *_matching_files(root, "src/NvtFwCombiner.Platform", frozenset({".cs"})),
-        *_matching_files(root, "src/NvtFwCombiner.Contracts", frozenset({".cs"})),
-        *_matching_files(
-            root,
-            "src/NvtFwCombiner.VersionManagement.Infrastructure",
-            frozenset({".cs"}),
-        ),
-        *_worker_runtime_files(root),
-    ]
+def _declared_types(text: str) -> set[str]:
+    """Read qualified declaration identities, including nested/generic types."""
+    tokens = CSHARP_TOKEN.findall(CSHARP_NONCODE.sub(" ", text))
+    names: set[str] = set()
+    scopes: list[str | None] = []
+    file_namespace = ""
+    pending: str | None = None
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token == "namespace":
+            end = index + 1
+            while end < len(tokens) and tokens[end] not in ("{", ";"):
+                end += 1
+            name = "".join(tokens[index + 1:end]).replace("@", "")
+            if end < len(tokens) and tokens[end] == ";":
+                file_namespace = name
+            else:
+                scopes.append(name)
+            index = end + 1
+            continue
+        if token in {"class", "struct", "record", "interface", "enum", "delegate"}:
+            start = index + 1
+            if token == "record" and start < len(tokens) and tokens[start] in {"class", "struct"}:
+                start += 1
+            if token == "delegate":
+                start = _delegate_name_index(tokens, index)
+                if start is None:
+                    index += 1
+                    continue
+            if start < len(tokens) and re.fullmatch(r"@?[A-Za-z_]\w*", tokens[start]):
+                end = start + 1
+                name = tokens[start].lstrip("@")
+                if end < len(tokens) and tokens[end] == "<":
+                    depth, arity = 1, 1
+                    end += 1
+                    while end < len(tokens) and depth:
+                        arity += tokens[end] == "," and depth == 1
+                        depth += (tokens[end] == "<") - (tokens[end] == ">")
+                        end += 1
+                    name += f"`{arity}"
+                # A constraint such as `where T : class` is not a declaration.
+                if end < len(tokens) and tokens[end] in {"{", "(", ":", ";", "where"}:
+                    qualified = ".".join(part for part in (file_namespace, *scopes, name) if part)
+                    names.add(qualified)
+                    pending = None if token == "delegate" else name
+                    index = end
+                    continue
+        if token == "{":
+            scopes.append(pending)
+            pending = None
+        elif token == "}":
+            if scopes:
+                scopes.pop()
+        elif token == ";":
+            pending = None
+        index += 1
+    return names
 
 
 def measure_code_size(root: Path) -> CodeSizeSnapshot:
-    """Measure production source, exact JSON duplication, and partial aggregates."""
-
+    """Sum each declaring file once per qualified type, including single files."""
     source_files = _matching_files(root, "src", frozenset({".cs", ".axaml"}))
-    source_line_counts = {path: _nonblank_line_count(path) for path in source_files}
-    runtime_source_files = _runtime_production_files(root)
-    domain_profiles_files = _domain_profiles_files(root)
-    application_files = _application_files(root)
-    bootstrap_cli_files = _bootstrap_cli_files(root)
-    infrastructure_contracts_worker_files = _infrastructure_contracts_worker_files(root)
-
-    duplicate_candidates = [
-        *_matching_files(root, "profiles", frozenset({".json"})),
-        *_matching_files(root, "docs/contracts", frozenset({".json"})),
-    ]
-    files_by_hash: dict[bytes, list[Path]] = defaultdict(list)
-    for path in duplicate_candidates:
-        files_by_hash[hashlib.sha256(path.read_bytes()).digest()].append(path)
-    duplicate_groups = [paths for paths in files_by_hash.values() if len(paths) > 1]
-    duplicate_json_nonblank = sum(
-        (len(paths) - 1) * _nonblank_line_count(paths[0]) for paths in duplicate_groups
-    )
-
-    partial_files: dict[str, list[Path]] = defaultdict(list)
+    counts = {path: _nonblank_line_count(path) for path in source_files}
+    runtime = _runtime_production_files(root)
+    declaring: dict[str, list[Path]] = defaultdict(list)
     for path in source_files:
-        if path.suffix.casefold() != ".cs":
-            continue
-        text = path.read_text(encoding="utf-8-sig")
-        namespace_match = NAMESPACE_PATTERN.search(text)
-        if namespace_match:
-            qualified_names = {
-                f"{namespace_match.group(1)}.{partial_match.group(1)}"
-                for partial_match in PARTIAL_TYPE_PATTERN.finditer(text)
-            }
-            for qualified_name in qualified_names:
-                partial_files[qualified_name].append(path)
-
-    partial_types = tuple(
-        PartialTypeAggregate(
-            name=name,
-            file_count=len(paths),
-            nonblank_lines=sum(source_line_counts[path] for path in paths),
-        )
-        for name, paths in sorted(partial_files.items())
-        if len(paths) > 1
-    )
+        if path.suffix.casefold() == ".cs":
+            for name in _declared_types(path.read_text(encoding="utf-8-sig")):
+                declaring[name].append(path)
+    by_hash: dict[bytes, list[Path]] = defaultdict(list)
+    for path in [*_matching_files(root, "profiles", frozenset({".json"})),
+                 *_matching_files(root, "docs/contracts", frozenset({".json"}))]:
+        by_hash[hashlib.sha256(path.read_bytes()).digest()].append(path)
+    duplicates = [paths for paths in by_hash.values() if len(paths) > 1]
     return CodeSizeSnapshot(
         production_files=len(source_files),
-        production_nonblank=sum(source_line_counts.values()),
-        duplicate_json_groups=len(duplicate_groups),
-        duplicate_json_copies=sum(len(paths) - 1 for paths in duplicate_groups),
-        duplicate_json_nonblank=duplicate_json_nonblank,
-        partial_types=partial_types,
-        runtime_production_files=len(runtime_source_files),
-        runtime_production_nonblank=sum(
-            _nonblank_line_count(path) for path in runtime_source_files
-        ),
-        domain_profiles_files=len(domain_profiles_files),
-        domain_profiles_nonblank=sum(
-            _nonblank_line_count(path) for path in domain_profiles_files
-        ),
-        application_files=len(application_files),
-        application_nonblank=sum(
-            _nonblank_line_count(path) for path in application_files
-        ),
-        bootstrap_cli_files=len(bootstrap_cli_files),
-        bootstrap_cli_nonblank=sum(
-            _nonblank_line_count(path) for path in bootstrap_cli_files
-        ),
-        infrastructure_contracts_worker_files=len(
-            infrastructure_contracts_worker_files
-        ),
-        infrastructure_contracts_worker_nonblank=sum(
-            _nonblank_line_count(path) for path in infrastructure_contracts_worker_files
-        ),
+        production_nonblank=sum(counts.values()),
+        duplicate_json_groups=len(duplicates),
+        duplicate_json_copies=sum(len(paths) - 1 for paths in duplicates),
+        duplicate_json_nonblank=sum((len(paths) - 1) * _nonblank_line_count(paths[0]) for paths in duplicates),
+        type_aggregates=tuple(TypeAggregate(name, len(paths), sum(counts[path] for path in paths))
+                              for name, paths in sorted(declaring.items())),
+        runtime_production_files=len(runtime),
+        runtime_production_nonblank=sum(_nonblank_line_count(path) for path in runtime),
     )
 
 
-def _review_exact_ratchet(
-    label: str, actual: int, expected: int, findings: list[str]
-) -> None:
-    if actual > expected:
-        findings.append(f"code-size review {label} grew: {actual} > ratchet {expected}")
-    elif actual < expected:
-        findings.append(
-            "code-size review "
-            f"{label} improved: consider lowering the ratchet from {expected} to {actual}"
-        )
-
-
-def _review_maximum(label: str, actual: int, maximum: int, findings: list[str]) -> None:
-    if actual > maximum:
-        findings.append(
-            f"code-size review {label} exceeded threshold: {actual} > {maximum}"
-        )
-
-
-def _review_slice_metric(
-    label: str,
-    file_count: int,
-    actual: int,
-    ratchet: int | None,
-    allowance: int,
-    findings: list[str],
-) -> None:
-    if ratchet is None:
-        return
-    effective = ratchet + allowance
-    budget = (
-        f"ratchet {ratchet}"
-        if allowance == 0
-        else f"ratchet {ratchet} + approved allowance {allowance} = {effective}"
-    )
-    findings.append(
-        f"{label} metric: {file_count} files / {actual} nonblank lines ({budget})"
-    )
-    _review_exact_ratchet(f"{label} slice", actual, effective, findings)
-
-
-def review_code_size_policy(
-    root: Path,
-    limits: CodeSizeLimits = DEFAULT_LIMITS,
-) -> list[str]:
-    """Return deterministic source-size findings without affecting verification success."""
-
-    findings: list[str] = []
+def review_code_size_policy(root: Path) -> list[str]:
+    """One advisory block; no allocation, allowance or secondary size gate."""
     snapshot = measure_code_size(root)
-    if limits.full_production_ratchet is not None:
-        _review_exact_ratchet(
-            "full production",
-            snapshot.production_nonblank,
-            limits.full_production_ratchet + limits.full_production_allowance,
-            findings,
-        )
-    else:
-        _review_maximum(
-            "production nonblank lines",
-            snapshot.production_nonblank,
-            limits.production_nonblank,
-            findings,
-        )
-    _review_exact_ratchet(
-        "exact duplicate JSON nonblank lines",
-        snapshot.duplicate_json_nonblank,
-        limits.duplicate_json_nonblank,
-        findings,
-    )
-
-    if limits.runtime_production_baseline is not None:
-        delta = (
-            snapshot.runtime_production_nonblank - limits.runtime_production_baseline
-        )
-        findings.append(
-            "runtime production metric: "
-            f"{snapshot.runtime_production_files} files / "
-            f"{snapshot.runtime_production_nonblank} nonblank lines "
-            f"(baseline {limits.runtime_production_baseline}, delta {delta:+d})"
-        )
-
-    if limits.runtime_production_ratchet is not None:
-        _review_exact_ratchet(
-            "runtime production",
-            snapshot.runtime_production_nonblank,
-            limits.runtime_production_ratchet + limits.runtime_production_allowance,
-            findings,
-        )
-
-    for label, file_count, actual, ratchet, allowance in (
-        (
-            "Domain + Profiles",
-            snapshot.domain_profiles_files,
-            snapshot.domain_profiles_nonblank,
-            limits.domain_profiles_ratchet,
-            limits.domain_profiles_allowance,
-        ),
-        (
-            "Application",
-            snapshot.application_files,
-            snapshot.application_nonblank,
-            limits.application_ratchet,
-            limits.application_allowance,
-        ),
-        (
-            "Bootstrap + CLI + Desktop host",
-            snapshot.bootstrap_cli_files,
-            snapshot.bootstrap_cli_nonblank,
-            limits.bootstrap_cli_ratchet,
-            limits.bootstrap_cli_allowance,
-        ),
-        (
-            "Infrastructure + Contracts + CRC worker",
-            snapshot.infrastructure_contracts_worker_files,
-            snapshot.infrastructure_contracts_worker_nonblank,
-            limits.infrastructure_contracts_worker_ratchet,
-            limits.infrastructure_contracts_worker_allowance,
-        ),
-    ):
-        _review_slice_metric(
-            label,
-            file_count,
-            actual,
-            ratchet,
-            allowance,
-            findings,
-        )
-    aggregates = {aggregate.name: aggregate for aggregate in snapshot.partial_types}
-    for name, expected in limits.partial_type_exact_ratchets.items():
-        actual = aggregates.get(name)
-        actual_lines = actual.nonblank_lines if actual else 0
-        _review_exact_ratchet(
-            f"partial aggregate {name}", actual_lines, expected, findings
-        )
-
-    for name, maximum in limits.partial_type_named_maximums.items():
-        actual = aggregates.get(name)
-        actual_lines = actual.nonblank_lines if actual else 0
-        _review_maximum(f"partial aggregate {name}", actual_lines, maximum, findings)
-
-    for aggregate in snapshot.partial_types:
-        if (
-            aggregate.name in limits.partial_type_exact_ratchets
-            or aggregate.name in limits.partial_type_named_maximums
-        ):
-            continue
-        if aggregate.nonblank_lines > limits.partial_type_default_max:
-            findings.append(
-                "code-size review partial aggregate "
-                f"{aggregate.name} has {aggregate.nonblank_lines} nonblank lines across "
-                f"{aggregate.file_count} files; threshold is {limits.partial_type_default_max}"
-            )
-
-    return findings
+    return [
+        f"code-size advisory: production {snapshot.production_files} files / "
+        f"{snapshot.production_nonblank} nonblank lines; runtime "
+        f"{snapshot.runtime_production_files} files / {snapshot.runtime_production_nonblank} nonblank lines; "
+        f"{len(snapshot.type_aggregates)} C# type aggregates; duplicate JSON "
+        f"{snapshot.duplicate_json_groups} groups / {snapshot.duplicate_json_copies} copies / "
+        f"{snapshot.duplicate_json_nonblank} nonblank lines. "
+        "Only hotspot enrollment and measured baselines block under ADR 0080 item 17."
+    ]
 
 
-def validate_code_size_policy(
-    root: Path,
-    limits: CodeSizeLimits = DEFAULT_LIMITS,
-) -> list[str]:
-    """Reject incomplete runtime accounting; source-size changes are advisory."""
-
-    snapshot = measure_code_size(root)
-    errors: list[str] = []
-    slices = (
-        (
-            "Domain + Profiles slice",
-            snapshot.domain_profiles_nonblank,
-            limits.domain_profiles_ratchet,
-            limits.domain_profiles_allowance,
-        ),
-        (
-            "Application slice",
-            snapshot.application_nonblank,
-            limits.application_ratchet,
-            limits.application_allowance,
-        ),
-        (
-            "Bootstrap + CLI + Desktop host slice",
-            snapshot.bootstrap_cli_nonblank,
-            limits.bootstrap_cli_ratchet,
-            limits.bootstrap_cli_allowance,
-        ),
-        (
-            "Infrastructure + Contracts + CRC worker slice",
-            snapshot.infrastructure_contracts_worker_nonblank,
-            limits.infrastructure_contracts_worker_ratchet,
-            limits.infrastructure_contracts_worker_allowance,
-        ),
-    )
-    if all(ratchet is not None for _, _, ratchet, _ in slices):
-        allocated = sum(actual for _, actual, _, _ in slices)
-        if allocated != snapshot.runtime_production_nonblank:
-            errors.append(
-                "code-size runtime slice allocation mismatch: "
-                f"{allocated} != total {snapshot.runtime_production_nonblank}"
-            )
+def validate_code_size_policy(root: Path, hotspots: Mapping[str, int] | None = None) -> list[str]:
+    """Require dynamic enrollment and exact current baselines, never allowances."""
+    hotspots = HOTSPOT_LINES if hotspots is None else hotspots
+    measured = {a.name: a.nonblank_lines for a in measure_code_size(root).type_aggregates}
+    errors = []
+    for name in sorted(measured.keys() | hotspots.keys()):
+        actual = measured.get(name, 0)
+        if name not in hotspots:
+            if actual >= HOTSPOT_ENTRY_LINES:
+                errors.append(f"code-size hotspot {name}: enroll measured baseline {actual} with owner approval in the pull request")
+        elif actual < HOTSPOT_EXIT_LINES:
+            errors.append(f"code-size hotspot {name}: remove entry; measured {actual} is below {HOTSPOT_EXIT_LINES}")
+        elif actual > hotspots[name]:
+            errors.append(f"code-size hotspot {name}: raise baseline {hotspots[name]} to measured {actual} with owner approval in the pull request")
+        elif actual < hotspots[name]:
+            errors.append(f"code-size hotspot {name}: lower baseline {hotspots[name]} to measured {actual}; no approval needed for reduction")
     return errors

@@ -824,6 +824,15 @@ class CoveragePolicyTests(unittest.TestCase):
             actual,
         )
 
+    def test_resolves_build_tool_sources_under_eng(self) -> None:
+        # ADR 0077 B2 builds the catalog generator under eng/; its sources join coverage reports.
+        self.assertEqual(
+            "eng/prebuilt-profile-catalog/Program.cs",
+            _relative_source_path("eng/prebuilt-profile-catalog/Program.cs", self.root),
+        )
+        with self.assertRaisesRegex(ValueError, "outside the repository root"):
+            _relative_source_path("eng/../../outside.cs", self.root)
+
     def test_rejects_ambiguous_coverage_source_roots(self) -> None:
         with self.assertRaisesRegex(ValueError, "coverage report source is ambiguous"):
             _relative_source_path(

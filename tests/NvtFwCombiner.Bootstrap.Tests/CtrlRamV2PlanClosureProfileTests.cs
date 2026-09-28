@@ -10,15 +10,15 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Proves supported CtrlRAM runtime plans compile only their declared topology and byte authority.</summary>
 public sealed partial class CtrlRamV2PlanClosureProfileTests
 {
-    private const string Nt51917BundleHash = "b4e12745789f522c3007a346d2370161db17a76a5eb94c367fd6c6cf40c2b45b";
-    private const string Nt51923BundleHash = "67ff8e3e10a3bb079aa8f25732a189baaa384bdf7554a34fc97c057d6af5af96";
-    private const string Nt51926BundleHash = "8a6dc717feeb109ee265122b5796606297f1bbe14e11ec1e8da31d26678c26a7";
-    private const string Nt51929BundleHash = "309f29e33a8fb672e92ed441d6633fab829bee3bd4c94a93fd842a7f3bb157d0";
-    private const string Nt51928BundleHash = "82a7a98f4883540595a3af22887fecef5f283fdff5e2af816b294c6345bd523d";
-    private const string Nt51932BundleHash = "7edb1c8b3b2d4d47963b4602000bd6c62fa43a52f55f6e70bdfac79a8c2c1fcc";
-    private const string Nt51950BundleHash = "86c06344e50856d590dc58bb0485de06ec9dcef825076a92a83574a3a0d6b554";
-    private const string Nt51951BundleHash = "17380c4dfdc04123ee46504cf626f43365c9d506d798f2c1ada999f14c8d3c4c";
-    private const string Nt51927BundleHash = "f44c1b82f3fc38905dee222a60be5b884f717b37cb3d8fafe8affd7c48353714";
+    private const string Nt51917BundleHash = "8873a5e5fe5c7190afb8c00b24557cf22200e0c3afbb95924e73cad7e4a3f200";
+    private const string Nt51923BundleHash = "86658f7a279fa34a49e49eea329c0e6b8679c575128482ca879a438c6408a5bc";
+    private const string Nt51926BundleHash = "241d2059770c4a88c2ec20e582652832e3ea3d0e51a07711a6827707e53b8cfa";
+    private const string Nt51929BundleHash = "44aa7eedca9bece677656a1b34b340aec162e961e41d0f3124693fc29b705e0a";
+    private const string Nt51928BundleHash = "ead5392a842068602a7ab8b6661fe872cb1e1dd435d89448f799caaa345805fb";
+    private const string Nt51932BundleHash = "4fae4735565c84a311f7586db75c274a77e58c96078779ad15a079cb2c55fe99";
+    private const string Nt51950BundleHash = "dd838e5d639ba6302b51e76421712a2e1311da52142a4e7e683384020ccd928e";
+    private const string Nt51951BundleHash = "6f13c26b5bf5a95d13e0b7004fc95ab5fa90da61c2cceee6b60ba41cdc9df1fa";
+    private const string Nt51927BundleHash = "f4fb397c04a86535385f2299d58dc9295ee903ba3c17e289a37bf4ab315ed74c";
 
     /// <summary>Normal-header profiles grant every owner-classified CRC word and no surrounding gap bytes.</summary>
     [Theory]
@@ -546,10 +546,12 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
         int? markerOffset = null)
     {
         byte[] bytes = new byte[checked((int)capacity)];
-        bytes[23] = checked((byte)chipCount);
+        // NT51950/NT51951 read the FWConfig Backup only at the layout-declared NVT end flag [0x36FFC, 0x37000).
+        int backupStart = icId is "NT51950" or "NT51951" ? 0x36000 : 0;
+        bytes[backupStart + 23] = checked((byte)chipCount);
         int resolvedMarkerOffset = markerOffset ?? (StringComparer.Ordinal.Equals(icId, "NT51926")
             ? 0x3BFFC
-            : 0x0FFC);
+            : backupStart + 0x0FFC);
         bytes[resolvedMarkerOffset] = 0x00;
         bytes[resolvedMarkerOffset + 1] = 0x4E;
         bytes[resolvedMarkerOffset + 2] = 0x56;

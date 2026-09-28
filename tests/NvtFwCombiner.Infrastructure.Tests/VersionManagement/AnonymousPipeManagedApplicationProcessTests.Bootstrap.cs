@@ -20,7 +20,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             "NvtFwCombiner.Bootstrap.exe",
             bytes.LongLength,
             Convert.ToHexStringLower(SHA256.HashData(bytes)));
-        var handoff = new StableLauncherHandoff(workspace.Root, expectedIdentity: identity);
+        var handoff = new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"), identity);
 
         bool missing = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
         File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
@@ -31,6 +31,51 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         Assert.True(started);
     }
 
+    /// <summary>Cancellation at the final start gate prevents a late process launch.</summary>
+    [Fact]
+    public async Task StableLauncherHandoffCancelAtStartGateDoesNotLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
+        string launcher = Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe");
+        File.Copy(probe, launcher);
+        byte[] bytes = await File.ReadAllBytesAsync(launcher, TestContext.Current.CancellationToken);
+        var identity = new ManagedImmutableBootstrapIdentity(
+            "NvtFwCombiner.Bootstrap.exe", bytes.LongLength,
+            Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        using var cancellation = new CancellationTokenSource();
+        var handoff = new StableLauncherHandoff(workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"), ManagedProcessTermination.Instance,
+            beforeProcessStart: _ => cancellation.Cancel(), expectedIdentity: identity);
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await handoff.TryStartLauncherAsync(cancellation.Token));
+    }
+
+    /// <summary>Cancellation inside custody verification prevents native launcher creation.</summary>
+    [Fact]
+    public async Task StableLauncherHandoffCancellationDuringVerificationDoesNotLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
+        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
+        using var cancellation = new CancellationTokenSource();
+        bool verified = false;
+        var handoff = new StableLauncherHandoff(workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"), ManagedProcessTermination.Instance,
+            expectedIdentity: CreateBootstrapIdentity(workspace.Root),
+            validateLauncherForStart: lease =>
+            {
+                cancellation.Cancel();
+                verified = lease.TryValidateForStart();
+                return verified;
+            });
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await handoff.TryStartLauncherAsync(cancellation.Token));
+        Assert.True(verified);
+    }
+
     /// <summary>The legacy detached restart is unavailable without inherited exact authority.</summary>
     [Fact]
     public async Task StableLauncherHandoffWithoutExpectedIdentityFailsClosed()
@@ -39,7 +84,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
         File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
 
-        bool started = await new StableLauncherHandoff(workspace.Root)
+        bool started = await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"))
             .TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
         Assert.False(started);
@@ -60,7 +105,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             "NvtFwCombiner.Bootstrap.exe",
             bytes.LongLength,
             wrongSha256);
-        var handoff = new StableLauncherHandoff(workspace.Root, expectedIdentity: wrongIdentity);
+        var handoff = new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"), wrongIdentity);
 
         bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
@@ -131,7 +176,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         cancellation.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await new StableLauncherHandoff(workspace.Root).TryStartLauncherAsync(cancellation.Token));
+            await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json")).TryStartLauncherAsync(cancellation.Token));
     }
 
     /// <summary>Constructor authority is never derived from a caller-relative root or state path.</summary>
@@ -282,7 +327,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         cancellation.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await new StableLauncherHandoff(workspace.Root).StartAsync(
+            await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json")).StartAsync(
                 workspace.Root,
                 identity,
                 lease,
@@ -307,7 +352,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             new string('a', 64));
         var lease = new CountingExecutableLaunchLease(executable, workspace.Root);
 
-        ImmutableBootstrapStartResult result = await new StableLauncherHandoff(workspace.Root)
+        ImmutableBootstrapStartResult result = await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"))
             .StartAsync(
                 "relative-root",
                 identity,
@@ -323,14 +368,23 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
     public async Task StableLauncherHandoffConvertsWin32StartFailureToFalse()
     {
         using var workspace = TempWorkspace.Create();
-        await File.WriteAllTextAsync(
-            Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"),
-            "not-a-windows-executable",
-            TestContext.Current.CancellationToken);
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
+        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
+        bool hookRan = false;
+        var handoff = new StableLauncherHandoff(
+            workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"),
+            ManagedProcessTermination.Instance,
+            beforeProcessStart: _ =>
+            {
+                hookRan = true;
+                throw new System.ComponentModel.Win32Exception(5);
+            },
+            expectedIdentity: CreateBootstrapIdentity(workspace.Root));
 
-        bool started = await new StableLauncherHandoff(workspace.Root)
-            .TryStartLauncherAsync(TestContext.Current.CancellationToken);
+        bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
+        Assert.True(hookRan);
         Assert.False(started);
     }
 

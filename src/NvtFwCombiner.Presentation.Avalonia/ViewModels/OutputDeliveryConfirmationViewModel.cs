@@ -26,6 +26,8 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     private readonly ICompositionOutputNaming _outputNaming;
     private readonly Func<ShellTextResources> _text;
     private OutputDeliveryRequest? _request;
+    private OutputDeliveryRequest? _preparedSuccessorOf;
+    private long _preparedSuccessorGeneration;
     private bool _preserveCancelledDeliveryState;
     private bool ProposalIsCurrent { get; set; } = true;
 
@@ -118,10 +120,12 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
         return generation == PreparationGeneration;
     }
 
-    internal void Open(OutputDeliveryRequest request, bool preserveDeliveryState = false)
+    internal void Open(OutputDeliveryRequest request, bool preserveDeliveryState = false, bool preparedSuccessor = false)
     {
         ArgumentNullException.ThrowIfNull(request);
+        _preparedSuccessorOf = preparedSuccessor && IsOpen ? _request : null;
         PreparationGeneration++;
+        _preparedSuccessorGeneration = PreparationGeneration;
         ProposalIsCurrent = true;
         preserveDeliveryState |= _preserveCancelledDeliveryState &&
             _request is { } previous && previous.IsReplaceOutput == request.IsReplaceOutput && previous.IsCurrent();
@@ -282,6 +286,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     private void Cancel()
     {
         PreparationGeneration++;
+        _preparedSuccessorOf = null;
         _preserveCancelledDeliveryState |= IsOpen;
         _request?.Cancel?.Invoke();
         IsOpen = false;
@@ -291,8 +296,13 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     internal async Task<bool> PrepareModeSpecificAsync()
     {
         OutputDeliveryRequest request = RequireOpenRequest();
-        return request.PrepareModeSpecificAsync is null ||
+        long generation = PreparationGeneration;
+        bool prepared = request.PrepareModeSpecificAsync is null ||
             await request.PrepareModeSpecificAsync();
+        return prepared && IsOpen &&
+            ((ReferenceEquals(_request, request) && IsPreparationCurrent(generation)) ||
+             (ReferenceEquals(_preparedSuccessorOf, request) &&
+              IsPreparationCurrent(_preparedSuccessorGeneration)));
     }
 
     private OutputDeliveryRequest RequireOpenRequest()

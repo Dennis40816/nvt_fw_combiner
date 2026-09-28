@@ -55,6 +55,24 @@ internal sealed partial class ShellTextResources
 
     public string CancelPreloadLabel { get; private init; } = string.Empty;
 
+    public string LocalStateSaveFailedTitle { get; private init; } = string.Empty;
+
+    public string LocalStateSaveFailedDetailFormat { get; private init; } = string.Empty;
+
+    public string LocalStateSaveAccessDeniedReason { get; private init; } = string.Empty;
+
+    public string LocalStateSaveStorageFullReason { get; private init; } = string.Empty;
+
+    public string LocalStateSaveFileInUseReason { get; private init; } = string.Empty;
+
+    public string LocalStateSaveTooLargeReason { get; private init; } = string.Empty;
+
+    public string LocalStateSaveUnexpectedReason { get; private init; } = string.Empty;
+
+    public string LocalStateReportHistoryLabel { get; private init; } = string.Empty;
+
+    public string LocalStatePreferencesLabel { get; private init; } = string.Empty;
+
     public string WorkspaceTitle { get; private init; } = string.Empty;
 
     public string WorkspaceSummary { get; private init; } = string.Empty;

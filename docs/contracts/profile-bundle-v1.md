@@ -13,7 +13,7 @@ The bundle manifest itself is excluded so the hash is not recursive. The loader 
 expected bundle hash from the release/install authority identified by `trustAnchorBindingId`; a
 bundle cannot trust its own declared hash.
 
-Every listed entry is hashed before parsing. The production loader rejects:
+Every listed entry is hashed before parsing. The full directory JSON loader rejects:
 
 - duplicate JSON keys, ids, or paths;
 - unknown or missing properties and noncanonical ids or paths;
@@ -22,7 +22,7 @@ Every listed entry is hashed before parsing. The production loader rejects:
 - content, schema, or bundle hash mismatch within the closed snapshot or against its supplied
   verified anchor.
 
-All runtime content is below one loader-selected immutable bundle root. Profile documents cannot
+Directory-source runtime content is below one loader-selected immutable bundle root. Profile documents cannot
 contain host paths, commands, scripts, or arbitrary processor parameters.
 
 Each listed schema declares exactly the Draft 2020-12 `$schema` URI and the `$id` named by its
@@ -44,6 +44,48 @@ the bundle's self-declared fields.
 The compiled bootstrap schema is not an entry in the bundle it validates. Every schema that is
 listed by a bundle must instead be referenced by at least one non-schema entry; unused schemas are
 rejected as orphans.
+
+## Build-bound built-in admission
+
+[ADR 0077](../adr/0077-prebuilt-profile-catalog.md) permits one bounded exception
+for built-in bundles listed by the package trust index. The build runs the full
+directory loader and DTO compatibility checks, then carries the exact manifests
+and family/profile documents in `profiles/built-in/prebuilt-profile-catalog.pack`.
+Schemas, evidence and saved rules are not carried. Reviewed JSON remains source
+authority; this is a derived delivery representation, not a semantic model or a
+new trust anchor.
+
+Runtime acceptance binds the exact parsed trust-index bytes and the complete raw
+manifest set to two identities compiled into the admission assembly. It verifies
+the closed bundle/document sets, all range hashes and limits, manifest schema,
+canonical entry-array hash, anchor, version and schema references before issuing
+an immutable accepted-catalog token. Missing, duplicate or invalid compiled
+identity fields reject the pack. A repaired body checksum cannot grant trust.
+
+Only `ProfileBundleLoader` constructs trusted bundles. Its token-bound memory
+source omits directory inventory, disk manifest rereading and entry-schema
+meta-validation/evaluation: the immutable bytes and build identity preserve those
+build verdicts. It retains the admitted full manifest, strict document parsing,
+DTO compatibility, lazy normalization, shared metadata resolution and compilation.
+No general schema-skip switch exists. Aggregate bytes including absent schema
+payloads are checked by generation; runtime enforces carried-entry and manifest
+bounds and the full manifest entry count.
+
+The registry selects once, synchronously at the first bundle load. Accepted
+packs ignore later or pre-existing damage to bundle JSON/schema copies and retain
+the build's manifest identity, including when an edited `bundleId` would have
+been admitted by the JSON path. A missing/rejected pack uses full unchanged JSON
+admission and emits one `system.catalog.prebuilt-unused` Warning; admissible
+manifest edits remain admissible on that path. A valid different index uses JSON;
+a missing/invalid index fails closed without recovery from the pack. The complete
+disposition matrix is in ADR 0077 decision 5.
+
+Cancellation, retry and reload cannot replace the selected source or mix sources.
+After acceptance, strict/DTO/normalization failures remain bundle failures with
+existing messages, never per-bundle JSON fallback. This exception does not apply
+to external bundles, user data or Saved Rule admission. R3 integration approval
+follows current [governance](../adr/0080-governance-reset.md); local test evidence
+does not replace independent review or the owner's required role approval.
 
 ## Packaging boundary
 

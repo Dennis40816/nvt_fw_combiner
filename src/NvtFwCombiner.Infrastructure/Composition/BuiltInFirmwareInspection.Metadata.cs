@@ -116,13 +116,37 @@ internal sealed partial class BuiltInFirmwareInspection
     {
         metadata = default;
         if (!projection.IsKnownIcId(icId) ||
-            !FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup))
+            !FirmwareConfigMetadataReader.TryReadBackup(image, ResolveCtrlRamBaseNvtEndFlag(icId),
+                out FirmwareConfigMetadata backup, out _))
         {
             return false;
         }
 
         metadata = backup;
         return true;
+    }
+
+    /// <summary>
+    /// NVT-END-FLAG-1113-01: a Base is read before a map is selected, so its declaration is the one every CtrlRAM
+    /// Replace map of the IC resolves to (NT51950/NT51951: flash [0x36FFC,0x37000)); an IC without CtrlRAM maps, or
+    /// whose maps disagree or fail to resolve, is unresolved and its Base FWConfig is unreadable.
+    /// </summary>
+    internal static FirmwareNvtEndFlagResolution ResolveCtrlRamBaseNvtEndFlag(string icId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        string ic = IcIdentifier.Normalize(icId);
+        return FirmwareNvtEndFlagResolution.Common(
+            CtrlRamV2RouteRegistry.All
+                .Where(route => StringComparer.Ordinal.Equals(route.Key.IcId, ic))
+                .SelectMany(route =>
+                {
+                    BuiltInV2Bundle bundle = BuiltInV2BundleRegistry.All[route.BundleId];
+                    FirmwareFamilyResolutionDefinition family =
+                        bundle.GetFirmwareFamily(route.ProfileId, route.ProfileVersion);
+                    return bundle.GetMapVariants(route.ProfileId, route.ProfileVersion, ic,
+                            ExperienceIds.CtrlRamReplace, out _)
+                        .Select(map => family.ResolveNvtEndFlag(map.MapId));
+                }));
     }
 
     internal static LegacyCombinerPostbuildProfile? ResolveDeclaredPostbuildProfileForDisplay(

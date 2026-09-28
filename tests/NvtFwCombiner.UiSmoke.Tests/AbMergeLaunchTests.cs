@@ -100,7 +100,7 @@ public sealed class AbMergeLaunchTests
         using var workspace = TempWorkspace.Create("ab-launch");
         PresentationHostServices isolated = await CreateServicesAsync(workspace);
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         PresentationHostServices services = PresentationTestHost.CreateServices("ui-smoke", host, static authoring => authoring);
         var execution = new NoRunExecution();
         PresentationCompositionServices original = services.Composition;
@@ -108,7 +108,7 @@ public sealed class AbMergeLaunchTests
             original.GeneralAuthoring, original.CtrlRamAuthoring,
             original.FirmwareInspection, original.OutputNaming, execution), services.FileReveal, services.SupportMatrix,
             services.SystemInformation, services.SystemDiagnosticsExporter, services.RawBinaryEditorFileSessions,
-            services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, isolated.LocalFiles);
+            services.CanonicalCatalogLoader, services.ExternalEnvironmentLoader, isolated.LocalFiles, isolated.LocalStateDirectory);
         using var window = new MainWindow(UiLaunchOptions.Parse(Arguments), StartupTraceSession.Disabled,
             services, ShellPreferenceSnapshot.Default);
         MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
@@ -245,7 +245,7 @@ public sealed class AbMergeLaunchTests
     private static MainWindowViewModel CreateShell(TempWorkspace workspace)
     {
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
-            loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+            loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         PresentationHostServices services = PresentationTestHost.CreateServices("ui-smoke", host, static authoring => authoring);
         return PresentationTestHost.PublishCanonicalCatalog(services, ShellViewModelFactory.Create(services, ShellLanguage.English));
     }

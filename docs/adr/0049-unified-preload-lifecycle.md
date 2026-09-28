@@ -11,7 +11,10 @@
   normal R3 owner gate
 - Builds on: ADR 0015, ADR 0026, ADR 0027, ADR 0038, ADR 0046, and ADR 0048
 - Amended by: [ADR 0075](0075-bounded-catalog-bundle-preload.md), which allows
-  bounded, layered bundle preloading inside the required catalog stage only
+  bounded, layered bundle preloading inside the required catalog stage only,
+  and [ADR 0077](0077-prebuilt-profile-catalog.md), which allows built-in
+  bundle admission to be served from an accepted pre-built catalog inside the
+  existing Infrastructure owner
 - Amends: ADR 0027's process-restart-only external-environment refresh boundary,
   the `0.10.x` maintainability specification, and the `v0.10.5` roadmap
 

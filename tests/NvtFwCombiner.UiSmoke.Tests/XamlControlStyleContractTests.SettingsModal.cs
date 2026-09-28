@@ -529,26 +529,18 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("AutomationProperties.Name=\"{Binding SettingsPreview.Title}\"", modal, StringComparison.Ordinal);
     }
 
-    /// <summary>Launcher start is awaited from Closing, and Closed never performs a fire-and-forget handoff.</summary>
+    /// <summary>The observed close owner performs launcher handoff before posting final Close.</summary>
     [Fact]
     public void StableLauncherHandoffPrecedesTheFinalWindowClose()
     {
         string codeBehind = ReadPresentationFile("MainWindow.axaml.cs");
-        int closing = codeBehind.IndexOf("protected override async void OnClosing", StringComparison.Ordinal);
-        int handoff = codeBehind.IndexOf(
-            "bool started = await TryCompleteStableLauncherHandoffAsync();",
-            closing,
-            StringComparison.Ordinal);
-        int finalClose = codeBehind.IndexOf("Dispatcher.UIThread.Post(Close);", handoff, StringComparison.Ordinal);
-        int closed = codeBehind.IndexOf("protected override void OnClosed", StringComparison.Ordinal);
-        int dispose = codeBehind.IndexOf("public void Dispose()", closed, StringComparison.Ordinal);
-
-        Assert.True(closing >= 0 && handoff > closing && finalClose > handoff);
-        Assert.True(closed > finalClose && dispose > closed);
-        Assert.DoesNotContain(
-            "StableLauncherHandoff",
-            codeBehind[closed..dispose],
-            StringComparison.Ordinal);
+        string lifetime = ReadPresentationFile("MainWindow.Lifetime.cs");
+        Assert.Contains("protected override void OnClosing", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("CloseAttempt = RunCloseAttemptAsync();", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("if (!await TryCompleteStableLauncherHandoffAsync())", lifetime, StringComparison.Ordinal);
+        Assert.Contains("_windowPublication.Revoke();", lifetime, StringComparison.Ordinal);
+        Assert.Contains("Dispatcher.UIThread.Post(() =>", lifetime, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryCompleteStableLauncherHandoffAsync", codeBehind, StringComparison.Ordinal);
     }
 
     /// <summary>Version status and destructive icons expose localized non-color-only accessible names.</summary>
@@ -676,14 +668,14 @@ public sealed partial class XamlControlStyleContractTests
     private static VersionManagementSnapshot CreateApprovedSettingsReferenceSnapshot()
     {
         const string hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-        ManagedAppVersion active = ManagedAppVersion.Parse("0.10.5");
-        ManagedAppVersion installed = ManagedAppVersion.Parse("0.9.15");
+        var active = ManagedAppVersion.Parse("0.10.5");
+        var installed = ManagedAppVersion.Parse("0.9.15");
         ManagedVersionAdmission[] admissions =
         [
             new(active, "identity-0.10.5", hash),
             new(installed, "identity-0.9.15", hash),
         ];
-        VersionManagerState state = VersionManagerState.Create(
+        var state = VersionManagerState.Create(
             @"\\novatek\firmware-tools\nvt-fw-combiner",
             active,
             installed,
@@ -691,7 +683,7 @@ public sealed partial class XamlControlStyleContractTests
             pendingActivation: null,
             failedActivationVersion: null,
             retentionReviewDue: false);
-        ManagedVersionInventory inventory = ManagedVersionInventory.Create(
+        var inventory = ManagedVersionInventory.Create(
         [
             new(active, "identity-0.10.5", ManagedVersionIntegrity.Healthy, null, true, false),
             new(installed, "identity-0.9.15", ManagedVersionIntegrity.Healthy, null, false, true),

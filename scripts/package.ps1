@@ -6,13 +6,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Commit,
 
-    [string]$VersionOnlyBasePackage,
-
-    [string]$VersionOnlyBasePackageSha256,
-
     [switch]$AllowPrerelease,
-
-    [switch]$ManualOnly,
 
     [switch]$ExternalToolPolicyDryRun
 )
@@ -33,19 +27,6 @@ $SourceTag = if ($Version.StartsWith('v', [StringComparison]::Ordinal)) { $Versi
 $SemanticVersion = $SourceTag.Substring(1)
 $StableSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
 $PackageSemVerPattern = '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$'
-
-if ($ManualOnly -and $AllowPrerelease) {
-    throw 'ManualOnly cannot be combined with AllowPrerelease.'
-}
-if ($ManualOnly -and $ExternalToolPolicyDryRun) {
-    throw 'ManualOnly cannot be combined with ExternalToolPolicyDryRun.'
-}
-if ($ManualOnly -and $SemanticVersion -cne '1.1.0') {
-    throw 'ManualOnly is available only for v1.1.0.'
-}
-if (-not $ManualOnly -and $SemanticVersion -ceq '1.1.0') {
-    throw 'v1.1.0 requires the ManualOnly package mode.'
-}
 
 function Assert-CanonicalJsonSchema {
     param(
@@ -80,20 +61,6 @@ $PolicyDryRunSentinel =
     $ExternalToolPolicyDryRun -and
     $Version -ceq '0.0.0' -and
     $Commit -ceq ('0' * 40)
-$ResolvedVersionOnlyBasePackage = $null
-if (-not [string]::IsNullOrWhiteSpace($VersionOnlyBasePackage)) {
-    if ($SemanticVersion -cne '1.0.1') {
-        throw 'A version-only base package may be used only for 1.0.1.'
-    }
-    $ResolvedVersionOnlyBasePackage = (
-        Get-Item -LiteralPath $VersionOnlyBasePackage -ErrorAction Stop).FullName
-    if ($VersionOnlyBasePackageSha256 -cnotmatch '^[0-9a-f]{64}$') {
-        throw 'A version-only base package requires its independently authenticated lowercase SHA-256.'
-    }
-}
-elseif (-not [string]::IsNullOrWhiteSpace($VersionOnlyBasePackageSha256)) {
-    throw 'A version-only base package SHA-256 cannot be supplied without the package.'
-}
 if (-not $PolicyDryRunSentinel) {
     $InvocationVersionPath = Join-Path $RepoRoot 'VERSION'
     if (-not (Test-Path -LiteralPath $InvocationVersionPath -PathType Leaf)) {
@@ -123,14 +90,6 @@ if (-not $PolicyDryRunSentinel) {
         throw "Release packaging requires a clean repository worktree and index: $($RepositoryStatus -join '; ')"
     }
 }
-if (
-    -not $PolicyDryRunSentinel -and
-    $SemanticVersion -ceq '1.0.1' -and
-    $null -eq $ResolvedVersionOnlyBasePackage
-) {
-    throw 'Stable 1.0.1 packaging requires the published 1.0.0 base package.'
-}
-
 $DotNet = $null
 $Python = $null
 $ReleaseRoot = Join-Path $InvocationRepoRoot 'artifacts/release'
@@ -276,10 +235,14 @@ $ApprovedRuntimeCatalogPackagePaths = @(
 ) | Sort-Object
 $ApprovedRuntimeCatalogDirectories = @('ctrlram-postbuild-v2')
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
+$PrebuiltCatalogPackagePath = 'profiles/built-in/prebuilt-profile-catalog.pack'
+$MaximumPrebuiltCatalogBytes = 4194304
+$MaximumApplicationBytes = 80000000
+$MaximumPackageBytes = 134217728
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '143c918a60ebf5355e7f8797c0e988a9d419c99b5152e6d302534236613d185e'
+    sha256 = 'ec0083f0eaff02d22369db4d099b1f7cd759ef9c42ae21a5e11ab02e97b69014'
 }
 
 $ApprovedCanonicalCapabilityPolicyPackagePath =
@@ -446,6 +409,18 @@ function Get-BuiltInProfilePackagePaths {
         throw 'Published package trust index has an unsupported schema or trust anchor.'
     }
     [void]$PackagePaths.Add($PackageTrustIndexPackagePath)
+    $PublishedPackPath = Join-Path $PublishedRoot $PrebuiltCatalogPackagePath
+    if (-not (Test-Path -LiteralPath $PublishedPackPath -PathType Leaf)) {
+        throw 'Prebuilt catalog is missing from published output.'
+    }
+    if ((Get-Item -LiteralPath $PublishedPackPath).Length -gt $MaximumPrebuiltCatalogBytes) {
+        throw 'Prebuilt catalog exceeds the 4 MiB file bound.'
+    }
+    [void]$PackagePaths.Add($PrebuiltCatalogPackagePath)
+    $RootFiles = @(Get-ChildItem -LiteralPath $BuiltInRoot -File | ForEach-Object Name | Sort-Object)
+    if (Compare-Object @('package-trust-index.json', 'prebuilt-profile-catalog.pack') $RootFiles) {
+        throw 'Published built-in profile root contains a missing or extra file.'
+    }
     foreach ($BundleDirectory in $BundleDirectories) {
         $BundleRoot = Join-Path $BuiltInRoot $BundleDirectory
         $ManifestPath = Join-Path $BundleRoot 'profile-bundle.json'
@@ -525,6 +500,32 @@ function Get-BuiltInProfilePackagePaths {
     }
 
     return @($PackagePaths | Sort-Object)
+}
+
+function Assert-MatchingPrebuiltCatalog {
+    param(
+        [Parameter(Mandatory = $true)][string]$PublishedRoot,
+        [Parameter(Mandatory = $true)][string]$RegeneratedPack
+    )
+
+    $PublishedPack = Join-Path $PublishedRoot 'profiles/built-in/prebuilt-profile-catalog.pack'
+    if (-not (Test-Path -LiteralPath $PublishedPack -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $RegeneratedPack -PathType Leaf)) {
+        throw 'Prebuilt catalog is missing from published output or regeneration.'
+    }
+    $PublishedLength = (Get-Item -LiteralPath $PublishedPack).Length
+    $RegeneratedLength = (Get-Item -LiteralPath $RegeneratedPack).Length
+    if ($PublishedLength -lt 13 -or $PublishedLength -gt 4194304 -or
+        $RegeneratedLength -ne $PublishedLength) {
+        throw 'Prebuilt catalog exceeds the 4 MiB file bound or its regenerated length differs.'
+    }
+    $PublishedBytes = [IO.File]::ReadAllBytes($PublishedPack)
+    $RegeneratedBytes = [IO.File]::ReadAllBytes($RegeneratedPack)
+    for ($Index = 0; $Index -lt $PublishedBytes.Length; $Index++) {
+        if ($PublishedBytes[$Index] -ne $RegeneratedBytes[$Index]) {
+            throw 'Prebuilt catalog differs from regeneration of published JSON.'
+        }
+    }
 }
 
 function Copy-BuiltInProfilePackageFiles {
@@ -656,6 +657,9 @@ function New-BuiltInProfilePolicyDryRunFixture {
             -RelativePath $RuntimeCatalogPath `
             -DestinationRoot $PublishedRoot
     }
+    # The policy dry-run does not build. This stub exercises only file selection and byte comparison.
+    $FixturePack = Join-Path $PublishedRoot $PrebuiltCatalogPackagePath
+    [IO.File]::WriteAllBytes($FixturePack, [Text.Encoding]::ASCII.GetBytes('NFCPBCATfixture'))
 }
 
 function Invoke-ExternalToolPolicyDryRun {
@@ -726,6 +730,44 @@ function Invoke-ExternalToolPolicyDryRun {
         if ($DryRunProfileEntries.Count -eq 0 -or
             @($DryRunProfileEntries | Where-Object { $_.role -ne 'builtInProfile' }).Count -ne 0) {
             throw 'Built-in profile policy dry-run did not produce role-pinned manifest entries.'
+        }
+        $DryRunPack = Join-Path $DryRunPublishedRoot $PrebuiltCatalogPackagePath
+        $DryRunRegeneratedPack = Join-Path $DryRunRoot 'regenerated.pack'
+        $OriginalPackBytes = [IO.File]::ReadAllBytes($DryRunPack)
+        [IO.File]::WriteAllBytes($DryRunRegeneratedPack, $OriginalPackBytes)
+        Assert-MatchingPrebuiltCatalog -PublishedRoot $DryRunPublishedRoot -RegeneratedPack $DryRunRegeneratedPack
+        foreach ($Mutation in @('missing', 'damaged', 'oversized', 'stale', 'extra')) {
+            try {
+                switch ($Mutation) {
+                    'missing' { Remove-Item -LiteralPath $DryRunPack }
+                    'damaged' { [IO.File]::WriteAllText($DryRunPack, 'NFCPBCATdamage') }
+                    'oversized' { [IO.File]::WriteAllBytes($DryRunPack, [byte[]]::new($MaximumPrebuiltCatalogBytes + 1)) }
+                    'stale' { [IO.File]::WriteAllText($DryRunRegeneratedPack, 'NFCPBCATstale!!') }
+                    'extra' { [IO.File]::WriteAllText((Join-Path $DryRunPublishedRoot 'profiles/built-in/extra.pack'), 'unapproved') }
+                }
+                $Rejected = $false
+                try {
+                    if ($Mutation -in @('missing', 'oversized', 'extra')) {
+                        Get-BuiltInProfilePackagePaths -PublishedRoot $DryRunPublishedRoot | Out-Null
+                    }
+                    else {
+                        Assert-MatchingPrebuiltCatalog -PublishedRoot $DryRunPublishedRoot -RegeneratedPack $DryRunRegeneratedPack
+                    }
+                }
+                catch {
+                    if ($_.Exception.Message -notmatch 'Prebuilt catalog|Published built-in profile root contains a missing or extra file') {
+                        throw
+                    }
+                    $Rejected = $true
+                }
+                if (-not $Rejected) { throw "Prebuilt catalog $Mutation policy probe was admitted." }
+            }
+            finally {
+                [IO.File]::WriteAllBytes($DryRunPack, $OriginalPackBytes)
+                [IO.File]::WriteAllBytes($DryRunRegeneratedPack, $OriginalPackBytes)
+                $ExtraPack = Join-Path $DryRunPublishedRoot 'profiles/built-in/extra.pack'
+                if (Test-Path -LiteralPath $ExtraPack) { Remove-Item -LiteralPath $ExtraPack }
+            }
         }
         $DryRunRuntimeCatalogPaths = @(
             $DryRunProfileEntries |
@@ -1093,6 +1135,7 @@ function Invoke-ExternalToolPolicyDryRun {
 
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected.'
+        Write-Host 'Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
         Write-Host 'Retired support publication policy package dry-run passed: no parallel publicationPolicy payload entered staging or manifest.'
         Write-Host 'Canonical golden package policy dry-run passed: 25 direct Goldens, three owner-certified input-only evidence cases, twelve self-contained aliases, 177 declarations, and 174 unique artifact paths selected.'
@@ -1386,7 +1429,7 @@ New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublis
 
 $AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj'
 $LauncherProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj'
-$IncludeManagedLauncher = -not ($AllowPrerelease -or $ManualOnly)
+$IncludeManagedLauncher = -not $AllowPrerelease
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
 try {
     & $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true
@@ -1434,6 +1477,9 @@ if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
 }
 $AppExe = Join-Path $PackageRoot 'NvtFwCombiner.exe'
 Copy-Item -LiteralPath $PublishedApp -Destination $AppExe
+if ((Get-Item -LiteralPath $AppExe).Length -gt $MaximumApplicationBytes) {
+    throw "Release application exceeds the $MaximumApplicationBytes-byte ceiling."
+}
 $LauncherExe = $null
 if ($IncludeManagedLauncher) {
     $PublishedLauncher = Join-Path $LauncherPublish 'NvtFwCombiner.Launcher.exe'
@@ -1444,6 +1490,14 @@ if ($IncludeManagedLauncher) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $LauncherExe) | Out-Null
     Copy-Item -LiteralPath $PublishedLauncher -Destination $LauncherExe
 }
+$GeneratorProject = Join-Path $RepoRoot 'eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj'
+$RegeneratedPack = Join-Path $WorkRoot 'regenerated-profile-catalog.pack'
+& $DotNet run --project $GeneratorProject -c Release --no-restore -- `
+    (Join-Path $AppPublish 'profiles/built-in') `
+    (Join-Path $AppPublish $PackageTrustIndexPackagePath) `
+    $RegeneratedPack
+if ($LASTEXITCODE -ne 0) { throw 'Prebuilt catalog regeneration from published profiles failed.' }
+Assert-MatchingPrebuiltCatalog -PublishedRoot $AppPublish -RegeneratedPack $RegeneratedPack
 $BuiltInProfilePackagePaths = @(Copy-BuiltInProfilePackageFiles `
     -PublishedRoot $AppPublish `
     -DestinationRoot $PackageRoot)
@@ -1452,19 +1506,6 @@ Copy-CanonicalCapabilityPolicyPackageFile `
     -DestinationRoot $PackageRoot
 
 $WorkerExe = Join-Path $PackageRoot $CrcWorkerPackagePath.Replace('/', [IO.Path]::DirectorySeparatorChar)
-if ($null -ne $ResolvedVersionOnlyBasePackage) {
-    $ReleasePolicy = Join-Path $RepoRoot 'scripts/release_promotion_policy.py'
-    & $Python $ReleasePolicy extract-version-only-stable-payload `
-        --repository $RepoRoot `
-        --base-package $ResolvedVersionOnlyBasePackage `
-        --base-package-sha256 $VersionOnlyBasePackageSha256 `
-        --destination $WorkerExe `
-        --path $CrcWorkerPackagePath
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Published 1.0.0 CRC worker could not be reused for 1.0.1.'
-    }
-}
-else {
     $WorkerEntry = Join-Path $WorkRoot 'crc_worker_entry.py'
     @'
 from nfc_crc_worker.__main__ import main
@@ -1488,14 +1529,12 @@ raise SystemExit(main())
     }
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $WorkerExe) | Out-Null
     Copy-Item -LiteralPath $BuiltWorker -Destination $WorkerExe
-}
 
 $ExternalToolsDestination = Join-Path $PackageRoot 'external-tools'
 Copy-ApprovedExternalToolPackageFiles -DestinationRoot $PackageRoot
 
 $ReferenceDestination = Join-Path $PackageRoot 'reference'
-if (-not $ManualOnly) {
-    New-Item -ItemType Directory -Force -Path $ReferenceDestination | Out-Null
+New-Item -ItemType Directory -Force -Path $ReferenceDestination | Out-Null
     @"
 NVT FW Combiner reference payload
 
@@ -1538,7 +1577,6 @@ Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifest
     $script:CanonicalGoldenPackageManifest |
         ConvertTo-Json -Depth 12 |
         Set-Content -LiteralPath $PackagedGoldenManifestPath -Encoding utf8NoBOM
-}
 
 $SelfTestRequest = '{"protocolVersion":"1.0","requestId":"package-self-test","operation":"calculate","algorithmId":"crc-32-mpeg-2","payloadBase64":"MTIzNDU2Nzg5"}'
 $SelfTestRaw = $SelfTestRequest | & $WorkerExe
@@ -1550,25 +1588,6 @@ if ($SelfTest.result.valueHex -ne '0x0376E6E7') {
 
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Destination (Join-Path $PackageRoot 'LICENSE.txt')
 Copy-Item -LiteralPath (Join-Path $RepoRoot 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $PackageRoot 'THIRD-PARTY-NOTICES.txt')
-if ($ManualOnly) {
-    @"
-NVT FW Combiner $SemanticVersion
-Distribution owner: $DistributionOwner
-
-This is a Windows x64 manual-download package. Run NvtFwCombiner.exe directly.
-
-Contents:
-- NvtFwCombiner.exe: self-contained Windows x64 desktop application
-- external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
-- profiles/built-in/: exact package trust index, materialized bundles, and runtime catalogs
-- external-tools/: generated CRC Worker and approved legacy Combiner runtime packages
-- RELEASE-MANIFEST.json: source and file integrity metadata
-- SHA256SUMS.txt: package file hashes
-
-Launcher, Setup, Bootstrap, Catalog/Registry deployment, automatic update, Version deployment, and reference/Golden evidence are intentionally absent. This package is not a managed-install or update candidate.
-"@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
-}
-else {
     @"
 NVT FW Combiner $SemanticVersion
 Distribution owner: $DistributionOwner
@@ -1577,7 +1596,7 @@ Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
 - launcher/NvtFwCombiner.Launcher.exe: release-coupled managed launcher (stable packages only)
 - external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
-- profiles/built-in/: exact package trust index plus its manifest-pinned materialized bundles; profile stage and support publication remain independently authoritative
+- profiles/built-in/: exact trust index, manifest-pinned bundles, and regenerated pre-built catalog; profile stage and support publication remain independently authoritative
 - external-tools/: generated CRC Worker and approved legacy Combiner runtime packages
 - reference/: owner-approved flash-map, postbuild, flash-header, and golden fixture evidence
 - RELEASE-MANIFEST.json: source and file integrity metadata
@@ -1585,7 +1604,6 @@ Contents:
 
 This exact release selection includes 25 Direct Golden cases, three selected owner-certified input-only evidence cases, and twelve self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/testdata/golden/canonical. Input-only cases retain all declared input BINs for manual package testing; neither these cases nor their aliases claim an expected output, Direct Golden status, parity, a runtime path, or support promotion. Eleven Direct Goldens use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Diagnostics, owner handoff records, CJK14/HackMD transfer material, archives, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
-}
 
 $AppHash = Get-LowerSha256 -Path $AppExe
 $WorkerHash = Get-LowerSha256 -Path $WorkerExe
@@ -1606,8 +1624,7 @@ $BuiltInProfileEntries = @(Get-BuiltInProfileManifestEntries `
 $CanonicalCapabilityPolicyEntry = Get-CanonicalCapabilityPolicyManifestEntry `
     -PackageRoot $PackageRoot
 $ReferencePayloadEntries = @()
-if (-not $ManualOnly) {
-    $ReferencePayloadFiles = @(Get-ChildItem -LiteralPath $ReferenceDestination -File -Recurse | ForEach-Object FullName)
+$ReferencePayloadFiles = @(Get-ChildItem -LiteralPath $ReferenceDestination -File -Recurse | ForEach-Object FullName)
     $ReferencePayloadEntries = @(
         $ReferencePayloadFiles | Sort-Object | ForEach-Object {
             $RelativePath = [System.IO.Path]::GetRelativePath($PackageRoot, $_).Replace('\', '/')
@@ -1615,7 +1632,6 @@ if (-not $ManualOnly) {
             [ordered]@{ path = $RelativePath; size = (Get-Item $_).Length; sha256 = (Get-LowerSha256 $_); role = $Role }
         }
     )
-}
 $ApprovedProcessorIds = @(
     'nfc.crc32-mpeg2.calculate-v1',
     'nfc.nt51917.ctrlram-postbuild-v1',
@@ -1651,7 +1667,7 @@ if ($IncludeManagedLauncher) {
 }
 
 $Manifest = [ordered]@{
-    schemaVersion = if ($ManualOnly) { '1.3' } elseif ($IncludeManagedLauncher) { '1.2' } else { '1.1' }
+    schemaVersion = if ($IncludeManagedLauncher) { '1.2' } else { '1.1' }
     product = 'NVT FW Combiner'
     version = $SemanticVersion
     sourceCommit = $Commit
@@ -1667,10 +1683,7 @@ $Manifest = [ordered]@{
     sbomAsset = $SbomName
     provenanceAsset = $ProvenanceName
 }
-if ($ManualOnly) {
-    $Manifest.distributionMode = 'manual-only'
-}
-elseif ($IncludeManagedLauncher) {
+if ($IncludeManagedLauncher) {
     $Manifest.versionManagementProtocolVersion = 1
     $Manifest.launcher = [ordered]@{
         launcherVersion = $SemanticVersion
@@ -1728,7 +1741,7 @@ $Provenance = [ordered]@{
     sourceRepository = $SourceIdentity
     sourceCommit = $Commit
     sourceTag = $SourceTag
-    builder = if ($ManualOnly) { 'scripts/package.ps1 manual-only operator build' } else { 'GitHub Actions / scripts/package.ps1' }
+    builder = 'GitHub Actions / scripts/package.ps1'
     runtimeIdentifier = 'win-x64'
     subjects = $FileEntries | ForEach-Object { [ordered]@{ name = $_.path; sha256 = $_.sha256 } }
 }
@@ -1763,6 +1776,9 @@ Assert-CanonicalJsonSchema -JsonPath $ManifestPath -SchemaPath $ReleaseManifestS
 
 $ZipPath = Join-Path $ReleaseRoot "$PackageName.zip"
 Compress-Archive -LiteralPath $PackageRoot -DestinationPath $ZipPath -CompressionLevel Optimal
+if ((Get-Item -LiteralPath $ZipPath).Length -gt $MaximumPackageBytes) {
+    throw "Release ZIP exceeds the $MaximumPackageBytes-byte ceiling."
+}
 Write-Host "Release package: $ZipPath"
 Write-Host "Application SHA-256: $AppHash"
 Write-Host "Worker SHA-256: $WorkerHash"
@@ -1798,7 +1814,7 @@ finally {
     }
 }
 
-if (-not $ManualOnly -and -not $AllowPrerelease -and [version]$SemanticVersion -ge [version]'1.0.6') {
+if (-not $AllowPrerelease) {
     $DistributionLauncherPackager = Join-Path `
         $InvocationRepoRoot 'scripts/package-distribution-launcher.ps1'
     & $DistributionLauncherPackager `

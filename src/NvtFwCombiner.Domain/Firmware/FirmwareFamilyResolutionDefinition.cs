@@ -72,6 +72,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 metadataSetsById,
                 referencedMetadataSetIds);
             ValidateCandidate(map, structures);
+            FirmwareNvtEndFlag.RequireConsistentDeclaration(map.MapId, structures);
             _structuresByMap.Add(map.MapId, Array.AsReadOnly(structures));
         }
 
@@ -124,6 +125,20 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         return _structuresByMap.TryGetValue(mapId, out IReadOnlyList<FirmwareMetadataStructure>? structures)
             ? structures
             : throw new KeyNotFoundException($"Unknown firmware image map '{mapId}'.");
+    }
+
+    /// <summary>
+    /// Resolves the NVT end flag one map declares through its FWConfig Backup locators (NVT-END-FLAG-1113-01). A map
+    /// without a declaration resolves only when its family is in <see cref="FirmwareNvtEndFlagMigration"/>;
+    /// otherwise the resolution fails and readers treat the Backup as unreadable.
+    /// </summary>
+    public FirmwareNvtEndFlagResolution ResolveNvtEndFlag(string mapId)
+    {
+        return FirmwareNvtEndFlag.FromStructures(GetStructuresForMap(mapId)) is { } endFlag
+            ? FirmwareNvtEndFlagResolution.Declared(endFlag)
+            : FirmwareNvtEndFlagMigration.LegacyCompatibilityFamilyIds.Contains(FamilyId)
+                ? FirmwareNvtEndFlagResolution.LegacyCompatibility
+                : FirmwareNvtEndFlagResolution.Unresolved;
     }
 
     /// <summary>Resolves a structure only through metadata sets selected by the candidate map.</summary>

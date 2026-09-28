@@ -20,8 +20,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("<Target Name=\"MaterializeBuiltInProfileBundles\"", project, StringComparison.Ordinal);
 
         string tool = File.ReadAllText(absoluteToolPath);
-        Assert.Contains("RoslynCodeTaskFactory", tool, StringComparison.Ordinal);
+        Assert.Contains("NvtFwCombiner.ProfileBundleTrustIndex.tasks", tool, StringComparison.Ordinal);
+        string task = ReadText("eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleTrustIndex.tasks");
+        Assert.Contains("RoslynCodeTaskFactory", task, StringComparison.Ordinal);
         Assert.Contains("<Target Name=\"MaterializeBuiltInProfileBundles\"", tool, StringComparison.Ordinal);
-        Assert.Contains("DuplicatePropertyNameHandling.Error", tool, StringComparison.Ordinal);
+        Assert.Contains("DuplicatePropertyNameHandling.Error", task, StringComparison.Ordinal);
     }
 }

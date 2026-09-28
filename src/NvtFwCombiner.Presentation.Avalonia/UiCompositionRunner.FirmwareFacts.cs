@@ -1,3 +1,5 @@
+using System.Globalization;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -25,9 +27,11 @@ internal static partial class UiCompositionRunner
         IReadOnlyList<FirmwareSlotFactViewModel> dpFacts = includeBaseFacts
             ? GetDpFirmwareSlotFacts(inspection, text, FirmwareSlotFactPriority.Details)
             : [];
+        // Decision 36: the parsed TP code stamp never depends on FWConfig; the other facts keep their conditions.
+        FirmwareSlotFactViewModel? tpSvnFact = inspection.StandardTpSvn is { } tpSvn ? CreateTpSvnFact(tpSvn, text) : null;
         if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts && inspection.AbMergeFacts is null))
         {
-            return dpFacts;
+            return tpSvnFact is null ? dpFacts : [tpSvnFact, .. dpFacts];
         }
 
         List<FirmwareSlotFactViewModel> facts = [];
@@ -49,7 +53,44 @@ internal static partial class UiCompositionRunner
         {
             facts.Add(CreateEventBufferFact(raw, text));
         }
+        if (tpSvnFact is not null)
+        {
+            // Decision 40: the stamp follows Event Buffer Version when the other TP facts are shown.
+            facts.Add(tpSvnFact);
+        }
         return includeBaseFacts ? [.. facts, .. dpFacts] : facts;
+    }
+
+    /// <summary>
+    /// Formats one TP SVN stamp as its raw four bytes with an always-present value icon (decisions 34, 36
+    /// and 40): the information circle whose tooltip shows Flags and Revision, or the existing warning
+    /// triangle whose tooltip first states the owner anomaly. The fact keeps ordinary styling.
+    /// </summary>
+    internal static FirmwareSlotFactViewModel CreateTpSvnFact(
+        TpSvnObservation tpSvn, ShellTextResources text, string label = "TP SVN")
+    {
+        ArgumentNullException.ThrowIfNull(tpSvn);
+        ArgumentNullException.ThrowIfNull(text);
+        IReadOnlyList<string> flagNames = TpSvnMetadataContract.GetFlagNames(tpSvn.Flags);
+        FirmwareSlotFactNoteWarning[] warnings = tpSvn.Anomaly switch
+        {
+            TpSvnAnomaly.UndefinedFlagBits => [new(text.FormatTpSvnUndefinedFlagBitsWarning(tpSvn.UndefinedFlagBits))],
+            TpSvnAnomaly.NotStamped => [new(text.TpSvnNotStampedWarning)],
+            TpSvnAnomaly.None => [],
+            _ => throw new ArgumentOutOfRangeException(nameof(tpSvn), tpSvn.Anomaly, "Unknown TP SVN anomaly."),
+        };
+        return new FirmwareSlotFactViewModel(
+            label,
+            string.Join(' ', tpSvn.RawBytes.ToArray().Select(static value => value.ToString("X2", CultureInfo.InvariantCulture))),
+            priority: FirmwareSlotFactPriority.Primary)
+        {
+            Note = new FirmwareSlotFactNote(
+            [
+                new(text.TpSvnFlagsLabel, flagNames.Count == 0 ? text.TpSvnNoFlagsValue : string.Join(", ", flagNames)),
+                new(text.TpSvnRevisionLabel, tpSvn.RevisionDigits ?? text.TpSvnRevisionNotBcdValue,
+                    IsTechnicalValue: tpSvn.RevisionDigits is not null),
+            ], warnings),
+        };
     }
 
     internal static FirmwareSlotFactViewModel CreateEventBufferFact(
@@ -91,6 +132,14 @@ internal static partial class UiCompositionRunner
             string bankLabel = bank.BankId == "a-bank" ? "A" : "B";
             facts.Add(CreateEventBufferFact(bank.EventBufferFormatVersion, text,
                 $"{text.EventBufferVersionLabel} ({bankLabel})"));
+        }
+        foreach (CtrlRamBaseBankInspection bank in banks)
+        {
+            if (bank.TpSvn is { } tpSvn)
+            {
+                // Decision 40: each bank code's stamp, on the row after Event Buffer Version (A)/(B).
+                facts.Add(CreateTpSvnFact(tpSvn, text, $"TP SVN ({(bank.BankId == "a-bank" ? "A" : "B")})"));
+            }
         }
         foreach (CtrlRamBaseBankInspection bank in banks)
         {

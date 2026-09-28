@@ -14,6 +14,77 @@ internal readonly record struct ReportPublicationResult(
 
 internal sealed partial class ReportPresentationViewModel : ObservableObject
 {
+    internal WindowPublicationLease? WindowPublication { get; set; }
+    private readonly Lock _saveOperationLock = new();
+    private int _saveOperationsInFlight;
+    private TaskCompletionSource _saveOperationsIdle = CompletedSaveIdleSignal();
+
+    internal Task WhenSavesIdleAsync()
+    {
+        lock (_saveOperationLock)
+        {
+            return _saveOperationsIdle.Task;
+        }
+    }
+
+    internal IDisposable BeginSaveOperation()
+    {
+        lock (_saveOperationLock)
+        {
+            if (_saveOperationsInFlight++ == 0)
+            {
+                _saveOperationsIdle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+        }
+        return new SaveOperationRegistration(this);
+    }
+
+    private static TaskCompletionSource CompletedSaveIdleSignal()
+    {
+        var idle = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        idle.SetResult();
+        return idle;
+    }
+
+    private sealed class SaveOperationRegistration(ReportPresentationViewModel owner) : IDisposable
+    {
+        private ReportPresentationViewModel? _owner = owner;
+
+        public void Dispose()
+        {
+            ReportPresentationViewModel? owner = Interlocked.Exchange(ref _owner, null);
+            if (owner is null)
+            {
+                return;
+            }
+            lock (owner._saveOperationLock)
+            {
+                if (--owner._saveOperationsInFlight == 0)
+                {
+                    _ = owner._saveOperationsIdle.TrySetResult();
+                }
+            }
+        }
+    }
+
+    internal async Task NotifyReportSavedWhenAllowedAsync(string destinationName, bool bestEffortProviderWrite = false)
+    {
+        if (WindowPublication is null ||
+            await WindowPublication.WaitToPublishAsync(static () => true, CancellationToken.None))
+        {
+            NotifyReportSaved(destinationName, bestEffortProviderWrite);
+        }
+    }
+
+    internal async Task NotifyReportSaveFailedWhenAllowedAsync(string reason)
+    {
+        if (WindowPublication is null ||
+            await WindowPublication.WaitToPublishAsync(static () => true, CancellationToken.None))
+        {
+            NotifyReportSaveFailed(reason);
+        }
+    }
+
     private static readonly JsonSerializerOptions RunErrorReportJsonOptions = new() { WriteIndented = true };
     private readonly Action _beforeOpen;
     private readonly Func<ShellTextResources> _textProvider;
@@ -21,6 +92,8 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
     private CancellationTokenSource? _reportRelocalizationIterationCancellation;
     private long _reportRelocalizationRequestVersion;
     private long _reportProjectionGeneration;
+
+    internal ILocalFileStore? LocalFiles { get; set; }
 
     internal ReportPresentationViewModel(
         Func<ShellTextResources> textProvider,
@@ -292,9 +365,9 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
     }
 
     /// <summary>Shows a compact notification after the report is written to disk.</summary>
-    public void NotifyReportSaved(string destinationName)
+    public void NotifyReportSaved(string destinationName, bool bestEffortProviderWrite = false)
     {
-        SetReportToast(Text.FormatReportSavedToast(destinationName));
+        SetReportToast(Text.FormatReportSavedToast(destinationName, bestEffortProviderWrite));
     }
 
     /// <summary>Reports a failed save without replacing the loaded report or its history.</summary>
@@ -394,8 +467,20 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
             return;
         }
 
+        PrepareReportOpen();
+        OpenLoadedReport();
+    }
+
+    /// <summary>Runs the fallible steps that precede opening the report review, before any report state changes.</summary>
+    private void PrepareReportOpen()
+    {
         CancelReportHistoryReopen();
         _beforeOpen();
+    }
+
+    /// <summary>Opens the review of the loaded report; it only assigns state and raises isolated notifications.</summary>
+    private void OpenLoadedReport()
+    {
         IsReportModalOpen = true;
         IsReportHistoryViewOpen = false;
         HasReportToast = false;
@@ -445,6 +530,11 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         ReportToastText = text;
         HasReportToast = true;
         ReportToastOpacity = 1;
+        NotifyShellToastChanged();
+    }
+
+    private void NotifyShellToastChanged()
+    {
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ShellToastTitle)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ReportToastText)));
         PresentationObserver.Invoke(() => OnPropertyChanged(nameof(ShellToastAccessibleLabel)));
@@ -497,6 +587,12 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         Volatile.Read(ref _reportRelocalizationIterationCancellation)?.Cancel();
     }
 
+    /// <summary>
+    /// Publishes a generated report completely or not at all. Every fallible step, including the pre-open hook,
+    /// completes before the first report state change or notification, and the commit that follows only assigns
+    /// state and raises isolated notifications, so a failed publication rethrows without any observer having seen
+    /// the report and never leaves it behind a result that says it is unavailable.
+    /// </summary>
     internal void PublishGeneratedReport(
         ReportReviewViewModel report,
         string reportJson,
@@ -506,14 +602,31 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(report);
         ArgumentNullException.ThrowIfNull(reportJson);
         ArgumentNullException.ThrowIfNull(action);
+        ShellTextResources text = Text;
+        string toastTitle = text.ReportToastTitle;
+        string toastText = text.FormatReportGeneratedToast(action);
+        bool open = show && !report.IsEmpty;
+        if (open)
+        {
+            PrepareReportOpen();
+        }
+
+        // The pre-open hook may itself publish a report, so the entry takes its sequence only after the hook.
+        ReportHistoryEntryViewModel? historyEntry = report.IsEmpty ? null : CreateReportHistoryEntry(report, reportJson);
+
+        // Commit: nothing below can fail, because PresentationObserver isolates every notification sink.
         LoadedReport = report;
         LoadedReportJson = reportJson;
-        CaptureLoadedReportInHistory();
-        SetReportToast(Text.FormatReportGeneratedToast(action));
-        NotifyReportChanged();
-        if (show)
+        if (historyEntry is not null)
         {
-            ShowReport();
+            AddReportHistoryEntry(historyEntry);
+        }
+
+        SetShellToast(toastTitle, toastText);
+        NotifyReportChanged();
+        if (open)
+        {
+            OpenLoadedReport();
         }
     }
 
@@ -539,5 +652,4 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
             FormatException or
             OverflowException;
     }
-
 }

@@ -109,8 +109,6 @@ public sealed partial class RepositoryBoundaryTests
         string reports = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs");
         string hashing = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.Hashing.cs");
         string inputs = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.Inputs.cs");
-        string previewTokens = ReadText(
-            "src/NvtFwCombiner.Application/Composition/CompositionRunService.PreviewTokens.cs");
         string outputDifferences = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferences.cs");
         string outputDifferenceBytes = ReadText(
@@ -148,7 +146,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("sha256 = snapshot.Sha256;", inputs, StringComparison.Ordinal);
         Assert.Contains("artifactSnapshots.Add(binding.ArtifactId", inputs, StringComparison.Ordinal);
         Assert.Contains("ToSha256Hex(buffer)", inputs, StringComparison.Ordinal);
-        Assert.Contains("ToSha256Hex(execution.OutputBytes.Span)", previewTokens, StringComparison.Ordinal);
         Assert.Contains("CreateOutputDifferences", outputDifferences, StringComparison.Ordinal);
         Assert.Contains("CanShareOutputDifferenceSemantic", outputDifferences, StringComparison.Ordinal);
         int sharingPolicyStart = outputDifferences.IndexOf(

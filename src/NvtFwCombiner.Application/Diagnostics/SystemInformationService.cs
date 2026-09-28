@@ -10,6 +10,9 @@ public interface ISystemInformationService
     /// <summary>Latest immutable observation.</summary>
     SystemInformationSnapshot Current { get; }
 
+    /// <summary>Passive live admission observation, independent of snapshot refresh.</summary>
+    BuiltInProfileAdmission? BuiltInProfileAdmission { get; }
+
     /// <summary>Bounded current-session activity history.</summary>
     IReadOnlyList<SystemActivityEntry> Activity { get; }
 
@@ -35,6 +38,7 @@ public sealed class SystemInformationService : ISystemInformationService
     private readonly ISystemRuntimeProbe _runtimeProbe;
     private readonly IExternalProcessorEnvironmentLoader _externalEnvironment;
     private readonly ISystemClock _clock;
+    private readonly IBuiltInProfileAdmissionStatus? _admissionStatus;
     private readonly int _activityLimit;
     private readonly List<SystemActivityEntry> _activity = [];
     private long _activitySequence;
@@ -48,7 +52,8 @@ public sealed class SystemInformationService : ISystemInformationService
         IExternalProcessorEnvironmentLoader externalEnvironment,
         ISystemRuntimeProbe runtimeProbe,
         ISystemClock clock,
-        int activityLimit = DefaultActivityLimit)
+        int activityLimit = DefaultActivityLimit,
+        IBuiltInProfileAdmissionStatus? admissionStatus = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationVersion);
         ArgumentOutOfRangeException.ThrowIfLessThan(activityLimit, 1);
@@ -60,6 +65,7 @@ public sealed class SystemInformationService : ISystemInformationService
         _runtimeProbe = runtimeProbe ?? throw new ArgumentNullException(nameof(runtimeProbe));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _activityLimit = activityLimit;
+        _admissionStatus = admissionStatus;
         _current = Capture(generation: 1);
         RecordActivityCore(new SystemActivityDraft(
             SystemActivityCodes.ApplicationStarted,
@@ -69,6 +75,9 @@ public sealed class SystemInformationService : ISystemInformationService
             _applicationVersion));
         RecordDiagnosticChanges(previous: null, _current);
     }
+
+    /// <inheritdoc />
+    public BuiltInProfileAdmission? BuiltInProfileAdmission => _admissionStatus?.Current;
 
     /// <inheritdoc />
     public IReadOnlyList<SystemActivityEntry> Activity
@@ -149,6 +158,7 @@ public sealed class SystemInformationService : ISystemInformationService
         CanonicalSupportMatrixQueryResult catalog = _catalogQuery.Query();
         CanonicalSupportMatrixSnapshot? matrix = catalog.Matrix;
         ExternalProcessorEnvironmentStatus externalEnvironment = _externalEnvironment.Current;
+        BuiltInProfileAdmission? admission = BuiltInProfileAdmission;
         return new SystemInformationSnapshot(
             generation,
             _clock.UtcNow,
@@ -161,12 +171,13 @@ public sealed class SystemInformationService : ISystemInformationService
             matrix?.ResolutionToken.Value,
             catalog.ReloadIssues.Select(static issue => issue.Code),
             externalEnvironment,
-            DiagnosticsFor(catalog.State, externalEnvironment.State));
+            DiagnosticsFor(catalog.State, externalEnvironment.State, admission), admission);
     }
 
     private static List<ActionableSystemDiagnostic> DiagnosticsFor(
         CanonicalSupportMatrixCatalogState state,
-        ExternalProcessorEnvironmentState externalState)
+        ExternalProcessorEnvironmentState externalState,
+        BuiltInProfileAdmission? admission)
     {
         List<ActionableSystemDiagnostic> diagnostics = state switch
         {
@@ -209,6 +220,13 @@ public sealed class SystemInformationService : ISystemInformationService
                 SystemDiagnosticSeverity.Warning,
                 "The external tool environment is unavailable.",
                 "Review external tool manifests and refresh."));
+        }
+        if (admission?.Source == BuiltInProfileAdmissionSource.Json)
+        {
+            diagnostics.Add(new(SystemDiagnosticCodes.PrebuiltCatalogUnused,
+                SystemDiagnosticCategory.CapabilityCatalog, SystemDiagnosticSeverity.Warning,
+                "The prebuilt profile catalog is unused; JSON admission is in use.",
+                "Repair or reinstall the package and restart the application."));
         }
         return diagnostics;
     }

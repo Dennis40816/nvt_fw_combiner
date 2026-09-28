@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51926-ctrlram-replace-candidate",
-  "bundleVersion": "0.9.16-candidate.2",
+  "bundleVersion": "1.1.13-tp-svn.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "8a6dc717feeb109ee265122b5796606297f1bbe14e11ec1e8da31d26678c26a7",
+  "contentHash": "241d2059770c4a88c2ec20e582652832e3ea3d0e51a07711a6827707e53b8cfa",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,56 +18,56 @@
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+      "contentHash": "695e43c4c89b647b83333a776dc26e2a27b925c46448048ef0c38e839456a0e3"
     },
     {
       "entryId": "nt51926-ctrlram-replace-family",
       "kind": "firmware-family",
       "path": "families/nt51926-ctrlram-replace.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "7d67ad155846a88545b28273e1233bd5dcb7ba7e766782d34a0c20fbb485956a"
+      "contentHash": "ee315aa3f713ea0a7ea748bae6f3c8ee9aa60cda7cdf38adeef05cf9943ced0f"
     },
     {
       "entryId": "nt51926-ctrlram-replace-fw141-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51926-ctrlram-replace-fw141-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "a4a549f8ca028693017c888506561d32e5c2776a7d55c67a9d058f894c4fdddb"
+      "contentHash": "899cdfb622ba929809f549d2fbc30e71bc0e022207332101d6337c16cd287dae"
     },
     {
       "entryId": "nt51926-general-replace-dp-single-candidate-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51926-general-replace-dp-single-candidate.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "14fa7a02f86a2b7d8702fc2ff66e01c8857c7a909f7389c28f5f04d1e41c6ccc"
+      "contentHash": "61a14ef72e7e9ea6877ae96610fce1eba1f3f8a16f6657549ce50fc44900a500"
     },
     {
       "entryId": "nt51926-ctrlram-replace-fw141-runtime-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51926-ctrlram-replace-fw141-runtime-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "4c8161837a01ef00743bb13ec7601a85b23825f5ebc737acc0fa1232b8853d6d"
+      "contentHash": "c194b04822a34475eb9ec552de183b66c43bfbd9a191bd8a1d36090671dd9f32"
     },
     {
       "entryId": "nt51926-ctrlram-replace-fw141-runtime-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51926-ctrlram-replace-fw141-runtime-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "f5ba5bf7955a41528dddf83189fcc1d736196d5b9b936a886b418b83e0e92d89"
+      "contentHash": "31820834eee7e9c9bac19346b346220e1236eec6f5f99cf6fe2c3e8cd6f5a2cc"
     },
     {
       "entryId": "nt51926-ctrlram-replace-fw200-runtime-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51926-ctrlram-replace-fw200-runtime-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "ce61a69d72f2e4d250a16fcf0643789a45fb104ebd0fe2d46062ef510f0733ff"
+      "contentHash": "5fe4b845982855ba7f6114f82067d07e8d475d9056c66b9720e68c424fb4c7cb"
     },
     {
       "entryId": "nt51926-ctrlram-replace-fw200-runtime-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51926-ctrlram-replace-fw200-runtime-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "1eb771dd9c53cdc21a2a4c51bd8e9a85b03dde7a1d23fd1a02a1d2095e0ac3bd"
+      "contentHash": "d2d53151c134babc4bc0127acf9319b1c6ee1834c7e0dbae51e2add349aa91ac"
     }
   ]
 }

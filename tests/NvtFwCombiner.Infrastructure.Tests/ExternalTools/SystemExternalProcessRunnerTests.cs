@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Pipes;
 using NvtFwCombiner.Infrastructure.ExternalTools;
@@ -27,6 +28,43 @@ public sealed class SystemExternalProcessRunnerTests
         Assert.Equal(request.ExecutablePath, actual.FileName);
         Assert.Equal(request.WorkingDirectory, actual.WorkingDirectory);
         Assert.Equal(request.Arguments, [.. actual.ArgumentList]);
+    }
+
+    /// <summary>
+    /// BUG-20260926-process-start-failure-escapes-typed-result: an OS start failure (here, a Win32Exception because
+    /// the approved executable does not exist) reaches the runner's one typed start-failure exception instead of
+    /// escaping as the raw BCL exception, and the reservation taken before the failed launch is still released.
+    /// </summary>
+    [Fact]
+    public async Task RunAsyncTranslatesOperatingSystemStartFailureToTypedExceptionAndReleasesCapacity()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var capacity = new ExternalProcessCapacity(1);
+        var runner = new SystemExternalProcessRunner(ExternalProcessRunnerSeams.Production with { Capacity = capacity });
+        string missingExecutable = Path.Combine(Environment.CurrentDirectory, $"nfc-missing-tool-{Guid.NewGuid():N}.exe");
+        var failingStartInfo = new ExternalProcessStartInfo(
+            missingExecutable, Environment.CurrentDirectory, [], TimeSpan.FromSeconds(5));
+
+        ExternalProcessStartFailedException failure = await Assert.ThrowsAsync<ExternalProcessStartFailedException>(
+            () => runner.RunAsync(failingStartInfo, TestContext.Current.CancellationToken).AsTask());
+
+        _ = Assert.IsType<Win32Exception>(failure.InnerException);
+        Assert.Equal(0, capacity.InUse);
+
+        // The failed launch released its reservation, so an ordinary run is accepted right after at the same limit.
+        var succeedingStartInfo = new ExternalProcessStartInfo(
+            Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            Environment.CurrentDirectory,
+            ["/d", "/c", "exit 0"],
+            TimeSpan.FromSeconds(5));
+
+        ExternalProcessResult result = await runner.RunAsync(succeedingStartInfo, TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.ExitCode);
     }
 
     /// <summary>Cancellation kills the launched process tree before the caller receives cancellation.</summary>

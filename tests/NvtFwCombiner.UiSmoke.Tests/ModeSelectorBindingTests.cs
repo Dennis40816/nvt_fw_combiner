@@ -11,12 +11,55 @@ using Avalonia.VisualTree;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Exercises the live TwoWay binding used by the workflow mode selectors.</summary>
 public sealed class ModeSelectorBindingTests
 {
+    /// <summary>The first Replace selection renders the row title and detail before any Report view opens.</summary>
+    [AvaloniaFact]
+    public async Task FirstReplaceSelectionRendersRowsWithoutOpeningReport()
+    {
+        using var workspace = NvtFwCombiner.TestSupport.TempWorkspace.Create();
+        MainWindowViewModel viewModel = await CreateViewModelAsync();
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "3";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
+        FirmwareSlotViewModel slot = viewModel.Replace.ReplaceSlots.Single(candidate => candidate.Title == "VN CtrlRAM (Shared)");
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            slot.SlotId, workspace.Write("vn.bin", [0x00]), TestContext.Current.CancellationToken);
+        ReportLineViewModel row = Assert.Single(viewModel.Replace.ReplaceSelectionRows);
+        viewModel.Replace.ShowReplaceSelectionCommand.Execute(null);
+
+        var modal = new ReplaceSelectionModal { DataContext = viewModel.Replace };
+        var window = new Window
+        {
+            Width = 900,
+            Height = 700,
+            Content = modal,
+        };
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            Assert.True(modal.IsEffectivelyVisible);
+            TextBlock[] rendered = [.. modal.GetVisualDescendants().OfType<TextBlock>()
+                .Where(block => block.IsEffectivelyVisible)];
+            Assert.Contains(rendered, block => block.Text == row.Title);
+            Assert.Contains(rendered, block => block.Text == row.Detail);
+            Assert.DoesNotContain(rendered, block => block.Text == typeof(ReportLineViewModel).FullName);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     /// <summary>A real user interaction on the production Merge selector publishes AB Code once.</summary>
     [AvaloniaFact]
     public async Task ProductionMergeModeSelectorPointerSelectionPublishesAbCodeOnce()

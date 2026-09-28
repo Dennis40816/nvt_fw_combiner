@@ -1,6 +1,6 @@
 # BUG-20260925-verify-all-help-text: `--all` help claims it is the CI completion command
 
-Status: open
+Status: fixed (merged into `1.1.x` by #468, merge `47e01ebab`, 2026-09-28)
 Severity: P3
 Found: 2026-09-25, Claude Code (Opus 5.5), while surveying verification, at `1.1.12`@`d69b6e54a`
 Where: `scripts/verify.py:4840`

@@ -7,15 +7,13 @@ public sealed partial class CompositionRunServiceTests
 {
     private static CompositionRunRequest CreateRequest(
         IReadOnlyList<InputArtifactBinding>? bindings = null,
-        string? outputFileName = null,
-        string? approvedPreviewToken = null)
+        string? outputFileName = null)
     {
         return new CompositionRunRequest(
             "run-standard-synthetic",
             CreateStandardMergeCompiledComposition(),
             bindings ?? DefaultBindings(),
-            outputFileName ?? "synthetic-standard-merge.bin",
-            approvedPreviewToken: approvedPreviewToken);
+            outputFileName ?? "synthetic-standard-merge.bin");
     }
 
     private static CompiledComposition CreateStandardMergeCompiledComposition()
@@ -114,47 +112,6 @@ public sealed partial class CompositionRunServiceTests
                     CompiledInputArtifactClass.Auxiliary),
             ],
             "scratch.bin");
-    }
-
-    private static CompositionRunRequest CreateInitializerFingerprintRequest(
-        byte scratchFillByte,
-        string outputSpaceId)
-    {
-        AddressSpace[] addressSpaces =
-        [
-            new("v2-test-input", 1, AddressSpaceMutability.Immutable),
-            new("output-image", 4, AddressSpaceMutability.Mutable),
-            new("scratch", 4, AddressSpaceMutability.Mutable),
-        ];
-        var plan = new CompositionPlan(
-            [
-                ImageInitialization.Blank("output-image", 4, 0),
-                ImageInitialization.Blank("scratch", 4, scratchFillByte),
-            ],
-            outputSpaceId,
-            addressSpaces,
-            []);
-        CompiledComposition compiledComposition = CreateCompiledComposition(
-            plan,
-            new TestCompiledCompositionIdentity(
-                "initializer-fingerprint-profile",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "fingerprint",
-                "general-merge",
-                CompositionKind.Merge),
-            "fingerprint.bin",
-            nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary);
-        return new CompositionRunRequest(
-            "run-initializer-fingerprint",
-            compiledComposition,
-            [new InputArtifactBinding(
-                "v2-test-input",
-                "v2-test-input",
-                "v2-test-input-artifact",
-                "v2-test-input.bin",
-                CompiledInputArtifactClass.Auxiliary)],
-            "fingerprint.bin");
     }
 
     private static CompositionRunRequest CreateMultiReferenceReplaceRequest()
@@ -422,57 +379,6 @@ public sealed partial class CompositionRunServiceTests
                 CompiledInputArtifactClass.ReferenceImage)],
             "numeric.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.NumericSelector, [icCount]));
-    }
-
-    private static CompositionRunRequest CreateOverwriteRequest(string runId, byte firstFillByte)
-    {
-        AddressSpace[] addressSpaces =
-        [
-            new("v2-test-input", 1, AddressSpaceMutability.Immutable),
-            new("output-image", 1, AddressSpaceMutability.Mutable),
-        ];
-        var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 1, 0),
-            addressSpaces,
-            [
-                CompositionOperation.FillRange(
-                    "fill-first",
-                    10,
-                    "output-image",
-                    new ByteRange(0, 1),
-                    firstFillByte,
-                    OverlapPolicy.Reject,
-                    "first overwritten fill"),
-                CompositionOperation.FillRange(
-                    "fill-second",
-                    20,
-                    "output-image",
-                    new ByteRange(0, 1),
-                    0x22,
-                    OverlapPolicy.ReplaceExisting,
-                    "final fill"),
-            ]);
-        CompiledComposition compiledComposition = CreateCompiledComposition(
-            plan,
-            new TestCompiledCompositionIdentity(
-                "overwrite-profile",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "overwrite",
-                "general-merge",
-                CompositionKind.Merge),
-            "overwrite.bin",
-            nonReferenceArtifactClass: CompiledInputArtifactClass.Auxiliary);
-        return new CompositionRunRequest(
-            runId,
-            compiledComposition,
-            [new InputArtifactBinding(
-                "v2-test-input",
-                "v2-test-input",
-                "v2-test-input-artifact",
-                "v2-test-input.bin",
-                CompiledInputArtifactClass.Auxiliary)],
-            "overwrite.bin");
     }
 
     private static IReadOnlyList<InputArtifactBinding> CreateDpReplaceBindings()

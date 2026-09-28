@@ -66,7 +66,8 @@ bytes or serialized Domain object graph. It is not another format classifier.
 Save/reapply and serialization never reinterpret a running or completed report
 using newer settings. Existing run-service success and failure reports carry
 the same captured evidence; pre-admission rejection still produces no run
-report. Existing Preview-token semantics are unchanged.
+report. Preview and Build each validate their own accepted request and report
+the resulting output identity; Build does not consume a Preview token.
 
 For non-AB and policy-absent legacy AB runs, the property is omitted rather than
 written as null. Missing evidence in an older report means **not recorded**,

@@ -4,6 +4,8 @@
 - Date: 2026-08-26
 - Owners: Repository owner + firmware owner + release owner
 - Amends: ADR 0038, ADR 0046, and ADR 0055
+- Amended by: [ADR 0078](0078-predecessor-comparison-for-1x-releases.md)
+  (non-terminal 1.x mode; this terminal certification is unchanged)
 
 ## Context
 

@@ -454,6 +454,7 @@ public sealed partial class ShellNavigationSystemTests
             services.CanonicalCatalogLoader,
             services.ExternalEnvironmentLoader,
             services.LocalFiles,
+            services.LocalStateDirectory,
             services.VersionManagement,
             services.ManagedApplicationStartup,
             services.StableLauncherHandoff);

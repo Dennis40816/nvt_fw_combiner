@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Infrastructure.ExternalTools;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -18,6 +19,7 @@ public sealed class ToolchainConfigurationHostTests
                 ValueTask.FromResult(new ExternalProcessorRuntimeEnvironment(
                     null, new StubReadiness(), 0))),
             loadPolicy: null,
+            localStateDirectory: IsolatedLocalState.CreateDirectory(),
             toolchainConfiguration: session);
 
         IToolchainRuntimeConfigurationSession first = await host.GetToolchainRuntimeConfigurationAsync(

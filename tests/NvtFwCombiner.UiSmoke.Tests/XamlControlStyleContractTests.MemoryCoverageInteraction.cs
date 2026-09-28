@@ -384,7 +384,7 @@ public sealed partial class XamlControlStyleContractTests
     }
 
     /// <summary>Pointer and focus owners keep every linked row/segment state synchronized.</summary>
-    [Fact]
+    [AvaloniaFact]
     public void MemoryCoverageInteractionLinksLogicalRowsAndEverySegment()
     {
         MemoryCoverageSegmentViewModel first = new(

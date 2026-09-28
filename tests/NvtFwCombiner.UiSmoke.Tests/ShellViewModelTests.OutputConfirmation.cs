@@ -20,12 +20,35 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 [Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class OutputConfirmationTests
 {
+    /// <summary>A completed preparation cannot be applied to a later output confirmation.</summary>
+    [Fact]
+    public async Task OutputPreparationRejectsCancelledAndReopenedRequest()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("confirmation-prepare-race");
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
+        CompositionOutputBundleProposal proposal = await PrepareLegacyProposalAsync(host, workspace);
+        var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming,
+            () => ShellTextResources.For(ShellLanguage.English));
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var request = new OutputDeliveryRequest(proposal, false, null, () => true, null,
+            () => release.Task, null, _ => Task.CompletedTask);
+        vm.Open(request);
+
+        Task<bool> preparation = vm.PrepareModeSpecificAsync();
+        vm.CancelCommand.Execute(null);
+        vm.Open(request);
+        release.SetResult(true);
+
+        Assert.False(await preparation);
+        Assert.True(vm.IsOpen);
+    }
+
     /// <summary>Shared modal admission rejects pending preparation after a newer Open or Cancel.</summary>
     [Fact]
     public async Task OutputConfirmationPreparationGenerationRejectsSupersededOpen()
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-generation");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CompositionOutputBundleProposal proposal = await PrepareLegacyProposalAsync(host, workspace);
         var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming, () => ShellTextResources.For(ShellLanguage.English));
         long pending = vm.BeginPreparation();
@@ -46,7 +69,7 @@ public sealed class OutputConfirmationTests
     public async Task OutputConfirmationFreshnessRechecksOwnership(string change)
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-race");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CompositionOutputBundleProposal proposal = await PrepareLegacyProposalAsync(host, workspace);
         var naming = new DelayedConfirmationNaming(host.CompositionOutputNaming);
         var vm = new OutputDeliveryConfirmationViewModel(naming, () => ShellTextResources.For(ShellLanguage.English));
@@ -84,7 +107,7 @@ public sealed class OutputConfirmationTests
     public async Task OutputPickerRejectsCancelAndReopen(bool reopen)
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-picker-race");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CompositionOutputBundleProposal proposal = await PrepareLegacyProposalAsync(host, workspace);
         var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming,
             () => ShellTextResources.For(ShellLanguage.English));
@@ -113,7 +136,7 @@ public sealed class OutputConfirmationTests
     public async Task ParentDirectoryPickerRejectsCancelAndReopen(bool reopen)
     {
         using TempWorkspace workspace = TempWorkspace.Create("confirmation-directory-race");
-        CompositionHostServices host = CompositionHostServices.Create();
+        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CompositionOutputBundleProposal proposal = await PrepareLegacyProposalAsync(host, workspace);
         var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming,
             () => ShellTextResources.For(ShellLanguage.English));
@@ -205,7 +228,7 @@ public sealed class OutputConfirmationTests
         bool customAlias = false)
     {
         using TempWorkspace workspace = TempWorkspace.Create("output-confirmation-reference");
-        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), loadPolicy: null, configurationPath: workspace.PathFor("format.json"));
+        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(), loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(customAlias ? [new("desay", "My_vendor", [rawA, rawB])] :
             configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);

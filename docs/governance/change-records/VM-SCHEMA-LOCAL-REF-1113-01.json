@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "taskId": "VM-SCHEMA-LOCAL-REF-1113-01",
+  "capability": "VersionManagement embedded schemas build only as fully resolved Draft 2020-12 resources: local fragment references and no nested $id or $schema",
+  "integrationBase": "84b084dd8fd218730ce75adb93b5dc2c456dd3c6",
+  "risk": "R1",
+  "kind": "behavior",
+  "state": "final-complete",
+  "mutablePaths": [
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ReleaseManifestSchema.cs",
+    "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.JsonSchemaConcurrency.cs",
+    "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/EmbeddedVersionManagementSchemaTests.cs"
+  ],
+  "implementationOwner": "claude-code",
+  "searchEvidence": [
+    "docs/handoff/1.1.12/WS-PERF.md, 2026-09-25 race-freedom entry: the JsonSchema.Net 8.0.5 source audit makes concurrent evaluation, Draft 2020-12 meta-validation and private-registry builds safe only when production never writes the library's global registries, every schema is fully resolved (local references only) and its $schema is known; it recommends the local-reference rule for EmbeddedVersionManagementSchema.Load as a 1.1.13 follow-up (board wave 4).",
+    "rg -n 'JsonSchema.FromText' src: exactly two production schema builds, ProfileBundleSchemaValidator.ParseSchema and EmbeddedVersionManagementSchema.Load, pinned by RepositoryBoundaryTests.ProductionCodeNeverWritesJsonSchemaGlobalState. The bundle builder already requires the Draft 2020-12 $schema, string local fragment $ref/$dynamicRef/$recursiveRef and no nested $id/$schema (profile-bundle-v1.md, ADR 0075 decision 4); EmbeddedVersionManagementSchema.Load checks only the root $id and Draft 2020-12 meta-validation, so a VersionManagement schema with a remote reference or another dialect would still build.",
+    "The seven embedded VersionManagement schemas (docs/contracts release-manifest-v1, update-catalog-v1, update-catalog-v2, update-source-registry-v1, launcher-bootstrap-v1, managed-setup-payload-admission-v1, managed-setup-transaction-v1) each declare the Draft 2020-12 $schema and $id once at the root and use only '#/$defs/...' references, so the rule changes no shipped schema, contract or document verdict.",
+    "ProjectDependencyTests.CoreCompositionProjectsKeepVersionBoundedContextSeparate pins NvtFwCombiner.VersionManagement.Infrastructure to Contracts, Platform and VersionManagement.Application, so ProfileBundleSchemaValidator cannot be reused across the bounded context without an architecture change; the existing VersionManagement loader is extended and an architecture test requires the rule at every production schema build."
+  ],
+  "semanticOwner": "EmbeddedVersionManagementSchema remains the only loader and builder of VersionManagement embedded schemas, and the seven lazy schema holders in ReleaseManifestSchema.cs remain its only callers. ProfileBundleSchemaValidator remains the bundle-schema owner. Instance parsing (ParseStrict), evaluation options and every caller are unchanged.",
+  "terminalContract": "Loading a VersionManagement embedded schema fails closed with InvalidOperationException unless the resource root declares the expected $id and exactly the Draft 2020-12 $schema, every $ref, $dynamicRef and $recursiveRef is a string local fragment reference beginning with '#', and no subschema declares $id or $schema; meta-validation and the private-registry build then run as before. The seven shipped schemas load unchanged, so update-catalog, source-registry, release-manifest, launcher-bootstrap, setup-payload and setup-transaction verdicts, JSON outputs, schemas and contracts are unchanged.",
+  "disposition": "extend-owner",
+  "designReview": {
+    "reviewer": null,
+    "outcome": "not-required",
+    "evidence": "Bounded local R1 hardening of the existing VersionManagement schema loader recommended by the 1.1.12 JsonSchema.Net audit (owner task, 1.1.13 board wave 4); no schema, contract, profile, firmware byte, range or output change. Narrow tests: Infrastructure.Tests VersionManagement, Application.Tests VersionManagement, Architecture.Tests. Residual gates: independent fixed-head review and finalization."
+  },
+  "implementationHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "reviewedHead": "460bb0540999f852c3e2638eb1e77aad4995b1d0",
+  "pathStateDigest": "f3666dd1c138174e164f690f388a22e622c32609e64393ea46a828878e61164f",
+  "finalReview": {
+    "reviewer": "codex/gpt-6-sol",
+    "outcome": "approved",
+    "evidence": "Independent read-only review by codex/gpt-6-sol of exact head cb24f061b688a7416d4fc426016471739f80bbac found that the VersionManagement schema builder rejects unknown dialects, non-local references, and nested resource declarations before meta-validation or build, using its own fail-closed errors. The three rules match the existing bundle builder; all seven shipped embedded schemas remain eligible. The declared mutable paths match the reviewed diff. No build or tests were run by this reviewer; the implementation owner's reported test results were treated as reported evidence. Batch integration review by codex/gpt-6-sol approved reviewed head 1e77dcf13e5339539556f157b91195378fc3f33e. All 11 design-active record blobs and their 108 disjoint mutable-path blobs are identical to their independently reviewed branch heads: ROADMAP-HISTORY at 7f8bbe001; CI-FAILURE-EVIDENCE at 935eac2bc; NVT-END-FLAG and NVT-END-FLAG-RELEASE-PIN at 0d1224c8d; VM-SCHEMA-LOCAL-REF and BUNDLE-JSON-CONTEXT-DEDUP at cb24f061b; CLI-REPORT-ATOMIC at 5647850c9; AGENT-MODEL-ROUTING at c1e34429b; REPORT-PUBLISH-ATOMIC at 08e2d9d9c; F08-SAVE-NOTICE at 10e63b976; and PREBUILT-CATALOG-ADR at 1a8d2be33. All 34 batch commits were accounted for, every admission preceded implementation, and the checkpoint-to-head governed diff is covered exactly once. The H1 test blob also matches its reviewed head, with only a later review note in its bug record. No batch interaction finding was identified. This read-only review did not execute tests or replace the required frozen-candidate checks and R3 owner attestations. Rebuilt reviewed head 460bb0540999f852c3e2638eb1e77aad4995b1d0: the full local verifier on the first evidence commit found that the model-routing skill edit had removed the phrase 'not hard requirements' required by an accepted skill-inventory test, so the unpublished model-routing implementation commit was corrected to restore it and the batch was rebuilt with the same 34 cherry-picks. Mechanical recheck by codex/gpt-6-luna confirmed that the rebuilt head differs from 1e77dcf13e5339539556f157b91195378fc3f33e only in that one skill sentence, that the other 33 patches match, and that all 11 record blobs are unchanged; the integrator reran tests/scripts/test_skill_inventory_validation.py at the rebuilt head (23 passed), and the .NET and other script lanes of that verifier run had passed on the identical product tree."
+  },
+  "integrationPaths": [
+    "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ReleaseManifestSchema.cs"
+  ]
+}

@@ -108,6 +108,8 @@ the row-39 typo, Standard/CtrlRAM geometry or all capacity-column meanings.
 Next: resolve remaining source discrepancies with the owner, retain old/new
 customer scope explicitly, update the existing FlashMap reference and manifest,
 then admit affected production profiles and byte tests through their normal
-firmware gates. NT51928BT stays unavailable. The
-[roadmap intake](../../architecture/nfc_roadmap.md#new-owner-intake-iclayout-updates-and-option-density--2026-09-08)
-owns order and release allocation.
+firmware gates. NT51928BT stays unavailable. The roadmap's `1.4.1` row in the
+[current release sequence](../../architecture/nfc_roadmap.md#current-release-sequence--2026-09-14)
+owns order and release allocation; the original
+[2026-09-08 intake](../../architecture/nfc_roadmap-history.md#new-owner-intake-iclayout-updates-and-option-density--2026-09-08)
+is kept in the roadmap history.

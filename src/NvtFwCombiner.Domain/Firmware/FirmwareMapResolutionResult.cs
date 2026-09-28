@@ -135,6 +135,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             ResolvedMetadataStructures = Array.AsReadOnly(resolvedMetadataStructuresSnapshot);
             PredicateOutcomes = Array.AsReadOnly(predicateOutcomesSnapshot);
             FactProvenance = Array.AsReadOnly(factProvenanceSnapshot);
+            NvtEndFlagResolution = definition.ResolveNvtEndFlag(imageMap.MapId);
             ResolutionFingerprint = CalculateResolutionFingerprint(this);
         }
 
@@ -177,6 +178,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         /// <summary>Selected member/map physical fact provenance in deterministic key order.</summary>
         public IReadOnlyList<FirmwareFactProvenance> FactProvenance { get; }
+
+        /// <summary>
+        /// NVT end-flag declaration of the selected map (NVT-END-FLAG-1113-01); derived only from the family
+        /// declarations already bound by <see cref="FamilyContentHash"/>, so it adds no fingerprint input.
+        /// </summary>
+        public FirmwareNvtEndFlagResolution NvtEndFlagResolution { get; }
 
         /// <summary>Canonical lowercase SHA-256 over the resolved physical map and resolver-owned outcomes.</summary>
         public string ResolutionFingerprint { get; }

@@ -5,7 +5,7 @@
 - Accepted: 2026-07-12 by the product and architecture owner
 - Owners: Product owner + architecture owner + firmware reviewers
 - Amends: ADR 0015
-- Amended by: ADR 0040
+- Amended by: ADR 0040 and ADR 0076 (NVT end flag, proposed)
 - Preserves: ADR 0012
 
 ## Context

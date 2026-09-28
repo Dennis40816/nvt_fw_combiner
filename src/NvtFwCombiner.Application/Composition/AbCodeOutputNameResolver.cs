@@ -177,7 +177,8 @@ internal static class AbCodeOutputNameResolver
                 $"Unsupported AB TP address space '{addressSpaceId}'."),
         };
         CompiledInputVersionObservation? version = accepted
-            ? CompiledInputArtifactObservationService.DecodeTp(kind, snapshot)
+            ? CompiledInputArtifactObservationService.DecodeTp(kind, snapshot,
+                CompiledInputArtifactObservationService.DeclaredNvtEndFlag(request.CompiledComposition))
             : null;
         return version?.IsKnown == true
             ? new TokenResolution(new OutputNamingTokenSummary(

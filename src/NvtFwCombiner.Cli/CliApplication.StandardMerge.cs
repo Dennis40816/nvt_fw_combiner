@@ -308,43 +308,48 @@ public static partial class CliApplication
             outputTarget,
             build && !bundleBuild);
 
-        CompositionRunResult result = await services.Execution
-            .ExecuteAsync(
-                new AcceptedCompositionExecutionRequest(
-                    prepared.Snapshot!,
-                    slotPaths,
-                    build,
-                    outputPath: build && hasExplicitOutput && !bundleBuild
-                        ? outputTarget.FullPath
-                        : null,
-                    previewOutputFileName: !build && hasExplicitOutput
-                        ? outputTarget.FileName
-                        : null,
-                    automaticOutputDirectory: build && !hasExplicitOutput && !bundleBuild
-                        ? outputTarget.OutputDirectory
-                        : null,
-                    reportPath: build ? reportPath : null,
-                    outputBundle: outputBundle),
-                new CompositionRunProgressFeed(),
-                cancellationToken)
-            .ConfigureAwait(false);
-        CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
-            reportPath,
-            bindings,
-            new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
-            build && !bundleBuild);
-        if (!string.IsNullOrWhiteSpace(reportPath))
+        CompositionRunResult result;
+        try
         {
-            await CliCompositionRunSupport.WriteReportJsonAsync(
-                    reportPath,
-                    CompositionRunReportJson.Serialize(result),
-                    output,
+            result = await services.Execution
+                .ExecuteAsync(
+                    new AcceptedCompositionExecutionRequest(
+                        prepared.Snapshot!,
+                        slotPaths,
+                        build,
+                        outputPath: build && hasExplicitOutput && !bundleBuild
+                            ? outputTarget.FullPath
+                            : null,
+                        previewOutputFileName: !build && hasExplicitOutput
+                            ? outputTarget.FileName
+                            : null,
+                        automaticOutputDirectory: build && !hasExplicitOutput && !bundleBuild
+                            ? outputTarget.OutputDirectory
+                            : null,
+                        reportPath: build ? reportPath : null,
+                        outputBundle: outputBundle),
+                    new CompositionRunProgressFeed(),
                     cancellationToken)
                 .ConfigureAwait(false);
         }
-        await PrintRunResultAsync(result, selectedProfile.IcId, output, error)
+        catch (CompositionPreRunRefusalException refusal)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, refusal.Issues).ConfigureAwait(false);
+            return CompositionFailed;
+        }
+        await CliCompositionRunSupport.WriteReportJsonAsync(
+                result,
+                string.IsNullOrWhiteSpace(reportPath) ? null : reportPath,
+                path => CliCompositionRunSupport.EnsureReportDoesNotAliasProtectedPaths(
+                    path,
+                    bindings,
+                    new CliOutputTarget(outputTarget.OutputDirectory, result.OutputFileName),
+                    build && !bundleBuild),
+                () => PrintRunResultAsync(result, selectedProfile.IcId, output, error),
+                output,
+                error,
+                cancellationToken)
             .ConfigureAwait(false);
-        await CliBundleOptions.PrintReceiptAsync(result, output).ConfigureAwait(false);
         return result.Succeeded ? Success : CompositionFailed;
     }
 

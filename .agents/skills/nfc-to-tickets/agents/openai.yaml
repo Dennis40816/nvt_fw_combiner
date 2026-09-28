@@ -1,0 +1,4 @@
+interface:
+  display_name: "To Tickets"
+  short_description: "Split a plan into tracer-bullet tickets"
+  default_prompt: "Use $nfc-to-tickets to split this approved NFC plan into dependency-aware tracer-bullet tickets."

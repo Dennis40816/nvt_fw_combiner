@@ -21,11 +21,30 @@ or host paths can differ; do not infer cleanup ownership from a filename alone.
 ## Coverage and implementation follow-up
 
 Source inventory searched all `src/` C# uses of `LocalApplicationData`,
-`ApplicationData`, `LOCALAPPDATA`, and the `LocalJsonDocument.GetDefaultPath`
-callers. The five persistent filenames above cover the current direct default
-writers found under this root. Version-manager's root resolver also honors the
-`LOCALAPPDATA` environment value; other listed defaults use the platform folder
-API. A future uninstaller must use each actual resolved location.
+`ApplicationData` and `LOCALAPPDATA`. The five persistent filenames above cover
+the current direct default writers found under this root. Version-manager's
+root resolver also honors the `LOCALAPPDATA` environment value; the other four
+defaults use the platform folder API. A future uninstaller must use each actual
+resolved location.
+
+Update 2026-09-27 (proposal for `BUG-20260926-tests-write-real-local-state`,
+board decisions 89 to 91): `CompositionHostServices.ResolveCurrentUserLocalStateDirectory`
+becomes the one resolver of this root for preferences, report history, Event
+Buffer format and toolchain runtime. Executable composition roots pass the
+resolved directory to the host graph and to Presentation
+(`PresentationHostServices`, `DesktopApplication.Run`), which only append their
+file names; the resolved paths are unchanged. Test projects declare the
+`NvtFwCombiner.LocalState.CurrentUserFolderForbidden` runtime switch, so that
+default resolver refuses before any local-state IO of those four files; test
+hosts inject isolated directories. The switch does not cover explicitly
+injected paths or child product processes.
+
+Update 2026-09-27 (`VERSION-MANAGER-STATE-1113-01`): version-manager state keeps
+its own resolver, `JsonVersionManagerStateStore.GetDefaultPath`, which now honors
+the same switch and refuses before reading `LOCALAPPDATA` or the platform folder.
+Its nullable-path callers (both launcher parsers and `StableLauncherHandoff`)
+resolve the default only after validating their arguments; tests inject an
+isolated state path.
 
 Future uninstall work should consume and update this inventory, present settings
 and history cleanup separately from program removal, and inventory managed

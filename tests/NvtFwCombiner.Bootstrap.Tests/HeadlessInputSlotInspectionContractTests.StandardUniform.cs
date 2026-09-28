@@ -23,7 +23,12 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         AssertWarning(results, "tp", "TP_UNIFORM_CONTENT_WARNING", tp);
     }
 
-    /// <summary>Only the profile-declared TP overlay must be uniform, not the entire BIN.</summary>
+    /// <summary>
+    /// Only the profile-declared TP overlay is judged, not the entire BIN. NT51950/NT51951 declare the NVT end flag
+    /// inside that overlay (NVT-END-FLAG-1113-01): a uniform overlay cannot carry it, so the TP is blocked by its
+    /// unreadable IC Count although a Backup outside the overlay is readable; the Backup ending at the declared end
+    /// flag is the only one read, and it makes the same overlay non-uniform, so the TP verifies.
+    /// </summary>
     [Theory]
     [InlineData("NT51950")]
     [InlineData("NT51951")]
@@ -37,11 +42,14 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         tp.AsSpan(0xA000, 0x2D000).Fill(0xA5);
         WritePositiveTpBackup(tp);
         IReadOnlyList<FirmwareInspectionSnapshotResult> results = StandardBatch(ic, dp, tp);
-        AssertWarning(results, "tp", "TP_UNIFORM_CONTENT_WARNING", tp);
+        AuthoringInputSlotStatus blocked = Assert.IsType<AuthoringInputSlotStatus>(
+            results.Single(static result => result.InspectionId == "tp").Inspection.InputSlotStatus);
+        Assert.Equal(AuthoringSlotLifecycle.Error, blocked.InspectionLifecycle);
+        Assert.Equal("firmware-config.chip-count-unreadable", blocked.InspectionIssueCode);
+        Assert.True(blocked.BlocksBuild);
         Assert.Equal(AuthoringSlotLifecycle.Verified, results.Single(static result => result.InspectionId == "dp").Inspection.InputSlotStatus!.InspectionLifecycle);
 
-        // Change only one byte in the inspected overlay: the same profile now verifies TP.
-        tp[0xA001] = 0x5A;
+        WritePositiveTpBackup(tp, backupStart: 0x36000);
         results = StandardBatch(ic, dp, tp);
         Assert.Equal(AuthoringSlotLifecycle.Verified, results.Single(static result => result.InspectionId == "tp").Inspection.InputSlotStatus!.InspectionLifecycle);
     }
@@ -72,12 +80,12 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
             path => path == "dp.bin" ? dp : tp);
     }
 
-    private static void WritePositiveTpBackup(byte[] tp)
+    private static void WritePositiveTpBackup(byte[] tp, int backupStart = 0x1000)
     {
-        tp[0x1000] = 0x81;
-        tp[0x1001] = 0x7E;
-        tp[0x1017] = 1;
-        "\0NVT"u8.CopyTo(tp.AsSpan(0x1FFC));
+        tp[backupStart] = 0x81;
+        tp[backupStart + 1] = 0x7E;
+        tp[backupStart + 0x17] = 1;
+        "\0NVT"u8.CopyTo(tp.AsSpan(backupStart + 0xFFC));
     }
 
     private static void AssertWarning(IReadOnlyList<FirmwareInspectionSnapshotResult> results, string id, string code, byte[] source)
