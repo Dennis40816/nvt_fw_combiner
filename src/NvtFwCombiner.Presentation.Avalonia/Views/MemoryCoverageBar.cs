@@ -525,7 +525,7 @@ public sealed partial class MemoryCoverageBar : UserControl
         double left = target.TranslatePoint(default, anchor)?.X ?? 0;
         double connectorHeight = 10 + (ShowLegend && !_localAbove ? Math.Max(0, footerBottom - above - anchor.Bounds.Height) : 0);
         // Keep the hover path to the detail, without connecting across the legend.
-        Control connector = ShowLegend
+        Control connector = ShowLegend && !_localAbove
             ? new Border { Height = connectorHeight, Background = Brushes.Transparent }
             : MemoryCoverageConnectorVisuals.LocalConnector(left + (target.Bounds.Width / 2), 10);
         StackPanel frame = PopupFrame(_local, connector, _localAbove);
@@ -586,7 +586,7 @@ public sealed partial class MemoryCoverageBar : UserControl
         double left = Math.Clamp(center - (width / 2), columnLeft, Math.Max(columnLeft, columnRight - width));
         double anchor = center - left;
         double connectorTop = above ? origin.Y - connectorHeight : origin.Y + target.Bounds.Height;
-        Rect[] labels = !ShowLegend && preferredAbove.HasValue
+        Rect[] labels = preferredAbove.HasValue
             ? [.. _local.GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible)
                 .Select(block =>
                 {
@@ -594,7 +594,7 @@ public sealed partial class MemoryCoverageBar : UserControl
                     return new Rect(point.X - left, point.Y - connectorTop, block.Bounds.Width, block.Bounds.Height);
                 })]
             : [];
-        Control connector = ShowLegend
+        Control connector = ShowLegend && preferredAbove is null
             ? new Border { Height = connectorHeight, Background = Brushes.Transparent }
             : MemoryCoverageConnectorVisuals.CardConnector(anchor, connectorHeight, above, labels);
         _cardPopup.Child = PopupFrame(_card, connector, above);
