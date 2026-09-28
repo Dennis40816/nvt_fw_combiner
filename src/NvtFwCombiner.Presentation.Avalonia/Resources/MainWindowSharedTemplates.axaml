@@ -555,7 +555,7 @@
       <TextBlock Classes="firmwareSlotFactLabel" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
       <!-- A value note left-aligns this row so its 12 px icon sits one NfcSpace8 after the value;
            long values still trim, and facts without a note keep the stretched row and its state icon. -->
-      <Grid Classes.firmwareSlotFactNoteValueRow="{Binding HasNote}" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+      <Grid Classes.firmwareSlotFactNoteValueRow="{Binding HasNote}" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace4}">
         <TextBlock Classes="firmwareSlotFactValue" Text="{Binding Value}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" />
         <Path Grid.Column="1"
             AutomationProperties.Name="{Binding StateAutomationText}"

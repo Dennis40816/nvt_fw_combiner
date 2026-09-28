@@ -46,7 +46,7 @@ public sealed class TpSvnFactPresentationTests
         Assert.False(svn.HasStateIcon);
         FirmwareSlotFactNote note = Assert.IsType<FirmwareSlotFactNote>(svn.Note);
         FirmwareSlotFactNoteRow[] expectedRows =
-            [new("Flags:", flags), new("Revision:", revision, revision != "not BCD")];
+            [new("Flags:", flags), new("Revision:", revision)];
         FirmwareSlotFactNoteWarning[] expectedWarnings = warning is null ? [] : [new(warning)];
         Assert.Equal(expectedRows, note.Rows);
         Assert.Equal(expectedWarnings, note.Warnings);

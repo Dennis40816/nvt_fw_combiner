@@ -87,8 +87,7 @@ internal static partial class UiCompositionRunner
             Note = new FirmwareSlotFactNote(
             [
                 new(text.TpSvnFlagsLabel, flagNames.Count == 0 ? text.TpSvnNoFlagsValue : string.Join(", ", flagNames)),
-                new(text.TpSvnRevisionLabel, tpSvn.RevisionDigits ?? text.TpSvnRevisionNotBcdValue,
-                    IsTechnicalValue: tpSvn.RevisionDigits is not null),
+                new(text.TpSvnRevisionLabel, tpSvn.RevisionDigits ?? text.TpSvnRevisionNotBcdValue),
             ], warnings),
         };
     }

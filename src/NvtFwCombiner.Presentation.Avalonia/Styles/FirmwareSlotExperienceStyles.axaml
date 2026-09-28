@@ -161,6 +161,7 @@
   </Style>
   <Style Selector="Grid.firmwareSlotFactNoteValueRow">
     <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="ColumnSpacing" Value="{DynamicResource NfcSpace8}" />
   </Style>
   <Style Selector="TextBlock.slotStateDetail">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />

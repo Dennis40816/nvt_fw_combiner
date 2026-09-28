@@ -43,7 +43,7 @@ public sealed partial class XamlControlStyleContractTests
             new("TP SVN", "C3 80 13 30")
             {
                 Note = new FirmwareSlotFactNote(
-                    [new("Flags:", "LOCAL_BUILD, DIFF_EXIST"), new("Revision:", "801330", IsTechnicalValue: true)],
+                    [new("Flags:", "LOCAL_BUILD, DIFF_EXIST"), new("Revision:", "801330")],
                     [new("Undefined flag bits 0x03. InsertPID.py may be faulty.")]),
             },
         ]);
@@ -122,6 +122,9 @@ public sealed partial class XamlControlStyleContractTests
                 static path => path.IsEffectivelyVisible);
             Assert.Contains("firmwareSlotFactStateIcon", versionIcon.Classes);
             Assert.DoesNotContain("firmwareSlotFactNoteIcon", versionIcon.Classes);
+            Grid versionRow = Assert.IsType<Grid>(versionIcon.Parent);
+            Assert.Equal(Assert.IsType<double>(host.FindResource("NfcSpace4")), versionRow.ColumnSpacing);
+            Assert.DoesNotContain("firmwareSlotFactNoteValueRow", versionRow.Classes);
             Point versionIconOrigin = versionIcon.TranslatePoint(default, versionCell)!.Value;
             Assert.InRange(versionCell.Bounds.Width - 16 - (versionIconOrigin.X + versionIcon.Bounds.Width), -1, 1);
         }
@@ -150,7 +153,7 @@ public sealed partial class XamlControlStyleContractTests
             new("TP SVN", "C3 80 13 30")
             {
                 Note = new FirmwareSlotFactNote(
-                    [new("Flags:", "LOCAL_BUILD, DIFF_EXIST"), new("Revision:", "801330", IsTechnicalValue: true)],
+                    [new("Flags:", "LOCAL_BUILD, DIFF_EXIST"), new("Revision:", "801330")],
                     [new("Undefined flag bits 0x03. InsertPID.py may be faulty.")]),
             },
         ]);
@@ -232,7 +235,7 @@ public sealed partial class XamlControlStyleContractTests
             Source = ProductionSharedTemplatesUri,
         });
         var note = new FirmwareSlotFactNote(
-            [new("Flags:", "none"), new("Revision:", "000000", IsTechnicalValue: true)],
+            [new("Flags:", "none"), new("Revision:", "000000")],
             [new("No SVN stamp. InsertPID.py may not have run.")]);
         var content = new ContentControl
         {
