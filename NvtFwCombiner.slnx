@@ -30,6 +30,7 @@
   <Project Path="tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.ReadyProbe/NvtFwCombiner.ReadyProbe.csproj" />
+  <Project Path="tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj" />
   <Project Path="tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj" />
   <Project Path="tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj" />

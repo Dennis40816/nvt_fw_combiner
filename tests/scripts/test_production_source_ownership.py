@@ -80,6 +80,17 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
         self.assertEqual(1, len(errors))
         self.assertIn("duplicate production source", errors[0])
 
+    def test_catalog_probe_is_a_closed_test_only_generator_consumer(self) -> None:
+        probe = "tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj"
+        self.assertFalse(is_solution_test_project(probe))
+        root = element_tree.fromstring('<Project><ItemGroup><ProjectReference Include="../../eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj" /></ItemGroup></Project>')
+        errors: list[str] = []
+        repository_validator.validate_prebuilt_generator_references(probe, root, errors)
+        self.assertEqual([], errors)
+        repository_validator.validate_prebuilt_generator_references(
+            "tests/UnapprovedProbe/UnapprovedProbe.csproj", root, errors)
+        self.assertEqual(1, len(errors))
+
     def test_bootstrap_generator_reference_must_remain_build_only(self) -> None:
         root = element_tree.fromstring('<Project><ItemGroup><ProjectReference Include="../../eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj" /></ItemGroup></Project>')
         errors: list[str] = []

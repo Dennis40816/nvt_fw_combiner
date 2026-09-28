@@ -174,9 +174,11 @@ class EvaluatedProjectItems:
 
 
 PREBUILT_CATALOG_GENERATOR = "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+CATALOG_PROBE = "tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj"
 
 EXPECTED_PROJECTS = {
     PREBUILT_CATALOG_GENERATOR,
+    CATALOG_PROBE,
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
     "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
@@ -205,6 +207,11 @@ EXPECTED_PROJECTS = {
 }
 
 EXPECTED_PROJECT_REFERENCES = {
+    CATALOG_PROBE: {
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+        PREBUILT_CATALOG_GENERATOR,
+    },
     PREBUILT_CATALOG_GENERATOR: {
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
     },
@@ -301,6 +308,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj": {
+        CATALOG_PROBE,
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
         "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
         "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
@@ -1203,12 +1211,12 @@ def validate_restored_project_contracts(errors: list[str]) -> None:
 
 
 def validate_prebuilt_generator_references(relative: str, root: ET.Element, errors: list[str]) -> None:
-    """Allow only the declared build-only host edge and the generator's test caller."""
+    """Allow only the declared build-only host edge and the two test consumers."""
     for reference in root.iter("ProjectReference"):
         target = normalize_project_reference(ROOT / relative, reference.attrib["Include"])
         if target != PREBUILT_CATALOG_GENERATOR:
             continue
-        if relative == "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj":
+        if relative in {CATALOG_PROBE, "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj"}:
             continue
         if (relative != "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
                 or reference.get("ReferenceOutputAssembly") != "false"

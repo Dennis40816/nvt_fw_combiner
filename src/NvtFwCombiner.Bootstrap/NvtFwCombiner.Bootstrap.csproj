@@ -2,6 +2,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.GoldenRegression.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.CatalogProbe" />
     <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
   </ItemGroup>
   <ItemGroup>
