@@ -26,14 +26,16 @@ The owner's 2026-09-28 decisions in the
 [1.1.12 board](../handoff/1.1.12.md#owner-decisions-2026-09-25) move work out
 of `1.1.13` so that it can be released on 2026-09-28:
 
-- **`1.1.14`** (decisions 154 and 157): rolling v0.9.16 parity stages 2-4 with
-  the predecessor-validator follow-up; and the second half of WS-FLOW F1 (a
-  profile-declared default output-directory anchor).
+- **`1.1.14`** (decisions 154 and 157): rolling v0.9.16 parity stages 2-4 with the
+  predecessor-validator follow-up, and the second half of WS-FLOW F1 (a profile-declared
+  default output-directory anchor).
   The 1.1.14 display-convention work inventories consistency and optimization
   findings and allocates them to `1.2.x` versions without implementing them
   in `1.1.14` (decision 149).
-  The first formal ADR 0078 predecessor comparison also runs with `1.1.14`
-  (decision 162).
+- **`1.1.14`, the last 1.1.x feature version, targeted for 2026-09-29** (decisions 162-165):
+  parity P-2 with the v0.9.16 baseline executor and the first formal ADR 0078 comparison,
+  F17/F23/F26 with the verified F16, the release workflow R-3, R-4 and R-6, the verifier
+  PyYAML failure, and R0/R1 merges without owner approval.
 - **`1.2.x`** (decision 161): whether to change the Header backup CRC handling.
   Its root cause is recorded in 1.1.13; the owner judges it does not affect
   firmware operation.
