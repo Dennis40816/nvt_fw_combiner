@@ -31,6 +31,27 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         Assert.True(started);
     }
 
+    /// <summary>Cancellation at the final start gate prevents a late process launch.</summary>
+    [Fact]
+    public async Task StableLauncherHandoffCancelAtStartGateDoesNotLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
+        string launcher = Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe");
+        File.Copy(probe, launcher);
+        byte[] bytes = await File.ReadAllBytesAsync(launcher, TestContext.Current.CancellationToken);
+        var identity = new ManagedImmutableBootstrapIdentity(
+            "NvtFwCombiner.Bootstrap.exe", bytes.LongLength,
+            Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        using var cancellation = new CancellationTokenSource();
+        var handoff = new StableLauncherHandoff(workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"), ManagedProcessTermination.Instance,
+            beforeProcessStart: _ => cancellation.Cancel(), expectedIdentity: identity);
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await handoff.TryStartLauncherAsync(cancellation.Token));
+    }
+
     /// <summary>The legacy detached restart is unavailable without inherited exact authority.</summary>
     [Fact]
     public async Task StableLauncherHandoffWithoutExpectedIdentityFailsClosed()

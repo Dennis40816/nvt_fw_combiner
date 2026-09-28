@@ -148,7 +148,21 @@ public sealed partial class MainWindow
         {
             return false;
         }
-        bool started = await handoff.TryStartLauncherAsync(CancellationToken.None);
+        Task deadline = CloseDeadlineFactory(TimeSpan.FromSeconds(5));
+        if (deadline.IsCompleted)
+        {
+            return false;
+        }
+        using var cancellation = new CancellationTokenSource();
+        Task<bool> start = handoff.TryStartLauncherAsync(cancellation.Token).AsTask();
+        if (await Task.WhenAny(start, deadline) != start)
+        {
+            cancellation.Cancel();
+            _ = start.ContinueWith(completed => _ = completed.Exception,
+                CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+            return false;
+        }
+        bool started = await start;
         _stableLauncherStarted = started;
         return started;
     }

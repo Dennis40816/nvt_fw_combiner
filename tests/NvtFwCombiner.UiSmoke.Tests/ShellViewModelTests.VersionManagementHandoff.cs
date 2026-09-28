@@ -156,6 +156,51 @@ public sealed partial class VersionManagementSettingsTests
         Assert.Equal(WindowClosePhase.Closed, window.ClosePhase);
     }
 
+    /// <summary>A launcher that never returns cannot hold the window in HandingOff forever.</summary>
+    [AvaloniaFact]
+    public async Task StalledLauncherDeadlineRecoversAndIgnoresLateSuccess()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        var handoff = new GatedWindowLifetimeHandoff();
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", experience, handoff), ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        var expiry = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int deadlines = 0;
+        window.CloseDeadlineFactory = _ => ++deadlines == 3 ? expiry.Task : Task.CompletedTask;
+        window.RequestStableLauncherRestart();
+        window.Close();
+        await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.HandingOff, window.ClosePhase);
+        expiry.SetResult();
+        await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+        Assert.True(window.IsEnabled);
+        handoff.Release(started: true);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+        Assert.Equal(1, handoff.Attempts);
+    }
+
+    /// <summary>An already expired host deadline never admits launcher start.</summary>
+    [AvaloniaFact]
+    public async Task ExpiredHandoffDeadlineDoesNotCallLauncher()
+    {
+        var handoff = new RecordingStableLauncherHandoff(started: false);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", new RecordingVersionExperience(
+                Snapshot(retentionReviewDue: false)), handoff), ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        window.CloseDeadlineFactory = _ => Task.CompletedTask;
+        window.RequestStableLauncherRestart();
+        window.Close();
+        await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(0, handoff.Attempts);
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+    }
+
     /// <summary>A failed handoff keeps pending activation; the next real Close exits without retrying.</summary>
     [AvaloniaFact]
     public async Task FailedHandoffSecondCloseKeepsPendingWithoutLauncherOrClear()

@@ -92,6 +92,7 @@ public sealed class StableLauncherHandoff :
                 return false;
             }
             using IManagedExecutableLaunchLease lease = acquired.Lease!;
+            cancellationToken.ThrowIfCancellationRequested();
             Process? process = ProcessLaunchGate.StartContained(CreateBootstrapStartInfo(
                 lease.ExecutablePath,
                 _managedRoot,
@@ -100,7 +101,9 @@ public sealed class StableLauncherHandoff :
                 lifetime: null,
                 identity: _expectedIdentity), [], () =>
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     _beforeProcessStart?.Invoke(lease.ExecutablePath);
+                    cancellationToken.ThrowIfCancellationRequested();
                     return lease.TryValidateForStart();
                 });
             process?.Dispose();
