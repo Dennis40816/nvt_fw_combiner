@@ -67,7 +67,7 @@ remove items; the board decisions stay the authority for scope.
 | 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | CI tiers and U4/U5 with G2 |
 | 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150) | three reviewable commits (UiSmoke 145/145); rebase onto the cutover trunk, then the non-UI remainder; Settings references (decision 150) wait for the owner |
 
-## Waiting or open (21)
+## Waiting or open (22)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
@@ -91,6 +91,7 @@ remove items; the board decisions stay the authority for scope.
 | 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | release workflow cleanup R-1/R-2 |
 | 67 | G0 `gh` wrapper repository option conflict (`BUG-20260927-g0-gh-wrapper-repo-option-conflict`) | WS-GOV |
 | 68 | Predecessor validator false inconsistency (`BUG-20260927-predecessor-validator-false-inconsistent`) | parity P-2 next batch |
+| 70 | Local verify L3: Infrastructure.Tests shares the lane pool (about 2 min; decision 153) | a quiet machine for the measurement |
 | 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
 
 Not 1.1.13: the display-convention inventory (1.1.14, decision 39); the 1.2.1
