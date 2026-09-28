@@ -60,6 +60,10 @@ Under [ADR 0080 items 10-12](../adr/0080-governance-reset.md#branches-releases-a
    release fixes, which merge back into the trunk, and opens the release pull
    request into `main` with a merge commit. Delete it after its tag under the
    branch-cleanup authority below.
+   Release and release-fix pull requests into `main` must have the exact
+   `X.Y.Z` head branch matching `VERSION`. Automatic release collection skips
+   a successful main push when its merged pull request has another head branch;
+   manual fallback rejects that mismatch.
 3. After publication, merge `main` back into the trunk through an ordinary
    merge pull request. Its approvals cite the release evidence it brings back.
    Decision 66's pre-G1-B catch-up procedure ended with G1-B.

@@ -43,6 +43,9 @@ runtime identifier separately from the GitHub principal. Any
 `CHANGES_REQUESTED` review fails closed. The historical self-approval exception,
 Codex-only requirement and their version window are retired. The triggering
 push actor is not an approval principal and does not determine eligibility.
+An exact-head owner `APPROVED` review without a `Runtime` marker supplies
+reviewer evidence with runtime `github/human-review`; other reviewer evidence
+still requires its explicit runtime marker.
 
 ### R-1 amendment (2026-09-28)
 
