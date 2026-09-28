@@ -1,6 +1,6 @@
 # 1.1.13 TODO inventory
 
-Commander, 2026-09-27, after #459; statuses refreshed after #462 the same day after #468 and after #475 on 2026-09-28. The owner asked that progress be counted
+Commander, 2026-09-27, after #459; statuses refreshed after #462 the same day after #468, #475 and #476 on 2026-09-28. The owner asked that progress be counted
 over every item scheduled for 1.1.13, not only the scope table in
 [`../1.1.13.md`](../1.1.13.md). This list breaks that table into separately
 deliverable items and adds the records made outside it, the bugs whose owner
@@ -9,7 +9,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (46)
+## Done (52)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -59,40 +59,40 @@ remove items; the board decisions stay the authority for scope.
 | 69 | Replace selection renders its rows on first entry | #470 (`93da007af`) |
 | 33 | F20/F21 residuals (stale picker and I/O results) | #475 (`4689ddf22`) |
 | 36 | WS-AI dual-runtime agent documents, with the two agent-skill bugs | #469 (`8f5223860`); bug records closed in #473 |
+| 30 | G0: GitHub App, rulesets and settings, including A-5 | done 2026-09-28 (D6, D7, A8; owner confirmed the D6 bypasses from the repository Activity and the Bitwarden backup) |
+| 38 | WS-FLOW F5 (Preview token retired), F6 re-evaluated as not a defect | #476 (`7e283c126`) |
+| 48 | Version-branch CI gap | #476 (`7e283c126`) |
+| 52 | Legacy Combiner long path | #476 (`7e283c126`) |
+| 56 | Private-string check rejects user-profile paths in new changes (rest of the public-paths bug) | #476 (`7e283c126`) |
+| 70 | Local verify L3: Infrastructure.Tests shares the lane pool (decision 153) | #476 (`7e283c126`); timing with the release-candidate verify |
 
-## Active (14)
+## Active (8)
 
 | # | Item | Next |
 | --- | --- | --- |
-| 26 | C-7 TP SVN display (R3) | A/B label fix from the #471 review, delta review, ADR 0075 memory gate on a quiet machine, firmware and release attestations (18:00 window) |
-| 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150, 151) | review fixes (2 P1, 4 P2) and the two remaining picker consumers, then re-review (18:00 window) |
-| 30 | G0: GitHub App, rulesets and settings, including A-5 | D6, D7 and A8 done on 2026-09-28; the owner confirms the rule insights for both D6 bypasses and the Bitwarden backup |
-| 34 | Release workflow cleanup R-1 | review fixes, then re-review; staging waived for 1.1.13 with an independent R3 review and a `dry_run` on `main` (decision 156) |
-| 35 | Release workflow cleanup R-2 | with R-1 (decision 156) |
-| 38 | WS-FLOW F5 (Preview token retired), F6 re-evaluated as not a defect | F5 delta review, then the 14:00 integration pull request; the F1 second half moved to 1.1.14 (decision 157) |
-| 41 | ADR 0077 B2a (R2) | joint candidate with B2b and B3, local `verify.py --all`, R3 review (18:00 window) |
-| 42 | ADR 0077 B2b trust policy (R3) | with B2a |
-| 48 | Version-branch CI gap | batch 6 re-review, then the 14:00 integration pull request |
-| 52 | Legacy Combiner long path | batch 6 |
-| 56 | Private-string check rejects user-profile paths in new changes (rest of the public-paths bug) | batch 6 |
-| 70 | Local verify L3: Infrastructure.Tests shares the lane pool (about 2 min; decision 153) | reviewed (accept); 14:00 integration pull request; quiet-machine measurement |
+| 26 | C-7 TP SVN display (R3) | reviewed; in the 18:00 integration pull request (integration branch B) |
+| 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150, 151) | reviewed; in the 18:00 integration pull request (integration branch B) |
+| 34 | Release workflow cleanup R-1 | reviewed; in the 18:00 integration pull request (integration branch B) |
+| 35 | Release workflow cleanup R-2 | reviewed; in the 18:00 integration pull request (integration branch B) |
+| 41 | ADR 0077 B2a (R2) | reviewed; in the 18:00 integration pull request (integration branch B) |
+| 42 | ADR 0077 B2b trust policy (R3) | reviewed; in the 18:00 integration pull request (integration branch B) |
 | 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | draft ready; finalized at the release pull request |
-| 43 | First window within the EXE size ceiling | measured on the B2 joint candidate |
+| 43 | First window within the EXE size ceiling | reviewed; in the 18:00 integration pull request (integration branch B) |
 
-## Waiting or open (5)
+## Waiting or open (4)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
-| 32 | Header backup CRC (R3), with the stale B-normalization Header CRC bug | owner's six firmware facts today, otherwise 1.1.14 (decision 154) |
 | 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
 | 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | release workflow cleanup R-1/R-2 |
 | 71 | ADR 0078 predecessor comparison against v1.1.12 and the v0.9.16 1.x mode | the release candidate |
 | 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
 
-## Moved out (6)
+## Moved out (7)
 
 | # | Item | Now in |
 | --- | --- | --- |
+| 32 | Header backup CRC (R3), with the stale B-normalization Header CRC bug | 1.2.x decision; root cause recorded (decision 161) |
 | 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | 1.2.x (decision 154) |
 | 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | 1.1.14 (decision 154) |
 | 49 | Test hygiene findings (WS-TEST T2-T4, G2) | 1.2.x (decision 154) |

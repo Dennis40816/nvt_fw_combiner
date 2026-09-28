@@ -1,6 +1,6 @@
 # BUG-20260926-legacy-combiner-long-path: the legacy Combiner fails when its argument paths reach 260 characters
 
-Status: open
+Status: fixed (merged into `1.1.x` by #476, merge `7e283c126`, 2026-09-28)
 Severity: P3
 Found: 2026-09-26, Claude Code (Opus 5.5), in the rolling-parity P-0.5 spike (test area only)
 Where: the external processor `Combiner.exe` as run by the CtrlRAM workflows; the CLI's temporary staging layers
@@ -14,4 +14,4 @@ length, so an environment limit is not reported as a processor failure.
 Evidence: payload-free P-0.5 evidence in the test area (`parity-p05\evidence`). Typical user TEMP paths
 are much shorter, so ordinary installations are unlikely to hit this.
 Owner: unassigned. The rolling-parity comparator bounds its TEMP root meanwhile (P-1/P-2).
-Resolution:
+Resolution: an argument path above the legacy limit fails with `external-tool.argument-path.too-long` before deployment, staging or launch (batch 6, `6e8f9822b`, `adc0616a2`), merged by #476.

@@ -1,6 +1,6 @@
 # BUG-20260927-launcher-cleanup-lock-thread-flake: the launcher cleanup test's lock helper thread can fail with access denied under load
 
-Status: fixed (merged into `1.1.x` by #470, merge `93da007af`, 2026-09-28)
+Status: reopened (2026-09-28): the #470 fix does not cover heavy load
 Severity: P3
 Found: 2026-09-27, `python scripts/verify.py --all` at batch 3 head `06e09e0ad` (lane `test_release_package_policy`)
 Where: `tests/scripts/test_release_package_policy.py`,
@@ -14,3 +14,4 @@ reports it as a setup failure distinct from the product assertion.
 Evidence: the batch 3 verify log at `06e09e0ad` and the reruns.
 Owner: 1.1.13 follow-up (test-only, R1).
 Resolution:
+Reopened (2026-09-28): `python scripts/verify.py --all` on the 1.1.13 integration branch C ran while another agent built the repository. The lock helper again recorded `PermissionError(13)` (`test_release_package_policy.py:2674`). The same test passed 3/3 alone and the module 79/79 afterwards. Owner: 1.1.14 (test-only, R1).

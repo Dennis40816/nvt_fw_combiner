@@ -14,4 +14,5 @@ Impact: the error only makes a report stricter (a false inconsistency blocks a r
 validator is not yet wired into any release gate.
 Evidence: the review thread on pull request #461; the source at batch 2c head `e0e330325`.
 Owner: rolling parity P-2 (a small follow-up record in the next batch; the finalized record is not reopened).
+Allocation (2026-09-28): 1.1.14 (board decision 154).
 Resolution:
