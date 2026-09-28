@@ -2532,14 +2532,20 @@ def reset_coverage_directory(language: str) -> Path:
     return directory
 
 
-def require_python_modules(names: tuple[str, ...]) -> None:
+def require_python_modules(
+    names: tuple[str, ...], *, install_hint: str | None = None
+) -> None:
     missing = [name for name in names if importlib.util.find_spec(name) is None]
     if missing:
-        extras = str(WORKER_ROOT) + "[dev]"
+        install_command = (
+            f"{sys.executable} -m pip install {install_hint}"
+            if install_hint is not None
+            else f"{sys.executable} -m pip install -e '{WORKER_ROOT}[dev]'"
+        )
         raise RuntimeError(
             "missing Python verification modules: "
             + ", ".join(missing)
-            + f". Install them with: {sys.executable} -m pip install -e '{extras}'"
+            + f". Install with: {install_command}"
         )
 
 
@@ -6719,6 +6725,8 @@ def execute_verification(args: argparse.Namespace) -> int:
         if not lanes:
             raise RuntimeError("verification plan selected no lanes")
         structure = tuple(lane for lane in lanes if lane.name == "structure")
+        if structure:
+            require_python_modules(("yaml",), install_hint="PyYAML==6.0.3")
         workloads = tuple(lane for lane in lanes if lane.name != "structure")
         full_local = not args.structure_only and not args.skip_dotnet and not args.skip_python
         if full_local:

@@ -38,6 +38,21 @@ import validate_repository as REPOSITORY_VALIDATOR  # noqa: E402
 
 
 class VerifyOrchestrationTests(unittest.TestCase):
+    def test_structure_preflight_reports_missing_pyyaml_before_lane(self) -> None:
+        output = io.StringIO()
+        with (
+            patch.object(MODULE.importlib.util, "find_spec", return_value=None),
+            patch.object(MODULE, "run_selected_lanes") as run_selected,
+            contextlib.redirect_stderr(output),
+        ):
+            result = MODULE.execute_verification(MODULE.parse_args(["--structure-only"]))
+
+        self.assertEqual(1, result)
+        self.assertIn("missing Python verification modules: yaml", output.getvalue())
+        self.assertIn("PyYAML==6.0.3", output.getvalue())
+        self.assertIn("pip install", output.getvalue())
+        run_selected.assert_not_called()
+
     def test_all_help_describes_complete_local_suite_without_completion_claim(self) -> None:
         output = io.StringIO()
         with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as raised:
