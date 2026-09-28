@@ -1495,6 +1495,10 @@ finally {
             result.stdout,
         )
         self.assertIn(
+            "Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected",
+            result.stdout,
+        )
+        self.assertIn(
             "Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected",
             result.stdout,
         )

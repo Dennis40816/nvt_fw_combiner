@@ -51,6 +51,140 @@ function Get-LowerSha256 {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+function Assert-PrebuiltCatalogManifestEntry {
+    param([object[]]$Entries = @())
+
+    $PackEntries = @($Entries | Where-Object {
+        ([string]$_.path).EndsWith('.pack', [StringComparison]::OrdinalIgnoreCase)
+    })
+    if ($PackEntries.Count -ne 1 -or
+        [string]$PackEntries[0].path -cne 'profiles/built-in/prebuilt-profile-catalog.pack' -or
+        [string]$PackEntries[0].role -cne 'builtInProfile' -or
+        [long]$PackEntries[0].size -lt 13 -or
+        [long]$PackEntries[0].size -gt 4194304) {
+        throw 'Prebuilt catalog must have exactly one bounded builtInProfile manifest entry.'
+    }
+}
+
+function Assert-PackagedPrebuiltCatalog {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)][string]$ApprovedTrustIndexSha256
+    )
+
+    # The shipped probe validates the canonical container; this gate compares its carried bytes to package JSON.
+    $BuiltInRoot = Join-Path $PackageRoot 'profiles/built-in'
+    $PackPath = Join-Path $BuiltInRoot 'prebuilt-profile-catalog.pack'
+    if (-not (Test-Path -LiteralPath $PackPath -PathType Leaf)) {
+        throw 'Prebuilt catalog is missing from the release package.'
+    }
+    $PackLength = (Get-Item -LiteralPath $PackPath).Length
+    if ($PackLength -lt 13 -or $PackLength -gt 4194304) {
+        throw 'Prebuilt catalog exceeds its 4 MiB file bound or is truncated.'
+    }
+    $Pack = [IO.File]::ReadAllBytes($PackPath)
+    if ([Text.Encoding]::ASCII.GetString($Pack, 0, 8) -cne 'NFCPBCAT') {
+        throw 'Prebuilt catalog magic differs.'
+    }
+    $HeaderLength = [BitConverter]::ToUInt32($Pack, 8)
+    if ($HeaderLength -lt 1 -or $HeaderLength -gt 1048576 -or $HeaderLength -gt $Pack.Length - 12) {
+        throw 'Prebuilt catalog header bound differs.'
+    }
+    try {
+        $HeaderText = [Text.UTF8Encoding]::new($false, $true).GetString($Pack, 12, [int]$HeaderLength)
+        $Header = $HeaderText | ConvertFrom-Json -AsHashtable -Depth 16
+    }
+    catch { throw 'Prebuilt catalog header is invalid JSON or UTF-8.' }
+    $BodyStart = 12 + [int]$HeaderLength
+    $BodyLength = $Pack.Length - $BodyStart
+    if ($Header.formatVersion -ne 1 -or $Header.body.length -ne $BodyLength) {
+        throw 'Prebuilt catalog format or body length differs.'
+    }
+    $IndexPath = Join-Path $BuiltInRoot 'package-trust-index.json'
+    if (-not (Test-Path -LiteralPath $IndexPath -PathType Leaf)) {
+        throw 'Prebuilt catalog has no packaged trust index.'
+    }
+    $IndexHash = (Get-FileHash -LiteralPath $IndexPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($IndexHash -cne $ApprovedTrustIndexSha256 -or $Header.trustIndex.sha256 -cne $IndexHash) {
+        throw 'Prebuilt catalog trust-index SHA-256 differs from the approved package.'
+    }
+    $Index = Get-Content -LiteralPath $IndexPath -Raw | ConvertFrom-Json -Depth 32
+    foreach ($Key in @('trustIndexId', 'trustIndexVersion', 'trustAnchorBindingId')) {
+        if ($Header.trustIndex[$Key] -cne [string]$Index.$Key) {
+            throw 'Prebuilt catalog trust-index identity differs.'
+        }
+    }
+    $ExpectedBundles = @($Index.bundles | ForEach-Object { [string]$_.bundleDirectory } | Sort-Object -CaseSensitive)
+    $ActualBundles = @($Header.bundles | ForEach-Object { [string]$_.bundleDirectory })
+    if ($ExpectedBundles.Count -ne $ActualBundles.Count -or
+        (Compare-Object $ExpectedBundles $ActualBundles -CaseSensitive)) {
+        throw 'Prebuilt catalog bundle set differs from the packaged trust index.'
+    }
+
+    function Assert-CarriedBytes($Range, [string]$FilePath, [string]$HashField, [ref]$NextOffset) {
+        $Start = [long]$Range.offset
+        $Length = [long]$Range.length
+        if ($Start -ne $NextOffset.Value -or $Length -lt 1 -or $Start -gt $BodyLength -or
+            $Length -gt $BodyLength - $Start -or -not (Test-Path -LiteralPath $FilePath -PathType Leaf)) {
+            throw 'Prebuilt catalog carried range is missing or outside the body.'
+        }
+        $File = Get-Item -LiteralPath $FilePath
+        if ($File.Length -ne $Length) {
+            throw 'Prebuilt catalog carried file length differs from packaged JSON.'
+        }
+        $Bytes = [byte[]]::new([int]$Length)
+        [Array]::Copy($Pack, $BodyStart + [int]$Start, $Bytes, 0, [int]$Length)
+        $CarriedHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant()
+        $FileHash = (Get-FileHash -LiteralPath $FilePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($CarriedHash -cne [string]$Range[$HashField] -or $FileHash -cne $CarriedHash) {
+            throw 'Prebuilt catalog carried bytes differ from packaged JSON or manifest hash.'
+        }
+        $NextOffset.Value += $Length
+    }
+
+    $Offset = 0L
+    foreach ($Bundle in @($Header.bundles)) {
+        $Trust = @($Index.bundles | Where-Object { $_.bundleDirectory -ceq $Bundle.bundleDirectory })
+        if ($Trust.Count -ne 1 -or $Bundle.bundleVersion -cne [string]$Trust[0].bundleVersion -or
+            $Bundle.contentHash -cne [string]$Trust[0].contentHash) {
+            throw 'Prebuilt catalog bundle identity differs from the packaged trust index.'
+        }
+        $BundleRoot = Join-Path $BuiltInRoot ([string]$Bundle.bundleDirectory)
+        $ManifestPath = Join-Path $BundleRoot 'profile-bundle.json'
+        $Manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json -Depth 32
+        $ExpectedDocuments = @($Manifest.entries | Where-Object {
+            $_.kind -in @('firmware-family', 'composition-profile')
+        } | ForEach-Object { [string]$_.entryId } | Sort-Object -CaseSensitive)
+        $ActualDocuments = @($Bundle.documents | ForEach-Object { [string]$_.entryId })
+        if ($ExpectedDocuments.Count -ne $ActualDocuments.Count -or
+            (Compare-Object $ExpectedDocuments $ActualDocuments -CaseSensitive)) {
+            throw 'Prebuilt catalog document set differs from the packaged manifest.'
+        }
+        foreach ($Document in @($Bundle.documents)) {
+            $Entry = @($Manifest.entries | Where-Object { $_.entryId -ceq $Document.entryId })
+            if ($Entry.Count -ne 1 -or $Document.kind -cne [string]$Entry[0].kind -or
+                $Document.path -cne [string]$Entry[0].path -or
+                $Document.schemaId -cne [string]$Entry[0].schemaId -or
+                $Document.contentHash -cne [string]$Entry[0].contentHash) {
+                throw 'Prebuilt catalog document identity differs from the packaged manifest.'
+            }
+            Assert-SafeProfileBundlePath -RelativePath ([string]$Document.path)
+            $DocumentPath = Join-Path $BundleRoot ([string]$Document.path).Replace('/', [IO.Path]::DirectorySeparatorChar)
+            Assert-CarriedBytes $Document $DocumentPath 'contentHash' ([ref]$Offset)
+        }
+        Assert-CarriedBytes $Bundle.manifest $ManifestPath 'sha256' ([ref]$Offset)
+    }
+    if ($Offset -ne $BodyLength) {
+        throw 'Prebuilt catalog body has omitted or trailing bytes.'
+    }
+    $Body = [byte[]]::new($BodyLength)
+    [Array]::Copy($Pack, $BodyStart, $Body, 0, $BodyLength)
+    $BodyHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($Body)).ToLowerInvariant()
+    if ($Header.body.sha256 -cne $BodyHash) {
+        throw 'Prebuilt catalog body SHA-256 differs.'
+    }
+}
+
 function Get-ReleaseProductVersion {
     param([Parameter(Mandatory = $true)][object]$Manifest)
 
@@ -633,8 +767,11 @@ try {
     }
     else { $null }
     $RequiresCombinerRuntime = $false
+    $RequiresPrebuiltCatalog = $false
     if ($null -ne $ManifestVersion -or $manifest.PSObject.Properties.Name -contains 'sourceTag') {
-        $RequiresCombinerRuntime = (Get-ReleaseProductVersion $manifest) -ge [version]'1.1.8'
+        $ProductVersion = Get-ReleaseProductVersion $manifest
+        $RequiresCombinerRuntime = $ProductVersion -ge [version]'1.1.8'
+        $RequiresPrebuiltCatalog = $ProductVersion -ge [version]'1.1.13'
     }
     if (-not $RequiresCombinerRuntime) {
         # Published historical packages retain their original closed tool inventory.
@@ -768,6 +905,9 @@ try {
     if ($InvalidBuiltInProfileEntries.Count -ne 0) {
         throw 'Release manifest built-in profile paths and roles are inconsistent.'
     }
+    if ($RequiresPrebuiltCatalog) {
+        Assert-PrebuiltCatalogManifestEntry -Entries @($manifest.files)
+    }
     $PackageTrustIndexEntries = @(
         $DeclaredBuiltInProfileEntries | Where-Object {
             ([string]$_.path) -eq $PackageTrustIndexPackagePath
@@ -834,6 +974,11 @@ try {
             }
         }
     }
+    if ($RequiresPrebuiltCatalog) {
+        Assert-PackagedPrebuiltCatalog `
+            -PackageRoot $packageRoot `
+            -ApprovedTrustIndexSha256 $ApprovedPackageTrustIndexSha256
+    }
     $DeclaredRuntimeCatalogPaths = @(
         $DeclaredBuiltInProfileEntries |
             Where-Object {
@@ -888,6 +1033,43 @@ try {
         $path = Join-Path $packageRoot $parts[1]
         if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-LowerSha256 -Path $path) -ne $parts[0]) {
             throw "SHA256SUMS verification failed for '$($parts[1])'."
+        }
+    }
+
+    if ($RequiresPrebuiltCatalog) {
+        $ProbeOutputPath = Join-Path $smokeRoot 'profile-catalog-probe.stdout'
+        $ProbeErrorPath = Join-Path $smokeRoot 'profile-catalog-probe.stderr'
+        $ProbeProcess = Start-Process -FilePath $applicationPath `
+            -ArgumentList '--profile-catalog-probe-v1' `
+            -WorkingDirectory $packageRoot `
+            -RedirectStandardOutput $ProbeOutputPath `
+            -RedirectStandardError $ProbeErrorPath `
+            -PassThru -NoNewWindow
+        try {
+            if (-not $ProbeProcess.WaitForExit(60000)) {
+                throw 'Prebuilt catalog headless probe timed out.'
+            }
+            if ($ProbeProcess.ExitCode -ne 0) {
+                throw "Prebuilt catalog headless probe failed with exit code $($ProbeProcess.ExitCode)."
+            }
+            $ProbeLines = @(Get-Content -LiteralPath $ProbeOutputPath -Encoding utf8)
+            if ($ProbeLines.Count -ne 1) {
+                throw 'Prebuilt catalog headless probe did not return exactly one JSON line.'
+            }
+            $Probe = $ProbeLines[0] | ConvertFrom-Json -ErrorAction Stop
+            if ($Probe.schemaVersion -cne 'nfc-profile-catalog-probe-v1' -or
+                $Probe.admissionSource -cne 'prebuilt' -or
+                $Probe.catalogLoaded -ne $true -or
+                $null -ne $Probe.rejectionCode) {
+                throw 'Prebuilt catalog headless probe did not confirm admission-source=prebuilt.'
+            }
+        }
+        finally {
+            if (-not $ProbeProcess.HasExited) {
+                Stop-Process -Id $ProbeProcess.Id -Force
+                $ProbeProcess.WaitForExit()
+            }
+            $ProbeProcess.Dispose()
         }
     }
 
