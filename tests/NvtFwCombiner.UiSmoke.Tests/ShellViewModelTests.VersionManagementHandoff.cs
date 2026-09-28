@@ -131,7 +131,7 @@ public sealed partial class VersionManagementSettingsTests
     {
         var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
         _ = await experience.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
-        var handoff = new RecordingStableLauncherHandoff(started: false);
+        var handoff = new FailThenSucceedHandoff();
         using var window = new MainWindow(
             UiLaunchOptions.Empty, StartupTraceSession.Disabled,
             PresentationTestHost.CreateServices("0.10.5", experience, handoff),
@@ -150,15 +150,23 @@ public sealed partial class VersionManagementSettingsTests
         MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
         Assert.True(shell.Settings.CanRetryPendingActivation);
         Assert.True(shell.Settings.RetryPendingActivationCommand.CanExecute(null));
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => _ = closed.TrySetResult();
         await shell.Settings.RetryPendingActivationCommand.ExecuteAsync(null);
-        while (!window.IsEnabled || handoff.Attempts != 2)
-        {
-            watchdog.Token.ThrowIfCancellationRequested();
-            Dispatcher.UIThread.RunJobs();
-            await Task.Yield();
-        }
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Assert.Equal(2, handoff.Attempts);
+        Assert.Equal(WindowClosePhase.Closed, window.ClosePhase);
         Assert.NotNull(experience.Current.State!.PendingActivation);
+    }
+
+    private sealed class FailThenSucceedHandoff : IStableLauncherHandoff
+    {
+        internal int Attempts { get; private set; }
+
+        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(++Attempts == 2);
+        }
     }
 
     /// <summary>A new launcher request during the second Close cannot override the ordinary exit.</summary>
@@ -618,6 +626,11 @@ public sealed partial class VersionManagementSettingsTests
             shell.Settings.HandleLauncherHandoffFailureAsync(expiry.Token);
         expiry.Cancel();
         Assert.Equal(PendingActivationRecoveryStatus.Unknown, await recovery);
+        Assert.Contains("could not be confirmed", shell.Settings.VersionOperationStatus, StringComparison.Ordinal);
+        shell.OpenSettingsCommand.Execute(null);
+        shell.SelectedLanguage = "Traditional Chinese";
+        Assert.Contains("目前無法確認已儲存的待處理版本切換", shell.Settings.VersionOperationStatus,
+            StringComparison.Ordinal);
         SettingsVersionRowViewModel installed = Assert.Single(shell.Settings.VersionRows,
             row => row.Version == ManagedAppVersion.Parse("0.10.4"));
         shell.Settings.RequestVersionPrimaryActionCommand.Execute(installed);
