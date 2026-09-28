@@ -4,12 +4,16 @@
   "workflowRef": "refs/heads/main",
   "workflowHeadRelation": "authenticated-protected-main-independent-of-candidate-source",
   "candidateImplementationHead": "dfaedec4519fae185e5934b79a225b6c67c7d547",
-  "trigger": "workflow_dispatch",
+  "triggers": ["workflow_dispatch", "workflow_run"],
+  "workflowRun": {
+    "workflows": ["ci"],
+    "types": ["completed"]
+  },
   "topLevelPermissions": {
     "actions": "read",
     "contents": "read"
   },
-  "topLevelSha256": "bfddd7d18c372f6b145d43302beb6b815cff9c197535a35e21a57db2e6329342",
+  "topLevelSha256": "784a6b1161661f436da68cf34b3301f134598196e9a325ad4ab9f141b902c9b9",
   "actionPins": {
     "checkout": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
     "setupPython": "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
@@ -17,7 +21,7 @@
     "uploadArtifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
   },
   "jobInventorySha256": {
-    "candidate": "8f7e798308d6b6e76ae03b75b64f7ffa02ca1900ad072c5527b63f653873e23b",
+    "candidate": "ad445b3b195573597b93b94921488ca7c589fd157487bc01b15d435b2fb327d1",
     "release-eligibility": "658c6b57f495be185d140c83ebe3742e72aa7807cba3d0d86567377daa4c5be5",
     "promote": "df508bd1663f377a4d828b1f0db202256a44d0a79931676f342777915470f95e",
     "published-smoke": "6c9e6d9c9862ef70eb87125478e62a6c27183fee639b08ed1c8a553d799c4c53",

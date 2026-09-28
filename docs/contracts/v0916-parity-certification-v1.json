@@ -317,8 +317,8 @@
       "workflowRef": "refs/heads/main",
       "workflowSemanticContract": {
         "path": "docs/contracts/v0916-parity-workflow-v1.json",
-        "size": 14392,
-        "sha256": "17548956fb6b2af7d99cbebfa616f65bf3a39a228183d46edb7f80507614aee9"
+        "size": 14487,
+        "sha256": "1fb372baac778bcb26adfd915c1c5da11f75ab4488871e9531bab56c655605da"
       },
       "candidateVerifierPath": "scripts/release_promotion_policy.py",
       "packageVerifierPath": "scripts/smoke-release.ps1",
