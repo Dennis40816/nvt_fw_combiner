@@ -64,6 +64,39 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
             )
         )
 
+    def test_generator_project_is_closed_and_not_a_test_shard(self) -> None:
+        generator = "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+        self.assertIn(generator, repository_validator.EXPECTED_PROJECTS)
+        self.assertEqual({"src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj"},
+                         repository_validator.EXPECTED_PROJECT_REFERENCES[generator])
+        self.assertFalse(is_solution_test_project(generator))
+
+    def test_generator_cannot_link_production_source(self) -> None:
+        errors: list[str] = []
+        validate_evaluated_nonproduction_source_ownership(
+            "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj",
+            {"Compile": [{"FullPath": str(ROOT / "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleLoader.cs")}]},
+            ROOT, errors)
+        self.assertEqual(1, len(errors))
+        self.assertIn("duplicate production source", errors[0])
+
+    def test_bootstrap_generator_reference_must_remain_build_only(self) -> None:
+        root = element_tree.fromstring('<Project><ItemGroup><ProjectReference Include="../../eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj" /></ItemGroup></Project>')
+        errors: list[str] = []
+        repository_validator.validate_prebuilt_generator_references(
+            "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj", root, errors)
+        self.assertEqual(1, len(errors))
+        reference = next(root.iter("ProjectReference"))
+        reference.set("ReferenceOutputAssembly", "false")
+        reference.set("PrivateAssets", "all")
+        errors.clear()
+        repository_validator.validate_prebuilt_generator_references(
+            "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj", root, errors)
+        self.assertEqual([], errors)
+        repository_validator.validate_prebuilt_generator_references(
+            "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj", root, errors)
+        self.assertEqual(1, len(errors))
+
     def test_rejects_external_production_compile_include(self) -> None:
         errors = self.validate(
             "src/Product/Product.csproj",

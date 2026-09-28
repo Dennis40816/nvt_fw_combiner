@@ -3548,13 +3548,25 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
             self.assertIn('"1.0.1"', lock_path.read_text(encoding="utf-8"))
 
+    def test_solution_locks_include_only_the_exact_declared_generator(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, solution = self.create_solution_lock_fixture(root, b'{"version":2,"dependencies":{"net10.0":{}}}')
+            self.assertEqual(26, len(MODULE.solution_package_lock_paths(root, solution)))
+            solution.write_text(solution.read_text(encoding="utf-8").replace(
+                "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj",
+                "eng/unlisted/Unlisted.csproj"), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "invalid solution project path"):
+                MODULE.solution_package_lock_paths(root, solution)
+
     def create_solution_lock_fixture(
         self, root: Path, lock_bytes: bytes
     ) -> tuple[Path, Path]:
         projects: list[Path] = []
-        for index in range(25):
+        for index in range(26):
             name = "Product" if index == 0 else f"Product{index:02d}"
-            project = root / "src" / name / f"{name}.csproj"
+            project = (root / "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+                       if index == 25 else root / "src" / name / f"{name}.csproj")
             project.parent.mkdir(parents=True)
             project.write_text("<Project />", encoding="utf-8")
             (project.parent / "packages.lock.json").write_bytes(lock_bytes)

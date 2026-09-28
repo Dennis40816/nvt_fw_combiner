@@ -114,7 +114,12 @@ public sealed class PrebuiltProfileCatalogCodecTests
         Assert.Equal("NFCPBCAT"u8.ToArray(), pack[..8]);
         int length = checked((int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(pack.AsSpan(8, 4)));
         string header = System.Text.Encoding.UTF8.GetString(pack[12..(12 + length)]);
-        Assert.StartsWith("{\"body\":{\"length\":4,\"sha256\":\"", header, StringComparison.Ordinal);
+        // Independently transcribed closed header; no production serializer supplies expected bytes.
+        string bodyHash = Convert.ToHexStringLower(SHA256.HashData("[]{}"u8));
+        string expectedHeader = $$$"""
+            {"body":{"length":4,"sha256":"{{{bodyHash}}}"},"bundles":[{"bundleDirectory":"bundle","bundleVersion":"1.0.0","contentHash":"{{{new string('a', 64)}}}","documents":[{"contentHash":"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945","entryId":"a","kind":"firmware-family","length":2,"offset":0,"path":"a.json","schemaId":"https://example.invalid/vector.schema.json"}],"manifest":{"length":2,"offset":2,"sha256":"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"}}],"formatVersion":1,"trustIndex":{"sha256":"{{{new string('b', 64)}}}","trustAnchorBindingId":"anchor","trustIndexId":"index","trustIndexVersion":"1.0.0"}}
+            """;
+        Assert.Equal(expectedHeader, header);
         Assert.Contains("\"manifest\":{\"length\":2,\"offset\":2,\"sha256\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\"}", header, StringComparison.Ordinal);
         Assert.Equal("[]{}"u8.ToArray(), pack[(12 + length)..]);
         Assert.Equal("[]{}"u8.ToArray(), PrebuiltProfileCatalogCodec.Decode(pack).Body.ToArray());

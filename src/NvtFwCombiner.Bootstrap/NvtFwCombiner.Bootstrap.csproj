@@ -5,6 +5,8 @@
     <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\eng\prebuilt-profile-catalog\NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" />
     <ProjectReference Include="..\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>NvtFwCombiner.PrebuiltProfileCatalogGeneration</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
+  </ItemGroup>
+</Project>

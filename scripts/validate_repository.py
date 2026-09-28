@@ -173,7 +173,10 @@ class EvaluatedProjectItems:
     msbuild_sdks_path: Path
 
 
+PREBUILT_CATALOG_GENERATOR = "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+
 EXPECTED_PROJECTS = {
+    PREBUILT_CATALOG_GENERATOR,
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
     "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
@@ -202,6 +205,9 @@ EXPECTED_PROJECTS = {
 }
 
 EXPECTED_PROJECT_REFERENCES = {
+    PREBUILT_CATALOG_GENERATOR: {
+        "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
+    },
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj": set(),
     "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj": set(),
     "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj": {
@@ -229,6 +235,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
     },
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj": {
+        PREBUILT_CATALOG_GENERATOR,
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",
@@ -271,6 +278,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj": {
+        PREBUILT_CATALOG_GENERATOR,
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Launcher/NvtFwCombiner.Launcher.csproj",
@@ -1193,6 +1201,20 @@ def validate_restored_project_contracts(errors: list[str]) -> None:
             )
 
 
+def validate_prebuilt_generator_references(relative: str, root: ET.Element, errors: list[str]) -> None:
+    """Allow only the declared build-only host edge and the generator's test caller."""
+    for reference in root.iter("ProjectReference"):
+        target = normalize_project_reference(ROOT / relative, reference.attrib["Include"])
+        if target != PREBUILT_CATALOG_GENERATOR:
+            continue
+        if relative == "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj":
+            continue
+        if (relative != "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
+                or reference.get("ReferenceOutputAssembly") != "false"
+                or reference.get("PrivateAssets") != "all"):
+            errors.append(f"generator reference must remain the declared build-only dependency: {relative}")
+
+
 def validate_solution_and_dependencies(errors: list[str]) -> None:
     solution_root = ET.parse(ROOT / "NvtFwCombiner.slnx").getroot()
     solution_projects = {
@@ -1221,6 +1243,7 @@ def validate_solution_and_dependencies(errors: list[str]) -> None:
                     f"production/test project includes refcode: {relative} -> {include}"
                 )
         validate_production_source_ownership(relative, root, errors)
+        validate_prebuilt_generator_references(relative, root, errors)
 
 
 def validate_contract_model(errors: list[str]) -> None:

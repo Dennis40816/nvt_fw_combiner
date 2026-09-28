@@ -51,6 +51,7 @@ public sealed class ProjectDependencyTests
             [
                 "NvtFwCombiner.Application",
                 "NvtFwCombiner.Infrastructure",
+                "NvtFwCombiner.PrebuiltProfileCatalogGenerator",
                 "NvtFwCombiner.VersionManagement.Application",
                 "NvtFwCombiner.VersionManagement.Infrastructure",
             ],

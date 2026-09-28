@@ -222,6 +222,12 @@
       "nvtfwcombiner.platform": {
         "type": "Project"
       },
+      "nvtfwcombiner.prebuiltprofilecataloggenerator": {
+        "type": "Project",
+        "dependencies": {
+          "NvtFwCombiner.Infrastructure": "[1.0.0, )"
+        }
+      },
       "nvtfwcombiner.profiles": {
         "type": "Project",
         "dependencies": {
