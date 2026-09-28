@@ -28,6 +28,14 @@ internal sealed partial class SettingsViewModel
         PendingActivationRecoveryStatus.Cleared;
     public bool CanRetryPendingActivation =>
         PendingRecoveryStatus == PendingActivationRecoveryStatus.ConfirmedKept;
+    [ObservableProperty]
+    public partial bool HasPendingRecoveryNotice { get; private set; }
+
+    [ObservableProperty]
+    public partial string PendingRecoveryMessage { get; private set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string RetryPendingActivationLabel { get; private set; } = "Retry";
 
     internal void SetWindowPublication(Func<bool> mayPublish)
     {
@@ -40,6 +48,7 @@ internal sealed partial class SettingsViewModel
         {
             return;
         }
+        HasPendingRecoveryNotice = _hasFailedStableLauncherHandoff;
         if (_pendingDurableSnapshot is { } durable)
         {
             ApplyVersionSnapshot(durable);
@@ -55,6 +64,17 @@ internal sealed partial class SettingsViewModel
             PendingActivationRecoveryStatus.Unknown => Localize(
                 "The stable launcher could not be started. The saved pending switch could not be confirmed. Retry is unavailable until its state is checked. Close exits without starting the launcher.",
                 "無法啟動穩定啟動器。目前無法確認已儲存的待處理版本切換。確認狀態前無法重試；關閉不會啟動穩定啟動器。"),
+            _ => throw new InvalidOperationException("Unknown pending activation recovery status."),
+        };
+        PendingRecoveryMessage = PendingRecoveryStatus switch
+        {
+            PendingActivationRecoveryStatus.ConfirmedKept => Localize(
+                "The stable launcher could not be started. The version switch is still pending and was not rolled back; it stays pending if you close the app.",
+                "無法啟動穩定啟動器。版本切換仍待處理，設定未還原；關閉程式後也會保留。"),
+            PendingActivationRecoveryStatus.Unknown => Localize(
+                "The stable launcher could not be started, and the pending version switch could not be confirmed. A clear already in progress may still change it. Closing the app starts no launcher and no new clear.",
+                "無法啟動穩定啟動器，也無法確認待處理的版本切換狀態；已在執行的清除作業仍可能改變它。關閉程式不會啟動啟動器，也不會再開始清除。"),
+            PendingActivationRecoveryStatus.Cleared => VersionOperationStatus,
             _ => throw new InvalidOperationException("Unknown pending activation recovery status."),
         };
         OnPropertyChanged(nameof(CanRetryPendingActivation));
@@ -87,6 +107,7 @@ internal sealed partial class SettingsViewModel
             "Retrying through the stable launcher…",
             "正在透過穩定啟動器重試…");
         _hasFailedStableLauncherHandoff = false;
+        HasPendingRecoveryNotice = false;
         ActivationRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -419,6 +440,7 @@ internal sealed partial class SettingsViewModel
         PublishedColumnLabel = Localize("Published", "發布日期");
         ActionColumnLabel = Localize("Action", "動作");
         KeepAllVersionsLabel = Localize("Keep all", "全部保留");
+        RetryPendingActivationLabel = Localize("Retry", "重試");
         ViewReleaseNotesLabel = Localize("View release notes", "檢視版本說明");
         InstallUpdateLabel = Localize("Install update", "安裝更新");
         OfflineVersionHint = Localize(
@@ -703,6 +725,7 @@ internal sealed partial class SettingsViewModel
             }
             VersionOperationStatus = Localize("Restarting through the launcher…", "正在透過啟動器重新啟動…");
             _hasFailedStableLauncherHandoff = false;
+            HasPendingRecoveryNotice = false;
             ActivationRequested?.Invoke(this, EventArgs.Empty);
         }
         finally

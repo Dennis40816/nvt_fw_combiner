@@ -1,6 +1,10 @@
 using Avalonia.Headless.XUnit;
+using Avalonia.Headless;
 using Avalonia.Threading;
 using Avalonia.Platform.Storage;
+using Avalonia.Controls;
+using Avalonia.Automation;
+using Avalonia.VisualTree;
 using System.Reflection;
 using System.Text;
 using NvtFwCombiner.Application.VersionManagement;
@@ -12,6 +16,75 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class VersionManagementSettingsTests
 {
+    /// <summary>The approved failed-handoff notice renders through the real Settings Version page.</summary>
+    [AvaloniaTheory]
+    [InlineData(false, false, "kept-retry-en-light")]
+    [InlineData(false, true, "unknown-en-light")]
+    [InlineData(true, false, "kept-retry-zh-dark")]
+    [InlineData(true, true, "unknown-zh-dark")]
+    public async Task W6aSettingsRecoveryNoticeMatchesApprovedState(
+        bool chinese, bool unknown, string imageName)
+    {
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5"), ShellPreferenceSnapshot.Default)
+        {
+            Width = 1024,
+            Height = 850,
+        };
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        shell.SelectedLanguage = chinese ? "Traditional Chinese" : "English";
+        shell.SelectedTheme = chinese ? "Dark" : "Light";
+        shell.OpenSettingsCommand.Execute(null);
+        shell.Settings.SelectSectionCommand.Execute(SettingsSection.Version);
+        _ = await shell.Settings.HandleLauncherHandoffFailureAsync(TestContext.Current.CancellationToken);
+        typeof(SettingsViewModel).GetProperty(nameof(SettingsViewModel.PendingRecoveryStatus),
+            BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(shell.Settings, unknown
+                ? PendingActivationRecoveryStatus.Unknown
+                : PendingActivationRecoveryStatus.ConfirmedKept);
+        shell.Settings.PublishPendingRecoveryStatus();
+        Dispatcher.UIThread.RunJobs();
+
+        Border notice = Assert.Single(window.GetVisualDescendants().OfType<Border>(),
+            border => border.Name == "PendingRecoveryNotice");
+        Button retry = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
+            button => button.Name == "RetryPendingActivationButton");
+        string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+        if (!string.IsNullOrWhiteSpace(outputDirectory))
+        {
+            _ = Directory.CreateDirectory(outputDirectory);
+            using Avalonia.Media.Imaging.WriteableBitmap? frame = window.CaptureRenderedFrame();
+            Assert.NotNull(frame);
+            frame.Save(Path.Combine(outputDirectory, $"w6a-settings-{imageName}.png"));
+        }
+        Assert.True(notice.IsVisible);
+        Assert.InRange(notice.Bounds.Width, 558, 562);
+        Assert.Equal(!unknown, retry.IsVisible);
+        Assert.Equal(!unknown, shell.Settings.RetryPendingActivationCommand.CanExecute(null));
+        Assert.Equal(chinese ? "重試" : "Retry", AutomationProperties.GetName(retry));
+        Assert.Equal(chinese ? "重試" : "Retry", retry.Content);
+        Assert.Equal(unknown
+            ? chinese
+                ? "無法啟動穩定啟動器，也無法確認待處理的版本切換狀態；已在執行的清除作業仍可能改變它。關閉程式不會啟動啟動器，也不會再開始清除。"
+                : "The stable launcher could not be started, and the pending version switch could not be confirmed. A clear already in progress may still change it. Closing the app starts no launcher and no new clear."
+            : chinese
+                ? "無法啟動穩定啟動器。版本切換仍待處理，設定未還原；關閉程式後也會保留。"
+                : "The stable launcher could not be started. The version switch is still pending and was not rolled back; it stays pending if you close the app.",
+            shell.Settings.PendingRecoveryMessage);
+        Assert.Equal(shell.Settings.PendingRecoveryMessage, AutomationProperties.GetName(notice));
+        Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(notice));
+        if (!unknown)
+        {
+            Assert.True(retry.Focusable);
+            Assert.True(retry.Focus());
+            Assert.True(retry.IsFocused);
+        }
+
+    }
+
     /// <summary>A current Settings result waits through failed handoff and publishes once after resume.</summary>
     [AvaloniaFact]
     public async Task SettingsResultSuspendsDuringHandoffAndPublishesAfterResume()
