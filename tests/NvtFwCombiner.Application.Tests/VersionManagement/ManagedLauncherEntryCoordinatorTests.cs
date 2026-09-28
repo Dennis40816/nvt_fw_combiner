@@ -347,22 +347,39 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
     }
 
     /// <summary>An internal admission deadline after process creation is termination-uncertain.</summary>
-    [Fact]
-    public async Task BootstrapAdmissionAfterLocalDeadlineFailsClosedBeforeReadyWait()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(100)]
+    public async Task BootstrapAdmissionAfterLocalDeadlineFailsClosedBeforeReadyWait(
+        int payloadDelayMilliseconds)
     {
         string root = Root("late-admission");
+        var time = new ManualTimeProvider();
+        var payload = new PendingPayloadSource();
         var handoff = new DeferredAdmissionBootstrapHandoff();
         ManagedLauncherEntryCoordinator coordinator = Create(
             root,
             new EntryStateStore(BoundState(root)),
             new RecordingRootProbe(ManagedInstallationRootStatus.Present),
             handoff,
-            TimeSpan.FromMilliseconds(25));
+            TimeSpan.FromMilliseconds(25),
+            timeProvider: time,
+            payloadSource: payload);
 
-        ManagedLauncherEntryResult result = await coordinator.RunAsync(
+        Task<ManagedLauncherEntryResult> running = coordinator.RunAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await payload.Entered.WaitAsync(TestContext.Current.CancellationToken);
+        // Model a slow runner before process creation without consuming the manual deadline.
+        await Task.Delay(payloadDelayMilliseconds, TestContext.Current.CancellationToken);
+        payload.Complete();
+        _ = await Task.WhenAny(running, handoff.AdmissionWaitStarted)
+            .WaitAsync(TestContext.Current.CancellationToken);
+        time.Advance(TimeSpan.FromMilliseconds(25));
+        ManagedLauncherEntryResult result = await running.WaitAsync(
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedLauncherEntryOutcome.TerminationUnconfirmed, result.Outcome);
+        Assert.True(handoff.AdmissionWaitStarted.IsCompletedSuccessfully);
         Assert.Equal(root, result.ManagedRoot);
         Assert.True(result.AdmissionElapsed > TimeSpan.Zero);
         Assert.Equal(result.TotalElapsed, result.AdmissionElapsed);

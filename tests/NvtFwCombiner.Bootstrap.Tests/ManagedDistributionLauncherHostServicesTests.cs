@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Application.Tests.VersionManagement;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -272,6 +273,8 @@ public sealed class ManagedDistributionLauncherHostServicesTests
         };
         byte[]? embeddedBootstrap = shape == "descriptor-only" ? null : bootstrap;
         var requestedResources = new List<string>();
+        var clock = new ManualTimeProvider();
+        var resourceObserved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using ManagedDistributionLauncherHostServices host =
             ManagedDistributionLauncherHostServices.Create(
                 workspace.PathFor("NvtFwCombiner.DistributionLauncher.exe"),
@@ -279,6 +282,7 @@ public sealed class ManagedDistributionLauncherHostServicesTests
                 name =>
                 {
                     requestedResources.Add(name);
+                    _ = resourceObserved.TrySetResult();
                     return name switch
                     {
                         ManagedDistributionLauncherHostServices.PayloadAdmissionResourceName =>
@@ -289,11 +293,15 @@ public sealed class ManagedDistributionLauncherHostServicesTests
                     };
                 },
                 _ => null,
-                workspace.PathFor("state/version-manager.v1.json"));
+                workspace.PathFor("state/version-manager.v1.json"),
+                clock);
 
         Assert.Empty(requestedResources);
-        ManagedDistributionLauncherHostResult result = await host.RunAsync(
-            TestContext.Current.CancellationToken);
+        Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+        ManagedDistributionLauncherHostResult result = await run;
 
         string[] expectedResources = shape is "descriptor-only" or "launcher-version-mismatch"
             ?

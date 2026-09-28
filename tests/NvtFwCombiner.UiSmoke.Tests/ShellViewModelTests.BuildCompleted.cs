@@ -63,9 +63,9 @@ public sealed partial class BuildOutcomeTests
 
     private sealed class FailingReceiptHandoff : IStableLauncherHandoff
     {
-        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        public ValueTask<StableLauncherStartResult> TryStartLauncherAsync(CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(false);
+            return ValueTask.FromResult(new StableLauncherStartResult(StableLauncherStartOutcome.HandoffFailed));
         }
     }
 

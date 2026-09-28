@@ -242,13 +242,13 @@ public sealed partial class VersionManagementSettingsTests
         {
             _release.Set();
         }
-        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        public ValueTask<StableLauncherStartResult> TryStartLauncherAsync(CancellationToken cancellationToken)
         {
             _entered.SetResult();
             _release.Wait(TestContext.Current.CancellationToken);
             CancellationObserved = cancellationToken.WaitHandle.WaitOne(0);
             _finished.SetResult();
-            return ValueTask.FromResult(true);
+            return ValueTask.FromResult(new StableLauncherStartResult(StableLauncherStartOutcome.Started));
         }
         public void Dispose()
         {
@@ -294,11 +294,11 @@ public sealed partial class VersionManagementSettingsTests
     private sealed class ExpiringLauncherHandoff(Action expire) : IStableLauncherHandoff
     {
         internal int Attempts { get; private set; }
-        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        public ValueTask<StableLauncherStartResult> TryStartLauncherAsync(CancellationToken cancellationToken)
         {
             Attempts++;
             expire();
-            return ValueTask.FromResult(true);
+            return ValueTask.FromResult(new StableLauncherStartResult(StableLauncherStartOutcome.Started));
         }
     }
 
@@ -382,9 +382,11 @@ public sealed partial class VersionManagementSettingsTests
     {
         internal int Attempts { get; private set; }
 
-        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        public ValueTask<StableLauncherStartResult> TryStartLauncherAsync(CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(++Attempts == 2);
+            return ValueTask.FromResult(new StableLauncherStartResult(++Attempts == 2
+                ? StableLauncherStartOutcome.Started
+                : StableLauncherStartOutcome.HandoffFailed));
         }
     }
 
@@ -713,7 +715,7 @@ public sealed partial class VersionManagementSettingsTests
     private sealed class GatedWindowLifetimeHandoff : IStableLauncherHandoff
     {
         private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource<bool> _released =
+        private readonly TaskCompletionSource<StableLauncherStartResult> _released =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         internal Task Entered => _entered.Task;
@@ -721,10 +723,12 @@ public sealed partial class VersionManagementSettingsTests
 
         internal void Release(bool started)
         {
-            _ = _released.TrySetResult(started);
+            _ = _released.TrySetResult(new(started
+                ? StableLauncherStartOutcome.Started
+                : StableLauncherStartOutcome.HandoffFailed));
         }
 
-        public async ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        public async ValueTask<StableLauncherStartResult> TryStartLauncherAsync(CancellationToken cancellationToken)
         {
             Attempts++;
             _ = _entered.TrySetResult();

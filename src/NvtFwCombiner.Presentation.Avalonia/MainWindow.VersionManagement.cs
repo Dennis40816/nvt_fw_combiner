@@ -172,7 +172,7 @@ public sealed partial class MainWindow
         using var stopDeadlineObserver = new CancellationTokenSource();
         Task deadlineObserver = CancelLauncherAtDeadlineAsync(
             deadline, cancellation, stopDeadlineObserver.Token);
-        Task<bool>? start = null;
+        Task<StableLauncherStartResult>? start = null;
         try
         {
             start = Task.Run(() => handoff.TryStartLauncherAsync(startToken).AsTask(), startToken);
@@ -181,9 +181,16 @@ public sealed partial class MainWindow
                 cancellation.Cancel();
                 return false;
             }
-            bool started = await start;
-            _stableLauncherStarted = started;
-            return started;
+            StableLauncherStartResult result = await start;
+            _stableLauncherStarted = result.IsStarted;
+            if (!result.IsStarted)
+            {
+                System.Diagnostics.Trace.TraceError(
+                    "Stable launcher handoff failed: {0}, exit code: {1}",
+                    result.Outcome,
+                    result.ExitCode);
+            }
+            return result.IsStarted;
         }
         finally
         {
@@ -207,7 +214,8 @@ public sealed partial class MainWindow
         }
     }
 
-    private static async Task ObserveLauncherAndDisposeAsync(Task<bool> start, CancellationTokenSource cancellation)
+    private static async Task ObserveLauncherAndDisposeAsync(
+        Task<StableLauncherStartResult> start, CancellationTokenSource cancellation)
     {
         try
         {

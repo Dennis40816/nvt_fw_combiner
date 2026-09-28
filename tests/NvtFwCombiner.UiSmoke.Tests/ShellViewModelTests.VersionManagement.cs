@@ -684,11 +684,13 @@ public sealed partial class VersionManagementSettingsTests
     {
         internal int Attempts { get; private set; }
 
-        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        public ValueTask<StableLauncherStartResult> TryStartLauncherAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Attempts++;
-            return ValueTask.FromResult(started);
+            return ValueTask.FromResult(new StableLauncherStartResult(started
+                ? StableLauncherStartOutcome.Started
+                : StableLauncherStartOutcome.HandoffFailed));
         }
     }
 }

@@ -133,7 +133,8 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
         StableLauncherHandoff handoff,
         ManagedInstallationRecoveryExperience recoveryExperience,
         ManagedSetupRecoveryExecutionCoordinator recoveryExecution,
-        ManagedAppVersion runningLauncherVersion)
+        ManagedAppVersion runningLauncherVersion,
+        TimeProvider timeProvider)
     {
         ManagedRoot = managedRoot;
         StatePath = statePath;
@@ -144,7 +145,8 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
             rootProbe,
             payloadSource,
             runningLauncherVersion,
-            handoff);
+            handoff,
+            timeProvider: timeProvider);
         SetupExperience = new(
             statePath,
             stateStore,
@@ -196,7 +198,8 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
         string launcherVersion,
         Func<string, Stream?> openEmbeddedResource,
         Func<string, string?> readEnvironment,
-        string statePath)
+        string statePath,
+        TimeProvider? timeProvider = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(launcherPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(launcherVersion);
@@ -271,7 +274,8 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
             handoff,
             recoveryExperience,
             recoveryExecution,
-            runningLauncherVersion);
+            runningLauncherVersion,
+            timeProvider ?? TimeProvider.System);
     }
 
     /// <summary>
