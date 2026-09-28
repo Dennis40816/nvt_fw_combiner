@@ -19,7 +19,7 @@ at `v1113-b2-blocker-fixes` (lifecycle test green under the shorter temp root).
 Owner: 1.1.14 (test and verifier, R1-R2). The same run's dotnet coverage lane failures (263-character `catalog-evidence-host`
 and 260-character `catalog-probe-host` copies) were fixed in 1.1.13 by shortening those folders to `ceh` and `cph`.
 Root fix for 1.1.14 (owner discussion, 2026-09-28): shorten the paths we own rather than require LongPathsEnabled:
-a short build-internal name for `materialized-profilesuilt-in`, a shorter verifier scratch layout that keeps the
+a short build-internal name for `materialized-profiles\built-in`, a shorter verifier scratch layout that keeps the
 26-character random session token, and a package check that bounds the longest relative path so a deep
 extraction folder stays under MAX_PATH for users. Bundle IDs and profile file names are product contract and stay.
 Resolution: local root fix `e7925014c`; package guard and evidence accompany this

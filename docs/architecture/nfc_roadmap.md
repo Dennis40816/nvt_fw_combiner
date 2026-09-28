@@ -33,16 +33,17 @@ of `1.1.13` so that it can be released on 2026-09-28:
   The 1.1.14 display-convention work inventories consistency and optimization
   findings and allocates them to `1.2.x` versions without implementing them
   in `1.1.14` (decision 149).
-- **`1.1.14`, the last 1.1.x feature version, targeted for 2026-09-29** (decisions 163-177):
+- **`1.1.14`, the last 1.1.x feature version, targeted for 2026-09-29** (decisions 163-178):
   - F17/F23/F26 with the verified F16.
   - The release workflow R-3 with automatic start after the release merge, so the owner's
     one action is the `release` approval (decision 168; RO-9 staging waived by decision
     174); R-4 and R-6.
   - The verifier PyYAML failure.
   - R0/R1 merges without owner approval through CODEOWNERS (decisions 165 and 172).
-  - The owner additions of decisions 171 and 177: Memory Layout connectors, the DP Jira
-    Index 0 display, the redirected local-state notice, the TP SVN icon and tooltip font,
-    and the non-standard DP size warning presentation.
+  - The owner additions of decisions 171, 177 and 178: Memory Layout connectors, the DP
+    Jira Index 0 display, the redirected local-state notice, the TP SVN icon and tooltip
+    font, the non-standard DP size warning presentation, and startup focus off the
+    navigation tabs.
   - The ADR 0077 B4 first-window acceptance moved from 1.1.13.
   - Parity P-2 and the first formal ADR 0078 comparison move to `1.2.x` (decision 167);
     the 1.1.14 release states an ADR 0078 waiver.
@@ -154,8 +155,8 @@ This amendment supersedes the affected F01–F26 allocations below. The owner ac
   then F01/F02/F25 close, READY cancellation, recovery and lifetime containment.
 - **1.1.14**: F17/F23/F26 controlled CLI/workflow/JSON errors, demonstrated F16
   capacity/obsolete-message defects, and integrated regression of these repairs.
-- **Remain later**: F09/F10/F12 in 1.2.5; F11/F13 in 1.2.6; F22 in 1.2.7,
-  coordinated with 1.2.1 Customized large-file work; F14/F15 in 1.2.8.
+- **Remain later** (versions per decision 175): F09/F10/F12 in 1.2.8; F11 in 1.2.9;
+  F13 in 1.2.12; F22 in 1.2.4 with the large-file implementation; F14/F15 in 1.2.12.
   A demonstrated OOM needs a bounded repair proposal, not an invented new limit.
   F19 shipped in 1.1.8; F24 implementation is included in the 1.1.10 candidate.
 
@@ -349,7 +350,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.11` | **Input correctness, deferred AB/OSD verification and shared information UI**: reproduce/fix F04/F05; complete the current-source AB CtrlRAM and OSD evidence/owner review, retained Info/Details/Event Buffer/DP AB layout/Flash BIN assessment and loaded-FW screenshots. Temporarily hide Customized Merge/Replace UI entry points until their corresponding functionality is released and accepted; preserve implementation and data. See the owner-approved allocation above. |
 | `1.1.12` | Published 2026-09-26. **Output/persistence correctness and measured Home startup optimization**: F07/F08, residual F20/F21; preserve committed receipts and existing destinations, expose retryable errors. Hard targets from process launch: visible first window within 500 ms, all startup loading within 2,000 ms; nonessential work in background. Use comparable per-launch timing and first-navigation regression evidence; see the 2026-09-25 startup amendment. TP SVN modeling uses the owner-confirmed 4-byte field at TP start + `0x24` (decision 36) and proceeds only under the `1.1.13` C-7 R3 admission; the scoped NT51950 Normal/Both Header backup CRC investigation follows its linked deferral amendment. 2026-09-26 release scope: see [Owner release scope for 1.1.12](#owner-release-scope-for-1112--2026-09-26); F08, residual F20/F21, TP SVN modeling and the Header backup CRC investigation move to `1.1.13`. |
 | `1.1.13` | In progress. **Items moved from 1.1.12, 1.1.12 follow-ups and the pre-built profile catalog, then process cancellation and window lifetime**: the items moved by the 2026-09-26 [1.1.12 release-scope disposition](#owner-release-scope-for-1112--2026-09-26) first (F08 and residual F20/F21, TP SVN modeling, the Header backup CRC investigation and the process, agent-document, test-architecture, parity and first-window work); the follow-ups and additions of the [2026-09-26 allocation](#owner-allocation-after-the-1112-release--2026-09-26), including the NT51950/NT51951 Display OSD NVT marker rule, release workflow cleanup and pre-built profile catalog; then F03/F06 before F01/F02/F25; bounded termination and recovery. Waves, order and state: [1.1.13 board](../handoff/1.1.13.md). |
-| `1.1.14` | **Controlled diagnostics, repair regression and display-convention consistency**: F17/F23/F26, demonstrated F16 defects; retain F18 evidence throughout. Repository-wide inventory and improvement of display conventions per the [2026-09-26 allocation](#owner-allocation-after-the-1112-release--2026-09-26) (decision 39); `1.1.13` follows the existing conventions until then. |
+| `1.1.14` | **Controlled diagnostics, repair regression and the display-convention inventory**: F17/F23/F26, demonstrated F16 defects; retain F18 evidence throughout. The repository-wide display-convention inventory per the [2026-09-26 allocation](#owner-allocation-after-the-1112-release--2026-09-26) (decision 39) allocates its findings to `1.2.x` without implementing them in `1.1.14` (decision 149). The other `1.1.14` items follow decisions 163-178 (see the list at the top of this document). |
 | `1.2.0` | **User release after all `1.1.x` development** (decision 103, [2026-09-27 amendment](#owner-amendment-for-120-and-11x-releases--2026-09-27)): `1.2.0` is the release users receive once `1.1.x` development is complete; the standing firmware verification reminders apply at that release's approval. This supersedes the prior 2026-09-26 wording that `1.2.0` is no longer a release label. Historical note: on 2026-09-23 the owner explicitly chose `1.1.10`, not `1.2.0`, for that separate numbering correction; the former Launcher development tranche remains in `1.2.1`, and reference refresh/current evidence remain in the `1.1.10` delivery. |
 | `1.2.1` | **Early inventory and direction** (decision 175; item lists in the [1.2.x allocation](../handoff/1.1.14/1.2.x-allocation.md)). Contracts, inventories and decisions only, without production changes: the General input lifecycle contract for large files, the Launcher state and first tranche, the delta-update baseline, the self-update and intranet source contracts, the Python Combiner candidate and mode list, the residual semantic-owner map and migration boundary, the shared-definition reference syntax, the overdesign and new-IC gap assessments, the UI interaction review, the .NET lane plan and the Header-copy facts. Claude Fable 5.1 or Codex `gpt-6-astra` at its highest effort performs each evaluation, and the other reviews it (decision 169). Sources: the [1.2.1 handoff](v1.2.1-handoff.md) and the [Python Combiner intake](#121-python-combiner-intake--2026-09-21). |
 | `1.2.2` | **Parity P-2 comparator and the first formal ADR 0078 comparison** (decisions 167 and 175): stages 2-4 with the v0.9.16 baseline executor, then the first rolling report of record and the v0.9.16 milestone report. The `1.2.0` and `1.2.1` releases state ADR 0078 waivers (decision 176). |
@@ -843,8 +844,9 @@ surviving functionality.
 ### Deferred UI completion from `1.1.4` — 2026-09-10
 
 The 2026-09-10 allocation moved remaining non-Memory-Layout work to `1.1.7`.
-The current sequence distributes these retained boundaries across `1.2.4`
-(first-entry/options), `1.2.5` (Report) and `1.2.6` (visual/native acceptance):
+The current sequence (decision 175) distributes these retained boundaries across `1.2.7`
+(first-entry/options), `1.2.8` (Report), `1.2.9` (shared visual) and `1.2.10` (native
+acceptance):
 
 - First-entry IC selection: context lifetime, invalidation and Cancel/Back.
 - Report physical-section grouping and historical replay compatibility.
@@ -1112,10 +1114,10 @@ release.
 
 | Retained issue | Current allocation and reconciliation boundary |
 | --- | --- |
-| [#380 preload evidence/release](https://github.com/Dennis40816/nvt_fw_combiner/issues/380) | Preserve completed `1.1.3`/`1.1.5` CI/performance history; Home startup/catalog-ready optimization is now `1.1.12`, provenance reconciliation remains `1.2.7`, and conditional CtrlRAM cold first-open/F14/F15 follow-up remains `1.2.8`. Do not restore its old five-minute CI target or re-release `0.10.5`. |
-| [#291 theme audit](https://github.com/Dennis40816/nvt_fw_combiner/issues/291) | Remaining existing-surface theme and native-accessibility audit belongs to `1.2.6`; preserve shipped `1.1.4` corrections and their evidence. |
-| [#2 early UI planning](https://github.com/Dennis40816/nvt_fw_combiner/issues/2) | Reconcile the early umbrella in `1.2.7`; remaining existing-screen work follows `1.1.7` and `1.2.4`-`1.2.6`, with new authoring in `1.3.x`. Do not redo completed demo/shell work. |
-| [#1 early core implementation](https://github.com/Dennis40816/nvt_fw_combiner/issues/1) | Reconcile the early umbrella in `1.2.7`; an old open item is not evidence that the current compiler/planner/executor is missing. Retain any genuine unmet acceptance criteria. |
+| [#380 preload evidence/release](https://github.com/Dennis40816/nvt_fw_combiner/issues/380) | Preserve completed `1.1.3`/`1.1.5` CI/performance history; Home startup/catalog-ready optimization is now `1.1.12`, provenance reconciliation remains `1.2.12`, and conditional CtrlRAM cold first-open/F14/F15 follow-up remains `1.2.12`. Do not restore its old five-minute CI target or re-release `0.10.5`. |
+| [#291 theme audit](https://github.com/Dennis40816/nvt_fw_combiner/issues/291) | Remaining existing-surface theme and native-accessibility audit belongs to `1.2.9`/`1.2.10` (decision 175); preserve shipped `1.1.4` corrections and their evidence. |
+| [#2 early UI planning](https://github.com/Dennis40816/nvt_fw_combiner/issues/2) | Reconcile the early umbrella in `1.2.12`; remaining existing-screen work follows `1.1.7` and `1.2.7`-`1.2.10`, with new authoring in `1.3.x`. Do not redo completed demo/shell work. |
+| [#1 early core implementation](https://github.com/Dennis40816/nvt_fw_combiner/issues/1) | Reconcile the early umbrella in `1.2.12`; an old open item is not evidence that the current compiler/planner/executor is missing. Retain any genuine unmet acceptance criteria. |
 
 GitHub still owns live open/closed state. This table allocates work and does
 not close, relabel or rewrite the issues.
