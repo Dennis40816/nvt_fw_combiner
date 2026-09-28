@@ -138,16 +138,22 @@ public sealed class TpSvnFactPresentationTests
         Assert.DoesNotContain(facts, static fact => fact.Label == "TP SVN");
     }
 
-    /// <summary>AB Merge TP A/TP B inputs are separate single-TP cards, each with its own TP SVN.</summary>
-    [Fact]
-    public void AbMergeTpCardShowsItsOwnStampAfterEventBuffer()
+    /// <summary>Decision 40: AB Merge inputs label each stamp with its bank after Event Buffer Version.</summary>
+    [Theory]
+    [InlineData(false, CompositionAddressSpaceIds.TpAInput, CompiledInputVersionKind.TpA, "TPA Version", "TP SVN (A)")]
+    [InlineData(false, CompositionAddressSpaceIds.TpBInput, CompiledInputVersionKind.TpB, "TPB Version", "TP SVN (B)")]
+    [InlineData(true, CompositionAddressSpaceIds.TpAInput, CompiledInputVersionKind.TpA, "TPA Version", "TP SVN (A)")]
+    [InlineData(true, CompositionAddressSpaceIds.TpBInput, CompiledInputVersionKind.TpB, "TPB Version", "TP SVN (B)")]
+    public void AbMergeTpCardShowsItsBankLabeledStampAfterEventBuffer(
+        bool chinese, string addressSpaceId, CompiledInputVersionKind versionKind,
+        string versionLabel, string svnLabel)
     {
-        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
-        var slot = new FirmwareSlotViewModel("tp-b-input", "TP B BIN", "TP B input", FirmwareSlotKind.Tp);
+        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        var slot = new FirmwareSlotViewModel(addressSpaceId, "TP BIN", "TP input", FirmwareSlotKind.Tp);
         var inspection = new FirmwareInspectionSnapshot(null, Metadata, null, null, null, null)
         {
-            AbMergeFacts = new AbMergeInputFacts(CompositionAddressSpaceIds.TpBInput,
-                [new(CompiledInputVersionKind.TpB, 0x80, 0)])
+            AbMergeFacts = new AbMergeInputFacts(addressSpaceId,
+                [new(versionKind, 0x80, 0)])
             {
                 TpSvn = Stamp([0xC0, 0x19, 0x49, 0x14]),
             },
@@ -156,7 +162,7 @@ public sealed class TpSvnFactPresentationTests
 
         IReadOnlyList<FirmwareSlotFactViewModel> facts = FirmwareInspectionProjection.GetFirmwareFacts(slot, inspection, text);
 
-        Assert.Equal(["TPB Version", "PID", "Common FW Version", "IC Count", text.EventBufferVersionLabel, "TP SVN"],
+        Assert.Equal([versionLabel, "PID", "Common FW Version", "IC Count", text.EventBufferVersionLabel, svnLabel],
             facts.Select(static fact => fact.Label));
     }
 

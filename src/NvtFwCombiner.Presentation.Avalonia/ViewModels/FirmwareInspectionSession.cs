@@ -121,8 +121,9 @@ internal static class FirmwareInspectionProjection
             }
             if (abInput.TpSvn is { } tpSvn)
             {
-                // Decision 36: each AB TP input is its own single-TP card with its own TP SVN.
-                facts.Add(UiCompositionRunner.CreateTpSvnFact(tpSvn, text));
+                // Decision 40: each AB TP input labels its own stamp with the input bank.
+                facts.Add(UiCompositionRunner.CreateTpSvnFact(tpSvn, text,
+                    $"TP SVN ({(abInput.AddressSpaceId == CompositionAddressSpaceIds.TpAInput ? "A" : "B")})"));
             }
         }
         return facts;
