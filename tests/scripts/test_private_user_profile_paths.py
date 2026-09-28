@@ -3,7 +3,10 @@
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
 from validate_repository import validate_private_user_profile_paths  # noqa: E402
 
 
@@ -59,3 +62,27 @@ def test_skips_binary_content_with_embedded_null(tmp_path: Path) -> None:
     validate_private_user_profile_paths([document], errors, root=tmp_path)
 
     assert errors == []
+
+
+@pytest.mark.parametrize("relative", [
+    "docs/governance/change-records/DOC-HYGIENE-1113-PRIVATE-PATHS-01.json",
+    "docs/governance/change-records/LAUNCHER-106-UI-01.json",
+    "docs/governance/change-records/UI-114-MEMORY-CARDS-31.json",
+    "docs/governance/waivers/REL-110-FULL-VERIFY-OWNER-WAIVER-01.md",
+])
+def test_historical_evidence_allows_only_existing_occurrences(
+    tmp_path: Path, relative: str
+) -> None:
+    document = tmp_path / relative
+    document.parent.mkdir(parents=True)
+    original = (ROOT / relative).read_bytes()
+    document.write_bytes(original)
+    errors: list[str] = []
+    validate_private_user_profile_paths([document], errors, root=tmp_path)
+    assert errors == []
+
+    document.write_bytes(original + b"\nC:/Users/developer/Desktop/new-reference\n")
+    validate_private_user_profile_paths([document], errors, root=tmp_path)
+
+    assert len(errors) == 1
+    assert errors[0].startswith(f"private user-profile path in {relative}:")
