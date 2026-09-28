@@ -241,6 +241,8 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
             return RawBinaryEditorFileResult.Failure("Open a BIN before exporting an edited copy.");
         }
 
+        RawBinaryEditorState exportedState = _editor.State;
+
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             return RawBinaryEditorFileResult.Failure("Choose a new BIN output path.");
@@ -268,7 +270,7 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
                     cancellationToken)
                 .ConfigureAwait(false);
             string savedPath = receipt.OutputId;
-            return RawBinaryEditorFileResult.Success(savedPath, _editor.State);
+            return RawBinaryEditorFileResult.Success(savedPath, exportedState);
         }
         catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
         {

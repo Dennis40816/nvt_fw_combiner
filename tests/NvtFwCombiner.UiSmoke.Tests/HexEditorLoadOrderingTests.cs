@@ -15,6 +15,83 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 [Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed class HexEditorLoadOrderingTests
 {
+    /// <summary>A Save As picker opened for an earlier dialog cannot export after cancel and reopen.</summary>
+    [AvaloniaFact]
+    public async Task SaveAsPickerRejectsCancelledAndReopenedDialog()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-stale-save");
+        string source = workspace.Write("source.bin", [0x10, 0x20]);
+        string destination = workspace.PathFor("edited.bin");
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
+        HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
+        await editor.LoadAsync(source, TestContext.Current.CancellationToken);
+        editor.SetByteToFfCommand.Execute(0);
+        editor.RequestSaveCommand.Execute(null);
+        var picker = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var modal = new HexEditorSaveModal { DataContext = editor };
+
+        Task saving = modal.ConfirmSaveWithPickerAsync(() => picker.Task);
+        editor.CancelSaveCommand.Execute(null);
+        editor.RequestSaveCommand.Execute(null);
+        picker.SetResult(destination);
+        await saving;
+
+        Assert.False(File.Exists(destination));
+        Assert.True(editor.IsSaveConfirmationOpen);
+        Assert.True(editor.CanSave);
+    }
+
+    /// <summary>Save As retains the selected document version across the native picker.</summary>
+    [AvaloniaFact]
+    public async Task SaveAsPickerRejectsAnEditedDocumentAndAcceptsCurrentSelection()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-save-context");
+        string source = workspace.Write("source.bin", [0x10, 0x20]);
+        string destination = workspace.PathFor("edited.bin");
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
+        HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
+        await editor.LoadAsync(source, TestContext.Current.CancellationToken);
+        editor.SetByteToFfCommand.Execute(0);
+        editor.RequestSaveCommand.Execute(null);
+        var picker = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var modal = new HexEditorSaveModal { DataContext = editor };
+
+        Task staleSave = modal.ConfirmSaveWithPickerAsync(() => picker.Task);
+        editor.SetByteToFfCommand.Execute(1);
+        picker.SetResult(destination);
+        await staleSave;
+        Assert.False(File.Exists(destination));
+        Assert.True(editor.IsSaveConfirmationOpen);
+
+        await modal.ConfirmSaveWithPickerAsync(() => Task.FromResult<string?>(destination));
+        Assert.Equal([0xFF, 0xFF], File.ReadAllBytes(destination));
+        Assert.False(editor.IsSaveConfirmationOpen);
+    }
+
+    /// <summary>A completed export cannot publish an earlier work-buffer state over later edits.</summary>
+    [AvaloniaFact]
+    public async Task LateSaveAsResultDoesNotReplaceNewerEditorState()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-stale-export");
+        string source = workspace.Write("source.bin", [0x10, 0x20]);
+        string destination = workspace.PathFor("edited.bin");
+        var files = new CommitDelayedFiles { DelaySaveResult = true };
+        var editor = new HexEditorWorkspaceViewModel(ShellTextResources.For(ShellLanguage.English), files);
+        await editor.LoadAsync(source, TestContext.Current.CancellationToken);
+        editor.SetByteToFfCommand.Execute(0);
+
+        Task saving = editor.SaveAsAsync(destination, TestContext.Current.CancellationToken);
+        await files.SaveCommitted.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        editor.SetByteToFfCommand.Execute(1);
+        string currentStatus = editor.EditorStatus;
+        files.ReleaseSave.SetResult();
+        await saving;
+
+        Assert.Equal([0xFF, 0x20], await File.ReadAllBytesAsync(destination, TestContext.Current.CancellationToken));
+        Assert.Equal(currentStatus, editor.EditorStatus);
+        Assert.True(editor.HasUnsavedChanges);
+    }
+
     /// <summary>Both obsolete success and obsolete failure leave the accepted view unchanged.</summary>
     [Theory]
     [InlineData(true)]
@@ -214,8 +291,11 @@ public sealed class HexEditorLoadOrderingTests
         private IRawBinaryEditorFileSession _inner = null!;
         internal string? DelayedPath { get; set; }
         internal bool ThrowAfterCommit { get; set; }
+        internal bool DelaySaveResult { get; set; }
         internal TaskCompletionSource Committed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource SaveCommitted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource ReleaseSave { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public string? SourcePath => _inner.SourcePath;
         public RawBinaryEditorFileResult? AcceptedLoad => _inner.AcceptedLoad;
         public string SuggestedOutputFileName => _inner.SuggestedOutputFileName;
@@ -239,9 +319,15 @@ public sealed class HexEditorLoadOrderingTests
         {
             return _inner.FindAsciiAsync(text, startOffset, cancellationToken);
         }
-        public Task<RawBinaryEditorFileResult> SaveAsAsync(string outputPath, CancellationToken cancellationToken = default)
+        public async Task<RawBinaryEditorFileResult> SaveAsAsync(string outputPath, CancellationToken cancellationToken = default)
         {
-            return _inner.SaveAsAsync(outputPath, cancellationToken);
+            RawBinaryEditorFileResult result = await _inner.SaveAsAsync(outputPath, cancellationToken);
+            if (DelaySaveResult)
+            {
+                SaveCommitted.SetResult();
+                await ReleaseSave.Task;
+            }
+            return result;
         }
     }
 

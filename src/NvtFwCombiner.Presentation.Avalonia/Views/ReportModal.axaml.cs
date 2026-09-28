@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using System.Text;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
@@ -38,6 +39,7 @@ public sealed partial class ReportModal : UserControl
         try
         {
             string destinationName;
+            bool bestEffortProviderWrite;
             using (IStorageFile? file = await FirmwareFilePickerDialogs.PickRunReportSaveFileAsync(storageProvider, suggestedName))
             {
                 if (file is null)
@@ -47,12 +49,22 @@ public sealed partial class ReportModal : UserControl
 
                 destinationSelected = true;
                 destinationName = file.Name;
-                await using Stream stream = await file.OpenWriteAsync();
-                await using var writer = new StreamWriter(stream, leaveOpen: true);
-                await writer.WriteAsync(reportJson);
+                string? localPath = file.TryGetLocalPath();
+                bestEffortProviderWrite = localPath is null;
+                if (localPath is not null)
+                {
+                    await (viewModel.LocalFiles ?? throw new InvalidOperationException("Local report storage is unavailable."))
+                        .WriteAsync(localPath, Encoding.UTF8.GetBytes(reportJson), CancellationToken.None);
+                }
+                else
+                {
+                    await using Stream stream = await file.OpenWriteAsync();
+                    await using var writer = new StreamWriter(stream, leaveOpen: true);
+                    await writer.WriteAsync(reportJson);
+                }
             }
 
-            viewModel.NotifyReportSaved(destinationName);
+            viewModel.NotifyReportSaved(destinationName, bestEffortProviderWrite);
         }
         catch (OperationCanceledException) when (!destinationSelected)
         {

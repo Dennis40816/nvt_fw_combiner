@@ -74,7 +74,7 @@ internal sealed partial class ReplacePresentationViewModel
                 decision.OutputPathUsesAutomaticName,
                 decision.BundleIntent,
                 exactSession)),
-            preserveDeliveryState: exactSession is not null);
+            preserveDeliveryState: exactSession is not null, preparedSuccessor: exactSession is not null);
     }
 
     internal async Task<bool> RequestCtrlRamBuildSettingsAsync()

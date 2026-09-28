@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Avalonia.Headless.XUnit;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.ExternalTools;
@@ -6,12 +7,107 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>A diagnostics picker from a closed and reopened Message Center cannot export.</summary>
+    [AvaloniaFact]
+    public async Task DiagnosticsPickerRejectsClosedAndReopenedContext()
+    {
+        StubCatalog catalog = new();
+        SystemInformationService diagnostics = new(
+            "0.10.3-test", catalog, catalog, CreateExternalEnvironmentLoader(),
+            new StubRuntimeProbe(), new StubClock());
+        var exporter = new CapturingDiagnosticsExporter();
+        MainWindowViewModel shell = new(
+            "test", "0.10.3-test", ShellLanguage.English,
+            PresentationTestHost.CreateServices("0.10.3-test"),
+            new DelegatingFirmwareInspection(TestHost.FirmwareInspectionExperience, batchReader: static (_, _) => []),
+            systemInformationService: diagnostics,
+            systemDiagnosticsExporter: exporter);
+        MessageCenterViewModel viewModel = shell.MessageCenter;
+        viewModel.OpenCommand.Execute(null);
+        var picker = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var modal = new MessageCenterModal { DataContext = viewModel };
+
+        Task exporting = modal.ExportWithPickerAsync(() => picker.Task);
+        viewModel.CloseCommand.Execute(null);
+        viewModel.OpenCommand.Execute(null);
+        picker.SetResult("stale-diagnostics.json");
+        await exporting;
+
+        Assert.Null(exporter.Bundle);
+        Assert.Equal(string.Empty, viewModel.ExportStatus);
+
+        await modal.ExportWithPickerAsync(() => Task.FromResult<string?>("current-diagnostics.json"));
+        Assert.NotNull(exporter.Bundle);
+        Assert.Equal(viewModel.Text.DiagnosticsExportedLabel, viewModel.ExportStatus);
+    }
+
+    /// <summary>A provider picker error is contained in the existing export status and can be retried.</summary>
+    [AvaloniaFact]
+    public async Task DiagnosticsPickerFailureIsVisibleAndRetryable()
+    {
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
+        MessageCenterViewModel viewModel = shell.MessageCenter;
+        viewModel.OpenCommand.Execute(null);
+        var modal = new MessageCenterModal { DataContext = viewModel };
+
+        await modal.ExportWithPickerAsync(() => Task.FromException<string?>(new IOException("picker failed")));
+
+        Assert.Equal(viewModel.Text.DiagnosticsExportFailedLabel, viewModel.ExportStatus);
+        await modal.ExportWithPickerAsync(() => Task.FromResult<string?>(null));
+        Assert.Equal(viewModel.Text.DiagnosticsExportFailedLabel, viewModel.ExportStatus);
+    }
+
+    /// <summary>An I/O completion from before close cannot publish status into the reopened modal.</summary>
+    [AvaloniaFact]
+    public async Task DiagnosticsExportCompletionRejectsReopenedContext()
+    {
+        StubCatalog catalog = new();
+        SystemInformationService diagnostics = new(
+            "0.10.3-test", catalog, catalog, CreateExternalEnvironmentLoader(),
+            new StubRuntimeProbe(), new StubClock());
+        var exporter = new DelayedDiagnosticsExporter();
+        MainWindowViewModel shell = new(
+            "test", "0.10.3-test", ShellLanguage.English,
+            PresentationTestHost.CreateServices("0.10.3-test"),
+            new DelegatingFirmwareInspection(TestHost.FirmwareInspectionExperience, batchReader: static (_, _) => []),
+            systemInformationService: diagnostics,
+            systemDiagnosticsExporter: exporter);
+        MessageCenterViewModel viewModel = shell.MessageCenter;
+        viewModel.OpenCommand.Execute(null);
+
+        Task exporting = viewModel.ExportAsync("diagnostics.json", TestContext.Current.CancellationToken);
+        await exporter.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        viewModel.CloseCommand.Execute(null);
+        viewModel.OpenCommand.Execute(null);
+        exporter.Release.SetResult();
+        await exporting;
+
+        Assert.True(exporter.Completed);
+        Assert.Equal(string.Empty, viewModel.ExportStatus);
+    }
+
+    private sealed class DelayedDiagnosticsExporter : NvtFwCombiner.Application.Ports.ISystemDiagnosticsExporter
+    {
+        internal TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal bool Completed { get; private set; }
+
+        public async ValueTask ExportAsync(SystemDiagnosticsBundle bundle, string destinationPath,
+            CancellationToken cancellationToken)
+        {
+            Entered.SetResult();
+            await Release.Task.WaitAsync(cancellationToken);
+            Completed = true;
+        }
+    }
+
     /// <summary>A typed external discovery failure becomes a warning without escaping the refresh command.</summary>
     [Fact]
     public async Task ExternalEnvironmentFailureRemainsVisibleAndRetryable()

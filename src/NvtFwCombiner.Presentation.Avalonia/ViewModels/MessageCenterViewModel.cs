@@ -55,6 +55,13 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     public ShellTextResources Text => _textProvider();
 
+    internal long ExportContextGeneration { get; private set; }
+
+    internal bool IsExportContextCurrent(long generation)
+    {
+        return generation == ExportContextGeneration && IsOpen && IsSystemInformationSelected;
+    }
+
     public IRelayCommand OpenRunReportsCommand { get; }
 
     /// <summary>Latest immutable System Information observation.</summary>
@@ -297,12 +304,14 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     public async Task ExportAsync(string destinationPath, CancellationToken cancellationToken)
     {
+        long contextGeneration = ExportContextGeneration;
         try
         {
             await _exporter.ExportAsync(
                 _systemInformation.CreateBundle(),
                 destinationPath,
                 cancellationToken);
+            if (contextGeneration != ExportContextGeneration) { return; }
             _systemInformation.RecordActivity(new SystemActivityDraft(
                 SystemActivityCodes.DiagnosticsExported,
                 SystemActivityImportance.Debug,
@@ -316,14 +325,20 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
             UnauthorizedAccessException or
             ArgumentException)
         {
-            _systemInformation.RecordActivity(new SystemActivityDraft(
-                SystemActivityCodes.DiagnosticsExportFailed,
-                SystemActivityImportance.Important,
-                SystemActivityCategory.Diagnostics,
-                SystemActivitySeverity.Error));
-            ExportStatus = Text.DiagnosticsExportFailedLabel;
-            NotifyActivityChanged();
+            if (contextGeneration != ExportContextGeneration) { return; }
+            ReportExportFailure();
         }
+    }
+
+    internal void ReportExportFailure()
+    {
+        _systemInformation.RecordActivity(new SystemActivityDraft(
+            SystemActivityCodes.DiagnosticsExportFailed,
+            SystemActivityImportance.Important,
+            SystemActivityCategory.Diagnostics,
+            SystemActivitySeverity.Error));
+        ExportStatus = Text.DiagnosticsExportFailedLabel;
+        NotifyActivityChanged();
     }
 
     internal void ApplyLanguageChanged()
@@ -360,6 +375,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     private void Open()
     {
+        ExportContextGeneration = checked(ExportContextGeneration + 1);
         ExportStatus = string.Empty;
         _systemInformation.RecordActivity(new SystemActivityDraft(
             SystemActivityCodes.MessageCenterOpened,
@@ -372,6 +388,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
 
     private void Close()
     {
+        ExportContextGeneration = checked(ExportContextGeneration + 1);
         Reports.CloseReportCommand.Execute(null);
         IsOpen = false;
     }
@@ -383,6 +400,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
             return;
         }
 
+        ExportContextGeneration = checked(ExportContextGeneration + 1);
         IsSystemInformationSelected = selected;
     }
 
