@@ -29,9 +29,11 @@
     <ItemGroup>
       <_CatalogProbeHostFiles Include="$(_CatalogProbeHostDirectory)**\*" />
     </ItemGroup>
-    <RemoveDir Directories="$(OutDir)catalog-probe-host" />
+    <!-- "cph" (catalog probe host) stays short: the verifier session path plus the
+         built-in bundle paths must fit under MAX_PATH on machines without long paths. -->
+    <RemoveDir Directories="$(OutDir)cph" />
     <Copy SourceFiles="@(_CatalogProbeHostFiles)"
-          DestinationFiles="@(_CatalogProbeHostFiles->'$(OutDir)catalog-probe-host\%(RecursiveDir)%(Filename)%(Extension)')"
+          DestinationFiles="@(_CatalogProbeHostFiles->'$(OutDir)cph\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
   </Target>
 </Project>

@@ -64,7 +64,7 @@ public sealed class ProfileCatalogProbeTests
 
     private static string CopyHost(TempWorkspace workspace)
     {
-        string source = Path.Combine(AppContext.BaseDirectory, "catalog-probe-host");
+        string source = Path.Combine(AppContext.BaseDirectory, "cph");
         Assert.True(Directory.Exists(source), "The shipped Desktop probe host must be built and copied.");
         string destination = workspace.PathFor("host");
         foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
