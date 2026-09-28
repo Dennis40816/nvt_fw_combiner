@@ -203,6 +203,18 @@ class EvaluationTests(unittest.TestCase):
         verdict = check.evaluate(inputs([copied], text, (review(),)))
         self.assert_fails(verdict, "no code-owned path")
 
+    def test_rename_from_owned_path_to_r1_path_needs_owner_approval_or_split(self) -> None:
+        moved = change("R", "profiles/built-in/p.json", "docs/x.json")
+        text = description(risk="R3", roles=["firmware-owner"])
+        verdict = check.evaluate(inputs([moved], text, (review(),)))
+        self.assert_fails(verdict, "owner approval or split the rename into deletion and addition")
+
+    def test_owned_to_r1_rename_fails_even_with_another_owned_change(self) -> None:
+        moved = change("R", "profiles/built-in/p.json", "docs/x.json")
+        text = description(risk="R3", roles=["firmware-owner"])
+        verdict = check.evaluate(inputs([moved, FIRMWARE], text, (review(),)))
+        self.assert_fails(verdict, "owner approval or split the rename into deletion and addition")
+
     def test_case_exact_owned_destination_remains_code_owned(self) -> None:
         copied = change("C", "docs/README.md", "profiles/p.json")
         text = description(risk="R3", roles=["firmware-owner"])

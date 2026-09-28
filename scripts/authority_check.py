@@ -687,8 +687,29 @@ def evaluate(inputs: CheckInputs) -> Verdict:
         github_paths = {
             path
             for change in inputs.changes
-            for path in (change.paths[-1:] if change.status == "C" else change.paths)
+            for path in (change.paths[-1:] if change.status in {"C", "R"} else change.paths)
         }
+
+        def code_owned(path: str) -> bool:
+            return any(
+                entry.floor in {"R2", "R3"} and entry.matches(path, case_sensitive=True)
+                for policy in policies
+                for entry in policy.entries
+            )
+
+        owned_renames_to_r1 = [
+            change
+            for change in inputs.changes
+            if change.status == "R" and code_owned(change.paths[0])
+            and not code_owned(change.paths[-1])
+        ]
+        for change in owned_renames_to_r1:
+            verdict.errors.append(
+                f"owned-path rename {change.paths[0]} -> {change.paths[-1]} has no "
+                "code-owned destination; obtain owner approval or split the rename into "
+                "deletion and addition so CODEOWNERS can require review, then rerun "
+                "the authority check"
+            )
         for path in sorted(github_paths):
             insensitive_owned = any(
                 entry.floor in {"R2", "R3"} and entry.matches(path)
@@ -705,12 +726,7 @@ def evaluate(inputs: CheckInputs) -> Verdict:
                     f"path {path} matches an R2/R3 policy pattern only without case sensitivity; "
                     "case-sensitive CODEOWNERS cannot request owner review"
                 )
-        if _risk_index(block.risk) >= 2 and not any(
-            entry.floor in {"R2", "R3"} and entry.matches(path, case_sensitive=True)
-            for path in github_paths
-            for policy in policies
-            for entry in policy.entries
-        ):
+        if _risk_index(block.risk) >= 2 and not any(map(code_owned, github_paths)):
             verdict.errors.append(
                 "declared R2/R3 risk has no code-owned path; update the policy "
                 "and CODEOWNERS, obtain owner approval on the exact head, "

@@ -91,7 +91,8 @@ unclassified path, a `classification`). The check takes the changed paths from
 the merge base of the live base tip and the head, both sides of renames and
 copies included for classification, and applies the stricter of the base and
 head policies to each path. Code ownership needs a case-sensitive R2/R3 match
-on a GitHub-listed changed path, excluding an unchanged copy source. A path
+on a GitHub-listed changed path, using only the destination of a copy or rename
+until GitHub's behavior for rename sources is verified. A path
 that matches R2/R3 only without case sensitivity fails closed. It fails when
 the block is missing or malformed, the declared risk
 is below the floor, a role the paths, a review record or a classification
@@ -124,6 +125,9 @@ another runtime uses `other-runtime`; a fresh session of the author's runtime,
 including the same model, uses `same-runtime-fresh-session`. The check compares
 the runtimes and modes; agents can share a GitHub App principal, so actual
 session independence remains procedural.
+Before merging an R0/R1 pull request, the commander checks the dispatch
+record to confirm the reviewer session differs from the implementer session
+and records both session IDs in the pull request.
 The latest record of each listed principal decides.
 Posting or editing a review starts no run, and a new head needs a new record.
 
