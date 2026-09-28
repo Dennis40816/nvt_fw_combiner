@@ -1293,3 +1293,8 @@ verified afterwards, and the board records it (G0 checklist, C3).
   The GCM sign-out reported no stored `Dennis40816` account (the account list is
   empty), so the owner confirms in Windows Credential Manager that no
   `git:https://github.com` entry remains (A8).
+- A8 (2026-09-28): the owner deleted the Git Credential Manager GitHub entry, and
+  the commander ran `gh auth logout --hostname github.com --user Dennis40816` at
+  the owner's request; Windows Credential Manager lists no GitHub entry, `gh auth
+  status` reports no login, and the App wrapper still reaches this repository only.
+  G0 is complete.
