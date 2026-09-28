@@ -20,6 +20,7 @@ internal sealed class WorkflowInspectionProgressObserver(
 
 internal sealed class WorkflowInspectionSet(
     Action statusChanged,
+    string primaryMode,
     string secondaryMode,
     string tertiaryMode)
 {
@@ -32,9 +33,11 @@ internal sealed class WorkflowInspectionSet(
 
     internal WorkflowInspectionLifecycle this[string mode] => mode switch
     {
+        "" => _lifecycles[0],
+        _ when mode == primaryMode => _lifecycles[0],
         _ when mode == secondaryMode => _lifecycles[1],
         _ when mode == tertiaryMode => _lifecycles[2],
-        _ => _lifecycles[0],
+        _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unknown inspection workflow mode."),
     };
 
     internal void ForEach(Action<WorkflowInspectionLifecycle> action)
