@@ -29,12 +29,12 @@ Shared controls:
 - slot cards using only necessary firmware metadata;
 - preview issue list;
 - report modal entry after Preview/Build;
-- disabled Build button until application core reports a valid preview.
+- disabled Build button until application core reports Build readiness; each Build revalidates its inputs and rules before it commits output (no Preview token).
 - fixed-position visual-first Memory coverage before/after area shared by Merge and Replace, with table details as secondary support.
 - visible active state for top navigation and workflow mode selection.
 - right-side inspector for readiness, validation, and processor status.
 - separate button treatments for navigation tabs, rounded pill workflow modes, Home command rows, workflow actions, and disabled actions.
-- changing IC or Number refreshes profile-dependent workflow state, including mode availability, slot cards, Memory coverage, validation, preview tokens, and Build readiness.
+- changing IC or Number refreshes profile-dependent workflow state, including mode availability, slot cards, Memory coverage, validation, and Build readiness.
 
 ## Visual style guardrails
 

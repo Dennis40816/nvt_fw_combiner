@@ -38,7 +38,7 @@ Allowed transcript rows:
 ```text
 [info] Loaded candidate profile: nfc.nt51950.standard-merge
 [info] Compiled 6 operations
-[warn] Build disabled until a valid Preview token exists
+[warn] Build disabled until the inputs pass validation
 [info] External tool binding legacy-combiner-1.13.0 is declared
 ```
 
