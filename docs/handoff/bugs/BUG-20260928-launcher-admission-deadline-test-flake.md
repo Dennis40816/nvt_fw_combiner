@@ -1,6 +1,6 @@
 # BUG-20260928-launcher-admission-deadline-test-flake: the late-admission launcher test can see the admission deadline before the process is created
 
-Status: Application test fixed locally (2026-09-28); Bootstrap host follow-up remains open
+Status: Application test fixed locally (2026-09-28); Bootstrap host follow-up fixed locally (2026-09-29)
 Severity: P3
 Found: 2026-09-28, CI run 36373462006 (`dotnet / test (core)`) on pull request #474 head `46d73bf91`
 Where: `tests/NvtFwCombiner.Application.Tests/VersionManagement/ManagedLauncherEntryCoordinatorTests.cs`,
@@ -35,9 +35,14 @@ different cutoff from the Application test. Locally the unchanged Bootstrap clas
 row once (17 passed, 1 failed), then passed 18/18; the quiet first run did not retain its assertion details,
 so that local failure alone does not prove the precise failing stage.
 
-The host's internal `Create` and private constructor expose no `TimeProvider` seam. Making this host test use a
-manual clock requires a production composition change, outside this task's test-only scope; no private-field
-mutation, timeout increase, retry of the product assertion, or weakened assertion was introduced. Commander
-follow-up: authorize a narrow clock-injection seam and retain the exact resource and host-result assertions.
-The Bootstrap flake is not resolved and its passing rerun does not clear that blocker. Independent fixed-head
-review and the integration full verifier remain commander gates; local self-check is not independent review.
+Bootstrap Resolution (2026-09-29): the host's internal `Create` accepts an optional `TimeProvider` and passes it
+through the private constructor to the existing Application coordinator owner. The production factory uses
+`TimeProvider.System`. The Bootstrap resource-shape test links the existing `ManualTimeProvider`, waits until the
+resource callback is observed, then advances its clock by 1 ms. Its original resource-order and complete host-result
+assertions remain. The 250 ms health cutoff is unchanged; no private-field mutation or assertion retry was added.
+
+Red evidence: before the host seam, the new test failed compilation with CS1501 because `Create` had no six-argument
+overload. Green evidence: `ClosedResourcesAreBoundedAndVersionBoundBeforeEntryRouting` passed all five rows in each
+of three narrow runs (5/5 each); the whole `ManagedDistributionLauncherHostServicesTests` class passed 18/18.
+These local results resolve the known scheduling race in this test, while CI confirmation, independent fixed-head
+review, and the integration full verifier remain commander gates. Local self-check is not independent review.
