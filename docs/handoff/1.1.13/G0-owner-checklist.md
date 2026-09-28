@@ -440,20 +440,22 @@ first.
       themselves; for `gh`, an agent runs the wrapper:
 
       ```text
-      pwsh -NoProfile -File "$env:USERPROFILE/.nfc/G0/scripts/Invoke-NfcGh.ps1" -Owner <owner> -Repo <repo> -ClientId <client-id> -InstallationId <installation-id> -DpapiPath "$env:USERPROFILE/.nfc/G0/keys/app-key.dpapi" <gh arguments>
+      pwsh -NoProfile -File "$env:USERPROFILE/.nfc/G0/scripts/Invoke-NfcGh.ps1" -Owner <owner> -TargetRepository <repo> -ClientId <client-id> -InstallationId <installation-id> -DpapiPath "$env:USERPROFILE/.nfc/G0/keys/app-key.dpapi" <gh arguments>
       ```
 
       "Through the wrapper" below means this form. The first use is D3a.
-      PowerShell binds the wrapper's own parameters before the rest reaches
-      `gh`, so a `gh` option that it reads as one of them or as a common
-      parameter never reaches `gh`: `-R`/`--repo`, `--owner`, `-c`, `-d`,
-      `-i`, `-o` and `-r` (in either case) are refused as duplicates, `-e`,
-      `-p` and `-w` as ambiguous, and `-v`, `--verbose` and `--debug` are
+      PowerShell binds the wrapper's own parameters (`-Owner`,
+      `-TargetRepository`, `-ClientId`, `-InstallationId`, `-DpapiPath`) and
+      its common parameters before the rest reaches `gh`, matching prefixes in
+      either case. `-R`, `--repo` and `-r` now reach `gh`. A `gh` option read as
+      one of the wrapper's parameters never reaches `gh`: `--owner`, `-o`,
+      `-t`, `-c`, `-d` and `-i` are refused as duplicates or missing values,
+      `-e`, `-p` and `-w` as ambiguous, and `-v`, `--verbose` and `--debug` are
       dropped silently. Use long options that match none of them, as this
       checklist does (`--json`, `--jq`, `--base`, `--head`, `--title`,
-      `--body`, `--merge`, `--match-head-commit`); `gh` finds the repository
-      from the working directory. (Observed locally with the wrapper's
-      parameter block on PowerShell 7.6, without GitHub.)
+      `--body`, `--draft`, `--include`, `--merge`, `--match-head-commit`).
+      (Observed locally on 2026-09-28 with the renamed parameter block on
+      PowerShell 7.6, without GitHub.)
 
 ### A7. Agent commit identity
 
