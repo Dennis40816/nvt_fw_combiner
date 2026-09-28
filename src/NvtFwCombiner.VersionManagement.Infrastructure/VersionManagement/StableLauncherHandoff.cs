@@ -66,7 +66,7 @@ public sealed class StableLauncherHandoff :
     }
 
     /// <inheritdoc />
-    public async ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+    public async ValueTask<StableLauncherStartResult> TryStartLauncherAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         try
@@ -77,12 +77,12 @@ public sealed class StableLauncherHandoff :
                     "NvtFwCombiner.Bootstrap.exe",
                     StringComparison.Ordinal))
             {
-                return false;
+                return new(StableLauncherStartOutcome.HandoffFailed);
             }
             string launcher = Path.Combine(_managedRoot, "NvtFwCombiner.Bootstrap.exe");
             if (!ManagedPathSafety.IsSafeExistingDirectory(_managedRoot))
             {
-                return false;
+                return new(StableLauncherStartOutcome.HandoffFailed);
             }
             ManagedExecutableLaunchLeaseResult acquired =
                 await StableManagedExecutableLaunchLease.TryAcquireAsync(
@@ -92,13 +92,14 @@ public sealed class StableLauncherHandoff :
                     cancellationToken).ConfigureAwait(false);
             if (!acquired.IsAcquired)
             {
-                return false;
+                return new(StableLauncherStartOutcome.HandoffFailed);
             }
             using IManagedExecutableLaunchLease lease = acquired.Lease!;
             cancellationToken.ThrowIfCancellationRequested();
             // Cancellation and start compete once; custody I/O cannot reserve admission.
             // After admission wins, native creation owns the start through ResumeThread.
             int admission = 0;
+            bool protocolRejected = false;
             using CancellationTokenRegistration revocation = cancellationToken.Register(
                 () => Interlocked.CompareExchange(ref admission, 2, 0));
             Process? process = ProcessLaunchGate.StartContained(CreateBootstrapStartInfo(
@@ -114,6 +115,7 @@ public sealed class StableLauncherHandoff :
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!_validateLauncherForStart(lease))
                     {
+                        protocolRejected = true;
                         return false;
                     }
                     cancellationToken.ThrowIfCancellationRequested();
@@ -124,13 +126,25 @@ public sealed class StableLauncherHandoff :
                     }
                     return true;
                 });
-            process?.Dispose();
-            return process is not null;
+            if (process is null)
+            {
+                return new(protocolRejected
+                    ? StableLauncherStartOutcome.HandoffFailed
+                    : StableLauncherStartOutcome.ProcessCreationFailed);
+            }
+            using (process)
+            {
+                return process.WaitForExit(500)
+                    ? new(StableLauncherStartOutcome.ExitedImmediately, process.ExitCode)
+                    : new(StableLauncherStartOutcome.Started);
+            }
         }
         catch (Exception exception) when (exception is
             IOException or UnauthorizedAccessException or InvalidOperationException or Win32Exception)
         {
-            return false;
+            return new(exception is Win32Exception
+                ? StableLauncherStartOutcome.ProcessCreationFailed
+                : StableLauncherStartOutcome.HandoffFailed);
         }
     }
 
