@@ -21,6 +21,8 @@ public sealed class StableLauncherHandoff :
     private readonly IManagedProcessTermination _termination;
     private readonly ManagedImmutableBootstrapIdentity? _expectedIdentity;
     private readonly Func<IManagedExecutableLaunchLease, bool> _validateLauncherForStart;
+    private readonly Func<Process, bool> _hasExited;
+    private readonly Func<Process, int> _getExitCode;
 
     /// <summary>Creates a launcher handoff for one exact managed root.</summary>
     /// <param name="managedRoot">Stable launcher-owned root.</param>
@@ -45,7 +47,9 @@ public sealed class StableLauncherHandoff :
         Action<string>? beforeProcessStart = null,
         Action? afterExecutableAcquired = null,
         ManagedImmutableBootstrapIdentity? expectedIdentity = null,
-        Func<IManagedExecutableLaunchLease, bool>? validateLauncherForStart = null)
+        Func<IManagedExecutableLaunchLease, bool>? validateLauncherForStart = null,
+        Func<Process, bool>? hasExited = null,
+        Func<Process, int>? getExitCode = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         if (!Path.IsPathFullyQualified(managedRoot))
@@ -63,12 +67,15 @@ public sealed class StableLauncherHandoff :
         _afterExecutableAcquired = afterExecutableAcquired;
         _expectedIdentity = expectedIdentity;
         _validateLauncherForStart = validateLauncherForStart ?? (static lease => lease.TryValidateForStart());
+        _hasExited = hasExited ?? (static process => process.HasExited);
+        _getExitCode = getExitCode ?? (static process => process.ExitCode);
     }
 
     /// <inheritdoc />
     public async ValueTask<StableLauncherStartResult> TryStartLauncherAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        Process? process;
         try
         {
             if (_expectedIdentity is null ||
@@ -102,7 +109,7 @@ public sealed class StableLauncherHandoff :
             bool protocolRejected = false;
             using CancellationTokenRegistration revocation = cancellationToken.Register(
                 () => Interlocked.CompareExchange(ref admission, 2, 0));
-            Process? process = ProcessLaunchGate.StartContained(CreateBootstrapStartInfo(
+            process = ProcessLaunchGate.StartContained(CreateBootstrapStartInfo(
                 lease.ExecutablePath,
                 _managedRoot,
                 admissionPipeHandle: null,
@@ -132,12 +139,6 @@ public sealed class StableLauncherHandoff :
                     ? StableLauncherStartOutcome.HandoffFailed
                     : StableLauncherStartOutcome.ProcessCreationFailed);
             }
-            using (process)
-            {
-                return process.WaitForExit(500)
-                    ? new(StableLauncherStartOutcome.ExitedImmediately, process.ExitCode)
-                    : new(StableLauncherStartOutcome.Started);
-            }
         }
         catch (Exception exception) when (exception is
             IOException or UnauthorizedAccessException or InvalidOperationException or Win32Exception)
@@ -145,6 +146,20 @@ public sealed class StableLauncherHandoff :
             return new(exception is Win32Exception
                 ? StableLauncherStartOutcome.ProcessCreationFailed
                 : StableLauncherStartOutcome.HandoffFailed);
+        }
+        using (process)
+        {
+            try
+            {
+                return _hasExited(process)
+                    ? new(StableLauncherStartOutcome.ExitedImmediately, _getExitCode(process))
+                    : new(StableLauncherStartOutcome.Started);
+            }
+            catch (Exception exception) when (exception is
+                IOException or UnauthorizedAccessException or InvalidOperationException or Win32Exception)
+            {
+                return new(StableLauncherStartOutcome.HandoffFailed);
+            }
         }
     }
 

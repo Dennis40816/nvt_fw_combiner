@@ -20,12 +20,17 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             "NvtFwCombiner.Bootstrap.exe",
             bytes.LongLength,
             Convert.ToHexStringLower(SHA256.HashData(bytes)));
-        var handoff = new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"), identity);
+        var handoff = new StableLauncherHandoff(
+            workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"),
+            ManagedProcessTermination.Instance,
+            expectedIdentity: identity,
+            hasExited: _ => false);
 
         StableLauncherStartResult missing = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
         File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
         StableLauncherStartResult started = await StartLiveProbeLauncherAsync(handoff, workspace.Root);
-        await Task.Delay(500, TestContext.Current.CancellationToken);
+        await DeleteLaunchWorkspaceAsync(workspace.Root);
 
         Assert.Equal(new(StableLauncherStartOutcome.HandoffFailed), missing);
         Assert.Equal(new(StableLauncherStartOutcome.Started), started);
@@ -149,9 +154,11 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
                     }
                 }
             },
-            expectedIdentity: CreateBootstrapIdentity(managedRoot));
+            expectedIdentity: CreateBootstrapIdentity(managedRoot),
+            hasExited: _ => false);
 
         StableLauncherStartResult started = await StartLiveProbeLauncherAsync(handoff, managedRoot);
+        await DeleteLaunchWorkspaceAsync(workspace.Root);
 
         Assert.Equal(new(StableLauncherStartOutcome.Started), started);
         Assert.Equal(2, blocked);
@@ -165,6 +172,23 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             "NvtFwCombiner.Bootstrap.exe",
             bytes.LongLength,
             Convert.ToHexStringLower(SHA256.HashData(bytes)));
+    }
+
+    private static async Task DeleteLaunchWorkspaceAsync(string root)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (true)
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+                return;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                await Task.Delay(25, timeout.Token);
+            }
+        }
     }
 
     private static async Task<StableLauncherStartResult> StartLiveProbeLauncherAsync(
@@ -208,7 +232,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         }
     }
 
-    /// <summary>An executable that starts but exits during handoff reports its observed code.</summary>
+    /// <summary>An executable observed as exited immediately reports its exit code.</summary>
     [Fact]
     public async Task StableLauncherHandoffReportsImmediateExitCode()
     {
@@ -218,11 +242,36 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         var handoff = new StableLauncherHandoff(
             workspace.Root,
             workspace.PathFor("state/version-manager.v1.json"),
-            CreateBootstrapIdentity(workspace.Root));
+            ManagedProcessTermination.Instance,
+            expectedIdentity: CreateBootstrapIdentity(workspace.Root),
+            hasExited: _ => true,
+            getExitCode: _ => 24);
 
         StableLauncherStartResult result = await StartLiveProbeLauncherAsync(handoff, workspace.Root, "ready");
 
         Assert.Equal(new(StableLauncherStartOutcome.ExitedImmediately, 24), result);
+    }
+
+    /// <summary>A failed post-creation observation cannot be reported as a creation failure.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StableLauncherHandoffReportsPostCreationObservationFailure(bool failOnExitCode)
+    {
+        using var workspace = TempWorkspace.Create();
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe-single-file", "NvtFwCombiner.ReadyProbe.exe");
+        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
+        var handoff = new StableLauncherHandoff(
+            workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"),
+            ManagedProcessTermination.Instance,
+            expectedIdentity: CreateBootstrapIdentity(workspace.Root),
+            hasExited: _ => failOnExitCode ? true : throw new System.ComponentModel.Win32Exception(5),
+            getExitCode: _ => throw new System.ComponentModel.Win32Exception(5));
+
+        StableLauncherStartResult result = await StartLiveProbeLauncherAsync(handoff, workspace.Root, "ready");
+
+        Assert.Equal(new(StableLauncherStartOutcome.HandoffFailed), result);
     }
 
     /// <summary>Launcher handoff honors caller cancellation before touching the process boundary.</summary>
@@ -269,7 +318,9 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             workspace.PathFor("state/version-manager.v1.json"),
             ManagedProcessTermination.Instance,
             beforeProcessStart: path => startedPath = path,
-            expectedIdentity: identity);
+            expectedIdentity: identity,
+            hasExited: _ => true,
+            getExitCode: _ => 24);
 
         ImmutableBootstrapStartResult result = await handoff.StartAsync(
             otherRoot,
