@@ -29,6 +29,16 @@ from tests.scripts.v0916_parity_test_support import (
 
 
 class WorkflowContractSyncTests(unittest.TestCase):
+    def test_protected_parity_run_schemas_accept_workflow_run_only_with_closed_events(self) -> None:
+        for name in ("evidence", "finalize"):
+            with self.subTest(name=name):
+                schema = json.loads((ROOT / f"docs/contracts/v0916-parity-{name}-v1.schema.json")
+                                    .read_text(encoding="utf-8"))
+                event_schema = schema["$defs"]["protectedWorkflowRun"]["properties"]["event"]
+                self.assertEqual({"workflow_dispatch", "workflow_run", "push"},
+                                 set(event_schema["enum"]))
+                self.assertNotIn("pull_request", event_schema["enum"])
+
     def setUp(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -765,7 +775,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
             "workflowBlobSha": workflow_blob_sha,
             "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
-            "workflowSemanticContractSha256": "1fb372baac778bcb26adfd915c1c5da11f75ab4488871e9531bab56c655605da",
+            "workflowSemanticContractSha256": "1271dcc781d805c410b39a3b9e76a37bc4985fcdd982ba0ad1e27ffdeeeefb61",
             "workflowRun": {
                 "id": 123, "runAttempt": 1, "headSha": workflow_head,
                 "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
@@ -1137,7 +1147,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "workflowCommitSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "workflowBlobSha": "e" * 40,
                 "workflowRawSha256": "f" * 64,
-                "workflowSemanticContractSha256": "1fb372baac778bcb26adfd915c1c5da11f75ab4488871e9531bab56c655605da",
+                "workflowSemanticContractSha256": "1271dcc781d805c410b39a3b9e76a37bc4985fcdd982ba0ad1e27ffdeeeefb61",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": "stable-candidate-123-1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",

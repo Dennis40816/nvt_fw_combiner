@@ -28,6 +28,7 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import verify as verify_script  # noqa: E402
+import release_promotion_policy as promotion_policy  # noqa: E402
 
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 RELEASE_MANIFEST_SCHEMA = ROOT / "docs" / "contracts" / "release-manifest-v1.schema.json"
@@ -793,6 +794,93 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
+    def test_actual_pwsh_request_step_preserves_utc_for_automatic_and_manual(self) -> None:
+        request_step = release_workflow_run_block(
+            "candidate", "Derive release request from merge commit")
+        published_at = "2026-09-29T12:34:56Z"
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        for automatic, head_ref, eligible in (("true", version, True),
+                                              ("false", version, True),
+                                              ("true", "ordinary", False)):
+            with self.subTest(automatic=automatic, head_ref=head_ref), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                fixture = root / "gh_fixture.py"
+                pull = {"number": 42, "state": "closed", "merged_at": published_at,
+                        "merge_commit_sha": RELEASE_MAIN_SHA, "base": {"ref": "main"},
+                        "head": {"ref": head_ref, "sha": "b" * 40}}
+                fixture.write_text(
+                    "import json, sys\n"
+                    f"pull = {pull!r}\n"
+                    "print(json.dumps([pull] if 'page=1' in sys.argv else []))\n",
+                    encoding="utf-8")
+                (root / "gh.cmd").write_text(
+                    f'@echo off\r\n"{sys.executable}" "{fixture}" %*\r\n',
+                    encoding="ascii")
+                script = root / "request.ps1"
+                script.write_text(request_step, encoding="utf-8")
+                output = root / "github-output.txt"
+                output.write_text("", encoding="utf-8")
+                summary = root / "summary.txt"
+                environment = {**os.environ, "PATH": f"{root}{os.pathsep}{os.environ['PATH']}",
+                               "GITHUB_OUTPUT": str(output),
+                               "GITHUB_STEP_SUMMARY": str(summary),
+                               "NFC_REPOSITORY": "owner/repo",
+                               "NFC_SOURCE_SHA": RELEASE_MAIN_SHA,
+                               "NFC_AUTOMATIC": automatic}
+                result = subprocess.run(
+                    ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(script)],
+                    cwd=ROOT, env=environment, capture_output=True, text=True,
+                    encoding="utf-8", errors="replace")
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                lines = output.read_text(encoding="utf-8-sig").splitlines()
+                if eligible:
+                    self.assertIn(f"published-at={published_at}", lines)
+                    self.assertIn("eligible=true", lines)
+                else:
+                    self.assertEqual(["eligible=false"], lines)
+
+    def test_actual_pwsh_manifest_step_binds_observed_ref_and_dry_run(self) -> None:
+        manifest_step = release_workflow_run_block(
+            "candidate", "Create closed candidate manifest and outer checksums")
+        for dry_run in ("true", "false"):
+            with self.subTest(dry_run=dry_run), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                assets = root / "artifacts" / "release"
+                evidence = root / "artifacts" / "release-evidence"
+                assets.mkdir(parents=True)
+                evidence.mkdir(parents=True)
+                for name in promotion_policy._candidate_asset_names("1.1.14"):
+                    (assets / name).write_bytes(b"fixture")
+                (assets / "RELEASE-NOTES.md").write_text("notes\n", encoding="utf-8")
+                (evidence / "review-snapshot.json").write_text("{}\n", encoding="utf-8")
+                script = root / "manifest.ps1"
+                script.write_text(manifest_step, encoding="utf-8")
+                output = root / "github-output.txt"
+                environment = {**os.environ, "GITHUB_OUTPUT": str(output),
+                               "NFC_RELEASE_POLICY": str(SCRIPTS / "release_promotion_policy.py"),
+                               "NFC_VERSION": "1.1.14", "NFC_SOURCE_SHA": RELEASE_MAIN_SHA,
+                               "NFC_SOURCE_TREE": "c" * 40,
+                               "NFC_WORKFLOW_SHA": RELEASE_MAIN_SHA,
+                               "NFC_WORKFLOW_REF": "refs/heads/main",
+                               "NFC_RUN_ID": "99", "NFC_DRY_RUN": dry_run}
+                result = subprocess.run(
+                    ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(script)],
+                    cwd=root, env=environment, capture_output=True, text=True,
+                    encoding="utf-8", errors="replace")
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                manifest = assets / "NvtFwCombiner-v1.1.14-candidate.json"
+                self.assertEqual(dry_run == "true", json.loads(
+                    manifest.read_text(encoding="utf-8"))["nonPromotable"])
+                self.assertIn("manifest-name=", output.read_text(encoding="utf-8-sig"))
+                wrong_ref = subprocess.run(
+                    ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(script)],
+                    cwd=root,
+                    env={**environment, "NFC_WORKFLOW_REF": "refs/heads/other"},
+                    capture_output=True, text=True,
+                    encoding="utf-8", errors="replace")
+                self.assertNotEqual(0, wrong_ref.returncode)
+                self.assertIn("candidate workflow ref must be main", wrong_ref.stderr)
+
     def test_workflow_optional_splat_arguments_remain_arrays(self) -> None:
         """PowerShell unrolls an if expression with one array item to a scalar."""
 
@@ -2743,7 +2831,8 @@ finally {
         self.assertEqual(["main"], events["workflow_run"]["branches"])
         self.assertEqual(["dry_run"], list(events["workflow_dispatch"]["inputs"]))
         candidate = workflow["jobs"]["candidate"]
-        for clause in ("github.event.workflow_run.conclusion == 'success'",
+        for clause in ("github.ref == 'refs/heads/main'",
+                       "github.event.workflow_run.conclusion == 'success'",
                        "github.event.workflow_run.event == 'push'",
                        "github.event.workflow_run.head_sha == github.sha",
                        "github.sha == github.workflow_sha"):
@@ -2824,6 +2913,15 @@ finally {
                 "protected-main source and authority",
             ),
             (
+                release.replace("--github-output $env:GITHUB_OUTPUT", "", 1),
+                "protected-main source and authority",
+            ),
+            (
+                release.replace("NFC_WORKFLOW_REF: ${{ github.ref }}",
+                                "NFC_WORKFLOW_REF: refs/heads/main"),
+                "protected-main source and authority",
+            ),
+            (
                 release + "\n# owner_self_approval_exception\n",
                 "must not use a self-approval exception",
             ),
@@ -2890,7 +2988,7 @@ finally {
         self.assertNotIn("published_at:", release)
         self.assertIn("NFC_PUBLISHED_AT: ${{ steps.request.outputs.published-at }}", release)
         self.assertIn("release PR merge time; not actual publication time", release)
-        self.assertIn("published-at=$($request.publishedAt)", candidate)
+        self.assertIn("--github-output $env:GITHUB_OUTPUT", candidate)
         self.assertIn("$env:NFC_PUBLISHED_AT", candidate)
 
         setup_python = candidate.index("Setup release toolchain")

@@ -51,11 +51,12 @@ class ReleaseCleanupPolicyTests(unittest.TestCase):
                 return [owner_review]
             return []
 
-        def snapshot() -> dict[str, object]:
+        def snapshot(workflow_ref: str = "refs/heads/main") -> dict[str, object]:
             return MODULE.collect_review_snapshot(
                 repository="owner/repo", source_sha=SHA, source_tree=TREE,
                 version="1.1.14", pull_request=42,
-                published_at="2026-09-28T10:20:30Z")
+                published_at="2026-09-28T10:20:30Z",
+                workflow_ref=workflow_ref)
 
         with (mock.patch.object(MODULE, "_read_github_paginated_array", side_effect=collect),
               mock.patch.object(MODULE, "_read_github_json", return_value={"tree": {"sha": TREE}}),
@@ -64,6 +65,24 @@ class ReleaseCleanupPolicyTests(unittest.TestCase):
             result = snapshot()
             self.assertEqual("github/human-review", result["reviewerEvidence"]["runtime"])
             self.assertEqual("Dennis40816", result["approvals"][0]["reviewer"])
+            with self.assertRaisesRegex(ValueError, "dispatched from main"):
+                snapshot("refs/heads/other")
+            stale_approval = {**owner_review, "commit_id": "5" * 40}
+            with mock.patch.object(MODULE, "_read_github_paginated_array",
+                                   side_effect=lambda endpoint, label:
+                                   [stale_approval, owner_review] if endpoint.endswith("/reviews")
+                                   else collect(endpoint, label)):
+                result = snapshot()
+                self.assertEqual([REVIEW_HEAD_SHA],
+                                 [item["commitSha"] for item in result["approvals"]])
+            # An undismissed stale CHANGES_REQUESTED still fails closed.
+            stale_approval["state"] = "CHANGES_REQUESTED"
+            with mock.patch.object(MODULE, "_read_github_paginated_array",
+                                   side_effect=lambda endpoint, label:
+                                   [stale_approval, owner_review] if endpoint.endswith("/reviews")
+                                   else collect(endpoint, label)):
+                with self.assertRaisesRegex(ValueError, "CHANGES_REQUESTED"):
+                    snapshot()
             owner_review["commit_id"] = "5" * 40
             with self.assertRaises(ValueError):
                 snapshot()
@@ -92,6 +111,12 @@ class ReleaseCleanupPolicyTests(unittest.TestCase):
                 MODULE.select_release_pull(pulls, SHA, "1.1.14")
         with self.assertRaises(ValueError):
             MODULE.select_release_pull([pull, pull], SHA, "1.1.14", automatic=True)
+        for merged_at in ("2026-09-28T25:20:30Z", "2026-09-28 10:20:30",
+                          "2026-09-28T10:20:30+00:00"):
+            with self.subTest(merged_at=merged_at), self.assertRaisesRegex(
+                ValueError, "mergedAt"):
+                MODULE.select_release_pull([{**pull, "merged_at": merged_at}],
+                                           SHA, "1.1.14")
 
     def test_exact_head_owner_approval_and_reviewer_evidence(self) -> None:
         snapshot = valid_snapshot()
@@ -107,14 +132,22 @@ class ReleaseCleanupPolicyTests(unittest.TestCase):
         for change in (
             {"approvals": [{**snapshot["approvals"][0], "reviewer": "nfc-agent-dennis40816[bot]",
                             "reviewerId": 334370883}]},
+            {"approvals": [{**snapshot["approvals"][0], "reviewer": "other-human",
+                            "reviewerId": 987654321}]},
             {"approvals": [{**snapshot["approvals"][0], "commitSha": "5" * 40}]},
             {"reviewerEvidence": {**snapshot["reviewerEvidence"], "commitSha": "5" * 40}},
             {"reviewerEvidence": {**snapshot["reviewerEvidence"], "reviewer": "other", "reviewerId": 2}},
+            {"reviewerEvidence": {**snapshot["reviewerEvidence"], "runtime": ""}},
+            {"reviewerEvidence": {**snapshot["reviewerEvidence"], "runtime": "bad runtime"}},
             {"reviewDecision": "CHANGES_REQUESTED"},
         ):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 MODULE.validate_candidate_context({**snapshot, **change},
                                                   **ReleasePromotionPolicyTests.candidate_arguments())
+        with self.assertRaisesRegex(ValueError, "PR author"):
+            MODULE.validate_candidate_context(
+                {**snapshot, "authorLogin": "nfc-agent-dennis40816[bot]"},
+                **ReleasePromotionPolicyTests.candidate_arguments())
 
     def test_first_publication_requires_absent_tag_and_newer_stable_version(self) -> None:
         tags = ["v1.1.11", "v1.1.12", "v0.9.19", "preview"]

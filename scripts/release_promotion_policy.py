@@ -927,7 +927,7 @@ def _reviewer_candidate(
 
 def collect_review_snapshot(
     *, repository: str, source_sha: str, source_tree: str, version: str,
-    pull_request: int, published_at: str,
+    pull_request: int, published_at: str, workflow_ref: str,
 ) -> dict[str, Any]:
     """Collect the PR, owner approval, reviewer, and admission in one policy owner."""
 
@@ -962,6 +962,7 @@ def collect_review_snapshot(
          "reviewerId": item.get("user", {}).get("id"),
          "commitSha": item.get("commit_id"), "submittedAt": item.get("submitted_at")}
         for item in reviews if item.get("state") == "APPROVED"
+        and item.get("commit_id") == head_sha
     ]
     candidates = [candidate for source, entries in (
         ("pull-review", reviews),
@@ -997,7 +998,7 @@ def collect_review_snapshot(
     }
     validate_candidate_context(
         snapshot, requested_sha=source_sha, workflow_sha=source_sha,
-        workflow_ref="refs/heads/main", source_sha=source_sha, source_branch="main",
+        workflow_ref=workflow_ref, source_sha=source_sha, source_branch="main",
         source_version=version, main_sha=source_sha, source_tree=source_tree,
     )
     return snapshot
@@ -1847,6 +1848,7 @@ def parse_args() -> argparse.Namespace:
     request.add_argument("--source-sha", required=True)
     request.add_argument("--version", required=True)
     request.add_argument("--automatic", action="store_true")
+    request.add_argument("--github-output", type=Path)
     review_snapshot = subparsers.add_parser("collect-review-snapshot")
     review_snapshot.add_argument("--repository", required=True)
     review_snapshot.add_argument("--source-sha", required=True)
@@ -1854,6 +1856,7 @@ def parse_args() -> argparse.Namespace:
     review_snapshot.add_argument("--version", required=True)
     review_snapshot.add_argument("--pull-request", type=int, required=True)
     review_snapshot.add_argument("--published-at", required=True)
+    review_snapshot.add_argument("--workflow-ref", required=True)
     review_snapshot.add_argument("--output", type=Path, required=True)
     repository_admission = subparsers.add_parser("validate-repository-admission")
     repository_admission.add_argument("--snapshot", type=Path, required=True)
@@ -1947,14 +1950,22 @@ def main() -> int:
             source_tree=args.source_tree,
         )
     elif args.command == "collect-release-request":
-        print(json.dumps(collect_release_request(
-            args.repository, args.source_sha, args.version, automatic=args.automatic)))
+        release_request = collect_release_request(
+            args.repository, args.source_sha, args.version, automatic=args.automatic)
+        if args.github_output is not None and release_request["eligible"]:
+            with args.github_output.open("a", encoding="utf-8", newline="\n") as stream:
+                stream.write("eligible=true\n")
+                stream.write(f"source-sha={args.source_sha}\n")
+                stream.write(f"pull-request={release_request['pullRequest']}\n")
+                stream.write(f"published-at={release_request['publishedAt']}\n")
+        print(json.dumps(release_request))
     elif args.command == "collect-review-snapshot":
         _require(args.output.parent.is_dir(), "review snapshot output parent must exist")
         snapshot = collect_review_snapshot(
             repository=args.repository, source_sha=args.source_sha,
             source_tree=args.source_tree, version=args.version,
             pull_request=args.pull_request, published_at=args.published_at,
+            workflow_ref=args.workflow_ref,
         )
         with args.output.open("x", encoding="utf-8", newline="\n") as stream:
             stream.write(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")

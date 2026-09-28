@@ -24,7 +24,7 @@ concurrency:
 jobs:
   candidate:
     name: release / candidate
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_sha == github.sha && github.sha == github.workflow_sha) }}
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_sha == github.sha && github.sha == github.workflow_sha)) }}
     runs-on: windows-latest
     timeout-minutes: 60
     permissions:
@@ -72,7 +72,7 @@ jobs:
           $automaticArgument = @(if ($env:NFC_AUTOMATIC -eq 'true') { '--automatic' })
           $requestText = python ./scripts/release_promotion_policy.py collect-release-request `
             --repository $env:NFC_REPOSITORY --source-sha $env:NFC_SOURCE_SHA `
-            --version $version @automaticArgument
+            --version $version --github-output $env:GITHUB_OUTPUT @automaticArgument
           if ($LASTEXITCODE -ne 0) { throw 'Release request could not be derived.' }
           $request = $requestText | ConvertFrom-Json -ErrorAction Stop
           if ($request.eligible -ne $true) {
@@ -80,10 +80,6 @@ jobs:
             'Ordinary main push: no release pull request for this VERSION.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             return
           }
-          'eligible=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "source-sha=$env:NFC_SOURCE_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "pull-request=$($request.pullRequest)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "published-at=$($request.publishedAt)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: Lock release authority and candidate identity
         if: ${{ steps.request.outputs.eligible == 'true' }}
         id: identity
@@ -135,6 +131,7 @@ jobs:
           NFC_SOURCE_SHA: ${{ steps.identity.outputs.source-sha }}
           NFC_SOURCE_TREE: ${{ steps.identity.outputs.source-tree }}
           NFC_SOURCE_VERSION: ${{ steps.identity.outputs.version }}
+          NFC_WORKFLOW_REF: ${{ github.ref }}
         run: |
           $evidenceRoot = Join-Path '${{ github.workspace }}' 'artifacts/release-evidence'
           New-Item -ItemType Directory -Force -Path $evidenceRoot | Out-Null
@@ -146,6 +143,7 @@ jobs:
             --version $env:NFC_SOURCE_VERSION `
             --pull-request $env:NFC_PULL_REQUEST `
             --published-at $env:NFC_PUBLISHED_AT `
+            --workflow-ref $env:NFC_WORKFLOW_REF `
             --output $snapshotPath
           if ($LASTEXITCODE -ne 0) { throw 'Final PR review/tree/check policy failed.' }
           $snapshot = Get-Content -LiteralPath $snapshotPath -Raw | ConvertFrom-Json -ErrorAction Stop
@@ -294,7 +292,7 @@ jobs:
           NFC_SOURCE_SHA: ${{ steps.identity.outputs.source-sha }}
           NFC_SOURCE_TREE: ${{ steps.identity.outputs.source-tree }}
           NFC_WORKFLOW_SHA: ${{ github.workflow_sha }}
-          NFC_WORKFLOW_REF: refs/heads/main
+          NFC_WORKFLOW_REF: ${{ github.ref }}
           NFC_RUN_ID: ${{ github.run_id }}
           NFC_DRY_RUN: ${{ inputs.dry_run || false }}
         run: |
@@ -474,7 +472,7 @@ jobs:
           NFC_SOURCE_TREE: ${{ needs.candidate.outputs.source-tree }}
           NFC_RUN_ID: ${{ github.run_id }}
           NFC_WORKFLOW_SHA: ${{ needs.candidate.outputs.workflow-sha }}
-          NFC_WORKFLOW_REF: refs/heads/main
+          NFC_WORKFLOW_REF: ${{ github.ref }}
           NFC_MANIFEST_NAME: ${{ needs.candidate.outputs.manifest-name }}
           NFC_MANIFEST_SHA256: ${{ needs.candidate.outputs.manifest-sha256 }}
         run: |

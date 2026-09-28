@@ -1505,18 +1505,18 @@ def validate_workflows(errors: list[str]) -> None:
         "NFC_AUTOMATIC: ${{ github.event_name == 'workflow_run' }}",
         "if ($env:NFC_AUTOMATIC -eq 'true') { '--automatic' }",
         "collect-release-request",
-        "--version $version @automaticArgument",
-        "pull-request=$($request.pullRequest)",
-        "published-at=$($request.publishedAt)",
+        "--version $version --github-output $env:GITHUB_OUTPUT @automaticArgument",
+        "--github-output $env:GITHUB_OUTPUT",
         "Collect and validate final PR review/check evidence",
         "collect-review-snapshot",
         "--pull-request $env:NFC_PULL_REQUEST",
+        "--workflow-ref $env:NFC_WORKFLOW_REF",
         "$mainSha -ne $env:NFC_WORKFLOW_SHA",
         "$sourceSha = $mainSha",
         "source-branch=main",
         "validate-release-floor",
         "release-eligibility:",
-        "NFC_WORKFLOW_REF: refs/heads/main",
+        "NFC_WORKFLOW_REF: ${{ github.ref }}",
         "$env:NFC_RELEASE_POLICY validate-promotion-source",
         "environment: release",
         "Create or verify immutable annotated tag",
@@ -1559,12 +1559,12 @@ def validate_workflows(errors: list[str]) -> None:
     if not isinstance(gate, str):
         gate = ""
     expected_gate = (
-        "${{ github.event_name == 'workflow_dispatch' || "
+        "${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || "
         "(github.event.workflow_run.conclusion == 'success' && "
         "github.event.workflow_run.event == 'push' && "
         "github.event.workflow_run.head_branch == 'main' && "
         "github.event.workflow_run.head_sha == github.sha && "
-        "github.sha == github.workflow_sha) }}"
+        "github.sha == github.workflow_sha)) }}"
     )
     if gate != expected_gate:
         errors.append(
