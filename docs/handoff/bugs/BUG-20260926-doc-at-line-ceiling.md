@@ -8,4 +8,4 @@ Observed: the file has 2,499 lines; `RepositoryTextFilesStayBelowEmergencyCeilin
 that adds two lines fails the core shard.
 Expected: the file is split or its dated history moved out (as the roadmap was) before its next edit.
 Owner: 1.1.13 (documentation tidy; the same history-archive pattern as `ROADMAP-HISTORY-1113-01`).
-Resolution: not fixed.
+Resolution: fixed by #468 (TODO 55): the dated custom-options handoff history moved to `docs/ui/v1.1.x-custom-options-layout-history.md`, so the handoff document is below its line ceiling again.

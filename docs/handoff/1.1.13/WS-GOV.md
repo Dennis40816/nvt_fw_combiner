@@ -1297,4 +1297,7 @@ verified afterwards, and the board records it (G0 checklist, C3).
   the commander ran `gh auth logout --hostname github.com --user Dennis40816` at
   the owner's request; Windows Credential Manager lists no GitHub entry, `gh auth
   status` reports no login, and the App wrapper still reaches this repository only.
-  G0 is complete.
+  G0 is complete except two owner confirmations the checklist requires: the
+  rule insights showing both D6 bypasses (checklist C2 step 5 and D6; the App
+  cannot read that admin view) and the Bitwarden backup confirmation
+  (`docs/handoff/1.1.13.md`, G0 still-open list).

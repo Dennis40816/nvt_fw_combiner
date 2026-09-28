@@ -22,4 +22,4 @@ Update (2026-09-27): a test-only fix (branch `feature/1.1.13/script-test-stabili
 only `ERROR_SHARING_VIOLATION` as a lock and renames the test to what it proves: tampering is always detected by one of
 the two hash checks and never admitted. It no longer claims that the mutation lands between the two checks.
 Deterministic post-hash coverage needs a synchronization point in the script (R2) and is later work; this bug stays open.
-Resolution:
+Resolution: fixed by #468 (W6-D, `9789c564f` and `80271c58f`): `test_mutation_after_first_hash_check_is_rejected_by_second_hash_check` uses a PowerShell script-debugger breakpoint as a test-only synchronization seam, so a mutation lands strictly after the first hash check and strictly before the second, without polling or a change to `scripts/deploy-update-source.ps1`. This supersedes the 2026-09-27 update above, which expected a script change.
