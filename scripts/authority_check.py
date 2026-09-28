@@ -378,6 +378,7 @@ class AuthorityBlock:
     risk: str
     roles: frozenset[str]
     evidence: Mapping[str, Mapping[str, Any]]
+    implementation_owner: str
 
 
 def parse_authority_block(description: str) -> AuthorityBlock:
@@ -403,7 +404,7 @@ def parse_authority_block(description: str) -> AuthorityBlock:
     )
     undeclared = sorted(set(evidence) - roles)
     _require(not undeclared, f"the authority block has evidence for undeclared roles {undeclared}")
-    return AuthorityBlock(block["risk"], roles, evidence)
+    return AuthorityBlock(block["risk"], roles, evidence, block["implementationOwner"])
 
 
 @dataclass(frozen=True)
@@ -624,6 +625,13 @@ def evaluate(inputs: CheckInputs) -> Verdict:
                 added_roles |= record.added_roles
         latest = max(reviews, key=lambda review: (review.submitted_at, review.id))
         record, problem = _record_problem(latest, inputs.head_sha)
+        if (
+            problem is None
+            and record is not None
+            and block is not None
+            and record.reviewer.casefold() == block.implementation_owner.casefold()
+        ):
+            problem = "record reviewer is the implementation author"
         if problem is None and record is not None:
             valid.append(f"{latest.login} review {latest.id} ({record.reviewer}, {record.verdict})")
         else:
@@ -661,11 +669,22 @@ def evaluate(inputs: CheckInputs) -> Verdict:
             )
             verdict.errors.append(f"required roles are not declared: {missing}{detail}")
         verdict.errors.extend(_evidence_errors(block, verdict.unclassified))
+        if _risk_index(block.risk) >= 2 and not any(
+            _risk_index(classification.floor) >= 2 and not classification.unclassified
+            for path, _ in rows
+            for policy in policies
+            for classification in (policy.classify(path),)
+        ):
+            verdict.errors.append(
+                "declared R2/R3 risk has no code-owned path; update the policy "
+                "and CODEOWNERS, obtain owner approval on the exact head, "
+                "then rerun the authority check"
+            )
     effective = max(floor, block.risk if block is not None else "R0", key=_risk_index)
-    if _risk_index(effective) >= 1 and not valid:
+    if not valid:
         detail = "; ".join(record_notes) or "no listed reviewer posted a record on this head"
         verdict.errors.append(
-            f"an {effective} change needs a valid review record on head {inputs.head_sha}: {detail}"
+            f"an {effective} change needs a valid independent review record on head {inputs.head_sha}: {detail}"
         )
     return verdict
 

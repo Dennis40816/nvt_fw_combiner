@@ -106,7 +106,14 @@ def inputs(
     base_schema: bytes | None = SCHEMA,
 ) -> Any:
     return check.CheckInputs(
-        HEAD, tuple(changes), head_policy, head_schema, base_policy, base_schema, text, reviews
+        HEAD,
+        tuple(changes),
+        head_policy,
+        head_schema,
+        base_policy,
+        base_schema,
+        text,
+        reviews,
     )
 
 
@@ -147,10 +154,52 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(verdict.floor, "R3")
         self.assertEqual(verdict.required_roles, {"governance-owner", "release-owner"})
 
-    def test_prose_only_change_passes_as_r0_without_a_review_record(self) -> None:
-        verdict = check.evaluate(inputs([PROSE], description(risk="R0")))
+    def test_prose_only_change_passes_as_r0_with_independent_review(self) -> None:
+        verdict = check.evaluate(inputs([PROSE], description(risk="R0"), (review(OWNER),)))
         self.assert_passes(verdict)
         self.assertEqual(verdict.floor, "R0")
+
+    def test_r0_change_without_review_record_fails(self) -> None:
+        self.assert_fails(
+            check.evaluate(inputs([PROSE], description(risk="R0"))),
+            "needs a valid independent review record",
+        )
+
+    def test_r1_change_with_independent_review_passes(self) -> None:
+        self.assert_passes(check.evaluate(inputs([CODE], description(), (review(OWNER),))))
+
+    def test_r2_code_owned_change_passes_without_r3_role(self) -> None:
+        r2_path = change("M", "SECURITY.md")
+        verdict = check.evaluate(inputs([r2_path], description(risk="R2"), (review(OWNER),)))
+        self.assert_passes(verdict)
+        self.assertEqual(verdict.floor, "R2")
+
+    def test_r1_path_with_r3_floor_fails(self) -> None:
+        self.assert_fails(
+            check.evaluate(inputs([FIRMWARE], description(risk="R1"), (review(OWNER),))),
+            "declared risk R1 is below the floor R3",
+        )
+
+    def test_self_reported_r2_without_code_owned_path_fails(self) -> None:
+        self.assert_fails(
+            check.evaluate(inputs([CODE], description(risk="R2"), (review(OWNER),))),
+            "owner approval on the exact head",
+        )
+
+    def test_review_by_implementation_author_does_not_count(self) -> None:
+        self.assert_fails(
+            check.evaluate(
+                inputs(
+                    [CODE],
+                    description(implementationOwner="codex/gpt-6-astra"),
+                    (review(BOT),),
+                )
+            ),
+            "record reviewer is the implementation author",
+        )
+
+    def test_shared_app_principal_can_carry_independent_agent_review(self) -> None:
+        self.assert_passes(check.evaluate(inputs([CODE], description(), (review(BOT),))))
 
     def test_head_policy_that_raises_its_paths_applies_at_once(self) -> None:
         raised = edited_policy(lambda policy: entry(policy, "prose").update(floor="R2"))
@@ -178,7 +227,7 @@ class EvaluationTests(unittest.TestCase):
             verdict, "unclassified path newtop/tool.py has no governance-owner classification"
         )
 
-    def test_unclassified_path_with_governance_role_and_classification_passes(self) -> None:
+    def test_unclassified_path_without_code_owner_fails_even_with_classification(self) -> None:
         evidence = {
             "governance-owner": {
                 "change": "New top-level folder.",
@@ -186,8 +235,9 @@ class EvaluationTests(unittest.TestCase):
             }
         }
         text = description(risk="R3", roles=["governance-owner"], evidence=evidence)
-        self.assert_passes(
-            check.evaluate(inputs([change("A", "newtop/tool.py")], text, (review(),)))
+        self.assert_fails(
+            check.evaluate(inputs([change("A", "newtop/tool.py")], text, (review(),))),
+            "owner approval on the exact head",
         )
 
     def test_classification_that_adds_a_role_raises_the_requirement(self) -> None:
@@ -322,7 +372,7 @@ class EvaluationTests(unittest.TestCase):
 
     def test_r1_change_without_a_review_record_fails(self) -> None:
         verdict = check.evaluate(inputs([CODE], description()))
-        self.assert_fails(verdict, "needs a valid review record on head")
+        self.assert_fails(verdict, "needs a valid independent review record on head")
 
     def test_record_on_an_older_head_fails(self) -> None:
         cases = {
@@ -333,7 +383,7 @@ class EvaluationTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assert_fails(
                     check.evaluate(inputs([CODE], description(), (stale,))),
-                    "needs a valid review record",
+                    "needs a valid independent review record",
                 )
 
     def test_record_from_a_principal_not_on_the_list_is_ignored(self) -> None:
