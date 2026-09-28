@@ -29,6 +29,16 @@ from tests.scripts.v0916_parity_test_support import (
 
 
 class WorkflowContractSyncTests(unittest.TestCase):
+    def test_protected_parity_run_schemas_accept_workflow_run_only_with_closed_events(self) -> None:
+        for name in ("evidence", "finalize"):
+            with self.subTest(name=name):
+                schema = json.loads((ROOT / f"docs/contracts/v0916-parity-{name}-v1.schema.json")
+                                    .read_text(encoding="utf-8"))
+                event_schema = schema["$defs"]["protectedWorkflowRun"]["properties"]["event"]
+                self.assertEqual({"workflow_dispatch", "workflow_run", "push"},
+                                 set(event_schema["enum"]))
+                self.assertNotIn("pull_request", event_schema["enum"])
+
     def setUp(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -189,6 +199,29 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
         MODULE.validate_protected_workflow_semantics(
             workflow_path.read_bytes(), contract
         )
+
+    def test_workflow_trigger_set_and_workflow_run_source_are_closed(self) -> None:
+        contract = json.loads(
+            (ROOT / "docs/contracts/v0916-parity-workflow-v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        valid = parity_workflow_fixture_from_contract(contract)
+        MODULE.validate_protected_workflow_semantics(valid, contract)
+        mutations = {
+            "missing-workflow-run": lambda on: on.pop("workflow_run"),
+            "extra-push": lambda on: on.update({"push": {}}),
+            "single-workflow-run": lambda on: on.pop("workflow_dispatch"),
+            "workflow-name": lambda on: on["workflow_run"].update({"workflows": ["other"]}),
+            "workflow-type": lambda on: on["workflow_run"].update({"types": ["requested"]}),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                invalid = copy.deepcopy(valid)
+                mutate(invalid["on"] if "on" in invalid else invalid[True])
+                with self.assertRaises(MODULE.ParityError) as captured:
+                    MODULE.validate_protected_workflow_semantics(invalid, contract)
+                self.assertEqual("PARITY_WORKFLOW_MISMATCH", captured.exception.code)
 
     def test_release_owner_deferral_skips_parity_for_1x_and_requires_it_for_200(self) -> None:
         contract = json.loads(
@@ -742,7 +775,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
             "workflowBlobSha": workflow_blob_sha,
             "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
-            "workflowSemanticContractSha256": "17548956fb6b2af7d99cbebfa616f65bf3a39a228183d46edb7f80507614aee9",
+            "workflowSemanticContractSha256": "1271dcc781d805c410b39a3b9e76a37bc4985fcdd982ba0ad1e27ffdeeeefb61",
             "workflowRun": {
                 "id": 123, "runAttempt": 1, "headSha": workflow_head,
                 "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
@@ -1114,7 +1147,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "workflowCommitSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "workflowBlobSha": "e" * 40,
                 "workflowRawSha256": "f" * 64,
-                "workflowSemanticContractSha256": "17548956fb6b2af7d99cbebfa616f65bf3a39a228183d46edb7f80507614aee9",
+                "workflowSemanticContractSha256": "1271dcc781d805c410b39a3b9e76a37bc4985fcdd982ba0ad1e27ffdeeeefb61",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": "stable-candidate-123-1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
