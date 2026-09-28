@@ -72,7 +72,14 @@ public sealed partial class MainWindow
 
     private async void Settings_UpdateSourceBrowseRequested(object? sender, EventArgs e)
     {
-        if (sender is not SettingsViewModel settings ||
+        await BrowseUpdateSourceAsync(sender, StorageProvider);
+    }
+
+    internal async Task BrowseUpdateSourceAsync(object? sender, IStorageProvider storageProvider)
+    {
+        CancellationToken sessionToken = _startupLoadCancellation.Token;
+        if (ClosePhase != WindowClosePhase.Open || sessionToken.IsCancellationRequested ||
+            sender is not SettingsViewModel settings ||
             DataContext is not MainWindowViewModel viewModel ||
             !ReferenceEquals(viewModel.Settings, settings) ||
             !viewModel.IsSettingsModalOpen ||
@@ -80,13 +87,14 @@ public sealed partial class MainWindow
         {
             return;
         }
-        IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(
+        IReadOnlyList<IStorageFolder> folders = await storageProvider.OpenFolderPickerAsync(
             new FolderPickerOpenOptions
             {
                 AllowMultiple = false,
                 Title = viewModel.Settings.UpdateSourceHeading,
             });
-        if (ReferenceEquals(DataContext, viewModel) &&
+        if (!sessionToken.IsCancellationRequested && ClosePhase == WindowClosePhase.Open &&
+            ReferenceEquals(DataContext, viewModel) &&
             ReferenceEquals(viewModel.Settings, settings) &&
             viewModel.IsSettingsModalOpen &&
             folders.Count == 1 && folders[0].TryGetLocalPath() is { } path)

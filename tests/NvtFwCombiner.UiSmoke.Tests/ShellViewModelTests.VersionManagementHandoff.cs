@@ -861,6 +861,38 @@ public sealed partial class VersionManagementSettingsTests
         }
     }
 
+    /// <summary>A folder picker returning during shutdown cannot change its Settings draft.</summary>
+    [AvaloniaFact]
+    public async Task UpdateSourcePickerAfterCloseDoesNotChangeDraft()
+    {
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", experience), ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        var shell = (MainWindowViewModel)window.DataContext!;
+        shell.OpenSettingsCommand.Execute(null);
+        shell.Settings.BeginEditUpdateSourceCommand.Execute(null);
+        Assert.True(shell.Settings.IsUpdateSourceEditing);
+        string before = shell.Settings.UpdateSourceDraft;
+        var selected = new TaskCompletionSource<IReadOnlyList<IStorageFolder>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using IStorageFolder folder = DispatchProxy.Create<IStorageFolder, WindowLifetimeStorageProxy>();
+        ((WindowLifetimeStorageProxy)folder).Call = (method, _) => method switch
+        {
+            "get_Path" => new Uri(Path.Combine(Path.GetTempPath(), "stale-update-source")),
+            "Dispose" => null,
+            _ => throw new NotSupportedException(method),
+        };
+        IStorageProvider picker = DispatchProxy.Create<IStorageProvider, WindowLifetimeStorageProxy>();
+        ((WindowLifetimeStorageProxy)picker).Call = (_, _) => selected.Task;
+        Task browsing = window.BrowseUpdateSourceAsync(shell.Settings, picker);
+        window.Close();
+        selected.SetResult([folder]);
+        await browsing;
+        Assert.Equal(before, shell.Settings.UpdateSourceDraft);
+        await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+    }
+
     /// <summary>A READY result returned after final Close cannot update the disposed window's Settings.</summary>
     [AvaloniaFact]
     public async Task ReadyResultAfterFinalCloseDoesNotPublishSnapshotOrOpenSettings()
