@@ -293,7 +293,8 @@ internal sealed partial class ShellTextResources
             AuthoringSlotLifecycle.Warning when StringComparer.Ordinal.Equals(
                 status.InspectionIssueCode,
                 InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown) => AbUnknownVersionWarning,
-            AuthoringSlotLifecycle.Warning when GetInputIssueHelp(status.InspectionIssueCode ?? string.Empty, "warning") is { } help =>
+            AuthoringSlotLifecycle.Warning when GetInputIssueHelp(status.InspectionIssueCode ?? string.Empty,
+                "warning", status.Inspection?.DiagnosticEvidence, status.Inspection) is { } help =>
                 $"{help.Detail}\n{SelectLanguage("Diagnostic code", "診斷代碼")}: {status.InspectionIssueCode}",
             AuthoringSlotLifecycle.Warning => SelectLanguage(
                 $"Warning: profile content check {status.InspectionIssueCode}; review before Build.",

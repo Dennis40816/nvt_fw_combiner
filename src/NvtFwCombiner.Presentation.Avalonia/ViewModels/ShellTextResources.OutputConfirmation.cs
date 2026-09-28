@@ -86,7 +86,7 @@ internal sealed partial class ShellTextResources
 
         string FormatWarning(string code)
         {
-            return GetInputIssueHelp(code, "warning", input.Inspection?.DiagnosticEvidence)?.Detail ??
+            return GetInputIssueHelp(code, "warning", input.Inspection?.DiagnosticEvidence, input.Inspection)?.Detail ??
                 (code == InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown ? AbUnknownVersionWarning :
                     SelectLanguage($"Review input before Build ({code}).", $"Build 前請確認輸入（{code}）。"));
         }

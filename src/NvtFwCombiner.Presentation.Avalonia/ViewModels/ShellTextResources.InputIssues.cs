@@ -18,8 +18,9 @@ internal sealed partial class ShellTextResources
     {
         bool error = status.InspectionLifecycle == AuthoringSlotLifecycle.Error;
         string code = status.InspectionIssueCode ?? string.Empty;
+        (string Title, string Detail)? help = GetInputIssueHelp(code, error ? "error" : "warning", status.Inspection?.DiagnosticEvidence, status.Inspection);
         string summary = GetIgnoredTrailingInputDescription(status)
-            ?? GetInputIssueHelp(code, error ? "error" : "warning", status.Inspection?.DiagnosticEvidence)?.Title
+            ?? (code == "DP_NONSTANDARD_SIZE_WARNING" ? help?.Detail : help?.Title)
             ?? GetInputSlotInspectionStatus(status);
         if (error && code == "input.source-view.incomplete" && status.Inspection is { } inspection &&
             inspection.ActualLength < inspection.RequiredEndExclusive)
@@ -31,7 +32,8 @@ internal sealed partial class ShellTextResources
         return CreateIssueCard(subject, summary, error) with
         {
             DiagnosticCode = code,
-            Action = error && code == "input.source-view.incomplete"
+            Action = code == "DP_NONSTANDARD_SIZE_WARNING" ? string.Empty
+                : error && code == "input.source-view.incomplete"
                 ? SelectLanguage($"Select a complete {subject} and load it again.", $"請選擇完整的 {subject} 並重新載入。")
                 : error ? SelectLanguage("Check the input file and load it again.", "請檢查輸入檔並重新載入。")
                     : SelectLanguage($"Confirm this is the intended {subject}.", $"請確認這是預期的 {subject}。"),
@@ -72,17 +74,14 @@ internal sealed partial class ShellTextResources
     }
 
     // Display help for typed diagnostics only; this does not classify input bytes or severity.
-    internal (string Title, string Detail)? GetInputIssueHelp(string code, string severity, InputDiagnosticEvidence? evidence = null)
+    internal (string Title, string Detail)? GetInputIssueHelp(string code, string severity,
+        InputDiagnosticEvidence? evidence = null, CompiledInputArtifactInspectionResult? inspection = null)
     {
         (string Title, string Detail)? help = severity.ToLowerInvariant() switch
         {
             "warning" => code switch
             {
-                "DP_NONSTANDARD_SIZE_WARNING" => (
-                    SelectLanguage("DP size differs from standard capacity", "DP 大小與標準容量不同"),
-                    SelectLanguage(
-                        "This may be a customized OSD application. The complete DP is retained; confirm the selected BIN before Build.",
-                        "疑似 OSD 客製化應用導致 DP 大小不是標準大小。輸出會完整保留 DP；Build 前請確認所選 BIN。")),
+                "DP_NONSTANDARD_SIZE_WARNING" => DpSizeWarningText.Get(Language, inspection),
                 "DP_UNIFORM_CONTENT_WARNING" => UniformInputHelp("DP"),
                 "TP_UNIFORM_CONTENT_WARNING" => UniformInputHelp("TP"),
                 "LDC_UNIFORM_CONTENT_WARNING" => UniformInputHelp("LDC"),

@@ -24,14 +24,19 @@ public sealed class OutputConfirmationLabelTests
             chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         AuthoringInputSlotStatus status = StandardMergeFeedbackTests.Status(
             "DP_NONSTANDARD_SIZE_WARNING", AuthoringSlotLifecycle.Warning,
-            actualLength: 0x40001);
-        var input = new CompositionOutputInputSummary("dp-input", "dp-input", "dp.bin", 0x40001,
-            [], null, status.InspectionLifecycle, status.InspectionIssueCode)
+            actualLength: 0x100000, expectedOuterLengths: [0x80000]);
+        var input = new CompositionOutputInputSummary("dp-ab-input", "dp-ab-input", "dp.bin", 0x100000,
+            [0x80000], null, status.InspectionLifecycle, status.InspectionIssueCode)
         { Inspection = status.Inspection };
 
         string warning = text.FormatOutputInputWarning(input);
-        Assert.Contains(chinese ? "OSD 客製化" : "customized OSD", warning, StringComparison.Ordinal);
-        Assert.DoesNotContain("DP_NONSTANDARD_SIZE_WARNING", warning, StringComparison.Ordinal);
+        string expected = chinese
+            ? "DP BIN 大小 1,048,576 bytes，預期 524,288 bytes；可能是客製的 OSD 應用。請確認選擇的 BIN。"
+            : "DP BIN size is 1,048,576 bytes; expected 524,288 bytes. This may be a customized OSD application. Confirm the selected BIN.";
+        Assert.Equal(expected, warning);
+        Assert.Equal(expected, text.CreateInputIssueCard(status, "DP_AB BIN").Summary);
+        Assert.StartsWith(expected, text.GetInputSlotInspectionStatus(status), StringComparison.Ordinal);
+        Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", text.CreateInputIssueCard(status, "DP_AB BIN").DiagnosticCode);
     }
 
     /// <summary>Length and metadata warnings survive together, without repeated advisory codes.</summary>
