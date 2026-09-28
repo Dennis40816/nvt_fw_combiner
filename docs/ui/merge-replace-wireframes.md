@@ -140,7 +140,7 @@ Preview and Build open a report modal after completion or failure. The modal own
 Build remains disabled until application readiness permits it:
 
 ```text
-Build disabled: run Preview and resolve validation issues first.
+Build disabled: resolve the validation issues first.
 ```
 
 Preview output must come from application services or a loaded run report.
