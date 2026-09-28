@@ -824,10 +824,7 @@ internal sealed class BuiltInV2Bundle
             bundleRoot,
             "profile-bundle.json",
             new ProfileBundleTrustAnchor(ContentHash, _trustAnchorBindingId),
-            new ProfileBundleLoadLimits(
-                maximumManifestBytes: 16384,
-                maximumJsonDepth: 32,
-                new ProfileBundleEntrySnapshotLimits(16, 131072, 262144, 8)));
+            BuiltInProfileBundleAdmissionSettings.Limits);
         return StringComparer.Ordinal.Equals(bundle.Manifest.BundleVersion, _bundleVersion)
             ? TrustedProfileBundleCatalogProjection.Create(
                 bundle.CreateDocumentProjection(),

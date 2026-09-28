@@ -8,6 +8,8 @@
       <TrustIndexSchemaPath ParameterType="System.String" Required="true" />
       <BuiltInProfileSourceRoot ParameterType="System.String" Required="true" />
       <ProfileContractRoot ParameterType="System.String" Required="true" />
+      <TrustIndexSha256 ParameterType="System.String" Output="true" />
+      <ManifestSetSha256 ParameterType="System.String" Output="true" />
       <Bundles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
     </ParameterGroup>
     <Task>
@@ -222,6 +224,7 @@
 
         var directories = new HashSet<string>(StringComparer.Ordinal);
         var bundles = new List<ITaskItem>();
+        var manifestIdentities = new SortedDictionary<string, string>(StringComparer.Ordinal);
         if (!isToken(trustIndexId) ||
             !isToken(trustAnchorBindingId) ||
             string.IsNullOrWhiteSpace(trustIndexVersion) ||
@@ -407,6 +410,7 @@
                 BuiltInProfileSourceRoot,
                 directory + "/profile-bundle.json");
             byte[] manifestBytes = readBoundedFile(manifestPath, 16384);
+            manifestIdentities.Add(directory, sha256Hex(manifestBytes));
             JObject manifest;
             using (var memory = new MemoryStream(manifestBytes, writable: false))
             using (var textReader = new StreamReader(
@@ -573,6 +577,11 @@
         }
 
         Bundles = bundles.ToArray();
+        TrustIndexSha256 = sha256Hex(trustIndexBytes);
+        // Validated directory tokens and lowercase hashes are ASCII-safe RFC 8785 strings.
+        string manifestSet = "[" + string.Join(",", manifestIdentities.Select(pair =>
+            "{\"bundleDirectory\":\"" + pair.Key + "\",\"manifestSha256\":\"" + pair.Value + "\"}")) + "]";
+        ManifestSetSha256 = sha256Hex(Encoding.UTF8.GetBytes(manifestSet));
       ]]></Code>
     </Task>
   </UsingTask>

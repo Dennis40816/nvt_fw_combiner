@@ -43,10 +43,12 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.PrebuiltProfileCatalogGenerator" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.GoldenRegression.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.TestSupport" />
     <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
   </ItemGroup>
+  <Import Project="..\..\eng\prebuilt-profile-catalog\NvtFwCombiner.ProfileAdmissionIdentity.targets" />
 </Project>
