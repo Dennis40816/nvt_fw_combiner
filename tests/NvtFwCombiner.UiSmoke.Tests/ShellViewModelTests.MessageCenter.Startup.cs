@@ -5,6 +5,21 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellNavigationSystemTests
 {
+    /// <summary>The fallback warning localizes repair/restart guidance without suggesting a re-selection on Reload.</summary>
+    [Fact]
+    public void PrebuiltFallbackWarningHasLocalizedRepairAndRestartGuidance()
+    {
+        var diagnostic = new ActionableSystemDiagnostic(SystemDiagnosticCodes.PrebuiltCatalogUnused,
+            SystemDiagnosticCategory.CapabilityCatalog, SystemDiagnosticSeverity.Warning,
+            "JSON admission is in use.", "Repair the package and restart.");
+        ShellTextResources english = ShellTextResources.For(ShellLanguage.English);
+        ShellTextResources chinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+        Assert.Equal(diagnostic.Message, english.GetSystemDiagnosticMessage(diagnostic));
+        Assert.Equal(diagnostic.Action, english.GetSystemDiagnosticAction(diagnostic));
+        Assert.Equal("未使用預建 Profile 目錄；目前使用 JSON admission。", chinese.GetSystemDiagnosticMessage(diagnostic));
+        Assert.Equal("請修復或重新安裝套件，然後重新啟動應用程式。", chinese.GetSystemDiagnosticAction(diagnostic));
+    }
+
     /// <summary>Important events are the default; Debug explicitly reveals user operations.</summary>
     [Fact]
     public void ActivityHistoryUsesTwoDisclosureLevels()

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
@@ -16,6 +17,7 @@ internal sealed class StartupTraceSession
     private readonly DateTimeOffset _startedUtc;
     private readonly string? _outputPath;
     private bool _isComplete;
+    private bool _profileAdmissionMarked;
 
     private StartupTraceSession(
         string? outputPath,
@@ -82,6 +84,21 @@ internal sealed class StartupTraceSession
             allocatedBytes(),
             utcNow(),
             true);
+    }
+
+    internal void MarkProfileAdmission(BuiltInProfileAdmission? admission)
+    {
+        if (admission is null || _points is null || _isComplete || _profileAdmissionMarked)
+        {
+            return;
+        }
+        Mark(admission.Source switch
+        {
+            BuiltInProfileAdmissionSource.Prebuilt => "startup-warmup.catalog-admission.prebuilt",
+            BuiltInProfileAdmissionSource.Json => "startup-warmup.catalog-admission.json",
+            _ => throw new ArgumentOutOfRangeException(nameof(admission)),
+        });
+        _profileAdmissionMarked = true;
     }
 
     internal void Mark(string stage)

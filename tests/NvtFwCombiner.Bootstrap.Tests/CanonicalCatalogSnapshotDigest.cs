@@ -49,6 +49,26 @@ internal sealed class CanonicalCatalogSnapshotDigest
     /// <summary>Per-section lengths and digests in text order.</summary>
     internal IReadOnlyList<CanonicalCatalogDigestSection> Sections { get; }
 
+    /// <summary>Uses the same complete composition serializer for on-demand selected-catalog evidence.</summary>
+    internal static string DescribeComposition(CompiledComposition composition)
+    {
+        var writer = new CanonicalTextWriter();
+        WriteComposition(writer, composition);
+        return writer.ToString();
+    }
+
+    /// <summary>Reuses the publication serializer for on-demand report metadata.</summary>
+    internal static string DescribeMetadataPlan(MetadataPlanDefinition plan)
+    {
+        var writer = new CanonicalTextWriter();
+        WriteSourceIdentity(writer, "source", plan.SourceIdentity);
+        for (int index = 0; index < plan.Entries.Count; index++)
+        {
+            WritePlanEntry(writer, CanonicalTextWriter.Indexed("entry", index), plan.Entries[index]);
+        }
+        return writer.ToString();
+    }
+
     internal static CanonicalCatalogSnapshotDigest Create(
         CanonicalCapabilityCatalogSnapshot snapshot)
     {

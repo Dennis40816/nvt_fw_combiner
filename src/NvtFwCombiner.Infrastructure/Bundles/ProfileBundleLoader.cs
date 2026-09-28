@@ -70,6 +70,7 @@ internal sealed class ProfileBundleLoadLimits
 /// <summary>One external-anchor-verified manifest and immutable validated entry snapshots.</summary>
 internal sealed class TrustedProfileBundle
 {
+    private readonly ProfileBundleFileSnapshot _manifestSnapshot;
     private readonly ProfileBundleEntrySnapshotCollection _entrySnapshots;
     private readonly int _maximumJsonDepth;
 
@@ -82,6 +83,7 @@ internal sealed class TrustedProfileBundle
         ArgumentNullException.ThrowIfNull(entrySnapshots);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumJsonDepth);
         ManifestSha256 = manifestSnapshot.ActualSha256;
+        _manifestSnapshot = manifestSnapshot;
         Manifest = entrySnapshots.Manifest;
         _entrySnapshots = entrySnapshots;
         _maximumJsonDepth = maximumJsonDepth;
@@ -95,7 +97,7 @@ internal sealed class TrustedProfileBundle
     internal TrustedProfileBundleDocumentProjection CreateDocumentProjection()
     {
         return new TrustedProfileBundleDocumentProjection(
-            ManifestSha256,
+            _manifestSnapshot,
             Manifest,
             _entrySnapshots.Entries,
             _maximumJsonDepth);
@@ -129,10 +131,7 @@ internal static class ProfileBundleLoader
         ArgumentNullException.ThrowIfNull(limits);
 
         ProfileBundleFileSnapshot manifestSnapshot = source.ReadManifest(limits.MaximumManifestBytes);
-        ProfileBundleSchemaValidator.ValidateManifest(manifestSnapshot, limits.MaximumJsonDepth);
-        ProfileBundleManifest manifest = ProfileBundleManifestNormalizer.Normalize(
-            DeserializeManifest(manifestSnapshot, limits.MaximumJsonDepth));
-        trustAnchor.Verify(manifest);
+        ProfileBundleManifest manifest = AdmitManifest(manifestSnapshot, trustAnchor, limits);
 
         ProfileBundleEntrySnapshotCollection entrySnapshots = source.CaptureEntries(
             manifest,
@@ -145,6 +144,26 @@ internal static class ProfileBundleLoader
             : throw new IOException("Bundle manifest changed during trusted bundle capture.");
 
         return new TrustedProfileBundle(manifestSnapshot, entrySnapshots, limits.MaximumJsonDepth);
+    }
+
+    /// <summary>Only an accepted build-bound catalog can omit entry schema evaluation; all later gates remain.</summary>
+    internal static TrustedProfileBundle Load(AcceptedPrebuiltProfileCatalog accepted, string bundleDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(accepted);
+        var source = new AcceptedProfileBundleSnapshotSource(accepted, bundleDirectory);
+        ProfileBundleLoadLimits limits = BuiltInProfileBundleAdmissionSettings.Limits;
+        return new TrustedProfileBundle(source.ReadManifest(limits.MaximumManifestBytes),
+            source.CaptureEntries(accepted.Manifest(bundleDirectory), limits.EntrySnapshotLimits), limits.MaximumJsonDepth);
+    }
+
+    internal static ProfileBundleManifest AdmitManifest(ProfileBundleFileSnapshot snapshot,
+        ProfileBundleTrustAnchor trustAnchor, ProfileBundleLoadLimits limits)
+    {
+        ProfileBundleSchemaValidator.ValidateManifest(snapshot, limits.MaximumJsonDepth);
+        ProfileBundleManifest manifest = ProfileBundleManifestNormalizer.Normalize(
+            DeserializeManifest(snapshot, limits.MaximumJsonDepth));
+        trustAnchor.Verify(manifest);
+        return manifest;
     }
 
     private static ProfileBundleDocument DeserializeManifest(

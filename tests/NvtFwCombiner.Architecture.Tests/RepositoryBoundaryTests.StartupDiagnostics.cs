@@ -19,7 +19,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("NFC_STARTUP_TRACE_PATH", session, StringComparison.Ordinal);
         Assert.Contains("FileMode.CreateNew", sink, StringComparison.Ordinal);
         Assert.DoesNotContain("Directory.CreateDirectory", sink, StringComparison.Ordinal);
-        Assert.DoesNotContain("NvtFwCombiner.Application", diagnostics, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Application", sink, StringComparison.Ordinal);
+        Assert.Equal(["using NvtFwCombiner.Application.Diagnostics;"], session.Split('\n')
+            .Select(line => line.Trim()).Where(line => line.StartsWith("using NvtFwCombiner.Application", StringComparison.Ordinal)));
+        AssertDoesNotContainAny(diagnostics, "BuiltInV2Bundle", "ProfileBundleLoader", "Infrastructure");
+        Assert.Contains("MarkProfileAdmission(_hostServices.SystemInformation.BuiltInProfileAdmission)", window, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Domain", diagnostics, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Profiles", diagnostics, StringComparison.Ordinal);
         Assert.Contains("Func<PresentationHostServices>", program, StringComparison.Ordinal);

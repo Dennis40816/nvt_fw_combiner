@@ -63,6 +63,8 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
 
         Assert.True(schemaValidation >= 0 && schemaValidation < trustedBundle);
+        Assert.Equal(2, CountOccurrences(loader, "return new TrustedProfileBundle("));
+        Assert.Contains("Load(AcceptedPrebuiltProfileCatalog accepted, string bundleDirectory)", loader, StringComparison.Ordinal);
         AssertContainsAll(projection, "ValidateAndClone(");
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,

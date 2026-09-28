@@ -235,6 +235,10 @@ $ApprovedRuntimeCatalogPackagePaths = @(
 ) | Sort-Object
 $ApprovedRuntimeCatalogDirectories = @('ctrlram-postbuild-v2')
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
+$PrebuiltCatalogPackagePath = 'profiles/built-in/prebuilt-profile-catalog.pack'
+$MaximumPrebuiltCatalogBytes = 4194304
+$MaximumApplicationBytes = 80000000
+$MaximumPackageBytes = 134217728
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
@@ -405,6 +409,18 @@ function Get-BuiltInProfilePackagePaths {
         throw 'Published package trust index has an unsupported schema or trust anchor.'
     }
     [void]$PackagePaths.Add($PackageTrustIndexPackagePath)
+    $PublishedPackPath = Join-Path $PublishedRoot $PrebuiltCatalogPackagePath
+    if (-not (Test-Path -LiteralPath $PublishedPackPath -PathType Leaf)) {
+        throw 'Prebuilt catalog is missing from published output.'
+    }
+    if ((Get-Item -LiteralPath $PublishedPackPath).Length -gt $MaximumPrebuiltCatalogBytes) {
+        throw 'Prebuilt catalog exceeds the 4 MiB file bound.'
+    }
+    [void]$PackagePaths.Add($PrebuiltCatalogPackagePath)
+    $RootFiles = @(Get-ChildItem -LiteralPath $BuiltInRoot -File | ForEach-Object Name | Sort-Object)
+    if (Compare-Object @('package-trust-index.json', 'prebuilt-profile-catalog.pack') $RootFiles) {
+        throw 'Published built-in profile root contains a missing or extra file.'
+    }
     foreach ($BundleDirectory in $BundleDirectories) {
         $BundleRoot = Join-Path $BuiltInRoot $BundleDirectory
         $ManifestPath = Join-Path $BundleRoot 'profile-bundle.json'
@@ -484,6 +500,32 @@ function Get-BuiltInProfilePackagePaths {
     }
 
     return @($PackagePaths | Sort-Object)
+}
+
+function Assert-MatchingPrebuiltCatalog {
+    param(
+        [Parameter(Mandatory = $true)][string]$PublishedRoot,
+        [Parameter(Mandatory = $true)][string]$RegeneratedPack
+    )
+
+    $PublishedPack = Join-Path $PublishedRoot 'profiles/built-in/prebuilt-profile-catalog.pack'
+    if (-not (Test-Path -LiteralPath $PublishedPack -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $RegeneratedPack -PathType Leaf)) {
+        throw 'Prebuilt catalog is missing from published output or regeneration.'
+    }
+    $PublishedLength = (Get-Item -LiteralPath $PublishedPack).Length
+    $RegeneratedLength = (Get-Item -LiteralPath $RegeneratedPack).Length
+    if ($PublishedLength -lt 13 -or $PublishedLength -gt 4194304 -or
+        $RegeneratedLength -ne $PublishedLength) {
+        throw 'Prebuilt catalog exceeds the 4 MiB file bound or its regenerated length differs.'
+    }
+    $PublishedBytes = [IO.File]::ReadAllBytes($PublishedPack)
+    $RegeneratedBytes = [IO.File]::ReadAllBytes($RegeneratedPack)
+    for ($Index = 0; $Index -lt $PublishedBytes.Length; $Index++) {
+        if ($PublishedBytes[$Index] -ne $RegeneratedBytes[$Index]) {
+            throw 'Prebuilt catalog differs from regeneration of published JSON.'
+        }
+    }
 }
 
 function Copy-BuiltInProfilePackageFiles {
@@ -615,6 +657,9 @@ function New-BuiltInProfilePolicyDryRunFixture {
             -RelativePath $RuntimeCatalogPath `
             -DestinationRoot $PublishedRoot
     }
+    # The policy dry-run does not build. This stub exercises only file selection and byte comparison.
+    $FixturePack = Join-Path $PublishedRoot $PrebuiltCatalogPackagePath
+    [IO.File]::WriteAllBytes($FixturePack, [Text.Encoding]::ASCII.GetBytes('NFCPBCATfixture'))
 }
 
 function Invoke-ExternalToolPolicyDryRun {
@@ -685,6 +730,44 @@ function Invoke-ExternalToolPolicyDryRun {
         if ($DryRunProfileEntries.Count -eq 0 -or
             @($DryRunProfileEntries | Where-Object { $_.role -ne 'builtInProfile' }).Count -ne 0) {
             throw 'Built-in profile policy dry-run did not produce role-pinned manifest entries.'
+        }
+        $DryRunPack = Join-Path $DryRunPublishedRoot $PrebuiltCatalogPackagePath
+        $DryRunRegeneratedPack = Join-Path $DryRunRoot 'regenerated.pack'
+        $OriginalPackBytes = [IO.File]::ReadAllBytes($DryRunPack)
+        [IO.File]::WriteAllBytes($DryRunRegeneratedPack, $OriginalPackBytes)
+        Assert-MatchingPrebuiltCatalog -PublishedRoot $DryRunPublishedRoot -RegeneratedPack $DryRunRegeneratedPack
+        foreach ($Mutation in @('missing', 'damaged', 'oversized', 'stale', 'extra')) {
+            try {
+                switch ($Mutation) {
+                    'missing' { Remove-Item -LiteralPath $DryRunPack }
+                    'damaged' { [IO.File]::WriteAllText($DryRunPack, 'NFCPBCATdamage') }
+                    'oversized' { [IO.File]::WriteAllBytes($DryRunPack, [byte[]]::new($MaximumPrebuiltCatalogBytes + 1)) }
+                    'stale' { [IO.File]::WriteAllText($DryRunRegeneratedPack, 'NFCPBCATstale!!') }
+                    'extra' { [IO.File]::WriteAllText((Join-Path $DryRunPublishedRoot 'profiles/built-in/extra.pack'), 'unapproved') }
+                }
+                $Rejected = $false
+                try {
+                    if ($Mutation -in @('missing', 'oversized', 'extra')) {
+                        Get-BuiltInProfilePackagePaths -PublishedRoot $DryRunPublishedRoot | Out-Null
+                    }
+                    else {
+                        Assert-MatchingPrebuiltCatalog -PublishedRoot $DryRunPublishedRoot -RegeneratedPack $DryRunRegeneratedPack
+                    }
+                }
+                catch {
+                    if ($_.Exception.Message -notmatch 'Prebuilt catalog|Published built-in profile root contains a missing or extra file') {
+                        throw
+                    }
+                    $Rejected = $true
+                }
+                if (-not $Rejected) { throw "Prebuilt catalog $Mutation policy probe was admitted." }
+            }
+            finally {
+                [IO.File]::WriteAllBytes($DryRunPack, $OriginalPackBytes)
+                [IO.File]::WriteAllBytes($DryRunRegeneratedPack, $OriginalPackBytes)
+                $ExtraPack = Join-Path $DryRunPublishedRoot 'profiles/built-in/extra.pack'
+                if (Test-Path -LiteralPath $ExtraPack) { Remove-Item -LiteralPath $ExtraPack }
+            }
         }
         $DryRunRuntimeCatalogPaths = @(
             $DryRunProfileEntries |
@@ -1052,6 +1135,7 @@ function Invoke-ExternalToolPolicyDryRun {
 
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected.'
+        Write-Host 'Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
         Write-Host 'Retired support publication policy package dry-run passed: no parallel publicationPolicy payload entered staging or manifest.'
         Write-Host 'Canonical golden package policy dry-run passed: 25 direct Goldens, three owner-certified input-only evidence cases, twelve self-contained aliases, 177 declarations, and 174 unique artifact paths selected.'
@@ -1393,6 +1477,9 @@ if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
 }
 $AppExe = Join-Path $PackageRoot 'NvtFwCombiner.exe'
 Copy-Item -LiteralPath $PublishedApp -Destination $AppExe
+if ((Get-Item -LiteralPath $AppExe).Length -gt $MaximumApplicationBytes) {
+    throw "Release application exceeds the $MaximumApplicationBytes-byte ceiling."
+}
 $LauncherExe = $null
 if ($IncludeManagedLauncher) {
     $PublishedLauncher = Join-Path $LauncherPublish 'NvtFwCombiner.Launcher.exe'
@@ -1403,6 +1490,14 @@ if ($IncludeManagedLauncher) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $LauncherExe) | Out-Null
     Copy-Item -LiteralPath $PublishedLauncher -Destination $LauncherExe
 }
+$GeneratorProject = Join-Path $RepoRoot 'eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj'
+$RegeneratedPack = Join-Path $WorkRoot 'regenerated-profile-catalog.pack'
+& $DotNet run --project $GeneratorProject -c Release --no-restore -- `
+    (Join-Path $AppPublish 'profiles/built-in') `
+    (Join-Path $AppPublish $PackageTrustIndexPackagePath) `
+    $RegeneratedPack
+if ($LASTEXITCODE -ne 0) { throw 'Prebuilt catalog regeneration from published profiles failed.' }
+Assert-MatchingPrebuiltCatalog -PublishedRoot $AppPublish -RegeneratedPack $RegeneratedPack
 $BuiltInProfilePackagePaths = @(Copy-BuiltInProfilePackageFiles `
     -PublishedRoot $AppPublish `
     -DestinationRoot $PackageRoot)
@@ -1501,7 +1596,7 @@ Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
 - launcher/NvtFwCombiner.Launcher.exe: release-coupled managed launcher (stable packages only)
 - external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
-- profiles/built-in/: exact package trust index plus its manifest-pinned materialized bundles; profile stage and support publication remain independently authoritative
+- profiles/built-in/: exact trust index, manifest-pinned bundles, and regenerated pre-built catalog; profile stage and support publication remain independently authoritative
 - external-tools/: generated CRC Worker and approved legacy Combiner runtime packages
 - reference/: owner-approved flash-map, postbuild, flash-header, and golden fixture evidence
 - RELEASE-MANIFEST.json: source and file integrity metadata
@@ -1681,6 +1776,9 @@ Assert-CanonicalJsonSchema -JsonPath $ManifestPath -SchemaPath $ReleaseManifestS
 
 $ZipPath = Join-Path $ReleaseRoot "$PackageName.zip"
 Compress-Archive -LiteralPath $PackageRoot -DestinationPath $ZipPath -CompressionLevel Optimal
+if ((Get-Item -LiteralPath $ZipPath).Length -gt $MaximumPackageBytes) {
+    throw "Release ZIP exceeds the $MaximumPackageBytes-byte ceiling."
+}
 Write-Host "Release package: $ZipPath"
 Write-Host "Application SHA-256: $AppHash"
 Write-Host "Worker SHA-256: $WorkerHash"

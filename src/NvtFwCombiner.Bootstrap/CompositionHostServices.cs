@@ -444,7 +444,8 @@ public sealed partial class CompositionHostServices
             Catalog,
             ExternalEnvironment,
             new SystemRuntimeProbe(),
-            new SystemClock());
+            new SystemClock(),
+            admissionStatus: BuiltInProfileAdmissionStatus.Instance);
     }
 
     /// <summary>Creates the privacy-filtered local diagnostic JSON exporter.</summary>

@@ -3548,13 +3548,27 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
             self.assertIn('"1.0.1"', lock_path.read_text(encoding="utf-8"))
 
+    def test_solution_locks_include_only_the_exact_declared_generator(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, solution = self.create_solution_lock_fixture(root, b'{"version":2,"dependencies":{"net10.0":{}}}')
+            self.assertEqual(27, len(MODULE.solution_package_lock_paths(root, solution)))
+            solution.write_text(solution.read_text(encoding="utf-8").replace(
+                "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj",
+                "eng/unlisted/Unlisted.csproj"), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "invalid solution project path"):
+                MODULE.solution_package_lock_paths(root, solution)
+
     def create_solution_lock_fixture(
         self, root: Path, lock_bytes: bytes
     ) -> tuple[Path, Path]:
         projects: list[Path] = []
-        for index in range(25):
+        for index in range(27):
             name = "Product" if index == 0 else f"Product{index:02d}"
-            project = root / "src" / name / f"{name}.csproj"
+            project = (root / "eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+                       if index == 25 else root / "src" / name / f"{name}.csproj")
+            if index == 26:
+                project = root / "tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj"
             project.parent.mkdir(parents=True)
             project.write_text("<Project />", encoding="utf-8")
             (project.parent / "packages.lock.json").write_bytes(lock_bytes)
@@ -3571,6 +3585,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
             encoding="utf-8",
         )
         return lock, solution
+
+    def test_solution_lock_inventory_includes_catalog_probe_and_rejects_omission(self) -> None:
+        locks = MODULE.solution_package_lock_paths()
+        self.assertEqual(27, len(locks))
+        self.assertIn(ROOT / "tests/NvtFwCombiner.CatalogProbe/packages.lock.json", locks)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, solution = self.create_solution_lock_fixture(root, b'{"version":2,"dependencies":{}}')
+            solution.write_text(solution.read_text(encoding="utf-8").replace(
+                '<Project Path="tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj" />',
+                ''), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "exactly 27 projects and locks"):
+                MODULE.solution_package_lock_paths(root, solution)
 
     def test_solution_restore_restores_projection_before_rethrowing_failure(
         self,
@@ -6224,7 +6251,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
         variable_pattern = re.compile(r'"(NFC_[A-Z0-9_]+)"')
         root_pattern = re.compile(r'GetEnvironmentVariable\("NFC_TEST_AREA_ROOT"\)')
         directory_pattern = re.compile(r'"evidence"\s*,\s*"([^"]+)"')
-        process_local = {"NFC_TEST_AREA_ROOT", "NFC_TEST_REPOSITORY_ROOT"}
+        # ProfileCatalogProbeTests sets the child's trace path inside its own
+        # TempWorkspace to detect forbidden writes; it is not a caller override.
+        process_local = {"NFC_TEST_AREA_ROOT", "NFC_TEST_REPOSITORY_ROOT", "NFC_STARTUP_TRACE_PATH"}
         allowed = process_local | set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES)
         writers: dict[str, set[str]] = {}
         variables: dict[str, set[str]] = {}
