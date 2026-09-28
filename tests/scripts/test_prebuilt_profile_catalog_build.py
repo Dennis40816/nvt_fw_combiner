@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -12,6 +13,73 @@ from xml.sax.saxutils import escape
 
 ROOT = Path(__file__).resolve().parents[2]
 TARGET = ROOT / "eng/profile-bundle-materializer/NvtFwCombiner.ProfileBundleMaterializer.targets"
+
+
+class CatalogOutputLifecycleTests(unittest.TestCase):
+    """Real SDK graph, offline restored closure, and isolated reviewed inputs."""
+
+    def test_clean_incremental_and_failed_generation_never_copy_a_stale_pack(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for directory in ("src", "eng", "profiles", "docs/contracts"):
+                shutil.copytree(ROOT / directory, root / directory,
+                                ignore=shutil.ignore_patterns("bin", "obj", "AGENTS.md"))
+            for name in ("Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props",
+                         "global.json", "VERSION", ".editorconfig"):
+                shutil.copy2(ROOT / name, root / name)
+            project = root / "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
+            cache = Path(os.environ.get("NUGET_PACKAGES", str(Path.home() / ".nuget/packages")))
+
+            def run(*args):
+                return subprocess.run(["dotnet", *map(str, args)], cwd=root, capture_output=True,
+                                      text=True, encoding="utf-8", errors="replace", timeout=240)
+
+            for dependency in [*root.glob("src/*/*.csproj"), *root.glob("eng/*/*.csproj")]:
+                lock = json.loads(dependency.with_name("packages.lock.json").read_bytes())
+                rid = ["-r", "win-x64"] if "net10.0/win-x64" in lock["dependencies"] else []
+                restored = run("restore", dependency, "--no-dependencies", "--locked-mode", "--source", cache,
+                               "-p:NuGetAudit=false", *rid)
+                self.assertEqual(0, restored.returncode, restored.stdout + restored.stderr)
+            pack = project.parent / "bin/Debug/net10.0/profiles/built-in/prebuilt-profile-catalog.pack"
+            for attempt in range(2):
+                built = run("build", project, "--no-restore", "-nologo")
+                self.assertEqual(0, built.returncode, built.stdout + built.stderr)
+                self.assertTrue(pack.is_file(), f"attempt {attempt}: missing exact pack Content")
+                self.assertEqual(b"NFCPBCAT", pack.read_bytes()[:8])
+                if attempt == 0:
+                    first = pack.read_bytes()
+                    pack.write_bytes(b"stale output must be regenerated")
+                else:
+                    self.assertEqual(first, pack.read_bytes())
+            output = project.parent / "bin/Debug/net10.0"
+            self.assertFalse(list(output.glob("*PrebuiltProfileCatalogGenerator*")))
+            deps = (output / "NvtFwCombiner.Bootstrap.deps.json").read_text(encoding="utf-8")
+            self.assertNotIn("PrebuiltProfileCatalogGenerator", deps)
+            # An unlisted input must rerun actual runtime admission, even after a green build.
+            index = json.loads((root / "profiles/built-in/package-trust-index.json").read_bytes())
+            extra = root / "profiles/built-in" / index["bundles"][0]["bundleDirectory"] / "extra.json"
+            extra.write_text("{}", encoding="utf-8")
+            failed = run("build", project, "--no-restore", "-nologo")
+            self.assertNotEqual(0, failed.returncode, failed.stdout + failed.stderr)
+            self.assertFalse(pack.exists(), "failed admission retained a copyable old pack")
+            self.assertFalse(list((project.parent / "obj").rglob("*.pack")))
+            extra.unlink()
+            # Publish uses the actual Desktop graph and the same executable-only flags as packaging.
+            desktop = root / "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj"
+            restored = run("restore", desktop, "-r", "win-x64", "--source", cache,
+                           "-p:NuGetAudit=false", "-p:PublishReadyToRun=true")
+            self.assertEqual(0, restored.returncode, restored.stdout + restored.stderr)
+            published = root / "published"
+            result = run("publish", desktop, "-c", "Release", "-r", "win-x64", "--no-restore",
+                         "--self-contained", "true", "-o", published,
+                         "-p:PublishSingleFile=true", "-p:EnableCompressionInSingleFile=true",
+                         "-p:PublishReadyToRun=true", "-p:PublishReadyToRunComposite=true")
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            packs = list(published.rglob("*.pack"))
+            self.assertEqual([published / "profiles/built-in/prebuilt-profile-catalog.pack"], packs)
+            self.assertEqual(first, packs[0].read_bytes())
+            self.assertFalse(list(published.rglob("*PrebuiltProfileCatalogGenerator*")))
+            self.assertTrue((published / "NvtFwCombiner.Desktop.exe").is_file())
 
 
 class AdmissionBuildTests(unittest.TestCase):

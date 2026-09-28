@@ -1,0 +1,45 @@
+<Project>
+  <!-- Invalidate before even the materializer's validation: a failed build cannot expose an old pack. -->
+  <Target Name="InvalidatePrebuiltProfileCatalog" BeforeTargets="MaterializeBuiltInProfileBundles">
+    <PropertyGroup>
+      <_NfcCatalogWork>$(IntermediateOutputPath)prebuilt-catalog</_NfcCatalogWork>
+      <_NfcCatalogPack>$(BuiltInProfileMaterializedRoot)\prebuilt-profile-catalog.pack</_NfcCatalogPack>
+      <_NfcCatalogIndex>$(_NfcCatalogWork)\package-trust-index.json</_NfcCatalogIndex>
+    </PropertyGroup>
+    <Delete Files="$(_NfcCatalogPack);$(OutDir)profiles\built-in\prebuilt-profile-catalog.pack" />
+    <RemoveDir Directories="$(_NfcCatalogWork)" />
+  </Target>
+
+  <!-- AssignTargetPaths can run before ResolveReferences. Make the tool build an explicit dependency. -->
+  <Target Name="GeneratePrebuiltProfileCatalog" AfterTargets="MaterializeBuiltInProfileBundles"
+          BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj"
+             Targets="GetTargetPath"
+             RemoveProperties="PublishSingleFile;IncludeNativeLibrariesForSelfExtract;EnableCompressionInSingleFile;PublishReadyToRun;PublishReadyToRunComposite;SelfContained;UseAppHost"
+             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework);SelfContained=false;UseAppHost=false;PublishSingleFile=false;PublishReadyToRun=false;PublishReadyToRunComposite=false">
+      <Output TaskParameter="TargetOutputs" ItemName="_NfcCatalogTool" />
+    </MSBuild>
+    <Error Condition="!Exists('@(_NfcCatalogTool)')" Text="The built profile catalog generator is missing." />
+    <MakeDir Directories="$(_NfcCatalogWork)" />
+    <Copy SourceFiles="$(BuiltInProfileTrustIndex)" DestinationFiles="$(_NfcCatalogIndex)" />
+    <PropertyGroup>
+      <_NfcCatalogDotnet>$(NetCoreRoot)dotnet</_NfcCatalogDotnet>
+      <_NfcCatalogDotnet Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(NetCoreRoot)dotnet.exe</_NfcCatalogDotnet>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_NfcCatalogDotnet)&quot; &quot;@(_NfcCatalogTool)&quot; &quot;$(BuiltInProfileMaterializedRoot)&quot; &quot;$(_NfcCatalogIndex)&quot; &quot;$(_NfcCatalogWork)\catalog.pack&quot;"
+          Timeout="60000" />
+    <Error Condition="!Exists('$(_NfcCatalogWork)\catalog.pack')" Text="Profile catalog generation produced no pack." />
+    <Move SourceFiles="$(_NfcCatalogWork)\catalog.pack" DestinationFiles="$(_NfcCatalogPack)" />
+    <ItemGroup>
+      <Content Include="$(_NfcCatalogPack)" Link="profiles\built-in\prebuilt-profile-catalog.pack"
+               CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" ExcludeFromSingleFile="true" />
+      <Content Include="$(_NfcCatalogIndex)" Link="profiles\built-in\package-trust-index.json"
+               CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+    </ItemGroup>
+    <OnError ExecuteTargets="CleanFailedPrebuiltProfileCatalog" />
+  </Target>
+  <Target Name="CleanFailedPrebuiltProfileCatalog">
+    <Delete Files="$(_NfcCatalogPack);$(OutDir)profiles\built-in\prebuilt-profile-catalog.pack" />
+    <RemoveDir Directories="$(_NfcCatalogWork)" />
+  </Target>
+</Project>
