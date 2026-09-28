@@ -111,6 +111,38 @@ public sealed partial class BuildOutcomeTests
         Assert.False(shell.BuildResult.IsOpen);
     }
 
+    /// <summary>A reopened window receives idle binding notifications when its revoked run finally settles.</summary>
+    [Fact]
+    public async Task ReopenedWindowReceivesIdleNotificationsAfterRevokedRun()
+    {
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
+        bool mayPublish = true;
+        shell.RunSession.SetWindowPublication(() => mayPublish);
+        CompositionRunContext context = shell.Merge.CaptureRunContext(ExperienceIds.StandardMerge, build: true);
+        UiRunResultViewModel before = context.Owner.LastRunResult;
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task run = shell.RunSession.RunCompositionAsync(context, true, async (_, _) =>
+        {
+            entered.SetResult();
+            await release.Task;
+            return CreateRunResult(true, "late.bin");
+        }, (_, _) => { });
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        var notifications = new List<string?>();
+        shell.RunSession.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+        shell.RunSession.RevokeActiveRun();
+        mayPublish = false;
+        mayPublish = true;
+        release.SetResult();
+        await run.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.Same(before, context.Owner.LastRunResult);
+        Assert.False(shell.RunSession.IsRunInProgress);
+        Assert.Contains(nameof(CompositionRunPresentationViewModel.IsRunInProgress), notifications);
+        Assert.Contains(nameof(CompositionRunPresentationViewModel.DisplayedDeviceIc), notifications);
+    }
+
     /// <summary>Matching workflow, IC and authoring revision do not identify a page instance.</summary>
     [Fact]
     public async Task WorkflowRunOwnersRemainIndependentAcrossIdenticalPageInstances()

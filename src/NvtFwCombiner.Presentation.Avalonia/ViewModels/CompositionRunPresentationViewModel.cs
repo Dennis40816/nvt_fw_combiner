@@ -175,7 +175,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
                 ActiveRunNumber = string.Empty;
                 ActiveRunMode = string.Empty;
                 ActiveRunDeviceContextRefreshSummary = string.Empty;
-                if (!attempt.IsRevoked && _windowMayPublish())
+                if (_windowMayPublish())
                 {
                     _stateBindings.RefreshCommandState();
                     NotifyActiveRunContextChanged();
