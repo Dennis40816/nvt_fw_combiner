@@ -148,11 +148,8 @@ internal static partial class UiCompositionRunner
             {
                 facts.Add(new($"{bankLabel} Version", DpVersionMetadata.FormatDisplayValue(
                     FormattableString.Invariant($"{dp.Major:X2}{dp.Minor:X2}")), priority: FirmwareSlotFactPriority.Details));
-                if (dp.TrackerId is > 0)
-                {
-                    facts.Add(new($"{bankLabel} Jira Index", FormattableString.Invariant($"AUTO_PRJ-{dp.TrackerId}"),
-                        priority: FirmwareSlotFactPriority.Details));
-                }
+                facts.Add(new($"{bankLabel} Jira Index", JiraIndexDisplay.Format(dp.TrackerId),
+                    priority: FirmwareSlotFactPriority.Details));
             }
             else
             {
@@ -243,9 +240,9 @@ internal static partial class UiCompositionRunner
             ? legacy.DisplayValue
             : DpVersionMetadata.FormatDisplayValue(cmiMetadata!.Value.VersionToken);
         List<FirmwareSlotFactViewModel> facts = [new FirmwareSlotFactViewModel("DP Version", dpVersion, priority: priority)];
-        if (cmiMetadata is CmiDpCodeMetadata cmi && !string.IsNullOrWhiteSpace(cmi.JiraBadge))
+        if (cmiMetadata is CmiDpCodeMetadata cmi)
         {
-            facts.Add(new FirmwareSlotFactViewModel("Jira Index", cmi.JiraBadge, priority: priority));
+            facts.Add(new FirmwareSlotFactViewModel("Jira Index", JiraIndexDisplay.Format(cmi.JiraNumber), priority: priority));
         }
 
         return facts;

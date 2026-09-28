@@ -88,10 +88,12 @@ public sealed partial class FirmwareInspectionSlotTests
         };
 
         FirmwareSlotFactViewModel legacyFact = Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(legacy));
-        FirmwareSlotFactViewModel cmiFact = Assert.Single(UiCompositionRunner.GetDpFirmwareSlotFacts(cmi));
+        IReadOnlyList<FirmwareSlotFactViewModel> cmiFacts = UiCompositionRunner.GetDpFirmwareSlotFacts(cmi);
+        FirmwareSlotFactViewModel cmiFact = cmiFacts[0];
 
         Assert.Equal(new FirmwareSlotFactViewModel("DP Version", "D00-0D"), legacyFact);
         Assert.Equal(legacyFact, cmiFact);
+        Assert.Equal("Invalid (AUTO_PRJ-0)", Assert.Single(cmiFacts, static fact => fact.Label == "Jira Index").Value);
     }
 
     /// <summary>Verifies slot completion retains required and optional semantics for XAML state selectors.</summary>
