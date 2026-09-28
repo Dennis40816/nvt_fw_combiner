@@ -77,7 +77,7 @@ Internal and process changes:
 - Support status: unchanged/support-neutral.
 - Compatibility: Firmware output bytes, ranges, order, CRC/Header behavior and naming are unchanged. Scripts that read the Preview approval token line must stop relying on it. A Build after a UTC date change may use the new date in an automatic output name, and its report records the effective name.
 - Verification: A regression test shows a Build without a token now revalidates and commits. The existing rejection tests for changed content and failed final validation remain. A long-path test fails before deployment. Final candidate verification remains required.
-- Limitations: The limit applies to the paths the legacy tool receives, which NFC stages under the system temporary folder (`%TEMP%\nvt-fw-combiner\external-tools`). Moving the inputs or outputs does not help; if this error appears, point TEMP to a shorter folder.
+- Limitations: The limit applies to the paths the legacy tool receives, which NFC stages under the system temporary folder (`nvt-fw-combiner\external-tools` under the Windows temporary folder, which Windows takes from `TMP` before `TEMP`). Moving the inputs or outputs does not help; if this error appears, point both `TMP` and `TEMP` to a shorter folder.
 
 #### 6. TP SVN is shown for TP inputs
 
@@ -90,12 +90,12 @@ Internal and process changes:
 
 #### 7. Faster start-up with a pre-built profile catalog
 
-- Before → After: Every start validated every built-in profile document before the profile catalog was ready. The built-in catalog is now generated and checked when the application is built. At start-up the application accepts it only when it matches the exact reviewed profile inputs; otherwise it falls back to the full check. In the release-candidate measurement against v1.1.12 on the same machine (not idle), all start-up loading finished in 1.7-2.0 s for every launch instead of 3.0-3.2 s, and peak memory was lower.
+- Before → After: Every start validated every built-in profile document before the profile catalog was ready. The built-in catalog is now generated and checked when the application is built. At start-up the application accepts it only when it matches the exact reviewed profile inputs; otherwise it falls back to the full check. In a pre-release measurement against v1.1.12 on the same machine (not idle), all start-up loading finished in 1.7-2.0 s for every launch instead of 3.0-3.2 s, and peak memory was lower.
 - Affected: application start-up; the release package gains the pre-built catalog file.
 - Support status: unchanged/support-neutral; the same profiles are admitted with the same results.
 - Compatibility: No user action. A damaged or mismatched catalog file is rejected and the application uses the full check.
-- Verification: Equivalence and damaged-file tests, package regeneration with byte comparison, and a smoke test that requires the pre-built path. ADR 0077 release-candidate measurement against v1.1.12 (5 launches each, same session, machine not idle): every launch finished loading within 2,000 ms (1,718-1,984 ms). Peak private bytes of at most 308.6 MB and peak working set of at most 306.2 MB stay below the v1.1.12 maxima (351.6 MB and 324.3 MB). The GC heap after warm-up was 27.7 MB (limit 50 MB) and the EXE is 76,514,116 bytes (limit 80,000,000).
-- Limitations: Timings depend on the machine; the figures above are not a guarantee. In the same measurement the median time to the first window was 1,097 ms against 1,025 ms for v1.1.12, above ADR 0077's 20 ms regression guard. The owner accepted this for 1.1.13, and it is re-measured on an idle machine in 1.1.14.
+- Verification: Equivalence and damaged-file tests, package regeneration with byte comparison, and a smoke test that requires the pre-built path. A pre-release measurement against v1.1.12 (5 launches each, one pass, same session, machine not idle) found that every launch finished loading within 2,000 ms (1,718-1,984 ms). Peak private bytes of at most 308.6 MB and peak working set of at most 306.2 MB stay below the v1.1.12 maxima (351.6 MB and 324.3 MB). The GC heap after warm-up was 27.7 MB (limit 50 MB) and the EXE is 76,514,116 bytes (limit 80,000,000).
+- Limitations: Timings depend on the machine; the figures above are not a guarantee. In the same measurement the median time to the first window was 1,097 ms against 1,025 ms for v1.1.12, above ADR 0077's 20 ms regression guard. This is not the ADR 0077 acceptance measurement, which needs an idle session, a JSON-path variant and two passes. That acceptance was not run for 1.1.13; the owner released without it and it runs in 1.1.14.
 
 #### 8. Closing and version switching are bounded and recoverable
 
