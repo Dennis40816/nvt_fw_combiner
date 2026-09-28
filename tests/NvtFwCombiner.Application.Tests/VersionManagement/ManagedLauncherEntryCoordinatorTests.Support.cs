@@ -439,6 +439,10 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
 
     private sealed class DeferredAdmissionBootstrapHandoff : IImmutableBootstrapHandoff
     {
+        private readonly TaskCompletionSource _admissionWaitStarted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal Task AdmissionWaitStarted => _admissionWaitStarted.Task;
         internal bool AdmissionWaitCancelled { get; private set; }
         internal int CompletionWaitCount { get; private set; }
 
@@ -462,6 +466,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
                 ImmutableBootstrapWaitBudget budget,
                 CancellationToken cancellationToken)
             {
+                _ = owner._admissionWaitStarted.TrySetResult();
                 try
                 {
                     await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);

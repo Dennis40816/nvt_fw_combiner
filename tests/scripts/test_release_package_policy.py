@@ -112,6 +112,22 @@ RELEASE_REQUIRED_CHECKS = (
 )
 
 
+def read_cleanup_lock_target(lock_target: Path, deadline: float) -> Path:
+    """Bound setup retries while CMD publishes and closes its target marker."""
+    while True:
+        try:
+            target = lock_target.read_text(encoding="utf-8").strip()
+        except (FileNotFoundError, PermissionError) as error:
+            if time.monotonic() >= deadline:
+                raise TimeoutError("Lock setup could not read the target marker.") from error
+        else:
+            if target:
+                return Path(target)
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Lock setup target marker remained empty.")
+        time.sleep(0.01)
+
+
 def normalize_console_output(output: str) -> str:
     """Remove terminal styling and line wrapping before message assertions."""
 
@@ -776,6 +792,59 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
+    def test_cleanup_lock_target_retries_transient_access_denied(self) -> None:
+        target = Path(tempfile.gettempdir()) / "residual.txt"
+        with (
+            mock.patch.object(
+                Path,
+                "read_text",
+                side_effect=[PermissionError(13, "access denied"), str(target)],
+            ) as read,
+            mock.patch.object(time, "monotonic", return_value=0),
+            mock.patch.object(time, "sleep") as sleep,
+        ):
+            self.assertEqual(target, read_cleanup_lock_target(Path("lock.target"), 10))
+            self.assertEqual(2, read.call_count)
+            sleep.assert_called_once_with(0.01)
+
+    def test_cleanup_lock_target_waits_for_nonempty_publication(self) -> None:
+        target = Path(tempfile.gettempdir()) / "residual.txt"
+        with (
+            mock.patch.object(
+                Path, "read_text", side_effect=[FileNotFoundError(), "", str(target)]
+            ) as read,
+            mock.patch.object(time, "monotonic", return_value=0),
+            mock.patch.object(time, "sleep") as sleep,
+        ):
+            self.assertEqual(target, read_cleanup_lock_target(Path("lock.target"), 10))
+            self.assertEqual(3, read.call_count)
+            self.assertEqual(2, sleep.call_count)
+
+    def test_cleanup_lock_target_reports_persistent_denial_as_setup_timeout(self) -> None:
+        denied = PermissionError(13, "access denied")
+        with (
+            mock.patch.object(Path, "read_text", side_effect=denied) as read,
+            mock.patch.object(time, "monotonic", side_effect=[0, 0, 10]),
+            mock.patch.object(time, "sleep") as sleep,
+            self.assertRaisesRegex(TimeoutError, "Lock setup") as failure,
+        ):
+            read_cleanup_lock_target(Path("lock.target"), 10)
+        self.assertIs(denied, failure.exception.__cause__)
+        self.assertEqual(2, read.call_count)
+        sleep.assert_called_once_with(0.01)
+
+    def test_cleanup_lock_target_does_not_retry_unrelated_io_errors(self) -> None:
+        failure = OSError("unrelated I/O failure")
+        with (
+            mock.patch.object(Path, "read_text", side_effect=failure) as read,
+            mock.patch.object(time, "sleep") as sleep,
+            self.assertRaises(OSError) as observed,
+        ):
+            read_cleanup_lock_target(Path("lock.target"), 10)
+        self.assertIs(failure, observed.exception)
+        read.assert_called_once()
+        sleep.assert_not_called()
+
     def test_rehearsal_uses_stable_release_build_without_publication_authority(self) -> None:
         rehearsal_path = ROOT / ".github/workflows/release-rehearsal.yml"
         self.assertFalse((ROOT / ".github/workflows/main-package.yml").exists())
@@ -2482,13 +2551,7 @@ finally {
 
                         try:
                             deadline = time.monotonic() + 10
-                            while not lock_target.exists():
-                                if time.monotonic() >= deadline:
-                                    raise TimeoutError("Lock target was not published.")
-                                time.sleep(0.01)
-                            target = Path(
-                                lock_target.read_text(encoding="utf-8").strip()
-                            )
+                            target = read_cleanup_lock_target(lock_target, deadline)
                             kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
                             kernel32.CreateFileW.argtypes = (
                                 wintypes.LPCWSTR,
