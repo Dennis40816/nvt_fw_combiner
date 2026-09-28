@@ -1,6 +1,6 @@
 # BUG-20260927-version-manager-state-test-isolation: test processes can still resolve the real version-manager state
 
-Status: open (split from `BUG-20260926-tests-write-real-local-state` by board decision 91; no leak observed yet)
+Status: fixed (merged into `1.1.x` by #468, merge `47e01ebab`, 2026-09-28)
 Severity: P3
 Found: 2026-09-27, Claude Code (Opus 5.5), from the `TEST-LOCAL-STATE-1113-01` design review (`codex/gpt-6-astra`, F-3)
 Where: `src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/JsonVersionManagerStateStore.cs` (`GetDefaultPath`,

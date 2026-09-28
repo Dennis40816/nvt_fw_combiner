@@ -1,6 +1,6 @@
 # 1.1.13 TODO inventory
 
-Commander, 2026-09-27, after #459. The owner asked that progress be counted
+Commander, 2026-09-27, after #459; statuses refreshed after #462 the same day and after #468 on 2026-09-28. The owner asked that progress be counted
 over every item scheduled for 1.1.13, not only the scope table in
 [`../1.1.13.md`](../1.1.13.md). This list breaks that table into separately
 deliverable items and adds the records made outside it, the bugs whose owner
@@ -9,7 +9,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (25)
+## Done (44)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -38,19 +38,35 @@ remove items; the board decisions stay the authority for scope.
 | 23 | NVT reader XML documentation pointers | #459 |
 | 24 | Display OSD marker bug closed: fixed by the NVT end-flag rule | #458 (tests inverted) |
 | 25 | Bug ledger statuses brought up to date for #457-#459 | board |
+| 27 | Navigation focus underline (decision 32) | #461 |
+| 28 | Wave 5 F03/F06 process cleanup and ADR 0081 | #461 |
+| 29 | Test local-state isolation and the ADR 0079 amendment | #461 |
+| 50 | UiSmoke headless session stall: fail-fast guard (U1) | #464 |
+| 60 | `MemoryCoverageBar` one rebuild per load (decision 112) | #464 |
+| 61 | Local verify speed: UiSmoke partition and lane overlap (decisions 107, 128-130, 132, 134): about 24 to 14 min | #464 |
+| 45 | Version-manager state test isolation (W6-C) | #468 |
+| 46 | Process start failure becomes a typed result (W6-B) | #468 |
+| 47 | `verify.py --all` help text | #468 |
+| 51 | Deploy post-hash attack test made deterministic (W6-D) | #468 |
+| 55 | Document at the line ceiling: dated handoff history archived | #468 |
+| 57 | Canonical roadmap synchronized with decisions 103-104 (W6-E) | #468 |
+| 40 | ADR 0077 Step 0 measurement: gate admits B2 (avoidable wall time 916.8 and 929.6 ms in two passes at `47e01ebab`; acceptance cost 66.7 ms median) | evidence `<test-area>/evidence/adr0077-step0/` |
+| 31 | WS-GOV governance reset (ADR 0080): G1-A (decision 145) and G1-B cutover (decision 146) | #463, #469 (`8f5223860`) |
+| 62 | Trust probe catches the typed process start failure | #470 (`93da007af`) |
+| 63 | Win32 start-failure handoff test reaches the start | #470 (`93da007af`) |
+| 64 | Launcher cleanup lock-thread flake | #470 (`93da007af`) |
+| 65 | Archived handoff history uses test-area-relative evidence paths | #470 (`93da007af`) |
+| 69 | Replace selection renders its rows on first entry | #470 (`93da007af`) |
 
-## Active (6)
+## Active (3)
 
 | # | Item | Next |
 | --- | --- | --- |
-| 26 | C-7 TP SVN display (R3) | decisions 93-94, delta re-review, admission, ADR 0075 memory gate, firmware and release attestations |
-| 27 | Navigation focus underline (decision 32) | render the focus ring (review F-3), re-review |
-| 28 | Wave 5 F03/F06 process cleanup and ADR 0081 | admission and implementation; owner acceptance of ADR 0081 |
-| 29 | Test local-state isolation and the ADR 0079 amendment | admission and implementation |
-| 30 | G0: GitHub App, rulesets and settings, including A-5 | owner runs the scripts |
-| 31 | WS-GOV governance reset (ADR 0080) | on `feature/1.1.13/ws-gov`; integration after G0 |
+| 26 | C-7 TP SVN display (R3) | paused behind the verify-speed work: admission on the current checkpoint, ADR 0075 memory gate, firmware and release attestations |
+| 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150) | three reviewable commits (UiSmoke 145/145); rebase onto the cutover trunk, then the non-UI remainder; Settings references (decision 150) wait for the owner |
+| 30 | G0: GitHub App, rulesets and settings, including A-5 | D6, D7 and A8 done on 2026-09-28; the owner confirms the rule insights for both D6 bypasses and the Bitwarden backup |
 
-## Waiting or open (28)
+## Waiting or open (18)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
@@ -59,29 +75,29 @@ remove items; the board decisions stay the authority for scope.
 | 34 | Release workflow cleanup R-1 | G0 |
 | 35 | Release workflow cleanup R-2 | R-1 |
 | 36 | WS-AI dual-runtime agent documents, with the two agent-skill bugs | open |
-| 37 | WS-TEST pilot split (T1, T2a) and UiSmoke measurement U0 | open; U0 needs a quiet machine |
 | 38 | WS-FLOW F1 second half, F5 and F6 re-evaluation | open |
-| 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | open (P-1 merged) |
-| 40 | ADR 0077 Step 0 measurement | quiet machine |
-| 41 | ADR 0077 B2a (R2) | Step 0 |
+| 41 | ADR 0077 B2a (R2) | Step 0 admitted it; starts after G1-B merges |
 | 42 | ADR 0077 B2b trust policy (R3) | B2a |
 | 43 | First window within the EXE size ceiling | ADR 0077 |
-| 44 | Wave 5 window lifetime F01/F02/F25 (decisions 87, 88) | wave 5 F03/F06 |
-| 45 | Version-manager state test isolation (1.1.13 or later) | open |
-| 46 | Process start failure escapes the typed result | open |
-| 47 | `verify.py --all` help text | WS-GOV |
 | 48 | Version-branch CI gap | WS-GOV |
-| 49 | Test hygiene findings (WS-TEST T2-T4, G2) | WS-TEST |
-| 50 | UiSmoke headless session stall | root cause found (Avalonia.Headless setup race); fix: fail-fast diagnostics and off-session Avalonia use |
-| 51 | Deploy post-hash attack test race | open |
 | 52 | Legacy Combiner long path | open |
 | 53 | CI core-shard H2 and H3 follow-ups | open |
 | 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
-| 55 | Document at the line ceiling | open |
 | 56 | Private-string check rejects user-profile paths in new changes (rest of the public-paths bug) | open |
-| 57 | Canonical roadmap synchronized with decisions 103-104 (1.2.0 as the user release; intermediate 1.1.x releases), a governed documentation record | open (found by the #462 review) |
 | 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | release |
+| 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | release workflow cleanup R-1/R-2 |
+| 70 | Local verify L3: Infrastructure.Tests shares the lane pool (about 2 min; decision 153) | a quiet machine for the measurement |
 | 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
+
+## Moved out (5)
+
+| # | Item | Now in |
+| --- | --- | --- |
+| 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | 1.2.x (decision 154) |
+| 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | 1.1.14 (decision 154) |
+| 49 | Test hygiene findings (WS-TEST T2-T4, G2) | 1.2.x (decision 154) |
+| 68 | Predecessor validator false inconsistency (`BUG-20260927-predecessor-validator-false-inconsistent`) | 1.1.14 (decision 154) |
+| 67 | G0 `gh` wrapper repository option conflict (`BUG-20260927-g0-gh-wrapper-repo-option-conflict`) | 1.1.14: the parameter rename needs an owner-controlled update of the installed wrapper and its G0 hash inventory (batch 6 review) |
 
 Not 1.1.13: the display-convention inventory (1.1.14, decision 39); the 1.2.1
 architecture and UI reviews and Launcher; CtrlRAM cold first-open and F14/F15

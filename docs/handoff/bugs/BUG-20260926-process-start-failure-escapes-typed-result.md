@@ -1,6 +1,6 @@
 # BUG-20260926-process-start-failure-escapes-typed-result: an OS start failure of an approved tool escapes every typed failure path
 
-Status: suspected
+Status: fixed (merged into `1.1.x` by #468, merge `47e01ebab`, 2026-09-28)
 Severity: P3
 Found: 2026-09-26, Claude Code (Opus 5.5), while designing 1.1.13 wave 5 (process cancellation and window lifetime), at `feature/1.1.13/process-lifetime`@`557a9ee6a`
 Where: `src/NvtFwCombiner.Infrastructure/ExternalTools/SystemExternalProcessRunner.cs:17` (`ProcessLaunchGate.Start`); catch filters at `ExternalCombinerProcessor.cs:182-191`, `LegacyCombinerPostbuildProcessor.cs:226-236`, `src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs:197-241`, `src/NvtFwCombiner.Cli/CliApplication.cs:97-106`
