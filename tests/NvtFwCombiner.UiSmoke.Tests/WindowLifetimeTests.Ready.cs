@@ -231,6 +231,36 @@ public sealed partial class WindowLifetimeTests
         Assert.False(shell.Settings.IsEventBufferFormatLoading);
     }
 
+    /// <summary>An idle snapshot cannot be reused after a Settings operation registers in the next generation.</summary>
+    [AvaloniaFact]
+    public async Task SettingsOperationStartingAfterIdleProbeGetsNewIncompleteWaiter()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var held = new TaskCompletionSource<VersionManagementSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        IVersionManagementExperience experience =
+            DispatchProxy.Create<IVersionManagementExperience, LifetimeReportStorageProxy>();
+        ((LifetimeReportStorageProxy)experience).Call = (name, _) =>
+        {
+            Assert.Equal(nameof(IVersionManagementExperience.InitializeAsync), name);
+            Assert.True(entered.TrySetResult());
+            return new ValueTask<VersionManagementSnapshot>(held.Task);
+        };
+        MainWindowViewModel shell = MainWindow.CreateStartupViewModel(
+            PresentationTestHost.CreateServices("0.10.5", experience), ShellPreferenceSnapshot.Default);
+        Task beforeAdmission = shell.Settings.WhenOperationsIdleAsync();
+        Assert.True(beforeAdmission.IsCompletedSuccessfully);
+        Task refreshing = shell.Settings.RefreshVersionAsync(isAutomatic: false);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Task afterAdmission = shell.Settings.WhenOperationsIdleAsync();
+        Assert.NotSame(beforeAdmission, afterAdmission);
+        Assert.False(afterAdmission.IsCompleted);
+        held.SetException(new InvalidOperationException("late Settings read fault"));
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await refreshing);
+        await afterAdmission.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.True(afterAdmission.IsCompletedSuccessfully);
+    }
+
     /// <summary>Close drains initial Settings acquisition even while its Busy flag remains false.</summary>
     [AvaloniaFact]
     public async Task CloseWaitsForInitialEventBufferFactory()
@@ -316,6 +346,43 @@ public sealed partial class WindowLifetimeTests
             Dispatcher.UIThread.UnhandledException -= Capture;
         }
 
+    }
+
+    /// <summary>An external Close reentered from the posted final Closing event cannot become a second final Close.</summary>
+    [AvaloniaFact]
+    public async Task ClosingEventReentrantCloseDoesNotStackFinalClose()
+    {
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5"), ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        int finalClosingEvents = 0;
+        int closedEvents = 0;
+        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closing += (_, _) =>
+        {
+            if (window.ClosePhase != WindowClosePhase.Closing)
+            {
+                return;
+            }
+            finalClosingEvents++;
+            if (finalClosingEvents == 1)
+            {
+                window.Close();
+            }
+        };
+        window.Closed += (_, _) =>
+        {
+            closedEvents++;
+            _ = closed.TrySetResult();
+        };
+        window.Close();
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(2, finalClosingEvents);
+        Assert.Equal(1, closedEvents);
     }
 
     /// <summary>Cancellation of a READY write during Close stays inside the startup owner.</summary>

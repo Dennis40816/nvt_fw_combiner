@@ -540,7 +540,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("if (!await TryCompleteStableLauncherHandoffAsync())", lifetime, StringComparison.Ordinal);
         Assert.Contains("_windowPublication.Revoke();", lifetime, StringComparison.Ordinal);
         Assert.Contains("Dispatcher.UIThread.Post(() =>", lifetime, StringComparison.Ordinal);
-        Assert.Contains("e.Cancel = !_internalFinalClose;", codeBehind, StringComparison.Ordinal);
         Assert.DoesNotContain("TryCompleteStableLauncherHandoffAsync", codeBehind, StringComparison.Ordinal);
     }
 

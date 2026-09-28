@@ -405,6 +405,7 @@ public sealed partial class VersionManagementSettingsTests
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         internal Task Entered => _entered.Task;
+        internal int Attempts { get; private set; }
 
         internal void Release(bool started)
         {
@@ -413,9 +414,84 @@ public sealed partial class VersionManagementSettingsTests
 
         public async ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
         {
+            Attempts++;
             _ = _entered.TrySetResult();
             return await _released.Task;
         }
+    }
+
+    /// <summary>Repeated external Close never stacks attempts across drain, handoff, and recovery.</summary>
+    [AvaloniaFact]
+    public async Task ReentrantCloseAcrossDrainHandoffAndRecoveryKeepsOneAttempt()
+    {
+        var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        _ = await inner.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
+        var recoveryEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var recoveryRead = new TaskCompletionSource<VersionManagementSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        bool holdRecoveryRead = false;
+        IVersionManagementExperience experience =
+            DispatchProxy.Create<IVersionManagementExperience, WindowLifetimeStorageProxy>();
+        ((WindowLifetimeStorageProxy)experience).Call = (method, args) =>
+        {
+            if (method == nameof(IVersionManagementExperience.InitializeAsync) && holdRecoveryRead)
+            {
+                _ = recoveryEntered.TrySetResult();
+                return new ValueTask<VersionManagementSnapshot>(recoveryRead.Task);
+            }
+            return typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
+        };
+        var handoff = new GatedWindowLifetimeHandoff();
+        var factory = new TaskCompletionSource<Application.Configuration.IEventBufferFormatConfigurationSession>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        PresentationHostServices original = PresentationTestHost.CreateServices("0.10.5", experience, handoff);
+        var services = new PresentationHostServices(
+            original.Composition, original.FileReveal, original.SupportMatrix,
+            original.SystemInformation, original.SystemDiagnosticsExporter,
+            original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
+            original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory,
+            experience, null, handoff, _ => factory.Task);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        shell.OpenSettingsCommand.Execute(null);
+        shell.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
+        Assert.True(shell.Settings.IsEventBufferFormatLoading);
+        var neverExpires = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.CloseDeadlineFactory = _ => neverExpires.Task;
+        window.RequestStableLauncherRestart();
+        window.Close();
+        Task first = window.CloseAttempt;
+        Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
+        window.Close();
+        window.Close();
+        Assert.Same(first, window.CloseAttempt);
+        factory.SetException(new InvalidOperationException("factory stopped"));
+        await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.HandingOff, window.ClosePhase);
+        window.Close();
+        window.Close();
+        Assert.Same(first, window.CloseAttempt);
+        holdRecoveryRead = true;
+        handoff.Release(started: false);
+        await recoveryEntered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.Recovering, window.ClosePhase);
+        window.Close();
+        window.Close();
+        Assert.Same(first, window.CloseAttempt);
+        recoveryRead.SetResult(inner.Current);
+        await first.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+        Assert.Equal(1, handoff.Attempts);
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => _ = closed.TrySetResult();
+        window.Close();
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.Closed, window.ClosePhase);
+        Assert.Equal(1, handoff.Attempts);
     }
 
     /// <summary>A failed real Close reopens preference admission and a later Close flushes the new value.</summary>
@@ -604,6 +680,138 @@ public sealed partial class VersionManagementSettingsTests
             _ = _entered.TrySetResult();
             return new(_released.Task);
         }
+    }
+
+    /// <summary>Recovery cancels the old startup generation before its READY callback returns.</summary>
+    [AvaloniaFact]
+    public async Task ReadyFromOldSessionAfterFailedHandoffCannotPublish()
+    {
+        VersionManagementSnapshot late = Snapshot(retentionReviewDue: true) with
+        {
+            ShouldPromptForUpdate = true,
+        };
+        var experience = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        var startup = new IgnoringReadyStartup();
+        var handoff = new RecordingStableLauncherHandoff(started: false);
+        PresentationHostServices original = PresentationTestHost.CreateServices("0.10.5", experience, handoff);
+        var services = new PresentationHostServices(
+            original.Composition, original.FileReveal, original.SupportMatrix,
+            original.SystemInformation, original.SystemDiagnosticsExporter,
+            original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
+            original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory,
+            experience, startup, handoff);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await startup.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        window.RequestStableLauncherRestart();
+        Assert.False(await window.TryCompleteStableLauncherHandoffAsync());
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+        startup.Release(new(ApplicationReadySignalOutcome.Reported, late));
+        await window.StartupWork.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(shell.Settings.HasRetentionReview);
+        Assert.False(shell.IsSettingsModalOpen);
+        Assert.False(shell.Settings.IsSourceChecking);
+        Assert.Equal(1, handoff.Attempts);
+    }
+
+    /// <summary>A post-READY discovery fault is owned by the startup session during Close.</summary>
+    [AvaloniaFact]
+    public async Task PostReadyDiscoveryFaultDuringCloseIsObservedWithoutPublication()
+    {
+        var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        var checkEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var checkRelease = new TaskCompletionSource<VersionManagementSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        IVersionManagementExperience experience =
+            DispatchProxy.Create<IVersionManagementExperience, WindowLifetimeStorageProxy>();
+        ((WindowLifetimeStorageProxy)experience).Call = (method, args) =>
+        {
+            if (method == nameof(IVersionManagementExperience.CheckAsync))
+            {
+                _ = checkEntered.TrySetResult();
+                return new ValueTask<VersionManagementSnapshot>(checkRelease.Task);
+            }
+            return typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
+        };
+        var startup = new IgnoringReadyStartup();
+        PresentationHostServices original = PresentationTestHost.CreateServices("0.10.5", experience);
+        var services = new PresentationHostServices(
+            original.Composition, original.FileReveal, original.SupportMatrix,
+            original.SystemInformation, original.SystemDiagnosticsExporter,
+            original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
+            original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory,
+            experience, startup, null);
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        bool escaped = false;
+        void Capture(object sender, DispatcherUnhandledExceptionEventArgs args)
+        {
+            escaped = true;
+            args.Handled = true;
+        }
+        Dispatcher.UIThread.UnhandledException += Capture;
+        try
+        {
+            window.Show();
+            await startup.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            startup.Release(new(ApplicationReadySignalOutcome.Reported, inner.Current));
+            await checkEntered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            window.Closed += (_, _) => _ = closed.TrySetResult();
+            window.Close();
+            checkRelease.SetException(new InvalidOperationException("late discovery fault"));
+            await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(escaped);
+            Assert.False(shell.IsSettingsModalOpen);
+            Assert.False(shell.Settings.HasRetentionReview);
+            Assert.Equal(WindowClosePhase.Closed, window.ClosePhase);
+        }
+        finally
+        {
+            Dispatcher.UIThread.UnhandledException -= Capture;
+        }
+    }
+
+    /// <summary>The real install command requests activation on its subscribed window before Close settles.</summary>
+    [AvaloniaFact]
+    public async Task ConfirmedInstallUsesWindowActivationRequestedPath()
+    {
+        VersionManagementSnapshot initial = Snapshot(retentionReviewDue: false);
+        UpdateCatalogVersionSnapshot available = CatalogVersion("0.10.6");
+        initial = initial with
+        {
+            Catalog = new([available]),
+            VerifiedCandidate = new(available.Version, available.Identity, available.ReleaseNotes),
+            SourceStatus = VersionSourceStatus.Connected,
+        };
+        var experience = new RecordingVersionExperience(initial);
+        var handoff = new GatedWindowLifetimeHandoff();
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            PresentationTestHost.CreateServices("0.10.5", experience, handoff), ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        shell.Settings.ApplyVersionSnapshot(initial);
+        SettingsVersionRowViewModel candidate = Assert.Single(shell.Settings.VersionRows,
+            row => row.Version == available.Version);
+        shell.Settings.RequestVersionPrimaryActionCommand.Execute(candidate);
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => _ = closed.TrySetResult();
+        await shell.Settings.ConfirmVersionActionCommand.ExecuteAsync(null);
+        await handoff.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal([available.Version], experience.Installations);
+        Assert.Equal([available.Version], experience.Activations);
+        Assert.Equal(WindowClosePhase.HandingOff, window.ClosePhase);
+        Assert.False(closed.Task.IsCompleted);
+        handoff.Release(started: true);
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(1, handoff.Attempts);
     }
 
     /// <summary>A durable read that ignores cancellation cannot hold the failed-handoff window forever.</summary>

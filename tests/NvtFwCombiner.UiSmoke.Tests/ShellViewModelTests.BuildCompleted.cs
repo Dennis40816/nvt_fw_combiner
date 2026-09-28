@@ -1,4 +1,6 @@
 using NvtFwCombiner.Application.Ports;
+using Avalonia.Headless.XUnit;
+using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -8,6 +10,65 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class BuildOutcomeTests
 {
+    /// <summary>A committed output remains on disk when its receipt arrives after failed-handoff recovery.</summary>
+    [AvaloniaFact]
+    public async Task LateBuildReceiptAfterFailedHandoffRecoveryIsDiscarded()
+    {
+        using var workspace = TempWorkspace.Create("w6a-late-build-receipt");
+        string outputPath = workspace.PathFor("committed.bin");
+        PresentationHostServices original = PresentationTestHost.CreateServices("0.10.5");
+        var services = new PresentationHostServices(
+            original.Composition, original.FileReveal, original.SupportMatrix,
+            original.SystemInformation, original.SystemDiagnosticsExporter,
+            original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
+            original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory,
+            versionManagement: null, managedApplicationStartup: null,
+            stableLauncherHandoff: new FailingReceiptHandoff());
+        using var window = new MainWindow(
+            UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var released = new TaskCompletionSource<CompositionRunResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<UiRunResultViewModel?> run = shell.RunSession.RunCompositionAsync(
+            shell.Replace.CaptureRunContext(shell.Replace.SelectedReplaceMode),
+            build: true,
+            async (_, _) =>
+            {
+                _ = entered.TrySetResult();
+                return await released.Task;
+            },
+            (_, _) => { });
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        window.CloseDeadlineFactory = _ => Task.CompletedTask;
+        window.RequestStableLauncherRestart();
+        window.Close();
+        await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(WindowClosePhase.Open, window.ClosePhase);
+        Assert.True(window.IsEnabled);
+        Assert.False(shell.BuildResult.IsOpen);
+        await File.WriteAllBytesAsync(outputPath, [0x42, 0x17], TestContext.Current.CancellationToken);
+        released.SetResult(CreateRunResult(succeeded: true, outputPath));
+        _ = await run.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.True(shell.RunSession.ActiveRunCompletion.IsCompleted);
+        Assert.False(shell.RunSession.IsRunInProgress);
+        Assert.False(shell.BuildResult.IsOpen);
+        Assert.False(shell.BuildResult.HasLatestCommittedOutput);
+        Assert.Equal([0x42, 0x17], await File.ReadAllBytesAsync(outputPath,
+            TestContext.Current.CancellationToken));
+    }
+
+    private sealed class FailingReceiptHandoff : IStableLauncherHandoff
+    {
+        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(false);
+        }
+    }
+
     /// <summary>The normal run-result projection opens the confirmation for its committed output.</summary>
     [Fact]
     public async Task CompletedBuildProjectionOpensOutputConfirmation()

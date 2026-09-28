@@ -148,7 +148,12 @@ public sealed partial class MainWindow : Window, IDisposable
         ArgumentNullException.ThrowIfNull(e);
         if (ClosePhase == WindowClosePhase.Closing)
         {
-            e.Cancel = !_internalFinalClose;
+            if (!_internalFinalClose)
+            {
+                e.Cancel = true;
+                return;
+            }
+            _internalFinalClose = false;
             base.OnClosing(e);
             return;
         }
