@@ -323,14 +323,23 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
     public async Task StableLauncherHandoffConvertsWin32StartFailureToFalse()
     {
         using var workspace = TempWorkspace.Create();
-        await File.WriteAllTextAsync(
-            Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"),
-            "not-a-windows-executable",
-            TestContext.Current.CancellationToken);
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
+        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
+        bool hookRan = false;
+        var handoff = new StableLauncherHandoff(
+            workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"),
+            ManagedProcessTermination.Instance,
+            beforeProcessStart: _ =>
+            {
+                hookRan = true;
+                throw new System.ComponentModel.Win32Exception(5);
+            },
+            expectedIdentity: CreateBootstrapIdentity(workspace.Root));
 
-        bool started = await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"))
-            .TryStartLauncherAsync(TestContext.Current.CancellationToken);
+        bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
+        Assert.True(hookRan);
         Assert.False(started);
     }
 

@@ -37,6 +37,23 @@ def reference_run(checkout, target):
                           env=os.environ.copy(), stdin=subprocess.DEVNULL, capture_output=True)
 
 
+def test_empty_inherited_pythonpath_does_not_add_empty_search_entry(tmp_path, monkeypatch):
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = ""
+    monkeypatch.setattr(audit_module, "entry_environment", lambda: environment.copy())
+    captured = {}
+
+    def capture_launch(*args, **kwargs):
+        captured.update(kwargs["env"])
+        raise RuntimeError("launch captured")
+
+    monkeypatch.setattr(audit_module.subprocess, "run", capture_launch)
+    with pytest.raises(RuntimeError, match="launch captured"):
+        run_audited(tmp_path, [], "scripts/probe.py")
+    assert captured["PYTHONPATH"]
+    assert not captured["PYTHONPATH"].endswith(os.pathsep)
+
+
 @pytest.fixture
 def launch_environment(tmp_path, monkeypatch):
     configure_launch_environment(tmp_path, monkeypatch)

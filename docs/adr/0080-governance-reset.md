@@ -1170,7 +1170,7 @@ mostly the size of the path map and of the recorded API fixtures.
 
 ## Verification
 
-- No gate walks history: no `diff-tree`, no `--ancestry-path`, no unbounded
+- The structure validator (`scripts/validate_repository.py`) does not walk history: no `diff-tree`, no `--ancestry-path`, no unbounded
   `rev-list` or `log`; the only `rev-list` and `log` calls are the parity
   reader's two calls anchored at the frozen binding head (decision 125); the
   structure-entry audit test fails otherwise.

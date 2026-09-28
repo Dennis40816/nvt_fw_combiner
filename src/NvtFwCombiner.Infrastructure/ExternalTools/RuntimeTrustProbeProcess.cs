@@ -38,6 +38,10 @@ internal sealed class RuntimeTrustProbeProcess(
             // (owner decision 92) so the user is told how to recover rather than seeing a generic failure.
             return new("runtime.trust.probe-failed", ExternalProcessCleanupText.CapacityMessage(exception));
         }
+        catch (ExternalProcessStartFailedException)
+        {
+            return new("runtime.trust.probe-failed");
+        }
         // Timeout keeps priority over an incomplete cleanup: a timed-out probe is always runtime.trust.timeout.
         if (result.TimedOut) { return new("runtime.trust.timeout"); }
         if (result.Cleanup != ExternalProcessCleanup.Complete) { return new("runtime.trust.probe-failed"); }

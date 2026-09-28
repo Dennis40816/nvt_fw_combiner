@@ -165,6 +165,23 @@ public sealed class ToolchainRuntimeCandidateInspectorTests
         Assert.Contains("Restart", verdict.UserMessage, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>A typed operating-system start failure becomes a stable trust-probe rejection.</summary>
+    [Fact]
+    public async Task ProbeStartFailureReturnsStableIssue()
+    {
+        var probe = new RuntimeTrustProbeProcess(
+            new ThrowingRunner(new ExternalProcessStartFailedException(new System.ComponentModel.Win32Exception(5))),
+            TrustedHostPath(),
+            []);
+
+        RuntimeTrustProbeVerdict? verdict = await probe.VerifyAsync(
+            Path.Combine(AppContext.BaseDirectory, "candidate.dll"),
+            new string('a', 64),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal("runtime.trust.probe-failed", verdict?.IssueCode);
+    }
+
     /// <summary>Caller cancellation is never converted into a candidate rejection or fallback.</summary>
     [Fact]
     public async Task ProbeCancellationPropagates()

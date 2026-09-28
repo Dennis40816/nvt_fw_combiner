@@ -357,7 +357,7 @@ def run_audited(checkout, expected=None, target="scripts/validate_repository.py"
         environment = entry_environment()
         inherited_path = environment.get("PYTHONPATH")
         write_site_bootstrap(Path(scratch), harness, contract, target, inherited_path)
-        environment["PYTHONPATH"] = scratch + (os.pathsep + inherited_path if inherited_path is not None else "")
+        environment["PYTHONPATH"] = scratch + (os.pathsep + inherited_path if inherited_path else "")
         result = subprocess.run(
             [sys.executable, str(harness), "--expected", str(contract), "--", target],
             cwd=checkout, env=environment, stdin=subprocess.DEVNULL, capture_output=True,
