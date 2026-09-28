@@ -55,7 +55,8 @@ CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentine
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
 REPOSITORY_SCRIPT_TEST_SHARDS = (
-    ("repository-scripts-a-q", "test_[a-q]*.py"),
+    ("repository-scripts-a-g", "test_[a-g]*.py"),
+    ("repository-scripts-h-q", "test_[h-q]*.py"),
     ("repository-scripts-r", "test_r*.py"),
     ("repository-scripts-s-z", "test_[s-z]*.py"),
 )

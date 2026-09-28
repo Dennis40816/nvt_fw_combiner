@@ -948,9 +948,10 @@ executes `--release-golden`, not another complete `--all`.
 
 ## Test inventory and locations
 
-Counts below are **static test-method declarations at the snapshot above**,
-not discovered or passed cases. xUnit theories and Python parameterization can
-expand one method into many cases. No tests were rerun to write this README.
+Counts below are **static test-method declarations**, not discovered or passed
+cases. The .NET rows retain the snapshot above; repository-script rows were
+recounted on 2026-09-29 to match the current CI shards. xUnit theories and
+Python parameterization can expand one method into many cases.
 Project paths are also the navigation links; their `.csproj` has the same name.
 
 | Major item / location | Scope | Method declarations | CI placement |
@@ -963,12 +964,14 @@ Project paths are also the navigation links; their `.csproj` has the same name.
 | [Architecture](NvtFwCombiner.Architecture.Tests/) | Layer/dependency and source-contract checks | 238 | core |
 | [Bootstrap](NvtFwCombiner.Bootstrap.Tests/) | Assembled routes, real fixtures and supported workflow execution | 666 | bootstrap; also fresh release Golden |
 | [UiSmoke](NvtFwCombiner.UiSmoke.Tests/) | Headless real controls, layout, bindings and shell workflows | 749 | ui; exclusive in local coverage (three partition parts from 1.1.13) |
-| [Repository scripts](scripts/), `test_[a-q]*.py` | Policy, automation and verifier contracts | 418 | repository-scripts-a-q |
-| [Repository scripts](scripts/), `test_r*.py` | Release/repository policy regressions | 165 | repository-scripts-r |
-| [Repository scripts](scripts/), `test_[s-z]*.py` | Sync, verification, process ownership and remaining contracts | 413 | repository-scripts-s-z |
+| [Repository scripts](scripts/), `test_[a-g]*.py` | Policy, automation and verifier contracts | 386 | repository-scripts-a-g |
+| [Repository scripts](scripts/), `test_[h-q]*.py` | Policy, automation and verifier contracts | 85 | repository-scripts-h-q |
+| [Repository scripts](scripts/), `test_r*.py` | Release/repository policy regressions | 161 | repository-scripts-r |
+| [Repository scripts](scripts/), `test_[s-z]*.py` | Sync, verification, process ownership and remaining contracts | 513 | repository-scripts-s-z |
 | [CRC worker](../tools/crc-worker/tests/) | CRC/header protocol and worker behavior | 28 | python-worker |
 
-The eight .NET projects total **3,962 declarations**; scripts total **996**.
+The eight .NET projects total **3,962 declarations** at the historical snapshot;
+repository scripts total **1,145** at the 2026-09-29 recount.
 Reproduce the static inventory without building or executing tests using
 `rg -n '^\s*\[(Fact|Theory|AvaloniaFact|AvaloniaTheory)(\(|\])' tests -g '*.cs'`
 and `rg -n '^\s*(async )?def test_' tests/scripts tools/crc-worker/tests -g '*.py'`.
