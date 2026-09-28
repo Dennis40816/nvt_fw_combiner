@@ -22,6 +22,8 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
     private long _reportRelocalizationRequestVersion;
     private long _reportProjectionGeneration;
 
+    internal ILocalFileStore? LocalFiles { get; set; }
+
     internal ReportPresentationViewModel(
         Func<ShellTextResources> textProvider,
         Action beforeOpen)
@@ -292,9 +294,11 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
     }
 
     /// <summary>Shows a compact notification after the report is written to disk.</summary>
-    public void NotifyReportSaved(string destinationName)
+    public void NotifyReportSaved(string destinationName, bool bestEffortProviderWrite = false)
     {
-        SetReportToast(Text.FormatReportSavedToast(destinationName));
+        SetReportToast(bestEffortProviderWrite
+            ? Text.FormatReportSavedBestEffortToast(destinationName)
+            : Text.FormatReportSavedToast(destinationName));
     }
 
     /// <summary>Reports a failed save without replacing the loaded report or its history.</summary>

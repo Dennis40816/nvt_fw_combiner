@@ -5,11 +5,40 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Platform.Storage;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class RunReportsListTests
 {
+    /// <summary>A local picker result must use the existing atomic file adapter.</summary>
+    [AvaloniaFact]
+    public async Task LocalReportSaveUsesAtomicFileStoreWithoutOpeningProviderWriteStream()
+    {
+        var reports = new ReportPresentationViewModel(() => ShellTextResources.For(ShellLanguage.English), static () => { });
+        string json = ReportJsonSamples.Succeeded(runId: "atomic-local");
+        reports.LoadReportJson(json, "source.json");
+        var store = new RecordingLocalFileStore();
+        reports.LocalFiles = store;
+        string destination = Path.Combine(Path.GetTempPath(), "atomic-local-report.json");
+        using IStorageFile file = DispatchProxy.Create<IStorageFile, ReportStorageProxy>();
+        ((ReportStorageProxy)file).Call = (method, _) => method switch
+        {
+            "get_Name" => "atomic-local-report.json",
+            "get_Path" => new Uri(destination),
+            "OpenWriteAsync" => throw new Xunit.Sdk.XunitException("Local reports must use the atomic file store."),
+            "Dispose" => null,
+            _ => throw new NotSupportedException(method),
+        };
+        IStorageProvider picker = DispatchProxy.Create<IStorageProvider, ReportStorageProxy>();
+        ((ReportStorageProxy)picker).Call = (_, _) => Task.FromResult<IStorageFile?>(file);
+
+        await new ReportModal { DataContext = reports }.SaveReportAsync(picker);
+
+        Assert.Equal(Path.GetFullPath(destination), Assert.Single(store.Writes));
+        Assert.Equal(reports.Text.FormatReportSavedToast("atomic-local-report.json"), reports.ReportToastText);
+    }
+
     /// <summary>The actual save operation contains provider and stream failures without losing the report.</summary>
     [AvaloniaTheory]
     [InlineData("picker")]
@@ -36,7 +65,7 @@ public sealed partial class RunReportsListTests
         Assert.Contains(failure == "open" ? "denied" : failure.Replace('-', ' '), reports.ReportToastText, StringComparison.Ordinal);
 
         await modal.SaveReportAsync(CreateSaveProvider("none", reports));
-        Assert.Equal(reports.Text.FormatReportSavedToast("saved.json"), reports.ReportToastText);
+        Assert.Equal(reports.Text.FormatReportSavedBestEffortToast("saved.json"), reports.ReportToastText);
         Assert.Equal(json, reports.LoadedReportJson);
     }
 
@@ -61,6 +90,7 @@ public sealed partial class RunReportsListTests
             return method switch
             {
                 "get_Name" => "saved.json",
+                "get_Path" => new Uri("https://storage.example/saved.json"),
                 "OpenWriteAsync" => Task.FromResult<Stream>(stream),
                 _ => throw new NotSupportedException(method),
             };
@@ -87,7 +117,7 @@ public sealed partial class RunReportsListTests
         Assert.Equal((true, true), Assert.Single(successObservations));
         Assert.Equal(original, Encoding.UTF8.GetString(stream.ToArray()));
         Assert.Equal(newer, reports.LoadedReportJson);
-        Assert.Equal(reports.Text.FormatReportSavedToast("saved.json"), reports.ReportToastText);
+        Assert.Equal(reports.Text.FormatReportSavedBestEffortToast("saved.json"), reports.ReportToastText);
     }
 
     /// <summary>Both native cancellation forms leave the loaded report intact and permit another attempt.</summary>
@@ -119,6 +149,7 @@ public sealed partial class RunReportsListTests
         ((ReportStorageProxy)file).Call = (method, _) => method switch
         {
             "get_Name" => "saved.json",
+            "get_Path" => new Uri("https://storage.example/saved.json"),
             "OpenWriteAsync" => failure == "open"
                 ? Task.FromException<Stream>(new UnauthorizedAccessException("denied"))
                 : Task.FromResult<Stream>(new SaveFaultStream(failure, reports)),

@@ -683,6 +683,13 @@ internal sealed partial class ShellTextResources
         return SelectLanguage($"Report saved: {destinationName}", $"Report saved：{destinationName}");
     }
 
+    public string FormatReportSavedBestEffortToast(string destinationName)
+    {
+        return SelectLanguage(
+            $"Report saved: {destinationName}. The storage provider does not guarantee atomic replacement.",
+            $"Report saved：{destinationName}。儲存空間提供者不保證原子替換。");
+    }
+
     public string FormatReportGeneratedToast(string action)
     {
         return SelectLanguage($"{action} report generated", $"{action} report 已產生");
