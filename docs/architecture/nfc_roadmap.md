@@ -28,14 +28,22 @@ of `1.1.13` so that it can be released on 2026-09-28:
 
 - **`1.1.14`** (decisions 154 and 157): rolling v0.9.16 parity stages 2-4 with the
   predecessor-validator follow-up, and the second half of WS-FLOW F1 (a profile-declared
-  default output-directory anchor).
+  default output-directory anchor). The parity stages later move to `1.2.x`
+  (decision 167); the predecessor-validator follow-up and F1 stay.
   The 1.1.14 display-convention work inventories consistency and optimization
   findings and allocates them to `1.2.x` versions without implementing them
   in `1.1.14` (decision 149).
-- **`1.1.14`, the last 1.1.x feature version, targeted for 2026-09-29** (decisions 162-165):
-  parity P-2 with the v0.9.16 baseline executor and the first formal ADR 0078 comparison,
-  F17/F23/F26 with the verified F16, the release workflow R-3, R-4 and R-6, the verifier
-  PyYAML failure, and R0/R1 merges without owner approval.
+- **`1.1.14`, the last 1.1.x feature version, targeted for 2026-09-29** (decisions 163-172):
+  - F17/F23/F26 with the verified F16.
+  - The release workflow R-3 with automatic start after the release merge, so the owner's
+    one action is the `release` approval (decision 168); R-4 and R-6.
+  - The verifier PyYAML failure.
+  - R0/R1 merges without owner approval through CODEOWNERS (decisions 165 and 172).
+  - The owner additions of decision 171: Memory Layout connectors, the DP Jira Index 0
+    display, and the redirected local-state notice.
+  - The ADR 0077 B4 first-window acceptance moved from 1.1.13.
+  - Parity P-2 and the first formal ADR 0078 comparison move to `1.2.x` (decision 167);
+    the 1.1.14 release states an ADR 0078 waiver.
 - **`1.2.x`** (decision 161): whether to change the Header backup CRC handling.
   Its root cause is recorded in 1.1.13; the owner judges it does not affect
   firmware operation.
