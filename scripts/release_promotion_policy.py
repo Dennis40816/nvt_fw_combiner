@@ -687,7 +687,10 @@ def _installer_asset_names(version: str) -> tuple[str, str, str, str, str]:
 
 
 def _candidate_asset_names(version: str) -> tuple[str, ...]:
-    return (*_asset_names(version), *_installer_asset_names(version))
+    version_assets = _asset_names(version)
+    if _stable_version_parts(version, "candidate version") < (1, 0, 6):
+        return version_assets
+    return (*version_assets, *_installer_asset_names(version))
 
 
 def create_candidate_manifest(

@@ -457,6 +457,12 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
     def test_version_and_launcher_asset_name_sets_remain_separate_and_closed(
         self,
     ) -> None:
+        for historical_version in ("1.0.0", "1.0.5"):
+            with self.subTest(historical_version=historical_version):
+                self.assertEqual(
+                    MODULE._asset_names(historical_version),
+                    MODULE._candidate_asset_names(historical_version),
+                )
         version = "1.0.6"
         self.assertEqual(
             (
@@ -1927,7 +1933,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 workflow_sha=SHA,
                 workflow_ref="refs/heads/main",
             )
-            self.assertEqual(8, len(manifest["assets"]))
+            self.assertEqual(3, len(manifest["assets"]))
 
             (root / MODULE._asset_names(version)[0]).write_bytes(b"tampered")
             with self.assertRaisesRegex(ValueError, "size mismatch|digest mismatch"):
@@ -2143,7 +2149,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             )
 
             self.assertNotIn(present_name, missing)
-            self.assertEqual(9, len(missing))
+            self.assertEqual(4, len(missing))
             (published / present_name).write_bytes(b"conflict")
             with self.assertRaisesRegex(ValueError, "digest conflicts"):
                 MODULE.plan_release_asset_recovery(manifest, published, [present_name])
