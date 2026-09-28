@@ -1,6 +1,6 @@
 # BUG-20260927-win32-handoff-test-returns-early: the Win32 start-failure test for the stable launcher handoff never reaches the start
 
-Status: open
+Status: fixed (merged into `1.1.x` by #470, merge `93da007af`, 2026-09-28)
 Severity: P3
 Found: 2026-09-27, Codex (gpt-6-astra) fixed-head review of W6-C (VERSION-MANAGER-STATE-1113-01) in batch 3
 Where: `tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/AnonymousPipeManagedApplicationProcessTests.Bootstrap.cs`,

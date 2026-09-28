@@ -1,6 +1,6 @@
 # BUG-20260928-replace-selection-shows-type-name: Replace selection lists the view-model type name instead of the selected replacements
 
-Status: open (seen in headless renders; confirm once in the real application)
+Status: fixed (merged into `1.1.x` by #470, merge `93da007af`, 2026-09-28)
 Severity: P2
 Found: 2026-09-28, Codex (gpt-6-sol) full-screen visual pass of the 1.1.14 display-convention inventory at trunk `47e01ebab`
 Where: `src/NvtFwCombiner.Presentation.Avalonia/Views/ReplaceSelectionModal.axaml:50` uses

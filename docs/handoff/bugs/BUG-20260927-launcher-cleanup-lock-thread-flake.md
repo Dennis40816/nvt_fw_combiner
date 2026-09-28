@@ -1,6 +1,6 @@
 # BUG-20260927-launcher-cleanup-lock-thread-flake: the launcher cleanup test's lock helper thread can fail with access denied under load
 
-Status: open
+Status: fixed (merged into `1.1.x` by #470, merge `93da007af`, 2026-09-28)
 Severity: P3
 Found: 2026-09-27, `python scripts/verify.py --all` at batch 3 head `06e09e0ad` (lane `test_release_package_policy`)
 Where: `tests/scripts/test_release_package_policy.py`,

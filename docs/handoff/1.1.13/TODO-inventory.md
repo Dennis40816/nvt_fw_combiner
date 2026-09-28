@@ -9,7 +9,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (39)
+## Done (44)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -52,6 +52,11 @@ remove items; the board decisions stay the authority for scope.
 | 57 | Canonical roadmap synchronized with decisions 103-104 (W6-E) | #468 |
 | 40 | ADR 0077 Step 0 measurement: gate admits B2 (avoidable wall time 916.8 and 929.6 ms in two passes at `47e01ebab`; acceptance cost 66.7 ms median) | evidence `<test-area>/evidence/adr0077-step0/` |
 | 31 | WS-GOV governance reset (ADR 0080): G1-A (decision 145) and G1-B cutover (decision 146) | #463, #469 (`8f5223860`) |
+| 62 | Trust probe catches the typed process start failure | #470 (`93da007af`) |
+| 63 | Win32 start-failure handoff test reaches the start | #470 (`93da007af`) |
+| 64 | Launcher cleanup lock-thread flake | #470 (`93da007af`) |
+| 65 | Archived handoff history uses test-area-relative evidence paths | #470 (`93da007af`) |
+| 69 | Replace selection renders its rows on first entry | #470 (`93da007af`) |
 
 ## Active (4)
 
@@ -62,7 +67,7 @@ remove items; the board decisions stay the authority for scope.
 | 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | CI tiers and U4/U5 with G2 |
 | 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150) | three reviewable commits (UiSmoke 145/145); rebase onto the cutover trunk, then the non-UI remainder; Settings references (decision 150) wait for the owner |
 
-## Waiting or open (26)
+## Waiting or open (21)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
@@ -83,14 +88,9 @@ remove items; the board decisions stay the authority for scope.
 | 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
 | 56 | Private-string check rejects user-profile paths in new changes (rest of the public-paths bug) | open |
 | 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | release |
-| 62 | Trust probe does not catch the typed process start failure (`BUG-20260927-trust-probe-start-failure-escapes`, R1) | open |
-| 63 | Win32 start-failure handoff test returns before the start (`BUG-20260927-win32-handoff-test-returns-early`, R1) | open |
-| 64 | Launcher cleanup lock-thread flake (`BUG-20260927-launcher-cleanup-lock-thread-flake`, R1) | open |
-| 65 | Local evidence paths in the archived handoff history (`BUG-20260927-archived-handoff-local-paths`, R0) | batch 4 |
 | 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | release workflow cleanup R-1/R-2 |
 | 67 | G0 `gh` wrapper repository option conflict (`BUG-20260927-g0-gh-wrapper-repo-option-conflict`) | WS-GOV |
 | 68 | Predecessor validator false inconsistency (`BUG-20260927-predecessor-validator-false-inconsistent`) | parity P-2 next batch |
-| 69 | Replace selection lists the view-model type name (`BUG-20260928-replace-selection-shows-type-name`, P2, R1) | open |
 | 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
 
 Not 1.1.13: the display-convention inventory (1.1.14, decision 39); the 1.2.1
