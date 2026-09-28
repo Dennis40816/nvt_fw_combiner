@@ -24,6 +24,111 @@ def normalize_console_output(value: str) -> str:
 
 @unittest.skipUnless(POWERSHELL, "PowerShell is required")
 class StartupMeasurementContractTests(unittest.TestCase):
+    def admission_trace(self, source="prebuilt"):
+        trace = json.loads((FIXTURES / "trace-v3.json").read_text(encoding="utf-8"))
+        marker = dict(trace["stages"][4])
+        marker.update(name="startup-warmup.catalog-admission." + source,
+                      deltaMilliseconds=0, allocationDeltaBytes=0)
+        trace["stages"].insert(5, marker)
+        return trace
+
+    def run_admission_sample(self, trace, required="prebuilt"):
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = Path(temp) / "trace.json"
+            fixture.write_text(json.dumps(trace), encoding="utf-8")
+            command = self.sample_command(fixture, required=False).replace(
+                "-Trace $trace", f"-Trace $trace -RequiredAdmissionSource '{required}'")
+            return self.run_contract(command)
+
+    def test_admission_requirement_records_both_sources_and_implies_lifecycle(self):
+        for source in ("prebuilt", "json"):
+            with self.subTest(source=source):
+                result = self.run_admission_sample(self.admission_trace(source), source)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                sample = json.loads(result.stdout)
+                self.assertEqual(source, sample["requiredAdmissionSource"])
+                self.assertEqual(source, sample["observedAdmissionSource"])
+                self.assertTrue(sample["admissionSourceRequirementPassed"])
+                self.assertEqual(1, sample["catalogReadyAfterWindowMilliseconds"])
+
+    def test_admission_requirement_rejects_unproven_or_invalid_samples(self):
+        mutations = {
+            "absent": lambda t: t["stages"].pop(5),
+            "unknown": lambda t: t["stages"][5].update(name="startup-warmup.catalog-admission.unknown"),
+            "mismatch": lambda t: t["stages"][5].update(name="startup-warmup.catalog-admission.json"),
+            "duplicate": lambda t: t["stages"].insert(5, t["stages"][5].copy()),
+            "mixed": lambda t: t["stages"].insert(5, dict(t["stages"][5], name="startup-warmup.catalog-admission.json")),
+            "wrong-process": lambda t: t.update(processId=8),
+            "invalid-time": lambda t: t["stages"][5].update(elapsedMilliseconds="NaN"),
+            "reversed-time": lambda t: t["stages"][5].update(elapsedMilliseconds=7, deltaMilliseconds=-1),
+            "after-catalog": lambda t: t["stages"].insert(7, t["stages"].pop(5)),
+            "failed-terminal": lambda t: t["stages"][-1].update(name="startup-warmup.failed"),
+            "failed-lifecycle": lambda t: t["preloadStages"][0].update(state="Failed"),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                trace = self.admission_trace()
+                mutate(trace)
+                result = self.run_admission_sample(trace)
+                self.assertNotEqual(0, result.returncode, name + result.stdout + result.stderr)
+        for source in ("PREBUILT", "unknown"):
+            result = self.run_admission_sample(self.admission_trace(), source)
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_admission_requirement_is_enforced_on_warmups_before_scored_launches(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            executable = root / "fixture.exe"
+            executable.write_bytes(b"not executed")
+            trace = root / "warmup.json"
+            trace.write_text(json.dumps(self.admission_trace("json")), encoding="utf-8")
+            script = str(MEASUREMENT_SCRIPT).replace("'", "''")
+            body = f"""
+$ApplicationPath = '{str(executable).replace("'", "''")}'
+$OutputPath = '{str(root / 'result.json').replace("'", "''")}'
+$RequireAdmissionSource = 'prebuilt'
+$RequirePreloadLifecycle = [switch]$false
+$WarmupRuns = 1
+$Runs = 5
+$Page = 'home'
+$TimeoutSeconds = 5
+$script:launches = 0
+function Invoke-StartupSample {{
+    param($Executable, $TracePath, $StartupPage, $Timeout, $RequireLifecycle, $RequiredAdmissionSource)
+    $script:launches++
+    $trace = Get-Content -Raw -LiteralPath '{str(trace).replace("'", "''")}' | ConvertFrom-Json
+    if ($script:launches -gt 1) {{ $trace.stages[5].name = 'startup-warmup.catalog-admission.prebuilt' }}
+    New-StartupSampleEvidence -Trace $trace -RequireLifecycle $RequireLifecycle -RequiredAdmissionSource $RequiredAdmissionSource `
+        -ProcessId 7 -WindowMilliseconds 1 -TraceReadyMilliseconds 30 `
+        -WorkingSetBytesAtWindow 1 -WorkingSetBytesAtTrace 1 -PeakWorkingSetBytes 1 `
+        -PrivateBytesAtWindow 1 -PrivateBytesAtTrace 1 -PeakPrivateBytes 1
+}}
+$source = Get-Content -Raw -LiteralPath '{script}'
+$entry = $source.Substring($source.IndexOf('$requireReleaseEvidence ='))
+try {{ & ([scriptblock]::Create($entry)); throw 'Mismatched warmup was accepted.' }}
+catch {{
+    if ($_.Exception.Message -notlike '*exactly one matching admission source marker*' -or $script:launches -ne 1) {{ throw }}
+}}
+Write-Output 'Warmup mismatch rejected before scored launches.'
+"""
+            result = self.run_contract(body)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertFalse((root / "result.json").exists())
+
+    def test_admission_source_option_keeps_release_count_and_page_guards(self):
+        for extra, message in ((["-WarmupRuns", "0"], "at least one warm-up"),
+                               (["-Page", "settings"], "exact lowercase 'home'"),
+                               (["-RequireAdmissionSource", "PREBUILT"], "")):
+            command = [str(POWERSHELL), "-NoLogo", "-NoProfile", "-NonInteractive", "-File",
+                       str(MEASUREMENT_SCRIPT), "-ApplicationPath", "must-not-launch.exe"]
+            if "-RequireAdmissionSource" not in extra:
+                command.extend(["-RequireAdmissionSource", "prebuilt"])
+            result = subprocess.run(command + extra, cwd=ROOT, capture_output=True, text=True,
+                                    encoding="utf-8", errors="replace", timeout=30)
+            self.assertNotEqual(0, result.returncode)
+            if message:
+                self.assertIn(message, normalize_console_output(result.stdout + result.stderr))
+
     def run_contract(self, body: str) -> subprocess.CompletedProcess[str]:
         script_path = str(MEASUREMENT_SCRIPT).replace("'", "''")
         command = f". '{script_path}' -ApplicationPath 'fixture.exe'\n{body}"
@@ -326,11 +431,13 @@ $result | ConvertTo-Json -Depth 12 -Compress
         self.assertEqual(0, standard.returncode, standard.stdout + standard.stderr)
         self.assertEqual(0, release.returncode, release.stdout + release.stderr)
         self.assertEqual(
-            {"mode": "standard", "releaseAdmissionPassed": False},
+            {"mode": "standard", "releaseAdmissionPassed": False,
+             "requiredAdmissionSource": "", "admissionSourceRequirementPassed": False},
             json.loads(standard.stdout),
         )
         self.assertEqual(
-            {"mode": "preload-release", "releaseAdmissionPassed": True},
+            {"mode": "preload-release", "releaseAdmissionPassed": True,
+             "requiredAdmissionSource": "", "admissionSourceRequirementPassed": False},
             json.loads(release.stdout),
         )
         self.assertIn(

@@ -316,6 +316,7 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj",
         "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "src/NvtFwCombiner.VersionManagement.Application/NvtFwCombiner.VersionManagement.Application.csproj",

@@ -373,6 +373,7 @@ public sealed partial class MainWindow : Window, IDisposable
     {
         if (viewModel.WorkflowSession.IsCanonicalCatalogReady)
         {
+            _startupTrace.MarkProfileAdmission(_hostServices.SystemInformation.BuiltInProfileAdmission);
             _preloadSession.AdoptReadyCatalog();
             return true;
         }
@@ -392,6 +393,7 @@ public sealed partial class MainWindow : Window, IDisposable
                     cancellationToken),
                 retry: _preloadSession.CatalogStage.CurrentAttempt is not null,
                 startupCancellation);
+            _startupTrace.MarkProfileAdmission(_hostServices.SystemInformation.BuiltInProfileAdmission);
             if (!reload.Succeeded)
             {
                 _startupTrace.Mark("startup-warmup.catalog-load.failed");
@@ -403,12 +405,14 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
         {
+            _startupTrace.MarkProfileAdmission(_hostServices.SystemInformation.BuiltInProfileAdmission);
             CompleteStartupTrace("startup-warmup.cancelled");
             return false;
         }
         catch (Exception exception)
         {
             Trace.TraceWarning("Canonical catalog warm-up did not complete: {0}", exception.Message);
+            _startupTrace.MarkProfileAdmission(_hostServices.SystemInformation.BuiltInProfileAdmission);
             _startupTrace.Mark("startup-warmup.catalog-load.failed");
             return false;
         }

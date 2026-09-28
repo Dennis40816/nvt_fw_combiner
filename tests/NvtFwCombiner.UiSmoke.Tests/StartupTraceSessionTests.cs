@@ -3,12 +3,35 @@ using System.Text;
 using System.Text.Json;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.TestSupport;
+using NvtFwCombiner.Application.Diagnostics;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Locks opt-in startup trace timing and filesystem safety.</summary>
 public sealed class StartupTraceSessionTests
 {
+    /// <summary>Only a resolved typed decision produces one source point, before catalog state application.</summary>
+    [Theory]
+    [InlineData(BuiltInProfileAdmissionSource.Prebuilt, "prebuilt")]
+    [InlineData(BuiltInProfileAdmissionSource.Json, "json")]
+    public void AdmissionMarkerIsTypedPassiveAndOnceOnly(BuiltInProfileAdmissionSource source, string token)
+    {
+        using var workspace = TempWorkspace.Create("catalog-trace");
+        string path = workspace.PathFor("trace.json");
+        StartupTraceSession trace = StartupTraceSession.Create(path);
+        trace.Mark("main-window.opened");
+        trace.MarkProfileAdmission(null);
+        trace.MarkProfileAdmission(new(source));
+        trace.MarkProfileAdmission(new(source));
+        trace.Mark("startup-warmup.catalog-state.applied");
+        Assert.True(trace.Complete("startup-warmup.completed"));
+        trace.MarkProfileAdmission(new(source));
+        using JsonDocument json = JsonDocument.Parse(File.ReadAllBytes(path));
+        Assert.Equal(["managed-entry", "main-window.opened", "startup-warmup.catalog-admission." + token,
+            "startup-warmup.catalog-state.applied", "startup-warmup.completed"],
+            json.RootElement.GetProperty("stages").EnumerateArray().Select(s => s.GetProperty("name").GetString()));
+    }
+
     /// <summary>Writes deterministic ordered milestones and relative durations.</summary>
     [Fact]
     public void EnabledTraceWritesOrderedDeterministicStages()

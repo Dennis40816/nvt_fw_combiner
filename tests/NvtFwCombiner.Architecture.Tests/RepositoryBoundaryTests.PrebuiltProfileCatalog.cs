@@ -2,6 +2,24 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>The observation adapter is passive and the shipped protocol precedes ordinary host startup.</summary>
+    [Fact]
+    public void AdmissionObservationAndProbeCannotSelectOrTriggerUserServices()
+    {
+        string adapter = ReadText("src/NvtFwCombiner.Infrastructure/Diagnostics/BuiltInProfileAdmissionStatus.cs");
+        AssertDoesNotContainAny(adapter, "BuiltInV2Bundle", "ProfileBundleLoader", "File.", "Directory.", "Process.");
+        AssertContainsAll(adapter, "Interlocked.CompareExchange", "Volatile.Read");
+        string probe = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.CatalogProbe.cs");
+        AssertDoesNotContainAny(probe, "ResolveCurrentUserLocalStateDirectory", "GetToolchain", "GetEventBuffer",
+            "HttpClient", "CreateVersion", "PrebuiltProfileCatalogCodec", "File.", "Directory.", "Process.");
+        string program = ReadText("src/NvtFwCombiner.Desktop/Program.cs");
+        AssertStartupStageOrder(program, "TryHandleRuntimeTrustProbe", "TryHandleProfileCatalogProbe", "ParseManagedHostOptions(args)");
+        string targets = ReadText("eng/prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalog.targets");
+        AssertContainsAll(targets, "DependsOnTargets=\"ResolveProjectReferences\"", "AfterTargets=\"MaterializeBuiltInProfileBundles\"",
+            "BeforeTargets=\"AssignTargetPaths\"", "ExcludeFromSingleFile=\"true\"", "Timeout=\"60000\"");
+        AssertDoesNotContainAny(targets, "UsingTask", "dotnet run", "Inputs=", "Outputs=");
+    }
+
     /// <summary>The derived byte-container owner cannot select, admit, normalize or compile profiles.</summary>
     [Fact]
     public void PrebuiltCatalogCodecRemainsPureTransport()
