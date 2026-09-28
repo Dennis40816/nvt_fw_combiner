@@ -8,6 +8,7 @@ using Avalonia.VisualTree;
 using System.Reflection;
 using System.Text;
 using NvtFwCombiner.Application.VersionManagement;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -361,7 +362,9 @@ public sealed partial class VersionManagementSettingsTests
         var expiry = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         if (afterDeadline)
         {
-            window.CloseDeadlineFactory = _ => expiry.Task;
+            int deadlineCount = 0;
+            window.CloseDeadlineFactory = _ => ++deadlineCount == 1
+                ? expiry.Task : Task.Delay(TimeSpan.FromSeconds(5));
         }
         window.Close();
         Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
@@ -383,6 +386,119 @@ public sealed partial class VersionManagementSettingsTests
         if (afterDeadline)
         {
             held.SetException(new InvalidOperationException("late factory fault"));
+        }
+    }
+
+    /// <summary>A real accepted activation during sealed flush reaches the window before final revoke.</summary>
+    [AvaloniaFact]
+    public async Task ActivationPreparedDuringSealingStartsLauncher()
+    {
+        var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
+        var prepareEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var prepareRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        IVersionManagementExperience experience =
+            DispatchProxy.Create<IVersionManagementExperience, WindowLifetimeStorageProxy>();
+        ((WindowLifetimeStorageProxy)experience).Call = (method, args) =>
+            method == nameof(IVersionManagementExperience.PrepareActivationAsync)
+                ? new ValueTask<VersionManagerState>(PrepareAsync())
+                : typeof(IVersionManagementExperience).GetMethod(method)!.Invoke(inner, args);
+        async Task<VersionManagerState> PrepareAsync()
+        {
+            prepareEntered.SetResult();
+            await prepareRelease.Task;
+            return await inner.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
+        }
+
+        var handoff = new GatedWindowLifetimeHandoff();
+        PresentationHostServices original = PresentationTestHost.CreateServices("0.10.5", experience, handoff);
+        var files = new HeldPreferenceWrite(original.LocalFiles,
+            ShellPreferenceFileStore.PathIn(original.LocalStateDirectory));
+        var services = new PresentationHostServices(original.Composition, original.FileReveal,
+            original.SupportMatrix, original.SystemInformation, original.SystemDiagnosticsExporter,
+            original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
+            original.ExternalEnvironmentLoader, files, original.LocalStateDirectory,
+            experience, null, handoff);
+        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await ReportControlTestHost.AwaitHistoryReadyAsync(window);
+        await window.StartupWork;
+        MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        shell.Settings.ApplyVersionSnapshot(inner.Current);
+        SettingsVersionRowViewModel installed = Assert.Single(shell.Settings.VersionRows,
+            row => row.Version == ManagedAppVersion.Parse("0.10.4"));
+        shell.Settings.RequestVersionPrimaryActionCommand.Execute(installed);
+        Task confirmation = shell.Settings.ConfirmVersionActionCommand.ExecuteAsync(null);
+        await prepareEntered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        shell.SelectedTheme = "Dark";
+        await files.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        var flushExpiry = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int deadlines = 0;
+        window.CloseDeadlineFactory = _ => ++deadlines switch
+        {
+            1 => Task.CompletedTask,
+            2 => flushExpiry.Task,
+            _ => Task.Delay(TimeSpan.FromSeconds(5)),
+        };
+        TaskCompletionSource closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closed += (_, _) => closed.SetResult();
+        window.Close();
+        using var watchdog = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (window.ClosePhase != WindowClosePhase.Sealing)
+        {
+            watchdog.Token.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            await Task.Yield();
+        }
+        prepareRelease.SetResult();
+        while (inner.Current.State?.PendingActivation is null)
+        {
+            watchdog.Token.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            await Task.Yield();
+        }
+        files.Release();
+        Task first = await Task.WhenAny(handoff.Entered, closed.Task)
+            .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Same(handoff.Entered, first);
+        handoff.Release(started: true);
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await confirmation;
+    }
+
+    private sealed class HeldPreferenceWrite(ILocalFileStore inner, string preferencePath) : ILocalFileStore
+    {
+        private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal Task Entered => _entered.Task;
+        internal void Release()
+        {
+            _released.SetResult();
+        }
+        public ValueTask<T> ReadAsync<T>(string path, long maximumBytes,
+            Func<Stream, CancellationToken, ValueTask<T>> project, CancellationToken cancellationToken)
+        {
+            return inner.ReadAsync(path, maximumBytes, project, cancellationToken);
+        }
+        public ValueTask<string> ReadTextAsync(string path, long maximumBytes,
+            CancellationToken cancellationToken, Action<LocalFileReadProgress>? progress = null)
+        {
+            return inner.ReadTextAsync(path, maximumBytes, cancellationToken, progress);
+        }
+        public ValueTask<string> ReadTextAsync(Func<CancellationToken, ValueTask<Stream>> openReadAsync,
+            long maximumBytes, CancellationToken cancellationToken)
+        {
+            return inner.ReadTextAsync(openReadAsync, maximumBytes, cancellationToken);
+        }
+        public async ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            CancellationToken cancellationToken)
+        {
+            if (path == preferencePath)
+            {
+                _ = _entered.TrySetResult();
+                await _released.Task;
+            }
+            await inner.WriteAsync(path, bytes, cancellationToken);
         }
     }
 

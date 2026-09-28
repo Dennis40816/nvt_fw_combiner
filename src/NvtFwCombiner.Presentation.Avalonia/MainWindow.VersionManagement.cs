@@ -97,6 +97,10 @@ public sealed partial class MainWindow
 
     private void Settings_ActivationRequested(object? sender, EventArgs e)
     {
+        if (ClosePhase is WindowClosePhase.Closing or WindowClosePhase.Closed)
+        {
+            return;
+        }
         RequestStableLauncherRestart();
         if (ClosePhase is WindowClosePhase.Draining or WindowClosePhase.Sealing)
         {

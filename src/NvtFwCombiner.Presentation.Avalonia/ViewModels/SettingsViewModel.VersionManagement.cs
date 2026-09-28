@@ -719,6 +719,8 @@ internal sealed partial class SettingsViewModel
                     "版本狀態目前無法使用或已變更，因此無法準備啟用。");
                 return;
             }
+            // Durable acceptance is a window lifecycle decision even while screen publication is suspended.
+            ActivationRequested?.Invoke(this, EventArgs.Empty);
             if (!await WaitForWindowPublicationAsync())
             {
                 return;
@@ -726,7 +728,6 @@ internal sealed partial class SettingsViewModel
             VersionOperationStatus = Localize("Restarting through the launcher…", "正在透過啟動器重新啟動…");
             _hasFailedStableLauncherHandoff = false;
             HasPendingRecoveryNotice = false;
-            ActivationRequested?.Invoke(this, EventArgs.Empty);
         }
         finally
         {
