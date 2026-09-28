@@ -90,7 +90,8 @@ internal sealed class AcceptedPrebuiltProfileCatalog
                 if (manifest.BundleVersion != indexed.BundleVersion)
                 { reason = BuiltInProfileAdmissionRejectionReason.ManifestAdmission; return null; }
             }
-            catch (Exception error) when (error is InvalidDataException or JsonException or ArgumentException)
+            catch (Exception error) when (error is InvalidDataException or JsonException or ArgumentException
+                or ProfileBundleManifestNormalizationException)
             { reason = BuiltInProfileAdmissionRejectionReason.ManifestAdmission; return null; }
             reason = ValidateDocuments(manifest, descriptor.GetProperty("documents"), limits);
             if (reason is not null) { return null; }
