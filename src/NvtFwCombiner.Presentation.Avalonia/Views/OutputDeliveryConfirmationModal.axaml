@@ -321,7 +321,7 @@
                            IsVisible="{Binding !BundleEnabled}" TextWrapping="Wrap" />
               </StackPanel>
 
-              <Border Classes="compactSubtleSurface" Padding="14,12" IsVisible="{Binding BundleEnabled}">
+              <Border Classes="compactSubtleSurface" Padding="14,5" IsVisible="{Binding BundleEnabled}">
                 <StackPanel Spacing="{DynamicResource NfcSpace8}">
                   <Grid x:Name="BundleReviewPanel" ColumnDefinitions="*,34" RowDefinitions="Auto,Auto,Auto,Auto"
                         ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace2}">
