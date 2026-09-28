@@ -1014,8 +1014,10 @@ public sealed partial class VersionManagementSettingsTests
     }
 
     /// <summary>A durable read that ignores cancellation cannot hold the failed-handoff window forever.</summary>
-    [AvaloniaFact]
-    public async Task FailedHandoffBoundedReadReturnsUnknownWithoutClearingPending()
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedHandoffBoundedReadReturnsUnknownWithoutClearingPending(bool reopenVersion)
     {
         var inner = new RecordingVersionExperience(Snapshot(retentionReviewDue: false));
         _ = await inner.PrepareActivationAsync(ManagedAppVersion.Parse("0.10.4"), CancellationToken.None);
@@ -1050,7 +1052,7 @@ public sealed partial class VersionManagementSettingsTests
         gateRead = true;
         TaskCompletionSource recoveryExpired = new(TaskCreationOptions.RunContinuationsAsynchronously);
         int deadlines = 0;
-        window.CloseDeadlineFactory = _ => Interlocked.Increment(ref deadlines) == 3
+        window.CloseDeadlineFactory = _ => Interlocked.Increment(ref deadlines) == 4
             ? recoveryExpired.Task : Task.CompletedTask;
         window.RequestStableLauncherRestart();
         window.Close();
@@ -1071,8 +1073,19 @@ public sealed partial class VersionManagementSettingsTests
         Assert.Equal(0, clears);
         Assert.NotNull(inner.Current.State!.PendingActivation);
         readRelease.SetResult(inner.Current);
+        if (reopenVersion)
+        {
+            shell.OpenSettingsCommand.Execute(null);
+            shell.Settings.SelectSectionCommand.Execute(SettingsSection.Version);
+            await shell.Settings.WhenOperationsIdleAsync();
+        }
+        else
+        {
+            await shell.Settings.CheckNowCommand.ExecuteAsync(null);
+        }
         Assert.Equal(PendingActivationRecoveryStatus.ConfirmedKept,
-            await shell.Settings.RecheckPendingActivationStatusAsync(TestContext.Current.CancellationToken));
+            shell.Settings.PendingRecoveryStatus);
+        Assert.True(shell.Settings.RetryPendingActivationCommand.CanExecute(null));
     }
 
     /// <summary>An unknown durable status fences new activation until a fresh read succeeds.</summary>

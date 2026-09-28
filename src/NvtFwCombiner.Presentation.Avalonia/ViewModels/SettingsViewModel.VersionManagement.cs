@@ -281,7 +281,21 @@ internal sealed partial class SettingsViewModel
         IsVersionBusy = true;
         try
         {
-            VersionManagementSnapshot initialized = await _versionManagement.InitializeAsync(CancellationToken.None);
+            VersionManagementSnapshot initialized;
+            if (PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
+            {
+                using CancellationTokenSource deadline = RetryReadCancellationFactory(TimeSpan.FromSeconds(5));
+                if (await RecheckPendingActivationStatusAsync(deadline.Token) ==
+                    PendingActivationRecoveryStatus.Unknown)
+                {
+                    return;
+                }
+                initialized = _pendingDurableSnapshot!;
+            }
+            else
+            {
+                initialized = await _versionManagement.InitializeAsync(CancellationToken.None);
+            }
             if (!await WaitForWindowPublicationAsync())
             {
                 return;
@@ -521,6 +535,15 @@ internal sealed partial class SettingsViewModel
         IsSourceChecking = true;
         try
         {
+            if (PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
+            {
+                using CancellationTokenSource deadline = RetryReadCancellationFactory(TimeSpan.FromSeconds(5));
+                if (await RecheckPendingActivationStatusAsync(deadline.Token) ==
+                    PendingActivationRecoveryStatus.Unknown)
+                {
+                    return;
+                }
+            }
             VersionManagementSnapshot checkedSnapshot = await _versionManagement.CheckAsync(
                 isAutomatic: false,
                 CancellationToken.None);
