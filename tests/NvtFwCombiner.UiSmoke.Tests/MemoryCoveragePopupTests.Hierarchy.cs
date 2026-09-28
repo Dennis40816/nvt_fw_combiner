@@ -97,6 +97,11 @@ public sealed partial class MemoryCoveragePopupTests
             Border card = FindNamed<Border>(window, "MemorySliceCard")!;
             Assert.Same(slices[^1], card.DataContext);
             Assert.False(BoundsInWindow(card, window).Intersects(BoundsInWindow(legend, window)));
+            Capture(window, "legend-connector-upper-card");
+            StackPanel cardFrame = Assert.IsType<StackPanel>(card.GetVisualParent());
+            Assert.Equal(2, cardFrame.Children.Count);
+            _ = Assert.IsType<Border>(cardFrame.Children[1]);
+            Assert.Empty(cardFrame.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>());
         }
         finally { window.Close(); }
     }
@@ -141,17 +146,23 @@ public sealed partial class MemoryCoveragePopupTests
             Render();
             Border local = FindNamed<Border>(window, "MemoryLocalView")!;
             Assert.True(BoundsInWindow(local, window).Top >= legendBounds.Bottom);
-            Canvas connector = Assert.IsType<Canvas>(Assert.IsType<StackPanel>(local.GetVisualParent()).Children[0]);
-            Avalonia.Controls.Shapes.Line line = connector.Children.OfType<Avalonia.Controls.Shapes.Line>().First();
-            Assert.InRange(Math.Abs(BoundsInWindow(connector, window).Top - endpointBounds.Bottom), 0, 1);
-            Assert.InRange(Math.Abs(BoundsInWindow(connector, window).Bottom - BoundsInWindow(local, window).Top), 0, 1);
-            Assert.Equal(0, line.StartPoint.Y);
-            Assert.True(line.EndPoint.Y <= connector.Bounds.Height);
-            Assert.InRange(Math.Abs(BoundsInWindow(connector, window).Left + line.StartPoint.X - endpointBounds.Center.X), 0, 1);
+            Capture(window, "legend-connector-focus");
+            StackPanel localFrame = Assert.IsType<StackPanel>(local.GetVisualParent());
+            Border pointerGap = Assert.IsType<Border>(localFrame.Children[0]);
+            Assert.Same(local, localFrame.Children[1]);
+            Assert.True(BoundsInWindow(pointerGap, window).Intersects(legendBounds));
+            Assert.Empty(localFrame.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>());
+            Assert.True(BoundsInWindow(local, window).Top >= legendBounds.Bottom);
             Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
             Assert.True(legend.Children[2].Focus(NavigationMethod.Tab));
             Render();
             Assert.Same(last, FindNamed<Border>(window, "MemorySliceCard")!.DataContext);
+            Border card = FindNamed<Border>(window, "MemorySliceCard")!;
+            StackPanel cardFrame = Assert.IsType<StackPanel>(card.GetVisualParent());
+            Assert.Equal(2, cardFrame.Children.Count);
+            Assert.Contains(cardFrame.Children, child => child is Border && !ReferenceEquals(child, card));
+            Assert.Empty(cardFrame.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>());
+            Capture(window, "legend-connector-card");
             Assert.False(first.Interaction.IsActive);
             Assert.True(legend.Children[1].Focus(NavigationMethod.Tab));
             Render();
@@ -222,6 +233,9 @@ public sealed partial class MemoryCoveragePopupTests
             Assert.True(target.Focus(NavigationMethod.Tab));
             Render();
             Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+            Assert.Contains(Assert.IsType<StackPanel>(card.GetVisualParent())
+                .GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>(),
+                line => line.StartPoint != line.EndPoint);
             Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), b => b.IsEffectivelyVisible && b.Text == "Target Addr");
             Expander disclosure = Assert.Single(card.GetVisualDescendants().OfType<Expander>());
             Assert.False(disclosure.IsExpanded);

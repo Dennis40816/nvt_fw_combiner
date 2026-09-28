@@ -524,19 +524,10 @@ public sealed partial class MemoryCoverageBar : UserControl
         _local.Child = content;
         double left = target.TranslatePoint(default, anchor)?.X ?? 0;
         double connectorHeight = 10 + (ShowLegend && !_localAbove ? Math.Max(0, footerBottom - above - anchor.Bounds.Height) : 0);
-        Canvas connector;
-        if (connectorHeight > 10)
-        {
-            double anchorLeft = anchor.TranslatePoint(default, top)?.X ?? 0;
-            Rect[] labels = [.. _legend.GetVisualDescendants().OfType<TextBlock>().Select(block =>
-            {
-                Point point = block.TranslatePoint(default, top) ?? default;
-                return new Rect(point.X - anchorLeft, point.Y - above - anchor.Bounds.Height, block.Bounds.Width, block.Bounds.Height);
-            })];
-            connector = MemoryCoverageConnectorVisuals.CardConnector(left + (target.Bounds.Width / 2), connectorHeight, false, labels, "MemoryLocal");
-            connector.Name = "MemoryLocalConnector";
-        }
-        else { connector = MemoryCoverageConnectorVisuals.LocalConnector(left + (target.Bounds.Width / 2), 10); }
+        // Keep the hover path to the detail, without connecting across the legend.
+        Control connector = ShowLegend
+            ? new Border { Height = connectorHeight, Background = Brushes.Transparent }
+            : MemoryCoverageConnectorVisuals.LocalConnector(left + (target.Bounds.Width / 2), 10);
         StackPanel frame = PopupFrame(_local, connector, _localAbove);
         _localPopup.Child = frame;
         _localPopup.Width = Bounds.Width;
@@ -595,15 +586,17 @@ public sealed partial class MemoryCoverageBar : UserControl
         double left = Math.Clamp(center - (width / 2), columnLeft, Math.Max(columnLeft, columnRight - width));
         double anchor = center - left;
         double connectorTop = above ? origin.Y - connectorHeight : origin.Y + target.Bounds.Height;
-        Rect[] labels = preferredAbove.HasValue || crossesOverview
-            ? [.. (preferredAbove.HasValue ? _local : (Control)this).GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible)
+        Rect[] labels = !ShowLegend && preferredAbove.HasValue
+            ? [.. _local.GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible)
                 .Select(block =>
                 {
                     Point point = block.TranslatePoint(default, top) ?? default;
                     return new Rect(point.X - left, point.Y - connectorTop, block.Bounds.Width, block.Bounds.Height);
                 })]
             : [];
-        Canvas connector = MemoryCoverageConnectorVisuals.CardConnector(anchor, connectorHeight, above, labels);
+        Control connector = ShowLegend
+            ? new Border { Height = connectorHeight, Background = Brushes.Transparent }
+            : MemoryCoverageConnectorVisuals.CardConnector(anchor, connectorHeight, above, labels);
         _cardPopup.Child = PopupFrame(_card, connector, above);
         _cardPopup.Width = width;
         _cardPopup.PlacementTarget = placementTarget;

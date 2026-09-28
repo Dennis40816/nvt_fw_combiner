@@ -203,6 +203,8 @@ public sealed partial class MemoryCoveragePopupTests
             Render();
             Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
             Assert.Same(selected, card.DataContext);
+            Assert.Empty(Assert.IsType<StackPanel>(card.GetVisualParent())
+                .GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>());
             Rect cardBounds = BoundsInWindow(card, window);
             Assert.True(above ? cardBounds.Bottom < crossing.Y : cardBounds.Top > crossing.Y);
             window.MouseMove(crossing, RawInputModifiers.None);
