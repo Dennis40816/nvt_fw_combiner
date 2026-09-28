@@ -143,6 +143,44 @@ public sealed partial class BuildOutcomeTests
         Assert.Contains(nameof(CompositionRunPresentationViewModel.DisplayedDeviceIc), notifications);
     }
 
+    /// <summary>The shell caller emits no terminal activity after its run receipt is revoked.</summary>
+    [Fact]
+    public async Task ShellRunCallerDoesNotAnnounceRevokedLateCompletion()
+    {
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
+        CompositionRunContext context = shell.Merge.CaptureRunContext(ExperienceIds.StandardMerge, build: true);
+        shell.RunSession.PublishRunResult(context.Owner,
+            new UiRunResultViewModel("Earlier build", "retained", "old.bin", true));
+        bool mayPublish = true;
+        shell.RunSession.SetWindowPublication(() => mayPublish);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task run = shell.RunCompositionAsync(context, true, async (_, _) =>
+        {
+            entered.SetResult();
+            await release.Task;
+            return CreateRunResult(true, "late.bin");
+        }, (_, _) => { });
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        int notifications = 0;
+        shell.MessageCenter.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MessageCenterViewModel.ActivityItems))
+            {
+                notifications++;
+            }
+        };
+        int activities = shell.MessageCenter.ActivityItems.Count;
+        shell.RunSession.RevokeActiveRun();
+        mayPublish = false;
+        release.SetResult();
+        await run.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.Equal(activities, shell.MessageCenter.ActivityItems.Count);
+        Assert.Equal(0, notifications);
+        Assert.Equal("Earlier build", context.Owner.LastRunResult.Title);
+    }
+
     /// <summary>Matching workflow, IC and authoring revision do not identify a page instance.</summary>
     [Fact]
     public async Task WorkflowRunOwnersRemainIndependentAcrossIdenticalPageInstances()

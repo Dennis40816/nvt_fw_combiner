@@ -60,6 +60,7 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
     /// <summary>True while one composition Preview or Build owns the external processing lifetime.</summary>
     public bool IsRunInProgress => _activeAttempt is not null;
     internal Task ActiveRunCompletion => _activeAttempt?.Completion.Task ?? Task.CompletedTask;
+    internal bool WindowMayPublish => _windowMayPublish();
 
     internal void SetWindowPublication(Func<bool> mayPublish)
     {
@@ -211,7 +212,8 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
         CompositionRunContext context,
         bool build,
         CompositionRunWork run,
-        Action<string, string> loadErrorReport)
+        Action<string, string> loadErrorReport,
+        Action<bool>? completionMayPublish = null)
     {
         RunAttempt? attempt = BeginRun(context, build);
         if (attempt is null)
@@ -314,8 +316,10 @@ internal sealed class CompositionRunPresentationViewModel : ObservableObject
             }
             finally
             {
+                bool mayPublish = !attempt.IsRevoked && _windowMayPublish();
                 progressObservationSource?.Dispose();
                 CompleteRun(attempt);
+                completionMayPublish?.Invoke(mayPublish);
             }
         }
         return context.Owner.LastRunResult;
