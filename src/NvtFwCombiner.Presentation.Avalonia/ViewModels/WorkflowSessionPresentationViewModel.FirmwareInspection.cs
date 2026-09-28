@@ -6,6 +6,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class WorkflowSessionPresentationViewModel
 {
+    internal WindowPublicationLease? WindowPublication { get; set; }
+
     /// <summary>Selects a slot file, then projects all affected firmware facts outside the UI dispatcher.</summary>
     public Task SetSlotFileAsync(
         string slotId,
@@ -32,7 +34,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         }
 
         object? target = FindPickerSelectionTarget(context, slotId);
-        GeneralMappingRowViewModel? mapping = target as GeneralMappingRowViewModel;
+        var mapping = target as GeneralMappingRowViewModel;
         if (pickerSelection is not null &&
             (target is null || !TryAcceptPickerSelection(pickerSelection, context, target)))
         {
@@ -290,6 +292,11 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                         .InspectFirmwareBatchAsync(
                             request.IcId, inputs, cancellationToken, progress);
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (WindowPublication is not null &&
+                        !await WindowPublication.WaitToPublishAsync(isCurrent, cancellationToken))
+                    {
+                        throw new OperationCanceledException(cancellationToken);
+                    }
                     if (result.InspectionsById.Count != request.Items.Count ||
                         request.Items.Any(item => !result.InspectionsById.ContainsKey(item.SlotId)))
                     {
@@ -339,7 +346,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 }
                 finally
                 {
-                    if (isCurrent())
+                    if (isCurrent() && (WindowPublication?.CanPublish ?? true))
                     {
                         foreach (FirmwareInspectionItemRequest item in items)
                         {

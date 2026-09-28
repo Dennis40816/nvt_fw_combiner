@@ -32,6 +32,7 @@ public sealed partial class ReportModal : UserControl
             return;
         }
 
+        using IDisposable saveOperation = viewModel.BeginSaveOperation();
         string reportJson = viewModel.LoadedReportJson;
         string suggestedName = viewModel.ReportSaveFileName;
         bool destinationSelected = false;
@@ -64,7 +65,7 @@ public sealed partial class ReportModal : UserControl
                 }
             }
 
-            viewModel.NotifyReportSaved(destinationName, bestEffortProviderWrite);
+            await viewModel.NotifyReportSavedWhenAllowedAsync(destinationName, bestEffortProviderWrite);
         }
         catch (OperationCanceledException) when (!destinationSelected)
         {
@@ -73,7 +74,7 @@ public sealed partial class ReportModal : UserControl
         catch (Exception exception)
         {
             // Contain provider and disposal faults at this UI operation boundary.
-            viewModel.NotifyReportSaveFailed(exception.Message);
+            await viewModel.NotifyReportSaveFailedWhenAllowedAsync(exception.Message);
         }
         finally
         {

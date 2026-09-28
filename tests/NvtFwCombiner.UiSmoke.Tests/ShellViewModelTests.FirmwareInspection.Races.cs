@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -6,6 +7,58 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class FirmwareInspectionSlotTests
 {
+    /// <summary>Inspection retains its terminal projection until resume and drops it on final revoke.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FirmwareInspectionPublicationWaitsForWindowDecision(bool finalClose)
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        string dpPath = golden.ManifestPath(golden.CaseByIc("51926")
+            .GetProperty("inputs").GetProperty("dp-input"));
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
+        {
+            entered.Set();
+            release.Wait(TestContext.Current.CancellationToken);
+            return [.. inputs.Select(input => new FirmwareInspectionSnapshotResult(
+                input.InspectionId,
+                new FirmwareInspectionSnapshot(null, null, new DpVersionMetadata("0102"),
+                    null, null, null)))];
+        });
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        var lease = new WindowPublicationLease();
+        viewModel.WorkflowSession.WindowPublication = lease;
+        Task selection = viewModel.WorkflowSession.SetSlotFileAsync(
+            "merge-dp", dpPath, TestContext.Current.CancellationToken);
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        lease.Suspend();
+        FirmwareSlotViewModel dp = Assert.Single(viewModel.Merge.MergeSlots,
+            slot => slot.SlotId == "merge-dp");
+        try
+        {
+            release.Set();
+            await Task.Yield();
+            Assert.False(selection.IsCompleted);
+            Assert.Null(dp.CurrentInspectionProjection);
+            if (finalClose)
+            {
+                lease.Revoke();
+            }
+            else
+            {
+                lease.Resume();
+            }
+            await selection.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Assert.Equal(!finalClose, dp.CurrentInspectionProjection is not null);
+        }
+        finally
+        {
+            release.Set();
+        }
+    }
+
     /// <summary>A replacement selected during Base inspection starts a successor that retains both inputs.</summary>
     [Fact]
     public async Task CtrlRamReplacementSelectionPreservesPendingBaseInspection()

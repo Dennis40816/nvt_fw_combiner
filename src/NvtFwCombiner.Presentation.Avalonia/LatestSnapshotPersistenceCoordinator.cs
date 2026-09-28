@@ -87,6 +87,15 @@ internal sealed class LatestSnapshotPersistenceCoordinator<TSnapshot>
         }
     }
 
+    /// <summary>Reopens admission after a failed close without replacing the serial save tail.</summary>
+    internal void Reopen()
+    {
+        lock (_gate)
+        {
+            _isCompleted = false;
+        }
+    }
+
     internal Exception? LastFailure
     {
         get

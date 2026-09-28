@@ -335,18 +335,18 @@ public sealed class LocalStateSaveNoticeTests
 
         window.Dispose();
         late.Released.SetResult();
-        // Saves are serialized, so the next write starts only after the late failure was reported.
+        await WaitUntilAsync(() => files.Completed(files.PreferencesPath) == 1);
+        // A disposed window no longer admits a preference save from its former view model.
         files.Fail(files.PreferencesPath, null);
         WriteHold next = files.HoldNextWrite(files.PreferencesPath);
         shell.ExpandInputDetailsByDefault = !shell.ExpandInputDetailsByDefault;
-        await next.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         Dispatcher.UIThread.RunJobs();
 
         Assert.False(notice.IsVisible);
         Assert.Equal(0, changes);
         Assert.False(notice.RetryCommand.CanExecute(null));
-        next.Released.SetResult();
-        await WaitUntilAsync(() => files.Completed(files.PreferencesPath) == 2);
+        Assert.False(next.Started.Task.IsCompleted);
+        Assert.Equal(1, files.Completed(files.PreferencesPath));
         Dispatcher.UIThread.RunJobs();
         Assert.False(notice.IsVisible);
         Assert.Equal(0, changes);

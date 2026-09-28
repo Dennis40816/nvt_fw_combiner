@@ -307,6 +307,13 @@ internal sealed partial class ReportPresentationViewModel
             return;
         }
 
+        if (WindowPublication is not null &&
+            !await WindowPublication.WaitToPublishAsync(
+                () => IsCurrentReportProjection(generation) && ReportHistoryEntries.Contains(entry),
+                cancellationToken))
+        {
+            return;
+        }
         if (!IsCurrentReportProjection(generation))
         {
             return;
@@ -482,10 +489,27 @@ internal sealed partial class ReportPresentationViewModel
                     iterationCancellation);
             }
 
-            if (IsCurrentReportProjection(generation) &&
-                string.Equals(LoadedReportJson, reportJson, StringComparison.Ordinal))
+            _ = Interlocked.Exchange(ref _reportRelocalizationIterationCancellation, iterationCancellation);
+            try
             {
-                ApplyRelocalizedReport(localizedReport, reportJson);
+                if (WindowPublication is not null &&
+                    !await WindowPublication.WaitToPublishAsync(
+                        () => IsCurrentReportProjection(generation) &&
+                              string.Equals(LoadedReportJson, reportJson, StringComparison.Ordinal),
+                        iterationCancellation.Token))
+                {
+                    return;
+                }
+                if (IsCurrentReportProjection(generation) &&
+                    string.Equals(LoadedReportJson, reportJson, StringComparison.Ordinal))
+                {
+                    ApplyRelocalizedReport(localizedReport, reportJson);
+                }
+            }
+            finally
+            {
+                _ = Interlocked.CompareExchange(
+                    ref _reportRelocalizationIterationCancellation, null, iterationCancellation);
             }
 
             if (requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion))

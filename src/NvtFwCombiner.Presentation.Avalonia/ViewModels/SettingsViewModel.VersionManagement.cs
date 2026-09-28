@@ -5,12 +5,112 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+internal enum PendingActivationRecoveryStatus
+{
+    Cleared,
+    ConfirmedKept,
+    Unknown,
+}
+
 internal sealed partial class SettingsViewModel
 {
     private VersionManagementSnapshot? _versionSnapshot;
     private SettingsVersionRowViewModel? _pendingVersionRow;
     private VersionConfirmationAction _pendingConfirmation;
     private long _updateSourceBrowseGeneration;
+    private VersionManagementSnapshot? _pendingDurableSnapshot;
+    private bool _hasFailedStableLauncherHandoff;
+    private long _handoffFailureGeneration;
+    private Func<bool> _windowMayPublish = static () => true;
+    internal Func<TimeSpan, CancellationTokenSource> RetryReadCancellationFactory { get; set; } =
+        static duration => new CancellationTokenSource(duration);
+
+    internal PendingActivationRecoveryStatus PendingRecoveryStatus { get; private set; } =
+        PendingActivationRecoveryStatus.Cleared;
+    public bool CanRetryPendingActivation =>
+        PendingRecoveryStatus == PendingActivationRecoveryStatus.ConfirmedKept;
+    [ObservableProperty]
+    public partial bool HasPendingRecoveryNotice { get; private set; }
+
+    [ObservableProperty]
+    public partial string PendingRecoveryMessage { get; private set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string RetryPendingActivationLabel { get; private set; } = "Retry";
+
+    internal void SetWindowPublication(Func<bool> mayPublish)
+    {
+        _windowMayPublish = mayPublish ?? throw new ArgumentNullException(nameof(mayPublish));
+    }
+
+    internal void PublishPendingRecoveryStatus()
+    {
+        if (!_windowMayPublish())
+        {
+            return;
+        }
+        HasPendingRecoveryNotice = _hasFailedStableLauncherHandoff;
+        if (_pendingDurableSnapshot is { } durable)
+        {
+            ApplyVersionSnapshot(durable);
+        }
+        VersionOperationStatus = PendingRecoveryStatus switch
+        {
+            PendingActivationRecoveryStatus.Cleared => Localize(
+                "The stable launcher could not be started. The app remains open; verify the managed folder and try again.",
+                "無法啟動穩定啟動器。應用程式仍保持開啟；請檢查受管資料夾後重試。"),
+            PendingActivationRecoveryStatus.ConfirmedKept => Localize(
+                "The stable launcher could not be started. The pending version switch remains saved, including if you close the app. Retry starts the stable launcher; Close exits without starting it.",
+                "無法啟動穩定啟動器。待處理的版本切換仍保存在設定中，即使關閉應用程式也是如此。重試會啟動穩定啟動器；關閉則不會啟動。"),
+            PendingActivationRecoveryStatus.Unknown => Localize(
+                "The stable launcher could not be started. The saved pending switch could not be confirmed. Retry is unavailable until its state is checked. Close exits without starting the launcher.",
+                "無法啟動穩定啟動器。目前無法確認已儲存的待處理版本切換。確認狀態前無法重試；關閉不會啟動穩定啟動器。"),
+            _ => throw new InvalidOperationException("Unknown pending activation recovery status."),
+        };
+        PendingRecoveryMessage = PendingRecoveryStatus switch
+        {
+            PendingActivationRecoveryStatus.ConfirmedKept => Localize(
+                "The stable launcher could not be started. The version switch is still pending and was not rolled back; it stays pending if you close the app.",
+                "無法啟動穩定啟動器。版本切換仍待處理，設定未還原；關閉程式後也會保留。"),
+            PendingActivationRecoveryStatus.Unknown => Localize(
+                "The stable launcher could not be started, and the pending version switch could not be confirmed. A clear already in progress may still change it. Closing the app starts no launcher and no new clear.",
+                "無法啟動穩定啟動器，也無法確認待處理的版本切換狀態；已在執行的清除作業仍可能改變它。關閉程式不會啟動啟動器，也不會再開始清除。"),
+            PendingActivationRecoveryStatus.Cleared => VersionOperationStatus,
+            _ => throw new InvalidOperationException("Unknown pending activation recovery status."),
+        };
+        OnPropertyChanged(nameof(CanRetryPendingActivation));
+        RetryPendingActivationCommand.NotifyCanExecuteChanged();
+    }
+
+    internal void MarkPendingRecoveryUnknown()
+    {
+        PendingRecoveryStatus = PendingActivationRecoveryStatus.Unknown;
+        _pendingDurableSnapshot = null;
+        PublishPendingRecoveryStatus();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRetryPendingActivation))]
+    private async Task RetryPendingActivationAsync()
+    {
+        if (!CanRetryPendingActivation)
+        {
+            return;
+        }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
+        using CancellationTokenSource deadline = RetryReadCancellationFactory(TimeSpan.FromSeconds(5));
+        if (await RecheckPendingActivationStatusAsync(deadline.Token) !=
+                PendingActivationRecoveryStatus.ConfirmedKept ||
+            !CanRetryPendingActivation || !_windowMayPublish())
+        {
+            return;
+        }
+        VersionOperationStatus = Localize(
+            "Retrying through the stable launcher…",
+            "正在透過穩定啟動器重試…");
+        _hasFailedStableLauncherHandoff = false;
+        HasPendingRecoveryNotice = false;
+        ActivationRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     internal event EventHandler? UpdateSourceBrowseRequested;
 
@@ -178,21 +278,49 @@ internal sealed partial class SettingsViewModel
         {
             return;
         }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         try
         {
-            VersionManagementSnapshot initialized = await _versionManagement.InitializeAsync(CancellationToken.None);
+            VersionManagementSnapshot initialized;
+            if (PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
+            {
+                using CancellationTokenSource deadline = RetryReadCancellationFactory(TimeSpan.FromSeconds(5));
+                if (await RecheckPendingActivationStatusAsync(deadline.Token) ==
+                    PendingActivationRecoveryStatus.Unknown)
+                {
+                    return;
+                }
+                initialized = _pendingDurableSnapshot!;
+            }
+            else
+            {
+                initialized = await _versionManagement.InitializeAsync(CancellationToken.None);
+            }
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
             ApplyVersionSnapshot(initialized);
             if (initialized.State?.UpdateSource is not null)
             {
                 IsSourceChecking = true;
-                ApplyVersionSnapshot(await _versionManagement.CheckAsync(isAutomatic, CancellationToken.None));
+                VersionManagementSnapshot checkedSnapshot = await _versionManagement.CheckAsync(
+                    isAutomatic, CancellationToken.None);
+                if (!await WaitForWindowPublicationAsync())
+                {
+                    return;
+                }
+                ApplyVersionSnapshot(checkedSnapshot);
             }
         }
         finally
         {
-            IsSourceChecking = false;
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsSourceChecking = false;
+                IsVersionBusy = false;
+            }
         }
     }
 
@@ -327,6 +455,7 @@ internal sealed partial class SettingsViewModel
         PublishedColumnLabel = Localize("Published", "發布日期");
         ActionColumnLabel = Localize("Action", "動作");
         KeepAllVersionsLabel = Localize("Keep all", "全部保留");
+        RetryPendingActivationLabel = Localize("Retry", "重試");
         ViewReleaseNotesLabel = Localize("View release notes", "檢視版本說明");
         InstallUpdateLabel = Localize("Install update", "安裝更新");
         OfflineVersionHint = Localize(
@@ -335,6 +464,10 @@ internal sealed partial class SettingsViewModel
         if (_versionSnapshot is not null)
         {
             ApplyVersionSnapshot(_versionSnapshot);
+        }
+        if (_hasFailedStableLauncherHandoff)
+        {
+            PublishPendingRecoveryStatus();
         }
     }
 
@@ -361,23 +494,33 @@ internal sealed partial class SettingsViewModel
     [RelayCommand]
     private async Task ConfirmUpdateSourceAsync()
     {
-        if (_versionManagement is null || string.IsNullOrWhiteSpace(UpdateSourceDraft))
+        if (_versionManagement is null || PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown ||
+            string.IsNullOrWhiteSpace(UpdateSourceDraft))
         {
             return;
         }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         IsSourceChecking = true;
         try
         {
             IsUpdateSourceEditing = false;
-            ApplyVersionSnapshot(await _versionManagement.CommitUpdateSourceAsync(
+            VersionManagementSnapshot committed = await _versionManagement.CommitUpdateSourceAsync(
                 UpdateSourceDraft,
-                CancellationToken.None));
+                CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
+            ApplyVersionSnapshot(committed);
         }
         finally
         {
-            IsSourceChecking = false;
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsSourceChecking = false;
+                IsVersionBusy = false;
+            }
         }
     }
 
@@ -388,18 +531,36 @@ internal sealed partial class SettingsViewModel
         {
             return;
         }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         IsSourceChecking = true;
         try
         {
-            ApplyVersionSnapshot(await _versionManagement.CheckAsync(
+            if (PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
+            {
+                using CancellationTokenSource deadline = RetryReadCancellationFactory(TimeSpan.FromSeconds(5));
+                if (await RecheckPendingActivationStatusAsync(deadline.Token) ==
+                    PendingActivationRecoveryStatus.Unknown)
+                {
+                    return;
+                }
+            }
+            VersionManagementSnapshot checkedSnapshot = await _versionManagement.CheckAsync(
                 isAutomatic: false,
-                CancellationToken.None));
+                CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
+            ApplyVersionSnapshot(checkedSnapshot);
         }
         finally
         {
-            IsSourceChecking = false;
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsSourceChecking = false;
+                IsVersionBusy = false;
+            }
         }
     }
 
@@ -411,15 +572,20 @@ internal sealed partial class SettingsViewModel
     [RelayCommand]
     private async Task KeepAllVersionsAsync()
     {
-        if (_versionManagement is null)
+        if (_versionManagement is null || PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
         {
             return;
         }
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         try
         {
             VersionManagementSnapshot snapshot = await _versionManagement.AcknowledgeRetentionReviewAsync(
                 CancellationToken.None);
+            if (!await WaitForWindowPublicationAsync())
+            {
+                return;
+            }
             ApplyVersionSnapshot(snapshot);
             VersionOperationStatus = snapshot.StateIssue == VersionManagerStateLoadIssue.None &&
                 snapshot.State?.RetentionReviewDue == false
@@ -432,7 +598,10 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsVersionBusy = false;
+            }
         }
     }
 
@@ -471,12 +640,20 @@ internal sealed partial class SettingsViewModel
     [RelayCommand]
     private async Task ConfirmVersionActionAsync()
     {
+        if (PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
+        {
+            CancelVersionConfirmation();
+            PublishPendingRecoveryStatus();
+            return;
+        }
         if (_versionManagement is null || _pendingVersionRow is not { } row)
         {
             return;
         }
         VersionConfirmationAction action = _pendingConfirmation;
+        long handoffFailureGeneration = _handoffFailureGeneration;
         CancelVersionConfirmation();
+        using WindowOperationRegistration windowOperation = BeginWindowOperation();
         IsVersionBusy = true;
         try
         {
@@ -491,6 +668,10 @@ internal sealed partial class SettingsViewModel
                     row.Version,
                     rollbackLossConfirmed: action == VersionConfirmationAction.DeleteLastKnownGood,
                     CancellationToken.None);
+                if (!await WaitForWindowPublicationAsync())
+                {
+                    return;
+                }
                 if (deleted.OperationIssue == VersionDeleteOperationIssue.RollbackConfirmationRequired)
                 {
                     ApplyVersionSnapshot(deleted.Snapshot);
@@ -518,6 +699,10 @@ internal sealed partial class SettingsViewModel
                 VersionInstallOperationResult installed = await _versionManagement.InstallAsync(
                     row.Version,
                     CancellationToken.None);
+                if (!await WaitForWindowPublicationAsync())
+                {
+                    return;
+                }
                 ApplyVersionSnapshot(installed.Snapshot);
                 if (!installed.Install.IsSuccess)
                 {
@@ -550,50 +735,85 @@ internal sealed partial class SettingsViewModel
             }
             catch (InvalidOperationException)
             {
+                if (!await WaitForWindowPublicationAsync())
+                {
+                    return;
+                }
                 VersionOperationStatus = Localize(
                     "Activation could not be prepared because version state is unavailable or changed.",
                     "版本狀態目前無法使用或已變更，因此無法準備啟用。");
                 return;
             }
-            VersionOperationStatus = Localize("Restarting through the launcher…", "正在透過啟動器重新啟動…");
+            // Durable acceptance is a window lifecycle decision even while screen publication is suspended.
             ActivationRequested?.Invoke(this, EventArgs.Empty);
+            if (!await WaitForWindowPublicationAsync() ||
+                handoffFailureGeneration != _handoffFailureGeneration)
+            {
+                return;
+            }
+            VersionOperationStatus = Localize("Restarting through the launcher…", "正在透過啟動器重新啟動…");
+            _hasFailedStableLauncherHandoff = false;
+            HasPendingRecoveryNotice = false;
         }
         finally
         {
-            IsVersionBusy = false;
+            if (MayPublishWindow)
+            {
+                IsVersionBusy = false;
+            }
         }
     }
 
-    internal async Task<bool> HandleLauncherHandoffFailureAsync()
+    internal async Task<PendingActivationRecoveryStatus> HandleLauncherHandoffFailureAsync(
+        CancellationToken recoveryToken)
     {
-        bool activationCleared = true;
-        if (_versionManagement is not null)
+        _handoffFailureGeneration++;
+        _hasFailedStableLauncherHandoff = true;
+        return await RecheckPendingActivationStatusAsync(recoveryToken);
+    }
+
+    internal async Task<PendingActivationRecoveryStatus> RecheckPendingActivationStatusAsync(
+        CancellationToken cancellationToken)
+    {
+        if (_versionManagement is null)
+        {
+            PendingRecoveryStatus = PendingActivationRecoveryStatus.Cleared;
+        }
+        else
         {
             try
             {
-                VersionManagementSnapshot recovered = await _versionManagement.CancelPendingActivationAsync(
-                    CancellationToken.None);
-                ApplyVersionSnapshot(recovered);
+                Task<VersionManagementSnapshot> read = _versionManagement.InitializeAsync(cancellationToken).AsTask();
+                _ = read.ContinueWith(completed => _ = completed.Exception,
+                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+                VersionManagementSnapshot durable = await read.WaitAsync(cancellationToken);
+                _pendingDurableSnapshot = durable;
+                PendingRecoveryStatus = durable.StateIssue == VersionManagerStateLoadIssue.None &&
+                    durable.State is { } state
+                    ? state.PendingActivation is null
+                        ? PendingActivationRecoveryStatus.Cleared
+                        : PendingActivationRecoveryStatus.ConfirmedKept
+                    : PendingActivationRecoveryStatus.Unknown;
             }
-            catch (InvalidOperationException)
+            catch (Exception)
             {
-                activationCleared = false;
+                PendingRecoveryStatus = PendingActivationRecoveryStatus.Unknown;
+                _pendingDurableSnapshot = null;
             }
         }
-        VersionOperationStatus = activationCleared
-            ? Localize(
-                "The stable launcher could not be started. The app remains open; verify the managed folder and try again.",
-                "無法啟動穩定啟動器。應用程式仍保持開啟；請檢查受管資料夾後重試。")
-            : Localize(
-                "The stable launcher could not be started, and pending activation could not be cleared. The app remains open; restore version-state access and close again to retry the launcher.",
-                "無法啟動穩定啟動器，且無法清除待處理的版本啟用。應用程式仍保持開啟；請恢復版本狀態存取後再次關閉，以重試啟動器。");
-        return activationCleared;
+        PublishPendingRecoveryStatus();
+        return PendingRecoveryStatus;
     }
 
     private void BeginConfirmation(
         SettingsVersionRowViewModel row,
         VersionConfirmationAction action)
     {
+        if (PendingRecoveryStatus == PendingActivationRecoveryStatus.Unknown)
+        {
+            PublishPendingRecoveryStatus();
+            return;
+        }
         _pendingVersionRow = row;
         _pendingConfirmation = action;
         IsVersionConfirmationDestructive = action is

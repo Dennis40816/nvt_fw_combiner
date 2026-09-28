@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -137,7 +138,7 @@ internal sealed partial class MergePresentationViewModel
     {
         ApplyInputReadiness(AbMergeSlots, projection.Slots, static slot => slot.SlotId);
         if (_abMergeSession.CurrentSnapshot is not { } current) { return; }
-        foreach (AuthoringInputSlotStatus status in current.InputSlotStatuses.Where(static status => status.Readiness == NvtFwCombiner.Application.Metadata.ResolvedChildReadiness.Blocked))
+        foreach (AuthoringInputSlotStatus status in current.InputSlotStatuses.Where(static status => status.Readiness == ResolvedChildReadiness.Blocked))
         {
             FirmwareSlotViewModel? slot = AbMergeSlots.SingleOrDefault(slot => slot.SlotId == status.SlotId);
             if (slot is not null && StringComparer.Ordinal.Equals(slot.FilePath, status.SelectedPathHint))
@@ -155,6 +156,11 @@ internal sealed partial class MergePresentationViewModel
     internal async Task RefreshAbMergeActionReadinessAsync(
         CancellationToken cancellationToken)
     {
+        if (WindowPublication is not null &&
+            !await WindowPublication.WaitToPublishAsync(static () => true, cancellationToken))
+        {
+            return;
+        }
         ClearAbMergeActionReadiness();
         ActiveSessionSnapshot? session = _abMergeSession.CurrentSnapshot;
         if (!IsAbCodeMergeModeSelected || session is null)
@@ -167,6 +173,13 @@ internal sealed partial class MergePresentationViewModel
             await _compositionServices.AbMergeAuthoring.GetActionReadinessAsync(
                     session,
                     cancellationToken);
+        if (WindowPublication is not null &&
+            !await WindowPublication.WaitToPublishAsync(
+                () => ReferenceEquals(session, _abMergeSession.CurrentSnapshot) &&
+                    IsAbCodeMergeModeSelected, cancellationToken))
+        {
+            return;
+        }
         if (readiness is not null &&
             ReferenceEquals(session, _abMergeSession.CurrentSnapshot) &&
             IsAbCodeMergeModeSelected)

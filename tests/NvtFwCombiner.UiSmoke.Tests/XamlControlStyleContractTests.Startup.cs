@@ -190,7 +190,7 @@ public sealed partial class XamlControlStyleContractTests
             windowStyles,
             "ToggleButton.nav:focus-visible /template/ ContentPresenter#PART_ContentPresenter");
         int openedStart = lifecycle.IndexOf(
-            "protected override async void OnOpened",
+            "protected override void OnOpened",
             StringComparison.Ordinal);
         int sessionStart = lifecycle.IndexOf(
             "private async Task RunStartupPreloadAsync",
