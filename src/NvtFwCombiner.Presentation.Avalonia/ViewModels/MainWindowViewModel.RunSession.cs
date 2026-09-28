@@ -20,12 +20,8 @@ internal sealed partial class MainWindowViewModel
             context.Mode,
             context.Ic);
         bool completionMayPublish = false;
-        UiRunResultViewModel? result = await RunSession.RunCompositionAsync(
-            context, build, run, loadErrorReport, mayPublish => completionMayPublish = mayPublish);
-        if (!completionMayPublish || !RunSession.WindowMayPublish)
-        {
-            return;
-        }
+        UiRunResultViewModel? result = await RunSession.RunCompositionAsync(context, build, run, loadErrorReport, mayPublish => completionMayPublish = mayPublish);
+        if (!completionMayPublish || !RunSession.WindowMayPublish) { return; }
         bool succeeded = result?.Succeeded == true;
         RecordSystemActivity(new SystemActivityDraft(
             succeeded
