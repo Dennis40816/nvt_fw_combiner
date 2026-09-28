@@ -118,6 +118,9 @@ internal sealed partial class ShellTextResources
         ArgumentNullException.ThrowIfNull(diagnostic);
         return diagnostic.Code switch
         {
+            SystemDiagnosticCodes.PrebuiltCatalogUnused => SelectLanguage(
+                diagnostic.Message,
+                "未使用預建 Profile 目錄；目前使用 JSON admission。"),
             SystemDiagnosticCodes.CapabilityCatalogUnavailable => SelectLanguage(
                 diagnostic.Message,
                 "Capability 目錄無法使用，因此已停用 Build。"),
@@ -139,6 +142,9 @@ internal sealed partial class ShellTextResources
         ArgumentNullException.ThrowIfNull(diagnostic);
         return diagnostic.Code switch
         {
+            SystemDiagnosticCodes.PrebuiltCatalogUnused => SelectLanguage(
+                diagnostic.Action,
+                "請修復或重新安裝套件，然後重新啟動應用程式。"),
             SystemDiagnosticCodes.CapabilityCatalogUnavailable => SelectLanguage(
                 diagnostic.Action,
                 "請修正目錄來源後重新載入。"),
