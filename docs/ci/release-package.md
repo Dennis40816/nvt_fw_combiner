@@ -185,6 +185,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 ├─ profiles/
 │  └─ built-in/
 │     ├─ package-trust-index.json
+│     ├─ prebuilt-profile-catalog.pack
 │     ├─ <trust-index-declared bundle>/
 │     │  ├─ profile-bundle.json
 │     │  └─ <manifest-pinned runtime files>
@@ -224,7 +225,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 └─ SHA256SUMS.txt
 ```
 
-No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private owner-handoff firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, credentials, or Codex configuration is shipped. The reference payload retains exactly 25 Direct Goldens, three input-only evidence cases, and twelve source-closed fact-scoped aliases across Standard Merge, AB Merge, and CtrlRAM Replace under `reference/testdata/golden/canonical/`. `release-canonical-v1.json` independently pins the canonical README and all 40 case manifests by exact-byte SHA-256, 177 logical artifact declarations, and 174 unique paths; its projection has 215 canonical paths and 164 raw canonical BINs. The exact NT51929 input-only admission contains two neutral-named 524288-byte raw BIN entries in the outer ZIP and never a nested archive, raw bypass, expected output, Direct-Golden relabel, parity/support claim, or runtime route. Eleven Direct Goldens use full-output comparison; fourteen preserve their reviewed allowed-byte-difference scope. The two NT51927 CtrlRAM cascade input-only cases and their three dependent aliases are included for manual input testing under the owner's 2026-09-10 approval. Their 16 input BINs have no independent expected output. Aliases require an explicitly selected same-workflow Direct Golden or input-only direct evidence source; alias chains, missing sources and ambiguous classifications are rejected. The selected BAT and CONFIG provenance bytes have `reference` role only and are never registered or executed as tools, processors, or commands. `profiles/built-in/` contains the exact reviewed `package-trust-index.json`, only the bundles declared by that index, and the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping reference evidence or a candidate bundle changes no declared stage, blocker, runtime eligibility, support, or parity claim. The packager rejects an index or Golden identity that differs from reviewed source material and rejects extra bundle, runtime-catalog, canonical, or reference content. The canonical capability policy ships at `docs/contracts/canonical-capability-policy-v1.json`; its `capabilityPolicy` role and approved SHA-256 must match the runtime loader. The retired standalone `publicationPolicy` payload is forbidden because publication and evidence bind each exact canonical route and expected capability fingerprint in that one policy. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses fixed allowlists, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in both closed hash inventories.
+No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private owner-handoff firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, credentials, or Codex configuration is shipped. The reference payload retains exactly 25 Direct Goldens, three input-only evidence cases, and twelve source-closed fact-scoped aliases across Standard Merge, AB Merge, and CtrlRAM Replace under `reference/testdata/golden/canonical/`. `release-canonical-v1.json` independently pins the canonical README and all 40 case manifests by exact-byte SHA-256, 177 logical artifact declarations, and 174 unique paths; its projection has 215 canonical paths and 164 raw canonical BINs. The exact NT51929 input-only admission contains two neutral-named 524288-byte raw BIN entries in the outer ZIP and never a nested archive, raw bypass, expected output, Direct-Golden relabel, parity/support claim, or runtime route. Eleven Direct Goldens use full-output comparison; fourteen preserve their reviewed allowed-byte-difference scope. The two NT51927 CtrlRAM cascade input-only cases and their three dependent aliases are included for manual input testing under the owner's 2026-09-10 approval. Their 16 input BINs have no independent expected output. Aliases require an explicitly selected same-workflow Direct Golden or input-only direct evidence source; alias chains, missing sources and ambiguous classifications are rejected. The selected BAT and CONFIG provenance bytes have `reference` role only and are never registered or executed as tools, processors, or commands. `profiles/built-in/` contains the exact reviewed `package-trust-index.json`, one `prebuilt-profile-catalog.pack`, only the bundles declared by that index, and the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping reference evidence or a candidate bundle changes no declared stage, blocker, runtime eligibility, support, or parity claim. The packager rejects an index or Golden identity that differs from reviewed source material and rejects extra bundle, runtime-catalog, canonical, or reference content. The canonical capability policy ships at `docs/contracts/canonical-capability-policy-v1.json`; its `capabilityPolicy` role and approved SHA-256 must match the runtime loader. The retired standalone `publicationPolicy` payload is forbidden because publication and evidence bind each exact canonical route and expected capability fingerprint in that one policy. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses fixed allowlists, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in both closed hash inventories.
 
 ## Implemented commands
 
@@ -232,6 +233,26 @@ No production source tree, editable source profile tree, Python runtime installa
 ./scripts/package.ps1 -Version 1.0.0 -Commit <40-character-git-sha>
 ./scripts/package.ps1 -Version 0.0.0 -Commit 0000000000000000000000000000000000000000 -ExternalToolPolicyDryRun
 ```
+
+For v1.1.13 and later, the published application must contain exactly one
+`profiles/built-in/prebuilt-profile-catalog.pack`. Packaging runs the B2a
+generator again against the published trust index and materialized bundles,
+requires exact byte equality with the published pack, and includes that one
+file with the existing `builtInProfile` role in `RELEASE-MANIFEST.json` and
+`SHA256SUMS.txt`. It rejects a missing, altered, oversized, or extra pack.
+The pack is at most 4,194,304 bytes, `NvtFwCombiner.exe` at most 80,000,000
+bytes, and the completed ZIP at most 134,217,728 bytes. The policy dry-run
+uses a pack-selection byte fixture to reject missing, damaged, oversized,
+stale, and extra files without building or creating a release ZIP; it does
+not claim catalog admission.
+
+Release smoke independently checks pack ranges and hashes against the packaged
+trust index, manifests, and document bytes. After the closed hash inventories
+pass, it runs the shipped `NvtFwCombiner.exe --profile-catalog-probe-v1` even
+with `-SkipUiLaunch`; only a successful, single-line probe result with
+`admissionSource=prebuilt` and `catalogLoaded=true` passes. This package and
+smoke evidence does not replace exact-source CI, release Golden execution,
+release-owner review, or clean Windows validation.
 
 Normal packaging is source-identity closed before staging is cleared or any
 build tool runs: the requested lowercase full commit must equal the current Git
@@ -461,6 +482,9 @@ GitHub may return an annotated-tag message with CRLF transport line endings whil
 Both package paths run `smoke-release.ps1 -SkipUiLaunch` before upload or publication. For v1.1.4, the owner's 2026-09-10 authorization admits the exact 40-case/177-declaration/174-unique-artifact/215-projected-path reference selection, including 164 BINs. All 25 Direct Golden output contracts are unchanged. Three input-only cases and their source-closed aliases remain explicitly non-parity evidence. Smoke verifies the pinned allowlist/README/case/artifact hashes, roles, source closure and physical package content. It rejects automatic tree selection, fabricated expected outputs, missing or cross-workflow alias sources, alias chains, ambiguous Direct/input classification, nested archives, transfer wrappers and unselected material. BAT/CONFIG provenance remains inert `reference` content. Materialized profiles, external tools, sidecars and worker self-test remain required. This does not satisfy visible startup or clean-machine acceptance; historical package evidence is not rewritten.
 
 ## Local package smoke
+
+The v1.1.13 headless catalog probe runs in both smoke modes. `-SkipUiLaunch`
+omits only the visible main-window check.
 
 After `scripts/package.ps1` produces a ZIP, run the deterministic local smoke before handing it to a reviewer:
 
