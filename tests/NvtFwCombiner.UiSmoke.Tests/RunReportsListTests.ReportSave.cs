@@ -3,6 +3,8 @@ using System.Reflection;
 using System.Text;
 using Avalonia.Headless.XUnit;
 using Avalonia.Platform.Storage;
+using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
@@ -15,12 +17,12 @@ public sealed partial class RunReportsListTests
     [AvaloniaFact]
     public async Task LocalReportSaveUsesAtomicFileStoreWithoutOpeningProviderWriteStream()
     {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-report-atomic-success");
         var reports = new ReportPresentationViewModel(() => ShellTextResources.For(ShellLanguage.English), static () => { });
         string json = ReportJsonSamples.Succeeded(runId: "atomic-local");
         reports.LoadReportJson(json, "source.json");
-        var store = new RecordingLocalFileStore();
-        reports.LocalFiles = store;
-        string destination = Path.Combine(Path.GetTempPath(), "atomic-local-report.json");
+        reports.LocalFiles = new LocalFileStore();
+        string destination = workspace.Write("atomic-local-report.json", "older report"u8.ToArray());
         using IStorageFile file = DispatchProxy.Create<IStorageFile, ReportStorageProxy>();
         ((ReportStorageProxy)file).Call = (method, _) => method switch
         {
@@ -35,8 +37,38 @@ public sealed partial class RunReportsListTests
 
         await new ReportModal { DataContext = reports }.SaveReportAsync(picker);
 
-        Assert.Equal(Path.GetFullPath(destination), Assert.Single(store.Writes));
+        Assert.Equal(json, await File.ReadAllTextAsync(destination, TestContext.Current.CancellationToken));
         Assert.Equal(reports.Text.FormatReportSavedToast("atomic-local-report.json"), reports.ReportToastText);
+    }
+
+    /// <summary>A failed local precommit keeps the original report file and never publishes success.</summary>
+    [AvaloniaFact]
+    public async Task LocalReportSaveFailurePreservesExistingDestination()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-report-atomic-failure");
+        string destination = workspace.Write("existing.json", "original"u8.ToArray());
+        var reports = new ReportPresentationViewModel(() => ShellTextResources.For(ShellLanguage.English), static () => { })
+        {
+            LocalFiles = new CancelledLocalFileStore(),
+        };
+        reports.LoadReportJson(ReportJsonSamples.Succeeded(), "source.json");
+        using IStorageFile file = DispatchProxy.Create<IStorageFile, ReportStorageProxy>();
+        ((ReportStorageProxy)file).Call = (method, _) => method switch
+        {
+            "get_Name" => "existing.json",
+            "get_Path" => new Uri(destination),
+            "OpenWriteAsync" => throw new Xunit.Sdk.XunitException("Local reports must not open the provider stream."),
+            "Dispose" => null,
+            _ => throw new NotSupportedException(method),
+        };
+        IStorageProvider picker = DispatchProxy.Create<IStorageProvider, ReportStorageProxy>();
+        ((ReportStorageProxy)picker).Call = (_, _) => Task.FromResult<IStorageFile?>(file);
+
+        await new ReportModal { DataContext = reports }.SaveReportAsync(picker);
+
+        Assert.Equal("original", await File.ReadAllTextAsync(destination, TestContext.Current.CancellationToken));
+        Assert.Contains("Report save failed", reports.ReportToastText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Report saved", reports.ReportToastText, StringComparison.Ordinal);
     }
 
     /// <summary>The actual save operation contains provider and stream failures without losing the report.</summary>
@@ -66,6 +98,7 @@ public sealed partial class RunReportsListTests
 
         await modal.SaveReportAsync(CreateSaveProvider("none", reports));
         Assert.Equal(reports.Text.FormatReportSavedBestEffortToast("saved.json"), reports.ReportToastText);
+        Assert.Contains("does not guarantee atomic replacement", reports.ReportToastText, StringComparison.Ordinal);
         Assert.Equal(json, reports.LoadedReportJson);
     }
 
@@ -188,6 +221,32 @@ public sealed partial class RunReportsListTests
             Assert.DoesNotContain("Report saved", reports.ReportToastText, StringComparison.Ordinal);
             return failure == "stream-dispose" ? ValueTask.FromException(new IOException("stream dispose"))
                 : base.DisposeAsync();
+        }
+    }
+
+    private sealed class CancelledLocalFileStore : ILocalFileStore
+    {
+        public ValueTask<T> ReadAsync<T>(string path, long maximumBytes,
+            Func<Stream, CancellationToken, ValueTask<T>> project, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<string> ReadTextAsync(string path, long maximumBytes,
+            CancellationToken cancellationToken, Action<LocalFileReadProgress>? progress = null)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<string> ReadTextAsync(Func<CancellationToken, ValueTask<Stream>> openReadAsync,
+            long maximumBytes, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+        {
+            return new LocalFileStore().WriteAsync(path, bytes, new CancellationToken(canceled: true));
         }
     }
 }

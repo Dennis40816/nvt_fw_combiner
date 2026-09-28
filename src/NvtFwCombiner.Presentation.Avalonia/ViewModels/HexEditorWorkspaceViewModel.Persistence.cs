@@ -7,6 +7,7 @@ internal sealed partial class HexEditorWorkspaceViewModel
 {
     private long _loadGeneration;
     private long _sourceSelectionGeneration;
+    private long _saveOperationGeneration;
     private RawBinaryEditorFileResult? _publishedLoad;
 
     public bool HasSelectedFile { get; private set; }
@@ -96,7 +97,13 @@ internal sealed partial class HexEditorWorkspaceViewModel
             return;
         }
 
+        long documentGeneration = _documentGeneration;
+        long operationGeneration = checked(++_saveOperationGeneration);
         RawBinaryEditorFileResult result = await _files.SaveAsAsync(outputPath, cancellationToken);
+        if (documentGeneration != _documentGeneration || operationGeneration != _saveOperationGeneration)
+        {
+            return;
+        }
         if (!result.Succeeded || result.State is null || string.IsNullOrWhiteSpace(result.Path))
         {
             EditorStatus = result.ErrorMessage ?? Text.HexEditorFileOperationFailedDetail;

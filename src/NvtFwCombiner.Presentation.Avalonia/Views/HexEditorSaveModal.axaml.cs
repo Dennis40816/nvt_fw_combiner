@@ -22,10 +22,24 @@ public sealed partial class HexEditorSaveModal : UserControl
             return;
         }
 
-        string? outputPath = await FirmwareFilePickerDialogs.PickEditedFirmwareOutputPathAsync(
+        await ConfirmSaveWithPickerAsync(() => FirmwareFilePickerDialogs.PickEditedFirmwareOutputPathAsync(
             storageProvider,
-            viewModel.SuggestedOutputFileName);
-        if (string.IsNullOrWhiteSpace(outputPath))
+            viewModel.SuggestedOutputFileName));
+    }
+
+    internal async Task ConfirmSaveWithPickerAsync(Func<Task<string?>> pickOutputAsync)
+    {
+        ArgumentNullException.ThrowIfNull(pickOutputAsync);
+        if (DataContext is not HexEditorWorkspaceViewModel viewModel || !viewModel.CanSave)
+        {
+            return;
+        }
+
+        (long Dialog, long Document) context = viewModel.CaptureSaveContext();
+        string? outputPath = await pickOutputAsync();
+        if (string.IsNullOrWhiteSpace(outputPath) ||
+            !ReferenceEquals(DataContext, viewModel) ||
+            !viewModel.IsSaveContextCurrent(context))
         {
             return;
         }
