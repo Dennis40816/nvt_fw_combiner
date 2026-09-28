@@ -53,7 +53,10 @@ internal sealed class LocalStateSaveNoticeViewModel : ObservableObject
 
     public string Title => IsVisible ? _text().LocalStateSaveFailedTitle : string.Empty;
 
-    /// <summary>One sentence whose reason follows the most recent unresolved failure.</summary>
+    /// <summary>
+    /// A sentence whose reason follows the most recent unresolved failure, followed by the diagnostic of every
+    /// unsaved target.
+    /// </summary>
     public string Detail
     {
         get
