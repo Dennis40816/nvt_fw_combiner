@@ -59,15 +59,14 @@ remove items; the board decisions stay the authority for scope.
 | 65 | Archived handoff history uses test-area-relative evidence paths | #470 (`93da007af`) |
 | 69 | Replace selection renders its rows on first entry | #470 (`93da007af`) |
 
-## Active (3)
+## Active (2)
 
 | # | Item | Next |
 | --- | --- | --- |
 | 26 | C-7 TP SVN display (R3) | paused behind the verify-speed work: admission on the current checkpoint, ADR 0075 memory gate, firmware and release attestations |
-| 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | CI tiers and U4/U5 with G2 |
 | 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150) | three reviewable commits (UiSmoke 145/145); rebase onto the cutover trunk, then the non-UI remainder; Settings references (decision 150) wait for the owner |
 
-## Waiting or open (22)
+## Waiting or open (19)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
@@ -77,12 +76,10 @@ remove items; the board decisions stay the authority for scope.
 | 35 | Release workflow cleanup R-2 | R-1 |
 | 36 | WS-AI dual-runtime agent documents, with the two agent-skill bugs | open |
 | 38 | WS-FLOW F1 second half, F5 and F6 re-evaluation | open |
-| 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | stage 1 merged in #461; stages 2-4 paused (decision 100) |
 | 41 | ADR 0077 B2a (R2) | Step 0 admitted it; starts after G1-B merges |
 | 42 | ADR 0077 B2b trust policy (R3) | B2a |
 | 43 | First window within the EXE size ceiling | ADR 0077 |
 | 48 | Version-branch CI gap | WS-GOV |
-| 49 | Test hygiene findings (WS-TEST T2-T4, G2) | WS-TEST |
 | 52 | Legacy Combiner long path | open |
 | 53 | CI core-shard H2 and H3 follow-ups | open |
 | 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
@@ -90,9 +87,17 @@ remove items; the board decisions stay the authority for scope.
 | 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | release |
 | 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | release workflow cleanup R-1/R-2 |
 | 67 | G0 `gh` wrapper repository option conflict (`BUG-20260927-g0-gh-wrapper-repo-option-conflict`) | WS-GOV |
-| 68 | Predecessor validator false inconsistency (`BUG-20260927-predecessor-validator-false-inconsistent`) | parity P-2 next batch |
 | 70 | Local verify L3: Infrastructure.Tests shares the lane pool (about 2 min; decision 153) | a quiet machine for the measurement |
 | 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
+
+## Moved out (4)
+
+| # | Item | Now in |
+| --- | --- | --- |
+| 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | 1.2.x (decision 154) |
+| 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | 1.1.14 (decision 154) |
+| 49 | Test hygiene findings (WS-TEST T2-T4, G2) | 1.2.x (decision 154) |
+| 68 | Predecessor validator false inconsistency (`BUG-20260927-predecessor-validator-false-inconsistent`) | 1.1.14 (decision 154) |
 
 Not 1.1.13: the display-convention inventory (1.1.14, decision 39); the 1.2.1
 architecture and UI reviews and Launcher; CtrlRAM cold first-open and F14/F15
