@@ -533,7 +533,7 @@
         <DataTemplate DataType="vm:FirmwareSlotFactNoteRow">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace4}">
             <TextBlock Classes="firmwareSlotFactNoteLabel" Text="{Binding Label}" />
-            <TextBlock Grid.Column="1" Classes.monoText="{Binding IsTechnicalValue}" Text="{Binding Value}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="1" Classes="firmwareSlotFactNoteText" Text="{Binding Value}" TextWrapping="Wrap" />
           </Grid>
         </DataTemplate>
       </ItemsControl.ItemTemplate>
@@ -553,9 +553,9 @@
       Padding="0,4,16,4">
     <StackPanel Orientation="Vertical" Spacing="{DynamicResource NfcSpace2}">
       <TextBlock Classes="firmwareSlotFactLabel" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
-      <!-- Decision 40: a value note left-aligns this row so its 12 px icon sits about 4 px after the value;
+      <!-- A value note left-aligns this row so its 12 px icon sits one NfcSpace8 after the value;
            long values still trim, and facts without a note keep the stretched row and its state icon. -->
-      <Grid Classes.firmwareSlotFactNoteValueRow="{Binding HasNote}" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace4}">
+      <Grid Classes.firmwareSlotFactNoteValueRow="{Binding HasNote}" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
         <TextBlock Classes="firmwareSlotFactValue" Text="{Binding Value}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" />
         <Path Grid.Column="1"
             AutomationProperties.Name="{Binding StateAutomationText}"
