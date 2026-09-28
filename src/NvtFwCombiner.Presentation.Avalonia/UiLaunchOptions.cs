@@ -118,7 +118,7 @@ internal sealed partial class UiLaunchOptions
             }
         }
 
-        if (inputOptions.Count > 0 && pageCount > 1) { issues.Add("Duplicate option '--page'."); }
+        if (pageCount > 1) { issues.Add("Duplicate option '--page'."); }
         bool isAbMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.AbMerge;
         bool isStandardMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.StandardMerge;
         AbMergeLaunchRequest? abMerge = isAbMerge ? ParseAbMergeRequest(

@@ -4,36 +4,40 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-/// <summary>Invalid desktop arguments terminate before composing the presentation host.</summary>
+/// <summary>Recoverable UI arguments still reach the presentation host and report surface.</summary>
 public sealed class DesktopStartupArgumentTests
 {
-    /// <summary>Malformed UI options never run the host factory.</summary>
-    [Fact]
-    public void InvalidUiArgumentsFailBeforeHostConstruction()
+    /// <summary>UI parse issues do not suppress startup before the report stage can display them.</summary>
+    [Theory]
+    [InlineData("--page", "invalid")]
+    [InlineData("--page", "home", "--page", "merge")]
+    [InlineData("--page")]
+    [InlineData("--report", "\0")]
+    public void RecoverableUiArgumentsReachHostConstruction(params string[] arguments)
     {
         using var workspace = TempWorkspace.Create("invalid-desktop-arguments");
         int hostConstructions = 0;
-        string[][] cases =
-        [
-            ["--page"],
-            ["--page", "--open-report"],
-            ["--report", "\0"],
-            ["--workflow", "standard-merge", "--ic", "NT51926", "--ic-num", "single", "--dp", "\0", "--tp", "input.bin"],
-        ];
-        foreach (string[] arguments in cases)
-        {
-            int exitCode = DesktopApplication.Run(
+        InvalidOperationException failure = Assert.Throws<InvalidOperationException>(() =>
+            DesktopApplication.Run(
                 () =>
                 {
                     hostConstructions++;
-                    throw new InvalidOperationException("Invalid options must not create the host.");
+                    throw new InvalidOperationException("Host factory reached.");
                 },
                 new LocalFileStore(),
                 workspace.Root,
-                arguments);
+                arguments));
 
-            Assert.Equal(64, exitCode);
-        }
-        Assert.Equal(0, hostConstructions);
+        Assert.Equal("Host factory reached.", failure.Message);
+        Assert.Equal(1, hostConstructions);
+    }
+
+    /// <summary>Repeated page selection is reported by the same UI startup issue path.</summary>
+    [Fact]
+    public void DuplicatePageSelectionProducesStartupIssue()
+    {
+        UiLaunchOptions options = UiLaunchOptions.Parse(["--page", "home", "--page", "merge"]);
+
+        Assert.Contains("Duplicate option '--page'.", options.Issues);
     }
 }
