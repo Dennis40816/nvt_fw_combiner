@@ -36,7 +36,11 @@
   </Window.Styles>
 
   <Grid>
-    <Grid x:Name="ShellInteractionHost" RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <Grid x:Name="ShellInteractionHost"
+          RowDefinitions="Auto,Auto,Auto,*,Auto"
+          Focusable="True"
+          KeyboardNavigation.IsTabStop="False"
+          AutomationProperties.Name="{Binding Text.ProductTitle}">
       <Grid.KeyBindings>
         <KeyBinding Gesture="Ctrl+H" Command="{Binding Reports.ShowReportHistoryCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding Reports.ClearReportHistoryCommand}" />
