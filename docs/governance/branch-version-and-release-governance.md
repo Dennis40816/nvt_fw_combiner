@@ -96,7 +96,9 @@ the host creates a merge commit.
 
 Recovery follows the tag and Release state:
 
-- No tag yet: fix through a pull request into `main` and dispatch a new run.
+- No tag yet: fix through a pull request from the `X.Y.Z` release branch into
+  `main`. When `ci` succeeds on that merge, a new release run starts
+  automatically; `workflow_dispatch` is only the fallback.
 - Tag created, publication incomplete and recoverable: re-run only the failed
   promotion in the same run. The same run id, candidate artifact and digest,
   and live authority with `main` still at the workflow SHA must hold. Nothing
