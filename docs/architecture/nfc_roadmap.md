@@ -20,6 +20,28 @@ Earlier dated checkpoints below remain history, not open release gates.
 
 ## Current release sequence — 2026-09-14
 
+### Owner scope changes during 1.1.13 — 2026-09-28
+
+The owner's 2026-09-28 decisions in the
+[1.1.12 board](../handoff/1.1.12.md#owner-decisions-2026-09-25) move work out
+of `1.1.13` so that it can be released on 2026-09-28:
+
+- **`1.1.14`** (decisions 154 and 157): rolling v0.9.16 parity stages 2-4 with
+  the predecessor-validator follow-up; the second half of WS-FLOW F1 (a
+  profile-declared default output-directory anchor); and, unless the owner
+  supplies the six firmware facts first, the Header backup CRC investigation.
+  The 1.1.14 display-convention work inventories consistency and optimization
+  findings and allocates them to `1.2.x` versions without implementing them
+  in `1.1.14` (decision 149).
+- **`1.2.1`** (decision 153): re-grouping the tests inside the local .NET
+  verification lane; the smaller L3 change (Infrastructure.Tests sharing the
+  lane pool) stays in `1.1.13`.
+- **`1.2.x`** (decision 154): the WS-TEST CI tiers and test-hygiene work tied
+  to the G2 governance stage.
+
+This amendment records allocation only; each item keeps its own review,
+evidence and owner gates.
+
 ### Owner amendment for 1.2.0 and 1.1.x releases — 2026-09-27
 
 The owner's 2026-09-27 decisions in the
