@@ -2545,7 +2545,7 @@ def require_python_modules(
         raise RuntimeError(
             "missing Python verification modules: "
             + ", ".join(missing)
-            + f". Install with: {install_command}"
+            + f". Install them with: {install_command}"
         )
 
 
@@ -6725,8 +6725,12 @@ def execute_verification(args: argparse.Namespace) -> int:
         if not lanes:
             raise RuntimeError("verification plan selected no lanes")
         structure = tuple(lane for lane in lanes if lane.name == "structure")
-        if structure:
-            require_python_modules(("yaml",), install_hint="PyYAML==6.0.3")
+        yaml_lane_names = {"structure", *(name for name, _ in REPOSITORY_SCRIPT_TEST_SHARDS)}
+        if any(lane.name in yaml_lane_names for lane in lanes):
+            require_python_modules(
+                ("yaml",),
+                install_hint="--disable-pip-version-check --only-binary=:all: PyYAML==6.0.3",
+            )
         workloads = tuple(lane for lane in lanes if lane.name != "structure")
         full_local = not args.structure_only and not args.skip_dotnet and not args.skip_python
         if full_local:

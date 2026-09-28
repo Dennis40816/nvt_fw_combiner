@@ -49,8 +49,26 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertEqual(1, result)
         self.assertIn("missing Python verification modules: yaml", output.getvalue())
-        self.assertIn("PyYAML==6.0.3", output.getvalue())
-        self.assertIn("pip install", output.getvalue())
+        self.assertIn(
+            f"{sys.executable} -m pip install --disable-pip-version-check "
+            "--only-binary=:all: PyYAML==6.0.3",
+            output.getvalue(),
+        )
+        run_selected.assert_not_called()
+
+    def test_skip_structure_preflights_pyyaml_for_repository_script_lane(self) -> None:
+        output = io.StringIO()
+        with (
+            patch.object(MODULE.importlib.util, "find_spec", return_value=None),
+            patch.object(MODULE, "run_selected_lanes") as run_selected,
+            contextlib.redirect_stderr(output),
+        ):
+            result = MODULE.execute_verification(
+                MODULE.parse_args(["--skip-structure", "--skip-dotnet"])
+            )
+
+        self.assertEqual(1, result)
+        self.assertIn("missing Python verification modules: yaml", output.getvalue())
         run_selected.assert_not_called()
 
     def test_all_help_describes_complete_local_suite_without_completion_claim(self) -> None:
