@@ -68,9 +68,7 @@ internal sealed class LocalStateSaveNoticeViewModel : ObservableObject
                 CultureInfo.CurrentCulture,
                 text.LocalStateSaveFailedDetailFormat,
                 DescribeReason(text, failure));
-            return IsRedirected(failure)
-                ? $"{detail} {string.Format(CultureInfo.CurrentCulture, text.LocalStateSaveDiagnosticFormat, Diagnostic(failure))}"
-                : detail;
+            return $"{detail} {string.Format(CultureInfo.CurrentCulture, text.LocalStateSaveDiagnosticFormat, DetailToolTip)}";
         }
     }
 

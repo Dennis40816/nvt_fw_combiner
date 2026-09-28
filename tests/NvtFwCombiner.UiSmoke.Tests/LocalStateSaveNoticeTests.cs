@@ -76,8 +76,8 @@ public sealed class LocalStateSaveNoticeTests
             Assert.Equal(chinese ? "最近的工作未儲存" : "Recent work not saved", notice.Title);
             Assert.Equal(
                 chinese
-                    ? "無法儲存最近的工作狀態：存取遭拒。目前的工作不受影響。"
-                    : "Couldn't save your recent work state: access denied. Your current work isn't affected.",
+                    ? "無法儲存最近的工作狀態：存取遭拒。目前的工作不受影響。 診斷資訊：偏好設定: synthetic access denied"
+                    : "Couldn't save your recent work state: access denied. Your current work isn't affected. Diagnostic: Preferences: synthetic access denied",
                 notice.Detail);
             Assert.Equal(
                 (chinese ? "偏好設定" : "Preferences") + ": synthetic access denied",
@@ -144,14 +144,16 @@ public sealed class LocalStateSaveNoticeTests
             shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "first"), "first.json");
             await WaitUntilAsync(() => notice.IsVisible);
             ShellTextResources english = shell.Text;
-            Assert.Equal(Detail(english, english.LocalStateSaveStorageFullReason), notice.Detail);
+            Assert.Equal(Detail(english, english.LocalStateSaveStorageFullReason,
+                "Report history: synthetic disk full"), notice.Detail);
             Assert.Equal("Report history: synthetic disk full", notice.DetailToolTip);
 
             // A language change while the notice is shown relocalizes it through the window's Text relay.
             shell.SelectedLanguage = "Traditional Chinese";
             await WaitUntilAsync(() => notice.Title == "最近的工作未儲存");
             ShellTextResources text = shell.Text;
-            Assert.Equal("無法儲存最近的工作狀態：磁碟空間不足。目前的工作不受影響。", notice.Detail);
+            Assert.Equal("無法儲存最近的工作狀態：磁碟空間不足。目前的工作不受影響。 診斷資訊：報告記錄: synthetic disk full",
+                notice.Detail);
             Assert.Equal("報告記錄: synthetic disk full", notice.DetailToolTip);
             Assert.Equal(notice.AccessibleStatus, AutomationProperties.GetName(host));
             Assert.Equal("重試", AutomationProperties.GetName(window.FindControl<Button>(RetryButtonName)!));
@@ -159,7 +161,7 @@ public sealed class LocalStateSaveNoticeTests
             files.Fail(files.PreferencesPath, static () => new IOException("synthetic in use", unchecked((int)0x80070020)));
             shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
             await WaitUntilAsync(() => notice.DetailToolTip.Contains(text.LocalStatePreferencesLabel, StringComparison.Ordinal));
-            Assert.Equal(Detail(text, text.LocalStateSaveFileInUseReason), notice.Detail);
+            Assert.Equal(Detail(text, text.LocalStateSaveFileInUseReason, notice.DetailToolTip), notice.Detail);
             Assert.Equal(
                 $"報告記錄: synthetic disk full{Environment.NewLine}偏好設定: synthetic in use",
                 notice.DetailToolTip);
@@ -169,7 +171,7 @@ public sealed class LocalStateSaveNoticeTests
             await WaitUntilAsync(() => !notice.DetailToolTip.Contains(text.LocalStateReportHistoryLabel, StringComparison.Ordinal));
             Assert.True(notice.IsVisible);
             Assert.Equal("偏好設定: synthetic in use", notice.DetailToolTip);
-            Assert.Equal(Detail(text, text.LocalStateSaveFileInUseReason), notice.Detail);
+            Assert.Equal(Detail(text, text.LocalStateSaveFileInUseReason, notice.DetailToolTip), notice.Detail);
 
             files.Fail(files.PreferencesPath, null);
             shell.IsReducedMotionEnabled = !shell.IsReducedMotionEnabled;
@@ -806,7 +808,7 @@ public sealed class LocalStateSaveNoticeTests
         notice.ObserveSave(LocalStateSaveTarget.ReportHistory, failure);
 
         Assert.Equal(
-            $"Couldn't save your recent work state: {reason}. Your current work isn't affected.",
+            $"Couldn't save your recent work state: {reason}. Your current work isn't affected. Diagnostic: Report history: {failure.Message}",
             notice.Detail);
         Assert.Equal($"Report history: {failure.Message}", notice.DetailToolTip);
     }
@@ -917,7 +919,8 @@ public sealed class LocalStateSaveNoticeTests
         Assert.Contains(nameof(LocalStateSaveNoticeViewModel.RetryLabel), changed);
         Assert.Equal("重試", notice.RetryLabel);
         Assert.Equal("最近的工作未儲存", notice.Title);
-        Assert.Equal("無法儲存最近的工作狀態：存取遭拒。目前的工作不受影響。", notice.Detail);
+        Assert.Equal("無法儲存最近的工作狀態：存取遭拒。目前的工作不受影響。 診斷資訊：偏好設定: denied",
+            notice.Detail);
         Assert.Equal("偏好設定: denied", notice.DetailToolTip);
         notice.ObserveSave(LocalStateSaveTarget.ReportHistory, null);
         Assert.True(notice.IsVisible);
@@ -1042,9 +1045,10 @@ public sealed class LocalStateSaveNoticeTests
         return (LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>)field.GetValue(window)!;
     }
 
-    private static string Detail(ShellTextResources text, string reason)
+    private static string Detail(ShellTextResources text, string reason, string diagnostic)
     {
-        return string.Format(CultureInfo.CurrentCulture, text.LocalStateSaveFailedDetailFormat, reason);
+        return string.Format(CultureInfo.CurrentCulture, text.LocalStateSaveFailedDetailFormat, reason) + " " +
+            string.Format(CultureInfo.CurrentCulture, text.LocalStateSaveDiagnosticFormat, diagnostic);
     }
 
     private static Rect Bounds(Visual control, Visual window)
