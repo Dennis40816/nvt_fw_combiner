@@ -374,12 +374,12 @@ protected review/CI and candidate publication gates remain required.
 | `1.3.3` | **Maintainer IC/family rule-authoring UI**: validate/export untrusted candidates; no live-catalog self-promotion. |
 | `1.4.0` | **Independent evidence completion** for retained input-only cases and fact-scoped aliases. This does not defer evidence required for an earlier changed route. |
 | `1.4.1` | **IC/capability evidence intake**: remaining NT51950/NT51951 AB, Perfect-family and `ldc-tp-only` gaps; NT51928BT awaits owner-confirmed facts and remains unavailable until separately admitted. Inventory existing support first, split into additional patch releases if the actual intake is large. |
-| `1.4.2` | **Launcher/publication extraction decision**: review a concrete need, contracts, trust boundaries and migration/deletion/rollback before any separately approved repository split. Extraction is optional, not a prerequisite for `2.0.0`. |
-| `1.5.0` | **Launcher publisher trust/signing/security closure** with independent evidence and actual key/service permissions. |
-| `1.5.1` | **Catalog/Registry controlled preproduction validation**: package identity, verification and update readiness; no implied production activation. |
-| `1.5.2` | **Installer/download/recovery refinements**: measured transfer savings, exact installed bytes, failure recovery and rollback. |
-| `1.5.3` | **Full Launcher candidate acceptance**: clean Windows install/update/failure/recovery/rollback and end-to-end evidence across the integrated candidate. |
-| `2.0.0` | **Full Launcher release**. Actual Catalog/Registry production activation requires explicit owner GO and closed security/evidence/publication gates; the scheduled version is not approval to deploy. |
+| `1.4.2` | **Launcher/publication extraction decision**: review a concrete need, contracts, trust boundaries and migration/deletion/rollback before any separately approved repository split. Extraction is optional, not a prerequisite for `2.0.0`. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
+| `1.5.0` | **Launcher publisher trust/signing/security closure** with independent evidence and actual key/service permissions. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
+| `1.5.1` | **Catalog/Registry controlled preproduction validation**: package identity, verification and update readiness; no implied production activation. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
+| `1.5.2` | **Installer/download/recovery refinements**: measured transfer savings, exact installed bytes, failure recovery and rollback. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
+| `1.5.3` | **Full Launcher candidate acceptance**: clean Windows install/update/failure/recovery/rollback and end-to-end evidence across the integrated candidate. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
+| `2.0.0` | **Full Launcher release**. Actual Catalog/Registry production activation requires explicit owner GO and closed security/evidence/publication gates; the scheduled version is not approval to deploy. Decision 186 moves the full Launcher release into `1.2.x`; what remains for `2.0.0` follows the necessity plan. |
 
 ## Shared audit allocation — 2026-09-17
 
