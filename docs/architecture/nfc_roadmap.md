@@ -32,8 +32,8 @@ of `1.1.13` so that it can be released on 2026-09-28:
   The 1.1.14 display-convention work inventories consistency and optimization
   findings and allocates them to `1.2.x` versions without implementing them
   in `1.1.14` (decision 149).
-- **`1.1.14`, the last 1.1.x feature version, targeted for 2026-09-29 and moved later by
-  decision 180** (decisions 163-181):
+- **`1.1.14`, then the last 1.1.x feature version (decision 189 later adds `1.1.15`),
+  targeted for 2026-09-29 and moved later by decision 180** (decisions 163-181):
   - F17/F23/F26 with the verified F16.
   - The release workflow R-3 with automatic start after the release merge, so the owner's
     one action is the `release` approval (decision 168; RO-9 staging waived by decision
