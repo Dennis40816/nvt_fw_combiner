@@ -21,7 +21,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
     private const int MaximumReadyLineCharacters = 128;
     private readonly string _statePath;
     private readonly IManagedProcessTermination _termination;
-    private readonly Action? _beforeStartValidation;
+    private readonly Action<ProcessStartInfo>? _beforeStartValidation;
 
     /// <summary>Creates a process adapter, optionally propagating an exact custom version-state path.</summary>
     public AnonymousPipeManagedApplicationProcess(string? statePath = null)
@@ -32,7 +32,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
     internal AnonymousPipeManagedApplicationProcess(
         string? statePath,
         IManagedProcessTermination termination,
-        Action? beforeStartValidation = null)
+        Action<ProcessStartInfo>? beforeStartValidation = null)
     {
         _statePath = Path.GetFullPath(statePath ?? JsonVersionManagerStateStore.GetDefaultPath());
         _termination = termination ?? throw new ArgumentNullException(nameof(termination));
@@ -62,13 +62,31 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         ArgumentNullException.ThrowIfNull(executableLease);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(readyDeadline, TimeSpan.Zero);
+        var deadline = new ManagedStartDeadline(readyDeadline, cancellationToken);
+        return await deadline.RunAsync(
+            () => StartCoreAsync(managedRoot, version, executableLease, deadline, cancellationToken),
+            static () => new(ManagedProcessStartOutcome.ReadyTimeout, null),
+            static () => new(ManagedProcessStartOutcome.TerminationUnconfirmed, null),
+            cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<ManagedProcessStartResult> StartCoreAsync(
+        string managedRoot,
+        ManagedAppVersion version,
+        IManagedExecutableLaunchLease executableLease,
+        ManagedStartDeadline deadline,
+        CancellationToken cancellationToken)
+    {
         Process? process = null;
         ManagedProcessLifetimeLease? lifetime = null;
         try
         {
+            deadline.Token.ThrowIfCancellationRequested();
             lifetime = ManagedProcessLifetimeLease.TryAcquire(
                 _statePath,
                 ManagedProcessLifetimeKind.Application);
+            deadline.Token.ThrowIfCancellationRequested();
             if (lifetime is null)
             {
                 return new(ManagedProcessStartOutcome.TerminationUnconfirmed, null);
@@ -104,21 +122,26 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                     ],
                     () =>
                     {
-                        _beforeStartValidation?.Invoke();
-                        return executableLease.TryValidateForStart();
+                        if (deadline.Token.IsCancellationRequested)
+                        {
+                            return false;
+                        }
+                        _beforeStartValidation?.Invoke(startInfo);
+                        return !deadline.Token.IsCancellationRequested &&
+                            executableLease.TryValidateForStart() &&
+                            deadline.TryBeginCreation();
                     });
             }
             finally
             {
                 DisposeLocalClientHandle(pipe);
             }
+            deadline.Token.ThrowIfCancellationRequested();
             if (process is null)
             {
                 return new(ManagedProcessStartOutcome.StartFailed, null);
             }
 
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            deadline.CancelAfter(readyDeadline);
             Task<string?> readyTask = BoundedUtf8LineReader.ReadAsync(
                 pipe,
                 MaximumReadyLineCharacters,
@@ -126,6 +149,7 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
                 deadline.Token);
             Task exitTask = process.WaitForExitAsync(deadline.Token);
             Task completed = await Task.WhenAny(readyTask, exitTask).ConfigureAwait(false);
+            deadline.Token.ThrowIfCancellationRequested();
             if (readyTask.IsCompletedSuccessfully)
             {
                 string expected = $"READY:{version}";

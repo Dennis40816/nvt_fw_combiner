@@ -1,6 +1,6 @@
 # BUG-20260929-repository-lease-test-hang: the repository launch-lease test hangs until the CI job times out
 
-Status: open; pre-wait timeout gap reproduced, CI hang cause unproven
+Status: open; pre-wait timeout gap corrected locally, CI hang cause unproven
 Severity: P2
 Found: 2026-09-29, Claude Code commander (Claude Opus 5.5), while checking CI on pull request #488 (run
 `36549856597`), at `feature/1.1.15/bootstrap-flake`@`a5b7019f5`
@@ -27,20 +27,21 @@ run passed all projects. The original artifact has no stack or dump showing the 
 and a causal product/test fix remain open; see `docs/handoff/1.1.15/WS-FLAKES.md`.
 Owner: unassigned. First observation, cause unknown. Candidates to check: whether `StartUntilReadyAsync` enforces
 its timeout on every path; whether install or lease acquisition can block; and the child process and pipe cleanup.
-Resolution: not fixed. On `feature/1.1.15/flaky-fixes`, a temporary, controlled
-Infrastructure test supplied an `IManagedExecutableLaunchLease` whose
-`TryValidateForStart` blocks inside `ProcessLaunchGate.StartContained` until the
-test releases it. With a 100 ms `readyDeadline`, the start was still incomplete
-after 250 ms; the focused `dotnet test ... --filter
-FullyQualifiedName~PreWaitValidationDoesNotOutliveReadyDeadlineProbe` run failed
-1/1 at the expected assertion. The fake was released in `finally`, so the test
-and host exited. The failing test was removed and is not committed. This proves
-that the current deadline does not bound final lease validation or process
-creation; it does not locate the #488 CI hang, which also had an invalid-handle
-fatal error and no thread dump.
+Resolution: decision 194's confirmed pre-wait deadline gap is corrected locally
+for both managed Desktop and version Launcher adapters. The committed regression
+gate blocks final validation inside `ProcessLaunchGate.StartContained`; before the
+production change, the Desktop test failed because start exceeded its 150 ms
+deadline. With the correction, both adapters return their existing typed
+`ReadyTimeout` while validation is blocked, reject process creation after the
+gate is released, and close the local ready and lifetime handles. A creation
+whose cleanup cannot be confirmed retains the existing
+`TerminationUnconfirmed` outcome. This establishes the pre-wait correction,
+not the root cause of #488's CI hang: that incident also had an invalid-handle
+fatal error, and the archived artifact has no thread dump or phase trace.
 
-Contract review: `SPEC.md` describes a bounded ready deadline separately from
-a process that cannot start. `IManagedApplicationProcess.StartUntilReadyAsync`
+Prior contract review (before decision 194): `SPEC.md` describes a bounded
+ready deadline separately from a process that cannot start.
+`IManagedApplicationProcess.StartUntilReadyAsync`
 calls the parameter a "Bounded ready deadline" without an origin point. ADRs
 0051, 0056, 0064 and the launcher bootstrap contract require bounded readiness,
 contained creation, fail-closed cleanup and no late start, but do not explicitly
@@ -50,12 +51,6 @@ process-start gate, or final synchronous repository validation. The analogous
 ADMITTED reporting. These sources do not authorize reclassifying a blocked
 pre-wait step as `ReadyTimeout`. No production code changed.
 
-Owner decision needed: Should this adapter's `readyDeadline` be one absolute
-budget starting at `StartUntilReadyAsync` entry, including lifetime lease,
-final repository validation and contained process creation? If yes, specify how
-the adapter proves no child can start after timeout and returns
-`TerminationUnconfirmed` when cleanup cannot be confirmed. Such a change could
-turn a delayed Launcher-to-Desktop start into typed `ReadyTimeout` and trigger
-the existing activation rollback path. If no, retain the ready-only deadline
-and choose a separate bounded start/lease policy. Capture a stack or phase
-trace from a real #488 recurrence before assigning its cause.
+Decision 194 in `docs/handoff/1.1.12.md` now owns the whole-start deadline.
+Open: capture a stack or phase trace from a real #488 recurrence before
+assigning its cause. Protected CI and independent review remain outstanding.

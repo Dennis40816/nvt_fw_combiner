@@ -122,6 +122,9 @@ wait failure that leaves exit unconfirmed returns a distinct fail-closed
 outcome, preserves the current recoverable launch-recorded phase, and starts no
 fallback. A later invocation continues to apply the existing power-loss
 recovery rule from that durable phase.
+Under decision 194 (`docs/handoff/1.1.12.md`), each managed application's and
+version Launcher's ready deadline begins at start entry and includes lifetime
+lease acquisition, final validation, contained process creation, and readiness.
 
 Ordinary active application and launcher starts additionally persist
 `activeLaunchRecorded` before process creation. The start owner holds an

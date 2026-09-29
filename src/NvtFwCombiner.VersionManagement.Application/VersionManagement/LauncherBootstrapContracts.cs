@@ -389,6 +389,7 @@ internal interface IManagedLauncherProcess
         ManagedProcessLifetimeKind kind,
         CancellationToken cancellationToken);
 
+    /// <summary>Starts within one ready deadline covering lease acquisition, validation, contained creation, and readiness (decision 194).</summary>
     ValueTask<LauncherProcessStartResult> StartUntilReadyAsync(
         string managedRoot,
         string statePath,

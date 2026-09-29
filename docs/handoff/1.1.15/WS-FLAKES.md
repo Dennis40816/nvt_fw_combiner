@@ -73,3 +73,31 @@ lease acquisition and process creation.
 Open: owner must decide whether this adapter's `readyDeadline` covers the whole
 start (with no late process creation and confirmed cleanup) or only readiness
 after creation. The real CI hang still needs stack/phase evidence. No push.
+
+### 2026-09-29 decision 194 whole-start deadline implementation
+
+State: local R2 production correction on the same feature branch; commit authorized,
+push and GitHub writes remain prohibited. Decision 194 resolves the earlier
+pre-wait deadline question. The managed Desktop regression failed on the original
+source with a blocked final validation and a 150 ms ready deadline (1 failed);
+the corrected Desktop and analogous version Launcher tests passed together (2/2).
+Both adapters now start one deadline at entry, reject process creation after it
+expires, and use the existing typed outcomes and cleanup owner. The launcher
+bootstrap contract and the affected port XML docs record the decision.
+Admission: base `d27c7c2fa`, risk R2, implementation owner Codex `gpt-6-sol`
+(single writer). Owner search found the two VersionManagement Infrastructure
+process adapters as the current producers, the Application managed-process
+ports and activation coordinators as callers, and `ProcessLaunchGate` as the
+sole contained native start owner. Disposition: extend the existing adapter
+deadline handling, reuse the gate and typed outcomes, reject a second launch
+path. No firmware bytes, ranges, integrity, support matrix, or Launcher budget
+values change. Narrow gate: the two blocked-validation regressions; final local
+gates: Infrastructure VersionManagement 616/616, Bootstrap launcher host 18/18,
+Platform process-gate architecture 1/1, and structure verification passed.
+Independent fixed-head R2 review of the initial production commit found a
+caller-cancellation READY result race (P1) and an unbounded cleanup wait (P2).
+Both corrections and three controlled tests are included in the checkpoint;
+see `BUG-20260929-managed-start-cancellation-outcome` and
+`BUG-20260929-managed-start-cancellation-unbounded` for their evidence.
+Open: #488's actual CI hang cause remains unproven without a stack/phase trace.
+Independent R2 review and protected CI remain for integration; no push.
