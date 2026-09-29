@@ -10,6 +10,30 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>All-bank display facts are independent of the banks selected for execution.</summary>
 public sealed class CtrlRamBaseFactsTests
 {
+    /// <summary>Both decoded AB banks keep their own Jira display, including zero.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AbBaseShowsZeroAndNonzeroJiraInBothBanks(bool chinese)
+    {
+        var inspection = new FirmwareInspectionSnapshot(null, null, null, null, null, null)
+        {
+            CtrlRamBaseInspection = new(CtrlRamBaseKind.AbFlash, new AbCtrlRamDraftState(AbCtrlRamBankSelection.A),
+            [
+                new("a-bank", new ByteRange(0, 0x40000), null, null,
+                    new(CompiledInputVersionKind.DpA, 6, 0), null, []),
+                new("b-bank", new ByteRange(0x40000, 0x40000), null, null,
+                    new(CompiledInputVersionKind.DpB, 7, 0, 576), null, []),
+            ], [], new ResolutionToken("test-current-publication"), FileStamp.FromBytes([])),
+        };
+
+        ShellTextResources text = ShellTextResources.For(
+            chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        IReadOnlyList<FirmwareSlotFactViewModel> facts = UiCompositionRunner.GetFirmwareSlotFacts(inspection, true, text);
+        Assert.Equal("Invalid (AUTO_PRJ-0)", Assert.Single(facts, static fact => fact.Label == "DPA Jira Index").Value);
+        Assert.Equal("AUTO_PRJ-576", Assert.Single(facts, static fact => fact.Label == "DPB Jira Index").Value);
+    }
+
     /// <summary>Standard TP and Base format the one typed raw byte without adding a DP fact.</summary>
     [Theory]
     [InlineData(false)]
@@ -85,8 +109,8 @@ public sealed class CtrlRamBaseFactsTests
         Assert.Equal("0x4704", Assert.Single(facts, static fact => fact.Label == "PID (B)").Value);
         _ = Assert.Single(facts, static fact => fact.Label == "Common FW Version (A/B)");
         Assert.False(Assert.Single(facts, static fact => fact.Label == "IC Count (A/B)").IsPrimary);
-        Assert.Equal(["IC Count (A/B)", "DPA Version", "DPB Version"],
-            facts.Where(static fact => !fact.IsPrimary).Take(3).Select(static fact => fact.Label));
+        Assert.Equal(["IC Count (A/B)", "DPA Version", "DPA Jira Index", "DPB Version", "DPB Jira Index"],
+            facts.Where(static fact => !fact.IsPrimary).Take(5).Select(static fact => fact.Label));
         Assert.Equal([$"{text.EventBufferVersionLabel} (A)", $"{text.EventBufferVersionLabel} (B)"],
             facts.Where(static fact => fact.IsPrimary).TakeLast(2).Select(static fact => fact.Label));
         Assert.False(Assert.Single(facts, static fact => fact.Label == "DPA Version").IsPrimary);

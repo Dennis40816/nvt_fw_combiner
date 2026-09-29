@@ -25,7 +25,12 @@ public static class DesktopApplication
         ArgumentNullException.ThrowIfNull(startupFiles);
         ArgumentException.ThrowIfNullOrWhiteSpace(localStateDirectory);
         ArgumentNullException.ThrowIfNull(args);
+        UiLaunchOptions launchOptions = UiLaunchOptions.Parse(args);
+        // The executable rejects unusable managed/inherited context before this call.
+        // UI option issues remain usable launch state and are shown by the startup report stage.
+
         var startupTrace = StartupTraceSession.StartFromEnvironment();
+        startupTrace.Mark("launch-options.parsed");
         (PresentationHostServices hostServices, Task<ShellPreferenceSnapshot> shellPreferences) =
             PrepareStartup(
                 hostServicesFactory,
@@ -33,8 +38,6 @@ public static class DesktopApplication
                     startupFiles,
                     ShellPreferenceFileStore.PathIn(localStateDirectory)),
                 startupTrace);
-        var launchOptions = UiLaunchOptions.Parse(args);
-        startupTrace.Mark("launch-options.parsed");
         App.SetStartup(hostServices, launchOptions, startupTrace, shellPreferences);
         return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }

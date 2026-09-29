@@ -21,8 +21,10 @@ REVIEW_PRIORITY = re.compile(
     r"(?<![A-Za-z0-9])P([0-3])\s*:)",
     re.IGNORECASE,
 )
-CODEX_REVIEWER = "chatgpt-codex-connector"
-CODEX_REVIEW_SOURCES = frozenset({"pull-review", "inline-comment", "issue-comment"})
+REVIEW_SOURCES = frozenset({"pull-review", "inline-comment", "issue-comment"})
+REVIEWED_COMMIT = re.compile(r"(?im)^Reviewed commit:\s*`([0-9a-f]{40})`\s*$")
+REVIEW_RUNTIME = re.compile(r"(?im)^Runtime:\s*`([A-Za-z0-9][A-Za-z0-9/_.-]{1,100})`\s*$")
+AUTHORITY_POLICY = Path(__file__).resolve().parents[1] / "docs/governance/authority-policy.json"
 REQUIRED_RELEASE_CHECKS = (
     "policy / polytail",
     "python-worker / verify",
@@ -60,6 +62,24 @@ def _normalize_reviewer(value: object) -> str:
     return normalized.removesuffix("[bot]").rstrip()
 
 
+def _review_authority() -> tuple[dict[str, Any], set[tuple[str, int]]]:
+    """Read the protected-main approval and reviewer principals."""
+
+    policy = json.loads(AUTHORITY_POLICY.read_text(encoding="utf-8"))
+    owner = policy["roles"]["release-owner"]
+    reviewers = policy["reviewers"]
+    _require(isinstance(owner, list) and len(owner) == 1,
+             "release owner principal must be unique")
+    _require(isinstance(reviewers, list) and bool(reviewers),
+             "reviewer allowlist is missing")
+    for principal in [*owner, *reviewers]:
+        _require(isinstance(principal, dict)
+                 and isinstance(principal.get("login"), str)
+                 and isinstance(principal.get("id"), int)
+                 and principal["id"] > 0, "approval principal is malformed")
+    return owner[0], {(p["login"].lower(), p["id"]) for p in reviewers}
+
+
 def _stable_version_parts(value: str, label: str) -> tuple[int, int, int]:
     _require(
         STABLE_VERSION.fullmatch(value) is not None,
@@ -67,6 +87,48 @@ def _stable_version_parts(value: str, label: str) -> tuple[int, int, int]:
     )
     major, minor, patch = value.split(".")
     return int(major), int(minor), int(patch)
+
+
+def canonical_merged_at(value: object) -> str:
+    _require(isinstance(value, str)
+             and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z", value) is not None,
+             "release PR mergedAt must be canonical UTC")
+    try:
+        datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError as exc:
+        raise ValueError("release PR mergedAt is invalid") from exc
+    return value
+
+
+def select_release_pull(
+    pulls: list[Any], source_sha: str, version: str, *, automatic: bool = False
+) -> dict[str, Any] | None:
+    """Select the unique merged release PR associated with the exact source."""
+
+    _require_sha(source_sha, "release source SHA")
+    _stable_version_parts(version, "release version")
+    _require(isinstance(pulls, list), "source pull request inventory is malformed")
+    if not pulls and automatic:
+        return None
+    _require(len(pulls) == 1, "source must have exactly one associated pull request")
+    pull = pulls[0]
+    _require(isinstance(pull, dict), "release PR evidence is malformed")
+    head, base = pull.get("head"), pull.get("base")
+    _require(isinstance(head, dict) and isinstance(base, dict),
+             "release PR branch evidence is malformed")
+    if automatic and head.get("ref") != version:
+        return None
+    _require(head.get("ref") == version, "release PR head branch must match VERSION")
+    _require(base.get("ref") == "main", "release PR must target main")
+    _require(pull.get("state") == "closed" and pull.get("merged_at") is not None,
+             "release PR must be merged")
+    _require(pull.get("merge_commit_sha") == source_sha,
+             "release PR merge commit differs from source")
+    _require_sha(head.get("sha"), "release PR review head SHA")
+    _require(isinstance(pull.get("number"), int) and pull["number"] > 0,
+             "release PR number is invalid")
+    canonical_merged_at(pull.get("merged_at"))
+    return pull
 
 
 def validate_release_floor(version: str, tags: list[str], *, tag_state: str) -> None:
@@ -501,9 +563,6 @@ def validate_candidate_context(
     source_version: str,
     main_sha: str,
     source_tree: str,
-    repository_owner: str,
-    workflow_actor: str,
-    owner_self_approval_exception: bool,
 ) -> None:
     """Fail unless protected main authorizes an exact reviewed release source."""
 
@@ -535,7 +594,7 @@ def validate_candidate_context(
         "reviewed PR number is invalid",
     )
     _require(snapshot.get("state") == "MERGED", "reviewed PR must be merged")
-    _require(bool(snapshot.get("mergedAt")), "reviewed PR has no merged timestamp")
+    canonical_merged_at(snapshot.get("mergedAt"))
     _require(
         snapshot.get("baseRefName") == source_branch,
         "reviewed PR must target the selected release source branch",
@@ -551,60 +610,37 @@ def validate_candidate_context(
     head_sha = snapshot.get("headSha")
     _require(isinstance(head_sha, str), "reviewed PR head SHA is missing")
     _require_sha(head_sha, "reviewed PR head SHA")
+    owner, reviewers = _review_authority()
     approvals = snapshot.get("approvals")
-    review_decision = snapshot.get("reviewDecision")
-    if review_decision == "APPROVED":
-        _require(
-            not owner_self_approval_exception
-            and snapshot.get("ownerSelfApprovalException") is False,
-            "owner self-approval exception must be disabled for an approved PR",
-        )
-        _require(
-            isinstance(approvals, list) and bool(approvals),
-            "reviewed PR has no current-head approval",
-        )
-        _require(
-            all(
-                isinstance(item, dict)
-                and item.get("commitSha") == head_sha
-                and _normalize_reviewer(item.get("reviewer")) != CODEX_REVIEWER
-                and isinstance(item.get("submittedAt"), str)
-                and bool(item["submittedAt"])
-                for item in approvals
-            ),
-            "reviewed PR approval is stale, malformed, or authored by Codex",
-        )
-    else:
-        _require(
-            review_decision in {None, "", "REVIEW_REQUIRED"},
-            "reviewed PR is not approved",
-        )
-        _require(
-            owner_self_approval_exception,
-            "reviewed PR has no current-head approval",
-        )
-        _require(
-            isinstance(repository_owner, str)
-            and repository_owner != ""
-            and workflow_actor == repository_owner,
-            "owner self-approval exception must be dispatched by the repository owner",
-        )
-        _require(
-            snapshot.get("repositoryOwner") == repository_owner
-            and snapshot.get("workflowActor") == workflow_actor,
-            "owner self-approval exception identity differs from release evidence",
-        )
-        _require(
-            snapshot.get("authorLogin") == repository_owner,
-            "owner self-approval exception requires the repository owner to author the PR",
-        )
-        _require(
-            snapshot.get("ownerSelfApprovalException") is True,
-            "owner self-approval exception was not recorded in review evidence",
-        )
-        source_version_parts = tuple(int(part) for part in source_version.split("."))
-        if not (1, 0, 8) <= source_version_parts < (1, 2, 0):
-            _require_exact_head_codex_review(snapshot, head_sha)
+    _require(snapshot.get("reviewDecision") == "APPROVED",
+             "reviewed PR is not approved")
+    _require(isinstance(approvals, list) and bool(approvals),
+             "reviewed PR has no current-head approval")
+    _require(all(isinstance(item, dict)
+                 and item.get("commitSha") == head_sha
+                 and isinstance(item.get("submittedAt"), str)
+                 and bool(item["submittedAt"])
+                 for item in approvals),
+             "reviewed PR approval is stale or malformed")
+    _require(any(item.get("reviewer") == owner["login"]
+                 and item.get("reviewerId") == owner["id"]
+                 for item in approvals),
+             "release owner has not approved the exact head")
+    review = snapshot.get("reviewerEvidence")
+    _require(isinstance(review, dict), "exact-head reviewer evidence is missing")
+    _require((str(review.get("reviewer", "")).lower(), review.get("reviewerId")) in reviewers,
+             "reviewer principal is not allowlisted")
+    _require(review.get("reviewer") != snapshot.get("authorLogin"),
+             "PR author cannot supply independent reviewer evidence")
+    _require(review.get("source") in REVIEW_SOURCES
+             and review.get("commitSha") == head_sha
+             and review.get("state") in {"COMMENTED", "APPROVED"}
+             and isinstance(review.get("submittedAt"), str)
+             and bool(review["submittedAt"]),
+             "exact-head reviewer evidence is incomplete or stale")
+    _require(isinstance(review.get("runtime"), str)
+             and REVIEW_RUNTIME.fullmatch(f"Runtime: `{review['runtime']}`") is not None,
+             "reviewer runtime identifier is missing or malformed")
     checks = snapshot.get("requiredChecks")
     _require(
         isinstance(checks, list) and bool(checks), "reviewed PR has no required checks"
@@ -624,42 +660,6 @@ def validate_candidate_context(
         admission, main_sha=main_sha, review_head_sha=head_sha,
         expected_tag=f"v{source_version}", source_sha=source_sha,
     )
-
-
-def _require_exact_head_codex_review(snapshot: dict[str, Any], head_sha: str) -> None:
-    """Require a completed Codex response for the exact self-approved PR head."""
-
-    review = snapshot.get("codexReview")
-    _require(
-        isinstance(review, dict),
-        "owner self-approval exception has no Codex review evidence",
-    )
-    _require(
-        _normalize_reviewer(review.get("reviewer")) == CODEX_REVIEWER,
-        "owner self-approval exception Codex reviewer is invalid",
-    )
-    source = review.get("source")
-    _require(
-        source in CODEX_REVIEW_SOURCES,
-        "owner self-approval exception Codex review source is invalid",
-    )
-    _require(
-        review.get("commitSha") == head_sha,
-        "owner self-approval exception Codex review is stale",
-    )
-    _require(
-        review.get("state") in {"COMMENTED", "APPROVED"},
-        "owner self-approval exception Codex review is incomplete",
-    )
-    _require(
-        isinstance(review.get("submittedAt"), str) and bool(review["submittedAt"]),
-        "owner self-approval exception Codex review has no submission time",
-    )
-    if source == "issue-comment":
-        _require(
-            review.get("reviewedCommitPrefix") == head_sha[:10],
-            "owner self-approval exception Codex issue comment is stale",
-        )
 
 
 def _sha256(path: Path) -> str:
@@ -873,6 +873,135 @@ def _read_github_paginated_array(
             f"{label} exceeded the item limit",
         )
     raise ValueError(f"{label} exceeded the page limit")
+
+
+def collect_release_request(
+    repository: str, source_sha: str, version: str, *, automatic: bool
+) -> dict[str, Any]:
+    pulls = _read_github_paginated_array(
+        f"repos/{repository}/commits/{source_sha}/pulls",
+        "source pull request evidence",
+    )
+    pull = select_release_pull(pulls, source_sha, version, automatic=automatic)
+    if pull is None:
+        return {"eligible": False}
+    return {"eligible": True, "pullRequest": pull["number"],
+            "publishedAt": pull["merged_at"], "reviewHeadSha": pull["head"]["sha"]}
+
+
+def _runtime_from_body(body: object) -> str | None:
+    if not isinstance(body, str):
+        return None
+    matches = REVIEW_RUNTIME.findall(body)
+    return matches[0] if len(matches) == 1 else None
+
+
+def _reviewer_candidate(
+    item: dict[str, Any], source: str, head_sha: str
+) -> dict[str, Any] | None:
+    user = item.get("user")
+    if not isinstance(user, dict):
+        return None
+    if source == "issue-comment":
+        markers = REVIEWED_COMMIT.findall(item.get("body") or "")
+        if markers != [head_sha]:
+            return None
+        submitted = item.get("created_at")
+        state = "COMMENTED"
+    else:
+        if item.get("commit_id") != head_sha:
+            return None
+        submitted = item.get("submitted_at") if source == "pull-review" else item.get("created_at")
+        state = item.get("state") if source == "pull-review" else "COMMENTED"
+    runtime = _runtime_from_body(item.get("body"))
+    owner, _ = _review_authority()
+    if (runtime is None and source == "pull-review" and state == "APPROVED"
+            and user.get("login") == owner["login"] and user.get("id") == owner["id"]):
+        runtime = "github/human-review"
+    if state not in {"COMMENTED", "APPROVED"} or not submitted or runtime is None:
+        return None
+    return {"source": source, "reviewer": user.get("login"),
+            "reviewerId": user.get("id"), "runtime": runtime,
+            "commitSha": head_sha, "state": state, "submittedAt": submitted}
+
+
+def collect_review_snapshot(
+    *, repository: str, source_sha: str, source_tree: str, version: str,
+    pull_request: int, published_at: str, workflow_ref: str,
+) -> dict[str, Any]:
+    """Collect the PR, owner approval, reviewer, and admission in one policy owner."""
+
+    request = collect_release_request(repository, source_sha, version, automatic=False)
+    _require(request["pullRequest"] == pull_request
+             and request["publishedAt"] == published_at,
+             "release request identity changed during collection")
+    head_sha = request["reviewHeadSha"]
+    head_commit = _read_github_json(
+        ["api", f"repos/{repository}/git/commits/{head_sha}"],
+        "reviewed PR head tree",
+    )
+    _require(isinstance(head_commit, dict) and isinstance(head_commit.get("tree"), dict),
+             "reviewed PR head tree is malformed")
+    pulls = _read_github_paginated_array(
+        f"repos/{repository}/commits/{source_sha}/pulls",
+        "source pull request evidence",
+    )
+    pull = select_release_pull(pulls, source_sha, version)
+    admission = collect_repository_admission(
+        repository=repository, pull_request=pull_request, main_sha=source_sha,
+        review_head_sha=head_sha, expected_tag=f"v{version}", source_sha=source_sha,
+    )
+    reviews = _read_github_paginated_array(
+        f"repos/{repository}/pulls/{pull_request}/reviews", "release PR reviews")
+    _require(all(isinstance(item, dict) for item in reviews),
+             "release PR review entry is malformed")
+    _require(not any(item.get("state") == "CHANGES_REQUESTED" for item in reviews),
+             "CHANGES_REQUESTED review blocks release")
+    approvals = [
+        {"reviewer": item.get("user", {}).get("login"),
+         "reviewerId": item.get("user", {}).get("id"),
+         "commitSha": item.get("commit_id"), "submittedAt": item.get("submitted_at")}
+        for item in reviews if item.get("state") == "APPROVED"
+        and item.get("commit_id") == head_sha
+    ]
+    candidates = [candidate for source, entries in (
+        ("pull-review", reviews),
+        ("inline-comment", _read_github_paginated_array(
+            f"repos/{repository}/pulls/{pull_request}/comments", "release PR inline comments")),
+        ("issue-comment", _read_github_paginated_array(
+            f"repos/{repository}/issues/{pull_request}/comments", "release PR issue comments")),
+    ) for item in entries if isinstance(item, dict)
+        if (candidate := _reviewer_candidate(item, source, head_sha)) is not None]
+    owner, reviewers = _review_authority()
+    candidates = [candidate for candidate in candidates
+                  if (str(candidate["reviewer"]).lower(), candidate["reviewerId"]) in reviewers
+                  and candidate["reviewer"] != pull.get("user", {}).get("login")]
+    candidates.sort(key=lambda candidate: candidate["submittedAt"], reverse=True)
+    checks = []
+    for name in REQUIRED_RELEASE_CHECKS:
+        matches = [item for item in admission["checkRuns"] if item.get("name") == name]
+        passed = bool(matches) and all(
+            item.get("headSha") == head_sha and item.get("appSlug") == "github-actions"
+            and item.get("status") == "completed" and item.get("conclusion") == "success"
+            for item in matches)
+        checks.append({"name": name, "bucket": "pass" if passed else "fail"})
+    snapshot = {
+        "number": pull_request, "state": "MERGED", "mergedAt": published_at,
+        "baseRefName": pull["base"]["ref"], "mergeCommitSha": pull["merge_commit_sha"],
+        "headSha": head_sha, "headTree": head_commit["tree"].get("sha"),
+        "reviewDecision": "APPROVED" if any(
+            item.get("reviewer") == owner["login"] and item.get("reviewerId") == owner["id"]
+            and item.get("commitSha") == head_sha for item in approvals) else "REVIEW_REQUIRED",
+        "authorLogin": pull.get("user", {}).get("login"), "approvals": approvals,
+        "reviewerEvidence": candidates[0] if candidates else None,
+        "requiredChecks": checks, "repositoryAdmission": admission,
+    }
+    validate_candidate_context(
+        snapshot, requested_sha=source_sha, workflow_sha=source_sha,
+        workflow_ref=workflow_ref, source_sha=source_sha, source_branch="main",
+        source_version=version, main_sha=source_sha, source_tree=source_tree,
+    )
+    return snapshot
 
 
 def _read_graphql_data(arguments: list[str], label: str) -> dict[str, Any]:
@@ -1714,11 +1843,21 @@ def parse_args() -> argparse.Namespace:
         "source-tree",
     ):
         context.add_argument(f"--{name}", required=True)
-    context.add_argument("--repository-owner", required=True)
-    context.add_argument("--workflow-actor", required=True)
-    context.add_argument(
-        "--owner-self-approval-exception", choices=("true", "false"), required=True
-    )
+    request = subparsers.add_parser("collect-release-request")
+    request.add_argument("--repository", required=True)
+    request.add_argument("--source-sha", required=True)
+    request.add_argument("--version", required=True)
+    request.add_argument("--automatic", action="store_true")
+    request.add_argument("--github-output", type=Path)
+    review_snapshot = subparsers.add_parser("collect-review-snapshot")
+    review_snapshot.add_argument("--repository", required=True)
+    review_snapshot.add_argument("--source-sha", required=True)
+    review_snapshot.add_argument("--source-tree", required=True)
+    review_snapshot.add_argument("--version", required=True)
+    review_snapshot.add_argument("--pull-request", type=int, required=True)
+    review_snapshot.add_argument("--published-at", required=True)
+    review_snapshot.add_argument("--workflow-ref", required=True)
+    review_snapshot.add_argument("--output", type=Path, required=True)
     repository_admission = subparsers.add_parser("validate-repository-admission")
     repository_admission.add_argument("--snapshot", type=Path, required=True)
     repository_admission.add_argument("--main-sha", required=True)
@@ -1809,10 +1948,27 @@ def main() -> int:
             source_version=args.source_version,
             main_sha=args.main_sha,
             source_tree=args.source_tree,
-            repository_owner=args.repository_owner,
-            workflow_actor=args.workflow_actor,
-            owner_self_approval_exception=args.owner_self_approval_exception == "true",
         )
+    elif args.command == "collect-release-request":
+        release_request = collect_release_request(
+            args.repository, args.source_sha, args.version, automatic=args.automatic)
+        if args.github_output is not None and release_request["eligible"]:
+            with args.github_output.open("a", encoding="utf-8", newline="\n") as stream:
+                stream.write("eligible=true\n")
+                stream.write(f"source-sha={args.source_sha}\n")
+                stream.write(f"pull-request={release_request['pullRequest']}\n")
+                stream.write(f"published-at={release_request['publishedAt']}\n")
+        print(json.dumps(release_request))
+    elif args.command == "collect-review-snapshot":
+        _require(args.output.parent.is_dir(), "review snapshot output parent must exist")
+        snapshot = collect_review_snapshot(
+            repository=args.repository, source_sha=args.source_sha,
+            source_tree=args.source_tree, version=args.version,
+            pull_request=args.pull_request, published_at=args.published_at,
+            workflow_ref=args.workflow_ref,
+        )
+        with args.output.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
     elif args.command == "validate-repository-admission":
         validate_repository_admission(
             json.loads(args.snapshot.read_text(encoding="utf-8")),

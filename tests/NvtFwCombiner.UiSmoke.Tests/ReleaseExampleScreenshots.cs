@@ -1,11 +1,15 @@
 using System.Globalization;
 using System.Text.Json;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.UiSmoke.Tests.ReportControlTestHost;
 
@@ -30,7 +34,21 @@ public sealed class ReleaseExampleScreenshots
     [InlineData("nt51950-fw200-single-auto-prj-676-20260717")]
     [InlineData("nt51929-ab-ctrlram-candidate")]
     [InlineData("nt51950-ab-ctrlram-unsupported")]
-    public async Task LoadedInputsHaveClosedAndOpenDetailsEvidence(string exampleId)
+    public Task LoadedInputsHaveClosedAndOpenDetailsEvidence(string exampleId)
+    {
+        return CaptureExample(exampleId, chineseDark: false, captureWarningPopup: false);
+    }
+
+    /// <summary>Captures the actual NT51950 OSD input warning in both supported visual combinations.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task OsdDpWarningCardAndPopup(bool chineseDark)
+    {
+        return CaptureExample("nt51950-ab-osd-d03t02-20260924", chineseDark, captureWarningPopup: true);
+    }
+
+    private static async Task CaptureExample(string exampleId, bool chineseDark, bool captureWarningPopup)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(exampleId);
         string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
@@ -45,8 +63,9 @@ public sealed class ReleaseExampleScreenshots
         {
             Width = 1440,
             Height = exampleId.Contains("3chip", StringComparison.Ordinal) ? 2600 :
-            options.CtrlRam is not null || options.AbMerge is not null ? 1600 : 1100
+            options.CtrlRam is not null || options.AbMerge is not null ? 1600 : 1100,
         };
+        if (captureWarningPopup) { window.RequestedThemeVariant = chineseDark ? ThemeVariant.Dark : ThemeVariant.Light; }
         window.Show();
         try
         {
@@ -65,6 +84,7 @@ public sealed class ReleaseExampleScreenshots
             Assert.Equal(ShellPreloadStageState.Succeeded, preload.Stage(ShellPreloadSession.HistoryStageId).State);
             Assert.False(preload.HasOptionalStatus);
             MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            if (chineseDark) { shell.SelectedLanguage = "Traditional Chinese"; }
             Grid interaction = window.FindControl<Grid>("ShellInteractionHost")!;
             using (var wait = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
             {
@@ -106,12 +126,27 @@ public sealed class ReleaseExampleScreenshots
             {
                 slot.IsAdditionalFirmwareFactsExpanded = false;
             }
-            Save("details-closed");
+            if (captureWarningPopup)
+            {
+                FirmwareSlotViewModel dp = Assert.Single(selected, slot => slot.SlotId == "dp-ab-input");
+                Assert.True(dp.IsSemanticStateWarning);
+                Save("input-card");
+                FirmwareSlotCard card = Assert.Single(window.GetVisualDescendants().OfType<FirmwareSlotCard>(),
+                    item => ReferenceEquals(item.DataContext, dp));
+                ToggleButton badge = Assert.Single(card.GetVisualDescendants().OfType<ToggleButton>(),
+                    item => item.Classes.Contains("slotStateAction"));
+                ToolTip.SetIsOpen(badge, true);
+                await Task.Delay(350, TestContext.Current.CancellationToken);
+                Dispatcher.UIThread.RunJobs();
+                Save("input-popup");
+                ToolTip.SetIsOpen(badge, false);
+            }
+            else { Save("details-closed"); }
             foreach (FirmwareSlotViewModel slot in selected.Where(slot => slot.HasAdditionalFirmwareFacts))
             {
                 slot.IsAdditionalFirmwareFactsExpanded = true;
             }
-            Save("details-open");
+            if (!captureWarningPopup) { Save("details-open"); }
         }
         finally { await CloseAndFlushAsync(window); }
 
@@ -125,7 +160,11 @@ public sealed class ReleaseExampleScreenshots
             _ = Directory.CreateDirectory(outputDirectory);
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
-            frame.Save(Path.Combine(outputDirectory, $"{exampleId}-{state}.png"));
+            string stage = Environment.GetEnvironmentVariable("NFC_VISUAL_STAGE") ?? "after";
+            string name = captureWarningPopup
+                ? $"{exampleId}-{stage}-{(chineseDark ? "dark-zh" : "light-en")}-{state}.png"
+                : $"{exampleId}-{state}.png";
+            frame.Save(Path.Combine(outputDirectory, name));
         }
     }
 

@@ -275,8 +275,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             "obj",
             testOutput.Parent!.Name,
             testOutput.Name,
-            "materialized-profiles",
-            "built-in");
+            "mp");
         string deployedBuiltInRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in");
         string[] bundleDirectories =
         [

@@ -179,7 +179,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 └─ SHA256SUMS.txt
 ```
 
-No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private owner-handoff firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, credentials, or Codex configuration is shipped. The reference payload retains exactly 25 Direct Goldens, three input-only evidence cases, and twelve source-closed fact-scoped aliases across Standard Merge, AB Merge, and CtrlRAM Replace under `reference/testdata/golden/canonical/`. `release-canonical-v1.json` independently pins the canonical README and all 40 case manifests by exact-byte SHA-256, 177 logical artifact declarations, and 174 unique paths; its projection has 215 canonical paths and 164 raw canonical BINs. The exact NT51929 input-only admission contains two neutral-named 524288-byte raw BIN entries in the outer ZIP and never a nested archive, raw bypass, expected output, Direct-Golden relabel, parity/support claim, or runtime route. Eleven Direct Goldens use full-output comparison; fourteen preserve their reviewed allowed-byte-difference scope. The two NT51927 CtrlRAM cascade input-only cases and their three dependent aliases are included for manual input testing under the owner's 2026-09-10 approval. Their 16 input BINs have no independent expected output. Aliases require an explicitly selected same-workflow Direct Golden or input-only direct evidence source; alias chains, missing sources and ambiguous classifications are rejected. The selected BAT and CONFIG provenance bytes have `reference` role only and are never registered or executed as tools, processors, or commands. `profiles/built-in/` contains the exact reviewed `package-trust-index.json`, one `prebuilt-profile-catalog.pack`, only the bundles declared by that index, and the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping reference evidence or a candidate bundle changes no declared stage, blocker, runtime eligibility, support, or parity claim. The packager rejects an index or Golden identity that differs from reviewed source material and rejects extra bundle, runtime-catalog, canonical, or reference content. The canonical capability policy ships at `docs/contracts/canonical-capability-policy-v1.json`; its `capabilityPolicy` role and approved SHA-256 must match the runtime loader. The retired standalone `publicationPolicy` payload is forbidden because publication and evidence bind each exact canonical route and expected capability fingerprint in that one policy. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses fixed allowlists, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in both closed hash inventories.
+No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private owner-handoff firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, credentials, or Codex configuration is shipped. The reference payload retains exactly 25 Direct Goldens, three input-only evidence cases, and twelve source-closed fact-scoped aliases across Standard Merge, AB Merge, and CtrlRAM Replace under `reference/golden/` with a short, deterministic case-key mapping in its projection manifest. `release-canonical-v1.json` independently pins the canonical README and all 40 case manifests by exact-byte SHA-256, 177 logical artifact declarations, and 174 unique paths; its projection has 215 canonical paths and 164 raw canonical BINs. The exact NT51929 input-only admission contains two neutral-named 524288-byte raw BIN entries in the outer ZIP and never a nested archive, raw bypass, expected output, Direct-Golden relabel, parity/support claim, or runtime route. Eleven Direct Goldens use full-output comparison; fourteen preserve their reviewed allowed-byte-difference scope. The two NT51927 CtrlRAM cascade input-only cases and their three dependent aliases are included for manual input testing under the owner's 2026-09-10 approval. Their 16 input BINs have no independent expected output. Aliases require an explicitly selected same-workflow Direct Golden or input-only direct evidence source; alias chains, missing sources and ambiguous classifications are rejected. The selected BAT and CONFIG provenance bytes have `reference` role only and are never registered or executed as tools, processors, or commands. `profiles/built-in/` contains the exact reviewed `package-trust-index.json`, one `prebuilt-profile-catalog.pack`, only the bundles declared by that index, and the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping reference evidence or a candidate bundle changes no declared stage, blocker, runtime eligibility, support, or parity claim. The packager rejects an index or Golden identity that differs from reviewed source material and rejects extra bundle, runtime-catalog, canonical, or reference content. The canonical capability policy ships at `docs/contracts/canonical-capability-policy-v1.json`; its `capabilityPolicy` role and approved SHA-256 must match the runtime loader. The retired standalone `publicationPolicy` payload is forbidden because publication and evidence bind each exact canonical route and expected capability fingerprint in that one policy. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses fixed allowlists, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in both closed hash inventories.
 
 ## Implemented commands
 
@@ -199,6 +199,18 @@ bytes, and the completed ZIP at most 134,217,728 bytes. The policy dry-run
 uses a pack-selection byte fixture to reject missing, damaged, oversized,
 stale, and extra files without building or creating a release ZIP; it does
 not claim catalog admission.
+
+For 1.1.14, packaging rejects any file path relative to the package root longer
+than 140 UTF-16 code units before ZIP creation. Canonical Golden evidence is
+projected under `reference/golden/c001/` through `c040/`, using ordinal `caseId`
+sort order and retaining each file's path within its case directory. The
+projection manifest maps every packaged Golden file to its canonical repository
+path and maps each case key to its case ID. An absolute package root of at most
+118 units guarantees file paths of at most 259 including the separator, below
+legacy Windows MAX_PATH (260 including NUL): 259 - 1 - 140 = 118. This covers
+Explorer's default extraction to Downloads using the ZIP name and its top-level
+`NvtFwCombiner-v<version>-win-x64` directory with a username up to 39 UTF-16
+units. Deeper custom extraction roots remain subject to the same 118-unit limit.
 
 Release smoke independently checks pack ranges and hashes against the packaged
 trust index, manifests, and document bytes. After the closed hash inventories
@@ -272,9 +284,17 @@ path, size, and SHA-256. Preview packages produced with `-AllowPrerelease`
 remain schema `1.1` and intentionally omit the managed launcher because they
 are not admissible update payloads. Bootstrap is rejected from both forms.
 
-`release.yml` is dispatched from the exact current protected `main` SHA,
-which is also the product source. The final merged pull request must bind
-that commit and tree. The candidate collects fresh, complete GitHub evidence:
+`release.yml` starts automatically when `ci` completes successfully for a
+release pull request merge commit pushed to `main`. Its `workflow_run` CI head,
+event SHA and workflow SHA must agree. Ordinary main pushes and failed CI runs
+skip without publication. `workflow_dispatch` remains a fallback with only
+`dry_run`; neither path asks for a commit, pull request or timestamp. The exact
+current protected `main` workflow SHA is the product source. The policy derives
+exactly one merged release pull request for that commit, targeting `main`, and
+uses its `mergedAt` as canonical `publishedAt` metadata in the release notes and
+update Catalog/Registry handoff. This is the PR merge time, not the actual
+publication time. The final merged pull request must bind that commit and tree.
+The candidate collects fresh, complete GitHub evidence:
 main protection and required checks, exact-head review threads and approvals,
 stable tag rules, and the latest successful exact-source push-main CI attempt.
 It runs `python scripts/verify.py --release-golden` with fresh canonical case
@@ -282,6 +302,17 @@ execution, builds the stable closed package, smokes it, renders the complete
 CHANGELOG notes, creates the update-source handoff and a closed candidate
 manifest, and uploads short-lived artifacts. Input-only cases remain input-only;
 the release Golden gate does not relabel them.
+
+Before environment approval, the candidate job summary displays the version,
+full source SHA, release PR, release-notes SHA-256 and difference summary. The
+policy requires an exact-head approval by the release owner's GitHub principal;
+an App or machine approval cannot replace it, and `CHANGES_REQUESTED` fails
+closed. Product-neutral reviewer evidence names a principal on the protected-
+main allowlist, different from the PR author, and stores its runtime identifier
+separately. The push actor is not used as an approval. The self-approval
+exception and Codex-only version window are retired. The protected `release`
+environment remains the only human promotion action after the release PR is
+approved and merged.
 
 The first-publication floor requires `vVERSION` to be absent and `VERSION` to
 exceed every stable tag. The candidate and the same run block immediately

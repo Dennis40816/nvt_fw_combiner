@@ -10,7 +10,8 @@
     "workflowRef",
     "workflowHeadRelation",
     "candidateImplementationHead",
-    "trigger",
+    "triggers",
+    "workflowRun",
     "topLevelPermissions",
     "topLevelSha256",
     "actionPins",
@@ -25,7 +26,25 @@
     "workflowRef": { "const": "refs/heads/main" },
     "workflowHeadRelation": { "const": "authenticated-protected-main-independent-of-candidate-source" },
     "candidateImplementationHead": { "const": "dfaedec4519fae185e5934b79a225b6c67c7d547" },
-    "trigger": { "const": "workflow_dispatch" },
+    "triggers": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "const": "workflow_dispatch" },
+        { "const": "workflow_run" }
+      ],
+      "items": false
+    },
+    "workflowRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workflows", "types"],
+      "properties": {
+        "workflows": { "const": ["ci"] },
+        "types": { "const": ["completed"] }
+      }
+    },
     "topLevelPermissions": { "$ref": "#/$defs/readPermissions" },
     "topLevelSha256": { "$ref": "#/$defs/sha256" },
     "actionPins": {

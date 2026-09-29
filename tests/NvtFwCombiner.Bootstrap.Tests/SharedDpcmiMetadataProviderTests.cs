@@ -72,7 +72,7 @@ public sealed class SharedDpcmiMetadataProviderTests
             string deployedRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in", bundle);
             var testOutput = new DirectoryInfo(AppContext.BaseDirectory);
             string materializedRoot = RepositoryPaths.FromRepositoryRoot("src", "NvtFwCombiner.Bootstrap", "obj",
-                testOutput.Parent!.Name, testOutput.Name, "materialized-profiles", "built-in", bundle);
+                testOutput.Parent!.Name, testOutput.Name, "mp", bundle);
             Assert.Equal(family, File.ReadAllBytes(Path.Combine(deployedRoot, FamilyPath)));
             AssertClosedInventory(deployedRoot);
             AssertClosedInventory(materializedRoot);

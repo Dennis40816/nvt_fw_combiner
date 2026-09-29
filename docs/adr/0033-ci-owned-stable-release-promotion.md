@@ -1,6 +1,6 @@
 # ADR 0033: Promote stable releases through one protected CI workflow
 
-- Status: Accepted; amended 2026-09-28 for R-1/R-2 release workflow cleanup
+- Status: Accepted; amended 2026-09-28 for R-1/R-2 and 2026-09-29 for R-3 release workflow cleanup
 - Date: 2026-07-22
 - Owners: Product owner, release owner, security/repository owner
 
@@ -20,6 +20,32 @@ reachable from protected `main`, use least privilege, and retain an explicit
 human release-authority decision.
 
 ## Decision
+
+### R-3 amendment (2026-09-29)
+
+After a successful `ci` push run on protected `main`, `workflow_run` starts the
+release workflow when the CI head, event SHA and workflow SHA are the same
+release pull request merge commit. A failed CI run or ordinary main push has no
+promotion path. Manual `workflow_dispatch` remains a fallback with only the
+`dry_run` input. Both paths use the exact current protected-main workflow SHA
+as source; the merge commit must belong to exactly one merged release pull
+request targeting `main`. The policy derives the pull request and its canonical
+`mergedAt`; `publishedAt` in notes and the update Catalog/Registry handoff is
+merge-derived metadata, not the actual publication time.
+
+The read-only candidate writes the version, full source SHA, pull request,
+release-notes SHA-256 and difference summary to its job summary before the
+protected `release` environment may be approved. The policy collects the
+review snapshot. Exact-head approval must include the protected-main release
+owner principal; an App or machine principal cannot substitute. Independent
+reviewer evidence uses a protected-main principal allowlist and records the
+runtime identifier separately from the GitHub principal. Any
+`CHANGES_REQUESTED` review fails closed. The historical self-approval exception,
+Codex-only requirement and their version window are retired. The triggering
+push actor is not an approval principal and does not determine eligibility.
+An exact-head owner `APPROVED` review without a `Runtime` marker supplies
+reviewer evidence with runtime `github/human-review`; other reviewer evidence
+still requires its explicit runtime marker.
 
 ### R-1 amendment (2026-09-28)
 

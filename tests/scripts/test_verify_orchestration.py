@@ -38,6 +38,41 @@ import validate_repository as REPOSITORY_VALIDATOR  # noqa: E402
 
 
 class VerifyOrchestrationTests(unittest.TestCase):
+    def test_structure_preflight_reports_missing_pyyaml_before_lane(self) -> None:
+        output = io.StringIO()
+        with (
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+            patch.object(MODULE.importlib.util, "find_spec", return_value=None),
+            patch.object(MODULE, "run_selected_lanes") as run_selected,
+            contextlib.redirect_stderr(output),
+        ):
+            result = MODULE.execute_verification(MODULE.parse_args(["--structure-only"]))
+
+        self.assertEqual(1, result)
+        self.assertIn("missing Python verification modules: yaml", output.getvalue())
+        self.assertIn(
+            f"{sys.executable} -m pip install --disable-pip-version-check "
+            "--only-binary=:all: PyYAML==6.0.3",
+            output.getvalue(),
+        )
+        run_selected.assert_not_called()
+
+    def test_skip_structure_preflights_pyyaml_for_repository_script_lane(self) -> None:
+        output = io.StringIO()
+        with (
+            patch.dict(os.environ, {MODULE.INTERNAL_LANE_ENVIRONMENT_VARIABLE: ""}),
+            patch.object(MODULE.importlib.util, "find_spec", return_value=None),
+            patch.object(MODULE, "run_selected_lanes") as run_selected,
+            contextlib.redirect_stderr(output),
+        ):
+            result = MODULE.execute_verification(
+                MODULE.parse_args(["--skip-structure", "--skip-dotnet"])
+            )
+
+        self.assertEqual(1, result)
+        self.assertIn("missing Python verification modules: yaml", output.getvalue())
+        run_selected.assert_not_called()
+
     def test_all_help_describes_complete_local_suite_without_completion_claim(self) -> None:
         output = io.StringIO()
         with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as raised:
@@ -726,7 +761,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(
             [
                 "structure",
-                "repository-scripts-a-q",
+                "repository-scripts-a-g",
+                "repository-scripts-h-q",
                 "repository-scripts-r",
                 "repository-scripts-s-z",
                 "python",
@@ -753,7 +789,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertEqual(
             [
-                "repository-scripts-a-q",
+                "repository-scripts-a-g",
+                "repository-scripts-h-q",
                 "repository-scripts-r",
                 "repository-scripts-s-z",
             ],
@@ -815,6 +852,30 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 ),
             ):
                 MODULE.repository_script_test_shards()
+
+    def test_split_repository_script_shards_preserve_original_a_q_files(self) -> None:
+        shards = MODULE.repository_script_test_shards()
+        split = tuple(
+            (name, pattern)
+            for name, pattern in shards
+            if name not in {"repository-scripts-r", "repository-scripts-s-z"}
+        )
+        self.assertEqual(2, len(split))
+        original = {
+            path.name
+            for path in MODULE.REPOSITORY_SCRIPT_TESTS.glob("test_*.py")
+            if fnmatch(path.name, "test_[a-q]*.py")
+        }
+        assignments = {
+            path.name: tuple(
+                name for name, pattern in split if fnmatch(path.name, pattern)
+            )
+            for path in MODULE.REPOSITORY_SCRIPT_TESTS.glob("test_*.py")
+        }
+        self.assertEqual(
+            original, {name for name, owners in assignments.items() if owners}
+        )
+        self.assertTrue(all(len(assignments[name]) == 1 for name in original))
 
     def test_local_full_pool_restores_before_postchecks_and_runs_tests_without_waiting_for_structure(self) -> None:
         for structure_fails in (False, True):
@@ -1651,7 +1712,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
     def test_local_module_inventory_executes_each_complete_module_once(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            names = ("test_alpha.py", "test_release.py", "test_zeta.py")
+            names = (
+                "test_alpha.py",
+                "test_handoff.py",
+                "test_release.py",
+                "test_zeta.py",
+            )
             for name in names:
                 (root / name).touch()
             with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
@@ -1696,7 +1762,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 )
                 with patch.object(MODULE, "REPOSITORY_SCRIPT_TESTS", root):
                     lane = (MODULE.local_repository_script_lanes()[0] if route == "local"
-                            else MODULE.ci_python_lane("repository-scripts-a-q"))
+                            else MODULE.ci_python_lane("repository-scripts-a-g"))
                     lane.action(root / "runner.log")
                 self.assertCountEqual(["unittest", "pytest-0", "pytest-1"],
                                       [path.name for path in evidence.iterdir()])
@@ -2278,7 +2344,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
         ):
             expected_calls = {
                 "structure": ["structure"],
-                "repository-scripts-a-q": ["test_[a-q]*.py"],
+                "repository-scripts-a-g": ["test_[a-g]*.py"],
+                "repository-scripts-h-q": ["test_[h-q]*.py"],
                 "repository-scripts-r": ["test_r*.py"],
                 "repository-scripts-s-z": ["test_[s-z]*.py"],
                 "python": ["python"],
@@ -6193,7 +6260,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     verify_coverage.assert_not_called()
                     self.assertFalse(work.exists())
         self.assertEqual(
-            {"NFC_VISUAL_OUTPUT_DIR", "NFC_UI_REFERENCE_CAPTURE_DIR", "NFC_REPORT_VISUAL_INPUT"},
+            {"NFC_VISUAL_OUTPUT_DIR", "NFC_VISUAL_STAGE", "NFC_UI_REFERENCE_CAPTURE_DIR", "NFC_REPORT_VISUAL_INPUT"},
             set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES),
         )
         # A subset such as release Golden is never partitioned, so it keeps the overrides.

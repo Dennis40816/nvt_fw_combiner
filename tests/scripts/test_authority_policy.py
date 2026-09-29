@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
 import re
 import subprocess
 import sys
@@ -103,28 +104,33 @@ CONSUMER_SUFFIXES = (
 )
 
 
-def codeowners_rules() -> list[tuple[re.Pattern[str], set[str]]]:
-    """Parse the GitHub CODEOWNERS subset this repository uses (the last match wins)."""
-
-    rules: list[tuple[re.Pattern[str], set[str]]] = []
-    for line in (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        pattern, *owners = line.split()
-        if re.search(r"[\[\]!\\]", pattern) or not owners:
-            raise AssertionError(f"unsupported CODEOWNERS line: {line}")
-        anchored = pattern.startswith("/") or "/" in pattern.rstrip("/")
-        directory = pattern.endswith("/")
-        body = (
-            re.escape(pattern.strip("/"))
-            .replace(r"\*\*", ".*")
-            .replace(r"\*", "[^/]*")
-            .replace(r"\?", "[^/]")
+def codeowner_pattern_errors(content: str, policy_bytes: bytes) -> list[str]:
+    policy = json.loads(policy_bytes)
+    expected = {
+        pattern
+        for entry in policy["entries"]
+        if entry["floor"] in {"R2", "R3"}
+        for pattern in entry["patterns"]
+    }
+    lines = [
+        line.split()
+        for line in content.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    actual = [parts[0].removeprefix("/") for parts in lines]
+    errors = []
+    if any(not parts[0].startswith("/") or re.search(r"[\[\]!\\]", parts[0]) for parts in lines):
+        errors.append("CODEOWNERS contains an unanchored or unsupported pattern")
+    if len(actual) != len(set(actual)):
+        errors.append("duplicate CODEOWNERS patterns")
+    if set(actual) != expected:
+        errors.append(
+            f"CODEOWNERS pattern mismatch: missing={sorted(expected - set(actual))}, "
+            f"extra={sorted(set(actual) - expected)}"
         )
-        regex = ("" if anchored else "(?:.*/)?") + body + ("/.*" if directory else "(?:/.*)?")
-        rules.append((re.compile(regex), {owner.casefold() for owner in owners}))
-    return rules
+    if any(parts[1:] != ["@Dennis40816"] for parts in lines):
+        errors.append("CODEOWNERS principals differ from @Dennis40816")
+    return errors
 
 
 class AuthorityPolicyTests(unittest.TestCase):
@@ -211,23 +217,47 @@ class AuthorityPolicyTests(unittest.TestCase):
                 self.assertEqual(result.floor, "R3")
                 self.assertIn("governance-owner", result.roles)
 
-    def test_codeowners_gives_every_role_path_to_its_principals(self) -> None:
-        rules = codeowners_rules()
-        self.assertEqual(
-            rules[0][0].pattern, "(?:.*/)?[^/]*(?:/.*)?", "the default line must come first"
+    def test_codeowners_exactly_matches_r2_and_r3_patterns(self) -> None:
+        content = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")
+        policy_bytes = (ROOT / check.POLICY_PATH).read_bytes()
+        self.assertEqual(codeowner_pattern_errors(content, policy_bytes), [])
+        for path in (
+            ".github/CODEOWNERS",
+            check.CHECKER_PATH,
+            check.POLICY_PATH,
+            check.SCHEMA_PATH,
+        ):
+            self.assertGreaterEqual(check.RISKS.index(POLICY.classify(path).floor), 2)
+
+    def test_nested_msbuild_configuration_is_owned_and_classified(self) -> None:
+        for path in (
+            "Directory.Build.props",
+            "src/Directory.Build.props",
+            "tests/Directory.Build.targets",
+            "src/Directory.Packages.props",
+            "src/NuGet.config",
+        ):
+            with self.subTest(path=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertGreaterEqual(check.RISKS.index(result.floor), 2)
+                self.assertFalse(result.unclassified)
+                self.assertTrue(
+                    any(
+                        entry.floor in {"R2", "R3"}
+                        and entry.matches(path, case_sensitive=True)
+                        for entry in POLICY.entries
+                    )
+                )
+
+    def test_codeowners_mismatch_with_policy_fails(self) -> None:
+        content = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")
+        policy_bytes = (ROOT / check.POLICY_PATH).read_bytes()
+        self.assertTrue(
+            codeowner_pattern_errors(content + "\n/README.md @Dennis40816\n", policy_bytes)
         )
-        logins = {
-            role: {f"@{login}" for _, login in principals}
-            for role, principals in POLICY.principals.items()
-        }
-        self.assertLessEqual(logins["governance-owner"], rules[0][1])
-        missing = []
-        for path in TRACKED:
-            owners = next(owners for regex, owners in reversed(rules) if regex.fullmatch(path))
-            required = set().union(*(logins[role] for role in POLICY.classify(path).roles))
-            if not required <= owners:
-                missing.append(f"{path}: {sorted(required - owners)}")
-        self.assertEqual(missing, [])
+        changed = json.loads(policy_bytes)
+        changed["entries"][0]["patterns"].append("new-risk/**")
+        self.assertTrue(codeowner_pattern_errors(content, json.dumps(changed).encode()))
 
     def test_prose_is_read_by_no_topic_test_or_verification(self) -> None:
         prose = [path for path in TRACKED if POLICY.classify(path).floor == "R0"]

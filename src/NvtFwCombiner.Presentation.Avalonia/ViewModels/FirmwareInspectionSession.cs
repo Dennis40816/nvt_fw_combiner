@@ -96,11 +96,11 @@ internal static class FirmwareInspectionProjection
                 !version.IsKnown ? text.FirmwareSlotUnknownValueLabel : null,
                 !version.IsKnown ? text.FirmwareSlotUnknownFactDetail : null,
                 FirmwareSlotFactPriority.Primary));
-            if (isDp && version.TrackerId is > 0)
+            if (isDp && version.IsKnown)
             {
                 facts.Add(new FirmwareSlotFactViewModel(
                     $"{bankLabel} Jira Index",
-                    FormattableString.Invariant($"AUTO_PRJ-{version.TrackerId}"),
+                    JiraIndexDisplay.Format(version.TrackerId),
                     priority: FirmwareSlotFactPriority.Primary));
             }
         }

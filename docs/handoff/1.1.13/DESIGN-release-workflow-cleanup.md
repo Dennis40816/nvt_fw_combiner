@@ -14,6 +14,19 @@ the flow rules it relies on are in the
 are recorded in the [log](WS-GOV.md#design-review-2026-09-26); the owner
 decisions are listed in risk order at the end of the log.
 
+R-3 implementation status (2026-09-29): accepted by the renewed exact-head
+independent R3 review (openP0P1 0) after the P1 admission failure and the P2/P3
+findings were corrected and tested; integrated in the 1.1.14 integration branch B. Board decision 168
+authorized automatic start from a
+successful `ci` main push on a release PR merge commit; manual dispatch remains
+the fallback. Board decision 174 exempts 1.1.14 from RO-9 throwaway-repository
+staging, with independent R3 review and manual fallback as compensating controls;
+the commander recorded that decision in the 1.1.14 integration copy of
+`docs/handoff/1.1.12.md`.
+The commander explicitly expanded this task to update the parity workflow
+contract in commit `04556be45`; parity job hashes remained unchanged. This
+supersedes the prior pending-contract and staging statements for 1.1.14 only.
+
 Sources read at `8682dd269`, identical in content to the rebuilt `e60ba0062`
 (the files are unchanged since `v1.1.12`, `30b17e699`):
 [`release.yml`](../../../.github/workflows/release.yml) (1,236 lines),
@@ -428,7 +441,8 @@ R-3 follows G0; R-4 follows the governance ADR; R-5 follows the comparator.
   recovery refused after `main` advanced; an immutable Release conflict
   refused, with a new version required; a required parity chain that failed,
   was cancelled or was skipped failing the run instead of ending green; and a
-  dry-run artifact refused by promotion. R-3 repeats the promotion-path cases.
+  dry-run artifact refused by promotion. The 1.1.14 R-3 staging exception is
+  recorded above; later releases retain RO-9 unless separately decided.
   **G0 equivalence (F-11, 2026-09-27).** The staging repository reproduces the
   controls G0 applied to this repository, and its evidence names each one:
   an App-authored pull request, a normal owner approval and a merge without
@@ -448,7 +462,8 @@ R-3 follows G0; R-4 follows the governance ADR; R-5 follows the comparator.
   `dry_run` of the new release workflow on `main` that must pass before the
   real release. The branch rehearsal cannot run before the merge because
   `release-rehearsal.yml` is not yet on the default branch; the `dry_run`
-  covers its path. R-3 and later releases keep RO-9 and the rehearsal.
+  covers its path. Board decision 174 separately exempts 1.1.14 R-3 staging;
+  later releases keep RO-9 and the rehearsal.
 - **Dry run on `main`:** after each release batch merges, a `dry_run` run
   exercises admission, Golden, package, smoke, notes, handoff and manifest.
   Its artifacts are marked non-promotable (manifest flag and name prefix), the
@@ -471,11 +486,11 @@ to the owner are in the [log](WS-GOV.md#owner-decisions-in-risk-order).
 | RO-1 terminal certification (board decision 47) | Deferred to 2.0.0; keep or retire it when 2.0.0 is planned; no 2.x release promoted without the terminal chain; 1.x unaffected; rolling comparison as an extra check | Deciding keep or retire now |
 | RO-2 maintenance releases (board decision 67) | Delete the maintenance options | A generic maintenance mechanism |
 | RO-3 `published_at` (board decision 67) | The release pull request's `mergedAt`, labeled merge-derived | The run start time; keeping the input |
-| RO-4 commit binding (board decision 67) | Derive commit and pull request; show the full identity before approval | Keeping the inputs; automatic start stays a later, separate decision |
+| RO-4 commit binding (board decisions 67 and 168) | Derive commit and pull request; show the full identity before approval; automatically start after successful main push CI | Keeping the inputs |
 | RO-5 reviewer evidence (board decision 49, with O-2) | Agent identity per the G0 checklist; product-neutral exact-head reviewer evidence; the exception and the Codex-only rule retire after the replacement is built and tested | An owner-only channel under one shared identity |
 | RO-6 `main-package` (board decision 67) | Release rehearsal, labeled as proving no promotion authority | Retiring it without a replacement; keeping it unrelated |
 | RO-7 and RO-8 (board decision 55) | Both, low priority, in the optional speed batch after the CI evidence work | Keeping the candidate serial and waiting for post-merge CI |
-| RO-9 staging (board decision 53) | A throwaway repository tests R-1 before it merges, with the failure and recovery cases; the owner deletes it afterwards (waived for 1.1.13 only by board decision 156, with an R3 review and a `dry_run` on `main`) | Relying on the first real release |
+| RO-9 staging (board decisions 53, 156 and 174) | A throwaway repository tests the failure and recovery cases; 1.1.13 and 1.1.14 have release-specific exceptions, with 1.1.14 compensated by independent R3 review and manual fallback | Relying on the first real release |
 | RO-10 additions (board decision 54) | All four: retire the v1.1.0 manual-only mode and older-version rules, replace the promote condition, replace the Codex-only review rule, add a dry-run mode | - |
 
 RO-2, RO-3, RO-4 and RO-6 were relayed by the commander on 2026-09-26 as

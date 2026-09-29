@@ -4049,7 +4049,12 @@ def validate_protected_workflow_semantics(workflow: bytes | Mapping[str, Any], c
         }
         if (
             not isinstance(top_on, dict)
-            or set(top_on) != {contract["trigger"]}
+            or contract["triggers"] != ["workflow_dispatch", "workflow_run"]
+            or set(top_on) != set(contract["triggers"])
+            or not isinstance(top_on["workflow_run"], Mapping)
+            or set(contract["workflowRun"]) != {"workflows", "types"}
+            or top_on["workflow_run"].get("workflows") != contract["workflowRun"]["workflows"]
+            or top_on["workflow_run"].get("types") != contract["workflowRun"]["types"]
             or set(value) != expected_top_keys
             or value.get("permissions") != contract["topLevelPermissions"]
             or canonical_json_sha256(top_level) != contract["topLevelSha256"]
@@ -6525,6 +6530,15 @@ def plan_workflow_contract_sync(before: Mapping[str, bytes]) -> dict[str, bytes]
     contract = copy.deepcopy(documents[contract_path])
     updated = before[contract_path]
     # These are authoring projections only. All other contract authority remains fixed.
+    top_level = {
+        "name": workflow.get("name"),
+        "on": workflow.get("on") if "on" in workflow else workflow.get(True),
+        "concurrency": workflow.get("concurrency"),
+        "permissions": workflow.get("permissions"),
+    }
+    top_digest = canonical_json_sha256(top_level)
+    updated = _sync_pin(updated, rb'("topLevelSha256"\s*:\s*")([0-9a-f]{64})(")', top_digest)
+    contract["topLevelSha256"] = top_digest
     for job_id in ("candidate", "promote", "published-smoke"):
         digest = canonical_json_sha256(workflow["jobs"][job_id])
         pattern = rb'("' + job_id.encode("ascii") + rb'"\s*:\s*")([0-9a-f]{64})(")'

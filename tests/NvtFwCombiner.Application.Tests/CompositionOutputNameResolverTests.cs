@@ -25,6 +25,22 @@ public sealed partial class CompositionOutputNameResolverTests
     private static readonly DateTimeOffset RunTime =
         new(2026, 7, 28, 23, 59, 0, TimeSpan.Zero);
 
+    /// <summary>UI display changes cannot turn zero into an Application badge or filename token.</summary>
+    [Fact]
+    public void ZeroJiraKeepsApplicationBadgeAbsentAndNormalOutputNameStable()
+    {
+        Assert.Null(new CmiDpCodeMetadata(0x82, 0x05, 0, 0).JiraBadge);
+        Assert.Equal("AUTO_PRJ-576", new CmiDpCodeMetadata(0x82, 0x05, 576, 0).JiraBadge);
+
+        InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
+        CompiledOutputNamingRequirement output = NormalFlashCodeOutput();
+        OutputNameResolution resolved = CompiledOutputNameResolver.ResolveNormal(
+            "NT51929", output, output.FileNameTemplate, isExplicitOverride: false,
+            fixture.AcceptedInspection, [fixture.InputSummary], RunTime);
+
+        Assert.Equal("NT51929_FlashCode_D8205T8004_20260728.bin", resolved.FileName);
+    }
+
     /// <summary>Normal FlashCode uses only canonical DPCMI/FirmwareConfig facts and the UTC run date.</summary>
     [Fact]
     public void NormalFlashCodeUsesAcceptedCanonicalFacts()

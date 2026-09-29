@@ -24,10 +24,23 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def golden_package_path(
+    allowlist: dict[str, Any], case: dict[str, Any], relative_path: str
+) -> str:
+    case_ids = sorted(item["caseId"] for item in allowlist["cases"])
+    case_key = f"c{case_ids.index(case['caseId']) + 1:03d}"
+    case_root = Path(case["manifestPath"]).parent.parent.as_posix()
+    assert relative_path.startswith(case_root + "/")
+    return f"reference/golden/{case_key}/{relative_path[len(case_root) + 1:]}"
+
+
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import verify as verify_script  # noqa: E402
+import release_promotion_policy as promotion_policy  # noqa: E402
 
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 RELEASE_MANIFEST_SCHEMA = ROOT / "docs" / "contracts" / "release-manifest-v1.schema.json"
@@ -110,6 +123,22 @@ RELEASE_REQUIRED_CHECKS = (
     "python-worker / verify",
     "dotnet / build-test",
 )
+
+
+def read_cleanup_lock_target(lock_target: Path, deadline: float) -> Path:
+    """Bound setup retries while CMD publishes and closes its target marker."""
+    while True:
+        try:
+            target = lock_target.read_text(encoding="utf-8").strip()
+        except (FileNotFoundError, PermissionError) as error:
+            if time.monotonic() >= deadline:
+                raise TimeoutError("Lock setup could not read the target marker.") from error
+        else:
+            if target:
+                return Path(target)
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Lock setup target marker remained empty.")
+        time.sleep(0.01)
 
 
 def normalize_console_output(output: str) -> str:
@@ -363,10 +392,22 @@ def release_admission_fixture(
             "mergeCommit": {"oid": RELEASE_MAIN_SHA},
             "headRefOid": RELEASE_REVIEW_HEAD_SHA,
             "reviewDecision": "APPROVED",
-            "author": {"login": "owner"},
+            "author": {"login": "release-author"},
         },
         "api": api,
         "paginated": {
+            f"repos/{repository}/commits/{RELEASE_MAIN_SHA}/pulls?per_page=100": [
+                [{
+                    "number": 406,
+                    "state": "closed",
+                    "merged_at": "2026-09-01T00:00:00Z",
+                    "merge_commit_sha": RELEASE_MAIN_SHA,
+                    "base": {"ref": "main"},
+                    "head": {"ref": "1.1.1", "sha": RELEASE_REVIEW_HEAD_SHA},
+                    "user": {"login": "release-author"},
+                }],
+                [],
+            ],
             f"repos/{repository}/rules/branches/main?per_page=100": [
                 [{"type": "creation"}],
                 [required_rule],
@@ -381,7 +422,8 @@ def release_admission_fixture(
                         "state": "APPROVED",
                         "commit_id": RELEASE_REVIEW_HEAD_SHA,
                         "submitted_at": "2026-09-01T00:01:00Z",
-                        "user": {"login": "human-reviewer"},
+                        "body": "",
+                        "user": {"login": "Dennis40816", "id": 146855708},
                     }
                 ],
                 [],
@@ -597,10 +639,14 @@ if "page" in form:
         )
     elif endpoint.endswith("/check-runs"):
         fixture_endpoint = endpoint + "?filter=latest&per_page=100"
-    elif endpoint.endswith("/actions/workflows/ci.yml/runs") or endpoint.endswith("/jobs") or endpoint.endswith("/tags"):
+    elif (endpoint.endswith("/actions/workflows/ci.yml/runs") or endpoint.endswith("/jobs")
+          or endpoint.endswith("/tags") or endpoint.endswith("/pulls")
+          or endpoint.endswith("/reviews") or endpoint.endswith("/comments")):
         fixture_endpoint = endpoint + "?per_page=100"
     else:
         raise SystemExit(93)
+    if fixture_endpoint not in fixture["paginated"] and endpoint in fixture["paginated"]:
+        fixture_endpoint = endpoint
     pages = fixture["paginated"][fixture_endpoint]
     if page_number <= len(pages):
         emit(pages[page_number - 1])
@@ -776,6 +822,194 @@ def literal_run_blocks(workflow: str) -> tuple[str, ...]:
 
 
 class ReleasePackagePolicyTests(unittest.TestCase):
+    def test_cleanup_lock_target_retries_transient_access_denied(self) -> None:
+        target = Path(tempfile.gettempdir()) / "residual.txt"
+        with (
+            mock.patch.object(
+                Path,
+                "read_text",
+                side_effect=[PermissionError(13, "access denied"), str(target)],
+            ) as read,
+            mock.patch.object(time, "monotonic", return_value=0),
+            mock.patch.object(time, "sleep") as sleep,
+        ):
+            self.assertEqual(target, read_cleanup_lock_target(Path("lock.target"), 10))
+            self.assertEqual(2, read.call_count)
+            sleep.assert_called_once_with(0.01)
+
+    def test_cleanup_lock_target_waits_for_nonempty_publication(self) -> None:
+        target = Path(tempfile.gettempdir()) / "residual.txt"
+        with (
+            mock.patch.object(
+                Path, "read_text", side_effect=[FileNotFoundError(), "", str(target)]
+            ) as read,
+            mock.patch.object(time, "monotonic", return_value=0),
+            mock.patch.object(time, "sleep") as sleep,
+        ):
+            self.assertEqual(target, read_cleanup_lock_target(Path("lock.target"), 10))
+            self.assertEqual(3, read.call_count)
+            self.assertEqual(2, sleep.call_count)
+
+    def test_cleanup_lock_target_reports_persistent_denial_as_setup_timeout(self) -> None:
+        denied = PermissionError(13, "access denied")
+        with (
+            mock.patch.object(Path, "read_text", side_effect=denied) as read,
+            mock.patch.object(time, "monotonic", side_effect=[0, 0, 10]),
+            mock.patch.object(time, "sleep") as sleep,
+            self.assertRaisesRegex(TimeoutError, "Lock setup") as failure,
+        ):
+            read_cleanup_lock_target(Path("lock.target"), 10)
+        self.assertIs(denied, failure.exception.__cause__)
+        self.assertEqual(2, read.call_count)
+        sleep.assert_called_once_with(0.01)
+
+    def test_cleanup_lock_target_does_not_retry_unrelated_io_errors(self) -> None:
+        failure = OSError("unrelated I/O failure")
+        with (
+            mock.patch.object(Path, "read_text", side_effect=failure) as read,
+            mock.patch.object(time, "sleep") as sleep,
+            self.assertRaises(OSError) as observed,
+        ):
+            read_cleanup_lock_target(Path("lock.target"), 10)
+        self.assertIs(failure, observed.exception)
+        read.assert_called_once()
+        sleep.assert_not_called()
+    def test_actual_pwsh_request_step_preserves_utc_for_automatic_and_manual(self) -> None:
+        request_step = release_workflow_run_block(
+            "candidate", "Derive release request from merge commit")
+        published_at = "2026-09-29T12:34:56Z"
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        for automatic, head_ref, eligible in (("true", version, True),
+                                              ("false", version, True),
+                                              ("true", "ordinary", False)):
+            with self.subTest(automatic=automatic, head_ref=head_ref), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                fixture = root / "gh_fixture.py"
+                pull = {"number": 42, "state": "closed", "merged_at": published_at,
+                        "merge_commit_sha": RELEASE_MAIN_SHA, "base": {"ref": "main"},
+                        "head": {"ref": head_ref, "sha": "b" * 40}}
+                fixture.write_text(
+                    "import json, sys\n"
+                    f"pull = {pull!r}\n"
+                    "print(json.dumps([pull] if 'page=1' in sys.argv else []))\n",
+                    encoding="utf-8")
+                (root / "gh.cmd").write_text(
+                    f'@echo off\r\n"{sys.executable}" "{fixture}" %*\r\n',
+                    encoding="ascii")
+                script = root / "request.ps1"
+                script.write_text(request_step, encoding="utf-8")
+                output = root / "github-output.txt"
+                output.write_text("", encoding="utf-8")
+                summary = root / "summary.txt"
+                environment = {**os.environ, "PATH": f"{root}{os.pathsep}{os.environ['PATH']}",
+                               "GITHUB_OUTPUT": str(output),
+                               "GITHUB_STEP_SUMMARY": str(summary),
+                               "NFC_REPOSITORY": "owner/repo",
+                               "NFC_SOURCE_SHA": RELEASE_MAIN_SHA,
+                               "NFC_AUTOMATIC": automatic}
+                result = subprocess.run(
+                    ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(script)],
+                    cwd=ROOT, env=environment, capture_output=True, text=True,
+                    encoding="utf-8", errors="replace")
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                lines = output.read_text(encoding="utf-8-sig").splitlines()
+                if eligible:
+                    self.assertIn(f"published-at={published_at}", lines)
+                    self.assertIn("eligible=true", lines)
+                else:
+                    self.assertEqual(["eligible=false"], lines)
+
+    def test_actual_pwsh_manifest_step_binds_observed_ref_and_dry_run(self) -> None:
+        manifest_step = release_workflow_run_block(
+            "candidate", "Create closed candidate manifest and outer checksums")
+        for dry_run in ("true", "false"):
+            with self.subTest(dry_run=dry_run), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                assets = root / "artifacts" / "release"
+                evidence = root / "artifacts" / "release-evidence"
+                assets.mkdir(parents=True)
+                evidence.mkdir(parents=True)
+                for name in promotion_policy._candidate_asset_names("1.1.14"):
+                    (assets / name).write_bytes(b"fixture")
+                (assets / "RELEASE-NOTES.md").write_text("notes\n", encoding="utf-8")
+                (evidence / "review-snapshot.json").write_text("{}\n", encoding="utf-8")
+                script = root / "manifest.ps1"
+                script.write_text(manifest_step, encoding="utf-8")
+                output = root / "github-output.txt"
+                environment = {**os.environ, "GITHUB_OUTPUT": str(output),
+                               "NFC_RELEASE_POLICY": str(SCRIPTS / "release_promotion_policy.py"),
+                               "NFC_VERSION": "1.1.14", "NFC_SOURCE_SHA": RELEASE_MAIN_SHA,
+                               "NFC_SOURCE_TREE": "c" * 40,
+                               "NFC_WORKFLOW_SHA": RELEASE_MAIN_SHA,
+                               "NFC_WORKFLOW_REF": "refs/heads/main",
+                               "NFC_RUN_ID": "99", "NFC_DRY_RUN": dry_run}
+                result = subprocess.run(
+                    ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(script)],
+                    cwd=root, env=environment, capture_output=True, text=True,
+                    encoding="utf-8", errors="replace")
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                manifest = assets / "NvtFwCombiner-v1.1.14-candidate.json"
+                self.assertEqual(dry_run == "true", json.loads(
+                    manifest.read_text(encoding="utf-8"))["nonPromotable"])
+                self.assertIn("manifest-name=", output.read_text(encoding="utf-8-sig"))
+                wrong_ref = subprocess.run(
+                    ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(script)],
+                    cwd=root,
+                    env={**environment, "NFC_WORKFLOW_REF": "refs/heads/other"},
+                    capture_output=True, text=True,
+                    encoding="utf-8", errors="replace")
+                self.assertNotEqual(0, wrong_ref.returncode)
+                self.assertIn("candidate workflow ref must be main", wrong_ref.stderr)
+
+    def test_workflow_optional_splat_arguments_remain_arrays(self) -> None:
+        """PowerShell unrolls an if expression with one array item to a scalar."""
+
+        unsafe = re.compile(
+            r"\$\w+\s*=\s*if\s*\([^\r\n]*\)\s*\{\s*@\([^\r\n]*\)\s*\}\s*else\s*\{\s*@\(\s*\)\s*\}",
+            re.MULTILINE,
+        )
+        workflows = (
+            * (ROOT / ".github/workflows").glob("*.yml"),
+            * (ROOT / "docs/ci/workflow-templates").glob("*.yml"),
+        )
+        for workflow in workflows:
+            with self.subTest(workflow=workflow.relative_to(ROOT)):
+                self.assertEqual([], unsafe.findall(workflow.read_text(encoding="utf-8")))
+
+    @unittest.skipUnless(PWSH, "PowerShell 7 is required")
+    def test_package_path_budget_accepts_boundary_and_rejects_overflow(self) -> None:
+        # Invoke the production function without running package builds or Git operations.
+        command = r"""
+$ErrorActionPreference = 'Stop'
+$Tokens = $null
+$Errors = $null
+$Ast = [Management.Automation.Language.Parser]::ParseFile($args[0], [ref]$Tokens, [ref]$Errors)
+$Function = $Ast.Find({ param($Node)
+    $Node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+    $Node.Name -eq 'Assert-PackageRelativePathLength'
+}, $true)
+if ($null -eq $Function) { throw 'Missing package path budget gate.' }
+. ([scriptblock]::Create($Function.Extent.Text))
+Assert-PackageRelativePathLength -RelativePaths @('README.txt', ('a' * 140))
+foreach ($Path in @(('a' * 141), (('a' * 139) + [char]0xd83d + [char]0xde00))) {
+    $Rejected = $false
+    try { Assert-PackageRelativePathLength -RelativePaths @('README.txt', $Path) }
+    catch {
+        if ($_.Exception.Message -notlike '*140 UTF-16*') { throw }
+        $Rejected = $true
+    }
+    if (-not $Rejected) { throw 'Overlong package path was accepted.' }
+}
+"""
+        with tempfile.TemporaryDirectory() as temp:
+            driver = Path(temp) / "path-budget.ps1"
+            driver.write_text(command, encoding="utf-8")
+            result = subprocess.run(
+                [str(PWSH), "-NoProfile", "-File", str(driver), str(PACKAGE_SCRIPT)],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
+            )
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_rehearsal_uses_stable_release_build_without_publication_authority(self) -> None:
         rehearsal_path = ROOT / ".github/workflows/release-rehearsal.yml"
         self.assertFalse((ROOT / ".github/workflows/main-package.yml").exists())
@@ -1373,6 +1607,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 ),
                 "NFC_REPOSITORY": "owner/repository",
                 "NFC_PULL_REQUEST": "406",
+                "NFC_PUBLISHED_AT": "2026-09-01T00:00:00Z",
                 "NFC_REQUESTED_SHA": RELEASE_MAIN_SHA,
                 "NFC_WORKFLOW_SHA": RELEASE_MAIN_SHA,
                 "NFC_WORKFLOW_REF": "refs/heads/main",
@@ -1389,7 +1624,6 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 "NFC_ARTIFACT_DIGEST": f"sha256:{'1' * 64}",
                 "NFC_REPOSITORY_OWNER": "owner",
                 "NFC_WORKFLOW_ACTOR": "owner",
-                "NFC_OWNER_SELF_APPROVAL_EXCEPTION": "false",
                 "FAKE_GITHUB_FIXTURE": str(fixture_path),
                 "FAKE_GITHUB_CALL_LOG": str(call_log),
             }
@@ -1552,6 +1786,7 @@ finally {
             "manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected",
             result.stdout,
         )
+        self.assertIn("Package relative-path budget passed: at most 140 UTF-16 code units.", result.stdout)
         self.assertIn(
             "Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected",
             result.stdout,
@@ -2482,13 +2717,7 @@ finally {
 
                         try:
                             deadline = time.monotonic() + 10
-                            while not lock_target.exists():
-                                if time.monotonic() >= deadline:
-                                    raise TimeoutError("Lock target was not published.")
-                                time.sleep(0.01)
-                            target = Path(
-                                lock_target.read_text(encoding="utf-8").strip()
-                            )
+                            target = read_cleanup_lock_target(lock_target, deadline)
                             kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
                             kernel32.CreateFileW.argtypes = (
                                 wintypes.LPCWSTR,
@@ -2701,126 +2930,116 @@ finally {
                     )
 
     def test_stable_release_is_ci_owned_and_rehearsal_is_manual(self) -> None:
-        release_workflow = (ROOT / ".github/workflows/release.yml").read_text(
-            encoding="utf-8"
-        )
-        rehearsal_workflow = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
-            encoding="utf-8"
-        )
+        release = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        rehearsal = (ROOT / ".github/workflows/release-rehearsal.yml").read_text(
+            encoding="utf-8")
+        workflow = yaml.safe_load(release)
+        events = workflow.get("on", workflow.get(True))
+        self.assertEqual(["ci"], events["workflow_run"]["workflows"])
+        self.assertEqual(["completed"], events["workflow_run"]["types"])
+        self.assertEqual(["main"], events["workflow_run"]["branches"])
+        self.assertEqual(["dry_run"], list(events["workflow_dispatch"]["inputs"]))
+        candidate = workflow["jobs"]["candidate"]
+        for clause in ("github.ref == 'refs/heads/main'",
+                       "github.event.workflow_run.conclusion == 'success'",
+                       "github.event.workflow_run.event == 'push'",
+                       "github.event.workflow_run.head_sha == github.sha",
+                       "github.sha == github.workflow_sha"):
+            self.assertIn(clause, candidate["if"])
+        self.assertEqual({"actions": "read", "contents": "read",
+                          "pull-requests": "read", "issues": "read",
+                          "checks": "read", "statuses": "read"}, candidate["permissions"])
+        self.assertEqual({"actions": "read", "contents": "read"},
+                         workflow["permissions"])
+        steps = candidate["steps"]
+        request = next(step for step in steps if step.get("id") == "request")
+        self.assertIn("collect-release-request", request["run"])
+        self.assertIn("eligible=false", request["run"])
+        index = steps.index(request)
+        self.assertLess(index, next(i for i, step in enumerate(steps)
+                                    if step.get("id") == "identity"))
+        self.assertTrue(all("steps.request.outputs.eligible == 'true'" in step.get("if", "")
+                            for step in steps[index + 1:]))
+        for required in ("NFC_DRY_RUN: ${{ inputs.dry_run || false }}",
+                         "collect-review-snapshot", "Summarize candidate for release approval",
+                         "Release notes SHA-256", "Difference summary",
+                         "environment: release", "$sourceSha = $mainSha",
+                         "source-branch=main", "scripts/render_release_notes.py",
+                         "create-manifest", "verify-manifest", "plan-recovery",
+                         "gh release download"):
+            self.assertIn(required, release)
+        for retired in ("owner_self_approval_exception", "--owner-self-approval-exception",
+                        "$codexReviewer", "needs.trigger", "pull_request_target"):
+            self.assertNotIn(retired, release)
+        self.assertEqual(1, release.count("contents: write"))
+        self.assertFalse(any("${{ inputs." in block for block in literal_run_blocks(release)))
+        self.assertNotIn("branches: [main]", rehearsal)
+        self.assertNotIn("gh release", rehearsal)
 
-        self.assertIn("Exact reviewed release-branch head", release_workflow)
-        self.assertNotIn("source_branch:", release_workflow)
-        self.assertIn("$sourceSha = $mainSha", release_workflow)
-        self.assertIn("source-branch=main", release_workflow)
-        self.assertIn(
-            "permissions:\n  actions: read\n  contents: read",
-            release_workflow,
-        )
-        self.assertIn(
-            "candidate:\n"
-            "    name: release / candidate\n"
-            "    runs-on: windows-latest\n"
-            "    timeout-minutes: 60\n"
-            "    permissions:\n"
-            "      actions: read\n"
-            "      contents: read\n"
-            "      pull-requests: read\n"
-            "      issues: read\n"
-            "      checks: read\n"
-            "      statuses: read",
-            release_workflow,
-        )
-        self.assertIn("environment: release", release_workflow)
-        self.assertIn("contents: write", release_workflow)
-        self.assertIn("scripts/render_release_notes.py", release_workflow)
-        self.assertIn(
-            "python $env:NFC_RELEASE_POLICY validate-context", release_workflow
-        )
-        self.assertIn("owner_self_approval_exception:", release_workflow)
-        self.assertIn(
-            "NFC_REPOSITORY_OWNER: ${{ github.repository_owner }}", release_workflow
-        )
-        self.assertIn("NFC_WORKFLOW_ACTOR: ${{ github.actor }}", release_workflow)
-        self.assertIn("--owner-self-approval-exception", release_workflow)
-        self.assertIn("$codexReviewer = 'chatgpt-codex-connector'", release_workflow)
-        self.assertIn("Get-NormalizedReviewer", release_workflow)
-        self.assertIn("function Get-PaginatedGitHubArray", release_workflow)
-        self.assertIn(
-            "$pages = $pagesText | ConvertFrom-Json -NoEnumerate", release_workflow
-        )
-        self.assertIn("foreach ($page in $pages)", release_workflow)
-        self.assertIn("foreach ($item in $page)", release_workflow)
-        self.assertEqual(
-            1, release_workflow.count("gh api --paginate --slurp $endpoint")
-        )
-        self.assertNotIn("--jq 'add'", release_workflow)
-        self.assertIn("$requiredCheckNames = @(", release_workflow)
-        for required_check in (
-            "policy / polytail",
-            "python-worker / verify",
-            "dotnet / build-test",
-        ):
-            self.assertIn(required_check, release_workflow)
-        self.assertIn("$_.headSha -ne $pr.headRefOid", release_workflow)
-        self.assertIn("$_.appSlug -ne 'github-actions'", release_workflow)
-        self.assertIn("$_.status -ne 'completed'", release_workflow)
-        self.assertIn("$_.conclusion -ne 'success'", release_workflow)
-        self.assertIn("$matches.Count -ge 1", release_workflow)
-        self.assertIn("$nonPassingMatches.Count -eq 0", release_workflow)
-        self.assertEqual(3, release_workflow.count("collect-repository-admission"))
-        self.assertNotIn("comments(first: 1)", release_workflow)
-        self.assertNotIn("$checkRunPages = @(", release_workflow)
-        self.assertNotIn("validate-repository-admission", release_workflow)
-        self.assertNotIn("gh pr checks", release_workflow)
-        self.assertIn("pulls/$env:NFC_PULL_REQUEST/comments", release_workflow)
-        self.assertIn("issues/$env:NFC_PULL_REQUEST/comments", release_workflow)
-        self.assertIn("reviewedCommitPrefix", release_workflow)
-        self.assertIn("$reviewedCommitPattern =", release_workflow)
-        self.assertIn("[regex]::IsMatch(", release_workflow)
-        self.assertNotIn("$reviewedCommitMarker =", release_workflow)
-        self.assertEqual(1, release_workflow.count("git rev-parse 'HEAD^{tree}'"))
-        self.assertNotIn("git rev-parse HEAD^{tree}", release_workflow)
-        self.assertIn("codexReview = if ($codexReview.Count -eq 1)", release_workflow)
-        self.assertIn(
-            "NFC_RELEASE_POLICY: ./scripts/release_promotion_policy.py",
-            release_workflow,
-        )
-        self.assertIn(
-            "python $env:NFC_RELEASE_POLICY validate-promotion-source",
-            release_workflow,
-        )
-        self.assertIn("$env:NFC_RELEASE_POLICY validate-tag", release_workflow)
-        self.assertIn("$env:NFC_RELEASE_POLICY validate-release", release_workflow)
-        self.assertIn("Existing Release REST metadata", release_workflow)
-        self.assertIn("Published Release REST metadata", release_workflow)
-        self.assertIn(
-            "--expected-body $notesPath --manifest $manifestPath", release_workflow
-        )
-        self.assertIn("$env:NFC_RELEASE_POLICY create-manifest", release_workflow)
-        self.assertIn("$env:NFC_RELEASE_POLICY verify-manifest", release_workflow)
-        self.assertIn("$env:NFC_RELEASE_POLICY plan-recovery", release_workflow)
-        self.assertIn("review-snapshot.json", release_workflow)
-        self.assertIn("artifact-digest", release_workflow)
-        self.assertIn("git/tags", release_workflow)
-        self.assertIn("git/refs", release_workflow)
-        self.assertIn("actions/download-artifact@", release_workflow)
-        self.assertIn("gh release download", release_workflow)
-        self.assertNotIn("--generate-notes", release_workflow)
-        self.assertNotIn("pull_request_target", release_workflow)
-        self.assertFalse(
-            any(
-                "${{ inputs." in block for block in literal_run_blocks(release_workflow)
+    def test_repository_validator_rejects_release_trigger_and_input_drift(self) -> None:
+        import validate_repository as repository_validator
+
+        release = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        original_read_text = Path.read_text
+
+        def validate_replaced(candidate: str) -> list[str]:
+            def read_text(path: Path, *args: Any, **kwargs: Any) -> str:
+                if path == RELEASE_WORKFLOW:
+                    return candidate
+                return original_read_text(path, *args, **kwargs)
+
+            errors: list[str] = []
+            with mock.patch.object(Path, "read_text", read_text):
+                repository_validator.validate_workflows(errors)
+            return errors
+
+        self.assertEqual([], validate_replaced(release))
+        changes = (
+            (
+                release.replace("branches: [main]", "branches: [other]", 1),
+                "completed main CI runs",
             ),
-            "dispatch inputs must enter PowerShell only through validated environment variables",
+            (
+                release.replace(
+                    "        type: boolean\n",
+                    "        type: boolean\n      source_sha:\n        type: string\n",
+                    1,
+                ),
+                "only the dry_run fallback input",
+            ),
+            (
+                release.replace(
+                    "github.event.workflow_run.head_sha == github.sha",
+                    "github.event.workflow_run.head_sha != github.sha",
+                    1,
+                ),
+                "release candidate trigger must require successful exact-main push CI",
+            ),
+            (
+                release.replace(
+                    "collect-release-request", "collect-manual-request", 1
+                ),
+                "protected-main source and authority",
+            ),
+            (
+                release.replace("--github-output $env:GITHUB_OUTPUT", "", 1),
+                "protected-main source and authority",
+            ),
+            (
+                release.replace("NFC_WORKFLOW_REF: ${{ github.ref }}",
+                                "NFC_WORKFLOW_REF: refs/heads/main"),
+                "protected-main source and authority",
+            ),
+            (
+                release + "\n# owner_self_approval_exception\n",
+                "must not use a self-approval exception",
+            ),
         )
-        self.assertNotIn("branches: [main]", rehearsal_workflow)
-        self.assertNotIn("gh release", rehearsal_workflow)
-        first_policy_call = release_workflow.index("release_promotion_policy.py")
-        self.assertLess(
-            release_workflow.index("uses: ./.github/actions/setup-toolchain"),
-            first_policy_call,
-            "release-authoritative Python policy must use the pinned interpreter",
-        )
+        for candidate, expected_error in changes:
+            with self.subTest(expected_error=expected_error):
+                self.assertTrue(
+                    any(expected_error in error for error in validate_replaced(candidate))
+                )
 
     def test_published_smoke_requires_successful_publication_not_skipped_ancestors(self) -> None:
         workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
@@ -2848,7 +3067,8 @@ finally {
                 ):
                     collectors.append(block)
                     self.assertIn("--source-sha $env:NFC_SOURCE_SHA", block)
-        self.assertEqual(3, len(collectors))
+        self.assertEqual(2, len(collectors))
+        self.assertIn("collect-review-snapshot", RELEASE_WORKFLOW.read_text(encoding="utf-8"))
 
     def test_release_golden_follows_source_admission_for_every_candidate(self) -> None:
         workflow = yaml.safe_load(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
@@ -2860,7 +3080,7 @@ finally {
         self.assertNotIn("verify.py --all", verification["run"])
         self.assertIn("if ($LASTEXITCODE -ne 0)", verification["run"])
         admission_index = next(index for index, step in enumerate(steps)
-                               if "collect-repository-admission" in step.get("run", ""))
+                               if "collect-review-snapshot" in step.get("run", ""))
         package_index = next(index for index, step in enumerate(steps)
                              if step["name"] == "Build closed-allowlist release package")
         self.assertLess(admission_index, steps.index(verification))
@@ -2874,10 +3094,11 @@ finally {
         candidate = release[candidate_start:promote_start]
         promote = release[promote_start:smoke_start]
 
-        self.assertIn("published_at:", release)
-        self.assertIn("NFC_RELEASE_PUBLISHED_AT: ${{ inputs.published_at }}", release)
-        self.assertIn("-cnotmatch", candidate)
-        self.assertIn("published-at=$env:NFC_RELEASE_PUBLISHED_AT", candidate)
+        self.assertNotIn("published_at:", release)
+        self.assertIn("NFC_PUBLISHED_AT: ${{ steps.request.outputs.published-at }}", release)
+        self.assertIn("release PR merge time; not actual publication time", release)
+        self.assertIn("--github-output $env:GITHUB_OUTPUT", candidate)
+        self.assertIn("$env:NFC_PUBLISHED_AT", candidate)
 
         setup_python = candidate.index("Setup release toolchain")
         identity = candidate.index("Lock release authority and candidate identity")
@@ -2948,8 +3169,10 @@ finally {
         self.assertIn(
             "review-head-sha: ${{ steps.admission.outputs.review-head-sha }}", release
         )
-        self.assertIn("$repositoryAdmission = Get-Content", release)
-        self.assertEqual(3, release.count("collect-repository-admission"))
+        self.assertIn("collect-review-snapshot", release)
+        self.assertIn("--pull-request $env:NFC_PULL_REQUEST", release)
+        self.assertIn("--published-at $env:NFC_PUBLISHED_AT", release)
+        self.assertEqual(2, release.count("collect-repository-admission"))
         self.assertEqual(2, promote.count("collect-repository-admission"))
         self.assertNotIn("comments(first: 1)", release)
         self.assertIn("ref: ${{ needs.candidate.outputs.workflow-sha }}", promote)
@@ -3053,20 +3276,24 @@ finally {
                     calls,
                 )
 
-    def test_candidate_check_projection_requires_all_name_matches_to_pass(
+    def test_candidate_delegates_review_check_projection_to_policy_owner(
         self,
     ) -> None:
         block = release_workflow_run_block(
             "candidate",
             "Collect and validate final PR review/check evidence",
         )
-        self.assertIn("$_.name -eq $requiredName", block)
-        self.assertIn("$_.headSha -ne $pr.headRefOid", block)
-        self.assertIn("$_.appSlug -ne 'github-actions'", block)
-        self.assertIn("$_.status -ne 'completed'", block)
-        self.assertIn("$_.conclusion -ne 'success'", block)
-        self.assertIn("$matches.Count -ge 1", block)
-        self.assertIn("$nonPassingMatches.Count -eq 0", block)
+        self.assertEqual(1, block.count("collect-review-snapshot"))
+        for argument in (
+            "--source-sha $env:NFC_SOURCE_SHA",
+            "--source-tree $env:NFC_SOURCE_TREE",
+            "--version $env:NFC_SOURCE_VERSION",
+            "--pull-request $env:NFC_PULL_REQUEST",
+            "--published-at $env:NFC_PUBLISHED_AT",
+        ):
+            self.assertIn(argument, block)
+        self.assertIn("if ($LASTEXITCODE -ne 0)", block)
+        self.assertIn("review-head-sha=$($snapshot.headSha)", block)
 
     @unittest.skipUnless(
         PWSH, "PowerShell 7 is required for exact release-workflow execution"
@@ -3377,19 +3604,14 @@ finally {
         )
 
         self.assertIn("ready_for_review", ci)
-        self.assertIn(
-            "Final reviewed pull request merged as this release-branch commit", release
-        )
-        self.assertIn(
-            "GitHub CLI cannot query `--required` after the final PR's head branch is closed.",
-            release,
-        )
+        self.assertIn("collect-release-request", release)
+        self.assertIn("collect-review-snapshot", release)
         self.assertIn("collect-repository-admission", release)
         self.assertIn("check-runs", promotion_policy)
         self.assertIn('"filter=latest"', promotion_policy)
         self.assertNotIn("gh pr checks", release)
-        self.assertIn("reviewDecision", release)
-        self.assertIn("headTree", release)
+        self.assertIn("reviewDecision", promotion_policy)
+        self.assertIn("headTree", promotion_policy)
         self.assertIn("contents: read", release)
         self.assertEqual(1, release.count("contents: write"))
         self.assertIn("environment: release", release)
@@ -3590,10 +3812,31 @@ finally {
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
+    def test_release_smoke_rejects_projection_that_redirects_a_golden_file(self) -> None:
+        def redirect(golden_entries: dict[str, bytes]) -> None:
+            projection_key = "reference/golden/manifest.json"
+            projection = json.loads(golden_entries[projection_key].decode("utf-8"))
+            artifact = next(
+                item for item in projection["files"]
+                if item["packagePath"].endswith(".bin")
+            )
+            artifact["packagePath"] = "reference/golden/c001/inputs/redirected.bin"
+            golden_entries[projection_key] = (
+                json.dumps(projection, indent=2) + "\n"
+            ).encode()
+
+        result = self.run_smoke_with_canonical_golden_mutation(redirect)
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
+        self.assertIn("canonical Golden projection differs for artifact", output)
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
     def test_release_smoke_rejects_missing_input_only_alias_source_artifact(self) -> None:
         def omit_source(golden_entries: dict[str, bytes]) -> None:
             allowlist = json.loads(
-                golden_entries["reference/testdata/golden/release-canonical-v1.json"]
+                golden_entries["reference/golden/release-canonical-v1.json"]
             )
             source = next(
                 case for case in allowlist["cases"]
@@ -3602,7 +3845,7 @@ finally {
             self.assertTrue(source["directEvidence"])
             self.assertFalse(source["directGolden"])
             del golden_entries[
-                "reference/testdata/golden/canonical/" + source["artifacts"][0]["path"]
+                golden_package_path(allowlist, source, source["artifacts"][0]["path"])
             ]
 
         result = self.run_smoke_with_canonical_golden_mutation(omit_source)
@@ -3617,12 +3860,10 @@ finally {
         self,
     ) -> None:
         def substitute(golden_entries: dict[str, bytes]) -> None:
-            allowlist_key = "reference/testdata/golden/release-canonical-v1.json"
+            allowlist_key = "reference/golden/release-canonical-v1.json"
             allowlist = json.loads(golden_entries[allowlist_key].decode("utf-8"))
             selected_case = allowlist["cases"][0]
-            case_key = (
-                "reference/testdata/golden/canonical/" + selected_case["manifestPath"]
-            )
+            case_key = golden_package_path(allowlist, selected_case, selected_case["manifestPath"])
             case_manifest = json.loads(golden_entries[case_key].decode("utf-8"))
             case_manifest["privateMetadata"] = {"classification": "unapproved"}
             replacement = (json.dumps(case_manifest, indent=2) + "\n").encode()
@@ -3648,8 +3889,8 @@ finally {
         self,
     ) -> None:
         def substitute(golden_entries: dict[str, bytes]) -> None:
-            allowlist_key = "reference/testdata/golden/release-canonical-v1.json"
-            readme_key = "reference/testdata/golden/canonical/README.md"
+            allowlist_key = "reference/golden/release-canonical-v1.json"
+            readme_key = "reference/golden/README.md"
             replacement = (
                 golden_entries[readme_key] + b"\nPrivate replacement metadata.\n"
             )
@@ -3678,7 +3919,7 @@ finally {
         def omit_artifact(golden_entries: dict[str, bytes]) -> None:
             allowlist = json.loads(
                 golden_entries[
-                    "reference/testdata/golden/release-canonical-v1.json"
+                    "reference/golden/release-canonical-v1.json"
                 ].decode("utf-8")
             )
             artifact_path = next(
@@ -3686,7 +3927,11 @@ finally {
                 for case in allowlist["cases"]
                 for artifact in case["artifacts"]
             )
-            package_path = "reference/testdata/golden/canonical/" + artifact_path
+            source_case = next(
+                case for case in allowlist["cases"]
+                if any(artifact["path"] == artifact_path for artifact in case["artifacts"])
+            )
+            package_path = golden_package_path(allowlist, source_case, artifact_path)
             del golden_entries[package_path]
             removed.append(package_path)
 
@@ -3721,7 +3966,13 @@ finally {
         for provenance_path in provenance_paths:
             with self.subTest(path=provenance_path):
                 result = self.run_smoke_with_manifested_external_tool(
-                    Path("reference/testdata/golden/canonical") / provenance_path
+                    Path(golden_package_path(
+                        allowlist,
+                        next(case for case in allowlist["cases"] if any(
+                            artifact["path"] == provenance_path for artifact in case["artifacts"]
+                        )),
+                        provenance_path,
+                    ))
                 )
 
                 self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
@@ -4265,6 +4516,28 @@ finally {
             allowlist_payload = allowlist_source.read_bytes()
             allowlist = json.loads(allowlist_payload.decode("utf-8"))
             canonical_source = ROOT / "testdata/golden/canonical"
+            projected_files = [
+                {
+                    "caseId": "",
+                    "repositoryPath": "testdata/golden/canonical/README.md",
+                    "packagePath": "reference/golden/README.md",
+                },
+                {
+                    "caseId": "",
+                    "repositoryPath": "testdata/golden/release-canonical-v1.json",
+                    "packagePath": "reference/golden/release-canonical-v1.json",
+                },
+            ]
+            for case in allowlist["cases"]:
+                for relative_path in dict.fromkeys(
+                    [case["manifestPath"]]
+                    + [artifact["path"] for artifact in case["artifacts"]]
+                ):
+                    projected_files.append({
+                        "caseId": case["caseId"],
+                        "repositoryPath": "testdata/golden/canonical/" + relative_path,
+                        "packagePath": golden_package_path(allowlist, case, relative_path),
+                    })
             projection = {
                 "schemaVersion": "1.0",
                 "payloadClass": "owner-approved-golden",
@@ -4273,28 +4546,36 @@ finally {
                 "inventoryScope": "release-canonical-v1",
                 "sourceManifest": "testdata/golden/canonical/manifest.json",
                 "cases": [
-                    {"caseId": case["caseId"], "manifestPath": case["manifestPath"]}
+                    {
+                        "caseId": case["caseId"],
+                        "caseKey": golden_package_path(
+                            allowlist, case, case["manifestPath"]
+                        ).split("/")[2],
+                        "manifestPath": case["manifestPath"],
+                        "packageManifestPath": golden_package_path(
+                            allowlist, case, case["manifestPath"]
+                        ),
+                    }
                     for case in allowlist["cases"]
                 ],
+                "files": sorted(projected_files, key=lambda item: item["packagePath"]),
             }
             golden_entries: dict[str, bytes] = {
-                "reference/testdata/golden/release-canonical-v1.json": allowlist_payload,
-                "reference/testdata/golden/canonical/README.md": (
+                "reference/golden/release-canonical-v1.json": allowlist_payload,
+                "reference/golden/README.md": (
                     canonical_source / "README.md"
                 ).read_bytes(),
-                "reference/testdata/golden/canonical/manifest.json": (
+                "reference/golden/manifest.json": (
                     json.dumps(projection, indent=2) + "\n"
                 ).encode(),
             }
             for case in allowlist["cases"]:
                 manifest_relative_path = case["manifestPath"]
                 golden_entries[
-                    "reference/testdata/golden/canonical/" + manifest_relative_path
+                    golden_package_path(allowlist, case, manifest_relative_path)
                 ] = (canonical_source / manifest_relative_path).read_bytes()
                 for artifact in case["artifacts"]:
-                    artifact_key = (
-                        "reference/testdata/golden/canonical/" + artifact["path"]
-                    )
+                    artifact_key = golden_package_path(allowlist, case, artifact["path"])
                     golden_entries.setdefault(
                         artifact_key,
                         (canonical_source / artifact["path"]).read_bytes(),

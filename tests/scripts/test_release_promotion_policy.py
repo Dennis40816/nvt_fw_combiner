@@ -35,6 +35,120 @@ REQUIRED_RELEASE_CHECKS = (
 
 
 class ReleaseCleanupPolicyTests(unittest.TestCase):
+    def test_collector_uses_merge_pr_and_exact_head_owner_review(self) -> None:
+        pull = {"number": 42, "state": "closed", "merged_at": "2026-09-28T10:20:30Z",
+                "merge_commit_sha": SHA, "base": {"ref": "main"},
+                "head": {"ref": "1.1.14", "sha": REVIEW_HEAD_SHA},
+                "user": {"login": "nfc-agent-dennis40816[bot]"}}
+        owner_review = {"state": "APPROVED", "commit_id": REVIEW_HEAD_SHA,
+                        "submitted_at": "2026-09-28T10:19:00Z", "body": "",
+                        "user": {"login": "Dennis40816", "id": 146855708}}
+
+        def collect(endpoint: str, _label: str) -> list[dict[str, object]]:
+            if endpoint.endswith(f"commits/{SHA}/pulls"):
+                return [pull]
+            if endpoint.endswith("/reviews"):
+                return [owner_review]
+            return []
+
+        def snapshot(workflow_ref: str = "refs/heads/main") -> dict[str, object]:
+            return MODULE.collect_review_snapshot(
+                repository="owner/repo", source_sha=SHA, source_tree=TREE,
+                version="1.1.14", pull_request=42,
+                published_at="2026-09-28T10:20:30Z",
+                workflow_ref=workflow_ref)
+
+        with (mock.patch.object(MODULE, "_read_github_paginated_array", side_effect=collect),
+              mock.patch.object(MODULE, "_read_github_json", return_value={"tree": {"sha": TREE}}),
+              mock.patch.object(MODULE, "collect_repository_admission",
+                                return_value=valid_repository_admission())):
+            result = snapshot()
+            self.assertEqual("github/human-review", result["reviewerEvidence"]["runtime"])
+            self.assertEqual("Dennis40816", result["approvals"][0]["reviewer"])
+            with self.assertRaisesRegex(ValueError, "dispatched from main"):
+                snapshot("refs/heads/other")
+            stale_approval = {**owner_review, "commit_id": "5" * 40}
+            with mock.patch.object(MODULE, "_read_github_paginated_array",
+                                   side_effect=lambda endpoint, label:
+                                   [stale_approval, owner_review] if endpoint.endswith("/reviews")
+                                   else collect(endpoint, label)):
+                result = snapshot()
+                self.assertEqual([REVIEW_HEAD_SHA],
+                                 [item["commitSha"] for item in result["approvals"]])
+            # An undismissed stale CHANGES_REQUESTED still fails closed.
+            stale_approval["state"] = "CHANGES_REQUESTED"
+            with mock.patch.object(MODULE, "_read_github_paginated_array",
+                                   side_effect=lambda endpoint, label:
+                                   [stale_approval, owner_review] if endpoint.endswith("/reviews")
+                                   else collect(endpoint, label)):
+                with self.assertRaisesRegex(ValueError, "CHANGES_REQUESTED"):
+                    snapshot()
+            owner_review["commit_id"] = "5" * 40
+            with self.assertRaises(ValueError):
+                snapshot()
+            owner_review["commit_id"] = REVIEW_HEAD_SHA
+            owner_review["user"] = {"login": "nfc-agent-dennis40816[bot]", "id": 334370883}
+            with self.assertRaises(ValueError):
+                snapshot()
+            owner_review["state"] = "CHANGES_REQUESTED"
+            with self.assertRaisesRegex(ValueError, "CHANGES_REQUESTED"):
+                snapshot()
+
+    def test_release_pull_selection_and_merge_timestamp_fail_closed(self) -> None:
+        pull = {"number": 42, "state": "closed", "merged_at": "2026-09-28T10:20:30Z",
+                "merge_commit_sha": SHA, "base": {"ref": "main"},
+                "head": {"ref": "1.1.14", "sha": REVIEW_HEAD_SHA},
+                "user": {"login": "nfc-agent-dennis40816[bot]"}}
+        self.assertEqual(42, MODULE.select_release_pull([pull], SHA, "1.1.14")["number"])
+        self.assertIsNone(MODULE.select_release_pull([], SHA, "1.1.14", automatic=True))
+        self.assertIsNone(MODULE.select_release_pull(
+            [{**pull, "head": {"ref": "ordinary", "sha": REVIEW_HEAD_SHA}}],
+            SHA, "1.1.14", automatic=True))
+        for pulls in ([], [pull, pull], [{**pull, "base": {"ref": "other"}}],
+                      [{**pull, "merged_at": None}],
+                      [{**pull, "merge_commit_sha": "5" * 40}]):
+            with self.subTest(pulls=pulls), self.assertRaises(ValueError):
+                MODULE.select_release_pull(pulls, SHA, "1.1.14")
+        with self.assertRaises(ValueError):
+            MODULE.select_release_pull([pull, pull], SHA, "1.1.14", automatic=True)
+        for merged_at in ("2026-09-28T25:20:30Z", "2026-09-28 10:20:30",
+                          "2026-09-28T10:20:30+00:00"):
+            with self.subTest(merged_at=merged_at), self.assertRaisesRegex(
+                ValueError, "mergedAt"):
+                MODULE.select_release_pull([{**pull, "merged_at": merged_at}],
+                                           SHA, "1.1.14")
+
+    def test_exact_head_owner_approval_and_reviewer_evidence(self) -> None:
+        snapshot = valid_snapshot()
+        snapshot["authorLogin"] = "other-author"
+        snapshot["approvals"] = [{"reviewer": "Dennis40816", "reviewerId": 146855708,
+                                 "commitSha": REVIEW_HEAD_SHA,
+                                 "submittedAt": "2026-09-28T10:00:00Z"}]
+        snapshot["reviewerEvidence"] = {"source": "issue-comment",
+            "reviewer": "nfc-agent-dennis40816[bot]", "reviewerId": 334370883,
+            "runtime": "codex/gpt-6-astra", "commitSha": REVIEW_HEAD_SHA,
+            "state": "COMMENTED", "submittedAt": "2026-09-28T10:01:00Z"}
+        MODULE.validate_candidate_context(snapshot, **ReleasePromotionPolicyTests.candidate_arguments())
+        for change in (
+            {"approvals": [{**snapshot["approvals"][0], "reviewer": "nfc-agent-dennis40816[bot]",
+                            "reviewerId": 334370883}]},
+            {"approvals": [{**snapshot["approvals"][0], "reviewer": "other-human",
+                            "reviewerId": 987654321}]},
+            {"approvals": [{**snapshot["approvals"][0], "commitSha": "5" * 40}]},
+            {"reviewerEvidence": {**snapshot["reviewerEvidence"], "commitSha": "5" * 40}},
+            {"reviewerEvidence": {**snapshot["reviewerEvidence"], "reviewer": "other", "reviewerId": 2}},
+            {"reviewerEvidence": {**snapshot["reviewerEvidence"], "runtime": ""}},
+            {"reviewerEvidence": {**snapshot["reviewerEvidence"], "runtime": "bad runtime"}},
+            {"reviewDecision": "CHANGES_REQUESTED"},
+        ):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                MODULE.validate_candidate_context({**snapshot, **change},
+                                                  **ReleasePromotionPolicyTests.candidate_arguments())
+        with self.assertRaisesRegex(ValueError, "PR author"):
+            MODULE.validate_candidate_context(
+                {**snapshot, "authorLogin": "nfc-agent-dennis40816[bot]"},
+                **ReleasePromotionPolicyTests.candidate_arguments())
+
     def test_first_publication_requires_absent_tag_and_newer_stable_version(self) -> None:
         tags = ["v1.1.11", "v1.1.12", "v0.9.19", "preview"]
         MODULE.validate_release_floor("1.1.13", tags, tag_state="absent")
@@ -161,12 +275,19 @@ def valid_snapshot() -> dict[str, object]:
         "reviewDecision": "APPROVED",
         "approvals": [
             {
-                "reviewer": "independent-reviewer",
+                "reviewer": "Dennis40816",
+                "reviewerId": 146855708,
                 "commitSha": REVIEW_HEAD_SHA,
                 "submittedAt": "2026-07-22T00:55:00Z",
             }
         ],
-        "ownerSelfApprovalException": False,
+        "authorLogin": "nfc-agent-dennis40816[bot]",
+        "reviewerEvidence": {
+            "source": "pull-review", "reviewer": "Dennis40816",
+            "reviewerId": 146855708, "runtime": "github/human-review",
+            "commitSha": REVIEW_HEAD_SHA, "state": "APPROVED",
+            "submittedAt": "2026-07-22T00:55:00Z",
+        },
         "requiredChecks": [{"name": "dotnet / build-test", "bucket": "pass"}],
         "repositoryAdmission": valid_repository_admission(),
     }
@@ -498,9 +619,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "source_version": "1.1.13",
             "main_sha": SHA,
             "source_tree": TREE,
-            "repository_owner": "release-owner",
-            "workflow_actor": "release-owner",
-            "owner_self_approval_exception": False,
         }
 
     def test_accepts_only_exact_reviewed_main_identity(self) -> None:
@@ -1271,7 +1389,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             (
                 "approvals",
                 [{"reviewer": "stale", "commitSha": "5" * 40}],
-                "stale, malformed, or authored by Codex",
+                "stale or malformed",
             ),
             ("requiredChecks", [{"name": "dotnet", "bucket": "fail"}], "not passing"),
         )
@@ -1300,200 +1418,6 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                             "workflow_ref": workflow_ref,
                         },
                     )
-
-    def test_owner_self_approval_exception_is_explicit_and_owner_bound(self) -> None:
-        snapshot = valid_snapshot()
-        snapshot["reviewDecision"] = ""
-        snapshot["approvals"] = []
-        snapshot["authorLogin"] = "release-owner"
-        snapshot["repositoryOwner"] = "release-owner"
-        snapshot["workflowActor"] = "release-owner"
-        snapshot["ownerSelfApprovalException"] = True
-        snapshot["codexReview"] = {
-            "source": "pull-review",
-            "reviewer": f"{MODULE.CODEX_REVIEWER}[bot]",
-            "commitSha": "4" * 40,
-            "state": "COMMENTED",
-            "submittedAt": "2026-07-22T00:59:00Z",
-        }
-        arguments = {
-            **self.candidate_arguments(),
-            "owner_self_approval_exception": True,
-            "source_version": "1.0.8",
-        }
-
-        MODULE.validate_candidate_context(snapshot, **arguments)
-
-        snapshot["reviewDecision"] = "REVIEW_REQUIRED"
-        MODULE.validate_candidate_context(snapshot, **arguments)
-        snapshot["reviewDecision"] = ""
-
-        for key, value, message in (
-            ("owner_self_approval_exception", False, "no current-head approval"),
-            ("workflow_actor", "other-user", "must be dispatched"),
-        ):
-            with self.subTest(key=key):
-                with self.assertRaisesRegex(ValueError, message):
-                    MODULE.validate_candidate_context(
-                        snapshot, **{**arguments, key: value}
-                    )
-
-        for key, value, message in (
-            ("authorLogin", "other-user", "author the PR"),
-            ("workflowActor", "other-user", "identity differs"),
-            ("ownerSelfApprovalException", False, "not recorded"),
-            ("reviewDecision", "CHANGES_REQUESTED", "not approved"),
-            ("baseRefName", "other", "target the selected release source branch"),
-            ("mergeCommitSha", "5" * 40, "merge commit is not the candidate"),
-            ("headTree", "f" * 40, "tree differs from the candidate tree"),
-            ("requiredChecks", [], "no required checks"),
-            (
-                "requiredChecks",
-                [{"name": "dotnet / build-test", "bucket": "fail"}],
-                "required checks are not passing",
-            ),
-        ):
-            with self.subTest(key=key):
-                mutated = {**snapshot, key: value}
-                with self.assertRaisesRegex(ValueError, message):
-                    MODULE.validate_candidate_context(mutated, **arguments)
-
-        for overrides, message in (
-            ({"requested_sha": "5" * 40}, "requested and checkout source SHAs"),
-            (
-                {"requested_sha": "5" * 40, "source_sha": "5" * 40},
-                "main release source must be the current protected main SHA",
-            ),
-            ({"workflow_sha": "5" * 40}, "current protected main SHA"),
-            (
-                {"workflow_sha": "5" * 40, "main_sha": "5" * 40},
-                "main release source must be the current protected main SHA",
-            ),
-        ):
-            with self.subTest(overrides=overrides):
-                with self.assertRaisesRegex(ValueError, message):
-                    MODULE.validate_candidate_context(
-                        snapshot, **{**arguments, **overrides}
-                    )
-
-        required_arguments = {**arguments, "source_version": "1.2.0"}
-        snapshot["repositoryAdmission"]["sourceCi"] = self.source_ci_evidence()
-        MODULE.validate_candidate_context(snapshot, **required_arguments)
-
-        for key, value, message in (
-            ("codexReview", None, "no Codex review evidence"),
-            (
-                "codexReview",
-                {**snapshot["codexReview"], "commitSha": "5" * 40},
-                "Codex review is stale",
-            ),
-            (
-                "codexReview",
-                {**snapshot["codexReview"], "state": "PENDING"},
-                "Codex review is incomplete",
-            ),
-            (
-                "codexReview",
-                {**snapshot["codexReview"], "source": "unknown"},
-                "Codex review source is invalid",
-            ),
-            (
-                "codexReview",
-                {**snapshot["codexReview"], "reviewer": "other-reviewer"},
-                "Codex reviewer is invalid",
-            ),
-            (
-                "codexReview",
-                {**snapshot["codexReview"], "submittedAt": ""},
-                "Codex review has no submission time",
-            ),
-        ):
-            with self.subTest(key=key):
-                mutated = {**snapshot, key: value}
-                with self.assertRaisesRegex(ValueError, message):
-                    MODULE.validate_candidate_context(mutated, **required_arguments)
-
-        issue_comment = {
-            **snapshot["codexReview"],
-            "source": "issue-comment",
-            "reviewedCommitPrefix": ("4" * 40)[:10],
-        }
-        MODULE.validate_candidate_context(
-            {**snapshot, "codexReview": issue_comment}, **required_arguments
-        )
-        with self.assertRaisesRegex(ValueError, "issue comment is stale"):
-            MODULE.validate_candidate_context(
-                {
-                    **snapshot,
-                    "codexReview": {
-                        **issue_comment,
-                        "reviewedCommitPrefix": "5" * 10,
-                    },
-                },
-                **required_arguments,
-            )
-
-    def test_owner_codex_review_deferral_is_exactly_version_bounded(self) -> None:
-        snapshot = valid_snapshot()
-        snapshot["reviewDecision"] = ""
-        snapshot["approvals"] = []
-        snapshot["authorLogin"] = "release-owner"
-        snapshot["repositoryOwner"] = "release-owner"
-        snapshot["workflowActor"] = "release-owner"
-        snapshot["ownerSelfApprovalException"] = True
-        snapshot["codexReview"] = None
-        arguments = {
-            **self.candidate_arguments(),
-            "owner_self_approval_exception": True,
-        }
-
-        for source_version in ("1.0.8", "1.0.9", "1.1.0", "1.1.999"):
-            with self.subTest(source_version=source_version, expected="accepted"):
-                snapshot["repositoryAdmission"]["sourceCi"] = self.source_ci_evidence()
-                MODULE.validate_candidate_context(
-                    snapshot, **{**arguments, "source_version": source_version}
-                )
-
-        for source_branch, source_version in (
-            ("main", "1.0.7"),
-            ("main", "1.2.0"),
-            ("main", "1.2.1"),
-            ("main", "2.0.0"),
-        ):
-            with self.subTest(source_version=source_version, expected="rejected"):
-                candidate_snapshot = {**snapshot, "baseRefName": source_branch}
-                with self.assertRaisesRegex(ValueError, "no Codex review evidence"):
-                    MODULE.validate_candidate_context(
-                        candidate_snapshot,
-                        **{
-                            **arguments,
-                            "source_branch": source_branch,
-                            "source_version": source_version,
-                        },
-                    )
-
-    def test_rejects_codex_as_an_ordinary_pr_approval(self) -> None:
-        snapshot = valid_snapshot()
-        snapshot["approvals"] = [
-            {
-                "reviewer": f"{MODULE.CODEX_REVIEWER}[bot]",
-                "commitSha": "4" * 40,
-                "submittedAt": "2026-07-22T00:55:00Z",
-            }
-        ]
-
-        with self.assertRaisesRegex(ValueError, "authored by Codex"):
-            MODULE.validate_candidate_context(snapshot, **self.candidate_arguments())
-
-    def test_rejects_owner_exception_on_an_approved_pr(self) -> None:
-        with self.assertRaisesRegex(ValueError, "must be disabled"):
-            MODULE.validate_candidate_context(
-                {**valid_snapshot(), "ownerSelfApprovalException": True},
-                **{
-                    **self.candidate_arguments(),
-                    "owner_self_approval_exception": True,
-                },
-            )
 
     def test_fresh_promotion_requires_current_main_but_recovery_allows_advance(
         self,
