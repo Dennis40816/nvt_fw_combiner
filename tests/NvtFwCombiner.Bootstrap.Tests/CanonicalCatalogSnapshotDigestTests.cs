@@ -20,18 +20,21 @@ public sealed class CanonicalCatalogSnapshotDigestTests
     // capability fingerprint and the re-pinned family versions/hashes changed;
     // static routes gain their display-only TP SVN metadata entries (length
     // 98164 -> 108496); the other section lengths are unchanged.
+    // Decision 192 (WS-DPREGIONS): DP declaration identities re-pin the policy
+    // source and seven AB Merge/AB CtrlRAM dynamic routes. Section lengths,
+    // publication/evidence decisions and all other sections remain unchanged.
     // A change here is a published catalog change and needs its own review.
     private const string PinnedSha256 =
-        "2039f8287e34d954c42ce534cc4c8e2e895509469a15f7d1fdbfbba0b56d5c0c";
+        "565eb0914427c8becb4ff3e4751bab7b0611a9ef770a6e98ccbd1cfca48804ab";
     private const int PinnedLength = 493_864;
     private const int SequentialReloads = 5;
     private const int ConcurrentLoads = 4;
 
     private static readonly (string Name, int Length, string Sha256)[] PinnedSections =
     [
-        ("catalog", 341, "caa1524334282a2ba0c50e5f4299fef5c5d612455016ed281272bcc8ba18706f"),
+        ("catalog", 341, "690b6921d29ccd8f83710535742c122e705cb1432cd69e54e6d3d7f0562a1456"),
         ("static-routes", 108_496, "bd79eb2c64579f10aa1c7cbccd519d66151cbcdf0e5ab6f25f72e8727e4daf01"),
-        ("dynamic-routes", 248_943, "09e512443a71fe7ba7cfd8e3ce5fc8acbcd72e3119bee86bb3260915146f833d"),
+        ("dynamic-routes", 248_943, "c8307dc35fca114e128cfd9e5ead7a44b66b3e189f056d8d6d8606a2c3871f72"),
         ("full-image-plans", 106_364, "3052ae411884f7c44713a18286360b2d4f1d410bf0c4bc97ab2c3f3c9dea2df9"),
         ("disclosure", 18_861, "c5f8148381d38b36373194f60de8a6450df680f910394a9dc257ad32ac32fe2f"),
         ("selector", 10_835, "41e00a86903342faa9c1a739234d06a3bf9f1423cba74b24ad83a0da1ac89d55"),

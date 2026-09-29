@@ -1663,25 +1663,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51950-ab-merge-maps",
       "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
-      "capabilityFingerprint": "74a9be089a81cc6bb7cc9c79af3c0e884427b00a9a127a3b5d0cf4c980c2dda5",
+      "capabilityFingerprint": "81a69ebb2573ceefb674ba94c719d91d92fb096eabf3960985af5bdfbcde22b5",
       "authoring": {
         "decisionId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-maps-authoring-v116-primary",
         "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
-        "capabilityFingerprint": "74a9be089a81cc6bb7cc9c79af3c0e884427b00a9a127a3b5d0cf4c980c2dda5",
+        "capabilityFingerprint": "81a69ebb2573ceefb674ba94c719d91d92fb096eabf3960985af5bdfbcde22b5",
         "value": "available",
         "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-primary-observation"
       },
       "publication": {
         "decisionId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-maps-publication-v116-primary",
         "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
-        "capabilityFingerprint": "74a9be089a81cc6bb7cc9c79af3c0e884427b00a9a127a3b5d0cf4c980c2dda5",
+        "capabilityFingerprint": "81a69ebb2573ceefb674ba94c719d91d92fb096eabf3960985af5bdfbcde22b5",
         "value": "supported",
         "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-primary-observation"
       },
       "evidence": {
         "decisionId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-maps-evidence-v116-primary",
         "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
-        "capabilityFingerprint": "74a9be089a81cc6bb7cc9c79af3c0e884427b00a9a127a3b5d0cf4c980c2dda5",
+        "capabilityFingerprint": "81a69ebb2573ceefb674ba94c719d91d92fb096eabf3960985af5bdfbcde22b5",
         "value": "contract-only",
         "sourceReference": "contract:docs/adr/0072-event-buffer-format-configuration.md:primary-ab-observation"
       }
@@ -1692,25 +1692,25 @@
       "icCountVariant": "2-plus-ic",
       "mapVariant": "nt51950-ab-cascade-maps",
       "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
-      "capabilityFingerprint": "affe308c3f37457a88d8f6c3115adeb32fc5bbb8821cdaeabcda48ac3f1a3e19",
+      "capabilityFingerprint": "559956000ef8cb3aaa0cd6ede6f6d5818b332684f5f286f2b817da4568fc592a",
       "authoring": {
         "decisionId": "nt51950-ab-cascade-authoring-v110-bank",
         "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
-        "capabilityFingerprint": "affe308c3f37457a88d8f6c3115adeb32fc5bbb8821cdaeabcda48ac3f1a3e19",
+        "capabilityFingerprint": "559956000ef8cb3aaa0cd6ede6f6d5818b332684f5f286f2b817da4568fc592a",
         "value": "available",
         "sourceReference": "owner-decision:2026-09-21:partial-ab-bank-consolidation"
       },
       "publication": {
         "decisionId": "nt51950-ab-cascade-publication-v110-bank",
         "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
-        "capabilityFingerprint": "affe308c3f37457a88d8f6c3115adeb32fc5bbb8821cdaeabcda48ac3f1a3e19",
+        "capabilityFingerprint": "559956000ef8cb3aaa0cd6ede6f6d5818b332684f5f286f2b817da4568fc592a",
         "value": "candidate",
         "sourceReference": "owner-decision:2026-09-21:partial-ab-bank-consolidation"
       },
       "evidence": {
         "decisionId": "nt51950-ab-cascade-evidence-v110-bank",
         "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
-        "capabilityFingerprint": "affe308c3f37457a88d8f6c3115adeb32fc5bbb8821cdaeabcda48ac3f1a3e19",
+        "capabilityFingerprint": "559956000ef8cb3aaa0cd6ede6f6d5818b332684f5f286f2b817da4568fc592a",
         "value": "contract-only",
         "sourceReference": "owner-decision:2026-09-21:partial-ab-bank-consolidation"
       }
@@ -1953,25 +1953,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51951-ab-merge-1024k",
       "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
-      "capabilityFingerprint": "78fca93b4f32b002e7b9d8af24ef270457f69e0d3126e562cee6aac4c13a3270",
+      "capabilityFingerprint": "d0d38b5b53fd03e263359d4948e02f419123ba6212c4d1581f64831a34eb2904",
       "authoring": {
         "decisionId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-authoring-v116-primary",
         "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
-        "capabilityFingerprint": "78fca93b4f32b002e7b9d8af24ef270457f69e0d3126e562cee6aac4c13a3270",
+        "capabilityFingerprint": "d0d38b5b53fd03e263359d4948e02f419123ba6212c4d1581f64831a34eb2904",
         "value": "available",
         "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-primary-observation"
       },
       "publication": {
         "decisionId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-publication-v116-primary",
         "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
-        "capabilityFingerprint": "78fca93b4f32b002e7b9d8af24ef270457f69e0d3126e562cee6aac4c13a3270",
+        "capabilityFingerprint": "d0d38b5b53fd03e263359d4948e02f419123ba6212c4d1581f64831a34eb2904",
         "value": "supported",
         "sourceReference": "owner-decision:2026-09-14:v1.1.6-ab-primary-observation"
       },
       "evidence": {
         "decisionId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-evidence-v116-primary",
         "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
-        "capabilityFingerprint": "78fca93b4f32b002e7b9d8af24ef270457f69e0d3126e562cee6aac4c13a3270",
+        "capabilityFingerprint": "d0d38b5b53fd03e263359d4948e02f419123ba6212c4d1581f64831a34eb2904",
         "value": "contract-only",
         "sourceReference": "contract:docs/adr/0072-event-buffer-format-configuration.md:primary-ab-observation"
       }
@@ -2359,25 +2359,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51950-ab-merge-512k",
       "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
-      "capabilityFingerprint": "7598daef4291217ed1f575e7d49584299eede2a64d81e5bc494131a4ee559c76",
+      "capabilityFingerprint": "905b2c62c5f78681fb1bfe35282acac53165bfd42ffa44f232f06b4a6efa9593",
       "authoring": {
         "decisionId": "nt51950-ab-ctrlram-replace-1-ic-authoring-v1",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
-        "capabilityFingerprint": "7598daef4291217ed1f575e7d49584299eede2a64d81e5bc494131a4ee559c76",
+        "capabilityFingerprint": "905b2c62c5f78681fb1bfe35282acac53165bfd42ffa44f232f06b4a6efa9593",
         "value": "available",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       },
       "publication": {
         "decisionId": "nt51950-ab-ctrlram-replace-1-ic-publication-v1",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
-        "capabilityFingerprint": "7598daef4291217ed1f575e7d49584299eede2a64d81e5bc494131a4ee559c76",
+        "capabilityFingerprint": "905b2c62c5f78681fb1bfe35282acac53165bfd42ffa44f232f06b4a6efa9593",
         "value": "candidate",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       },
       "evidence": {
         "decisionId": "nt51950-ab-ctrlram-replace-1-ic-evidence-v1",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
-        "capabilityFingerprint": "7598daef4291217ed1f575e7d49584299eede2a64d81e5bc494131a4ee559c76",
+        "capabilityFingerprint": "905b2c62c5f78681fb1bfe35282acac53165bfd42ffa44f232f06b4a6efa9593",
         "value": "contract-only",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       }
@@ -2388,25 +2388,25 @@
       "icCountVariant": "2-ic",
       "mapVariant": "nt51950-ab-merge-1024k",
       "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
-      "capabilityFingerprint": "64b7283c22b9dec04f51a2cf3aa34cb56347abc00abd6be32789f6bfa7882822",
+      "capabilityFingerprint": "efded7f6606ee8753b5b635b1e8af53909629a256709d3409f50083881f99a75",
       "authoring": {
         "decisionId": "nt51950-ab-ctrlram-replace-2-ic-authoring-v1",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
-        "capabilityFingerprint": "64b7283c22b9dec04f51a2cf3aa34cb56347abc00abd6be32789f6bfa7882822",
+        "capabilityFingerprint": "efded7f6606ee8753b5b635b1e8af53909629a256709d3409f50083881f99a75",
         "value": "available",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       },
       "publication": {
         "decisionId": "nt51950-ab-ctrlram-replace-2-ic-publication-v1",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
-        "capabilityFingerprint": "64b7283c22b9dec04f51a2cf3aa34cb56347abc00abd6be32789f6bfa7882822",
+        "capabilityFingerprint": "efded7f6606ee8753b5b635b1e8af53909629a256709d3409f50083881f99a75",
         "value": "candidate",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       },
       "evidence": {
         "decisionId": "nt51950-ab-ctrlram-replace-2-ic-evidence-v1",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
-        "capabilityFingerprint": "64b7283c22b9dec04f51a2cf3aa34cb56347abc00abd6be32789f6bfa7882822",
+        "capabilityFingerprint": "efded7f6606ee8753b5b635b1e8af53909629a256709d3409f50083881f99a75",
         "value": "contract-only",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       }
@@ -2417,25 +2417,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51951-ab-merge-1024k",
       "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
-      "capabilityFingerprint": "51dcd41ee4e3066b15250988b200d4a21a0cf0d12e751994e4faa7f18b6f7067",
+      "capabilityFingerprint": "a830b7275e0413f2cd128dc274602e59d7d43e5f7e58c066bd3703ebe3ad802f",
       "authoring": {
         "decisionId": "nt51951-ab-ctrlram-replace-1-ic-authoring-v1",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
-        "capabilityFingerprint": "51dcd41ee4e3066b15250988b200d4a21a0cf0d12e751994e4faa7f18b6f7067",
+        "capabilityFingerprint": "a830b7275e0413f2cd128dc274602e59d7d43e5f7e58c066bd3703ebe3ad802f",
         "value": "available",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       },
       "publication": {
         "decisionId": "nt51951-ab-ctrlram-replace-1-ic-publication-v1",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
-        "capabilityFingerprint": "51dcd41ee4e3066b15250988b200d4a21a0cf0d12e751994e4faa7f18b6f7067",
+        "capabilityFingerprint": "a830b7275e0413f2cd128dc274602e59d7d43e5f7e58c066bd3703ebe3ad802f",
         "value": "candidate",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       },
       "evidence": {
         "decisionId": "nt51951-ab-ctrlram-replace-1-ic-evidence-v1",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
-        "capabilityFingerprint": "51dcd41ee4e3066b15250988b200d4a21a0cf0d12e751994e4faa7f18b6f7067",
+        "capabilityFingerprint": "a830b7275e0413f2cd128dc274602e59d7d43e5f7e58c066bd3703ebe3ad802f",
         "value": "contract-only",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       }
@@ -2446,25 +2446,25 @@
       "icCountVariant": "2-ic",
       "mapVariant": "nt51951-ab-merge-1024k",
       "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k",
-      "capabilityFingerprint": "ba736aaddc6ee201f18a0d176534b76a321115a4759abbf65ff455207b02c5b8",
+      "capabilityFingerprint": "fd56dff989afedd31ea39477a46363e7500c77e50965e3926a9435ab2ad77218",
       "authoring": {
         "decisionId": "nt51951-ab-ctrlram-replace-2-ic-authoring-v1",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k",
-        "capabilityFingerprint": "ba736aaddc6ee201f18a0d176534b76a321115a4759abbf65ff455207b02c5b8",
+        "capabilityFingerprint": "fd56dff989afedd31ea39477a46363e7500c77e50965e3926a9435ab2ad77218",
         "value": "available",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       },
       "publication": {
         "decisionId": "nt51951-ab-ctrlram-replace-2-ic-publication-v1",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k",
-        "capabilityFingerprint": "ba736aaddc6ee201f18a0d176534b76a321115a4759abbf65ff455207b02c5b8",
+        "capabilityFingerprint": "fd56dff989afedd31ea39477a46363e7500c77e50965e3926a9435ab2ad77218",
         "value": "candidate",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       },
       "evidence": {
         "decisionId": "nt51951-ab-ctrlram-replace-2-ic-evidence-v1",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k",
-        "capabilityFingerprint": "ba736aaddc6ee201f18a0d176534b76a321115a4759abbf65ff455207b02c5b8",
+        "capabilityFingerprint": "fd56dff989afedd31ea39477a46363e7500c77e50965e3926a9435ab2ad77218",
         "value": "contract-only",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
       }
