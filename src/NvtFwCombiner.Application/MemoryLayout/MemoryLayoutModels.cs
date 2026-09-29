@@ -105,6 +105,8 @@ public sealed record MemoryLayoutContentSource
     public string SourceSlotId { get; }
     /// <summary>Equality token for the same accepted path and stamp within this snapshot.</summary>
     public string ArtifactIdentity { get; }
+    /// <summary>Typed canonical input identity, independent of map role.</summary>
+    public MemoryArtifactKind ArtifactKind => MemoryLayoutProjector.GetArtifactKind(SourceSpaceId);
 }
 
 /// <summary>Original local declaration and its checked placement; not a synthesized firmware region.</summary>
@@ -139,7 +141,7 @@ public sealed class MemoryLayoutBankRegion
 }
 
 /// <summary>One immutable checked segment in the canonical output address space.</summary>
-public sealed class MemoryLayoutSegment
+public sealed partial class MemoryLayoutSegment
 {
     private MemoryLayoutSegment(
         string segmentId,
@@ -164,7 +166,8 @@ public sealed class MemoryLayoutSegment
         ReplaceRegionGroup regionGroup,
         CtrlRamRegionRole ctrlRamRegionRole,
         MemoryLayoutContentSource? contentSource,
-        MemoryLayoutBankRegion? bankRegion = null)
+        MemoryLayoutBankRegion? bankRegion = null,
+        byte? initializationFillByte = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
@@ -236,6 +239,7 @@ public sealed class MemoryLayoutSegment
         RegionGroup = regionGroup;
         CtrlRamRegionRole = ctrlRamRegionRole;
         BankRegion = bankRegion;
+        InitializationFillByte = sourceSpaceId is null && operations.Length == 0 ? initializationFillByte : null;
     }
 
     /// <summary>Stable projection-local identity.</summary>
@@ -310,7 +314,8 @@ public sealed class MemoryLayoutSegment
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
         CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
         MemoryLayoutContentSource? contentSource = null,
-        MemoryLayoutBankRegion? bankRegion = null)
+        MemoryLayoutBankRegion? bankRegion = null,
+        byte? initializationFillByte = null)
     {
         return new(
             segmentId,
@@ -335,7 +340,8 @@ public sealed class MemoryLayoutSegment
             regionGroup,
             ctrlRamRegionRole,
             contentSource,
-            bankRegion);
+            bankRegion,
+            initializationFillByte);
     }
 
     internal static MemoryLayoutSegment CreateLogical(
@@ -359,7 +365,8 @@ public sealed class MemoryLayoutSegment
         string logicalCoverageGroupId,
         ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
         CtrlRamRegionRole ctrlRamRegionRole = CtrlRamRegionRole.Other,
-        MemoryLayoutContentSource? contentSource = null)
+        MemoryLayoutContentSource? contentSource = null,
+        byte? initializationFillByte = null)
     {
         return new(
             segmentId,
@@ -383,7 +390,8 @@ public sealed class MemoryLayoutSegment
             preservationDetails,
             regionGroup,
             ctrlRamRegionRole,
-            contentSource);
+            contentSource,
+            initializationFillByte: initializationFillByte);
     }
 }
 

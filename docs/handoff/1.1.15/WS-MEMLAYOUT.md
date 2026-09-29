@@ -116,3 +116,53 @@ because checks and mandatory review have not passed.
 Next: commander/owner decides whether to resume this retained local patch;
 first inspect the canonical resolved field identities and finish the new test's
 formatting, then run affected gates before proceeding to stages 2 or 3.
+
+### 2026-09-29 — stage 1 completed after authorized resumption
+
+State: locally verified; this coherent commit contains the retained migration,
+DP fields, corrected tests, bug resolutions and checkpoint. Base remains
+99e3efd7e; prior stop checkpoint is 37c6c9586. Commander authorized both test
+corrections and reset their retry counters. This turn's total limit is eight
+hours; each stage retains its four-hour limit. Single writer, no delegation.
+
+Decision 192 is supplied by the current owner instruction. Its named remote ref
+is absent locally; no fetch was attempted. Projection uses declared DP owners,
+including command fields, without IC-specific rules. NT51950/951 profile
+declarations remain the separate R3 workstream's responsibility.
+
+Evidence (all with user test-area TEMP/TMP/TMPDIR; no full-suite claim):
+
+- Application `--filter FullyQualifiedName~MemoryLayout`: 62 passed, 0 failed;
+  `evidence/1.1.15/test-results/stage1-resume-app.trx`.
+- Bootstrap `--filter FullyQualifiedName~AbCtrlRamMemoryLayoutTests`: 12 passed,
+  0 failed; `stage1-resume-bootstrap.trx` in that directory. Both resolved bank
+  IDs and exact flash ranges are inside DP, not standalone slices. Standard
+  independently retains `Unmapped [0x6000,0x7000)`.
+- UiSmoke `--filter FullyQualifiedName~MemoryCoverage|FullyQualifiedName~MemorySourcePresentation|FullyQualifiedName~MemoryPostprocessing|FullyQualifiedName~DpPerspective`:
+  final 191 passed, 0 failed; `stage1-final-ui.trx`. The first resumed run was
+  190/1 because the style fixture omitted typed DisplayGroup.Base; its bug is
+  resolved. Two exploratory size cleanups failed analyzers and were corrected.
+- Architecture `--filter FullyQualifiedName~Memory|FullyQualifiedName~ReplaceRegionGroupsUseTypedGroupsAndStableSourceIdentity|FullyQualifiedName~ProjectDependencyTests`:
+  15 passed, 0 failed; `stage1-resume-architecture-restored.trx`. Initial
+  no-restore invocation lacked assets; locked restore supplied them unchanged.
+- `python scripts/verify.py --structure-only`: PASS;
+  `evidence/1.1.15/stage1-final-structure.log`. Earlier hotspot failures remain
+  in the resumption evidence; no analyzer, baseline or policy was disabled.
+- Nonblank code-size versus base: production +147, non-UI runtime +240,
+  Presentation -93, tests +177. New typed contracts and invariant tests explain
+  the growth. Existing hotspot aggregates are unchanged. Details:
+  `evidence/1.1.15/stage1-final-code-size.json`.
+- Scoped author review traced all six migration items to Application facts and
+  their consumers; no firmware bytes/ranges/order/integrity/support, profile,
+  release or CI change. DP projection retains exact declared field references.
+  Unknown attribution remains explicit; source-less writes are not initialized.
+  `git diff --check` passed. Tests are complete before commit.
+
+Open: independent fixed-head Claude architecture/UI review and owner visual
+acceptance remain with commander/owner. Scoped author Polytail has no open
+correctness finding; overall R2 review remains incomplete pending that reviewer.
+Before screenshots are retained; after screenshots and latency remain for
+stages 2/3. No integration or publication performed.
+
+Next: stage 2 red/green for passive legend, transparent-surface removal,
+passive-close recovery and real keyboard traversal under decision 189.

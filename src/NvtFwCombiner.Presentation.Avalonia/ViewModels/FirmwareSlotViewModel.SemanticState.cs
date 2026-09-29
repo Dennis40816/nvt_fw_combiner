@@ -7,13 +7,13 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal sealed partial class FirmwareSlotViewModel
 {
     private ShellTextResources _issueText = ShellTextResources.For(ShellLanguage.English);
-    private AuthoringInputSlotStatus? _inputIssueStatus;
-    internal string? InspectedSlotId => _inputIssueStatus?.SlotId;
+    internal AuthoringInputSlotStatus? InputIssueStatus { get; private set; }
+    internal string? InspectedSlotId => InputIssueStatus?.SlotId;
 
     public bool HasIssueCard => IsSemanticStateError || IsSemanticStateWarning;
 
     public IssueCardViewModel? IssueCard => !HasIssueCard ? null
-        : !SelectionReadinessOwnsSemanticText && _inputIssueStatus is { } status
+        : !SelectionReadinessOwnsSemanticText && InputIssueStatus is { } status
             ? _issueText.CreateInputIssueCard(status, Title)
             : _issueText.CreateIssueCard(Title, SemanticStateDetail, IsSemanticStateError);
 
@@ -151,7 +151,7 @@ internal sealed partial class FirmwareSlotViewModel
 
     partial void OnFilePathChanged(string? value)
     {
-        _inputIssueStatus = null;
+        InputIssueStatus = null;
         ClearCurrentInspectionProjection();
         IsSemanticStateDetailExpanded = false;
         NotifySemanticStateChanged();

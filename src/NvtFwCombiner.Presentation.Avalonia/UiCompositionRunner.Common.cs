@@ -99,7 +99,9 @@ internal static partial class UiCompositionRunner
                 MemoryCoverageFillRole.Neutral, range.Length,
                 text: text, rangeStart: range.Start, rangeEndExclusive: range.EndExclusive,
                 addressRangeLabel: FormatMemoryAddressRange(range),
-                contentRole: section.ContentRole, displayTitle: title, addressSpaceId: section.AddressSpaceId);
+                contentRole: section.ContentRole, displayTitle: title, addressSpaceId: section.AddressSpaceId,
+                processingFacts: [.. section.Fields.Select(field => new MemoryRegionFact(field.CanonicalRegion.RegionId,
+                    FormattableString.Invariant($"{field.AddressSpaceId} [0x{field.Range.Start:X},0x{field.Range.EndExclusive:X})")))]);
         })];
     }
 
@@ -110,30 +112,27 @@ internal static partial class UiCompositionRunner
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetPendingMemoryDisplay(
         ShellTextResources text,
         IEnumerable<FirmwareSlotViewModel> slots,
-        MemoryPendingPrerequisite fallbackPrerequisite)
+        MemoryPendingPrerequisite fallbackPrerequisite,
+        ActiveSessionSnapshot? authoring = null)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(slots);
-        FirmwareSlotViewModel? pending = slots.FirstOrDefault(static slot =>
-                slot.AddressSpaceId == CompositionAddressSpaceIds.ReferenceBase && !slot.HasFile) ??
-            slots.FirstOrDefault(static slot => slot.HasFile && slot.IsInputInspectionBlocking) ??
-            slots.FirstOrDefault(static slot => !slot.IsOptional && !slot.HasFile);
-        bool blocked = pending is { HasFile: true, IsInputInspectionBlocking: true };
-        (string waitingLabel, string detail) = blocked
-            ? text.GetBlockingInputText(
-                pending!.AddressSpaceId,
-                pending.Title,
-                pending.InputInspectionStatus)
-            : pending is null
-                ? text.GetPendingInputText(fallbackPrerequisite)
-                : text.GetPendingInputText(pending.AddressSpaceId, pending.Title);
+        FirmwareSlotViewModel[] current = [.. slots];
+        MemoryLayoutPendingDisplay projection = MemoryLayoutProjector.ProjectPending(authoring,
+            current.Select(static slot => new MemoryLayoutPendingInput(slot.SlotId, slot.AddressSpaceId,
+                !slot.DeclaredIsOptional, slot.FilePath, slot.InputIssueStatus, slot.CompiledSlotId)), fallbackPrerequisite);
+        FirmwareSlotViewModel? pending = current.FirstOrDefault(slot => slot.SlotId == projection.SlotId);
+        (string waitingLabel, string detail) = projection.Readiness == MemoryLayoutReadiness.Blocked
+            ? text.GetBlockingInputText(projection.ArtifactKind, pending!.Title, pending.InputInspectionStatus)
+            : pending is null ? text.GetPendingInputText(projection.FallbackPrerequisite)
+            : text.GetPendingInputText(projection.ArtifactKind, pending.Title);
         string unavailableLabel = text.NotAvailableLabel;
         return (
             waitingLabel,
             [new MemoryMapRowViewModel(
                 unavailableLabel,
                 new MemoryPlanSource(MemoryPlanSourceKind.NoOutput),
-                blocked ? MemoryPlanActionKind.Blocked : MemoryPlanActionKind.Browse,
+                projection.Action,
                 new MemoryPlanSource(MemoryPlanSourceKind.Localized, waitingLabel),
                 detail,
                 text)],
@@ -141,11 +140,9 @@ internal static partial class UiCompositionRunner
                 unavailableLabel,
                 waitingLabel,
                 detail,
-                blocked ? MemoryCoverageFillRole.Conflict : MemoryCoverageFillRole.Neutral,
+                projection.Severity == MemoryDiagnosticSeverity.Error ? MemoryCoverageFillRole.Conflict : MemoryCoverageFillRole.Neutral,
                 300d,
-                diagnosticSeverity: blocked
-                    ? MemoryDiagnosticSeverity.Error
-                    : MemoryDiagnosticSeverity.Information,
+                diagnosticSeverity: projection.Severity,
                 text: text,
                 addressRangeLabel: unavailableLabel,
                 lengthLabel: string.Empty,
@@ -162,9 +159,9 @@ internal static partial class UiCompositionRunner
             candidate.Range.Contains(segment.Range));
         return new MemoryMapRowViewModel(
             FormatMemoryRange(segment.Range),
-            MemorySource(layout, before, text),
-            MemoryAction(segment),
-            MemorySource(layout, segment, text),
+            MemorySource(before, text),
+            segment.Action,
+            MemorySource(segment, text),
             MemoryDetail(layout, segment, text),
             text);
     }
@@ -187,12 +184,11 @@ internal static partial class UiCompositionRunner
         MemoryLayoutSegment segment,
         ShellTextResources text)
     {
-        (bool isInitialization, _, _) = text.GetMemoryUnassignedSource(layout.BlankFillByte, segment.ContributingOperations);
-        bool initialized = segment.SourceSpaceId is null && isInitialization;
+        bool initialized = segment.InitializationFillByte.HasValue;
         string sourceLabel = initialized
-            ? $"0x{layout.BlankFillByte:X2}"
+            ? $"0x{segment.InitializationFillByte:X2}"
             : text.GetMemoryPlanSourceLabel(segment.ContentSource is { } content && content.SourceSpaceId != segment.SourceSpaceId
-                ? AddressSpaceSource(content.SourceSpaceId) : MemorySource(layout, segment, text));
+                ? ArtifactSource(content.ArtifactKind, content.SourceSpaceId) : MemorySource(segment, text));
         string logicalSourceLabel = segment.ContentRole == MemoryContentRole.CtrlRam
             ? ShellTextResources.GetCtrlRamRegionTechnicalLabel(segment.CtrlRamRegionRole)
             : sourceLabel;
@@ -205,14 +201,14 @@ internal static partial class UiCompositionRunner
             disposition: segment.Disposition,
             observedChange: segment.ObservedChange,
             diagnosticSeverity: segment.DiagnosticSeverity,
-            usesBaseFirmwarePattern: segment.Disposition == MemoryWorkflowDisposition.Kept ||
-                segment.SourceSpaceId == CompositionAddressSpaceIds.ReferenceBase,
+            usesBaseFirmwarePattern: segment.IsReferenceContent,
             regionId: segment.RegionId,
             sourceSlotId: segment.SourceSlotId,
             logicalSourceLabel: logicalSourceLabel,
             preservationDetails: segment.PreservationDetails,
             text: text,
             regionGroup: segment.RegionGroup,
+            displayGroup: MemoryLayoutProjector.GetDisplayGroup(layout.AfterSegments.Where(item => item.IsPrimaryContent && item.LogicalCoverageGroupId == segment.LogicalCoverageGroupId).DefaultIfEmpty(segment)),
             rangeStart: segment.Range.Start,
             rangeEndExclusive: segment.Range.EndExclusive,
             addressSpaceId: segment.AddressSpaceId,
@@ -220,7 +216,7 @@ internal static partial class UiCompositionRunner
             contentArtifactIdentity: segment.ContentSource?.ArtifactIdentity,
             addressRangeLabel: FormatMemoryAddressRange(segment.Range),
             lengthLabel: FormatMemoryLength(segment.Range),
-            compactDetail: MemoryCompactDetail(layout, segment, sourceLabel, text),
+            compactDetail: MemoryCompactDetail(segment, sourceLabel, text),
             logicalCoverageGroupId: segment.LogicalCoverageGroupId,
             contentRole: segment.ContentRole,
             ctrlRamRegionRole: segment.CtrlRamRegionRole,
@@ -253,37 +249,10 @@ internal static partial class UiCompositionRunner
             logicalCoverageGroupId: $"conflict:{conflict.ConflictId}");
     }
 
-    private static MemoryPlanActionKind MemoryAction(MemoryLayoutSegment segment)
+    private static MemoryPlanSource MemorySource(MemoryLayoutSegment segment, ShellTextResources text)
     {
-        return segment.SourceSpaceId == CompositionAddressSpaceIds.ReferenceBase &&
-            segment.Disposition == MemoryWorkflowDisposition.WillReplace
-                ? MemoryPlanActionKind.Restore
-                : segment.SourceSpaceId == CompositionAddressSpaceIds.TpBWork
-                    ? MemoryPlanActionKind.TransformAndOverlay
-                    : segment.Disposition switch
-                    {
-                        MemoryWorkflowDisposition.WillWrite =>
-                            segment.ProcessorEffect == MemoryProcessorEffect.DeclaredWrite
-                                ? MemoryPlanActionKind.Postbuild
-                                : MemoryPlanActionKind.Copy,
-                        MemoryWorkflowDisposition.WillReplace =>
-                            segment.ProcessorEffect == MemoryProcessorEffect.DeclaredWrite
-                                ? MemoryPlanActionKind.ReplaceAndCrc
-                                : MemoryPlanActionKind.Replace,
-                        MemoryWorkflowDisposition.Kept => MemoryPlanActionKind.Preserve,
-                        MemoryWorkflowDisposition.Blank or MemoryWorkflowDisposition.Resolved =>
-                            MemoryPlanActionKind.Initialize,
-                        MemoryWorkflowDisposition.DpAbBase => MemoryPlanActionKind.Copy,
-                        MemoryWorkflowDisposition.TpaOverlay => MemoryPlanActionKind.Overlay,
-                        MemoryWorkflowDisposition.TpbOverlay => MemoryPlanActionKind.TransformAndOverlay,
-                        _ => MemoryPlanActionKind.Project,
-                    };
-    }
-
-    private static MemoryPlanSource MemorySource(MemoryLayoutSnapshot layout, MemoryLayoutSegment segment, ShellTextResources text)
-    {
-        (bool isInitialization, string value, _) = text.GetMemoryUnassignedSource(layout.BlankFillByte, segment.ContributingOperations);
-        return IsReferenceKept(segment)
+        (bool isInitialization, string value, _) = text.GetMemoryUnassignedSource(segment.InitializationFillByte);
+        return segment.IsReferenceContent
                 ? new(MemoryPlanSourceKind.BaseFirmware)
                 : segment.SourceSpaceId is { } sourceSpaceId
                     ? DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(sourceSpaceId, out string sourceLabel)
@@ -292,7 +261,7 @@ internal static partial class UiCompositionRunner
                             segment.ContentRole == MemoryContentRole.CtrlRam
                                 ? DynamicCtrlRamReplacementIds.FormatRegionDisplayLabel(segment.BankRegion?.LocalRegion.RegionId ?? segment.RegionId)
                                 : sourceLabel)
-                        : AddressSpaceSource(sourceSpaceId)
+                        : ArtifactSource(segment.SourceKind, sourceSpaceId)
                     : new(MemoryPlanSourceKind.Localized, isInitialization
                         ? $"{text.MemoryInitializationLabel}: {value}"
                         : value);
@@ -310,62 +279,46 @@ internal static partial class UiCompositionRunner
     }
 
     private static string MemoryCompactDetail(
-        MemoryLayoutSnapshot layout,
         MemoryLayoutSegment segment,
         string sourceLabel,
         ShellTextResources text)
     {
-        string compactSourceLabel = segment.SourceSpaceId switch
+        string compactSourceLabel = segment.SourceKind switch
         {
-            CompositionAddressSpaceIds.DpReplacement => "DP BIN",
-            CompositionAddressSpaceIds.LdcReplacement => "LDC BIN",
-            _ => sourceLabel,
+            MemoryArtifactKind.DpReplacement => "DP BIN",
+            MemoryArtifactKind.LdcReplacement => "LDC BIN",
+            MemoryArtifactKind.Other or MemoryArtifactKind.Dp or MemoryArtifactKind.Tp or MemoryArtifactKind.Ldc or
+                MemoryArtifactKind.Reference or MemoryArtifactKind.DpAb or MemoryArtifactKind.TpA or MemoryArtifactKind.TpB or MemoryArtifactKind.TpBWork => sourceLabel,
+            _ => throw new ArgumentOutOfRangeException(nameof(segment)),
         };
-        return segment.SourceSpaceId is null
-            ? text.GetMemoryUnassignedSource(layout.BlankFillByte, segment.ContributingOperations).Detail
-            : IsReferenceKept(segment)
-            ? text.GetOutputLayoutBaseDetail(
-                segment.Disposition == MemoryWorkflowDisposition.WillReplace)
-            : segment.ContentRole == MemoryContentRole.CustomerInformation
-            ? text.GetMemoryPlanDetail(segment.SourceSpaceId switch
-            {
-                CompositionAddressSpaceIds.DpInput or CompositionAddressSpaceIds.DpAbInput =>
-                    MemoryPlanDetailKind.ProtectedCustomerInformationFromDp,
-                CompositionAddressSpaceIds.DpReplacement or
-                    CompositionAddressSpaceIds.InitialCodeReplacement =>
-                        MemoryPlanDetailKind.ProtectedCustomerInformationFromDpReplacement,
-                _ => MemoryPlanDetailKind.ReservedUnwritten,
-            })
-            : segment.SourceSpaceId switch
-            {
-                CompositionAddressSpaceIds.DpInput or CompositionAddressSpaceIds.DpAbInput =>
-                    text.GetMemoryPlanDetail(MemoryPlanDetailKind.CopiedFromDp),
-                CompositionAddressSpaceIds.TpInput or CompositionAddressSpaceIds.TpAInput =>
-                    text.GetMemoryPlanDetail(MemoryPlanDetailKind.OverlaidFromTp),
-                CompositionAddressSpaceIds.ReferenceBase => text.GetOutputLayoutBaseDetail(
-                    segment.Disposition == MemoryWorkflowDisposition.WillReplace),
-                _ => text.FormatOutputLayoutSourceDetail(compactSourceLabel, segment.Disposition),
-            };
+        return segment.DetailKind switch
+        {
+            MemoryPlanDetailKind.Initialization or MemoryPlanDetailKind.Unassigned => text.GetMemoryUnassignedSource(segment.InitializationFillByte).Detail,
+            MemoryPlanDetailKind.ReferenceKept => text.GetOutputLayoutBaseDetail(false),
+            MemoryPlanDetailKind.ReferenceRestored => text.GetOutputLayoutBaseDetail(true),
+            MemoryPlanDetailKind.Source => text.FormatOutputLayoutSourceDetail(compactSourceLabel, segment.Disposition),
+            MemoryPlanDetailKind.ProtectedCustomerInformationFromDp or MemoryPlanDetailKind.ProtectedCustomerInformationFromDpReplacement or
+                MemoryPlanDetailKind.ReservedUnwritten or MemoryPlanDetailKind.Unmapped or MemoryPlanDetailKind.CopiedFromDp or
+                MemoryPlanDetailKind.OverlaidFromTp => text.GetMemoryPlanDetail(segment.DetailKind),
+            _ => throw new ArgumentOutOfRangeException(nameof(segment)),
+        };
     }
 
-    private static MemoryPlanSource AddressSpaceSource(string addressSpaceId)
+    private static MemoryPlanSource ArtifactSource(MemoryArtifactKind kind, string identity)
     {
-        return addressSpaceId switch
+        return kind switch
         {
-            CompositionAddressSpaceIds.DpInput => new(MemoryPlanSourceKind.DpBin),
-            CompositionAddressSpaceIds.TpInput => new(MemoryPlanSourceKind.TpBin),
-            CompositionAddressSpaceIds.LdcInput => new(MemoryPlanSourceKind.LdcBin),
-            CompositionAddressSpaceIds.ReferenceBase => new(MemoryPlanSourceKind.BaseFirmware),
-            CompositionAddressSpaceIds.DpReplacement or
-                CompositionAddressSpaceIds.InitialCodeReplacement =>
-                    new(MemoryPlanSourceKind.DpReplacementBin),
-            CompositionAddressSpaceIds.LdcReplacement =>
-                new(MemoryPlanSourceKind.LdcReplacementBin),
-            CompositionAddressSpaceIds.DpAbInput => new(MemoryPlanSourceKind.DpAb),
-            CompositionAddressSpaceIds.TpAInput => new(MemoryPlanSourceKind.Tpa),
-            CompositionAddressSpaceIds.TpBInput or CompositionAddressSpaceIds.TpBWork =>
-                new(MemoryPlanSourceKind.Tpb),
-            _ => new(MemoryPlanSourceKind.Technical, addressSpaceId),
+            MemoryArtifactKind.Dp => new(MemoryPlanSourceKind.DpBin),
+            MemoryArtifactKind.DpReplacement => new(MemoryPlanSourceKind.DpReplacementBin),
+            MemoryArtifactKind.Tp => new(MemoryPlanSourceKind.TpBin),
+            MemoryArtifactKind.Ldc => new(MemoryPlanSourceKind.LdcBin),
+            MemoryArtifactKind.LdcReplacement => new(MemoryPlanSourceKind.LdcReplacementBin),
+            MemoryArtifactKind.Reference => new(MemoryPlanSourceKind.BaseFirmware),
+            MemoryArtifactKind.DpAb => new(MemoryPlanSourceKind.DpAb),
+            MemoryArtifactKind.TpA => new(MemoryPlanSourceKind.Tpa),
+            MemoryArtifactKind.TpB or MemoryArtifactKind.TpBWork => new(MemoryPlanSourceKind.Tpb),
+            MemoryArtifactKind.Other => new(MemoryPlanSourceKind.Technical, identity),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
     }
 
@@ -393,7 +346,7 @@ internal static partial class UiCompositionRunner
             return ResolveCtrlRamCoverageFillRole(segment.CtrlRamRegionRole);
         }
 
-        if (IsReferenceKept(segment))
+        if (segment.IsReferenceContent)
         {
             return MemoryCoverageFillRole.Kept;
         }
@@ -403,19 +356,14 @@ internal static partial class UiCompositionRunner
             return MemoryCoverageFillRole.Neutral;
         }
 
-        MemoryContentRole role = (segment.ContentSource?.SourceSpaceId ?? segment.SourceSpaceId) switch
+        MemoryContentRole role = segment.ContentAttribution switch
         {
-            CompositionAddressSpaceIds.DpInput or
-            CompositionAddressSpaceIds.DpReplacement or
-            CompositionAddressSpaceIds.DpAbInput or
-            CompositionAddressSpaceIds.InitialCodeReplacement => MemoryContentRole.Dp,
-            CompositionAddressSpaceIds.TpInput or
-            CompositionAddressSpaceIds.TpAInput => MemoryContentRole.Tp,
-            CompositionAddressSpaceIds.TpBInput or
-            CompositionAddressSpaceIds.TpBWork => MemoryContentRole.TpBackup,
-            CompositionAddressSpaceIds.LdcInput or
-            CompositionAddressSpaceIds.LdcReplacement => MemoryContentRole.Ldc,
-            _ => segment.ContentRole,
+            MemoryArtifactKind.Dp or MemoryArtifactKind.DpReplacement or MemoryArtifactKind.DpAb => MemoryContentRole.Dp,
+            MemoryArtifactKind.Tp or MemoryArtifactKind.TpA => MemoryContentRole.Tp,
+            MemoryArtifactKind.TpB or MemoryArtifactKind.TpBWork => MemoryContentRole.TpBackup,
+            MemoryArtifactKind.Ldc or MemoryArtifactKind.LdcReplacement => MemoryContentRole.Ldc,
+            MemoryArtifactKind.Other or MemoryArtifactKind.Reference => segment.ContentRole,
+            _ => throw new ArgumentOutOfRangeException(nameof(segment)),
         };
         return role switch
         {
@@ -447,12 +395,6 @@ internal static partial class UiCompositionRunner
             CtrlRamRegionRole.Other => MemoryCoverageFillRole.CtrlRam,
             _ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
         };
-    }
-
-    private static bool IsReferenceKept(MemoryLayoutSegment segment)
-    {
-        return segment.Disposition == MemoryWorkflowDisposition.Kept ||
-            segment.SourceSpaceId == CompositionAddressSpaceIds.ReferenceBase;
     }
 
     private static string ToRange(long start, long length)

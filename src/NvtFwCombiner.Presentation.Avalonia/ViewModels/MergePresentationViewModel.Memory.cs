@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -28,9 +29,7 @@ internal sealed partial class MergePresentationViewModel
                 AbCodeMergeMode => _abMergeSession.CurrentSnapshot,
                 _ => _standardMergeSession.CurrentSnapshot,
             };
-            (
-                string rangeLabel,
-                IReadOnlyList<MemoryMapRowViewModel> rows,
+            (string rangeLabel, IReadOnlyList<MemoryMapRowViewModel> rows,
                 IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
                     acceptedSession?.ExactCapability is null
                     ? UiCompositionRunner.GetPendingMemoryDisplay(
@@ -38,7 +37,8 @@ internal sealed partial class MergePresentationViewModel
                         IsGeneralMergeModeSelected ? [] : MergeSlots,
                         IsGeneralMergeModeSelected
                             ? MemoryPendingPrerequisite.GeneralMergeSourceMapping
-                            : MemoryPendingPrerequisite.DpBin)
+                            : MemoryPendingPrerequisite.DpBin,
+                        acceptedSession)
                     : UiCompositionRunner.GetMemoryDisplay(
                         _compositionServices,
                         acceptedSession,

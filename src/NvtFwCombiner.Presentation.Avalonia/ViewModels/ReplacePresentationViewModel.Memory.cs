@@ -214,7 +214,7 @@ internal sealed partial class ReplacePresentationViewModel
         if (acceptedSession?.ExactCapability is null)
         {
             result = UiCompositionRunner.GetPendingMemoryDisplay(
-                Text, ReplaceSlots, GetPendingReplaceMemoryPrerequisite());
+                Text, ReplaceSlots, GetPendingReplaceMemoryPrerequisite(), acceptedSession);
         }
         else
         {
@@ -364,7 +364,7 @@ internal sealed partial class ReplacePresentationViewModel
             ? UiCompositionRunner.GetPendingMemoryDisplay(
                 Text,
                 ReplaceSlots,
-                GetPendingReplaceMemoryPrerequisite())
+                GetPendingReplaceMemoryPrerequisite(), acceptedSession)
             : UiCompositionRunner.GetMemoryDisplay(_compositionServices, acceptedSession, Text);
     }
 

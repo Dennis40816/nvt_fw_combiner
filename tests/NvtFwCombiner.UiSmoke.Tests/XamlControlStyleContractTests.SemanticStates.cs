@@ -472,6 +472,7 @@ public sealed partial class XamlControlStyleContractTests
             disposition: Application.MemoryLayout.MemoryWorkflowDisposition.Kept,
             usesBaseFirmwarePattern: true,
             regionGroup: ReplaceRegionGroup.Common,
+            displayGroup: ReplaceRegionGroup.Base,
             logicalCoverageGroupId: "slot:reference-base");
         MemoryCoverageSegmentViewModel changed = new(
             "0x0010-0x0020",

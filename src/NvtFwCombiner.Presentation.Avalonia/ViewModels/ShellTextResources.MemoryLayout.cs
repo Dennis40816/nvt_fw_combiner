@@ -6,14 +6,6 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-internal enum MemoryPendingPrerequisite
-{
-    DpBin,
-    BaseBin,
-    CtrlRamReplacement,
-    GeneralMergeSourceMapping,
-}
-
 internal sealed partial class ShellTextResources
 {
     public string MemoryLayoutUnavailableTitle => SelectLanguage("Memory layout unavailable", "無法顯示 Memory Layout");
@@ -91,11 +83,9 @@ internal sealed partial class ShellTextResources
     public string MemorySourceNotAssignedLabel => SelectLanguage("Not assigned", "未指定");
     public string MemoryNoPlannedWritesDetail => SelectLanguage("No writes planned for this range.", "目前計畫沒有寫入此範圍。");
     public string MemorySourceNotAssignedDetail => SelectLanguage("No input source is assigned to this range.", "此範圍未指定輸入來源。");
-    public (bool IsInitialization, string Value, string Detail) GetMemoryUnassignedSource(
-        byte? blankFillByte, IReadOnlyList<CompositionOperation> contributingOperations)
+    public (bool IsInitialization, string Value, string Detail) GetMemoryUnassignedSource(byte? initializationFillByte)
     {
-        ArgumentNullException.ThrowIfNull(contributingOperations);
-        return blankFillByte is { } fill && contributingOperations.Count == 0
+        return initializationFillByte is { } fill
             ? (true, $"0x{fill:X2}", MemoryNoPlannedWritesDetail)
             : (false, MemorySourceNotAssignedLabel, MemorySourceNotAssignedDetail);
     }
@@ -119,10 +109,10 @@ internal sealed partial class ShellTextResources
     {
         return SelectLanguage($"Source: {sourceLabel}", $"來源：{sourceLabel}");
     }
-    public (string Label, string Detail) GetPendingInputText(string? addressSpaceId, string fallbackLabel)
+    public (string Label, string Detail) GetPendingInputText(MemoryArtifactKind artifactKind, string fallbackLabel)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fallbackLabel);
-        return FormatPendingInputText(GetInputLabel(addressSpaceId, fallbackLabel));
+        return FormatPendingInputText(GetInputLabel(artifactKind, fallbackLabel));
     }
 
     public (string Label, string Detail) GetPendingInputText(MemoryPendingPrerequisite prerequisite)
@@ -146,13 +136,13 @@ internal sealed partial class ShellTextResources
     }
 
     public (string Label, string Detail) GetBlockingInputText(
-        string? addressSpaceId,
+        MemoryArtifactKind artifactKind,
         string fallbackLabel,
         string diagnostic)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fallbackLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(diagnostic);
-        string inputLabel = GetInputLabel(addressSpaceId, fallbackLabel);
+        string inputLabel = GetInputLabel(artifactKind, fallbackLabel);
         return (
             SelectLanguage($"{inputLabel} needs attention", $"{inputLabel} 需要處理"),
             diagnostic);
@@ -167,15 +157,16 @@ internal sealed partial class ShellTextResources
                 $"載入並檢查 {inputLabel} 後即可顯示輸出配置。"));
     }
 
-    private static string GetInputLabel(string? addressSpaceId, string fallbackLabel)
+    private static string GetInputLabel(MemoryArtifactKind artifactKind, string fallbackLabel)
     {
-        return addressSpaceId switch
+        return artifactKind switch
         {
-            CompositionAddressSpaceIds.ReferenceBase => "Base BIN",
-            CompositionAddressSpaceIds.DpInput or CompositionAddressSpaceIds.DpAbInput => "DP BIN",
-            CompositionAddressSpaceIds.TpInput or CompositionAddressSpaceIds.TpAInput or
-                CompositionAddressSpaceIds.TpBInput => "TP BIN",
-            _ => fallbackLabel,
+            MemoryArtifactKind.Reference => "Base BIN",
+            MemoryArtifactKind.Dp or MemoryArtifactKind.DpAb => "DP BIN",
+            MemoryArtifactKind.Tp or MemoryArtifactKind.TpA or MemoryArtifactKind.TpB => "TP BIN",
+            MemoryArtifactKind.Other or MemoryArtifactKind.DpReplacement or MemoryArtifactKind.Ldc or
+                MemoryArtifactKind.LdcReplacement or MemoryArtifactKind.TpBWork => fallbackLabel,
+            _ => throw new ArgumentOutOfRangeException(nameof(artifactKind)),
         };
     }
 
@@ -326,6 +317,11 @@ internal sealed partial class ShellTextResources
     {
         return detail switch
         {
+            MemoryPlanDetailKind.Initialization => MemoryNoPlannedWritesDetail,
+            MemoryPlanDetailKind.Unassigned => MemorySourceNotAssignedDetail,
+            MemoryPlanDetailKind.ReferenceKept => GetOutputLayoutBaseDetail(false),
+            MemoryPlanDetailKind.ReferenceRestored => GetOutputLayoutBaseDetail(true),
+            MemoryPlanDetailKind.Source => throw new ArgumentException("Source detail requires the original source and disposition.", nameof(detail)),
             MemoryPlanDetailKind.ProtectedCustomerInformationFromDp => SelectLanguage(
                 "Supplied by DP BIN. TP overlay does not write here.",
                 "由 DP BIN 提供。TP 覆寫不會寫入此範圍。"),

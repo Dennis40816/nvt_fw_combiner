@@ -45,7 +45,7 @@ internal static class ReplaceRegionGroupBuilder
             CreateLogicalItems(segments, text);
 
         return logicalItems
-            .GroupBy(ResolveDisplayGroup)
+            .GroupBy(static item => item.Segments.Select(static segment => segment.DisplayGroup).Distinct().Single())
             .OrderBy(static group => group.Key)
             .Select(group =>
             {
@@ -83,26 +83,6 @@ internal static class ReplaceRegionGroupBuilder
                     group.Select(static entry => entry.Segment),
                     text)),
         ]);
-    }
-
-    private static ReplaceRegionGroup ResolveDisplayGroup(MemoryCoverageLogicalItemViewModel item)
-    {
-        if (!item.IsSelectedForWrite && item.UsesKeptPattern)
-        {
-            return ReplaceRegionGroup.Base;
-        }
-
-        ReplaceRegionGroup[] selectedGroups =
-        [
-            .. item.Segments
-                .Where(static segment => segment.IsSelectedForWrite)
-                .Select(static segment => segment.RegionGroup)
-                .Distinct(),
-        ];
-        ReplaceRegionGroup[] groups = selectedGroups.Length > 0
-            ? selectedGroups
-            : [.. item.Segments.Select(static segment => segment.RegionGroup).Distinct()];
-        return groups.Length == 1 ? groups[0] : ReplaceRegionGroup.Common;
     }
 
     private static bool RegionGroupDefaultExpanded(ReplaceRegionGroup group)

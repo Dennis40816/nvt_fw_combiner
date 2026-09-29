@@ -5,18 +5,22 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.MemoryLayout;
 
+/// <summary>A declared DP-owned sub-field in the output address space.</summary>
+public sealed record MemoryLayoutSectionField(FirmwareRegion CanonicalRegion, string AddressSpaceId, ByteRange Range);
+
 /// <summary>Immutable location context from an already-admitted companion map, not an operation.</summary>
 public sealed record MemoryLayoutSectionLocator
 {
     internal MemoryLayoutSectionLocator(
         string addressSpaceId, ByteRange range, FirmwareImageMap? map, FirmwareRegion? region,
-        MemoryLayoutBankLocator? bank = null)
+        MemoryLayoutBankLocator? bank = null, IReadOnlyList<MemoryLayoutSectionField>? fields = null)
     {
         AddressSpaceId = addressSpaceId;
         Range = range;
         MapId = map?.MapId;
         CanonicalRegion = region;
         Bank = bank;
+        Fields = Array.AsReadOnly([.. fields ?? []]);
         IsImageContainer = region?.Kind == FirmwareRegionKind.Image;
         IsImageOverlay = region is not null && map is not null && region.Kind == FirmwareRegionKind.Code &&
             HasImageAncestor(region, map);
@@ -43,6 +47,8 @@ public sealed record MemoryLayoutSectionLocator
     public bool IsImageContainer { get; }
     /// <summary>The section is code declared inside an image owned by another firmware component.</summary>
     public bool IsImageOverlay { get; }
+    /// <summary>Exact declared DP sub-fields, including checked bank placement.</summary>
+    public IReadOnlyList<MemoryLayoutSectionField> Fields { get; }
 
     private static bool HasImageAncestor(FirmwareRegion region, FirmwareImageMap map)
     {
@@ -76,7 +82,11 @@ public static partial class MemoryLayoutProjector
             return [.. ProjectBankLocators(bankProjection, addressSpaceId, capacity).SelectMany(bank =>
                 localSections.Select(section => new MemoryLayoutSectionLocator(addressSpaceId,
                     new ByteRange(checked(bank.Range.Start + section.Range.Start), section.Range.Length),
-                    companion.Map, section.CanonicalRegion, bank))),
+                    companion.Map, section.CanonicalRegion, bank,
+                    [.. section.Fields.Select(field => field with
+                    {
+                        Range = new ByteRange(checked(bank.Range.Start + field.Range.Start), field.Range.Length),
+                    })]))),
                 .. bankProjection.SourceEnvelope is { } envelope && envelope.ActualOutputLength > envelope.LayoutTemplateCapacity
                     ? new[] { new MemoryLayoutSectionLocator(addressSpaceId,
                         new ByteRange(envelope.LayoutTemplateCapacity,
@@ -104,7 +114,7 @@ public static partial class MemoryLayoutProjector
         FirmwareRegion[] codes =
         [
             .. map.Regions.Where(region => (region.Kind == FirmwareRegionKind.Code ||
-                (region.Kind == FirmwareRegionKind.Image && region.Owner == FirmwareRegionOwner.Dp)) &&
+                (region.Kind != FirmwareRegionKind.Unmapped && region.Owner == FirmwareRegionOwner.Dp)) &&
                 region.Owner is FirmwareRegionOwner.Tp or FirmwareRegionOwner.Dp &&
                 output.Contains(region.Range)),
         ];
@@ -135,12 +145,19 @@ public static partial class MemoryLayoutProjector
             FirmwareRegion? region = gaps.FirstOrDefault(candidate => candidate.Range.Contains(range)) ??
                 codes.FirstOrDefault(candidate => candidate.Range.Contains(range) &&
                     !codes.Any(child => child.Range.Contains(range) && HasAncestor(child, [candidate], byId)));
-            if (result.Count > 0 && ReferenceEquals(result[^1].CanonicalRegion, region))
+            if (result.Count > 0 && (ReferenceEquals(result[^1].CanonicalRegion, region) ||
+                (result[^1].ContentRole == MemoryContentRole.Dp && region?.Owner == FirmwareRegionOwner.Dp)))
             {
                 range = new ByteRange(result[^1].Range.Start, range.EndExclusive - result[^1].Range.Start);
+                region = result[^1].CanonicalRegion;
                 result.RemoveAt(result.Count - 1);
             }
-            result.Add(new MemoryLayoutSectionLocator(addressSpaceId, range, map, region));
+            MemoryLayoutSectionField[] fields = region?.Owner == FirmwareRegionOwner.Dp
+                ? [.. map.Regions.Where(field => field.Owner == FirmwareRegionOwner.Dp &&
+                    field.Kind is not (FirmwareRegionKind.Code or FirmwareRegionKind.Image or FirmwareRegionKind.Unmapped) &&
+                    range.Contains(field.Range)).Select(field => new MemoryLayoutSectionField(field, addressSpaceId, field.Range))]
+                : [];
+            result.Add(new MemoryLayoutSectionLocator(addressSpaceId, range, map, region, fields: fields));
         }
         return result;
     }

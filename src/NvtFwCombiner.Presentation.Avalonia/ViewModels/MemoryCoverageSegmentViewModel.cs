@@ -65,7 +65,8 @@ internal sealed class MemoryCoverageSegmentViewModel
         string? addressSpaceId = null,
         bool isPrimaryContent = true,
         string? contentArtifactIdentity = null,
-        IReadOnlyList<MemoryCoverageSegmentViewModel>? displayParts = null)
+        IReadOnlyList<MemoryCoverageSegmentViewModel>? displayParts = null,
+        ReplaceRegionGroup? displayGroup = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -142,6 +143,7 @@ internal sealed class MemoryCoverageSegmentViewModel
         SourceCaption = contentRole == MemoryContentRole.CustomerInformation ? text.FormatMemorySourceCaption(sourceLabel) : string.Empty;
         ChangeLabel = changeLabel ?? text.GetOutputLayoutStateLabel(disposition, observedChange);
         RegionGroup = regionGroup;
+        DisplayGroup = displayGroup ?? regionGroup;
         RegionGroupLabel = text.GetReplaceRegionGroupTitle(regionGroup);
         RangeStart = rangeStart;
         RangeEndExclusive = rangeEndExclusive;
@@ -243,6 +245,8 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     /// <summary>True when retained base-firmware bytes need a non-color visual pattern.</summary>
     public bool UsesKeptPattern { get; }
+
+    public ReplaceRegionGroup DisplayGroup { get; }
 
     /// <summary>Profile-owned selection identity for a replaceable physical region, when present.</summary>
     public string? RegionId { get; }

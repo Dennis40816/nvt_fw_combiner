@@ -1,6 +1,6 @@
 # BUG-20260929-memory-dp-card-test-format: new UI regression fails formatting gate
 
-Status: open
+Status: fixed
 Severity: P2
 Found: 2026-09-29, Codex gpt-6-astra, stage 1 of decision 189,
 at feature/1.1.15/memory-layout (uncommitted patch over 99e3efd7e).
@@ -11,4 +11,6 @@ Expected: the new test follows the existing formatting contract and then execute
 the real DP card template against both canonical banks.
 Evidence: final UiSmoke invocation stopped with two IDE0055 diagnostics.
 Owner: Codex, feature/1.1.15/memory-layout; resumption controlled by commander/owner.
-Resolution: not corrected after the separate route-regression stop condition.
+Resolution: stage 1 completion commit following 37c6c9586. Split Window initializer
+properties according to the repository formatting convention; no analyzer change.
+Both language cases and bank cards pass in `stage1-final-ui.trx` (191 passed).
