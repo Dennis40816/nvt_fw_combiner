@@ -9,6 +9,10 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Behavioral coverage for the single public Launcher composition graph.</summary>
 public sealed class ManagedDistributionLauncherHostServicesTests
 {
+    // Real-time bound on waiting for the resource callback: if the coordinator's work never reaches it, the
+    // test fails with a TimeoutException instead of holding the shard until the CI job timeout.
+    private static readonly TimeSpan ResourceObservationBound = TimeSpan.FromSeconds(30);
+
     /// <summary>Development builds without release payloads stop before local routing.</summary>
     [Fact]
     public async Task MissingDevelopmentPayloadFailsClosedBeforeEntryRouting()
@@ -31,7 +35,7 @@ public sealed class ManagedDistributionLauncherHostServicesTests
 
         Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
             TestContext.Current.CancellationToken).AsTask();
-        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await resourceObserved.Task.WaitAsync(ResourceObservationBound, TestContext.Current.CancellationToken);
         clock.Advance(TimeSpan.FromMilliseconds(1));
         ManagedDistributionLauncherHostResult result = await run;
 
@@ -75,7 +79,7 @@ public sealed class ManagedDistributionLauncherHostServicesTests
 
         Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
             TestContext.Current.CancellationToken).AsTask();
-        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await resourceObserved.Task.WaitAsync(ResourceObservationBound, TestContext.Current.CancellationToken);
         clock.Advance(TimeSpan.FromMilliseconds(1));
         ManagedDistributionLauncherHostResult result = await run;
 
@@ -122,7 +126,7 @@ public sealed class ManagedDistributionLauncherHostServicesTests
 
         Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
             TestContext.Current.CancellationToken).AsTask();
-        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await resourceObserved.Task.WaitAsync(ResourceObservationBound, TestContext.Current.CancellationToken);
         clock.Advance(TimeSpan.FromMilliseconds(1));
         ManagedDistributionLauncherHostResult result = await run;
 
@@ -172,7 +176,7 @@ public sealed class ManagedDistributionLauncherHostServicesTests
 
         Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
             TestContext.Current.CancellationToken).AsTask();
-        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await resourceObserved.Task.WaitAsync(ResourceObservationBound, TestContext.Current.CancellationToken);
         clock.Advance(TimeSpan.FromMilliseconds(1));
         ManagedDistributionLauncherHostResult result = await run;
 
@@ -339,7 +343,7 @@ public sealed class ManagedDistributionLauncherHostServicesTests
         Assert.Empty(requestedResources);
         Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
             TestContext.Current.CancellationToken).AsTask();
-        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        await resourceObserved.Task.WaitAsync(ResourceObservationBound, TestContext.Current.CancellationToken);
         clock.Advance(TimeSpan.FromMilliseconds(1));
         ManagedDistributionLauncherHostResult result = await run;
 
