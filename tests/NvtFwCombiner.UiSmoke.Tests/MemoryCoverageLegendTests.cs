@@ -154,7 +154,10 @@ public sealed class MemoryCoverageLegendTests
             Assert.Contains(original, row => row.ContentRole == MemoryContentRole.Tp);
             Border target = LegendTargets().First();
             MemoryCoverageSegmentViewModel expected = Assert.IsType<MemoryCoverageSegmentViewModel>(target.DataContext);
-            Assert.True(target.Focus(NavigationMethod.Tab));
+            Assert.False(target.Focus(NavigationMethod.Tab));
+            Control railTarget = Assert.Single(rail.GetVisualDescendants().OfType<Control>(), candidate =>
+                ReferenceEquals(candidate.DataContext, expected) && candidate.Classes.Contains("memoryExplorerSlice"));
+            Assert.True(railTarget.Focus(NavigationMethod.Tab));
             Render();
             Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
             Assert.Same(expected, card.DataContext);

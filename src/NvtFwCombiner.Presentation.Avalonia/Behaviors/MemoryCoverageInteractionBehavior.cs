@@ -13,6 +13,11 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
     public static readonly AttachedProperty<bool> IsEnabledProperty =
         AvaloniaProperty.RegisterAttached<MemoryCoverageInteractionBehavior, Control, bool>("IsEnabled");
 
+    internal static readonly AttachedProperty<bool> IsRailProperty =
+        AvaloniaProperty.RegisterAttached<MemoryCoverageInteractionBehavior, Control, bool>("IsRail");
+    internal static readonly AttachedProperty<bool> RailActiveProperty =
+        AvaloniaProperty.RegisterAttached<MemoryCoverageInteractionBehavior, Control, bool>("RailActive");
+
     private static readonly AttachedProperty<InteractionLease?> LeaseProperty =
         AvaloniaProperty.RegisterAttached<MemoryCoverageInteractionBehavior, Control, InteractionLease?>(
             "Lease");
@@ -20,6 +25,7 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
     static MemoryCoverageInteractionBehavior()
     {
         _ = IsEnabledProperty.Changed.AddClassHandler<Control>(OnIsEnabledChanged);
+        _ = RailActiveProperty.Changed.AddClassHandler<Control>((control, change) => control.Classes.Set("railActive", change.NewValue is true));
     }
 
     private MemoryCoverageInteractionBehavior()
@@ -59,7 +65,7 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
 
         if (e.NewValue is true)
         {
-            var lease = new InteractionLease(ResolveState(control));
+            var lease = new InteractionLease(ResolveStates(control));
             _ = control.SetValue(LeaseProperty, lease);
             control.PointerEntered += Control_OnPointerEntered;
             control.PointerExited += Control_OnPointerExited;
@@ -126,7 +132,7 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
     {
         if (sender is Control control && control.GetValue(LeaseProperty) is { } lease)
         {
-            lease.MoveTo(control, ResolveState(control));
+            lease.MoveTo(control, ResolveStates(control));
         }
     }
 
@@ -153,58 +159,69 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
         }
     }
 
-    private static MemoryCoverageInteractionState? ResolveState(Control control)
+    private static MemoryCoverageInteractionState[] ResolveStates(Control control)
     {
         return control.DataContext switch
         {
-            MemoryCoverageSegmentViewModel segment => segment.Interaction,
-            MemoryCoverageLogicalItemViewModel item => item.Interaction,
-            _ => null,
+            MemoryCoverageSegmentViewModel segment => [segment.Interaction],
+            MemoryCoverageLogicalItemViewModel item => [item.Interaction],
+            MemoryCoverageBarItem group => [.. group.Slices.Select(static slice => slice.Interaction).Distinct()],
+            MemoryFocusPositionViewModel { Lane: { } lane } => [.. lane.Ranges.Select(static slice => slice.Interaction).Distinct()],
+            _ => [],
         };
     }
 
-    private sealed class InteractionLease(MemoryCoverageInteractionState? state)
+    private sealed class InteractionLease(MemoryCoverageInteractionState[] states)
     {
         private bool _focusActive;
         private bool _pointerActive;
-        private MemoryCoverageInteractionState? _state = state;
+        private MemoryCoverageInteractionState[] _states = states;
 
         internal void SetPointerActive(Control owner, bool active)
         {
-            MoveTo(owner, ResolveState(owner));
+            MoveTo(owner, ResolveStates(owner));
             _pointerActive = active && owner.IsEffectivelyEnabled;
-            _state?.SetPointerActive(owner, _pointerActive);
+            Publish(owner);
         }
 
         internal void SetFocusActive(Control owner, bool active)
         {
-            MoveTo(owner, ResolveState(owner));
+            MoveTo(owner, ResolveStates(owner));
             _focusActive = active && owner.IsEffectivelyEnabled;
-            _state?.SetFocusActive(owner, _focusActive);
+            Publish(owner);
         }
 
-        internal void MoveTo(Control owner, MemoryCoverageInteractionState? next)
+        internal void MoveTo(Control owner, MemoryCoverageInteractionState[] next)
         {
-            if (ReferenceEquals(_state, next))
+            if (_states.SequenceEqual(next))
             {
                 return;
             }
 
-            _state?.SetPointerActive(owner, false);
-            _state?.SetFocusActive(owner, false);
-            _state = next;
-            if (owner.IsEffectivelyEnabled)
+            foreach (MemoryCoverageInteractionState state in _states)
             {
-                _state?.SetPointerActive(owner, _pointerActive);
-                _state?.SetFocusActive(owner, _focusActive);
+                state.SetPointerActive(owner, false);
+                state.SetFocusActive(owner, false);
+                state.SetRailActive(owner, false);
+            }
+            _states = next;
+            Publish(owner);
+        }
+
+        private void Publish(Control owner)
+        {
+            bool terminal = owner.DataContext is MemoryCoverageSegmentViewModel or MemoryCoverageLogicalItemViewModel;
+            foreach (MemoryCoverageInteractionState state in _states)
+            {
+                state.SetPointerActive(owner, terminal && _pointerActive && owner.IsEffectivelyEnabled);
+                state.SetFocusActive(owner, terminal && _focusActive && owner.IsEffectivelyEnabled);
+                state.SetRailActive(owner, owner.GetValue(IsRailProperty) && owner.IsEffectivelyEnabled && (_pointerActive || _focusActive));
             }
         }
 
         internal void Clear(Control owner)
         {
-            _state?.SetPointerActive(owner, false);
-            _state?.SetFocusActive(owner, false);
-            _state = null;
+            MoveTo(owner, []);
             _pointerActive = false;
             _focusActive = false;
         }

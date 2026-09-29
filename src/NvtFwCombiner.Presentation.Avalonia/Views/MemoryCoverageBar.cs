@@ -71,6 +71,8 @@ public sealed partial class MemoryCoverageBar : UserControl
     private bool _keyboardFocus;
     private bool _closingOverlays;
     private bool _closeAllPending;
+    private Control? _passiveReopenTarget;
+    private Point? _lastPointerPosition;
 
     /// <summary>Constructs the shared rail using existing bar, color, card and interaction owners.</summary>
     public MemoryCoverageBar()
@@ -100,7 +102,6 @@ public sealed partial class MemoryCoverageBar : UserControl
         MemoryCoverageInteractionBehavior.SetIsEnabled(_card, true);
         PointerExited += (_, _) => StartCloseTimer();
         LostFocus += (_, _) => StartCloseTimer();
-        TrackInputOrigin(this);
         _card.KeyDown += OnCardKeyDown;
         // Inner scrolling gets first refusal; unconsumed wheel input must not move
         // the page behind an overlay (including cards whose content already fits).
@@ -171,7 +172,8 @@ public sealed partial class MemoryCoverageBar : UserControl
             Subscribe();
             Rebuild();
         }
-        else if (change.Property == BoundsProperty || change.Property == IsVisibleProperty || change.Property == IsEffectivelyEnabledProperty)
+        else if (change.Property == BoundsProperty) { ClosePassively(); }
+        else if (change.Property == IsVisibleProperty || change.Property == IsEffectivelyEnabledProperty)
         {
             CloseAll();
         }
@@ -213,10 +215,18 @@ public sealed partial class MemoryCoverageBar : UserControl
     }
 
     private void OnWindowDeactivated(object? sender, EventArgs e) { CloseAll(); }
-    private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e) { CloseAll(); }
+    private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e) { ClosePassively(); }
     private void OnScrollChanged(object? sender, ScrollChangedEventArgs e)
     {
-        if (ReferenceEquals(sender, e.Source)) { CloseAll(); }
+        if (ReferenceEquals(sender, e.Source) && (e.OffsetDelta != default || e.ViewportDelta != default)) { ClosePassively(); }
+    }
+
+    private void ClosePassively()
+    {
+        Control? target = _groupTarget ?? _cardTarget ?? _passiveReopenTarget;
+        CloseAll();
+        if (target is { IsPointerOver: true, IsEffectivelyEnabled: true, IsEffectivelyVisible: true } &&
+            ReferenceEquals(TopLevel.GetTopLevel(target), _window)) { _passiveReopenTarget = target; }
     }
     private void Subscribe()
     {
@@ -258,10 +268,9 @@ public sealed partial class MemoryCoverageBar : UserControl
             };
             KeepLabelUnscaled(target, (TextBlock)target.Child);
             target.Classes.Set("reducedMotion", ReducedMotion);
-            WatchTargetExit(target);
+            WirePointerTarget(target, () => OpenLocal(item, target));
             AutomationProperties.SetName(target, GroupSummary(item));
             AutomationProperties.SetHelpText(target, Text.MemoryLocalViewHint);
-            target.PointerEntered += (_, _) => OpenLocal(item, target);
             target.GotFocus += (_, e) => { if (CanExploreFromFocus(e)) { OpenLocal(item, target); } };
             target.KeyDown += (_, e) =>
             {
@@ -313,11 +322,10 @@ public sealed partial class MemoryCoverageBar : UserControl
                 Child = new MemoryEndpointPanel(this, startFraction, position.BarWidth / total, marker, label),
             };
             target.Classes.Set("reducedMotion", ReducedMotion);
-            WatchTargetExit(target);
+            var item = new MemoryCoverageBarItem(lane.Ranges);
+            WirePointerTarget(target, () => OpenLocal(item, target, lane));
             AutomationProperties.SetName(target, $"{lane.Title} · {lane.RangeLabel}");
             AutomationProperties.SetHelpText(target, Text.MemoryLocalViewHint);
-            var item = new MemoryCoverageBarItem(lane.Ranges);
-            target.PointerEntered += (_, _) => OpenLocal(item, target, lane);
             target.GotFocus += (_, e) => { if (CanExploreFromFocus(e)) { OpenLocal(item, target, lane); } };
             target.KeyDown += (_, e) =>
             {
@@ -413,8 +421,7 @@ public sealed partial class MemoryCoverageBar : UserControl
     private void WireSlice(Control target, MemoryCoverageSegmentViewModel slice, bool local)
     {
         target.Focusable = true;
-        WatchTargetExit(target);
-        target.PointerEntered += (_, _) => OpenSlice();
+        WirePointerTarget(target, OpenSlice);
         target.GotFocus += (_, e) => { if (CanExploreFromFocus(e)) { OpenSlice(); } };
         target.KeyDown += (_, e) =>
         {
@@ -445,8 +452,28 @@ public sealed partial class MemoryCoverageBar : UserControl
         }
     }
 
-    private void WatchTargetExit(Control target)
+    private void WirePointerTarget(Control target, Action open)
     {
+        _ = target.SetValue(MemoryCoverageInteractionBehavior.IsRailProperty, true);
+        MemoryCoverageInteractionBehavior.SetIsEnabled(target, true);
+        TrackInputOrigin(target);
+        target.PointerEntered += (_, e) =>
+        {
+            _passiveReopenTarget = null;
+            _lastPointerPosition = e.GetPosition(_window);
+            open();
+        };
+        target.PointerMoved += (_, e) =>
+        {
+            Point position = e.GetPosition(_window);
+            bool moved = _lastPointerPosition is { } previous && previous != position;
+            _lastPointerPosition = position;
+            if (moved && ReferenceEquals(_passiveReopenTarget, target) && target.IsPointerOver)
+            {
+                _passiveReopenTarget = null;
+                open();
+            }
+        };
         target.PointerExited += (_, _) => StartCloseTimer();
         target.LostFocus += (_, _) => StartCloseTimer();
     }
@@ -524,9 +551,9 @@ public sealed partial class MemoryCoverageBar : UserControl
         _local.Child = content;
         double left = target.TranslatePoint(default, anchor)?.X ?? 0;
         double connectorHeight = 10 + (ShowLegend && !_localAbove ? Math.Max(0, footerBottom - above - anchor.Bounds.Height) : 0);
-        // Keep the hover path to the detail, without connecting across the legend.
+        // Footer spacing is layout only; the passive legend must remain outside popup input.
         Control connector = ShowLegend && !_localAbove
-            ? new Border { Height = connectorHeight, Background = Brushes.Transparent }
+            ? new Border { Height = connectorHeight, IsHitTestVisible = false }
             : MemoryCoverageConnectorVisuals.LocalConnector(left + (target.Bounds.Width / 2), 10);
         StackPanel frame = PopupFrame(_local, connector, _localAbove);
         _localPopup.Child = frame;
@@ -564,17 +591,6 @@ public sealed partial class MemoryCoverageBar : UserControl
         double connectorHeight = preferredAbove.HasValue
             ? Math.Max(20, (above ? origin.Y - localOrigin.Y : localOrigin.Y + _local.Bounds.Height - origin.Y - target.Bounds.Height) + 4)
             : ShowLabels ? 8 : 20;
-        // Keep the pointer corridor inside the overlay, including the header between
-        // the main rail and its upper card. Crossing a legend must not change the source.
-        bool crossesOverview = preferredAbove is null && ShowLegend;
-        if (crossesOverview)
-        {
-            connectorHeight += above ? origin.Y - placementOrigin.Y :
-                placementOrigin.Y + placementTarget.Bounds.Height - origin.Y - target.Bounds.Height;
-            placementTarget = target;
-            placementOrigin = origin;
-            below = top.Bounds.Height - origin.Y - target.Bounds.Height;
-        }
         double available = (above ? placementOrigin.Y : below) - connectorHeight - 8;
         _card.MaxHeight = Math.Max(64, available);
         double trackLeft = _track.TranslatePoint(default, top)?.X ?? 0;
@@ -595,7 +611,7 @@ public sealed partial class MemoryCoverageBar : UserControl
                 })]
             : [];
         Control connector = ShowLegend && preferredAbove is null
-            ? new Border { Height = connectorHeight, Background = Brushes.Transparent }
+            ? new Border { Height = connectorHeight, IsHitTestVisible = false }
             : MemoryCoverageConnectorVisuals.CardConnector(anchor, connectorHeight, above, labels);
         _cardPopup.Child = PopupFrame(_card, connector, above);
         _cardPopup.Width = width;
@@ -609,7 +625,8 @@ public sealed partial class MemoryCoverageBar : UserControl
 
     private StackPanel PopupFrame(Control body, Control connector, bool above)
     {
-        var frame = new StackPanel { Background = Brushes.Transparent };
+        connector.IsHitTestVisible = false;
+        var frame = new StackPanel();
         TrackInputOrigin(frame);
         frame.Children.Add(above ? body : connector);
         frame.Children.Add(above ? connector : body);
@@ -689,6 +706,7 @@ public sealed partial class MemoryCoverageBar : UserControl
 
     private void CloseAll()
     {
+        _passiveReopenTarget = null;
         // Popup detachment synchronously invokes input/lifecycle callbacks. Do not
         // reopen or clear its children again while Avalonia is enumerating them.
         if (_closingOverlays) { _closeAllPending = true; return; }

@@ -148,7 +148,7 @@ public sealed partial class MemoryCoveragePopupTests
                 Assert.Equal(borderBrush, surface.BorderBrush);
                 Assert.NotEqual(default, surface.BoxShadow);
                 StackPanel frame = Assert.IsType<StackPanel>(surface.GetVisualParent());
-                Assert.Equal(global::Avalonia.Media.Brushes.Transparent, frame.Background);
+                Assert.Null(frame.Background);
             }
             global::Avalonia.Controls.Shapes.Polygon notch = Assert.Single(window.GetVisualDescendants()
                 .OfType<global::Avalonia.Controls.Shapes.Polygon>(), item => item.Name == "MemoryCardNotch");
@@ -977,7 +977,8 @@ public sealed partial class MemoryCoveragePopupTests
 
     private static ProportionalStackPanel MainPanel(MemoryCoverageBar bar)
     {
-        return Assert.Single(bar.GetVisualDescendants().OfType<ProportionalStackPanel>());
+        ItemsControl rail = Assert.Single(bar.GetVisualDescendants().OfType<ItemsControl>(), control => control.Name == "MemoryMainRail");
+        return Assert.Single(rail.GetVisualDescendants().OfType<ProportionalStackPanel>());
     }
 
     private static Control MainTarget(MemoryCoverageBar bar, int index)

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
@@ -137,8 +138,8 @@ public sealed partial class MemoryCoverageBar
             {
                 Name = "MemoryLegendTarget",
                 DataContext = slice,
-                FocusAdorner = null,
-                Background = Brushes.Transparent,
+                IsHitTestVisible = false,
+                Classes = { "memoryPassiveLegend" },
                 Padding = new Thickness(0, 3),
                 Margin = new Thickness(0, 0, 0, 2),
             };
@@ -176,8 +177,8 @@ public sealed partial class MemoryCoverageBar
             row.Children.Add(address);
             target.Child = row;
             AutomationProperties.SetName(target, slice.AccessibleDetail);
-            MemoryCoverageInteractionBehavior.SetIsEnabled(target, true);
-            WireSlice(target, slice, local: false);
+            _ = target.Bind(MemoryCoverageInteractionBehavior.RailActiveProperty,
+                new Binding("Interaction.IsRailActive") { Source = slice });
             _legend.Children.Add(target);
         }
         _header.InvalidateMeasure();

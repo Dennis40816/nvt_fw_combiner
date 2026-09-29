@@ -166,3 +166,57 @@ stages 2/3. No integration or publication performed.
 
 Next: stage 2 red/green for passive legend, transparent-surface removal,
 passive-close recovery and real keyboard traversal under decision 189.
+
+Stage 2 admission: extend-owner `MemoryCoverageBar` for lifecycle and input,
+`MemoryCoverageInteractionBehavior` / `MemoryCoverageInteractionState` for
+rail-only emphasis, and its existing Legend partial for passive consumers.
+Reuse shared templates and controlled close scheduler; reject workflow-specific
+handlers, a selected-ID service or firmware projection on pointer movement.
+The four-state reference remains the card/local hierarchy reference, superseded
+only by the accepted legend changes. Decision 189 Q2 overrides the analysis's
+earlier suggestion to retain legend emphasis while a card is open.
+Red: `stage2-red.trx` has 5 failures (passive legend Light/Dark, same-slice reopen
+Plain/non-Plain, extent-only close) and 1 pass (actual three-byte Tab/Shift+Tab
+and Escape). M3 needs no production correction at this boundary.
+
+### 2026-09-29 — stage 2 completed
+
+State: locally verified; stage 1 is ce680fec536fea876c87991997985b6ef0b5478a.
+This commit completes passive legend, transparent-surface removal, rail-only
+reverse emphasis and one-shot passive-close recovery. Keyboard three-byte
+navigation was already valid and has actual Tab/Shift+Tab/Enter/Escape coverage.
+The canonical interaction handoff now names superseded historical behavior.
+
+Evidence:
+
+- UiSmoke `--filter FullyQualifiedName~MemoryCoverage`: **189 passed, 0 failed**;
+  `evidence/1.1.15/test-results/stage2-final-ui.trx`. Includes shared Plain and
+  non-Plain controls, Light/Dark, existing bilingual/geometry/teardown/wheel
+  coverage, controlled 319/320 ms tall-legend transit, identical-label identity,
+  group-to-leaf emphasis, and 200 same-target moves without card rebuilding.
+- `stage2-red.trx`: 5 failed / 1 passed. `stage2-corridor-red.trx`: 1 failed.
+  `stage2-green-initial.trx`: 7 passed. Wider regression's local-leaf emphasis
+  defect and obsolete fixture assertions were corrected; all failures retained.
+- `python scripts/verify.py --structure-only`: PASS;
+  `evidence/1.1.15/stage2-structure.log`. No profile/release/CI change or `--all`.
+- Opening measurement: English Light; Plain/non-Plain x 420/620 DIP x Reduced
+  Motion on/off, 30 warm samples each plus first sample. Handler P50 26.88-85.42
+  ms; P95 48.13-105.66 ms. Render-pump P95 51.40-109.33 ms. Raw samples under
+  `evidence/1.1.15/timings-stage2/`. This does not measure native first-readable
+  latency or claim improvement against a different source/environment. O4
+  caching/reveal optimization remains excluded.
+- Stage delta nonblank: production +44 (all Presentation), tests +355.
+  `evidence/1.1.15/stage2-code-size.json`; existing hotspot baselines unchanged.
+- Author review: activity uses display references, not labels/ranges; group
+  membership feeds rail-only state while cards retain ordinary terminal state.
+  Invalidations discard stale targets; the only rearm is valid passive closure.
+  Popup spacers have no background/hit testing. Diff and affected links checked.
+
+Open: no local failing gate. Independent Claude fixed-head R2 review, owner
+visual acceptance and native first-readable timing remain external. Scoped
+Polytail author check has no open correctness finding; R2 review is incomplete
+until commander's independent reviewer records it. Stage 3 marker and styling
+acceptance is not claimed here; no integration/publication.
+
+Next: O5 non-overlapping 24-DIP markers/collision lists and Q2 fixed border with
+resource-backed background, with DPI/theme/language and screenshot evidence.
