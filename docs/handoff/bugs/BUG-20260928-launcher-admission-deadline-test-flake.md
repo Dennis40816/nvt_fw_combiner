@@ -1,6 +1,6 @@
 # BUG-20260928-launcher-admission-deadline-test-flake: the late-admission launcher test can see the admission deadline before the process is created
 
-Status: Application test fixed locally (2026-09-28); Bootstrap host follow-up fixed locally (2026-09-29)
+Status: Application test fixed, released in v1.1.14; Bootstrap host follow-up reopened (2026-09-29) — the fix landed incomplete
 Severity: P3
 Found: 2026-09-28, CI run 36373462006 (`dotnet / test (core)`) on pull request #474 head `46d73bf91`
 Where: `tests/NvtFwCombiner.Application.Tests/VersionManagement/ManagedLauncherEntryCoordinatorTests.cs`,
@@ -13,7 +13,7 @@ touch the launcher coordinator or this test.
 Expected: the test controls the order of process creation and the deadline (for example with the manual time provider
 the neighbouring tests use), so it checks the post-creation outcome without depending on runner speed.
 Evidence: the TRX in the run's `dotnet-test-core-evidence-attempt-1` artifact.
-Owner: 1.1.14 (test-only, R1); earlier if it fails an integration or release candidate run again.
+Owner: 1.1.14 (test-only, R1) for the Application fix, delivered; the reopened Bootstrap host follow-up moves to the next 1.2.x pull request (test-only, R1).
 Resolution:
 The Application test now injects the existing `ManualTimeProvider`, waits for the launch receipt's admission wait
 to start, and only then advances the 25 ms cutoff. Both immediate and 100 ms delayed payload admission exercise
@@ -46,3 +46,19 @@ overload. Green evidence: `ClosedResourcesAreBoundedAndVersionBoundBeforeEntryRo
 of three narrow runs (5/5 each); the whole `ManagedDistributionLauncherHostServicesTests` class passed 18/18.
 These local results resolve the known scheduling race in this test, while CI confirmation, independent fixed-head
 review, and the integration full verifier remain commander gates. Local self-check is not independent review.
+
+Both fixes merged into `1.1.x` by the 1.1.14 integration `6703e2517` (#480, reviewed head `fdf68a903`) and reached
+`main` in the v1.1.14 release merge `32808e943` (#483, published 2026-09-29): commit `0b20f5bd7` ("Inject clock
+into distribution launcher host tests") is the Bootstrap host fix above and is an ancestor of both.
+
+Reopened (2026-09-29): `0b20f5bd7` injected the existing `ManualTimeProvider` into only
+`ClosedResourcesAreBoundedAndVersionBoundBeforeEntryRouting`; the other tests in
+`ManagedDistributionLauncherHostServicesTests` still construct the host with the real
+`TimeProvider.System` (`src/NvtFwCombiner.Bootstrap/ManagedDistributionLauncherHostServices.cs:278`), so the same
+class of wall-clock race remains for them. `RecoveryEntryWithoutRootDoesNotExposeRecoverySession` failed in the
+`feature/1.1.14/release-back-merge` (#484) CI run `36513730094` (job `109231324480`) and in about 1 of 8 local
+runs of the class under load; it passes in isolation, consistent with a timing-sensitive test rather than a
+production regression. The Application-side fix (this bug's original scope) is unaffected and stays fixed;
+only the Bootstrap host class is reopened. Planned fix: a test-only change, in the next 1.2.x pull request, that
+injects the manual clock into the remaining tests in this class the same way `0b20f5bd7` did for one of them. No
+production behavior, firmware bytes, ranges, integrity, ordering, or support declarations are implicated.

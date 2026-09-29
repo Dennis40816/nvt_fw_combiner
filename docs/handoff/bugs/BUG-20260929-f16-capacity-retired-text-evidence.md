@@ -14,3 +14,7 @@ Evidence:
 
 Owner: unassigned; F16 current-runtime text owner after a visible reproduction is identified.
 Resolution: pending a reproducible displayed message and the actual typed limit or retirement state.
+
+Status update (2026-09-29): v1.1.14 (`32808e943`, released 2026-09-29) shipped without a reproduced F16 defect;
+this record's bounded probes did not find one. It remains open/suspected pending the reproduction described
+above; it is not allocated to a specific 1.2.x version.

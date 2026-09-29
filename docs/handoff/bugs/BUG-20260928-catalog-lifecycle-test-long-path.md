@@ -1,6 +1,6 @@
 # BUG-20260928-catalog-lifecycle-test-long-path: the catalog lifecycle build test exceeds MAX_PATH inside a local verifier session
 
-Status: fixing
+Status: fixed (merged into `1.1.x` by integration #480, merge `6703e2517`; released in v1.1.14, `32808e943`, 2026-09-29)
 Severity: P3
 Found: 2026-09-28, `python scripts/verify.py --all` at integration branch B head `bd8c9e062` (lane `test_prebuilt_profile_catalog_build`)
 Where: `tests/scripts/test_prebuilt_profile_catalog_build.py`,
@@ -125,3 +125,11 @@ frozen during those runs and committed with this evidence. Only evidence prose
 changed afterward. Local gates passed; integration is **not** declared ready:
 commander still owns the independent exact-head review, required CI/full verifier,
 and `release-owner` approval. No firmware-owner claim or Golden promotion is made.
+
+Closed (2026-09-29): `e7925014c` is an ancestor of the 1.1.14 integration merge `6703e2517` (#480, reviewed head
+`fdf68a903`) and of the v1.1.14 release merge `32808e943` (#483, published 2026-09-29). Board decision 180
+(2026-09-29) superseded this record's 216/207/42-unit figures: the package relative-path guard in
+`scripts/package.ps1` was tightened from 216 to 140 UTF-16 code units (commit `b27daee37`, also an ancestor of
+`6703e2517`/`32808e943`), and the Golden evidence moved to short case folders with a manifest mapping each file
+to its canonical case. The 216/207/42 numbers above describe the state before that decision and are kept as
+history, not the current guard.

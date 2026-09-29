@@ -9,4 +9,7 @@ Expected: under ADR 0057 and the plan, an `exact-output` route without an approv
 Evidence: harness run `run-bc1` in the test area; row in `docs/handoff/1.1.12/parity/v0916-local-comparison.json`. ADR 0057 states the v1.0.0 lab closed eleven of twelve full-base CtrlRAM cases; this TP-work route uses its TP input directly, so that batch plausibly never compared it (not verified).
 Owner: unassigned; the owner disposes the difference; the 1.1.13 formal comparator work owns any plan change
 Allocation (2026-09-28): 1.1.14 with rolling parity P-2 (board decision 154).
+Allocation (2026-09-29): moved to 1.2.x with the rest of parity P-2 (board decision 167), landing with the R35/R36
+work in `1.2.2` per the accepted [1.2.x allocation](../1.1.14/1.2.x-allocation.md) (board decision 175). This
+supersedes the 1.1.14 target above.
 Resolution:
