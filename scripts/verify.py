@@ -120,6 +120,7 @@ CI_COVERAGE_NOT_NORMALIZED = (
 CI_FAILURE_EVIDENCE_REJECTED = (
     "failure evidence not uploaded: results failed the regular-file checks"
 )
+CI_HANG_ATTACHMENTS_REJECTED = "hang attachments not uploaded: attachment validation failed"
 DOTNET_PRODUCER_WINDOWS = "windows"
 DOTNET_PRODUCER_NON_WINDOWS = "non-windows"
 CI_DOTNET_PRODUCER_PLATFORM = DOTNET_PRODUCER_WINDOWS
@@ -5352,13 +5353,19 @@ def collect_ci_failed_project_evidence(
     discovery = root / "discovered-tests.txt"
     trx_report = root / "test-results.trx"
     paths = [path for path in (discovery, trx_report) if path in regular_files]
+    omissions: list[str] = []
+    diagnostics: list[str] = []
     if include_hang:
-        paths.extend(collect_ci_hang_attachments(root))
+        try:
+            paths.extend(collect_ci_hang_attachments(root, regular_files=regular_files))
+        except (RuntimeError, OSError) as error:
+            # The tree passed custody above. Invalid regular attachments must
+            # not discard the independent original TRX and attempt log.
+            omissions.append(CI_HANG_ATTACHMENTS_REJECTED)
+            diagnostics.append(f"{CI_HANG_ATTACHMENTS_REJECTED}: {error}")
         attempt_log = root / "attempt.log"
         if attempt_log in regular_files:
             paths.append(attempt_log)
-    omissions: list[str] = []
-    diagnostics: list[str] = []
     if any(
         path.name in {"coverage.json", "coverage.cobertura.xml"} for path in regular_files
     ):
@@ -5575,11 +5582,17 @@ def verify_ci_dotnet_build() -> None:
         raise failure
 
 
-def collect_ci_hang_attachments(results_directory: Path) -> tuple[Path, ...]:
+def collect_ci_hang_attachments(
+    results_directory: Path,
+    *,
+    regular_files: Sequence[Path] | None = None,
+) -> tuple[Path, ...]:
     """Allow only bounded VSTest dump/sequence files from a regular attempt tree."""
 
     attachments = []
-    for path in enumerate_ci_regular_files(results_directory):
+    if regular_files is None:
+        regular_files = enumerate_ci_regular_files(results_directory)
+    for path in regular_files:
         if path.suffix.casefold() == ".dmp":
             limit = CI_HANG_DUMP_MAX_BYTES
         elif path.name.endswith("_Sequence.xml"):
@@ -5597,7 +5610,7 @@ def collect_ci_hang_attachments(results_directory: Path) -> tuple[Path, ...]:
 def ci_trx_method_identities(trx: Path) -> dict[str, str]:
     """Resolve a completed TRX's case names to safe, unique TestMethod FQNs."""
 
-    parse_trx_test_outcomes(trx, preserve_case_identity=True)
+    outcomes = parse_trx_test_outcomes(trx, preserve_case_identity=True)
     document = ET.parse(trx)
     summary = document.find(".//{*}ResultSummary")
     if summary is None or summary.get("outcome") not in {
@@ -5606,11 +5619,39 @@ def ci_trx_method_identities(trx: Path) -> dict[str, str]:
         "Failed",
     }:
         raise RuntimeError("CI retry requires a completed TRX run")
-    if any(
-        info.get("outcome") in {"Error", "Aborted", "Timeout"}
-        for info in document.findall(".//{*}RunInfo")
-    ):
-        raise RuntimeError("CI retry cannot hide a test-platform error")
+    counters = summary.find("{*}Counters")
+    fatal_counters = (
+        "error",
+        "timeout",
+        "aborted",
+        "inconclusive",
+        "passedButRunAborted",
+        "notRunnable",
+        "disconnected",
+        "inProgress",
+        "pending",
+    )
+    try:
+        if counters is None or any(
+            int(counters.get(name, "0")) != 0 for name in fatal_counters
+        ):
+            raise ValueError("non-test terminal counters")
+    except ValueError as error:
+        raise RuntimeError("CI retry cannot hide a test-platform error") from error
+    for info in document.findall(".//{*}RunInfo"):
+        severity = info.get("outcome")
+        if severity == "Error":
+            # xUnit reports ordinary assertions as Error RunInfo. Admit only
+            # its exact [FAIL] notification for an actually failed TRX case;
+            # unknown adapter/host errors remain fatal, even with zero counters.
+            notification = re.fullmatch(
+                r"\[xUnit\.net \d{2}:\d{2}:\d{2}(?:\.\d+)?\]\s+(.+) \[FAIL\]",
+                (info.findtext("{*}Text") or "").strip(),
+            )
+            if notification is None or notification[1] not in outcomes["Failed"]:
+                raise RuntimeError("CI retry cannot hide a test-platform error")
+        elif severity in {"Aborted", "Timeout"}:
+            raise RuntimeError("CI retry cannot hide a test-platform error")
     definitions: dict[str, tuple[str, str]] = {}
     for definition in document.findall(".//{*}UnitTest"):
         test_id = definition.get("id")

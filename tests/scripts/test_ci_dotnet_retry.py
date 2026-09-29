@@ -119,6 +119,43 @@ class CiDotnetRetryTests(unittest.TestCase):
                     tree.find(".//{*}ResultSummary").set(
                         "outcome", "Failed" if "Failed" in outcomes else "Completed"
                     )
+                    if "Failed" in outcomes:
+                        summary = tree.find(".//{*}ResultSummary")
+                        namespace = (
+                            "{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}"
+                        )
+                        infos = MODULE.ET.SubElement(summary, namespace + "RunInfos")
+                        for identity, outcome in zip(identities, outcomes, strict=True):
+                            if outcome == "Failed":
+                                info = MODULE.ET.SubElement(
+                                    infos, namespace + "RunInfo", outcome="Error"
+                                )
+                                MODULE.ET.SubElement(
+                                    info, namespace + "Text"
+                                ).text = (
+                                    f"[xUnit.net 00:00:01.45]     {identity} [FAIL]"
+                                )
+                        if scenario in {"unknown-error", "unmatched-error"}:
+                            info = MODULE.ET.SubElement(
+                                infos, namespace + "RunInfo", outcome="Error"
+                            )
+                            MODULE.ET.SubElement(info, namespace + "Text").text = (
+                                "adapter discovery failed"
+                                if scenario == "unknown-error"
+                                else "[xUnit.net 00:00:01.45]     Probe.Tests.Unknown [FAIL]"
+                            )
+                        counters = summary.find("{*}Counters")
+                        for name in (
+                            "error",
+                            "aborted",
+                            "timeout",
+                            "disconnected",
+                            "notRunnable",
+                            "inconclusive",
+                        ):
+                            counters.set(name, "0")
+                        if scenario == "platform-error":
+                            counters.set("error", "1")
                     if scenario == "aborted" and not retry:
                         tree.find(".//{*}ResultSummary").set("outcome", "Aborted")
                     ns = "{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}"
@@ -309,6 +346,9 @@ class CiDotnetRetryTests(unittest.TestCase):
             ("aborted", 1),
             ("timeout", 1),
             ("zero-with-failures", 1),
+            ("platform-error", 1),
+            ("unknown-error", 1),
+            ("unmatched-error", 1),
         ):
             with (
                 self.subTest(scenario=scenario),
@@ -396,6 +436,11 @@ class CiDotnetRetryTests(unittest.TestCase):
                 ]
                 self.assertEqual(1, len(first_trx))
                 self.assertTrue((root / "upload" / first_trx[0]).is_file())
+                if scenario == "retry-invalid-attachment":
+                    second = [p for p in manifest["files"] if "attempt-2/" in p]
+                    self.assertTrue(any(p.endswith(".trx") for p in second))
+                    self.assertTrue(any(p.endswith(".log") for p in second))
+                    self.assertFalse(any(p.endswith(".dmp") for p in second))
 
     def test_aggregate_rejects_retry_filter_log_hash_and_attachment_drift(self):
         for mutation in ("filter", "missing-log", "hash", "hang", "third-attempt"):

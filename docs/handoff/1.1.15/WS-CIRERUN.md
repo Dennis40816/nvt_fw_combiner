@@ -17,6 +17,8 @@
   selected by the owner; sole writer. Independent review is read-only.
 - Owned paths: `scripts/verify.py`, affected `tests/scripts/` tests,
   `docs/adr/0079-test-architecture.md`, `docs/ci/pull-request-ci.md`, this log.
+  Review corrections additionally own the two `BUG-20260929-ci-rerun-*` ledger
+  files required by the repository's found-bug rule.
 - Existing semantic owner: `verify_ci_dotnet_test_shard` produces the closed
   project inventory and schema-3 evidence; `finalize_ci_dotnet_evidence` owns
   aggregate acceptance. `local_dotnet_vstest_command`, TRX/discovery parsers,
@@ -97,3 +99,33 @@ Open:
 
 Next: independently review this exact commit; the commander obtains real CI
 evidence and applicable owner approval before any separately authorized merge.
+
+### 2026-09-29 independent review corrections
+
+State: local, narrow-verified; not integrated or published
+Commits: first candidate `3253841cffc6a6581d732327393b7887cbecd94d`; corrections
+are in this follow-up checkpoint commit.
+Evidence:
+
+- Fresh-session, read-only `codex/gpt-6-astra`, high effort, reviewed the first
+  fixed head against the base; verdict `FAIL`, one P1 and one P2, both fix-now.
+- `BUG-20260929-ci-rerun-xunit-error-runinfo`: retained real xUnit TRX proved an
+  ordinary failure emits `RunInfo outcome="Error"`. The reviewer replayed it
+  read-only, with no dotnet invocation. Sanitized structural fixtures reproduced
+  the rejection. The fix admits only the exact timestamped xUnit `[FAIL]`
+  notification of a failed TRX case, with zero fatal terminal counters; unknown
+  Error messages, unmatched identities and platform counters still fail closed.
+- `BUG-20260929-ci-rerun-dump-rejection-drops-attempt`: the reviewer reproduced
+  valid attempt-2 TRX/log being discarded for an empty dump. Attachment bounds
+  now produce an omission diagnostic while retaining independently valid files;
+  whole-tree regular-file/reparse rejection remains unchanged. The regression
+  asserts retention of both attempts, not just the first.
+- After correction, `python -m unittest tests.scripts.test_ci_dotnet_retry -q`
+  passed 16 tests, and orchestration `-k ci_` passed 43 tests. Both findings
+  passed after one correction; the repeated-failure stop condition did not fire.
+
+Open: fixed-head re-review and final structure confirmation for the correction;
+all earlier external CI, timer, commander bug mapping and human gates remain.
+No workflow/mirror or release-rule change is needed.
+Next: independently re-review the correction commit and report its exact SHA,
+checks and verdict in the local handoff report; do not push.

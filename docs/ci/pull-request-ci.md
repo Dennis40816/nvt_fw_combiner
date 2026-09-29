@@ -79,6 +79,11 @@ retry path or changed release evidence rules.
    non-aborted TRX, unchanged assembly snapshot, full discovery reconciliation,
    admitted skips and normalized coverage pair validate. `Failed` test outcomes
    alone do not authorize retrying a test-platform error, hang or crash.
+   xUnit's `RunInfo outcome="Error"` notification is allowed only when it has
+   the exact timestamped `[xUnit.net ...] <case identity> [FAIL]` form and names
+   an actually failed TRX case. Unknown Error diagnostics and nonzero terminal
+   error/abort/timeout counters fail closed; diagnostic severity alone does not
+   distinguish assertion failures from platform failures.
 3. The filter ORs exact `FullyQualifiedName=<class>.<method>` equalities from
    unique TRX `TestMethod` definitions of failed tests. Display names are not
    interpolated into filters. Unsupported filter syntax, missing/ambiguous
@@ -147,9 +152,12 @@ claiming the strict five-minute per-test target is achieved.
 Only nonempty regular `.dmp` files of at most 256 MiB and `*_Sequence.xml` files
 of at most 1 MiB are admitted, at most eight attachments per attempt. Symlinks,
 junctions and other non-regular entries reject the attempt's diagnostic tree.
-Empty, oversized or excessive attachments reject its collection and add the
-existing fixed omission reason plus a detailed diagnostic in `shard.log`;
-they never make a failed project pass. Other files are not copied. No dump is
+Empty, oversized or excessive regular attachments are omitted with the fixed
+`hang attachments not uploaded: attachment validation failed` reason and a
+detailed diagnostic in `shard.log`. The same attempt's valid original TRX,
+log, discovery and normalized coverage remain retained after the tree passes
+regular-file checks. Attachment rejection never makes a failed project pass.
+Other files are not copied. No dump is
 fabricated when VSTest fails before creating one: that remains a failed run
 with the available log/TRX evidence.
 
