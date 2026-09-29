@@ -1,6 +1,6 @@
 # BUG-20260928-launcher-admission-deadline-test-flake: the late-admission launcher test can see the admission deadline before the process is created
 
-Status: Application test fixed, released in v1.1.14; Bootstrap host follow-up reopened (2026-09-29) — the fix landed incomplete
+Status: fixed on `feature/1.1.15/bootstrap-flake`, pending review and merge
 Severity: P3
 Found: 2026-09-28, CI run 36373462006 (`dotnet / test (core)`) on pull request #474 head `46d73bf91`
 Where: `tests/NvtFwCombiner.Application.Tests/VersionManagement/ManagedLauncherEntryCoordinatorTests.cs`,
@@ -13,7 +13,7 @@ touch the launcher coordinator or this test.
 Expected: the test controls the order of process creation and the deadline (for example with the manual time provider
 the neighbouring tests use), so it checks the post-creation outcome without depending on runner speed.
 Evidence: the TRX in the run's `dotnet-test-core-evidence-attempt-1` artifact.
-Owner: 1.1.14 (test-only, R1) for the Application fix, delivered; the reopened Bootstrap host follow-up moves to the next 1.2.x pull request (test-only, R1).
+Owner: 1.1.14 (test-only, R1) for the Application fix, delivered; the Bootstrap host follow-up is a 1.1.15 test-only R1 correction on `feature/1.1.15/bootstrap-flake`, with a later merge up from 1.1.x to 1.2.x.
 Resolution:
 The Application test now injects the existing `ManualTimeProvider`, waits for the launch receipt's admission wait
 to start, and only then advances the 25 ms cutoff. Both immediate and 100 ms delayed payload admission exercise
@@ -59,6 +59,30 @@ class of wall-clock race remains for them. `RecoveryEntryWithoutRootDoesNotExpos
 `feature/1.1.14/release-back-merge` (#484) CI run `36513730094` (job `109231324480`) and in about 1 of 8 local
 runs of the class under load; it passes in isolation, consistent with a timing-sensitive test rather than a
 production regression. The Application-side fix (this bug's original scope) is unaffected and stays fixed;
-only the Bootstrap host class is reopened. Planned fix: a test-only change, in the next 1.2.x pull request, that
-injects the manual clock into the remaining tests in this class the same way `0b20f5bd7` did for one of them. No
+only the Bootstrap host class is reopened. The 1.1.15 test-only correction on
+`feature/1.1.15/bootstrap-flake` injects the manual clock into the remaining time-dependent tests in this class
+the same way `0b20f5bd7` did for one of them; 1.1.x will later merge up to 1.2.x. No
 production behavior, firmware bytes, ranges, integrity, ordering, or support declarations are implicated.
+
+Bootstrap follow-up Resolution (2026-09-29, 1.1.15): all four remaining `RunAsync` tests now inject the
+existing `ManualTimeProvider`: `MissingDevelopmentPayloadFailsClosedBeforeEntryRouting`,
+`GenuineFirstInstallExposesOnlyTheSharedSetupExperience`,
+`RecoveryEntryExposesSessionBoundToTheExactEntryRoot`, and
+`RecoveryEntryWithoutRootDoesNotExposeRecoverySession`. Each starts the host run, waits until the embedded-resource
+callback is observed, and then advances the clock by 1 ms. Their original product assertions remain. The earlier
+`ClosedResourcesAreBoundedAndVersionBoundBeforeEntryRouting` manual-clock coverage remains unchanged. The other
+tests do not run the host entry coordinator: they exercise recovery-session delegation/cancellation, factory
+configuration, or pure exit-code mapping, so they need no clock injection. No production behavior or cutoff changed.
+
+Red attempt on the unmodified `09d2a6ca2` base: the
+`dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj --no-restore
+--filter FullyQualifiedName~ManagedDistributionLauncherHostServicesTests --verbosity normal` class run passed
+18/18 on each of 30 consecutive invocations (`--no-build` added after the first). No local failure was reproduced
+within 30 runs; the earlier CI run `36513730094` and about 1/8 local failures under load remain the observed red
+evidence, not a new red result from this attempt.
+
+Green on the corrected tests: the same class filter with `--no-restore --no-build --verbosity normal` passed
+18/18 on each of 30 consecutive invocations. The full project command
+`dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj --no-restore
+--no-build --verbosity quiet` passed 2142/2142 once. These are local test results; fixed-head review, CI, and merge
+remain pending.

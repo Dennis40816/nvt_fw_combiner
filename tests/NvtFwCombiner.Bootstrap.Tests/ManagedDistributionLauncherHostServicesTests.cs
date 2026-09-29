@@ -14,16 +14,26 @@ public sealed class ManagedDistributionLauncherHostServicesTests
     public async Task MissingDevelopmentPayloadFailsClosedBeforeEntryRouting()
     {
         using var workspace = TempWorkspace.Create();
+        var clock = new ManualTimeProvider();
+        var resourceObserved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using ManagedDistributionLauncherHostServices host =
             ManagedDistributionLauncherHostServices.Create(
                 workspace.PathFor("NvtFwCombiner.DistributionLauncher.exe"),
                 "1.0.3",
+                name =>
+                {
+                    _ = resourceObserved.TrySetResult();
+                    return null;
+                },
                 _ => null,
-                _ => null,
-                workspace.PathFor("state/version-manager.v1.json"));
+                workspace.PathFor("state/version-manager.v1.json"),
+                clock);
 
-        ManagedDistributionLauncherHostResult result = await host.RunAsync(
-            TestContext.Current.CancellationToken);
+        Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+        ManagedDistributionLauncherHostResult result = await run;
 
         Assert.Null(result.Entry);
         Assert.Null(result.Setup);
@@ -46,18 +56,28 @@ public sealed class ManagedDistributionLauncherHostServicesTests
         string launcher = workspace.PathFor("delivery/NvtFwCombiner.DistributionLauncher.exe");
         _ = Directory.CreateDirectory(Path.GetDirectoryName(launcher)!);
         var bootstrapReads = new BootstrapReadGuard(bootstrap);
+        var clock = new ManualTimeProvider();
+        var resourceObserved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using ManagedDistributionLauncherHostServices host =
             ManagedDistributionLauncherHostServices.Create(
                 launcher,
                 "1.0.3",
-                name => name == ManagedDistributionLauncherHostServices.BootstrapResourceName
-                    ? bootstrapReads.Open()
-                    : OpenResource(resources, name),
+                name =>
+                {
+                    _ = resourceObserved.TrySetResult();
+                    return name == ManagedDistributionLauncherHostServices.BootstrapResourceName
+                        ? bootstrapReads.Open()
+                        : OpenResource(resources, name);
+                },
                 _ => null,
-                workspace.PathFor("state/version-manager.v1.json"));
+                workspace.PathFor("state/version-manager.v1.json"),
+                clock);
 
-        ManagedDistributionLauncherHostResult result = await host.RunAsync(
-            TestContext.Current.CancellationToken);
+        Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+        ManagedDistributionLauncherHostResult result = await run;
 
         Assert.Equal(
             workspace.PathFor("delivery/NvtFwCombiner"),
@@ -84,17 +104,27 @@ public sealed class ManagedDistributionLauncherHostServicesTests
         string statePath = workspace.PathFor("state/version-manager.v1.json");
         _ = Directory.CreateDirectory(Path.GetDirectoryName(launcher)!);
         _ = Directory.CreateDirectory(Path.GetDirectoryName(statePath)!);
+        var clock = new ManualTimeProvider();
+        var resourceObserved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using ManagedDistributionLauncherHostServices host =
             ManagedDistributionLauncherHostServices.Create(
                 launcher,
                 "1.0.3",
-                name => OpenResource(resources, name),
+                name =>
+                {
+                    _ = resourceObserved.TrySetResult();
+                    return OpenResource(resources, name);
+                },
                 _ => null,
-                statePath);
+                statePath,
+                clock);
         _ = Directory.CreateDirectory(host.ManagedRoot);
 
-        ManagedDistributionLauncherHostResult result = await host.RunAsync(
-            TestContext.Current.CancellationToken);
+        Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+        ManagedDistributionLauncherHostResult result = await run;
 
         ManagedLauncherEntryResult entry = Assert.IsType<ManagedLauncherEntryResult>(result.Entry);
         Assert.Equal(ManagedLauncherEntryOutcome.RecoveryRequired, entry.Outcome);
@@ -125,16 +155,26 @@ public sealed class ManagedDistributionLauncherHostServicesTests
         _ = Directory.CreateDirectory(Path.GetDirectoryName(launcher)!);
         _ = Directory.CreateDirectory(Path.GetDirectoryName(statePath)!);
         File.WriteAllText(statePath, "{}");
+        var clock = new ManualTimeProvider();
+        var resourceObserved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using ManagedDistributionLauncherHostServices host =
             ManagedDistributionLauncherHostServices.Create(
                 launcher,
                 "1.0.3",
-                name => OpenResource(resources, name),
+                name =>
+                {
+                    _ = resourceObserved.TrySetResult();
+                    return OpenResource(resources, name);
+                },
                 _ => null,
-                statePath);
+                statePath,
+                clock);
 
-        ManagedDistributionLauncherHostResult result = await host.RunAsync(
-            TestContext.Current.CancellationToken);
+        Task<ManagedDistributionLauncherHostResult> run = host.RunAsync(
+            TestContext.Current.CancellationToken).AsTask();
+        await resourceObserved.Task.WaitAsync(TestContext.Current.CancellationToken);
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+        ManagedDistributionLauncherHostResult result = await run;
 
         Assert.Equal(ManagedLauncherEntryOutcome.RecoveryRequired, result.Entry?.Outcome);
         Assert.Null(result.Entry?.ManagedRoot);
