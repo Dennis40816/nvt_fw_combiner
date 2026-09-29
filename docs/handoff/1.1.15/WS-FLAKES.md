@@ -58,3 +58,18 @@ runner, whose package contains the waiting message; the failing thread's
 identity remains unknown. No source or runner change was made.
 Open: capture a dump or thread trace from a failing assembly-info query before
 claiming a root cause or a fix. Protected CI and exact-head review remain open.
+
+### 2026-09-29 repository pre-wait deadline follow-up
+
+State: investigated locally; no production fix. A temporary fake lease blocked
+`TryValidateForStart` inside `ProcessLaunchGate.StartContained`; the 100 ms
+`readyDeadline` had elapsed when the start remained incomplete after 250 ms.
+The focused Infrastructure red test failed 1/1 as expected, released its fake
+in `finally`, and was removed before commit. This demonstrates an unbounded
+pre-wait step, not the cause of #488's CI hang. `SPEC.md`, the Application port,
+ADRs 0051/0056/0064, the launcher bootstrap contract and the analogous
+Launcher adapter do not establish whether the ready deadline starts before
+lease acquisition and process creation.
+Open: owner must decide whether this adapter's `readyDeadline` covers the whole
+start (with no late process creation and confirmed cleanup) or only readiness
+after creation. The real CI hang still needs stack/phase evidence. No push.
