@@ -220,3 +220,88 @@ acceptance is not claimed here; no integration/publication.
 
 Next: O5 non-overlapping 24-DIP markers/collision lists and Q2 fixed border with
 resource-backed background, with DPI/theme/language and screenshot evidence.
+
+Stage 3 admission: extend-owner `MemoryCoverageBar` for display geometry and
+its existing local-view/card lifecycle; reuse `WireSlice`, shared templates,
+interaction leases and theme resources. Marker clustering is display-only:
+each entry retains its original typed slice, with no range or ownership
+inference. Reject minimum-width distortion of the proportional rail and a
+second popup/input controller. `stage3-red.trx` reproduces six missing-marker
+cases and four missing fixed-border cases (10 failed, 0 passed). A collection
+expression formatting issue in the new fixture was corrected before this run.
+
+### 2026-09-29 — stage 3 completed
+
+State: locally verified; stage 2 is 20a66dd3b02aad8e178066c860936d0027534e8e.
+This coherent commit completes visible 24-DIP tiny markers, collision lists
+and fixed passive-legend borders. Product source is frozen before final gates;
+this checkpoint is included with the implementation. No integration or publish.
+
+Evidence:
+
+- Final UiSmoke affected filter (`MemoryCoverage|MemorySourcePresentation|MemoryPostprocessing|DpPerspective`,
+  each with `FullyQualifiedName~`) plus three canonical screenshot cases:
+  **243 passed, 0 failed, 0 skipped**, 2m09s;
+  `evidence/1.1.15/test-results/stage3-final-ui-captures.trx`.
+  This includes all 24 combinations of 240/420 DIP, actual 100/150/200% headless
+  render scaling, Light/Dark and English/Traditional Chinese; isolated and
+  adjacent three-byte selections preserve exact slice identity/ranges.
+- Red/green: `stage3-red.trx` 10 failed; initial implementation 7 passed / 3
+  fixture failures, corrected to 10/0. Wider `stage3-ui.trx` 228 passed / 10
+  obsolete geometry assertions, corrected in `stage3-geometry-green.trx` 10/0.
+  Dense-list review reproduced card overlap in `stage3-dense.trx` (2 failed);
+  `stage3-dense-final.trx` passes 27 cases after bounded height and input-origin
+  fixes. No test remains failed after two corrections; no stop rule triggered.
+- Dense lists reserve card space and scroll. Pointer scrolling discards stale
+  card identity; keyboard bring-into-view retains its focused card. Collision
+  entries reuse the shared pointer, focus, Escape, close and teardown owners.
+  Proportional rail widths/weights are unchanged; the marker row is separate.
+- Architecture affected guards: 15/0, `stage3-architecture.trx`; final
+  structure-only result is recorded in `evidence/1.1.15/stage3-final-structure.log`.
+  Application 62/0 and Bootstrap 12/0 from stage 1 are reused for their unchanged
+  source. No full-suite, firmware execution or Golden parity claim.
+- Canonical before/after: `screens/before/` and `screens/after/` under
+  `evidence/1.1.15/`. Both Details states for NT51929 AB and NT51950 Standard;
+  after also includes NT51929 AB CtrlRAM Candidate. Primary inspected canonical
+  before/after, both Details states, passive borders, narrow 150/200% bilingual
+  Light/Dark markers and dense-list captures. The AB CtrlRAM Evidence open
+  status is preserved. The screenshot application version remains the branch's
+  existing version; this task does not change release/version policy.
+- Final opening measurement: 8 groups (Plain/non-Plain x 420/620 DIP x Reduced
+  Motion on/off), English Light, one cold plus 30 warm samples each. Handler
+  P50 **23.14-72.38 ms**, P95 **44.93-207.13 ms**; render-pump P95
+  **46.12-230.79 ms**. The largest P95 is Plain/420/non-reduced. Raw samples:
+  `evidence/1.1.15/timings-final/`. These are headless handler/render-pump costs,
+  not native first-readable latency or proof of a performance change; O4 is
+  still excluded. Stage-2 measurements remain separately retained.
+- Stage delta nonblank: production **+138** (Presentation only), tests **+222**.
+  Cumulative versus 99e3efd7e: production **+329**, non-UI runtime **+240**,
+  Presentation **+89**, tests **+754**. Existing >=2000-line hotspots are
+  unchanged. Growth implements the authorized typed contracts, shared marker
+  geometry and independent input/geometry regressions; no baseline is raised.
+  `stage3-code-size.json` and `final-code-size.json` under the evidence root.
+- Scoped author review checked the admitted owners, no inferred firmware
+  ownership, no second classification/popup lifecycle, unchanged ranges and
+  fixture bytes, dynamic border resources, cleanup and observed input behavior.
+  No open local correctness finding. All discovered bugs are recorded with
+  resolutions. Diff/links checked; no profile, release, CI, lockfile or private
+  payload change. No verifier/test runs during the commit.
+
+Open: independent fixed-head Claude R2 architecture/UI review and owner visual
+acceptance remain with commander/owner. Local author Polytail:
+**PASS-WITH-HUMAN-GATE**; mandatory independent review is not claimed complete.
+Native first-readable timing is unmeasured; High Contrast remains the separate
+1.2.10 acceptance. Decision 192's NT51950/951 AB profile declarations remain the
+separate R3 branch; this branch follows declared owners without special cases.
+No push, PR, GitHub write, fetch, merge or rebase was performed. No explicit
+prune/gc command was issued, but the first stage-3 commit (40966aa32) printed
+Git's automatic-packing message and completed. This is an execution deviation
+from the no-housekeeping constraint, not an authorized maintenance action.
+Subsequent Git writes suppress it with command-local `gc.auto=0` and
+`maintenance.auto=false`; persistent configuration is unchanged. See
+`BUG-20260929-memory-commit-auto-maintenance` in the bug ledger. This amendment
+changes only the execution record; the verified product/test source is intact.
+
+Next: commander reviews this fixed diff and screenshot evidence, arranges the
+independent review and integration. The authorized local three-stage scope is
+complete; O1/O2/O4 and unrelated backlog work are not started.

@@ -1,4 +1,23 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Border.memoryPassiveLegend">
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="Border.memoryPassiveLegend.railActive">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
+  </Style>
+  <Style Selector="Border.memoryTinyMarker, Border.memoryCollisionEntry">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryPanelBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="Border.memoryTinyMarker.linked, Border.memoryTinyMarker.active, Border.memoryCollisionEntry.linked">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
+  </Style>
   <Style Selector="Border.memoryInfoPanel">
     <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryPanelBorderBrush}" />

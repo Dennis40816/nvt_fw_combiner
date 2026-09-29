@@ -46,6 +46,7 @@ public sealed partial class MemoryCoverageBar
     {
         // Child arrangement runs before this control's Bounds is updated.
         _arrangedRailWidth = finalSize.Width;
+        UpdateTinyMarkers(finalSize.Width);
         return base.ArrangeOverride(finalSize);
     }
 
