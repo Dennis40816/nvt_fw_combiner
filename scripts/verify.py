@@ -5795,7 +5795,7 @@ def report_ci_flaky_tests(label: str, flaky: Sequence[dict[str, str]]) -> None:
     append_ci_step_summary(report)
 
 
-CI_CLOSED_BUG_STATUSES = ("fixed", "wontfix", "duplicate")
+CI_CLOSED_BUG_STATUSES = ("fixed", "closed", "wontfix", "duplicate")
 
 
 def ci_bug_record_is_open(text: str) -> bool:

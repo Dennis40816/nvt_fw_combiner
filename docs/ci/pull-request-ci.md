@@ -172,6 +172,16 @@ elapsed time, timer/termination behavior, and proof that no dump was collected o
 uploaded. Fake-runner tests certify command and allowlist behavior only. Sequence
 identities and log timing are evidence, not an invented per-test duration field.
 
+Two further closure gates need the first real CI runs. First, the release
+zero-flaky gate reads flaky annotations and has no positive count signal yet, so
+a missing annotation cannot be told from zero flaky tests; a count notice on
+`dotnet / build-test` is deferred until real annotation behavior is observed.
+Second, if real VSTest writes a Sequence file on ordinary failures, the hang rule
+refuses every retry (fail-closed); the first real ordinary-failure-plus-retry run
+must show which case applies. A flaky test is accepted only when an open bug
+record names it: a record whose `Status:` starts with fixed, closed, wontfix or
+duplicate must be reopened.
+
 Only nonempty regular filenames matching exactly
 `re.fullmatch(r"Sequence_[0-9a-fA-F]{32}\.xml", name)` are admitted, each at most
 1 MiB and at most eight per attempt. For example,

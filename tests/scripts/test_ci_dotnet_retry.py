@@ -683,6 +683,7 @@ class CiDotnetRetryTests(unittest.TestCase):
             # Only open records count (decision 193): a closed record must be reopened.
             ("Status: fixed on a branch\n`Probe.Tests.Case1`", False),
             ("Status: wontfix\n`Probe.Tests.Case1`", False),
+            ("Status: closed, superseded\n`Probe.Tests.Case1`", False),
             ("Status: duplicate of BUG-x\n`Probe.Tests.Case1`", False),
             ("Status: open\n`Probe.Tests.Case1`", True),
             ("Status: Application part fixed; host follow-up reopened\n`Probe.Tests.Case1`", True),
