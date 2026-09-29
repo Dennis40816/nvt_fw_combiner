@@ -261,6 +261,12 @@ Open:
 - 本機 commit 後的 independent fixed-head review 記錄於 owner 指定的詳細報告，綁定 exact commit SHA；在其完成前不宣稱 R3 review closure。
 - 未來任何 integration／push 仍需 exact-head review 與 owner last-push approval，依目前 path policy 命名 `firmware-owner`、`release-owner`。本任務沒有 push／PR／GitHub write 權限，也不宣稱 integration-ready 或 release-ready。
 
+Golden 覆蓋範圍（2026-09-29 審查 P2 補正）：
+- 三個 owner 認證的 direct Golden（BOE、Hiway、OSD）全部走 `nt51950-ab-merge-512k`。
+- 其餘五張 map 沒有 direct Golden：Desay single、Desay cascade 與 951 Desay 1024k、950 merge 1024k、951 merge 1024k。
+- 這五張 map 的證據是：12/12 compiled-plan 前後相同（6 maps × normal／dummy）、Python reference 與 dummy 測試。
+- 可見變化：三張 Desay map 的 container tail 在 AB merge 的 Memory Layout 由 Unmapped（Neutral）改為 DP；dummy 模式的 disposition 由 Resolved 改為 Blank，畫面呈現相同。
+
 Next: 完成本機 commit，交由 fresh-session read-only reviewer 檢查該 exact head，將 review 與 commit SHA 寫入指定詳細報告後交回 commander；不繼續其他 backlog。
 
 #### Evidence artifact identities
