@@ -14,21 +14,26 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
     public async Task StableLauncherHandoffRejectsMissingAndStartsExactLauncher()
     {
         using var workspace = TempWorkspace.Create();
-        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe-single-file", "NvtFwCombiner.ReadyProbe.exe");
         byte[] bytes = await File.ReadAllBytesAsync(probe, TestContext.Current.CancellationToken);
         var identity = new ManagedImmutableBootstrapIdentity(
             "NvtFwCombiner.Bootstrap.exe",
             bytes.LongLength,
             Convert.ToHexStringLower(SHA256.HashData(bytes)));
-        var handoff = new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"), identity);
+        using var launched = new LauncherProcessObserver();
+        var handoff = new StableLauncherHandoff(
+            workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"),
+            ManagedProcessTermination.Instance,
+            expectedIdentity: identity,
+            hasExited: launched.ObserveStarted);
 
-        bool missing = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
+        StableLauncherStartResult missing = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
         File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
-        bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
-        await Task.Delay(500, TestContext.Current.CancellationToken);
+        StableLauncherStartResult started = await StartLiveProbeLauncherAsync(handoff, workspace.Root, launched);
 
-        Assert.False(missing);
-        Assert.True(started);
+        Assert.Equal(new(StableLauncherStartOutcome.HandoffFailed), missing);
+        Assert.Equal(new(StableLauncherStartOutcome.Started), started);
     }
 
     /// <summary>Cancellation at the final start gate prevents a late process launch.</summary>
@@ -84,10 +89,10 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
         File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
 
-        bool started = await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"))
+        StableLauncherStartResult started = await new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"))
             .TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
-        Assert.False(started);
+        Assert.Equal(new(StableLauncherStartOutcome.HandoffFailed), started);
     }
 
     /// <summary>A valid PE with a different digest cannot satisfy inherited Bootstrap authority.</summary>
@@ -107,9 +112,9 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             wrongSha256);
         var handoff = new StableLauncherHandoff(workspace.Root, workspace.PathFor("state/version-manager.v1.json"), wrongIdentity);
 
-        bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
+        StableLauncherStartResult started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
-        Assert.False(started);
+        Assert.Equal(new(StableLauncherStartOutcome.HandoffFailed), started);
     }
 
     /// <summary>The legacy restart keeps every executable path component stable through Process.Start.</summary>
@@ -127,10 +132,11 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         _ = Directory.CreateDirectory(managedRoot);
         string probe = Path.Combine(
             AppContext.BaseDirectory,
-            "ready-probe",
+            "ready-probe-single-file",
             "NvtFwCombiner.ReadyProbe.exe");
         File.Copy(probe, Path.Combine(managedRoot, "NvtFwCombiner.Bootstrap.exe"));
         int blocked = 0;
+        using var launched = new LauncherProcessObserver();
         var handoff = new StableLauncherHandoff(
             managedRoot,
             workspace.PathFor("state/version-manager.v1.json"),
@@ -149,11 +155,12 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
                     }
                 }
             },
-            expectedIdentity: CreateBootstrapIdentity(managedRoot));
+            expectedIdentity: CreateBootstrapIdentity(managedRoot),
+            hasExited: launched.ObserveStarted);
 
-        bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
+        StableLauncherStartResult started = await StartLiveProbeLauncherAsync(handoff, managedRoot, launched);
 
-        Assert.True(started);
+        Assert.Equal(new(StableLauncherStartOutcome.Started), started);
         Assert.Equal(2, blocked);
     }
 
@@ -165,6 +172,130 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             "NvtFwCombiner.Bootstrap.exe",
             bytes.LongLength,
             Convert.ToHexStringLower(SHA256.HashData(bytes)));
+    }
+
+    private sealed class LauncherProcessObserver : IDisposable
+    {
+        private Process? _process;
+
+        public bool ObserveStarted(Process process)
+        {
+            Capture(process);
+            return false;
+        }
+
+        public bool ObserveExited(Process process)
+        {
+            Capture(process);
+            return true;
+        }
+
+        public void Capture(Process process)
+        {
+            try
+            {
+                _process = Process.GetProcessById(process.Id);
+            }
+            catch (ArgumentException)
+            {
+                // The process already exited before a second handle could be opened.
+            }
+        }
+
+        public async Task WaitForExitAsync()
+        {
+            if (_process is not null)
+            {
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                await _process.WaitForExitAsync(timeout.Token);
+            }
+        }
+
+        public void Dispose()
+        {
+            _process?.Dispose();
+        }
+    }
+
+    private static async Task<StableLauncherStartResult> StartLiveProbeLauncherAsync(
+        StableLauncherHandoff handoff,
+        string managedRoot,
+        LauncherProcessObserver launched,
+        string behavior = "tree-grandchild")
+    {
+        string? previousBehavior = Environment.GetEnvironmentVariable(BehaviorEnvironment);
+        string? previousMarker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER");
+        try
+        {
+            Environment.SetEnvironmentVariable(BehaviorEnvironment, behavior);
+            string marker = Path.Combine(managedRoot, "handoff-probe-marker.txt");
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER", marker);
+            StableLauncherStartResult result = await handoff.TryStartLauncherAsync(
+                TestContext.Current.CancellationToken);
+            if (result.IsStarted && behavior == "tree-grandchild")
+            {
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                while (!File.Exists(marker))
+                {
+                    await Task.Delay(25, timeout.Token);
+                }
+            }
+            return result;
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(BehaviorEnvironment, previousBehavior);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_TREE_MARKER", previousMarker);
+            await launched.WaitForExitAsync();
+        }
+    }
+
+    /// <summary>An executable observed as exited immediately reports its exit code.</summary>
+    [Fact]
+    public async Task StableLauncherHandoffReportsImmediateExitCode()
+    {
+        using var workspace = TempWorkspace.Create();
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe-single-file", "NvtFwCombiner.ReadyProbe.exe");
+        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
+        using var launched = new LauncherProcessObserver();
+        var handoff = new StableLauncherHandoff(
+            workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"),
+            ManagedProcessTermination.Instance,
+            expectedIdentity: CreateBootstrapIdentity(workspace.Root),
+            hasExited: launched.ObserveExited,
+            getExitCode: _ => 24);
+
+        StableLauncherStartResult result = await StartLiveProbeLauncherAsync(handoff, workspace.Root, launched, "ready");
+
+        Assert.Equal(new(StableLauncherStartOutcome.ExitedImmediately, 24), result);
+    }
+
+    /// <summary>A failed post-creation observation cannot be reported as a creation failure.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StableLauncherHandoffReportsPostCreationObservationFailure(bool failOnExitCode)
+    {
+        using var workspace = TempWorkspace.Create();
+        string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe-single-file", "NvtFwCombiner.ReadyProbe.exe");
+        File.Copy(probe, Path.Combine(workspace.Root, "NvtFwCombiner.Bootstrap.exe"));
+        using var launched = new LauncherProcessObserver();
+        var handoff = new StableLauncherHandoff(
+            workspace.Root,
+            workspace.PathFor("state/version-manager.v1.json"),
+            ManagedProcessTermination.Instance,
+            expectedIdentity: CreateBootstrapIdentity(workspace.Root),
+            hasExited: process =>
+            {
+                launched.Capture(process);
+                return failOnExitCode ? true : throw new System.ComponentModel.Win32Exception(5);
+            },
+            getExitCode: _ => throw new System.ComponentModel.Win32Exception(5));
+
+        StableLauncherStartResult result = await StartLiveProbeLauncherAsync(handoff, workspace.Root, launched, "ready");
+
+        Assert.Equal(new(StableLauncherStartOutcome.HandoffFailed), result);
     }
 
     /// <summary>Launcher handoff honors caller cancellation before touching the process boundary.</summary>
@@ -206,12 +337,15 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         File.Copy(probe, Path.Combine(otherRoot, "NvtFwCombiner.Bootstrap.exe"));
         ManagedImmutableBootstrapIdentity identity = CreateBootstrapIdentity(otherRoot);
         string? startedPath = null;
+        using var launched = new LauncherProcessObserver();
         var handoff = new StableLauncherHandoff(
             boundRoot,
             workspace.PathFor("state/version-manager.v1.json"),
             ManagedProcessTermination.Instance,
             beforeProcessStart: path => startedPath = path,
-            expectedIdentity: identity);
+            expectedIdentity: identity,
+            hasExited: launched.ObserveExited,
+            getExitCode: _ => 24);
 
         ImmutableBootstrapStartResult result = await handoff.StartAsync(
             otherRoot,
@@ -232,10 +366,12 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             startedPath);
 
         startedPath = null;
-        bool legacyStarted = await handoff.TryStartLauncherAsync(
+        StableLauncherStartResult legacyStarted = await handoff.TryStartLauncherAsync(
             TestContext.Current.CancellationToken);
+        await launched.WaitForExitAsync();
 
-        Assert.True(legacyStarted);
+        Assert.Equal(StableLauncherStartOutcome.ExitedImmediately, legacyStarted.Outcome);
+        _ = Assert.NotNull(legacyStarted.ExitCode);
         Assert.Equal(
             Path.Combine(boundRoot, "NvtFwCombiner.Bootstrap.exe"),
             startedPath);
@@ -365,7 +501,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
 
     /// <summary>A residual Win32 start failure is converted to the handoff's fail-closed result.</summary>
     [Fact]
-    public async Task StableLauncherHandoffConvertsWin32StartFailureToFalse()
+    public async Task StableLauncherHandoffReportsWin32ProcessCreationFailure()
     {
         using var workspace = TempWorkspace.Create();
         string probe = Path.Combine(AppContext.BaseDirectory, "ready-probe", "NvtFwCombiner.ReadyProbe.exe");
@@ -382,10 +518,10 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             },
             expectedIdentity: CreateBootstrapIdentity(workspace.Root));
 
-        bool started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
+        StableLauncherStartResult started = await handoff.TryStartLauncherAsync(TestContext.Current.CancellationToken);
 
         Assert.True(hookRan);
-        Assert.False(started);
+        Assert.Equal(new(StableLauncherStartOutcome.ProcessCreationFailed), started);
     }
 
     /// <summary>The shared handoff admits exact Bootstrap bytes once and returns a process receipt.</summary>

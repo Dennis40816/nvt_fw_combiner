@@ -3,16 +3,12 @@
 name: release
 
 on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
-      commit:
-        description: Exact current protected-main head (40-character lowercase SHA)
-        required: true
-        type: string
-      pull_request:
-        description: Final reviewed pull request merged as that main commit
-        required: true
-        type: string
       dry_run:
         description: Build a non-promotable candidate without tag or Release authority
         required: true
@@ -22,6 +18,9 @@ on:
 permissions:
   contents: read
 
+# Successful CI on a release PR merge commit starts the candidate; ordinary
+# main pushes and failed CI runs skip. Manual dispatch retains only dry_run.
+# The policy derives the source PR and merge-derived publishedAt metadata.
 # The candidate, pre-tag and pre-Release boundaries collect fresh repository
 # admission through the read-only Python policy. The source is always current
 # protected main. First publication requires an absent tag and a version above

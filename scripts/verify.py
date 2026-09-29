@@ -55,7 +55,8 @@ CTRL_RAM_SENTINEL_CREATOR = ROOT / "scripts" / "create_ctrlram_universal_sentine
 IDLE_BUILD_WORKER_STOPPER = ROOT / "scripts" / "stop-idle-build-workers.ps1"
 REPOSITORY_SCRIPT_TESTS = ROOT / "tests" / "scripts"
 REPOSITORY_SCRIPT_TEST_SHARDS = (
-    ("repository-scripts-a-q", "test_[a-q]*.py"),
+    ("repository-scripts-a-g", "test_[a-g]*.py"),
+    ("repository-scripts-h-q", "test_[h-q]*.py"),
     ("repository-scripts-r", "test_r*.py"),
     ("repository-scripts-s-z", "test_[s-z]*.py"),
 )
@@ -559,6 +560,7 @@ UISMOKE_TEST_PROJECT = "NvtFwCombiner.UiSmoke.Tests"
 # Caller-set capture and input overrides of UiSmoke; the verifier never sets them.
 LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES = (
     "NFC_VISUAL_OUTPUT_DIR",
+    "NFC_VISUAL_STAGE",
     "NFC_UI_REFERENCE_CAPTURE_DIR",
     "NFC_REPORT_VISUAL_INPUT",
 )
@@ -2532,14 +2534,20 @@ def reset_coverage_directory(language: str) -> Path:
     return directory
 
 
-def require_python_modules(names: tuple[str, ...]) -> None:
+def require_python_modules(
+    names: tuple[str, ...], *, install_hint: str | None = None
+) -> None:
     missing = [name for name in names if importlib.util.find_spec(name) is None]
     if missing:
-        extras = str(WORKER_ROOT) + "[dev]"
+        install_command = (
+            f"{sys.executable} -m pip install {install_hint}"
+            if install_hint is not None
+            else f"{sys.executable} -m pip install -e '{WORKER_ROOT}[dev]'"
+        )
         raise RuntimeError(
             "missing Python verification modules: "
             + ", ".join(missing)
-            + f". Install them with: {sys.executable} -m pip install -e '{extras}'"
+            + f". Install them with: {install_command}"
         )
 
 
@@ -6719,6 +6727,12 @@ def execute_verification(args: argparse.Namespace) -> int:
         if not lanes:
             raise RuntimeError("verification plan selected no lanes")
         structure = tuple(lane for lane in lanes if lane.name == "structure")
+        yaml_lane_names = {"structure", *(name for name, _ in REPOSITORY_SCRIPT_TEST_SHARDS)}
+        if any(lane.name in yaml_lane_names for lane in lanes):
+            require_python_modules(
+                ("yaml",),
+                install_hint="--disable-pip-version-check --only-binary=:all: PyYAML==6.0.3",
+            )
         workloads = tuple(lane for lane in lanes if lane.name != "structure")
         full_local = not args.structure_only and not args.skip_dotnet and not args.skip_python
         if full_local:

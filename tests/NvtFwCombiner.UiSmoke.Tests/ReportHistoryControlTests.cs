@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using System.Text.Json.Nodes;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
@@ -19,6 +20,68 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>History actions run through actual rendered controls and the existing queued file writer.</summary>
 public sealed class ReportHistoryControlTests
 {
+    /// <summary>The history card renders recorded DP lengths, and its screenshot preserves the actual page.</summary>
+    [AvaloniaFact]
+    public async Task DpWarningHistoryShowsRecordedLengths()
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("dp-warning-history");
+        PresentationHostServices services = await CreateServicesAsync(workspace);
+        using MainWindow window = new(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
+            services, ShellPreferenceSnapshot.Default);
+        MainWindowViewModel shell = (MainWindowViewModel)window.DataContext!;
+        window.Show();
+        window.WindowState = WindowState.Normal;
+        window.Width = 1536;
+        window.Height = 864;
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            JsonNode root = JsonNode.Parse(ReportJsonSamples.CtrlRamWarning(
+                issueCode: "DP_NONSTANDARD_SIZE_WARNING", message: "DP length advisory."))!;
+            root["SourceEnvelope"] = new JsonObject
+            {
+                ["SourceSlotId"] = "dp-ab-input",
+                ["ActualOutputLength"] = 0xC0000,
+                ["ExpectedOuterLengths"] = new JsonArray(0x80000, 0x100000),
+                ["UnexpectedLengthIssueCode"] = "DP_NONSTANDARD_SIZE_WARNING",
+            };
+            root["ProfileId"] = "nt51950-ab-merge";
+            root["IcId"] = "NT51950";
+            root["ModeId"] = "ab-merge";
+            root["ExperienceId"] = "ab-merge";
+            root["CompositionKind"] = "Merge";
+            root["Output"]!["Size"] = 0xC0000;
+            shell.Reports.LoadReportJson(root.ToJsonString(), "dp-warning.json");
+            shell.Reports.ShowReportHistoryCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            ReportHistoryEntryViewModel entry = Assert.Single(shell.Reports.ReportHistoryEntries);
+            Assert.Equal("1", entry.Issues);
+            string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                _ = Directory.CreateDirectory(directory);
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.Combine(directory, "dp-warning-report-history-after-light-en.png"));
+            }
+            await shell.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(entry);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Contains("786,432 bytes", shell.Reports.LoadedReport.SummaryIssueDescriptions, StringComparison.Ordinal);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
+                Assert.NotNull(frame);
+                frame.Save(Path.Combine(directory, "dp-warning-report-review-after-light-en.png"));
+            }
+        }
+        finally
+        {
+            await CloseAndFlushAsync(window);
+        }
+    }
+
     /// <summary>Message Center owns its deferred styles and retains them across real shell opens.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]

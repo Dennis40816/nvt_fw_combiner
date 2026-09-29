@@ -26,6 +26,7 @@ internal sealed partial class ReportReviewViewModel
                 ? T(language, "Info", "資訊")
                 : IsWarning(issue) ? T(language, "Warning", "警告") : T(language, "Error", "錯誤");
             string description = issue.IssueSummary.Length > 0 ? issue.IssueSummary
+                : issue.Title == "DP_NONSTANDARD_SIZE_WARNING" ? Shorten(issue.Detail, 160)
                 : text.GetInputIssueHelp(issue.Title, issue.Severity)?.Title ?? Shorten(issue.Detail, 160);
             return $"{severity}: {description}";
         });
@@ -227,7 +228,8 @@ internal sealed partial class ReportReviewViewModel
                     language,
                     "Select at least one region-specific CtrlRAM BIN in an available replacement slot, then run Build again.",
                     "請至少在可用的 replacement slot 選擇一個區域專用 CtrlRAM BIN，再重新建立。"),
-            _ => ShellTextResources.For(language).GetInputIssueHelp(issue.Title, issue.Severity)?.Detail
+            _ => issue.Title == "DP_NONSTANDARD_SIZE_WARNING" ? issue.Detail
+                : ShellTextResources.For(language).GetInputIssueHelp(issue.Title, issue.Severity)?.Detail
                 ?? T(language, "Fix the reported issue, then run Build again.", "修正回報問題後再重新建立。"),
         };
     }

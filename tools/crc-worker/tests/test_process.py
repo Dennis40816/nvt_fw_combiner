@@ -54,6 +54,20 @@ def test_process_invalid_json_has_stable_exit_and_no_traceback() -> None:
     assert response["error"]["code"] == "CRC_PROTOCOL_INVALID_JSON"
 
 
+def test_process_oversized_json_integer_returns_one_structured_error() -> None:
+    request = json.dumps(valid_request()).encode()
+    payload = request[:-1] + b',"extra":' + b"9" * 5000 + b"}"
+
+    completed = run_worker(payload)
+
+    assert completed.returncode == 2
+    assert completed.stderr == b""
+    assert completed.stdout.count(b"\n") == 1
+    response = json.loads(completed.stdout)
+    assert response["ok"] is False
+    assert response["error"]["code"] == "CRC_PROTOCOL_INVALID_JSON"
+
+
 def test_process_bounds_error_message_for_long_unsupported_value() -> None:
     request = valid_request()
     request["protocolVersion"] = "x" * 4096

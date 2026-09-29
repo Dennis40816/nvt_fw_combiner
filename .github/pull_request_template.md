@@ -45,7 +45,7 @@ A new head needs a new record.
 {
   "risk": "<R0 | R1 | R2 | R3>",
   "roles": [],
-  "implementationOwner": "<agent runtime or person>",
+  "implementationOwner": "<runtime/model, e.g. codex/gpt-6-sol>",
   "ownedPaths": ["<path>"],
   "evidence": {}
 }

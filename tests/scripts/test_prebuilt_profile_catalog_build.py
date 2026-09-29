@@ -21,7 +21,7 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
     def test_shared_output_overrides_fail_before_destructive_invalidation(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            expected = root / "obj/Debug/net10.0/materialized-profiles/built-in"
+            expected = root / "obj/Debug/net10.0/mp"
             normal_output = root / "bin/Debug/net10.0"
             shared = root / "shared"
             for override in ("OutDir", "BuiltInProfileMaterializedRoot"):
@@ -47,7 +47,8 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
                     self.assertEqual(b"other configuration owns this pack", pack.read_bytes())
 
     def test_clean_incremental_and_failed_generation_never_copy_a_stale_pack(self):
-        with tempfile.TemporaryDirectory() as temp:
+        # Keep the unique eight-character suffix; the verifier owns the parent.
+        with tempfile.TemporaryDirectory(prefix="") as temp:
             root = Path(temp)
             for directory in ("src", "eng", "profiles", "docs/contracts"):
                 shutil.copytree(ROOT / directory, root / directory,

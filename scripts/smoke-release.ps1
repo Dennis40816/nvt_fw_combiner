@@ -39,8 +39,8 @@ $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
 $ApprovedCanonicalGoldenAllowlistSha256 = '4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87'
-$CanonicalGoldenPackagePrefix = 'reference/testdata/golden/canonical'
-$CanonicalGoldenAllowlistPackagePath = 'reference/testdata/golden/release-canonical-v1.json'
+$CanonicalGoldenPackagePrefix = 'reference/golden'
+$CanonicalGoldenAllowlistPackagePath = 'reference/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
     'docs/contracts/support-publication-policy-v1.0.0.json',
     'docs/contracts/support-publication-policy-v1.json'
@@ -222,7 +222,7 @@ function Invoke-CombinerSmoke {
     )
 
     Assert-CombinerRuntime -PackageRoot $PackageRoot
-    $GoldenPath = Join-Path $PackageRoot 'reference/testdata/golden/canonical/NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/expected/nt51927-expected-output.bin'
+    $GoldenPath = Join-Path $PackageRoot 'reference/golden/c021/expected/nt51927-expected-output.bin'
     $GoldenHash = '8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80'
     if (-not (Test-Path -LiteralPath $GoldenPath -PathType Leaf) -or
         (Get-LowerSha256 $GoldenPath) -ne $GoldenHash) {
@@ -404,18 +404,47 @@ function Assert-CanonicalGoldenReference {
         throw 'Release package canonical Golden projection manifest has invalid scope.'
     }
     $ProjectionCases = @{}
+    $SortedCaseIds = [string[]]@($Allowlist.cases | ForEach-Object { [string]$_.caseId })
+    [Array]::Sort($SortedCaseIds, [StringComparer]::Ordinal)
     foreach ($Entry in $Projection.cases) {
         $CaseId = [string]$Entry.caseId
         if ([string]::IsNullOrWhiteSpace($CaseId) -or $ProjectionCases.ContainsKey($CaseId)) {
             throw "Release package canonical Golden projection has invalid or duplicate case '$CaseId'."
         }
-        $ProjectionCases[$CaseId] = [string]$Entry.manifestPath
+        $CaseOrdinal = [Array]::IndexOf($SortedCaseIds, $CaseId) + 1
+        $ExpectedKey = 'c{0:D3}' -f $CaseOrdinal
+        if ($CaseOrdinal -eq 0 -or [string]$Entry.caseKey -cne $ExpectedKey -or
+            [string]$Entry.packageManifestPath -cne "$CanonicalGoldenPackagePrefix/$ExpectedKey/provenance/case.json") {
+            throw "Release package canonical Golden projection has invalid case key for '$CaseId'."
+        }
+        $ProjectionCases[$CaseId] = $Entry
+    }
+    $ProjectionFiles = @{}
+    $ProjectionDestinations = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($File in $Projection.files) {
+        $RepositoryPath = [string]$File.repositoryPath
+        $PackagePath = [string]$File.packagePath
+        if ($ProjectionFiles.ContainsKey($RepositoryPath) -or
+            -not $ProjectionDestinations.Add($PackagePath) -or
+            -not $PackagePath.StartsWith("$CanonicalGoldenPackagePrefix/", [StringComparison]::Ordinal)) {
+            throw 'Release package canonical Golden projection has duplicate or invalid file mapping.'
+        }
+        $ProjectionFiles[$RepositoryPath] = $File
+    }
+    if ($ProjectionFiles.Count -ne 216 -or
+        [string]$ProjectionFiles['testdata/golden/canonical/README.md'].packagePath -cne $CanonicalReadmePackagePath -or
+        [string]$ProjectionFiles['testdata/golden/release-canonical-v1.json'].packagePath -cne $CanonicalGoldenAllowlistPackagePath) {
+        throw 'Release package canonical Golden projection file mapping differs from the approved scope.'
     }
 
     $SelectedCases = @{}
     $ExpectedCanonicalFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     [void]$ExpectedCanonicalFiles.Add('README.md')
     [void]$ExpectedCanonicalFiles.Add('manifest.json')
+    [void]$ExpectedCanonicalFiles.Add('release-canonical-v1.json')
+    $UsedProjectionSources = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    [void]$UsedProjectionSources.Add('testdata/golden/canonical/README.md')
+    [void]$UsedProjectionSources.Add('testdata/golden/release-canonical-v1.json')
     $ExpectedArtifacts = @{}
     $ArtifactDeclarationCount = 0
     $DirectInputEvidenceCount = 0
@@ -425,12 +454,24 @@ function Assert-CanonicalGoldenReference {
             throw "Release package canonical Golden allowlist has invalid or duplicate case '$CaseId'."
         }
         if (-not $ProjectionCases.ContainsKey($CaseId) -or
-            $ProjectionCases[$CaseId] -cne [string]$ApprovedCase.manifestPath) {
+            [string]$ProjectionCases[$CaseId].manifestPath -cne [string]$ApprovedCase.manifestPath) {
             throw "Release package canonical Golden projection differs for case '$CaseId'."
         }
         $SelectedCases[$CaseId] = $ApprovedCase
-        [void]$ExpectedCanonicalFiles.Add([string]$ApprovedCase.manifestPath)
-        $CasePackagePath = "$CanonicalGoldenPackagePrefix/$($ApprovedCase.manifestPath)"
+        $ProjectionCase = $ProjectionCases[$CaseId]
+        $CaseRoot = ([string]$ApprovedCase.manifestPath) -replace '/provenance/case\.json$', ''
+        $CaseSourcePath = "testdata/golden/canonical/$($ApprovedCase.manifestPath)"
+        if ($CaseRoot -ceq [string]$ApprovedCase.manifestPath -or
+            -not $ProjectionFiles.ContainsKey($CaseSourcePath)) {
+            throw "Release package canonical Golden projection differs for case '$CaseId'."
+        }
+        $CasePackagePath = [string]$ProjectionFiles[$CaseSourcePath].packagePath
+        if ($CasePackagePath -cne [string]$ProjectionCase.packageManifestPath -or
+            [string]$ProjectionFiles[$CaseSourcePath].caseId -cne $CaseId) {
+            throw "Release package canonical Golden projection differs for case '$CaseId'."
+        }
+        [void]$UsedProjectionSources.Add($CaseSourcePath)
+        [void]$ExpectedCanonicalFiles.Add($CasePackagePath.Substring($CanonicalGoldenPackagePrefix.Length + 1))
         $CaseManifestPath = Join-Path $PackageRoot $CasePackagePath
         $CaseEntries = @($ReleaseManifest.files | Where-Object { [string]$_.path -ceq $CasePackagePath })
         if ($CaseEntries.Count -ne 1 -or
@@ -493,14 +534,27 @@ function Assert-CanonicalGoldenReference {
             }
             else {
                 $ExpectedArtifacts[$ArtifactRelativePath] = $ApprovedArtifact
-                [void]$ExpectedCanonicalFiles.Add($ArtifactRelativePath)
+                $ArtifactSourcePath = "testdata/golden/canonical/$ArtifactRelativePath"
+                if (-not $ProjectionFiles.ContainsKey($ArtifactSourcePath)) {
+                    throw "Release package canonical Golden projection omits artifact '$ArtifactRelativePath'."
+                }
+                $ArtifactPackagePath = [string]$ProjectionFiles[$ArtifactSourcePath].packagePath
+                $WithinCase = if ($ArtifactRelativePath.StartsWith("$CaseRoot/", [StringComparison]::Ordinal)) {
+                    $ArtifactRelativePath.Substring($CaseRoot.Length + 1)
+                } else { '' }
+                if ($ArtifactPackagePath -cne "$CanonicalGoldenPackagePrefix/$($ProjectionCase.caseKey)/$WithinCase" -or
+                    [string]$ProjectionFiles[$ArtifactSourcePath].caseId -cne $CaseId) {
+                    throw "Release package canonical Golden projection differs for artifact '$ArtifactRelativePath'."
+                }
+                [void]$UsedProjectionSources.Add($ArtifactSourcePath)
+                [void]$ExpectedCanonicalFiles.Add($ArtifactPackagePath.Substring($CanonicalGoldenPackagePrefix.Length + 1))
             }
         }
         if ($CanonicalArtifacts.Count -ne @($ApprovedCase.artifacts).Count) {
             throw "Release package canonical case '$CaseId' has an omitted or extra artifact declaration."
         }
     }
-    if ($ProjectionCases.Count -ne $SelectedCases.Count) {
+    if ($ProjectionCases.Count -ne $SelectedCases.Count -or $UsedProjectionSources.Count -ne $ProjectionFiles.Count) {
         throw 'Release package canonical Golden projection contains an unapproved case.'
     }
     foreach ($ApprovedCase in $Allowlist.cases) {
@@ -535,7 +589,7 @@ function Assert-CanonicalGoldenReference {
 
     foreach ($ArtifactRelativePath in $ExpectedArtifacts.Keys) {
         $ApprovedArtifact = $ExpectedArtifacts[$ArtifactRelativePath]
-        $ArtifactPackagePath = "$CanonicalGoldenPackagePrefix/$ArtifactRelativePath"
+        $ArtifactPackagePath = [string]$ProjectionFiles["testdata/golden/canonical/$ArtifactRelativePath"].packagePath
         $ExpectedRole = if ($ArtifactRelativePath.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase)) {
             'goldenFixture'
         }

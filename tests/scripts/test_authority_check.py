@@ -49,7 +49,7 @@ def description(**fields: Any) -> str:
     value = {
         "risk": "R1",
         "roles": roles,
-        "implementationOwner": "claude-code",
+        "implementationOwner": "claude-code/sonnet",
         "ownedPaths": ["src/NvtFwCombiner.Cli/"],
         "evidence": {role: EVIDENCE[role] for role in roles},
     }
@@ -106,7 +106,14 @@ def inputs(
     base_schema: bytes | None = SCHEMA,
 ) -> Any:
     return check.CheckInputs(
-        HEAD, tuple(changes), head_policy, head_schema, base_policy, base_schema, text, reviews
+        HEAD,
+        tuple(changes),
+        head_policy,
+        head_schema,
+        base_policy,
+        base_schema,
+        text,
+        reviews,
     )
 
 
@@ -147,10 +154,114 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(verdict.floor, "R3")
         self.assertEqual(verdict.required_roles, {"governance-owner", "release-owner"})
 
-    def test_prose_only_change_passes_as_r0_without_a_review_record(self) -> None:
-        verdict = check.evaluate(inputs([PROSE], description(risk="R0")))
+    def test_prose_only_change_passes_as_r0_with_independent_review(self) -> None:
+        verdict = check.evaluate(inputs([PROSE], description(risk="R0"), (review(OWNER),)))
         self.assert_passes(verdict)
         self.assertEqual(verdict.floor, "R0")
+
+    def test_r0_change_without_review_record_fails(self) -> None:
+        self.assert_fails(
+            check.evaluate(inputs([PROSE], description(risk="R0"))),
+            "needs a valid independent review record",
+        )
+
+    def test_r1_change_with_independent_review_passes(self) -> None:
+        self.assert_passes(check.evaluate(inputs([CODE], description(), (review(OWNER),))))
+
+    def test_r2_code_owned_change_passes_without_r3_role(self) -> None:
+        r2_path = change("M", "SECURITY.md")
+        verdict = check.evaluate(inputs([r2_path], description(risk="R2"), (review(OWNER),)))
+        self.assert_passes(verdict)
+        self.assertEqual(verdict.floor, "R2")
+
+    def test_r1_path_with_r3_floor_fails(self) -> None:
+        self.assert_fails(
+            check.evaluate(inputs([FIRMWARE], description(risk="R1"), (review(OWNER),))),
+            "declared risk R1 is below the floor R3",
+        )
+
+    def test_self_reported_r2_without_code_owned_path_fails(self) -> None:
+        self.assert_fails(
+            check.evaluate(inputs([CODE], description(risk="R2"), (review(OWNER),))),
+            "owner approval on the exact head",
+        )
+
+    def test_case_only_matches_of_owned_paths_fail_closed(self) -> None:
+        for path in (
+            "Profiles/evil.json",
+            "src/NvtFwCombiner.domain/Evil.cs",
+            "src/Foo/Agents.md",
+        ):
+            with self.subTest(path=path):
+                text = description(risk="R3", roles=["governance-owner", "firmware-owner"])
+                verdict = check.evaluate(inputs([change("A", path)], text, (review(),)))
+                self.assert_fails(verdict, "case-sensitive CODEOWNERS")
+
+    def test_unchanged_copy_source_does_not_make_r1_destination_code_owned(self) -> None:
+        copied = change("C", "profiles/built-in/p.json", "docs/x.json")
+        text = description(risk="R3", roles=["firmware-owner"])
+        verdict = check.evaluate(inputs([copied], text, (review(),)))
+        self.assert_fails(verdict, "no code-owned path")
+
+    def test_rename_from_owned_path_to_r1_path_needs_owner_approval_or_split(self) -> None:
+        moved = change("R", "profiles/built-in/p.json", "docs/x.json")
+        text = description(risk="R3", roles=["firmware-owner"])
+        verdict = check.evaluate(inputs([moved], text, (review(),)))
+        self.assert_fails(verdict, "owner approval or split the rename into deletion and addition")
+
+    def test_owned_to_r1_rename_fails_even_with_another_owned_change(self) -> None:
+        moved = change("R", "profiles/built-in/p.json", "docs/x.json")
+        text = description(risk="R3", roles=["firmware-owner"])
+        verdict = check.evaluate(inputs([moved, FIRMWARE], text, (review(),)))
+        self.assert_fails(verdict, "owner approval or split the rename into deletion and addition")
+
+    def test_case_exact_owned_destination_remains_code_owned(self) -> None:
+        copied = change("C", "docs/README.md", "profiles/p.json")
+        text = description(risk="R3", roles=["firmware-owner"])
+        self.assert_passes(check.evaluate(inputs([copied], text, (review(),))))
+
+    def test_same_runtime_without_fresh_session_mode_does_not_count(self) -> None:
+        self.assert_fails(
+            check.evaluate(
+                inputs(
+                    [CODE],
+                    description(implementationOwner="codex/gpt-6-astra"),
+                    (review(BOT),),
+                )
+            ),
+            "same runtime requires same-runtime-fresh-session",
+        )
+
+    def test_same_runtime_fresh_session_can_review_same_model(self) -> None:
+        text = description(implementationOwner="codex/gpt-6-astra")
+        fresh = review(body=record_body(mode="same-runtime-fresh-session"))
+        self.assert_passes(check.evaluate(inputs([CODE], text, (fresh,))))
+
+    def test_same_runtime_different_model_requires_fresh_session_mode(self) -> None:
+        text = description(implementationOwner="codex/gpt-6-sol")
+        verdict = check.evaluate(inputs([CODE], text, (review(),)))
+        self.assert_fails(verdict, "same runtime requires same-runtime-fresh-session")
+
+    def test_other_runtime_mode_rejects_same_model(self) -> None:
+        text = description(implementationOwner="codex/gpt-6-astra")
+        verdict = check.evaluate(inputs([CODE], text, (review(),)))
+        self.assert_fails(verdict, "same runtime requires same-runtime-fresh-session")
+
+    def test_fresh_session_mode_rejects_different_runtime(self) -> None:
+        fresh = review(body=record_body(mode="same-runtime-fresh-session"))
+        verdict = check.evaluate(inputs([CODE], description(), (fresh,)))
+        self.assert_fails(verdict, "different runtime requires other-runtime")
+
+    def test_implementation_owner_needs_runtime_model(self) -> None:
+        for owner in ("claude-code", "<agent runtime or person>", ""):
+            with self.subTest(owner=owner):
+                verdict = check.evaluate(
+                    inputs([CODE], description(implementationOwner=owner), (review(),))
+                )
+                self.assert_fails(verdict, "implementationOwner must be a runtime/model identifier")
+
+    def test_shared_app_principal_can_carry_independent_agent_review(self) -> None:
+        self.assert_passes(check.evaluate(inputs([CODE], description(), (review(BOT),))))
 
     def test_head_policy_that_raises_its_paths_applies_at_once(self) -> None:
         raised = edited_policy(lambda policy: entry(policy, "prose").update(floor="R2"))
@@ -178,7 +289,7 @@ class EvaluationTests(unittest.TestCase):
             verdict, "unclassified path newtop/tool.py has no governance-owner classification"
         )
 
-    def test_unclassified_path_with_governance_role_and_classification_passes(self) -> None:
+    def test_unclassified_path_without_code_owner_fails_even_with_classification(self) -> None:
         evidence = {
             "governance-owner": {
                 "change": "New top-level folder.",
@@ -186,8 +297,9 @@ class EvaluationTests(unittest.TestCase):
             }
         }
         text = description(risk="R3", roles=["governance-owner"], evidence=evidence)
-        self.assert_passes(
-            check.evaluate(inputs([change("A", "newtop/tool.py")], text, (review(),)))
+        self.assert_fails(
+            check.evaluate(inputs([change("A", "newtop/tool.py")], text, (review(),))),
+            "owner approval on the exact head",
         )
 
     def test_classification_that_adds_a_role_raises_the_requirement(self) -> None:
@@ -322,7 +434,7 @@ class EvaluationTests(unittest.TestCase):
 
     def test_r1_change_without_a_review_record_fails(self) -> None:
         verdict = check.evaluate(inputs([CODE], description()))
-        self.assert_fails(verdict, "needs a valid review record on head")
+        self.assert_fails(verdict, "needs a valid independent review record on head")
 
     def test_record_on_an_older_head_fails(self) -> None:
         cases = {
@@ -333,7 +445,7 @@ class EvaluationTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assert_fails(
                     check.evaluate(inputs([CODE], description(), (stale,))),
-                    "needs a valid review record",
+                    "needs a valid independent review record",
                 )
 
     def test_record_from_a_principal_not_on_the_list_is_ignored(self) -> None:

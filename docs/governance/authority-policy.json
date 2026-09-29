@@ -183,9 +183,10 @@
       "patterns": [
         "CONTRIBUTING.md",
         "SECURITY.md",
-        "Directory.*",
+        "**/Directory.Build.*",
+        "**/Directory.Packages.props",
         "global.json",
-        "NuGet.config",
+        "**/NuGet.config",
         "*.slnx",
         "**/.gitattributes",
         "**/.gitignore",

@@ -207,13 +207,13 @@ public sealed partial class BuildOutcomeTests
     private sealed class RunRecoveryHandoff : IStableLauncherHandoff
     {
         private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource<bool> _result = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<StableLauncherStartResult> _result = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal Task Entered => _entered.Task;
         internal void Fail()
         {
-            _result.SetResult(false);
+            _result.SetResult(new(StableLauncherStartOutcome.HandoffFailed));
         }
-        public ValueTask<bool> TryStartLauncherAsync(CancellationToken cancellationToken)
+        public ValueTask<StableLauncherStartResult> TryStartLauncherAsync(CancellationToken cancellationToken)
         {
             _entered.SetResult();
             return new(_result.Task);

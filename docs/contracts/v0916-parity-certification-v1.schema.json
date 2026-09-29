@@ -202,8 +202,8 @@
               "required": ["path", "size", "sha256"],
               "properties": {
                 "path": { "const": "docs/contracts/v0916-parity-workflow-v1.json" },
-                "size": { "const": 14392 },
-                  "sha256": { "const": "17548956fb6b2af7d99cbebfa616f65bf3a39a228183d46edb7f80507614aee9" }
+                "size": { "const": 14487 },
+                  "sha256": { "const": "1271dcc781d805c410b39a3b9e76a37bc4985fcdd982ba0ad1e27ffdeeeefb61" }
               }
             },
             "candidateVerifierPath": { "const": "scripts/release_promotion_policy.py" },

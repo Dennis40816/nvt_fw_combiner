@@ -184,6 +184,18 @@ function Get-TreeDigest {
     return [Convert]::ToHexString($Digest).ToLowerInvariant()
 }
 
+function Assert-PackageRelativePathLength {
+    param([Parameter(Mandatory = $true)][string[]]$RelativePaths)
+
+    # Reserve 118 code units for the Explorer Downloads extraction root:
+    # 118 (absolute package root) + 1 separator + 140 = 259, below MAX_PATH.
+    foreach ($RelativePath in $RelativePaths) {
+        if ($RelativePath.Length -gt 140) {
+            throw "Release package path exceeds 140 UTF-16 code units: $RelativePath"
+        }
+    }
+}
+
 function Write-PackageHashList {
     param(
         [Parameter(Mandatory = $true)][string]$PackageRoot,
@@ -1133,6 +1145,11 @@ function Invoke-ExternalToolPolicyDryRun {
             throw 'Unicode release hash-list path did not round-trip through UTF-8.'
         }
 
+        Assert-PackageRelativePathLength -RelativePaths @(
+            Get-ChildItem -LiteralPath $DryRunPackageRoot -File -Recurse |
+                ForEach-Object { [IO.Path]::GetRelativePath($DryRunPackageRoot, $_.FullName) }
+        )
+        Write-Host 'Package relative-path budget passed: at most 140 UTF-16 code units.'
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected.'
         Write-Host 'Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected.'
@@ -1397,6 +1414,53 @@ function Get-DeclaredCanonicalGoldenPaths {
         throw 'Canonical golden package projection differs from 40 cases, three input-evidence cases, 177 declarations, or 174 unique artifacts.'
     }
 
+    $CaseIds = [string[]]@($SelectedCaseIds)
+    [Array]::Sort($CaseIds, [StringComparer]::Ordinal)
+    $PackageFiles = [Collections.Generic.List[object]]::new()
+    $PackageCases = [Collections.Generic.List[object]]::new()
+    $Destinations = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($CaseId in $CaseIds) {
+        $Case = $ApprovedCases[$CaseId]
+        $CaseKey = 'c{0:D3}' -f ($PackageCases.Count + 1)
+        $CaseRoot = ([string]$Case.manifestPath) -replace '/provenance/case\.json$', ''
+        if ($CaseRoot -ceq [string]$Case.manifestPath) {
+            throw "Canonical case '$CaseId' has an unexpected case manifest location."
+        }
+        $CaseFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach ($SourceRelativePath in @([string]$Case.manifestPath) + @($Case.artifacts | ForEach-Object { [string]$_.path })) {
+            if (-not $SourceRelativePath.StartsWith("$CaseRoot/", [StringComparison]::Ordinal)) {
+                throw "Canonical case '$CaseId' has a file outside its case directory."
+            }
+            $WithinCase = $SourceRelativePath.Substring($CaseRoot.Length + 1)
+            if (-not $CaseFiles.Add($WithinCase)) { continue }
+            $Destination = "reference/golden/$CaseKey/$WithinCase"
+            if (-not $Destinations.Add($Destination)) {
+                throw "Canonical Golden package path collision: $Destination"
+            }
+            $PackageFiles.Add([ordered]@{
+                caseId = $CaseId
+                repositoryPath = "$GoldenRootRelative/$SourceRelativePath"
+                packagePath = $Destination
+            })
+        }
+        $PackageCases.Add([ordered]@{
+            caseId = $CaseId
+            caseKey = $CaseKey
+            manifestPath = [string]$Case.manifestPath
+            packageManifestPath = "reference/golden/$CaseKey/provenance/case.json"
+        })
+    }
+    foreach ($File in @(
+        [ordered]@{ caseId = ''; repositoryPath = "$GoldenRootRelative/README.md"; packagePath = 'reference/golden/README.md' },
+        [ordered]@{ caseId = ''; repositoryPath = 'testdata/golden/release-canonical-v1.json'; packagePath = 'reference/golden/release-canonical-v1.json' }
+    )) {
+        if (-not $Destinations.Add($File.packagePath)) { throw "Canonical Golden package path collision: $($File.packagePath)" }
+        $PackageFiles.Add($File)
+    }
+    if ($PackageFiles.Count -ne 216) { throw 'Canonical Golden package projection file count differs from the approved scope.' }
+    $script:CanonicalGoldenPackageFiles = @($PackageFiles | Sort-Object packagePath)
+    Assert-PackageRelativePathLength -RelativePaths @($script:CanonicalGoldenPackageFiles | ForEach-Object { $_.packagePath })
+    Assert-PackageRelativePathLength -RelativePaths @('reference/golden/manifest.json')
     $script:CanonicalGoldenPackageManifest = [ordered]@{
         schemaVersion = '1.0'
         payloadClass = 'owner-approved-golden'
@@ -1404,7 +1468,8 @@ function Get-DeclaredCanonicalGoldenPaths {
         diagnosticsRoot = 'testdata/diagnostics/golden-evidence'
         inventoryScope = 'release-canonical-v1'
         sourceManifest = 'testdata/golden/canonical/manifest.json'
-        cases = @($SelectedCases)
+        cases = @($PackageCases)
+        files = $script:CanonicalGoldenPackageFiles
     }
 
     return @($Paths | Sort-Object)
@@ -1543,7 +1608,7 @@ This directory contains human-review reference evidence and owner-approved golde
 Included:
 - docs/references/: flash-map, postbuild, flash-header, and provenance references.
 - docs/architecture/: CtrlRAM postbuild investigation and IC workflow references.
-- testdata/golden/canonical/: 25 Direct Golden cases, three owner-certified input-only evidence cases, and twelve self-contained fact-scoped alias manifests.
+- golden/: 25 Direct Golden cases, three owner-certified input-only evidence cases, and twelve self-contained fact-scoped alias manifests; manifest.json maps short paths to canonical repository paths.
 
 Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
 "@ | Set-Content -LiteralPath (Join-Path $ReferenceDestination 'README.txt') -Encoding utf8NoBOM
@@ -1566,13 +1631,13 @@ Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifest
     Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.bat', '.h', '.json', '.md', '.xlsx')
 
     $CanonicalGoldenPaths = Get-DeclaredCanonicalGoldenPaths
-    foreach ($GoldenPath in $CanonicalGoldenPaths) {
-        Copy-PackageFile -RelativePath $GoldenPath -DestinationRoot $ReferenceDestination
+    foreach ($GoldenFile in $script:CanonicalGoldenPackageFiles) {
+        $Source = Join-Path $RepoRoot $GoldenFile.repositoryPath
+        $Destination = Join-Path $PackageRoot $GoldenFile.packagePath
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
+        Copy-Item -LiteralPath $Source -Destination $Destination
     }
-    Copy-PackageFile `
-        -RelativePath 'testdata/golden/release-canonical-v1.json' `
-        -DestinationRoot $ReferenceDestination
-    $PackagedGoldenManifestPath = Join-Path $ReferenceDestination 'testdata/golden/canonical/manifest.json'
+    $PackagedGoldenManifestPath = Join-Path $PackageRoot 'reference/golden/manifest.json'
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $PackagedGoldenManifestPath) | Out-Null
     $script:CanonicalGoldenPackageManifest |
         ConvertTo-Json -Depth 12 |
@@ -1602,7 +1667,7 @@ Contents:
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This exact release selection includes 25 Direct Golden cases, three selected owner-certified input-only evidence cases, and twelve self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/testdata/golden/canonical. Input-only cases retain all declared input BINs for manual package testing; neither these cases nor their aliases claim an expected output, Direct Golden status, parity, a runtime path, or support promotion. Eleven Direct Goldens use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Diagnostics, owner handoff records, CJK14/HackMD transfer material, archives, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
+This exact release selection includes 25 Direct Golden cases, three selected owner-certified input-only evidence cases, and twelve self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/golden. Its manifest.json maps short case keys and each packaged file to canonical repository paths. Input-only cases retain all declared input BINs for manual package testing; neither these cases nor their aliases claim an expected output, Direct Golden status, parity, a runtime path, or support promotion. Eleven Direct Goldens use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Diagnostics, owner handoff records, CJK14/HackMD transfer material, archives, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 
 $AppHash = Get-LowerSha256 -Path $AppExe
@@ -1773,6 +1838,8 @@ if (Compare-Object -ReferenceObject $Expected -DifferenceObject $Actual) {
     throw "Release package contents differ from the closed allowlist: $($Actual -join ', ')"
 }
 Assert-CanonicalJsonSchema -JsonPath $ManifestPath -SchemaPath $ReleaseManifestSchemaPath
+
+Assert-PackageRelativePathLength -RelativePaths $Actual
 
 $ZipPath = Join-Path $ReleaseRoot "$PackageName.zip"
 Compress-Archive -LiteralPath $PackageRoot -DestinationPath $ZipPath -CompressionLevel Optimal

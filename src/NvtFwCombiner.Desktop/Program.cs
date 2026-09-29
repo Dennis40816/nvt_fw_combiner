@@ -19,12 +19,21 @@ internal static class Program
             return catalogProbeExitCode;
         }
 
-        (
-            string? managedRoot,
-            string? statePath,
-            bool registryLocatorSupplied,
-            string? registryLocator,
-            string[] remaining) = ParseManagedHostOptions(args);
+        string? managedRoot;
+        string? statePath;
+        bool registryLocatorSupplied;
+        string? registryLocator;
+        string[] remaining;
+        try
+        {
+            (managedRoot, statePath, registryLocatorSupplied, registryLocator, remaining) =
+                ParseManagedHostOptions(args);
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            Console.Error.WriteLine($"error: {exception.Message}");
+            return 64;
+        }
         IReadOnlyList<string> updateSourceRegistryPaths = UpdateSourceRegistryLocator.ResolveAll(
             registryLocatorSupplied,
             registryLocator,
@@ -129,9 +138,10 @@ internal static class Program
                 remaining.Add(option);
                 continue;
             }
-            string value = index + 1 < args.Length
+            string value = index + 1 < args.Length &&
+                !args[index + 1].StartsWith("--", StringComparison.Ordinal)
                 ? args[++index]
-                : throw new ArgumentException("Managed host option is missing its value.", nameof(args));
+                : throw new ArgumentException($"{option} requires a value.", nameof(args));
             if (option == "--managed-root")
             {
                 managedRoot = Path.GetFullPath(value);
@@ -142,6 +152,7 @@ internal static class Program
             }
             else
             {
+                _ = Path.GetFullPath(value);
                 registryLocatorSupplied = true;
                 registryLocator = value;
             }

@@ -106,7 +106,7 @@ public sealed class StandardMergeFeedbackTests
     // This is a typed projection fixture, not an inspector/firmware Golden fixture.
     internal static AuthoringInputSlotStatus Status(string code, AuthoringSlotLifecycle lifecycle,
         int actualLength = 2, long requiredLength = 2, InputDiagnosticEvidence? evidence = null,
-        bool ignoredTrailingBytes = false)
+        bool ignoredTrailingBytes = false, IReadOnlyList<long>? expectedOuterLengths = null)
     {
         byte[] bytes = new byte[actualLength];
         Array.Fill(bytes, evidence?.RepeatedByte ?? 0xA5);
@@ -119,7 +119,7 @@ public sealed class StandardMergeFeedbackTests
         ByteRange accepted = new(0, ignoredTrailingBytes ? requiredLength : bytes.Length);
         string acceptedSha = FileStamp.FromBytes(bytes.AsSpan(0, checked((int)accepted.Length))).Sha256;
         var inspection = new CompiledInputArtifactInspectionResult(
-            "source", "source", bytes.Length, stamp.Sha256, requiredLength, [],
+            "source", "source", bytes.Length, stamp.Sha256, requiredLength, expectedOuterLengths ?? [],
             accepted, acceptedSha,
             ignoredTrailingBytes ? ByteRange.FromStartEndExclusive(requiredLength, bytes.Length) : null, severity, code,
             lifecycle == AuthoringSlotLifecycle.Error, ignoredTrailingBytes

@@ -5,6 +5,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -31,12 +32,12 @@ public sealed class NavigationFocusIndicatorTests
     private const double UnderlineBottomGap = 3;
 
 
-    /// <summary>Startup focuses Home; once Merge becomes selected, only Merge shows the selected underline
+    /// <summary>Keyboard focus on Home persists after Merge becomes selected; only Merge shows the selected underline
     /// and Home's focus ring is a separate, visibly distinct indicator, in both themes.</summary>
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task HomeKeepsStartupFocusWhileMergeBecomesSelectedWithADistinctIndicator(bool dark)
+    public async Task HomeKeepsKeyboardFocusWhileMergeBecomesSelectedWithADistinctIndicator(bool dark)
     {
         using var workspace = TempWorkspace.Create("nav-focus-indicator");
         PresentationHostServices services = await CreateServicesAsync(workspace);
@@ -57,15 +58,14 @@ public sealed class NavigationFocusIndicatorTests
             ToggleButton home = window.FindControl<ToggleButton>("HomeNavigationButton")!;
             Assert.NotNull(home);
 
-            // Startup leaves real keyboard focus on Home before any other page opens.
+            // A keyboard user focuses Home before opening another page.
             Assert.True(home.IsChecked);
+            Assert.True(home.Focus(NavigationMethod.Tab));
             Assert.True(home.IsFocused);
             Assert.Contains(":focus-visible", home.Classes);
-            Capture(window, "nav-focus-startup-home-selected", dark);
+            Capture(window, "nav-focus-keyboard-home-selected", dark);
 
-            // Owner decision 32's actual repro: startup opens another page directly while the shell
-            // never moves real keyboard focus away from Home, so Home stays keyboard-focused after it
-            // is no longer the selected page.
+            // Opening another page does not move keyboard focus away from Home.
             shell.ShowMergeCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -78,13 +78,13 @@ public sealed class NavigationFocusIndicatorTests
             Assert.True(shell.IsMergeVisible);
             Assert.True(merge.IsChecked);
             Assert.False(home.IsChecked);
-            // Home never lost real keyboard focus; this is exactly the reported startup sequencing.
+            // Home retains real keyboard focus while Merge owns selection.
             Assert.True(home.IsFocused);
             Assert.Contains(":focus-visible", home.Classes);
             Assert.False(merge.IsFocused);
             // Capture the exact reported state (Home focused, Merge selected) before the shape
             // assertions below, so the bug's before/after evidence exists whether or not they pass.
-            Capture(window, "nav-focus-home-unselected-merge-selected", dark);
+            Capture(window, "nav-focus-keyboard-home-unselected-merge-selected", dark);
 
             ContentPresenter homePresenter = Assert.Single(
                 home.GetVisualDescendants().OfType<ContentPresenter>(), item => item.Name == "PART_ContentPresenter");
@@ -144,9 +144,8 @@ public sealed class NavigationFocusIndicatorTests
         }
     }
 
-    /// <summary>Owner decision 32: startup keyboard focus lands on the selected page's own nav tab, not
-    /// always Home, when startup inputs open Merge or Replace directly; the focus/selection shape
-    /// distinction from the previous test still holds on whichever tab is focused.</summary>
+    /// <summary>Keyboard focus on any selected nav tab remains visually distinct from its selected
+    /// underline after startup inputs open Home, Merge, or Replace directly.</summary>
     [AvaloniaTheory]
     [InlineData("home", false)]
     [InlineData("home", true)]
@@ -154,7 +153,7 @@ public sealed class NavigationFocusIndicatorTests
     [InlineData("merge", true)]
     [InlineData("replace", false)]
     [InlineData("replace", true)]
-    public async Task StartupFocusLandsOnTheSelectedPagesOwnNavTab(string page, bool dark)
+    public async Task KeyboardFocusOnSelectedPageKeepsRingSeparateFromUnderline(string page, bool dark)
     {
         using var workspace = TempWorkspace.Create("nav-focus-startup-target");
         PresentationHostServices services = await CreateServicesAsync(workspace);
@@ -194,17 +193,21 @@ public sealed class NavigationFocusIndicatorTests
 
             // Capture the actual startup state before the assertions below, so before/after evidence
             // exists whether or not they pass.
-            Capture(window, $"nav-focus-startup-{page}-selected", dark);
+            Capture(window, $"nav-focus-quiet-startup-{page}-selected", dark);
 
-            // The selected page's own tab, and only that tab, receives real startup keyboard focus.
+            // Keyboard focus is visible when the user reaches the selected tab.
             Assert.True(expected.IsChecked);
+            Assert.True(expected.Focus(NavigationMethod.Tab));
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
             Assert.True(expected.IsFocused);
             Assert.Contains(":focus-visible", expected.Classes);
             Assert.All(others, other => Assert.False(other.IsFocused));
             Assert.All(others, other => Assert.False(other.IsChecked));
 
             // F-1 (review of 6dee964a0): a tab that is both selected and keyboard-focused (the normal
-            // startup case here) must keep its blue underline *and* show a focus ring at the same time;
+            // keyboard focus case here) must keep its blue underline *and* show a focus ring at the same time;
             // the ring is a separate BoxShadow layer, so it never hides the underline it is drawn over.
             ContentPresenter expectedPresenter = Assert.Single(
                 expected.GetVisualDescendants().OfType<ContentPresenter>(), item => item.Name == "PART_ContentPresenter");
@@ -298,7 +301,12 @@ public sealed class NavigationFocusIndicatorTests
 
             ToggleButton home = window.FindControl<ToggleButton>("HomeNavigationButton")!;
             Assert.True(home.IsChecked);
+            Assert.True(home.Focus(NavigationMethod.Tab));
             Assert.True(home.IsFocused);
+
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
 
             // The two regions share the exact same boundary row by construction, at any scale; neither
             // collapses to an empty band, which would make that equality trivially true.
