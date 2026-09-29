@@ -5607,6 +5607,17 @@ def collect_ci_hang_attachments(
     return tuple(attachments)
 
 
+def _ci_result_identity_or_none(test_name: str) -> str | None:
+    """Return a result's method identity, or None for an unrelated placeholder name."""
+
+    # An unrelated `<unknown test ID ...>` row must not veto a failed-method filter;
+    # such rows are matched through their TestMethod definition instead.
+    try:
+        return canonical_vstest_identity(test_name)
+    except RuntimeError:
+        return None
+
+
 def ci_trx_method_identities(
     trx: Path,
     *,
@@ -5665,7 +5676,7 @@ def ci_trx_method_identities(
         selected_ids = {
             result.get("testId")
             for result in results
-            if canonical_vstest_identity(result.get("testName", "")) in selected_fqns
+            if _ci_result_identity_or_none(result.get("testName", "")) in selected_fqns
         }
         for definition in raw_definitions:
             method = definition.find("{*}TestMethod")
@@ -5784,15 +5795,29 @@ def report_ci_flaky_tests(label: str, flaky: Sequence[dict[str, str]]) -> None:
     append_ci_step_summary(report)
 
 
+CI_CLOSED_BUG_STATUSES = ("fixed", "wontfix", "duplicate")
+
+
+def ci_bug_record_is_open(text: str) -> bool:
+    """A bug record is closed only when its Status line starts with a closed status."""
+
+    status = re.search(r"^Status:\s*(.+)$", text, re.MULTILINE)
+    return status is None or not status[1].strip().lower().startswith(CI_CLOSED_BUG_STATUSES)
+
+
 def require_ci_flaky_bug_records(flaky: Sequence[dict[str, str]]) -> None:
     """Require a case-sensitive, token-bounded full FQN in one checkout bug file."""
 
     if not flaky:
         return
+    # Only open records count: a flake that recurs after its record was closed as
+    # fixed, wontfix or duplicate must reopen that record (decision 193).
     bugs = [
-        path.read_text(encoding="utf-8")
+        text
         for path in sorted((ROOT / "docs/handoff/bugs").glob("BUG-*.md"))
         if path.is_file()
+        for text in (path.read_text(encoding="utf-8"),)
+        if ci_bug_record_is_open(text)
     ]
     for item in flaky:
         fqn = item["fullyQualifiedName"]
@@ -5800,7 +5825,8 @@ def require_ci_flaky_bug_records(flaky: Sequence[dict[str, str]]) -> None:
         pattern = rf"(?<![A-Za-z0-9_.+]){re.escape(fqn)}(?![A-Za-z0-9_.+])"
         if not any(re.search(pattern, bug) for bug in bugs):
             raise RuntimeError(
-                f"flaky test has no bug record in docs/handoff/bugs/BUG-*.md: {item['project']} {fqn}"
+                "flaky test has no bug record in docs/handoff/bugs/BUG-*.md "
+                f"(add one or reopen a closed one): {item['project']} {fqn}"
             )
 
 

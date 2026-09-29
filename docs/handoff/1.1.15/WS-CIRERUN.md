@@ -134,7 +134,7 @@ checks and verdict in the local handoff report; do not push.
 
 State: planned; supersedes earlier scope and stop conditions for this correction.
 Source: clean `d836eaf5574610535f82e282d4ce1cc10cdb020d`, same task branch;
-independent review `f115-ci-review.md`, P2-1 through P2-6 and P3-1 through P3-8.
+independent fixed-head review of `bc63f9bfe` (recorded on the pull request), P2-1 through P2-6 and P3-1 through P3-8.
 Owner: Codex gpt-6-astra, high effort, sole writer, explicitly assigned.
 Authority: local edits and commit only; no push, PR or GitHub writes.
 Decision 193 authorizes the release source-CI zero-flaky policy amendment.
@@ -277,3 +277,25 @@ commander follow-up; real CI hang/annotation/adapter evidence and both R3 owner
 roles remain as above. Final docs-only exact-head review is reported externally.
 No workflow change or new owner decision is necessary to complete this correction.
 Next: confirm the documentation delta and deliver the report; do not push.
+
+### 2026-09-29 — delta review of `2c63aa1e6` (commander)
+
+State: local; the delta review found no P0/P1/P2 and five P3s.
+Fixed by the commander:
+- D-P3-1 (regression): an unrelated `<unknown test ID ...>` result no longer vetoes the
+  failed-method filter. `_ci_result_identity_or_none` skips placeholder names; see
+  `test_unrelated_unknown_identity_does_not_veto_failed_filter` and
+  `BUG-20260929-ci-rerun-unknown-identity-veto`.
+- D-P3-2: only open bug records satisfy the flaky gate. A record whose `Status:` starts
+  with fixed, wontfix or duplicate must be reopened (`ci_bug_record_is_open`); the bug-gate
+  test has five new status cases.
+- D-P3-5: the bug records name their exact owner functions and cite the review by commit
+  instead of a file outside the repository.
+
+Open (closure gates, with evidence from the first real CI runs):
+- D-P3-3: the release zero-flaky gate cannot tell a missing annotation from zero flaky tests.
+  A positive count notice (for example `Flaky test count::N` on `dotnet / build-test`) is
+  deferred until real annotation behavior is observed.
+- D-P3-4: if real VSTest writes a Sequence file on ordinary failures, retries never start
+  (fail-closed). The first real ordinary-failure-plus-retry run must show which it is.
+- As before: the first real CI hang, the first real retry, and the owner's R3 approvals.

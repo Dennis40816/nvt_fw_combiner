@@ -650,6 +650,29 @@ class CiDotnetRetryTests(unittest.TestCase):
                 MODULE.finalize_ci_dotnet_evidence(downloads)
             coverage.assert_not_called()
 
+    def test_unrelated_unknown_identity_does_not_veto_failed_filter(self):
+        ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"
+        placeholder = "<unknown test ID " + "a" * 64 + ">"
+        trx = f"""<?xml version="1.0" encoding="utf-8"?>
+<TestRun xmlns="{ns}">
+  <Results>
+    <UnitTestResult testId="1" testName="Probe.Tests.Case1" outcome="Failed" />
+    <UnitTestResult testId="2" testName="{placeholder.replace("<", "&lt;").replace(">", "&gt;")}" outcome="Passed" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest id="1" name="Probe.Tests.Case1"><TestMethod className="Probe.Tests" name="Case1" /></UnitTest>
+    <UnitTest id="2" name="Probe.Tests.Other"><TestMethod className="Probe.Tests" name="Other" /></UnitTest>
+  </TestDefinitions>
+  <ResultSummary outcome="Failed"><Counters total="2" executed="2" passed="1" failed="1" /></ResultSummary>
+</TestRun>
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "test-results.trx"
+            path.write_text(trx, encoding="utf-8")
+            selection, names, _ = MODULE.ci_retry_selection(path)
+        self.assertEqual("FullyQualifiedName=Probe.Tests.Case1", selection)
+        self.assertEqual(("Probe.Tests.Case1",), names)
+
     def test_flaky_bug_gate_matches_exact_fqn_only(self):
         for bug_text, accepted in (
             (None, False),
@@ -657,6 +680,12 @@ class CiDotnetRetryTests(unittest.TestCase):
             ("OtherProbe.Tests.Case1", False),
             ("Tests and Case1", False),
             ("`Probe.Tests.Case1`", True),
+            # Only open records count (decision 193): a closed record must be reopened.
+            ("Status: fixed on a branch\n`Probe.Tests.Case1`", False),
+            ("Status: wontfix\n`Probe.Tests.Case1`", False),
+            ("Status: duplicate of BUG-x\n`Probe.Tests.Case1`", False),
+            ("Status: open\n`Probe.Tests.Case1`", True),
+            ("Status: Application part fixed; host follow-up reopened\n`Probe.Tests.Case1`", True),
         ):
             with (
                 self.subTest(bug_text=bug_text),
