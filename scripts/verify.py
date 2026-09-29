@@ -107,7 +107,9 @@ PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
     "COVERAGE_RCFILE",
     "COVERAGE_PROCESS_START",
 )
-CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 3
+CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 4
+CI_HANG_DUMP_MAX_BYTES = 256 * 1024 * 1024
+CI_HANG_SEQUENCE_MAX_BYTES = 1024 * 1024
 CI_DOTNET_ARTIFACT_ATTEMPT_SEPARATOR = "-attempt-"
 CI_FAILED_TEST_REPORT_LIMIT = 50
 # Fixed public reasons; the raw exception text can hold runner or source paths.
@@ -3074,11 +3076,12 @@ def local_dotnet_vstest_command(
     results_directory: Path,
     *,
     test_case_filter: str | None = None,
+    ci_blame_hang: bool = False,
 ) -> list[str]:
     """Build one exact-assembly command, optionally collecting coverage.
 
-    Only a declared local partition part passes a filter; every other local,
-    release-Golden and CI command stays unfiltered.
+    Filters belong to declared local partitions or the CI failed-test retry.
+    CI hang collection is opt-in; local and release commands are unchanged.
     """
 
     command = [dotnet, "vstest", str(test_assembly)]
@@ -3097,6 +3100,8 @@ def local_dotnet_vstest_command(
     ])
     if test_case_filter is not None:
         command.append(f"--TestCaseFilter:{test_case_filter}")
+    if ci_blame_hang:
+        command.append("--Blame:CollectHangDump;TestTimeout=5m;HangDumpType=Mini")
     if test_assembly.stem == INFRASTRUCTURE_TEST_PROJECT:
         settings.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
     if settings:
@@ -3256,10 +3261,12 @@ def require_discovered_test_results(
     producer_platform: str,
     *,
     approved_skips: Counter[str] | None = None,
+    allow_failed: bool = False,
 ) -> None:
     """Reconcile exact compiled discovery and owner-admitted TRX outcomes.
 
     A partition part passes the project's approved skips projected onto its types.
+    CI may inspect a complete failed first attempt before its bounded retry.
     """
 
     discovered = parse_vstest_discovery(discovery_report)
@@ -3269,7 +3276,7 @@ def require_discovered_test_results(
         raise RuntimeError(
             f"{project.name} discovered/executed test identities changed"
         )
-    if outcomes["Failed"]:
+    if outcomes["Failed"] and not allow_failed:
         raise RuntimeError(f"{project.name} contains failed test identities")
     if approved_skips is None:
         approved_skips = approved_platform_skip_identities(project, producer_platform)
@@ -3281,7 +3288,7 @@ def require_discovered_test_results(
     expected_counters = {
         "total": sum(discovered.values()),
         "passed": sum(outcomes["Passed"].values()),
-        "failed": 0,
+        "failed": sum(outcomes["Failed"].values()),
         "skipped": sum(approved_skips.values()),
     }
     if counters != expected_counters:
@@ -5286,6 +5293,8 @@ def collect_ci_project_evidence(
     discovery_report: Path,
     test_assembly_sha256: str,
     producer_platform: str,
+    *,
+    allow_failed: bool = False,
 ) -> tuple[dict[str, object], tuple[Path, ...]]:
     trx_report, json_report, cobertura_report = canonicalize_dotnet_project_reports(
         project.name,
@@ -5300,6 +5309,7 @@ def collect_ci_project_evidence(
         trx_report,
         counters,
         producer_platform,
+        allow_failed=allow_failed,
     )
 
     evidence_paths = (discovery_report, trx_report, json_report, cobertura_report)
@@ -5323,6 +5333,8 @@ def collect_ci_project_evidence(
 def collect_ci_failed_project_evidence(
     project_name: str,
     results_directory: Path,
+    *,
+    include_hang: bool = False,
 ) -> CiFailedProjectEvidence:
     """Keep a failed project's diagnostics under the passing-evidence rules.
 
@@ -5330,6 +5342,7 @@ def collect_ci_failed_project_evidence(
     coverage pair that passes the same pairing and runner-path normalization as
     passing evidence. Coverage that fails those rules is omitted under a fixed
     reason; a reparse point or non-regular entry rejects the whole directory.
+    CI attempts also retain their log and bounded blame attachments when requested.
     """
 
     root = results_directory.absolute()
@@ -5339,6 +5352,11 @@ def collect_ci_failed_project_evidence(
     discovery = root / "discovered-tests.txt"
     trx_report = root / "test-results.trx"
     paths = [path for path in (discovery, trx_report) if path in regular_files]
+    if include_hang:
+        paths.extend(collect_ci_hang_attachments(root))
+        attempt_log = root / "attempt.log"
+        if attempt_log in regular_files:
+            paths.append(attempt_log)
     omissions: list[str] = []
     diagnostics: list[str] = []
     if any(
@@ -5557,6 +5575,138 @@ def verify_ci_dotnet_build() -> None:
         raise failure
 
 
+def collect_ci_hang_attachments(results_directory: Path) -> tuple[Path, ...]:
+    """Allow only bounded VSTest dump/sequence files from a regular attempt tree."""
+
+    attachments = []
+    for path in enumerate_ci_regular_files(results_directory):
+        if path.suffix.casefold() == ".dmp":
+            limit = CI_HANG_DUMP_MAX_BYTES
+        elif path.name.endswith("_Sequence.xml"):
+            limit = CI_HANG_SEQUENCE_MAX_BYTES
+        else:
+            continue
+        if not 0 < path.stat().st_size <= limit:
+            raise RuntimeError("CI hang attachment is empty or oversized")
+        attachments.append(path)
+    if len(attachments) > 8:
+        raise RuntimeError("CI hang attachment count exceeds eight")
+    return tuple(attachments)
+
+
+def ci_trx_method_identities(trx: Path) -> dict[str, str]:
+    """Resolve a completed TRX's case names to safe, unique TestMethod FQNs."""
+
+    parse_trx_test_outcomes(trx, preserve_case_identity=True)
+    document = ET.parse(trx)
+    summary = document.find(".//{*}ResultSummary")
+    if summary is None or summary.get("outcome") not in {
+        "Completed",
+        "Passed",
+        "Failed",
+    }:
+        raise RuntimeError("CI retry requires a completed TRX run")
+    if any(
+        info.get("outcome") in {"Error", "Aborted", "Timeout"}
+        for info in document.findall(".//{*}RunInfo")
+    ):
+        raise RuntimeError("CI retry cannot hide a test-platform error")
+    definitions: dict[str, tuple[str, str]] = {}
+    for definition in document.findall(".//{*}UnitTest"):
+        test_id = definition.get("id")
+        method = definition.find("{*}TestMethod")
+        if not test_id or test_id in definitions or method is None:
+            raise RuntimeError("CI retry requires unique TRX TestMethod definitions")
+        fqn = f"{method.get('className', '')}.{method.get('name', '')}"
+        # Do not interpolate display names or filter operators into VSTest syntax.
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.+`]*\.[A-Za-z_][A-Za-z0-9_]*", fqn):
+            raise RuntimeError("CI retry has an unsupported fully-qualified test name")
+        definitions[test_id] = (fqn, definition.get("name", ""))
+    identities: dict[str, str] = {}
+    for result in document.findall(".//{*}UnitTestResult"):
+        entry = definitions.get(result.get("testId", ""))
+        if entry is None:
+            raise RuntimeError(
+                "CI retry result has no unique TRX TestMethod definition"
+            )
+        fqn, definition_name = entry
+        identity = result.get("testName", "")
+        if re.fullmatch(r"<unknown test ID [0-9a-f]{64}>", identity):
+            identity = definition_name
+        if canonical_vstest_identity(identity) != fqn:
+            raise RuntimeError("CI retry TestMethod and execution identity disagree")
+        if identity in identities:
+            raise RuntimeError("CI retry requires unique theory case identities")
+        identities[identity] = fqn
+    return identities
+
+
+def ci_retry_selection(trx: Path) -> tuple[str, tuple[str, ...], Counter[str]]:
+    """Select only failed FQNs; theory cases of the same FQN run together."""
+
+    failed = parse_trx_test_outcomes(trx, preserve_case_identity=True)["Failed"]
+    if not failed:
+        raise RuntimeError("CI retry requires failed test identities")
+    identities = ci_trx_method_identities(trx)
+    names = tuple(sorted({identities[identity] for identity in failed}))
+    cases = Counter(identity for identity, fqn in identities.items() if fqn in names)
+    return "|".join(f"FullyQualifiedName={name}" for name in names), names, cases
+
+
+def require_ci_retry_results(
+    first_trx: Path,
+    retry_trx: Path,
+    *,
+    allow_failed: bool = False,
+) -> tuple[str, ...]:
+    """Require the exact failed-FQN selection to pass; no missing or extra cases."""
+
+    _, names, selected = ci_retry_selection(first_trx)
+    retry = parse_trx_test_outcomes(retry_trx, preserve_case_identity=True)
+    retry_identities = ci_trx_method_identities(retry_trx)
+    observed = retry["Passed"] + retry["Failed"] + retry["NotExecuted"]
+    if observed != selected or set(retry_identities.values()) != set(names):
+        raise RuntimeError("CI retry executed missing or extra test identities")
+    counters = parse_trx_counters(retry_trx)
+    expected = {
+        "total": sum(selected.values()),
+        "passed": sum(retry["Passed"].values()),
+        "failed": sum(retry["Failed"].values()),
+        "skipped": 0,
+    }
+    if (
+        (retry["Failed"] and not allow_failed)
+        or retry["NotExecuted"]
+        or counters != expected
+    ):
+        raise RuntimeError(
+            "CI retry contains failed, skipped or inconsistent test results"
+        )
+    still_failed = {retry_identities[identity] for identity in retry["Failed"]}
+    return tuple(name for name in names if name not in still_failed)
+
+
+def report_ci_flaky_tests(label: str, flaky: Sequence[dict[str, str]]) -> None:
+    if not flaky:
+        return
+    lines = [
+        f"### .NET CI {label}: flaky tests",
+        "",
+        "WARNING: every flaky test requires a bug record before merge. The PR commander",
+        "must link each identity to docs/handoff/bugs/; a passing retry is not a fix.",
+        "",
+        "```text",
+    ]
+    lines.extend(
+        ci_report_line(f"{item['project']}: {item['fullyQualifiedName']}")
+        for item in flaky
+    )
+    lines.extend(["```", ""])
+    report = "\n".join(lines)
+    write_console_text(report + "\n")
+    append_ci_step_summary(report)
+
+
 def verify_ci_dotnet_test_shard(shard: str) -> None:
     """Run every project in one closed shard and retain all ordinary failures."""
 
@@ -5580,6 +5730,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
     evidence_paths: list[Path] = [log_path]
     failures: list[str] = []
     failed_projects: list[tuple[str, CiFailedProjectEvidence]] = []
+    flaky_tests: list[dict[str, str]] = []
     fatal_failure: BaseException | None = None
     try:
         run(
@@ -5596,9 +5747,11 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
         )
         adapter_path = resolve_coverlet_adapter_path(ROOT)
         for project in projects:
-            results_directory = results_root / project.name
+            results_directory = results_root / project.name / "attempt-1"
             results_directory.mkdir(parents=True)
             discovery_report = results_directory / "discovered-tests.txt"
+            attempt_directories = [results_directory]
+            recovered: tuple[str, ...] = ()
             try:
                 run(
                     ci_dotnet_build_command(dotnet, project),
@@ -5618,16 +5771,28 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                     environment=environment,
                     log_path=discovery_report,
                 )
-                run(
-                    local_dotnet_vstest_command(
-                        dotnet,
-                        test_assembly,
-                        adapter_path,
-                        results_directory,
-                    ),
-                    environment=environment,
-                    log_path=log_path,
-                )
+                parse_vstest_discovery(discovery_report)
+                attempt_log = results_directory / "attempt.log"
+                attempt_log.touch()
+                first_error: subprocess.CalledProcessError | None = None
+                try:
+                    run(
+                        local_dotnet_vstest_command(
+                            dotnet,
+                            test_assembly,
+                            adapter_path,
+                            results_directory,
+                            ci_blame_hang=True,
+                        ),
+                        environment=environment,
+                        log_path=attempt_log,
+                    )
+                except subprocess.CalledProcessError as error:
+                    first_error = error
+                if collect_ci_hang_attachments(results_directory):
+                    raise RuntimeError(
+                        "CI hang/crash evidence prohibits retry; see attempt-1"
+                    )
                 require_regular_tree_hashes(
                     source_output,
                     source_hashes,
@@ -5641,36 +5806,136 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                     discovery_report,
                     test_assembly_sha256,
                     CI_DOTNET_PRODUCER_PLATFORM,
+                    allow_failed=True,
                 )
+                row["attemptLog"] = ci_relative_path(attempt_log, evidence_root)
+                row["retry"] = None
+                paths = (*paths, attempt_log)
+                if row["failed"]:
+                    # A complete TRX + coverage + discovery must validate before retry.
+                    # VSTest returns 1 for failed tests; other exits are infrastructure failures.
+                    if first_error is None or first_error.returncode != 1:
+                        raise RuntimeError(
+                            "CI failed-test retry requires VSTest exit code 1"
+                        )
+                    first_trx = results_directory / "test-results.trx"
+                    test_filter, _, _ = ci_retry_selection(first_trx)
+                    retry_directory = results_directory.parent / "attempt-2"
+                    retry_directory.mkdir()
+                    attempt_directories.append(retry_directory)
+                    retry_log = retry_directory / "attempt.log"
+                    retry_log.touch()
+                    retry_error: subprocess.CalledProcessError | None = None
+                    try:
+                        run(
+                            local_dotnet_vstest_command(
+                                dotnet,
+                                test_assembly,
+                                None,
+                                retry_directory,
+                                test_case_filter=test_filter,
+                                ci_blame_hang=True,
+                            ),
+                            environment=environment,
+                            log_path=retry_log,
+                        )
+                    except subprocess.CalledProcessError as error:
+                        retry_error = error
+                    if collect_ci_hang_attachments(retry_directory):
+                        raise RuntimeError("CI retry produced hang/crash evidence")
+                    retry_trx = retry_directory / "test-results.trx"
+                    require_regular_tree_hashes(
+                        source_output,
+                        source_hashes,
+                        boundary=ROOT,
+                        description=f"{project.name} CI Release output",
+                    )
+                    if retry_error is not None:
+                        if retry_error.returncode == 1:
+                            recovered = require_ci_retry_results(
+                                first_trx,
+                                retry_trx,
+                                allow_failed=True,
+                            )
+                            if parse_trx_counters(retry_trx)["failed"]:
+                                flaky_tests.extend(
+                                    {
+                                        "project": project.relative_path,
+                                        "fullyQualifiedName": name,
+                                    }
+                                    for name in recovered
+                                )
+                        raise retry_error
+                    recovered = require_ci_retry_results(first_trx, retry_trx)
+                    row["retry"] = {
+                        "filter": test_filter,
+                        "trx": ci_relative_path(retry_trx, evidence_root),
+                        "log": ci_relative_path(retry_log, evidence_root),
+                    }
+                    paths = (*paths, retry_trx, retry_log)
+                elif first_error is not None:
+                    # Passing test outcomes cannot mask a failed VSTest process.
+                    raise first_error
                 if sha256_file(test_assembly) != test_assembly_sha256:
                     raise RuntimeError(
                         f"{project.name} captured test assembly hash changed"
                     )
-            except (subprocess.CalledProcessError, RuntimeError, ValueError) as error:
+            except (
+                subprocess.CalledProcessError,
+                RuntimeError,
+                ValueError,
+                OSError,
+                subprocess.TimeoutExpired,
+            ) as error:
                 failures.append(f"{project.name}: {error}")
                 # Keep the failed project's diagnostics under the passing-evidence rules.
-                try:
-                    failed_evidence = collect_ci_failed_project_evidence(
-                        project.name, results_directory
+                attempts = []
+                for directory in attempt_directories:
+                    try:
+                        attempt = collect_ci_failed_project_evidence(
+                            project.name, directory, include_hang=True
+                        )
+                    except (RuntimeError, OSError) as evidence_error:
+                        failures.append(
+                            f"{project.name} {CI_FAILURE_EVIDENCE_REJECTED} (see shard.log)"
+                        )
+                        attempt = CiFailedProjectEvidence(
+                            (),
+                            None,
+                            (CI_FAILURE_EVIDENCE_REJECTED,),
+                            (f"{CI_FAILURE_EVIDENCE_REJECTED}: {evidence_error}",),
+                        )
+                    attempts.append(attempt)
+                failed_evidence = CiFailedProjectEvidence(
+                    tuple(path for attempt in attempts for path in attempt.paths),
+                    tuple(
+                        sorted(
+                            {
+                                identity
+                                for attempt in attempts
+                                for identity in (attempt.failed_tests or ())
+                            }
+                        )
                     )
-                except (RuntimeError, OSError) as evidence_error:
-                    failures.append(
-                        f"{project.name} {CI_FAILURE_EVIDENCE_REJECTED} (see shard.log)"
-                    )
-                    failed_evidence = CiFailedProjectEvidence(
-                        (),
-                        None,
-                        (CI_FAILURE_EVIDENCE_REJECTED,),
-                        (f"{CI_FAILURE_EVIDENCE_REJECTED}: {evidence_error}",),
-                    )
+                    if any(attempt.failed_tests is not None for attempt in attempts)
+                    else None,
+                    tuple(note for attempt in attempts for note in attempt.omissions),
+                    tuple(note for attempt in attempts for note in attempt.diagnostics),
+                )
                 append_ci_shard_diagnostics(
                     log_path, project.name, failed_evidence.diagnostics
                 )
                 evidence_paths.extend(failed_evidence.paths)
                 failed_projects.append((project.name, failed_evidence))
+                if isinstance(error, subprocess.TimeoutExpired):
+                    raise
                 continue
             project_rows.append(row)
             evidence_paths.extend(paths)
+            flaky_tests.extend(
+                {"project": project.relative_path, "fullyQualifiedName": name}
+                for name in recovered
+            )
         require_logged_sdk_version(log_path, repository_sdk_version())
     except BaseException as error:
         fatal_failure = error
@@ -5694,6 +5959,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
         "shard": shard,
         "producerPlatform": CI_DOTNET_PRODUCER_PLATFORM,
         "projects": project_rows,
+        "flakyTests": flaky_tests,
         "files": file_hashes,
     }
     write_ci_manifest(output / "manifest.json", document)
@@ -5715,6 +5981,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
         ci_dotnet_evidence_artifact_name(shard, run_attempt),
         failed_projects,
     )
+    report_ci_flaky_tests(f"shard {shard}", flaky_tests)
     if fatal_failure is not None:
         raise fatal_failure
 
@@ -5842,7 +6109,7 @@ def require_ci_project_evidence_paths(
     trx_path = PurePosixPath(raw_trx)
     json_path = PurePosixPath(raw_json)
     cobertura_path = PurePosixPath(raw_cobertura)
-    project_root = PurePosixPath("shards", shard, "results", project.name)
+    project_root = PurePosixPath("shards", shard, "results", project.name, "attempt-1")
     if discovery_path != project_root / "discovered-tests.txt":
         raise RuntimeError(f"{project.name} discovery path changed")
     if trx_path != project_root / "test-results.trx":
@@ -5875,10 +6142,6 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         "build": os.environ.get("NFC_CI_DOTNET_BUILD_RESULT"),
         "test": os.environ.get("NFC_CI_DOTNET_TEST_RESULT"),
     }
-    if job_results["build"] not in {None, "success"}:
-        raise RuntimeError(f".NET CI build producer failed: {job_results['build']}")
-    if job_results["test"] not in {None, "success"}:
-        raise RuntimeError(f".NET CI test producer failed: {job_results['test']}")
     download_outcome = os.environ.get("NFC_CI_DOTNET_DOWNLOAD_OUTCOME")
     if download_outcome != "success":
         # A partial download could hide a producer's newest attempt artifact.
@@ -5906,6 +6169,28 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
             for shard in CI_DOTNET_SHARDS
         },
     }
+
+    for owner, result in job_results.items():
+        if result not in {None, "success"}:
+            # Diagnostics only: never treat producer declarations as a validated
+            # aggregate verdict. Even another failed project must not hide flakes.
+            for shard in CI_DOTNET_SHARDS:
+                declaration = load_ci_manifest(manifests[shard])
+                require_ci_evidence_provenance(
+                    declaration, shard, run_id, artifact_attempts[shard]
+                )
+                flaky = declaration.get("flakyTests")
+                if isinstance(flaky, list) and all(
+                    isinstance(item, dict)
+                    and set(item) == {"project", "fullyQualifiedName"}
+                    and all(isinstance(value, str) for value in item.values())
+                    for item in flaky
+                ):
+                    report_ci_flaky_tests(
+                        f"aggregate FAILED ({shard} producer declarations; unverified)",
+                        flaky,
+                    )
+            raise RuntimeError(f".NET CI {owner} producer failed: {result}")
 
     source_sha = require_ci_source_sha()
     sdk_version = repository_sdk_version()
@@ -5951,6 +6236,7 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         raise RuntimeError("build .NET CI artifact contains missing or extra files")
     coverage_sources: list[tuple[CiDotnetProject, Path, Path]] = []
     project_counters: list[dict[str, int]] = []
+    all_flaky: list[dict[str, str]] = []
 
     for shard, projects in CI_DOTNET_SHARDS.items():
         artifact_root = artifact_roots[shard]
@@ -5968,11 +6254,14 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                 "shard",
                 "producerPlatform",
                 "projects",
+                "flakyTests",
                 "files",
             },
             shard,
         )
-        require_ci_evidence_provenance(manifest, shard, run_id, artifact_attempts[shard])
+        require_ci_evidence_provenance(
+            manifest, shard, run_id, artifact_attempts[shard]
+        )
         require_current_ci_producer_evidence(
             manifest, shard, job_results["test"], artifact_attempts[shard]
         )
@@ -5993,6 +6282,7 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
             raise RuntimeError(f"{shard} .NET CI project inventory changed")
         expected_paths = {f"shards/{shard}/shard.log"}
         seen_row_paths: set[str] = set()
+        shard_flaky: list[dict[str, str]] = []
         for project, row in zip(projects, rows, strict=True):
             if not isinstance(row, dict):
                 raise RuntimeError(f"{shard} .NET CI project row is invalid")
@@ -6009,6 +6299,8 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                     "trx",
                     "coverageJson",
                     "coverageCobertura",
+                    "attemptLog",
+                    "retry",
                 },
                 project.name,
             )
@@ -6038,6 +6330,11 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                 row["coverageCobertura"],
             }
             expected_paths.update(evidence_paths)
+            attempt_log = f"shards/{shard}/results/{project.name}/attempt-1/attempt.log"
+            if row["attemptLog"] != attempt_log:
+                raise RuntimeError(f"{project.name} attempt log path changed")
+            resolve_ci_evidence_file(artifact_root, attempt_log)
+            expected_paths.add(attempt_log)
             counters = parse_trx_counters(trx)
             manifest_counters = {
                 name: row.get(name) for name in ("total", "passed", "failed", "skipped")
@@ -6050,7 +6347,40 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                 trx,
                 counters,
                 CI_DOTNET_PRODUCER_PLATFORM,
+                allow_failed=True,
             )
+            retry = row["retry"]
+            if counters["failed"]:
+                if not isinstance(retry, dict):
+                    raise RuntimeError(
+                        f"{project.name} failed tests have no retry evidence"
+                    )
+                require_manifest_keys(retry, {"filter", "trx", "log"}, project.name)
+                test_filter, _, _ = ci_retry_selection(trx)
+                retry_root = f"shards/{shard}/results/{project.name}/attempt-2"
+                if retry != {
+                    "filter": test_filter,
+                    "trx": f"{retry_root}/test-results.trx",
+                    "log": f"{retry_root}/attempt.log",
+                }:
+                    raise RuntimeError(
+                        f"{project.name} retry filter or evidence paths changed"
+                    )
+                retry_trx = resolve_ci_evidence_file(artifact_root, retry["trx"])
+                resolve_ci_evidence_file(artifact_root, retry["log"])
+                recovered = require_ci_retry_results(trx, retry_trx)
+                expected_paths.update((retry["trx"], retry["log"]))
+                shard_flaky.extend(
+                    {"project": project.relative_path, "fullyQualifiedName": name}
+                    for name in recovered
+                )
+                counters = {
+                    **counters,
+                    "passed": counters["passed"] + counters["failed"],
+                    "failed": 0,
+                }
+            elif retry is not None:
+                raise RuntimeError(f"{project.name} retried without failed tests")
             project_counters.append(counters)
             coverage_sources.append(
                 (
@@ -6079,9 +6409,14 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
             raise RuntimeError(
                 f"{shard} .NET CI artifact contains missing or extra files"
             )
+        if manifest["flakyTests"] != shard_flaky:
+            raise RuntimeError(f"{shard} flaky list disagrees with attempt evidence")
+        all_flaky.extend(shard_flaky)
 
     if any(result != "success" for result in job_results.values()):
         raise RuntimeError(f".NET CI producer jobs did not all succeed: {job_results}")
+
+    report_ci_flaky_tests("aggregate", all_flaky)
 
     coverage_root = reset_coverage_directory("dotnet")
     for project, json_report, cobertura_report in coverage_sources:
