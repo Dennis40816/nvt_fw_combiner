@@ -45,3 +45,16 @@ this workstream's permitted files.** The commander owns that separate change and
 obtaining a dump or phase evidence for the #488 incident. Do not call the
 repository lease bug fixed from the passing local sample. The VSTest discovery
 bug was not started because the ordered task stops here. No push was made.
+
+### 2026-09-29 Domain discovery follow-up
+
+State: investigated locally; not fixed. The #487 discovery artifact is a real
+red observation, but 30 unchanged local `dotnet vstest <Domain.Tests.dll>
+--ListTests` runs each exited 0 with all 475 tests and without the foreground-
+thread message. One complete Domain.Tests run passed 475/475. Inspection found
+no explicit foreground-thread owner in Domain.Tests, its linked TestSupport
+sources, or Domain. The generated entry point uses xUnit v3's in-process console
+runner, whose package contains the waiting message; the failing thread's
+identity remains unknown. No source or runner change was made.
+Open: capture a dump or thread trace from a failing assembly-info query before
+claiming a root cause or a fix. Protected CI and exact-head review remain open.
