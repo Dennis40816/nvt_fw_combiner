@@ -29,7 +29,11 @@ substitute for an AB Code direct golden.
 | --- | --- | ---: | --- | --- | --- | ---: |
 | NT51950 `single` | `[0x00000,0x80000)` | `0x40000` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x3B000` / `0x3B016` / `0x7B016` | `0x40000` |
 | NT51950 `cascade` | `[0x00000,0x100000)` | `0x40000` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x05000` / `0x05016` / `0x45016` | `0x40000` |
-| NT51951 selector-free | `[0x00000,0x100000)` | `0x80000` | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | `0x05000` / `0x05016` / `0x85016` | `0x80000` |
+| NT51951 selector-free | `[0x00000,0x100000)` | `0x80000` | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | `0x05000` / `0x05016` / `0x84016` | `0x80000` |
+
+Decision 195 (2026-09-29): in the `0x80000` layouts (NT51951 above and the NT51950
+cascade 1024k map of ADR 0035), the B-bank CMI is `flash [0x84016,0x84019)` in the
+CMD-BK page `0x84000`, not `0x85016`. Written bytes are unchanged.
 
 All intervals are half-open. The output starts as a complete DP_AB copy, has
 exactly the DP input length, and preserves every DP byte outside the TP
