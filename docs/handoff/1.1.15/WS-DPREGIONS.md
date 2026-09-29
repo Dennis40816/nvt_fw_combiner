@@ -220,6 +220,23 @@ Open: structure-only verifier、Python pin tests 及獨立 fixed-head review 尚
 
 Next: 完成尚待檢查、凍結 commit，再由 fresh-session read-only reviewer 檢查該 exact head。
 
+### 2026-09-29 R3 P3-4／P3-5 測試 checkpoint
+
+State: verified（本機測試補強；未整合、未發布）。`Nt51950AbDpRegionTests` 的 write audit 現在以 invariant-culture 十進位字串納入 `ScalarTransform.Addend`，並 pin 六張 map 的 normal／dummy 共 12 筆 UTF-8 JSON SHA-256。以下每格皆為 **before `6429bfb2c` = after `84ad3fdd9`**；依 map 與模式逐鍵比對為 12/12 相同，沒有差異才寫入斷言。base 尚無此測試檔，所以在一次性 detached worktree 暫放相同投影測試，僅將 bundle trust hash 換成 base 已提交的值，未提交該暫存檔。
+
+| Map | Normal：before = after SHA-256 | Dummy：before = after SHA-256 |
+| --- | --- | --- |
+| `nt51950-ab-desay-single-1024k` | `d144b4266f2f9ef71c37f6b7d0062cbfa06a4659264e3cbf546d06450683915d` | `ebf76760ba08a89df319353e299778275a3de1c721349d3f1b32d0c561870bcd` |
+| `nt51950-ab-desay-cascade-1024k` | `fc0a3197028ba1f97968e28989997fd2e24d4fd8b42372344cd5024c5a10e60c` | `4239e04831afeb17f3690665baade0e98e74103295b736193bbf01a6596ec9ab` |
+| `nt51951-ab-desay-1024k` | `c2ceff2b12858c7856829a2756457f2108e36edbcbba425891eaadca401ae043` | `56adba9615d976c8029d1f2845a6dd7b88d2547c60c2eb7168e796805e0fcc07` |
+| `nt51950-ab-merge-512k` | `046c6c36a3c4a7cc8739aa6d2cf9f5deb37586f3e107e75d5ff9e4a02c3ce3e4` | `e1def5e48b017ccb578f83f81710c47b2fbfbbc7f7644704bf45233e8c0e7911` |
+| `nt51950-ab-merge-1024k` | `0ea9b1bf4de754b9b8a8ad25eb462681e5347ba0a9ce9828142f0319bb5ab020` | `38977c70a3804b1f5536537957ee4984310080893975bad42f8dd9fc847ad087` |
+| `nt51951-ab-merge-1024k` | `abe450e52fb6f2f49822f227ff084c68c39d679e383f38450d9c01d81cd762a5` | `12b5fb9250b2dd2b9ca382d562e8c0d95c12e26e9fdb571837732d5b8d249c58` |
+
+P3-4 在三張 Desay map 的 region 層鎖定 `dp-container-tail` 的 `Owner=Dp`、`Kind=Image`。現有測試直接編譯 profile candidate，而 `MemoryLayoutProjector.Project` 需要另外建立帶 exact capability 的已接受 authoring session；因此採審查任務允許的 region 層斷言。Projector 的 `ClassifyContent` 依 `Owner=Dp` 將其投影為 `ContentRole=Dp`；dummy mode 的初始 disposition 隨之由 `Resolved` 成為 `Blank`，UI 顯示動作與標籤相同。
+
+命令：兩側均先載入 user-level `NFC_TEST_AREA_ROOT`，確認既有 `temp`，設定 `TEMP`、`TMP`、`TMPDIR` 指向該處及 `DOTNET_CLI_UI_LANGUAGE=en`。base 執行 `dotnet test tests/NvtFwCombiner.Bootstrap.Tests --filter FullyQualifiedName~Nt51950AbDpRegionTests.CompiledWritesRemainTpOnlyAfterDpInitialization --logger 'console;verbosity=detailed'`（6/6 pass）；after 產生 SHA 時執行 `dotnet test tests/NvtFwCombiner.Bootstrap.Tests --no-restore --filter FullyQualifiedName~Nt51950AbDpRegionTests --logger 'console;verbosity=detailed'`（13/13 pass）。加入 pin 後執行 `dotnet test tests/NvtFwCombiner.Bootstrap.Tests --no-restore --filter FullyQualifiedName~Nt51950AbDpRegionTests`：13/13 pass，0 failed/skipped。
+
 ### 2026-09-29 本機凍結 checkpoint
 
 State: verified（本機 patch；本 checkpoint 隨同 commit，未整合、未發布）
