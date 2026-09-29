@@ -17,7 +17,9 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
    every execution with compiled test discovery and the declared platform skips,
    and requires complete GoldenRegression execution, coverage policy, and
    CtrlRAM fixture evidence before the check passes. Test totals and the
-   GoldenRegression summary come from the validated execution evidence.
+   GoldenRegression summary come from the validated execution evidence. The
+   [failure-evidence contract](#failure-evidence-and-in-job-retry) defines the
+   bounded failed-FQN retry and mandatory flaky bug-record gate.
 
 Private firmware golden regression remains an approved-runner gate once private vectors exist. It must publish reports/hashes only, never firmware payloads.
 
@@ -30,7 +32,7 @@ Private firmware golden regression remains an approved-runner gate once private 
 - Action references use full 40-character SHAs; mutable tags are rejected by repository validation.
 - The Polytail semantic review remains required in the PR record in addition to deterministic CI checks.
 - Producer artifacts contain short-lived logs/TRX/coverage and the bounded CI
-  blame-hang diagnostics specified below (decision 191). The finalizer
+  blame-hang diagnostics specified below (decisions 191 and 193). The finalizer
   rejects missing, failed, duplicate, unknown, wrong-SHA, wrong-SDK,
   path-escaping, symlinked, hash-mismatched, counter-drifted, or extra evidence.
   Producers publish from a clean allowlisted staging root, and the finalizer
@@ -61,14 +63,16 @@ Private firmware golden regression remains an approved-runner gate once private 
 
 ## Failure evidence and in-job retry
 
-Revised 2026-09-29 by owner decision 191 in the
+Revised 2026-09-29 by owner decisions 191 and 193 in the
 [1.1.12 board](../handoff/1.1.12.md), amending
 [ADR 0079 item 8](../adr/0079-test-architecture.md#8-stability-rules).
 This is the active CI failure-evidence contract. The release-workflow cleanup
 design is a dated dependency record, not a second owner. Implementation remains
 in `scripts/verify.py`: `--ci-dotnet-test-shard` and `--ci-dotnet-finalize`.
-Neither workflow YAML, local `--all`, nor release Golden verification gains a
-retry path or changed release evidence rules.
+Workflow YAML, local `--all` and release Golden verification gain no retry path.
+Decision 193 additionally requires zero flaky tests in release source CI, enforced
+by `scripts/release_promotion_policy.py` and the
+[release contract](release-package.md#source-ci-zero-flaky-gate).
 
 ### Selection and verdict
 
@@ -89,7 +93,11 @@ retry path or changed release evidence rules.
    interpolated into filters. Unsupported filter syntax, missing/ambiguous
    metadata and identity disagreement fail closed. VSTest filters methods: all
    theory rows sharing a failed FQN are selected, including passing sibling rows.
-   No other method is rerun. Retry evidence must contain exactly those original
+   Only definitions belonging to failed FQNs (including their passing theory rows)
+   require retry metadata validation; unrelated passing definitions do not veto
+   selection. No other method is rerun. At most 20 distinct FQNs may be retried;
+   more fails with `too many failures for a flaky retry`, without attempt 2.
+   Retry evidence must contain exactly those original
    case identities, with no additional, missing, skipped or failed rows.
 4. A validated passing retry makes the project/shard successful, with each
    recovered FQN recorded as flaky. A second failure, nonzero retry exit, host
@@ -100,10 +108,22 @@ retry path or changed release evidence rules.
 5. The finalizer independently checks both attempts and recomputes the flaky
    list before admitting a successful shard. Effective counters count each
    originally discovered case once, replacing a failed initial outcome only
-   with its validated passing retry. GoldenRegression totals follow these same
-   CI execution counters. Coverage policy uses the first complete run's paired
-   reports only; attempt 2 collects no coverage. Its smaller selection must not
-   replace or inflate the full-run coverage denominator.
+   with its validated passing retry. `NvtFwCombiner.GoldenRegression.Tests` is
+   always excluded from retry: any initial failure fails the shard and finalizer.
+   Its totals remain first-attempt execution counters. Coverage policy uses the
+   first complete run's paired reports only; attempt 2 has **no Coverlet collector
+   or instrumentation**. An instrumentation-dependent failure may therefore be
+   labelled flaky, not fixed; the bug gate still applies and release is blocked.
+   Its smaller selection cannot replace or inflate the full-run denominator.
+6. Retry admission uses a monotonic 25-minute budget from the shard verifier's
+   entry (including restore/build/discovery and preceding projects), reserving
+   five minutes of the 30-minute job for external setup, cleanup and upload.
+   Any active verifier lane deadline further reduces that budget. Less than
+   420 seconds remaining (five-minute inactivity timer plus two-minute margin)
+   refuses retry with `insufficient shard time for a flaky retry: requires 5
+   minutes plus 2 minutes margin`. The original failure stays failed. This is
+   admission protection, not a per-test deadline or a guarantee when external
+   setup exceeds the reserved time or concurrent tests keep resetting the timer.
 
 ### Attempt and artifact contract
 
@@ -140,46 +160,55 @@ artifact channel is required.
 ### Hang diagnostics
 
 Every CI test execution enables VSTest's
-`--Blame:CollectHangDump;TestTimeout=5m;HangDumpType=Mini`. A detected hang ends
-the host and fails the project without retry; available dump, sequence, TRX and
-attempt log enter the existing producer artifact. The five-minute timer is
-VSTest's test-progress/inactivity timer, not a separate wall-clock timer for
-each concurrent test. Dump collection and process termination take additional
-time. Command-level tests cannot certify the actual Windows adapter's hang
-latency or dump creation; that remains real CI evidence to obtain before
-claiming the strict five-minute per-test target is achieved.
+`--Blame:CollectHangDump;TestTimeout=5m;HangDumpType=None`. `CollectHangDump`
+activates hang detection; `HangDumpType=None` disables memory-dump collection.
+A detected hang ends the host and fails the project without retry. Available
+sequence, TRX and attempt log enter the existing producer artifact. The five-minute
+timer is VSTest's test-progress/inactivity timer, not a separate wall-clock timer
+for each concurrent test; progress resets it and termination adds time. Decision
+193 accepts this distinction. The **first real Windows CI hang** remains a closure
+gate: retain the sequence file, stalled test identity, attempt log with observed
+elapsed time, timer/termination behavior, and proof that no dump was collected or
+uploaded. Fake-runner tests certify command and allowlist behavior only. Sequence
+identities and log timing are evidence, not an invented per-test duration field.
 
-Only nonempty regular `.dmp` files of at most 256 MiB and `*_Sequence.xml` files
-of at most 1 MiB are admitted, at most eight attachments per attempt. Symlinks,
-junctions and other non-regular entries reject the attempt's diagnostic tree.
-Empty, oversized or excessive regular attachments are omitted with the fixed
-`hang attachments not uploaded: attachment validation failed` reason and a
-detailed diagnostic in `shard.log`. The same attempt's valid original TRX,
-log, discovery and normalized coverage remain retained after the tree passes
-regular-file checks. Attachment rejection never makes a failed project pass.
-Other files are not copied. No dump is
-fabricated when VSTest fails before creating one: that remains a failed run
-with the available log/TRX evidence.
+Only nonempty regular filenames matching exactly
+`re.fullmatch(r"Sequence_[0-9a-fA-F]{32}\.xml", name)` are admitted, each at most
+1 MiB and at most eight per attempt. For example,
+`Sequence_af6bc426faab481fa504c42e3d52afd2.xml` is valid; `host_Sequence.xml` is not.
+Symlinks, junctions and other non-regular entries reject the diagnostic tree.
+Empty, oversized or excessive sequences are omitted with the fixed
+`hang attachments not uploaded: attachment validation failed` reason and a detailed
+diagnostic in `shard.log`; independently valid TRX/log/discovery/coverage remain.
+Attachment rejection never makes a failed project pass. Memory dumps, including
+unexpected `.dmp` files, are never staged or uploaded. No sequence is fabricated
+when VSTest produces none; available logs/TRX remain failed-run evidence.
 
-Decision 191 explicitly replaces ADR 0079 U1's previous no-dump choice and the
-CI-only logs/TRX/coverage allowlist of ADR 0027. Mini dumps reduce collection;
-they are not sanitized and may contain process memory. These are public,
-short-lived CI diagnostics: private fixtures and secrets must not enter these
-jobs. This grants no release artifact or private-Golden upload exception.
+Decision 191 implied a CI-only exception to ADR 0027's single-execution rule;
+decision 193 defines its bounds and supersedes the interim dump choice. CI evidence
+**still never contains firmware payloads**. Only sequence diagnostics extend the
+logs/TRX/coverage allowlist. Any necessary memory dump must be reproduced locally;
+there is no private-Golden or release-artifact upload exception.
 
 ### Flaky bug records and merge gate
 
-Both shard and aggregate emit every recovered identity with an explicit
-**bug record required before merge** warning. On a failed producer job, the
-finalizer reports available latest-producer flaky declarations as **unverified**
-diagnostics and still fails; they are not a validated aggregate success.
+Both shard and aggregate emit every recovered identity in the log/summary and as
+`::warning title=Flaky test::<project> <FQN>` (workflow-command data is escaped).
+On producer failure, the finalizer chooses the producer-failed error first, attempts
+flaky diagnostics best-effort as **unverified**, then always raises that original
+producer failure. Missing artifacts, invalid JSON or a failed download cannot mask it.
 
-Minimum enforcement uses the existing commander PR procedure, without GitHub
-writes from the verifier: before merge, the commander lists each shard/FQN,
-its workflow run and job-local attempts, and its matching
-`docs/handoff/bugs/BUG-*.md` file in the PR evidence. Reuse a matching known bug
-or create a record for the newly observed failure. Missing mappings block merge.
-The summary is a warning, not proof that a file exists; CI success alone cannot
-satisfy this procedural gate. A passing retry never fixes or closes that bug.
-Required failing checks still block merge, and independent exact-head review
-and applicable owner approval remain required.
+Before coverage acceptance, the finalizer requires each recomputed flaky FQN to
+appear in at least one checkout file matching `docs/handoff/bugs/BUG-*.md`.
+The rule is **case-sensitive full FQN only**, bounded on both sides by the absence
+of `[A-Za-z0-9_.+]`; Markdown backticks and punctuation other than a dot delimit
+it. Thus `Probe.Tests.Case1` does not match `Probe.Tests.Case10` or
+`OtherProbe.Tests.Case1`. Separate class/method mentions do not qualify. Missing
+records fail with `flaky test has no bug record` naming the project and FQN.
+A bug added only in a remote issue, another branch or after checkout cannot pass
+this gate. The verifier never writes bug records or calls GitHub.
+
+The commander still links each identity, workflow run and job-local attempts to
+its bug record in the review evidence. A passing retry does not fix or close the
+bug. Independent exact-head review and applicable owner approval remain required.
+Release source CI rejects any flaky observation even if its bug file exists.

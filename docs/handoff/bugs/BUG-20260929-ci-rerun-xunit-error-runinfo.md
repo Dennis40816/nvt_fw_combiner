@@ -25,3 +25,10 @@ including ordinary theories, partial recovery and three platform-error negatives
 `python -m unittest tests.scripts.test_ci_dotnet_retry -q` passed 16 tests;
 43 existing CI orchestration tests also passed. Independent re-review is tracked
 in `WS-CIRERUN.md`; no workflow, release rule or product behavior changed.
+
+Evidence locator confirmed on 2026-09-29 for review P3-8:
+`<NFC_TEST_AREA_ROOT>/evidence/f115-dpregions-20260929/recompute-hash.trx`.
+SHA-256: `3c67b207e09eae73d5caeeb3eb2c3d34d35edd797e42e1b51b6a7dcb1461dae9`.
+The retained real TRX has two results (one passed, one failed) and one Error
+RunInfo. The locator is relative to the configured test area; the original
+file remains external evidence and is not copied into Git.

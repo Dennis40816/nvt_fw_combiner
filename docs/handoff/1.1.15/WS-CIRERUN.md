@@ -129,3 +129,120 @@ all earlier external CI, timer, commander bug mapping and human gates remain.
 No workflow/mirror or release-rule change is needed.
 Next: independently re-review the correction commit and report its exact SHA,
 checks and verdict in the local handoff report; do not push.
+
+### 2026-09-29 decision 193 correction admission
+
+State: planned; supersedes earlier scope and stop conditions for this correction.
+Source: clean `d836eaf5574610535f82e282d4ce1cc10cdb020d`, same task branch;
+independent review `f115-ci-review.md`, P2-1 through P2-6 and P3-1 through P3-8.
+Owner: Codex gpt-6-astra, high effort, sole writer, explicitly assigned.
+Authority: local edits and commit only; no push, PR or GitHub writes.
+Decision 193 authorizes the release source-CI zero-flaky policy amendment.
+Offline authority classification of `scripts/release_promotion_policy.py`:
+`release-approval-policy`, R3, **release-owner and governance-owner** required.
+These are integration review/approval gates, not permission to publish here.
+
+Owner search and disposition: `extend-owner` for `verify_ci_dotnet_test_shard`,
+`finalize_ci_dotnet_evidence`, their existing TRX/evidence helpers, and
+`validate_source_ci` / `_collect_source_ci` in the release policy. The release
+collector already owns paginated exact-source run/job observations and closed
+candidate evidence; extend that observation to flaky annotations across all
+workflow attempts, without changing workflow callers. Reuse bug ledger files;
+no second firmware or CI execution engine. No firmware bytes/ranges/order,
+integrity, support or Golden expected outputs change.
+
+Additional owned paths: `scripts/release_promotion_policy.py`, its script tests,
+`docs/ci/release-package.md`, ADR 0027, and scoped bug ledger entries.
+Acceptance: automatic flaky bug gate and warnings; release zero-flaky evidence;
+sequence-only hang evidence; Golden retry exclusion; 20-FQN and time-budget
+bounds; precise negative tests and the remaining review corrections.
+Checks: affected `tests/scripts` narrow tests, `verify.py --structure-only`;
+load user-level test root and all three temp variables in every test process.
+No `--all` or real dotnet invocation. Do not edit the decision board or workflows.
+Stop: workflows need changes, a new owner decision is required, the same test
+still fails after two corrections, or the three-hour budget expires.
+Open: exact-head independent re-review, applicable human approvals and first
+real CI hang sequence/timing evidence remain external closure gates.
+
+
+### 2026-09-29 decision 193 verified correction checkpoint
+
+State: verified locally; not integrated or published.
+Commits: this correction commit, parent `d836eaf5574610535f82e282d4ce1cc10cdb020d`.
+Evidence applies to its production/test tree; exact SHA and fresh-session review
+are recorded in the requested external `f115-ci-report.md` after commit.
+
+- P2-1: fullmatch of `Sequence_<32 hex>.xml`; real filename fixture replaces
+  the old suffix assumption. Sequence size/count/custody bounds remain.
+- P2-2: finalizer requires a token-bounded full FQN in a checkout bug file;
+  absent or prefix-only records fail before coverage. Each flaky also emits
+  the exact `Flaky test` warning annotation. Matching rules are in the contract.
+- P2-3: source-CI release admission requires zero flaky annotations across
+  every workflow attempt, preserves a closed `flakyEvidence` observation and
+  rejects incomplete/API-error/drifting observations. A new clean run is needed
+  after flaky recovery; re-running jobs cannot clear it. Offline CLI fixtures
+  cover a previously flaky attempt and the candidate manifest projection.
+- P2-4: GoldenRegression fails directly and cannot retry; the finalizer also
+  rejects forged successful retry evidence for that project.
+- P2-5: `HangDumpType=None`; no memory dump collection or staging/upload.
+  Sequence/TRX/log evidence remains. ADRs 0079 and 0027 and the CI contract
+  agree that CI evidence still contains no firmware payloads.
+- P2-6 / P3-2 / P3-3: accepted inactivity timer, first-real-hang closure gate,
+  maximum 20 FQNs, and a 25-minute shard-verifier admission budget with at
+  least 420 seconds remaining for retry. Exact boundary positives and refusal
+  negatives pass; external setup and concurrent progress limits are explicit.
+- P3-1: failed producer is chosen before artifact inspection; best-effort flaky
+  diagnostics cannot replace it. Missing, malformed and failed-download cases pass.
+- P3-4: documented that retry has no Coverlet instrumentation; a labelled flake
+  is not a fix and cannot satisfy release admission.
+- P3-5: only selected failed-method definitions/theory siblings are validated
+  for retry; unrelated passing metadata cannot veto them.
+- P3-6: mutation assertions match their intended errors; first and retry exit
+  code 2 scenarios reject. P3-7: wording and reciprocal/entry links corrected.
+- P3-8: retained real xUnit TRX locator and SHA-256 added to its existing bug.
+  New review-defect bug records preserve the corresponding fixes and evidence.
+
+Commands/results (all test/verifier processes loaded the user-level
+`NFC_TEST_AREA_ROOT` and set `TEMP`, `TMP`, `TMPDIR` to its existing `temp`):
+
+- `python -m pytest tests/scripts/test_ci_dotnet_retry.py tests/scripts/test_verify_orchestration.py tests/scripts/test_ci_structure_contract.py tests/scripts/test_coverage_ci_contract.py tests/scripts/test_release_promotion_policy.py tests/scripts/test_governance_retirement.py -q --tb=short`
+  -> **367 passed in 108.07s**.
+- `python scripts/verify.py --structure-only` -> **PASS**, structure 30.2s;
+  derived synchronization changed zero files, repository structure and Polytail
+  fast checks passed. Existing code-size advisory only.
+- Ruff formatting on changed regions and `ruff check --select E9,F63,F7,F82`
+  on the five changed Python files -> PASS; `git diff --check` -> PASS.
+- New tests first reproduced missing bug/release gates, Golden retry, sequence
+  loss, error masking and unrelated-definition veto. The release fake API and
+  old dump-based orchestration fixture were each updated once for the new
+  contract; no test remained failing after two corrections.
+- Prohibited surfaces (`.github/workflows`, workflow mirror and decision board)
+  have no diff. Added-line machine-path/credential scan passed. No `--all`,
+  actual dotnet, push, PR, GitHub write, fetch/prune/gc or rebase occurred.
+
+Scoped self-review: one CI acceptance owner and one release source-CI owner;
+no firmware bytes, ranges, order, integrity, support, Golden expectations,
+approval principals or workflow permissions changed. Script path classification
+is **R3 / release-approval-policy / release-owner + governance-owner**; the
+release contract is R3/release-owner, verifier/tests/ADRs have R2 path floors.
+The behavior changes required-check/release acceptance and remains R3 overall.
+Local Polytail state: PASS-WITH-HUMAN-GATE, subject to exact-head independent
+review and the explicit external gates below; not an integration-ready claim.
+
+Open:
+
+- Independent exact-head review is the next local read-only step; its final
+  result belongs to the external report and does not authorize publication.
+- First real Windows CI hang: actual sequence and stalled test name, measured
+  elapsed/termination timing, no dump collection/upload. Owner/commander closes
+  this gate; the accepted inactivity timer is not a strict per-test deadline.
+- Real source-run annotation transport across workflow attempts and actual
+  adapter/FQN evidence remain to be observed; offline fixtures do not prove them.
+- Before integration, independent review evidence and last-push owner approval
+  must name **release-owner and governance-owner**. Required CI and release
+  Golden execution are not replaced by these narrow local checks.
+- Known underlying test flakes remain owned by their separate bugs. No new owner
+  decision or workflow change was needed, and no stop condition was triggered.
+
+Next: inspect this committed head independently and deliver the local report;
+leave push, PR, integration and publication to separately authorized work.

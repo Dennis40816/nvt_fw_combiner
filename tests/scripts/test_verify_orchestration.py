@@ -7655,6 +7655,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     class_filenames=(source,),
                 )
                 (results / "attempt/sequence.dmp").write_bytes(b"not evidence")
+                (results / "attempt/Sequence_af6bc426faab481fa504c42e3d52afd2.xml").write_text(
+                    "<TestSequence />", encoding="utf-8"
+                )
                 (results / "testhost.log").write_text("not evidence\n", encoding="utf-8")
                 raise subprocess.CalledProcessError(1, command)
 
@@ -7711,7 +7714,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 f"{project_root}/attempt/coverage.json",
                 f"{project_root}/attempt/coverage.cobertura.xml",
                 f"{project_root}/attempt.log",
-                f"{project_root}/attempt/sequence.dmp",
+                f"{project_root}/attempt/Sequence_af6bc426faab481fa504c42e3d52afd2.xml",
             }
             uploaded = {
                 path.relative_to(upload_root).as_posix()

@@ -108,7 +108,10 @@ PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
     "COVERAGE_PROCESS_START",
 )
 CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 4
-CI_HANG_DUMP_MAX_BYTES = 256 * 1024 * 1024
+# Reserve five minutes of the 30-minute job for setup, cleanup and upload.
+CI_SHARD_RETRY_BUDGET_SECONDS = 25 * 60
+CI_RETRY_REQUIRED_SECONDS = 5 * 60 + 2 * 60
+CI_RETRY_MAX_FQNS = 20
 CI_HANG_SEQUENCE_MAX_BYTES = 1024 * 1024
 CI_DOTNET_ARTIFACT_ATTEMPT_SEPARATOR = "-attempt-"
 CI_FAILED_TEST_REPORT_LIMIT = 50
@@ -3102,7 +3105,7 @@ def local_dotnet_vstest_command(
     if test_case_filter is not None:
         command.append(f"--TestCaseFilter:{test_case_filter}")
     if ci_blame_hang:
-        command.append("--Blame:CollectHangDump;TestTimeout=5m;HangDumpType=Mini")
+        command.append("--Blame:CollectHangDump;TestTimeout=5m;HangDumpType=None")
     if test_assembly.stem == INFRASTRUCTURE_TEST_PROJECT:
         settings.extend(INFRASTRUCTURE_VSTEST_SETTINGS)
     if settings:
@@ -5587,18 +5590,15 @@ def collect_ci_hang_attachments(
     *,
     regular_files: Sequence[Path] | None = None,
 ) -> tuple[Path, ...]:
-    """Allow only bounded VSTest dump/sequence files from a regular attempt tree."""
+    """Allow only bounded VSTest sequence files; never stage memory dumps."""
 
     attachments = []
     if regular_files is None:
         regular_files = enumerate_ci_regular_files(results_directory)
     for path in regular_files:
-        if path.suffix.casefold() == ".dmp":
-            limit = CI_HANG_DUMP_MAX_BYTES
-        elif path.name.endswith("_Sequence.xml"):
-            limit = CI_HANG_SEQUENCE_MAX_BYTES
-        else:
+        if re.fullmatch(r"Sequence_[0-9a-fA-F]{32}\.xml", path.name) is None:
             continue
+        limit = CI_HANG_SEQUENCE_MAX_BYTES
         if not 0 < path.stat().st_size <= limit:
             raise RuntimeError("CI hang attachment is empty or oversized")
         attachments.append(path)
@@ -5607,7 +5607,11 @@ def collect_ci_hang_attachments(
     return tuple(attachments)
 
 
-def ci_trx_method_identities(trx: Path) -> dict[str, str]:
+def ci_trx_method_identities(
+    trx: Path,
+    *,
+    selected_fqns: set[str] | None = None,
+) -> dict[str, str]:
     """Resolve a completed TRX's case names to safe, unique TestMethod FQNs."""
 
     outcomes = parse_trx_test_outcomes(trx, preserve_case_identity=True)
@@ -5652,9 +5656,30 @@ def ci_trx_method_identities(trx: Path) -> dict[str, str]:
                 raise RuntimeError("CI retry cannot hide a test-platform error")
         elif severity in {"Aborted", "Timeout"}:
             raise RuntimeError("CI retry cannot hide a test-platform error")
+    results = document.findall(".//{*}UnitTestResult")
+    raw_definitions = document.findall(".//{*}UnitTest")
+    selected_ids = None
+    if selected_fqns is not None:
+        # Include every row of failed methods, plus metadata claiming that method.
+        # Unrelated passing definitions cannot veto a safe failed-method filter.
+        selected_ids = {
+            result.get("testId")
+            for result in results
+            if canonical_vstest_identity(result.get("testName", "")) in selected_fqns
+        }
+        for definition in raw_definitions:
+            method = definition.find("{*}TestMethod")
+            if method is not None and (
+                f"{method.get('className', '')}.{method.get('name', '')}"
+                in selected_fqns
+            ):
+                selected_ids.add(definition.get("id"))
+        results = [result for result in results if result.get("testId") in selected_ids]
     definitions: dict[str, tuple[str, str]] = {}
-    for definition in document.findall(".//{*}UnitTest"):
+    for definition in raw_definitions:
         test_id = definition.get("id")
+        if selected_ids is not None and test_id not in selected_ids:
+            continue
         method = definition.find("{*}TestMethod")
         if not test_id or test_id in definitions or method is None:
             raise RuntimeError("CI retry requires unique TRX TestMethod definitions")
@@ -5664,7 +5689,7 @@ def ci_trx_method_identities(trx: Path) -> dict[str, str]:
             raise RuntimeError("CI retry has an unsupported fully-qualified test name")
         definitions[test_id] = (fqn, definition.get("name", ""))
     identities: dict[str, str] = {}
-    for result in document.findall(".//{*}UnitTestResult"):
+    for result in results:
         entry = definitions.get(result.get("testId", ""))
         if entry is None:
             raise RuntimeError(
@@ -5688,8 +5713,14 @@ def ci_retry_selection(trx: Path) -> tuple[str, tuple[str, ...], Counter[str]]:
     failed = parse_trx_test_outcomes(trx, preserve_case_identity=True)["Failed"]
     if not failed:
         raise RuntimeError("CI retry requires failed test identities")
-    identities = ci_trx_method_identities(trx)
+    identities = ci_trx_method_identities(
+        trx, selected_fqns={canonical_vstest_identity(identity) for identity in failed}
+    )
+    if any(identity not in identities for identity in failed):
+        raise RuntimeError("CI retry result has no unique TRX TestMethod definition")
     names = tuple(sorted({identities[identity] for identity in failed}))
+    if len(names) > CI_RETRY_MAX_FQNS:
+        raise RuntimeError("too many failures for a flaky retry")
     cases = Counter(identity for identity, fqn in identities.items() if fqn in names)
     return "|".join(f"FullyQualifiedName={name}" for name in names), names, cases
 
@@ -5730,6 +5761,11 @@ def require_ci_retry_results(
 def report_ci_flaky_tests(label: str, flaky: Sequence[dict[str, str]]) -> None:
     if not flaky:
         return
+    for item in flaky:
+        # Escape workflow-command data even for unverified producer diagnostics.
+        message = f"{item['project']} {item['fullyQualifiedName']}"
+        message = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+        write_console_text(f"::warning title=Flaky test::{message}\n")
     lines = [
         f"### .NET CI {label}: flaky tests",
         "",
@@ -5748,9 +5784,37 @@ def report_ci_flaky_tests(label: str, flaky: Sequence[dict[str, str]]) -> None:
     append_ci_step_summary(report)
 
 
+def require_ci_flaky_bug_records(flaky: Sequence[dict[str, str]]) -> None:
+    """Require a case-sensitive, token-bounded full FQN in one checkout bug file."""
+
+    if not flaky:
+        return
+    bugs = [
+        path.read_text(encoding="utf-8")
+        for path in sorted((ROOT / "docs/handoff/bugs").glob("BUG-*.md"))
+        if path.is_file()
+    ]
+    for item in flaky:
+        fqn = item["fullyQualifiedName"]
+        # Markdown backticks delimit code and are not part of the surrounding token.
+        pattern = rf"(?<![A-Za-z0-9_.+]){re.escape(fqn)}(?![A-Za-z0-9_.+])"
+        if not any(re.search(pattern, bug) for bug in bugs):
+            raise RuntimeError(
+                f"flaky test has no bug record in docs/handoff/bugs/BUG-*.md: {item['project']} {fqn}"
+            )
+
+
+def require_ci_retry_project(project: CiDotnetProject) -> None:
+    if project.name == "NvtFwCombiner.GoldenRegression.Tests":
+        raise RuntimeError("GoldenRegression tests are never retried")
+
+
 def verify_ci_dotnet_test_shard(shard: str) -> None:
     """Run every project in one closed shard and retain all ordinary failures."""
 
+    retry_deadline = monotonic() + CI_SHARD_RETRY_BUDGET_SECONDS
+    if LANE_DEADLINE.get() is not None:
+        retry_deadline = min(retry_deadline, LANE_DEADLINE.get())
     projects = CI_DOTNET_SHARDS[shard]
     evidence_root = reset_ci_dotnet_evidence_directory(
         CI_DOTNET_EVIDENCE_ROOT,
@@ -5853,6 +5917,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                 row["retry"] = None
                 paths = (*paths, attempt_log)
                 if row["failed"]:
+                    require_ci_retry_project(project)
                     # A complete TRX + coverage + discovery must validate before retry.
                     # VSTest returns 1 for failed tests; other exits are infrastructure failures.
                     if first_error is None or first_error.returncode != 1:
@@ -5861,6 +5926,10 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                         )
                     first_trx = results_directory / "test-results.trx"
                     test_filter, _, _ = ci_retry_selection(first_trx)
+                    if retry_deadline - monotonic() < CI_RETRY_REQUIRED_SECONDS:
+                        raise RuntimeError(
+                            "insufficient shard time for a flaky retry: requires 5 minutes plus 2 minutes margin"
+                        )
                     retry_directory = results_directory.parent / "attempt-2"
                     retry_directory.mkdir()
                     attempt_directories.append(retry_directory)
@@ -6183,36 +6252,41 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         "build": os.environ.get("NFC_CI_DOTNET_BUILD_RESULT"),
         "test": os.environ.get("NFC_CI_DOTNET_TEST_RESULT"),
     }
-    download_outcome = os.environ.get("NFC_CI_DOTNET_DOWNLOAD_OUTCOME")
-    if download_outcome != "success":
-        # A partial download could hide a producer's newest attempt artifact.
-        raise RuntimeError(
-            f".NET CI evidence download did not succeed: {download_outcome}"
-        )
-    run_id, run_attempt = require_ci_run_provenance()
-    selected_artifacts = require_ci_dotnet_artifact_roots(download_root, run_attempt)
-    artifact_roots = {
-        owner: artifact_root for owner, (artifact_root, _) in selected_artifacts.items()
-    }
-    artifact_attempts = {
-        owner: attempt for owner, (_, attempt) in selected_artifacts.items()
-    }
-    manifests = {
-        "build": resolve_ci_evidence_file(
-            artifact_roots["build"],
-            "build/manifest.json",
-        ),
-        **{
-            shard: resolve_ci_evidence_file(
-                artifact_roots[shard],
-                f"shards/{shard}/manifest.json",
+    producer_failure = next(
+        (RuntimeError(f".NET CI {owner} producer failed: {result}")
+         for owner, result in job_results.items() if result not in {None, "success"}),
+        None,
+    )
+    try:
+        download_outcome = os.environ.get("NFC_CI_DOTNET_DOWNLOAD_OUTCOME")
+        if download_outcome != "success":
+            # A partial download could hide a producer's newest attempt artifact.
+            raise RuntimeError(
+                f".NET CI evidence download did not succeed: {download_outcome}"
             )
-            for shard in CI_DOTNET_SHARDS
-        },
-    }
+        run_id, run_attempt = require_ci_run_provenance()
+        selected_artifacts = require_ci_dotnet_artifact_roots(download_root, run_attempt)
+        artifact_roots = {
+            owner: artifact_root for owner, (artifact_root, _) in selected_artifacts.items()
+        }
+        artifact_attempts = {
+            owner: attempt for owner, (_, attempt) in selected_artifacts.items()
+        }
+        manifests = {
+            "build": resolve_ci_evidence_file(
+                artifact_roots["build"],
+                "build/manifest.json",
+            ),
+            **{
+                shard: resolve_ci_evidence_file(
+                    artifact_roots[shard],
+                    f"shards/{shard}/manifest.json",
+                )
+                for shard in CI_DOTNET_SHARDS
+            },
+        }
 
-    for owner, result in job_results.items():
-        if result not in {None, "success"}:
+        if producer_failure is not None:
             # Diagnostics only: never treat producer declarations as a validated
             # aggregate verdict. Even another failed project must not hide flakes.
             for shard in CI_DOTNET_SHARDS:
@@ -6231,7 +6305,12 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                         f"aggregate FAILED ({shard} producer declarations; unverified)",
                         flaky,
                     )
-            raise RuntimeError(f".NET CI {owner} producer failed: {result}")
+    except (RuntimeError, OSError, ValueError) as diagnostic_error:
+        if producer_failure is not None:
+            raise producer_failure from diagnostic_error
+        raise
+    if producer_failure is not None:
+        raise producer_failure
 
     source_sha = require_ci_source_sha()
     sdk_version = repository_sdk_version()
@@ -6392,6 +6471,7 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
             )
             retry = row["retry"]
             if counters["failed"]:
+                require_ci_retry_project(project)
                 if not isinstance(retry, dict):
                     raise RuntimeError(
                         f"{project.name} failed tests have no retry evidence"
@@ -6458,6 +6538,7 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         raise RuntimeError(f".NET CI producer jobs did not all succeed: {job_results}")
 
     report_ci_flaky_tests("aggregate", all_flaky)
+    require_ci_flaky_bug_records(all_flaky)
 
     coverage_root = reset_coverage_directory("dotnet")
     for project, json_report, cobertura_report in coverage_sources:
