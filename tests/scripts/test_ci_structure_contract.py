@@ -40,6 +40,8 @@ class CiStructureContractTests(unittest.TestCase):
                     elif state == "populated":
                         (submodule / "invalid.py").write_text("invalid Python!", encoding="utf-8")
                     self.assertEqual([readme], repository_validator.repository_files())
+                    tracked = repository_validator._git_tracked_paths()
+                    self.assertEqual([readme], repository_validator.repository_files(tracked))
 
     def test_ci_structure_checkout_fetches_complete_history(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

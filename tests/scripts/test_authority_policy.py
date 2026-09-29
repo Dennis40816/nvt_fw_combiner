@@ -139,12 +139,20 @@ class AuthorityPolicyTests(unittest.TestCase):
         self.assertEqual(unclassified, [])
 
     def test_source_submodule_uses_repository_configuration_and_tooling(self) -> None:
-        for path in (".gitmodules", "third-party/nvt_combiner"):
+        for path, entry_id in (
+            (".gitmodules", "repository-configuration"),
+            ("third-party/nvt_combiner", "repository-tooling"),
+        ):
             with self.subTest(path=path):
                 result = POLICY.classify(path, case_sensitive=True)
                 self.assertEqual(result.floor, "R2")
                 self.assertEqual(result.roles, frozenset())
                 self.assertFalse(result.unclassified)
+                owners = {
+                    entry.id for entry in POLICY.entries
+                    if entry.matches(path, case_sensitive=True)
+                }
+                self.assertEqual(owners, {entry_id})
 
         # Source intake must not relax executable packages or unknown root files.
         executable = POLICY.classify("external-tools/nvt_combiner")

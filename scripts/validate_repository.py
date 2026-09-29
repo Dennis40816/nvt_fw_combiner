@@ -410,8 +410,9 @@ def _git_tracked_paths() -> list[Path] | None:
     ]
 
 
-def repository_files() -> list[Path]:
-    tracked = _git_tracked_paths()
+def repository_files(tracked: list[Path] | None = None) -> list[Path]:
+    if tracked is None:
+        tracked = _git_tracked_paths()
     if tracked is not None:
         return [path for path in tracked if path.is_file()]
     files: list[Path] = []
@@ -1909,7 +1910,7 @@ def validate() -> list[str]:
     errors: list[str] = []
     errors.extend(validate_code_size_policy(ROOT))
     tracked = _git_tracked_paths()
-    files = [path for path in tracked if path.is_file()] if tracked is not None else repository_files()
+    files = repository_files(tracked)
     validate_claude_projections(tracked if tracked is not None else files, errors)
     validate_required_files(errors)
     validate_forbidden_tracked_content(files, errors)
