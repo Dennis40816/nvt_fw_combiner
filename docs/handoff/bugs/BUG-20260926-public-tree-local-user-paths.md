@@ -1,6 +1,6 @@
 # BUG-20260926-public-tree-local-user-paths: tracked documents carry the developer's local user-profile paths
 
-Status: partly fixed (current files merged into `1.1.x` by #459; the check for new changes is open)
+Status: fixed (current files merged into `1.1.x` by #459; the private-string check for new changes merged into `1.1.x` by integration A #476, merge `7e283c126`; released in v1.1.13, `1268f72d2`, 2026-09-28)
 Severity: P3
 Found: 2026-09-26, the WS-TEST T1 draft review and a commander scan of the tracked tree at `9861d800c`
 Where: current files `tests/README.md` (two owner-reference image paths), `.agents/skills/assess-refactor-progress/SKILL.md`,
@@ -20,3 +20,5 @@ otherwise, and Git history is not rewritten.
 Resolution: the current files were fixed by `DOC-HYGIENE-1113-PRIVATE-PATHS-01`, merged into `1.1.x` by #459;
 the remaining matches are the sealed records and the frozen waiver kept by decisions 51 and 52. Open: the
 private-string check that rejects a non-placeholder user-profile path in new changes.
+
+Closed (2026-09-29): the private-string check (TODO 56) merged into `1.1.x` by integration A `7e283c126` (#476), an ancestor of the v1.1.13 release merge `1268f72d2` (#479, published 2026-09-28).

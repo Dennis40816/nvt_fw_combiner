@@ -1,6 +1,6 @@
 # BUG-20260927-predecessor-validator-false-inconsistent: an exact-output route with identical bytes can be reported inconsistent
 
-Status: locally fixed for 1.1.14; independent review and commander integration pending
+Status: fixed (merged into `1.1.x` by integration #480, merge `6703e2517`; released in v1.1.14, `32808e943`, 2026-09-29)
 Severity: P2
 Found: 2026-09-27, the automated Codex review of pull request #461; confirmed by the commander in the source
 Where: `scripts/predecessor_validation.py`, the v0.9.16 route check near the `exact-output` branch (`PREDECESSOR-VALIDATION-1113-01`)
@@ -60,3 +60,9 @@ Resolution:
 - Remaining gates: self-checks are not independent review. The commander owns
   exact-head independent review, full verification and integration; no push,
   GitHub operation or release certification is performed by this workstream.
+
+Closed (2026-09-29): implementation commit `4f35b23a3` is an ancestor of the 1.1.14 integration merge `6703e2517`
+(#480, reviewed head `fdf68a903`) and of the v1.1.14 release merge `32808e943` (#483, published 2026-09-29). The
+remaining parity P-2 stages and the first formal ADR 0078 comparison moved to 1.2.x (board decision 167; the
+comparator lands in `1.2.2` per decision 175/`1.2.x-allocation.md`); this exact-output fix is the one P-2 item
+that shipped in 1.1.14, per decision 167.

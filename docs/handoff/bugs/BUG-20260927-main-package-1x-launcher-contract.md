@@ -1,6 +1,6 @@
 # BUG-20260927-main-package-1x-launcher-contract: `main-package.yml` always fails its package smoke for 1.x
 
-Status: fixing (in the 1.1.13 integration pull request of the 18:00 window, R-2 merge `4d2d642f7`)
+Status: fixed (merged into `1.1.x` by integration B #477, merge `912db1a5c`; released in v1.1.13, `1268f72d2`, 2026-09-28)
 Severity: P2 (a manual workflow that can no longer succeed; the release workflow is not affected)
 Found: 2026-09-27, Claude Code (Opus 5.5), reading the decision 132 gate run for pull request #464
 Where: `.github/workflows/main-package.yml` (packaging step), `scripts/package.ps1:1389`, `scripts/smoke-release.ps1:689-693`
@@ -15,3 +15,5 @@ is retired in favour of the release workflow's evidence.
 Evidence: run 36312877403 job log (smoke step), the three source lines above.
 Owner: release workflow cleanup (R3, release-owner), with R-1/R-2 or its own record; board decision 134.
 Resolution: R-2 replaces `main-package.yml` with the non-promoting `release-rehearsal.yml` (`636681c32`), so the 1.x main-package launcher contract no longer applies; closes when that pull request merges.
+
+Closed (2026-09-29): both `4d2d642f7` and `636681c32` are ancestors of integration B's merge `912db1a5c` (#477) and of the v1.1.13 release merge `1268f72d2` (#479, published 2026-09-28).

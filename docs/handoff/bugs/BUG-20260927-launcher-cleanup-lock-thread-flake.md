@@ -1,6 +1,6 @@
 # BUG-20260927-launcher-cleanup-lock-thread-flake: the launcher cleanup test's lock helper thread can fail with access denied under load
 
-Status: fixed locally (2026-09-28); independent review and integration verification pending
+Status: fixed (merged into `1.1.x` by integration #480, merge `6703e2517`; released in v1.1.14, `32808e943`, 2026-09-29)
 Severity: P3
 Found: 2026-09-27, `python scripts/verify.py --all` at batch 3 head `06e09e0ad` (lane `test_release_package_policy`)
 Where: `tests/scripts/test_release_package_policy.py`,
@@ -45,3 +45,9 @@ The second run overlapped the first using their independent temporary fixtures.
 Local self-check found no removed product assertions or production changes. It is not independent review;
 the commander retains fixed-head review and `verify.py --all` at integration. The separate Bootstrap host
 deadline flake remains open as recorded in `BUG-20260928-launcher-admission-deadline-test-flake.md`.
+
+Closed (2026-09-29): the retry fix (commit `8277ccb22`) merged into `1.1.x` by the 1.1.14 integration `6703e2517`
+(#480, reviewed head `fdf68a903`) and reached `main` in the v1.1.14 release merge `32808e943` (#483, published
+2026-09-29). This commit is not an ancestor of the v1.1.13 release (`1268f72d2`), consistent with the 2026-09-28
+reopening happening on the 1.1.13 integration branch after `1.1.13`'s scope had already closed; the fix shipped
+in 1.1.14 instead.

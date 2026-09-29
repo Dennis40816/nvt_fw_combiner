@@ -1,6 +1,6 @@
 # BUG-20260926-release-rerun-history-conflict: a failed release cannot be re-proposed from its release branch
 
-Status: open (the blocking history audit was removed by #469; the recovery procedure is pending)
+Status: open (the blocking history audit was removed by #469; the recovery procedure is deferred to `1.2.6`, board decision 181)
 Severity: P2
 Found: 2026-09-26, Claude Code (commander), on release pull requests #449 and #455
 Where: CI job `policy / polytail` ("Require PR head to contain the exact reviewed base"),
@@ -23,3 +23,5 @@ Owner: 1.1.13 WS-GOV (development and release flow reset). Options to assess: sy
 into the release branch before finalizing fixes after a stopped release, or let the audit
 accept a merge whose other parent is a tree-equivalent release merge of an ancestor.
 Resolution: partly fixed: G1-B (#469, `8f5223860`) removed the finalized-record history audit, so merging `main` back into a stopped release branch no longer fails. The documented recovery procedure and pre-merge gate remain release workflow cleanup R-4 (proposed for 1.1.14).
+
+Retargeted (2026-09-29): R-4 (with R-6) did not land in 1.1.14 and is deferred to `1.2.6` (board decision 181). The documented recovery procedure and pre-merge gate remain open until that version.

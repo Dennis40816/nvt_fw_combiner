@@ -1,6 +1,6 @@
 # BUG-20260929-f17-ui-options-exit-before-report: recoverable UI options stop desktop startup
 
-Status: fixed locally
+Status: fixed (merged into `1.1.x` by integration #480, merge `6703e2517`; released in v1.1.14, `32808e943`, 2026-09-29)
 Severity: P1
 Found: 2026-09-29, Codex (gpt-6-sol), reproducing independent review on `feature/1.1.14/bounded-diagnostics` at `e3994fdbe`
 Where: `src/NvtFwCombiner.Presentation.Avalonia/DesktopApplication.cs:28-36`
@@ -9,3 +9,5 @@ Expected: managed/inherited context failures stop before host construction; reco
 Evidence: the new `DesktopStartupArgumentTests` had 4 failures and 1 pass against `e3994fdbe` production behavior: three recoverable cases exited before the host factory, and duplicate page produced no issue. The managed-host process test failed 1/1 after temporarily substituting the predecessor `Program.cs`, then the exact file bytes were restored. `ReportFileLoadingTests` already covers mixed invalid page plus valid report loading and modal opening. After correction, the selected F17/managed-host/report checks passed 8/8, full UiSmoke passed 1841/1841, and `python scripts/verify.py --structure-only` passed on 2026-09-29.
 Owner: Codex (gpt-6-sol), `feature/1.1.14/bounded-diagnostics`.
 Resolution: fixed locally in `b013b8b9b`; UI issues continue into the existing report stage, duplicate page is reported, and the `launch-options.parsed` trace marker moved to after the trace session starts (integration commit `94c8caa83`, `DesktopApplication.cs` after `StartFromEnvironment()`). Integrated in the 1.1.14 integration branch A.
+
+Closed (2026-09-29): both `b013b8b9b` and `94c8caa83` are ancestors of the 1.1.14 integration merge `6703e2517` (#480, reviewed head `fdf68a903`) and of the v1.1.14 release merge `32808e943` (#483, published 2026-09-29).
