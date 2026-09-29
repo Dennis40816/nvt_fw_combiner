@@ -20,3 +20,28 @@ render-time focus state without changing the pixel assertions. `dotnet test
 tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj -c Release --no-build
 --no-restore` passed all 1,861 tests once.
 Open: independent exact-head review and protected CI remain for integration.
+
+### 2026-09-29 repository launch-lease hang investigation
+
+State: investigated, not fixed. No second commit.
+Evidence: #488 core shard log reports xUnit `[FATAL ERROR] System.IO.IOException:
+The handle is invalid` at testhost elapsed 56 seconds, immediately before the named
+test's first long-running report at elapsed 92 seconds; 50 reports followed until
+the job timeout. In `AnonymousPipeManagedApplicationProcess.StartUntilReadyAsync`,
+the five-second cancellation source is created only after lifetime lease acquisition
+and `ProcessLaunchGate.StartContained`. That scope is a candidate, not a proven
+location of the CI hang. The unchanged focused test passed 30/30 local runs with
+Coverlet and a 30-second blame-hang limit. The unchanged Infrastructure project
+passed 1,572/1,572 twice, once with default settings and once with CI's serialized
+xUnit settings. One parallel run of all six core projects also passed, including
+Infrastructure 1,572/1,572. The fatal invalid-handle error did not recur, and the
+archived CI artifact has no process stack or dump to identify the blocked step.
+The internal CI shard entry point refused local execution because it requires an
+actual CI run ID and attempt; no CI identity was fabricated.
+
+Open: **stop condition — a bounded hung-test failure requires the decision 191
+per-test hang limit in `scripts/verify.py` or `.github/workflows/`, both outside
+this workstream's permitted files.** The commander owns that separate change and
+obtaining a dump or phase evidence for the #488 incident. Do not call the
+repository lease bug fixed from the passing local sample. The VSTest discovery
+bug was not started because the ordered task stops here. No push was made.
