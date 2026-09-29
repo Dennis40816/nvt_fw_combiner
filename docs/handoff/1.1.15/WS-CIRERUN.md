@@ -246,3 +246,34 @@ Open:
 
 Next: inspect this committed head independently and deliver the local report;
 leave push, PR, integration and publication to separately authorized work.
+
+
+### 2026-09-29 fixed-head independent review and presentation limit
+
+State: locally committed and independently reviewed; not integrated/published.
+Reviewed head: `51b4caa119d18384b0d4d2d8dc7f2f0061a917ea` against the admission base.
+Reviewer: fresh-session, read-only Codex gpt-6-astra, high effort, role reviewer;
+no inherited author conversation. No second writer. Verdict:
+**PASS-WITH-HUMAN-GATE**, no new P0/P1/P2 findings; P2-1 through P2-6 satisfied
+within their recorded external evidence limits.
+
+Fresh evidence at that head:
+
+- Reviewer: `python -B -m unittest tests.scripts.test_ci_dotnet_retry tests.scripts.test_release_promotion_policy -q`
+  -> **78 tests PASS in 51.812s**, with required user-level test-root/temp setup.
+- Primary: post-commit `python scripts/verify.py --structure-only` -> **PASS**,
+  structure 14.9s, including tracked bug records/checkpoint; zero derived changes.
+- Reviewer independently confirmed the retained TRX hash, clean worktree and
+  no workflow/decision-board change; no actual dotnet/live CI or `--all`.
+- P3 platform observation: `BUG-20260929-ci-rerun-annotation-render-limit`.
+  The reporter emits every requested warning command, but GitHub retains at
+  most ten per step. All FQNs remain in the log/summary. The first aggregate
+  warning suffices for release rejection; no concrete all-warning loss path
+  in a successful aggregate was found. Contract disclosure is in this docs-only
+  follow-up; it changes no production/test blob or accepted verdict.
+
+Open: platform annotation presentation after ten warnings is documented for
+commander follow-up; real CI hang/annotation/adapter evidence and both R3 owner
+roles remain as above. Final docs-only exact-head review is reported externally.
+No workflow change or new owner decision is necessary to complete this correction.
+Next: confirm the documentation delta and deliver the report; do not push.

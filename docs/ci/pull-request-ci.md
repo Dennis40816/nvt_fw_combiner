@@ -194,6 +194,12 @@ there is no private-Golden or release-artifact upload exception.
 
 Both shard and aggregate emit every recovered identity in the log/summary and as
 `::warning title=Flaky test::<project> <FQN>` (workflow-command data is escaped).
+GitHub's runner retains at most ten warnings per step, so emitting all commands
+is not proof that all twenty possible FQNs receive separate PR annotations.
+The complete list remains in the log and job summary. The successful aggregate
+has no preceding warning producer; its first `Flaky test` annotation is sufficient
+to block release. This platform display limit and the pinned runner evidence are
+tracked in [the annotation-limit bug](../handoff/bugs/BUG-20260929-ci-rerun-annotation-render-limit.md).
 On producer failure, the finalizer chooses the producer-failed error first, attempts
 flaky diagnostics best-effort as **unverified**, then always raises that original
 producer failure. Missing artifacts, invalid JSON or a failed download cannot mask it.
