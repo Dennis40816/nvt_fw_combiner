@@ -133,11 +133,13 @@ public sealed partial class AbMergeCliCommandTests
         Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
     }
 
-    /// <summary>NT51950 Cascade names read its profile-owned DP CMI locations, never TP metadata or a presentation bank offset.</summary>
+    /// <summary>NT51950/NT51951 1024k names and reports read the corrected B CMI, not its former location.</summary>
     [Theory]
-    [InlineData(2, 0x85016)]
-    [InlineData(3, 0x85016)]
-    public async Task Nt51950CascadePreviewUsesProfileOwnedCmiPositionsForAutomaticNameAsync(byte chipCount, int bCmiOffset)
+    [InlineData("NT51950", "cascade", 2)]
+    [InlineData("NT51950", "cascade", 3)]
+    [InlineData("NT51951", null, 2)]
+    public async Task Nt51950AndNt51951PreviewUsesProfileOwnedCmiPositionsForAutomaticNameAsync(
+        string icId, string? topology, byte chipCount)
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-cli-output-name");
         CompositionHostServices host = CompositionHostServices.Create(
@@ -148,7 +150,8 @@ public sealed partial class AbMergeCliCommandTests
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         byte[] dp = new byte[0x100000];
         SetCmiDpVersionAt(dp, 0x5016, 0x82, 0x0);
-        SetCmiDpVersionAt(dp, bCmiOffset, 0x83, 0x1);
+        SetCmiDpVersionAt(dp, 0x84016, 0x83, 0x1);
+        SetCmiDpVersionAt(dp, 0x85016, 0x91, 0x9);
         byte[] tpA = CreateTp(0x80, 0x04, chipCount: chipCount, length: 0x37000);
         byte[] tpB = CreateTp(0x81, 0x02, chipCount: chipCount, length: 0x37000);
         foreach (byte[] tp in new[] { tpA, tpB })
@@ -166,9 +169,8 @@ public sealed partial class AbMergeCliCommandTests
             [
                 "preview",
                 "--profile",
-                "NT51950",
-                "--ab-topology",
-                "cascade",
+                icId,
+                .. topology is null ? Array.Empty<string>() : ["--ab-topology", topology],
                 "--dp-ab",
                 workspace.Write("dp.bin", dp),
                 "--tp-a",
@@ -189,7 +191,13 @@ public sealed partial class AbMergeCliCommandTests
             reportPath,
             TestContext.Current.CancellationToken));
         string outputName = report.RootElement.GetProperty("Output").GetProperty("FileName").GetString()!;
-        Assert.Matches("^NT51950_FlashCode_A_D8200T8004_B_D8301T8102_[0-9]{8}\\.bin$", outputName);
+        Assert.Matches($"^{icId}_FlashCode_A_D8200T8004_B_D8301T8102_[0-9]{{8}}\\.bin$", outputName);
+        JsonElement naming = report.RootElement.GetProperty("OutputNaming");
+        Assert.Equal(outputName, naming.GetProperty("AutomaticFileName").GetString());
+        JsonElement dpB = Assert.Single(naming.GetProperty("Tokens").EnumerateArray(),
+            token => token.GetProperty("TokenId").GetString() == "dp-b");
+        Assert.Equal("D8301", dpB.GetProperty("Value").GetString());
+        Assert.Contains("reg17=0x83;reg18=0x10", dpB.GetProperty("ParserId").GetString(), StringComparison.Ordinal);
         Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
     }
 

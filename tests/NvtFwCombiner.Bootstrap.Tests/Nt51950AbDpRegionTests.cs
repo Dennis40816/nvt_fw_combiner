@@ -11,10 +11,10 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Decision 192 preserves AB writes while declaring the complete DP complement.</summary>
+/// <summary>Decisions 192 and 195 declare the DP complement and CMI positions while preserving AB writes.</summary>
 public sealed class Nt51950AbDpRegionTests
 {
-    private const string BundleHash = "74c20ce3f1d53ca343995e1b757e0785cb842fe926e0799140d6d8251f137c49";
+    private const string BundleHash = "68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c";
 
     /// <summary>Publication pins follow the existing dynamic compiler without changing route decisions.</summary>
     [Fact]
@@ -109,20 +109,23 @@ public sealed class Nt51950AbDpRegionTests
 
     /// <summary>DP images cover every non-TP byte and own CMI without relaxing protected leaf ranges.</summary>
     [Theory]
-    [InlineData("NT51950", "-desay", "0.2.1", 1, 0x100000)]
-    [InlineData("NT51950", "-desay", "0.2.1", 2, 0x100000)]
-    [InlineData("NT51951", "-desay", "0.2.1", 0, 0x100000)]
-    [InlineData("NT51950", "", "0.8.0", 1, 0x80000)]
-    [InlineData("NT51950", "-cascade", "0.4.0", 2, 0x100000)]
-    [InlineData("NT51951", "", "0.7.0", 0, 0x100000)]
+    [InlineData("NT51950", "-desay", "0.2.1", 1, 0x100000, 0x45016)]
+    [InlineData("NT51950", "-desay", "0.2.1", 2, 0x100000, 0x45016)]
+    [InlineData("NT51951", "-desay", "0.2.1", 0, 0x100000, 0x45016)]
+    [InlineData("NT51950", "", "0.8.0", 1, 0x80000, 0x7B016)]
+    [InlineData("NT51950", "-cascade", "0.4.0", 2, 0x100000, 0x84016)]
+    [InlineData("NT51951", "", "0.7.0", 0, 0x100000, 0x84016)]
     public void DpSectionsPartitionTheTpComplementAndOwnCmi(
-        string ic, string suffix, string version, int count, int capacity)
+        string ic, string suffix, string version, int count, int capacity, int bCmiStart)
     {
         using var workspace = TempWorkspace.Create("nfc-ab-dp-declarations");
         TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
             workspace, "nt51950-ab-merge", BundleHash);
         FirmwareImageMap map = Compile(catalog, ic, suffix, version, count, capacity, false)
             .V2Details.Provenance.ResolvedMap.ImageMap;
+        FirmwareRegion bCmi = Assert.Single(map.Regions, region => region.RegionId == "b-cmi-dp-version");
+        Assert.Equal("flash", map.AddressSpaceId);
+        Assert.Equal(new ByteRange(bCmiStart, 3), bCmi.Range);
         if (suffix == "-desay")
         {
             FirmwareRegion tail = Assert.Single(map.Regions,
@@ -151,6 +154,16 @@ public sealed class Nt51950AbDpRegionTests
             bool isCmi = region.RegionId.EndsWith("-cmi-dp-version", StringComparison.Ordinal);
             Assert.Equal(isCmi || children.Length > 0 ? FirmwareWriteConstraint.ExplicitRange :
                 FirmwareWriteConstraint.Forbidden, region.WriteConstraint);
+            if (children.Length > 0)
+            {
+                long childCursor = region.Range.Start;
+                foreach (FirmwareRegion child in children.OrderBy(child => child.Range.Start))
+                {
+                    Assert.Equal(childCursor, child.Range.Start);
+                    childCursor = child.Range.EndExclusive;
+                }
+                Assert.Equal(region.Range.EndExclusive, childCursor);
+            }
             if (isCmi)
             {
                 FirmwareRegion parent = Assert.Single(map.Regions, candidate => candidate.RegionId == region.ParentRegionId);

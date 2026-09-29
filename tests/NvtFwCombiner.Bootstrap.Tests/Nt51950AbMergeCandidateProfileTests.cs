@@ -12,7 +12,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "74c20ce3f1d53ca343995e1b757e0785cb842fe926e0799140d6d8251f137c49";
+    private const string BundleContentHash = "68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c";
     private const int Capacity = 0x80000;
     private const int BankLength = 0x40000;
     private const int TpInputLength = 0x37000;
@@ -29,7 +29,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.True(StringComparer.Ordinal.Equals(
-            "0ef1f2cd6b5f649c511662f64b6f3fcb7219cb6bee230cc1f73b1718eb57e0ef",
+            "b474c4ba26f72d90848d0105a7e2e744bfb3a481aa26e0340f0b1fa517851f78",
             composition.CompilationFingerprint), composition.CompilationFingerprint);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -283,7 +283,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal("nt51950-ab-merge-1024k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(0x100000, composition.Plan.OutputInitialization.Capacity);
         AssertRegionRange(details, "a-cmi-dp-version", 0x5016, 3);
-        AssertRegionRange(details, "b-cmi-dp-version", 0x85016, 3);
+        AssertRegionRange(details, "b-cmi-dp-version", 0x84016, 3);
         Assert.Equal(
             [
                 ("copy-dp-ab-image", new ByteRange(0, 0x100000)),

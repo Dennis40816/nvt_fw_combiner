@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.2",
   "familyId": "nt51950-ab-merge",
-  "familyVersion": "0.7.3",
+  "familyVersion": "0.7.4",
   "abFormatPolicy": {
     "scopeId": "nt51950-partial-family-ab-event-buffer",
     "commonFormatId": "common",
@@ -405,7 +405,7 @@
           "parentRegionId": "b-dp-before-tp",
           "owner": "dp",
           "kind": "command",
-          "range": { "start": 544790, "length": 3 },
+          "range": { "start": 540694, "length": 3 },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -414,7 +414,7 @@
           "parentRegionId": "b-dp-before-tp",
           "owner": "dp",
           "kind": "data",
-          "range": { "start": 524288, "length": 20502 },
+          "range": { "start": 524288, "length": 16406 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -423,7 +423,7 @@
           "parentRegionId": "b-dp-before-tp",
           "owner": "dp",
           "kind": "data",
-          "range": { "start": 544793, "length": 20455 },
+          "range": { "start": 540697, "length": 24551 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },

@@ -302,3 +302,129 @@ Next: 完成本機 commit，交由 fresh-session read-only reviewer 檢查該 ex
 | `pin-python-rid-recheck.log` | `3e7274849ab85b73b930bc988b512493ecfe7d7e99e50d3980b2a65ea00751cc` |
 | `structure.log` | `82eedabf1d6237a3e604060b6c9b2db920c962fecf362953cd9401b307615d91` |
 | `route-pins.json` | `4c2f6737105957c3aaa54daf6a76d6fdfe1c0d26fa76ba696883261470320b7c` |
+
+### 2026-09-29 decision 195 admission
+
+State: planned. Base: `cb321efeb` (commander commits `089702dd1`, `cb321efeb`).
+
+- Outcome: only `nt51950-ab-merge-1024k` and `nt51951-ab-merge-1024k` move B CMI from `flash [0x85016,0x85019)` to `[0x84016,0x84019)` under decision 195; preserve complete DP partitions and TP writes.
+- Risk / authority: R3; local edit, tests and commit authorized; no push, PR or GitHub mutation. Required future approval roles: `firmware-owner`, `release-owner` (dependent policy and release pins).
+- Single writer: Codex `gpt-6-astra`, owner-requested `xhigh`; same branch and worktree as this dispatch. Owned surfaces: AB family/bundle/five profile bindings, trust index, mechanically dependent capability/Golden/release/test pins, affected Bootstrap tests and this log. Commander board remains read-only.
+- Owner search: `rg` for `cmi-dp-version` identifies the shared `nt51951-ab-merge-1024k-seed-and-placement` as the sole region owner for these two maps. The 512k and Desay maps bind different region sets. `FirmwareRegion` carries the range through the existing compiler. Disposition: `extend-owner` for that region and its adjacent DP leaves; `reuse` for all consumers and hash producers.
+- Direct readers: `CompiledInputArtifactObservationService.DecodeDpRegion`, `AbCodeOutputNameResolver.ReadDpToken`, and `FirmwareArtifactClassificationResolver.InspectAbCandidate`; compiler additional-delivery lowering refers to A CMI only. Follow the typed observations into firmware info/Details, report and naming; record each effect in the completion checkpoint.
+- Hash producers: `AbBundleSourceHashTests` / `ProfileBundleEntryArrayHasher`, `CanonicalDynamicRouteInventory`, `CanonicalCatalogSnapshotDigest`, and `scripts/sync_derived.py --write --only reviewed-source-pins`. No hash algorithm, Golden expected bytes/hash or support decision changes.
+- Acceptance / narrow gate: exact B CMI ranges for both 1024k maps, unchanged 512k/Desay ranges, complete nested partitions, and all 12 existing write-audit SHA pins unchanged. Final gate: requested Bootstrap filter, GoldenRegression, ProfileContract, affected hash/architecture/Python tests and structure-only verifier.
+- Non-goals: planner/executor/validator/schema semantics, Desay retirement, public version changes, integration or publication. Output naming effects are disclosed for R3 owner confirmation, not independently accepted here.
+- Stop and record in Open: any changed Golden expected bytes or TP write range; need for planner/executor/validator/schema semantic edits; the same test still failing after two fixes; two-hour budget exhausted.
+
+Open: implementation and verification pending; real 1024k images have no direct Golden and retain decision 195's `1.2.0` owner verification gate.
+
+### 2026-09-29 decision 195 B-bank CMI correction
+
+State: verified (local gates). Source: base `cb321efeb` plus the decision 195 commit containing this checkpoint. Codex `gpt-6-astra`, owner-requested `xhigh`, remains the sole writer. Local commit only; no integration or publication.
+
+#### Declarations and range evidence
+
+Only the shared `nt51951-ab-merge-1024k-seed-and-placement` region set changes firmware ranges. It serves `nt51950-ab-merge-1024k` (the 2-plus-IC map, including the tested 2/3-IC selections) and `nt51951-ab-merge-1024k`:
+
+| Region | Before, `flash` | After, `flash` |
+| --- | --- | --- |
+| `b-dp-before-cmi` | `[0x80000,0x85016)` | `[0x80000,0x84016)` |
+| `b-cmi-dp-version` | `[0x85016,0x85019)` | `[0x84016,0x84019)` |
+| `b-dp-after-cmi-before-tp` | `[0x85019,0x8A000)` | `[0x84019,0x8A000)` |
+
+CMI remains `dp/command`, length 3, alignment 1, `explicit-range`, under `b-dp-before-tp` (`dp/image`, `flash [0x80000,0x8A000)`). The surrounding leaves remain `forbidden`; their boundary follows the relocated field. The three children tile the same parent without overlap or gaps. A CMI remains `[0x5016,0x5019)`. The 512k B CMI stays `[0x7B016,0x7B019)`, and all three Desay B CMIs stay `[0x45016,0x45019)`; those region sets are byte-for-byte unchanged.
+
+`Nt51950AbDpRegionTests.DpSectionsPartitionTheTpComplementAndOwnCmi` now locks all six B CMI ranges and `flash` address space, DP parent membership, each DP parent's child partition and the complete TP complement. Before the profile edit, `red-ranges.trx` has 11 pass / 2 fail, exactly the two old 1024k ranges. After the edit, all assertions pass.
+
+The 12 existing normal/dummy audit SHA pins are **unchanged**, including invariant decimal `ScalarAddend`; no expected SHA was replaced. Actual `WRITE-AUDIT` JSON from baseline `red-ranges.trx` and final `bootstrap.trx` compares equal for every map/mode. The projection contains initialization and ordered operations, source/target/declared write ranges, overlap, scalar transforms and processor permissions; it does not contain the CMI region graph or governing-chain identity. Thus relocating this read-only metadata does not change the audit. The two target maps still overlay TP at `flash [0xA000,0x37000)` and `[0x8A000,0xB7000)`; every subsequent output write remains inside those TP ranges. The 512k/Desay TP ranges also remain individually identical.
+
+#### Consumer inventory and before/after effects
+
+Search: `rg -n 'cmi-dp-version' src` plus callers of the typed observations and fingerprint producers. The following are the complete direct region-ID readers and their downstream consumers at this source; no new reader was introduced.
+
+| Consumer / position | Effect on the two target maps |
+| --- | --- |
+| `src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactObservationService.cs:153`, `ObserveDp` → `DecodeDpRegion` at :174 | DP-B reads the accepted immutable DP snapshot at `0x84016` instead of `0x85016`. Major is byte `+1`; minor is the high nibble of byte `+2`; Jira is byte `+0` plus the low nibble of byte `+2`. DPA and unknown/bounds policies are unchanged. |
+| `src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs:74`, `GetAbInputFacts` | Firmware info renders the preceding typed DPB Version/Jira values from the new location. Labels, priority and formatting are unchanged. The inspection regression puts different old/new values into the same synthetic input and verifies new major/minor/Jira for NT51950 2/3 IC and NT51951. |
+| `src/NvtFwCombiner.Application/InputInspection/FirmwareArtifactClassificationResolver.CtrlRam.cs:151`, `InspectAbCandidate`, CMI call at :199 | AB CtrlRAM Reference inspection uses the same layout CMI reader, so DPB observation follows the new location when either target map is selected. TP/FWConfig validity, bank selection, structure checks and write plans do not derive from DP CMI and remain unchanged. |
+| `src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs:143` | Reference firmware Details renders `DPB Version` and `DPB Jira Index` from that new typed observation. DPA and bank ranges are unchanged. |
+| `src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs:17`, :86, :141 | `dp-b` naming token now derives from the new CMI; its format remains `D{major:X2}{minor:X2}`. See the explicit naming disclosure below. Normal inputs may produce a different automatic filename; dummy DP still uses `Dummy`, and explicit filename override still controls the actual name. |
+| `src/NvtFwCombiner.Application/Composition/CompositionRunService.Reports.cs:64`, `CompositionRunReport.cs:100,117`, `CompositionRunReportJson.cs:87` | Reports project existing typed results. `OutputNaming.Tokens[dp-b].Value` and `.ParserId`, automatic/actual filenames (unless overridden), and `Output.FileName` follow the corrected read. `CompilationFingerprint` changes with declaration identity. Reports do not independently decode CMI. Input/output byte hashes, operations and mutation ranges are unchanged for identical inputs; token source-snapshot SHA remains the same. CLI regression asserts the serialized DP-B value, parser registers and automatic output name. |
+| `src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs:168`, `CreateAdditionalDeliveries` | This direct ID reader uses **A** CMI only, together with other required A region IDs; no B CMI read exists here. Additional-delivery rules and A tokens do not change on either map. |
+| `src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs:223,275` | Generic region projection consumes map ranges; its outer bank/DP sections are unchanged. This branch has no special `*-cmi-dp-version` reader in Memory Layout. Decision 192's separate DP card/subfield presentation work stays with the memory-layout workstream. |
+| `src/NvtFwCombiner.Domain/Firmware/FirmwareMapResolutionResult.Fingerprint.cs:16`; `src/NvtFwCombiner.Domain/Composition/CompiledComposition.Fingerprint.cs:29,118`; `src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs:109,467` and `.Banks.cs:71` | Family/bundle identity and map facts feed resolution/compilation and capability identities through the existing owners. Both target capabilities change; shared bundle identity also mechanically changes the 512k route and all four AB CtrlRAM route pins, without changing their support decisions or operation semantics. |
+| `docs/contracts/canonical-capability-policy-v1.json`; `testdata/golden/canonical/manifest.json` | Seven routes re-pin the freshly produced fingerprints: policy has 28 changed scalar fields (route plus authoring/publication/evidence), Golden inventory has seven `routeEvidence[*].capabilityFingerprint` changes. No other policy/manifest semantic field changes; `cases`, evidence scope, approvals and every Golden expected output hash remain identical. |
+
+Naming disclosure for owner confirmation: both profiles keep `NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin`. Before, `dp-b = D{input[0x85017]:X2}{(input[0x85018] >> 4):X2}`; after, `dp-b = D{input[0x84017]:X2}{(input[0x84018] >> 4):X2}`. Jira does not enter the filename. For the synthetic CLI fixture with old CMI major/minor `0x91/0x09` and new `0x83/0x01`, the rule changes `NT51950_FlashCode_A_D8200T8004_B_D9109T8102_{date}.bin` to `NT51950_FlashCode_A_D8200T8004_B_D8301T8102_{date}.bin`; NT51951 differs only in the IC number. The former name is derived from the inspected pre-change rule; the latter is exercised by the final CLI tests. Real filenames change only if the two locations decode different versions. This is an identified effect, **not** a declaration that the owner has accepted all real-image naming changes.
+
+#### Derived identities
+
+Family `0.7.3` → `0.7.4`; bundle `1.1.15-dp-regions.1` → `.2`. Five composition profile versions and all operational declarations stay unchanged; only each family version/hash binding moves. Source-file SHA-256, the existing `ProfileBundleEntryArrayHasher` via `AbBundleSourceHashTests`, `CanonicalDynamicRouteInventory` and `CanonicalCatalogSnapshotDigest` supplied the identities; `sync_derived.py --write --only reviewed-source-pins` synchronized loader/package/smoke/Python pins. No hash algorithm was reimplemented and no expected firmware hash was regenerated.
+
+| Identity | Before → after |
+| --- | --- |
+| Family source SHA-256 | `059947a9ef4f536feab0be71769a3a5578e6dfac459ea876e1619d078c95ff8d` → `625151beda7c3beca729e04d767c3e43e895020e0ad5a2dab43a4640b9e6b5e6` |
+| Bundle entry-array hash | `74c20ce3f1d53ca343995e1b757e0785cb842fe926e0799140d6d8251f137c49` → `68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c` |
+| Trust index SHA-256 | `5d01d55748fa0833d792e42a0be0c89ea0aa7b63b3f16a578a77da3af48bcb93` → `831a3968740801e14c1f2c6e362dbcef1248d6ba870a1c5d0c41f1124ca2982f` |
+| Capability policy SHA-256 | `544433f640d66170e556f0f7285ec4a7b6907489cdc234d8cd24801ffb5c8d2f` → `a3ad08440076fb6b8b840ba64a6fbe0ccadb4345530ba1db09ab0b4f0fa671d4` |
+| Golden inventory file SHA-256 | `19e6ee1d56441b03d3e0b2df2c9a33e35b6394bcc1cab57848ef3399ccf0c69b` → `5fa41fea1ce7d8b9278e2bdd7d38a4cc6759bd24e18d07781006b3e9b4416c59`; only seven route identity pins changed. |
+| Catalog snapshot digest | `565eb0914427c8becb4ff3e4751bab7b0611a9ef770a6e98ccbd1cfca48804ab` → `adf144922d409b48b3ef76a263f57c957337c3c4b4ecefd3b65137e18bbca730`; only `catalog` and `dynamic-routes` section digests change; all section lengths remain identical. |
+| Candidate compilation pins | NT51950 512k: `0ef1f2cd…57e0ef` → `b474c4ba…851f78`; NT51951 1024k: `ace12208…d5fbdd` → `7626dd39…7e3517`. Both include the shared family/bundle identity. |
+
+| Canonical route (IC / workflow / count / map) | Fingerprint before → after |
+| --- | --- |
+| 950 / AB Merge / 1 IC / merge maps | `81a69ebb…de22b5` → `850fa225…565c5a8` |
+| 950 / AB Merge / 2-plus IC / cascade maps | `55995600…fc592a` → `d2e3caab…10e0baa` |
+| 951 / AB Merge / selector-free / 1024k | `d0d38b5b…eb2904` → `13886377…1e0dc93` |
+| 950 / AB CtrlRAM / 1 IC / 512k | `905b2c62…fa9593` → `9e985b75…86508b8` |
+| 950 / AB CtrlRAM / 2 IC / 1024k | `efded7f6…1f99a75` → `389e0e7a…5f6e868e` |
+| 951 / AB CtrlRAM / 1 IC / 1024k | `a830b727…ad802f` → `a4ad18a2…e8c8e8d` |
+| 951 / AB CtrlRAM / 2 IC / 1024k | `fd56dff9…ad77218` → `c636736c…349dfef` |
+
+#### Verification and residual gates
+
+Every test process loaded user-level `NFC_TEST_AREA_ROOT`, used its existing `temp` child for `TEMP`, `TMP`, `TMPDIR`, and set `DOTNET_CLI_UI_LANGUAGE=en`. All .NET commands used `dotnet test tests/<project> --no-restore`, a TRX logger and test-area evidence directory `evidence/f115-dp-cmi-195-20260929`.
+
+| Check | Result |
+| --- | --- |
+| Bootstrap filter `FullyQualifiedName~Nt51950AbDpRegionTests\|FullyQualifiedName~AbMergeGoldenRegressionTests\|FullyQualifiedName~Nt5195` | 217 passed, 0 failed/skipped |
+| Bootstrap consumer filter: `CanonicalCatalogSnapshotDigestTests`, `CanonicalCapabilityCatalogMigrationTests`, `CanonicalSourceProjectionBuiltInBundleTests`, `AbMergeAuthoringDefinitionTests`, `AbMergeFormatVariantProfileTests`, `AbDummyDpCompilationTests`, `AbCtrlRam*`, `CtrlRamMemorySection`, `AbMergeCanonicalReadinessTests` | 293 passed, 0 failed/skipped |
+| `dotnet test tests/NvtFwCombiner.GoldenRegression.Tests --no-restore` | 15 passed |
+| `dotnet test tests/NvtFwCombiner.ProfileContract.Tests --no-restore` | 484 passed |
+| Infrastructure filter `FullyQualifiedName~AbBundleSourceHashTests` | 2 passed |
+| Architecture filter `FullyQualifiedName~BuiltInV2BundlePinsHaveOneOwner` | 1 passed |
+| `python -m pytest tests/scripts/test_release_package_policy.py tests/scripts/test_release_smoke_policy.py tests/scripts/test_sync_derived.py tests/scripts/test_ab_merge_fixture_validation.py tests/scripts/test_canonical_golden_validation.py tests/scripts/test_v0916_parity_1x_amendment.py -q` | 265 passed, 480.25s |
+| `python scripts/sync_derived.py` | PASS, 0 files changed |
+| `python scripts/verify.py --structure-only` | PASS, structure 26.8s |
+
+Golden scope: BOE/Hiway `Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync` and OSD `Nt51950OsdPublicHostMatchesOwnerCertifiedGoldenAsync` all actually ran and passed complete-output comparisons in `bootstrap.trx`. All three are **512k map** cases (OSD additionally preserves its complete larger source envelope). The other five maps still have no direct Golden. This change neither creates new certification nor treats NT51951 aliases as direct output evidence.
+
+Development failures are retained: the first range-test build used the wrong address-space owner ([fixed test defect](../bugs/BUG-20260929-dp-cmi-test-address-space-owner.md)); scratch text writes initially used Windows newlines ([fixed pin-refresh defect](../bugs/BUG-20260929-dp-pin-refresh-newlines.md)). An early bundle build was blocked by the not-yet-synchronized trust entry, so the unchanged existing hasher was invoked with `--no-build` against source bytes. TRX repeats stdout at result/run scope; the scratch pin extractor initially rejected 14 records, then deduplicated the seven identical producer tuples. One premature broad run therefore still saw old policy/compilation pins and unavailable catalog publication; the successful producer synchronization removed those failures. A final catalog digest mismatch was the expected identity change above and was re-pinned from the existing digest output. No firmware output expectation or write-audit pin was relaxed.
+
+Scoped local review traces decision 195 to the one existing region owner, its typed readers, the location-selective synthetic tests and the unchanged write audit. There is no alternate firmware path, support promotion or hidden generated payload. `git diff --check` passes; `packages.lock.json` and the commander board have no diff. The final candidate retains only the approved declaration, its derived identities, tests, this checkpoint and two fixed development-bug records. No full integration/release suite or publication is claimed by these local results.
+
+Open:
+
+- Owner must explicitly confirm the disclosed DP-B automatic filename/token effect in the R3 approval. Implementation does not wait on that future integration gate.
+- Decision 195 keeps real-image verification of both 1024k B CMI locations/versions/names in `1.2.0`; no direct Golden exists for these maps. Available evidence is the exact synthetic reader/naming tests and unchanged compiled write plans, not hardware certification.
+- Fresh independent fixed-head review and any future last-push approval naming **`firmware-owner` and `release-owner`** remain separate gates; the existing external R3 report covers earlier heads, not this new delta. This local task grants no push/PR/GitHub authority and does not claim integration/release readiness.
+- No Golden expected bytes or TP write ranges changed; no planner/executor/validator/schema semantic edit was needed. No test remained failing after two corrective fixes, and the two-hour stop budget was not exhausted. Any occurrence of those stop conditions ends work and must be recorded here.
+
+Next: commit this coherent patch, obtain a read-only independent review of that exact commit, and return the SHA plus remaining owner gates without pushing. The fresh reviewer uses `gpt-6-astra`, `xhigh`, without the writer's conversation, chosen for the R3 firmware/consumer evidence review; it owns no mutable path.
+
+#### Decision 195 evidence identities
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `red-ranges.trx` | `8d1429c268f38e2e953d065e6cd2114f0e8041452c0abb835a8fe1a8e7f95354` |
+| `bootstrap.trx` | `0ab12b37765aedd51f183435eecf6154eeb480d0ff5bd366422742843d3112ac` |
+| `bootstrap-consumers.trx` | `e214ae87aceacd2514ecf6166500a24eb5e3bcee40a517ad558ac4e322825367` |
+| `golden.trx` | `8ec40451564ea397cec01a8945b742e88881cc6b1b3fd8e679668423fb1a5607` |
+| `profile-contract.trx` | `3cf6b2ed13e065d0ee82b0e390c6b5823f3b6b1d71e174375e985939ab7692ff` |
+| `hash.trx` | `557312a81223695fa56ce4099ec116a1937a8352b407f52d9dbee56556a8e748` |
+| `architecture.trx` | `7cbfc4ee8e988b0a58f764e84e9fed461c337d99d5d55264dd503a35341ca0b7` |
+| `python.log` | `1251fc59f7add02c4c651f9a1e8ec39fb349acf07b6c395e0125ea45e1cc13de` |
+| `audit-comparison.json` | `2447625a755fad2d77ededfe70a082c6c396fb65eac7851153226593eca6a117` |
+| `route-pins.json` | `db09625b01c9db4969c240b11df361631bb7ba25016b309a7aeba92aa58a8b3e` |
+| `structure.log` | `213d5b5d2aa74efde40d4b6cdde6e1c1a49edad6115967d70f33a7531eeea6d8` |
