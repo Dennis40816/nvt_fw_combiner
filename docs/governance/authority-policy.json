@@ -183,6 +183,7 @@
       "patterns": [
         "CONTRIBUTING.md",
         "SECURITY.md",
+        ".gitmodules",
         "**/Directory.Build.*",
         "**/Directory.Packages.props",
         "global.json",

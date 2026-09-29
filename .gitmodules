@@ -1,0 +1,3 @@
+[submodule "third-party/nvt_combiner"]
+	path = third-party/nvt_combiner
+	url = https://github.com/Dennis40816/nvt_combiner.git
