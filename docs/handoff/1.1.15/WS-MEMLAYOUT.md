@@ -212,7 +212,9 @@ Evidence:
   Invalidations discard stale targets; the only rearm is valid passive closure.
   Popup spacers have no background/hit testing. Diff and affected links checked.
 
-Open: no local failing gate. Independent Claude fixed-head R2 review, owner
+Open (corrected by the independent review): the selected filter was green;
+affected consumers were not covered, and five P1 failures were later reproduced
+at 8010d7770. This was not evidence of no local failing gate. Independent Claude fixed-head R2 review, owner
 visual acceptance and native first-readable timing remain external. Scoped
 Polytail author check has no open correctness finding; R2 review is incomplete
 until commander's independent reviewer records it. Stage 3 marker and styling
@@ -305,3 +307,185 @@ changes only the execution record; the verified product/test source is intact.
 Next: commander reviews this fixed diff and screenshot evidence, arranges the
 independent review and integration. The authorized local three-stage scope is
 complete; O1/O2/O4 and unrelated backlog work are not started.
+
+### 2026-09-29 — independent-review correction admission
+
+State: local. Starting head `8010d7770282a70f9f58bfc44cf87d22523be971`,
+integration base `aba286bae`; clean checkout on the existing task branch.
+Owner authorizes the review corrections, full Release project tests and one
+local commit. Codex gpt-6-astra, requested xhigh, remains the sole writer.
+No delegation, push, PR, fetch, rebase, profile, firmware, release or CI edits.
+This turn has a four-hour limit and a two-correction retry limit per test.
+
+Owner search: `MemoryLayoutProjector.ProjectPending` owns C-06 decisions;
+`AuthoringInputSlotStatus`, session lifecycle, unstable-file batch results and
+`CompositionIssue` own the missing facts. Extend that typed input/output, retain
+original inspection/issue facts in `FirmwareSlotViewModel`, and localize the
+result only. Standard Merge required address spaces remain Application-owned.
+`MemoryLayoutSnapshot` owns A-11 group publication; move group membership there
+and reject inconsistent consumer facts explicitly. `ProjectMapSections` owns
+section identity through declared parent/owner; reuse its checked bank placement.
+Reject a second Presentation classifier. Existing shared rail/legend controls
+and style contracts own the remaining corrections. No execution facts change.
+
+Risk: R2, existing authorized interaction/Application contract. Mutable scope
+extends the prior admission to the typed slot fact carrier and its inspection
+projection. Final gate: complete UiSmoke, Application, Bootstrap, Architecture
+projects in Release, structure-only, affected screenshots, diff/Polytail review.
+Independent exact-head review and visual acceptance remain commander/owner gates.
+
+Evidence: `review-p1-red.trx` in `evidence/1.1.15/test-results/` records Release
+**0 passed / 5 failed**, one existing regression per P1. This also supersedes the
+stage-3 claim of no open local correctness finding; its filter did not include
+all affected consumers. All five failures must be corrected before completion.
+
+Open: corrections and full gates in progress. P3-6 remains visual acceptance,
+not authority to redesign labels or address wrapping. The joint NT51950/951
+profile-branch scenario cannot be certified before commander integration.
+Next: typed C-06 correction, then A-11, rail/style, declared-parent and lifecycle
+regressions; record base comparisons for any failing gate.
+
+### 2026-09-29 — independent-review corrections completed locally
+
+State: locally implemented and verified, with source/tests frozen before the
+final complete Release project gates. This checkpoint belongs to the local
+correction commit following `8010d7770`; no integration or publication is
+claimed. No push, PR, GitHub write, fetch, prune/gc or rebase was performed.
+
+Review dispositions:
+
+- P1-1 / C-06: Application publishes typed blocking diagnostics from original
+  inspection status, availability failure, authoring issues and session
+  lifecycle. A session-only error receives a localized diagnostic fallback;
+  toggling linked AB TP no longer throws on an empty UI diagnostic string.
+- P1-2 / C-06: stale content, rejected publication, incomplete inspection,
+  authoring issues and non-terminal blocked readiness retain their typed
+  reasons. Application selects the blocked DP before another missing required
+  input; localization restores `DP BIN needs attention` and its original
+  detail. Path changes/reset clear the carried facts. A retained non-terminal
+  status uses the existing prerequisite error card, not terminal formatting.
+- P1-3 / A-11: missing display groups are explicitly absent and render in the
+  neutral Common group. Conflicting or partly missing facts for one logical
+  identity fail with an explicit inconsistency message. Fixtures publish their
+  declared Common/Slave groups; Application tests cover mixed-to-Common.
+- P1-4: the CtrlRAM window regression rejects legend focus, focuses the actual
+  corresponding rail and checks its exact-range card.
+- P1-5: marker/collision outlines use the required 2-DIP width and existing
+  dynamic resources; the complete style-contract tests run in UiSmoke.
+- P2-1: the stage-2/3 assertion of no local failing gate is corrected above.
+  The earlier selected filters missed affected consumers; this correction runs
+  all four requested test projects, without filters.
+- P2-2: field folding follows a declared DP code/image ancestor or DP code
+  sibling with the same declared parent. Canonical identity remains code/image;
+  adjacent distinct parents remain distinct. Only typed metadata field kinds
+  are listed, excluding large Data partitions. Tests cover field-before-code,
+  DP parent beside TP, nested field ownership, distinct adjacent parents and
+  orphan-command neutral context. Existing NT51929 AB tests retain both exact
+  bank ranges and Standard Unmapped coverage. No profile or byte contract changes.
+- P3-1: Standard Merge uses the already applied Application required-address-
+  space publication, including a query-safe empty catalog. P3-2 adds six
+  passive-close reset/detach/disable cases across Plain/non-Plain controls.
+- P3-3: Application snapshot publishes one immutable display-group lookup per
+  logical identity; Presentation consumes it without per-segment classification.
+  P3-4 explicitly supersedes connector pointer retention in the interaction note.
+- P3-5: added the actual base CtrlRAM route screenshot and an after DP card
+  with expanded `a-cmi-dp-version` / `flash [0x401A,0x401D)`.
+- P3-6: unchanged, as the review assigns raw region labels and narrow address
+  wrapping to owner visual acceptance. No approved alternative is available;
+  this is not permission to introduce a new labeling/layout contract.
+
+Red/green and base comparison (all artifacts under
+`evidence/1.1.15/test-results/`):
+
+- `review-p1-red.trx`: **0/5**, one existing regression per P1 at `8010d7770`.
+  `review-p1-corrected.trx`: **13/0**, including group/lifecycle regressions.
+  The first correction left stale-publication failure (6/1); adding typed facts
+  to both publication/finally paths made the second correction pass.
+- Parent regressions: `review-parent-red.trx` **4/4** contains three intended
+  failures and one invalid equal-bound child fixture. Correcting only that
+  fixture produces `review-parent-fixture-red.trx` **0/1** for distinct parents.
+  A later nested-owner regression fails in `review-nested-fixture-red.trx`
+  **0/1**, after correcting its missing child partitions. The final complete
+  MemoryLayout filter is **72/0** in `review-parent-final-green.trx`.
+- Retaining non-terminal status revealed a terminal-formatter exception in
+  both languages: `review-nonterminal-red.trx` **0/2**, corrected in
+  `review-followup-green.trx`. Build-only analyzer/import mistakes executed no
+  tests; their logs and the invalid fixtures are retained in the bug ledger.
+- First complete correction run: Application **1653/0**, UiSmoke **1915/6**,
+  Bootstrap **2142/0**, Architecture **277/0** (`review-full-*.trx`). Five UI
+  failures came from querying requirements during empty-catalog publication;
+  one fixture omitted typed Slave groups. Reusing the existing applied
+  requirements and declaring the fixture groups corrected all six.
+- Detached base `aba286bae`: complete Release UiSmoke **1861/0/0** in
+  `review-base-ui.trx`; the original five P1 tests and those six existing
+  consumer tests pass there. These failures are change-related, not pre-existing.
+  `review-base-comparison.json` matches all 11 failures to base passes by name.
+  New regression/fixture failures have no identical test at base and are
+  recorded separately above, not claimed as base passes. No known failing
+  base gate is being excused. The temporary worktree was removed after comparison,
+  after restoring its restore-generated lockfile changes and verifying the
+  exact authorized target and clean status. The task worktree has no lockfile delta.
+- `review-followup-green.trx` **15/1** passed the consumer fixes but exposed
+  the new screenshot fixture selecting the overview container as a coverage
+  control. Selecting its descendant yields `review-card-final.trx` **1/0**.
+  No test remains failed after two corrections; the stopping rule did not fire.
+
+Final complete project gates: Application **1654 passed / 0 failed / 0 skipped**;
+UiSmoke **1923 / 0 / 0**; Bootstrap **2142 / 0 / 0**; Architecture **277 / 0 / 0**.
+Each project uses
+`dotnet test tests/NvtFwCombiner.<Project>.Tests/NvtFwCombiner.<Project>.Tests.csproj -c Release --no-restore`,
+with a TRX logger/results directory and no filter (`review-final-*.trx` / `.log`).
+Every test shell loads user-level `NFC_TEST_AREA_ROOT`, assigns its existing
+`temp` child to `TEMP`, `TMP`, `TMPDIR`, and sets `DOTNET_CLI_UI_LANGUAGE=en`.
+`python scripts/verify.py --structure-only` **PASS** (31.6 s), recorded in
+`evidence/1.1.15/review-final-structure.log`, uses the same environment setup.
+This is a structure lane and four complete projects, not `verify.py --all`,
+CI, release approval or a new Golden parity claim. Final TRX counters are also
+retained in `review-final-gates.json`; all 5996 tests passed without skips.
+
+Screenshot evidence under `evidence/1.1.15/screens/`:
+
+- `review-before/nt51929-ab-ctrlram-candidate-details-open.png` comes from the
+  detached base; `review-after/` contains fresh canonical Details-closed/open,
+  CtrlRAM DP card and marker/collision captures from the correction source.
+- The primary visually compared the base Context slice with the after DP
+  section and inspected the readable DP field card, 150% tiny markers and
+  200% dark collision list. The initial translucent card image is retained as
+  `nt51929-ab-ctrlram-candidate-dp-card-initial-transition.png`; it is obsolete
+  evidence and must not be used for acceptance. Final capture settles the
+  existing ReducedMotion/details reveal before saving. Owner acceptance remains
+  open; screenshots do not establish Golden byte parity or native timing.
+
+Size and author review:
+
+- Relative to `8010d7770`, nonblank production **+81** (non-UI runtime **+53**,
+  Presentation **+28**), tests **+288**; `review-code-size.json`. The projector
+  grows 1777 to 1823 lines. All existing >=2000-line aggregates stay unchanged,
+  including ShellTextResources 3226, MergePresentationViewModel 2158 and
+  ReplacePresentationViewModel 2208; no size baseline or approval is altered.
+- `review-final-source-sha256.json` records the frozen changed source/test
+  bytes. Scoped author review checks typed diagnostic precedence and freshness,
+  immutable group publication, explicit inconsistency failure, declared parent
+  identity, both-bank placement, neutral gaps, passive invalidation, style
+  resources and card/rail input. One Application classification path remains.
+- Local authority classification records 16 R0 and 23 R1 paths, no required
+  path roles and no unclassified paths (`review-authority-classification.json`).
+  The semantic risk stays R2; path floors do not replace the contract review.
+- R2 local author Polytail is limited to this correction diff; the independent
+  report reviewed `8010d7770`, not the corrected head. A final `PASS` or an
+  integration-ready claim is withheld until independent exact-head review and
+  owner visual acceptance. This is not a permanent gate exemption.
+- Local author verdict: **PASS-WITH-HUMAN-GATE**. No open local P0/P1 or failed
+  requested gate remains. Diff/affected links and added-content privacy checks
+  pass; no profile, firmware, release, CI, generated payload or lockfile is
+  included. Frozen source/test hashes were rechecked after the complete tests.
+  Git writes suppress automatic maintenance with command-local `gc.auto=0`
+  and `maintenance.auto=false`; no test/verifier runs during the commit.
+
+Open: independent exact-head R2 review and owner visual acceptance, including
+P3-6. The separate NT51950/951 profile branch is not part of this worktree;
+synthetic declared-parent/Data regressions cover its shape, but the real joint
+AB CtrlRAM scenario remains commander's integration check. During transition,
+an orphan command without a declared DP code/image owner remains neutral
+Context. Native first-readable timing and High Contrast remain their existing
+separate acceptance work; no new work is started here.

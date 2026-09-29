@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.MemoryLayout;
 using System.Collections.ObjectModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -306,6 +307,8 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
         InputIssueStatus = null;
         IsInputInspectionPending = true;
+        InputAvailabilityIssue = MemoryInputAvailabilityIssue.None;
+        InputAuthoringIssues = [];
         IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;
         InputInspectionStatus = status;
@@ -315,7 +318,9 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     public void SetInputInspection(
         FirmwareInputInspectionSeverity severity,
         string status,
-        NvtFwCombiner.Application.Authoring.AuthoringInputSlotStatus? inspectedStatus = null)
+        NvtFwCombiner.Application.Authoring.AuthoringInputSlotStatus? inspectedStatus = null,
+        MemoryInputAvailabilityIssue availabilityIssue = MemoryInputAvailabilityIssue.None,
+        IReadOnlyList<NvtFwCombiner.Domain.Composition.CompositionIssue>? authoringIssues = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
         if (!Enum.IsDefined(severity))
@@ -324,6 +329,8 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         InputIssueStatus = inspectedStatus;
+        InputAvailabilityIssue = availabilityIssue;
+        InputAuthoringIssues = Array.AsReadOnly([.. authoringIssues ?? []]);
         IsInputInspectionPending = false;
         IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = severity;
@@ -336,6 +343,8 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
         InputIssueStatus = null;
+        InputAvailabilityIssue = MemoryInputAvailabilityIssue.None;
+        InputAuthoringIssues = [];
         IsInputInspectionPending = false;
         IsBaseDiscoveryInspected = true;
         InputInspectionSeverity = null;
@@ -347,6 +356,8 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     public void ClearInputInspection()
     {
         InputIssueStatus = null;
+        InputAvailabilityIssue = MemoryInputAvailabilityIssue.None;
+        InputAuthoringIssues = [];
         IsInputInspectionPending = false;
         IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;

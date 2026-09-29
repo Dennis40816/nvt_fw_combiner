@@ -220,7 +220,10 @@ public sealed class CtrlRamMemoryLayoutTests
             {
                 Border legend = Assert.Single(overview.GetVisualDescendants().OfType<Border>(),
                     control => control.Name == "MemoryLegendTarget" && control.DataContext is MemoryCoverageSegmentViewModel slice && slice.AddressRangeLabel == range);
-                Assert.True(legend.Focus(NavigationMethod.Tab));
+                Assert.False(legend.Focus(NavigationMethod.Tab));
+                Control rail = Assert.Single(overview.GetVisualDescendants().OfType<Control>(),
+                    control => control.Classes.Contains("memoryExplorerSlice") && ReferenceEquals(control.DataContext, legend.DataContext));
+                Assert.True(rail.Focus(NavigationMethod.Tab));
                 Render();
                 Border overviewCard = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
                 Assert.Contains(range, VisibleText(overviewCard));

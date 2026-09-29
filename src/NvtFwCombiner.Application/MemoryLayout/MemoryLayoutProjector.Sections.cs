@@ -106,7 +106,7 @@ public static partial class MemoryLayoutProjector
             ? context : ProjectMapSections(maps[0], addressSpaceId, capacity);
     }
 
-    private static IReadOnlyList<MemoryLayoutSectionLocator> ProjectMapSections(
+    internal static IReadOnlyList<MemoryLayoutSectionLocator> ProjectMapSections(
         FirmwareImageMap map, string addressSpaceId, long capacity)
     {
         var output = new ByteRange(0, capacity);
@@ -114,12 +114,20 @@ public static partial class MemoryLayoutProjector
         FirmwareRegion[] codes =
         [
             .. map.Regions.Where(region => (region.Kind == FirmwareRegionKind.Code ||
-                (region.Kind != FirmwareRegionKind.Unmapped && region.Owner == FirmwareRegionOwner.Dp)) &&
+                (region.Kind == FirmwareRegionKind.Image && region.Owner == FirmwareRegionOwner.Dp)) &&
                 region.Owner is FirmwareRegionOwner.Tp or FirmwareRegionOwner.Dp &&
                 output.Contains(region.Range)),
         ];
         Dictionary<string, FirmwareRegion> byId = map.Regions.ToDictionary(static region => region.RegionId);
         codes = [.. codes.Where(region => !HasAncestor(region, codes, byId, sameOwner: true))];
+        FirmwareRegion[] fields = [.. map.Regions.Where(region => region.Owner == FirmwareRegionOwner.Dp &&
+            region.Kind is FirmwareRegionKind.Command or FirmwareRegionKind.Header or FirmwareRegionKind.FirmwareConfig or
+                FirmwareRegionKind.CustomerInformation or FirmwareRegionKind.Checksum && output.Contains(region.Range))];
+        Dictionary<string, FirmwareRegion?> owners = codes.Concat(fields).ToDictionary(static region => region.RegionId,
+            region => DeclaredSectionOwner(region, codes, byId), StringComparer.Ordinal);
+        // Sibling fields share a declared parent and DP owner with code. A field with no declared
+        // DP parent or code sibling stays neutral until its companion map supplies that authority.
+        codes = [.. codes, .. fields.Where(field => owners[field.RegionId] is not null && !HasAncestor(field, codes, byId))];
         if (codes.Any(left => codes.Any(right => !ReferenceEquals(left, right) && left.Range.Overlaps(right.Range) &&
             !HasAncestor(left, [right], byId) && !HasAncestor(right, [left], byId))))
         {
@@ -145,21 +153,34 @@ public static partial class MemoryLayoutProjector
             FirmwareRegion? region = gaps.FirstOrDefault(candidate => candidate.Range.Contains(range)) ??
                 codes.FirstOrDefault(candidate => candidate.Range.Contains(range) &&
                     !codes.Any(child => child.Range.Contains(range) && HasAncestor(child, [candidate], byId)));
-            if (result.Count > 0 && (ReferenceEquals(result[^1].CanonicalRegion, region) ||
-                (result[^1].ContentRole == MemoryContentRole.Dp && region?.Owner == FirmwareRegionOwner.Dp)))
+            if (region is not null && owners.TryGetValue(region.RegionId, out FirmwareRegion? owner)) { region = owner; }
+            if (result.Count > 0 && ReferenceEquals(result[^1].CanonicalRegion, region))
             {
                 range = new ByteRange(result[^1].Range.Start, range.EndExclusive - result[^1].Range.Start);
                 region = result[^1].CanonicalRegion;
                 result.RemoveAt(result.Count - 1);
             }
-            MemoryLayoutSectionField[] fields = region?.Owner == FirmwareRegionOwner.Dp
-                ? [.. map.Regions.Where(field => field.Owner == FirmwareRegionOwner.Dp &&
-                    field.Kind is not (FirmwareRegionKind.Code or FirmwareRegionKind.Image or FirmwareRegionKind.Unmapped) &&
+            MemoryLayoutSectionField[] sectionFields = region?.Owner == FirmwareRegionOwner.Dp
+                ? [.. fields.Where(field => ReferenceEquals(owners[field.RegionId], region) &&
                     range.Contains(field.Range)).Select(field => new MemoryLayoutSectionField(field, addressSpaceId, field.Range))]
                 : [];
-            result.Add(new MemoryLayoutSectionLocator(addressSpaceId, range, map, region, fields: fields));
+            result.Add(new MemoryLayoutSectionLocator(addressSpaceId, range, map, region, fields: sectionFields));
         }
         return result;
+    }
+
+    private static FirmwareRegion? DeclaredSectionOwner(
+        FirmwareRegion region, FirmwareRegion[] sections, Dictionary<string, FirmwareRegion> byId)
+    {
+        if (region.Owner != FirmwareRegionOwner.Dp || region.Kind == FirmwareRegionKind.Image) { return region; }
+        FirmwareRegion? ancestor = sections.FirstOrDefault(section => section.Owner == FirmwareRegionOwner.Dp &&
+            HasAncestor(region, [section], byId));
+        if (ancestor is not null) { return DeclaredSectionOwner(ancestor, sections, byId); }
+        // Keep separate banks and image containers distinct even when their ranges touch.
+        return region.ParentRegionId is { } parent
+            ? sections.Where(section => section.Owner == FirmwareRegionOwner.Dp && section.Kind == FirmwareRegionKind.Code &&
+                section.ParentRegionId == parent).OrderBy(static section => section.Range.Start).FirstOrDefault()
+            : region.Kind == FirmwareRegionKind.Code ? region : null;
     }
 
     private static bool HasAncestor(

@@ -45,7 +45,7 @@ internal static class ReplaceRegionGroupBuilder
             CreateLogicalItems(segments, text);
 
         return logicalItems
-            .GroupBy(static item => item.Segments.Select(static segment => segment.DisplayGroup).Distinct().Single())
+            .GroupBy(static item => GetPublishedGroup(item))
             .OrderBy(static group => group.Key)
             .Select(group =>
             {
@@ -59,6 +59,17 @@ internal static class ReplaceRegionGroupBuilder
                     group.Key,
                     text);
             });
+    }
+
+    private static ReplaceRegionGroup GetPublishedGroup(MemoryCoverageLogicalItemViewModel item)
+    {
+        ReplaceRegionGroup?[] groups = [.. item.Segments.Select(static segment => segment.DisplayGroup).Distinct()];
+        return groups.Length switch
+        {
+            0 => ReplaceRegionGroup.Common,
+            1 => groups[0] ?? ReplaceRegionGroup.Common,
+            _ => throw new InvalidOperationException($"Logical coverage '{item.DisplayId}' has inconsistent Application display groups: {string.Join(", ", groups)}."),
+        };
     }
 
     public static IReadOnlyList<MemoryCoverageLogicalItemViewModel> CreateLogicalItems(

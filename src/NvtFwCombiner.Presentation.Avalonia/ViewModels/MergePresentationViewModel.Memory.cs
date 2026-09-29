@@ -38,7 +38,7 @@ internal sealed partial class MergePresentationViewModel
                         IsGeneralMergeModeSelected
                             ? MemoryPendingPrerequisite.GeneralMergeSourceMapping
                             : MemoryPendingPrerequisite.DpBin,
-                        acceptedSession)
+                        acceptedSession, SelectedMergeMode == NormalMergeMode ? _appliedStandardMergeRequired : null)
                     : UiCompositionRunner.GetMemoryDisplay(
                         _compositionServices,
                         acceptedSession,

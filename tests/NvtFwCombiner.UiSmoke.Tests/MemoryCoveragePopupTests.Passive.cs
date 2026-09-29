@@ -160,6 +160,48 @@ public sealed partial class MemoryCoveragePopupTests
         finally { window.Close(); }
     }
 
+    /// <summary>Reset, detachment and disable invalidate a completed passive-close rearm.</summary>
+    [AvaloniaTheory]
+    [InlineData("reset", false)]
+    [InlineData("detach", false)]
+    [InlineData("disable", false)]
+    [InlineData("reset", true)]
+    [InlineData("detach", true)]
+    [InlineData("disable", true)]
+    public void PassiveCloseInvalidationDoesNotReopen(string invalidation, bool plain)
+    {
+        var clock = new MemoryCoverageCloseScheduler();
+        Window window = CreateWindow(420, false, TransitSlices(), out MemoryCoverageBar bar, clock.Schedule);
+        bar.IsPlain = plain;
+        bar.ReducedMotion = true;
+        Render();
+        try
+        {
+            Control target = MainTarget(bar, 0);
+            Point point = BoundsInWindow(target, window).Center;
+            window.MouseMove(point, RawInputModifiers.None);
+            Render();
+            Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
+            bar.Margin = new Thickness(1, 0, 0, 0);
+            Render();
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(320));
+            AssertNoOverlay(window);
+            Assert.True(target.IsPointerOver);
+            switch (invalidation)
+            {
+                case "reset": bar.ItemsSource = Array.Empty<MemoryCoverageSegmentViewModel>(); break;
+                case "detach": window.Content = null; break;
+                case "disable": bar.IsEnabled = false; bar.IsEnabled = true; break;
+                default: throw new ArgumentOutOfRangeException(nameof(invalidation));
+            }
+            window.MouseMove(point + new Vector(1, 0), RawInputModifiers.None);
+            Render();
+            clock.AdvanceBy(TimeSpan.FromSeconds(1));
+            AssertNoOverlay(window);
+        }
+        finally { window.Close(); }
+    }
+
     /// <summary>Actual Tab and Shift+Tab reach a three-byte leaf; Escape returns to its opener.</summary>
     [AvaloniaFact]
     public void TinySliceIsReachableByRealKeyboardTraversal()

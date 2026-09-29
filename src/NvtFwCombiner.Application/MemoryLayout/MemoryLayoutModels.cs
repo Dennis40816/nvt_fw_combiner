@@ -642,6 +642,11 @@ public sealed class MemoryLayoutSnapshot
         AfterSegments = ReferenceEquals(before, after)
             ? BeforeSegments
             : Array.AsReadOnly(after);
+        AfterDisplayGroups = new System.Collections.ObjectModel.ReadOnlyDictionary<string, ReplaceRegionGroup>(
+            after.GroupBy(static segment => segment.LogicalCoverageGroupId, StringComparer.Ordinal).ToDictionary(
+                static group => group.Key, static group => MemoryLayoutProjector.GetDisplayGroup(
+                    group.Any(static segment => segment.IsPrimaryContent) ? group.Where(static segment => segment.IsPrimaryContent) : group),
+                StringComparer.Ordinal));
         PendingItems = Array.AsReadOnly(pending);
         SectionLocators = Array.AsReadOnly(sections);
         Banks = Array.AsReadOnly(banks.ToArray());
@@ -676,6 +681,8 @@ public sealed class MemoryLayoutSnapshot
     public IReadOnlyList<MemoryLayoutSegment> BeforeSegments { get; }
     /// <summary>Coverage after admitted selected operations.</summary>
     public IReadOnlyList<MemoryLayoutSegment> AfterSegments { get; }
+    /// <summary>Final display group for each after-coverage identity, with primary content taking precedence over trace fields.</summary>
+    public IReadOnlyDictionary<string, ReplaceRegionGroup> AfterDisplayGroups { get; }
     /// <summary>Unresolved non-geometric items.</summary>
     public IReadOnlyList<MemoryLayoutPendingItem> PendingItems { get; }
 

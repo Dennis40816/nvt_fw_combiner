@@ -135,17 +135,17 @@ internal sealed partial class ShellTextResources
         };
     }
 
-    public (string Label, string Detail) GetBlockingInputText(
-        MemoryArtifactKind artifactKind,
-        string fallbackLabel,
-        string diagnostic)
+    public (string Label, string Detail) GetBlockingInputText(MemoryLayoutPendingDisplay pending, string fallbackLabel)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fallbackLabel);
-        ArgumentException.ThrowIfNullOrWhiteSpace(diagnostic);
-        string inputLabel = GetInputLabel(artifactKind, fallbackLabel);
-        return (
-            SelectLanguage($"{inputLabel} needs attention", $"{inputLabel} 需要處理"),
-            diagnostic);
+        string inputLabel = GetInputLabel(pending.ArtifactKind, fallbackLabel);
+        string detail = pending.AvailabilityIssue == MemoryInputAvailabilityIssue.ContentChanged ? FirmwareInspectionStaleFileStatus
+            : pending.AvailabilityIssue == MemoryInputAvailabilityIssue.InspectionFailed ? FirmwareInspectionFailedTitle
+            : pending.AuthoringIssues is { Count: > 0 } issues ? string.Join(Environment.NewLine, issues.Select(static issue =>
+                issue.OperationId is { } id ? $"{issue.Code} [{id}]: {issue.Message}" : $"{issue.Code}: {issue.Message}"))
+            : pending.Inspection is { } status ? status.IsTerminal ? GetInputSlotInspectionStatus(status) : GetDpInputSelectionReadinessDetail(status.SelectionReadiness)
+            : SelectLanguage($"Review and inspect {inputLabel} to resolve the input issue.", $"請檢查 {inputLabel} 並解決輸入問題。");
+        return (SelectLanguage($"{inputLabel} needs attention", $"{inputLabel} 需要處理"), detail);
     }
 
     private (string Label, string Detail) FormatPendingInputText(string inputLabel)

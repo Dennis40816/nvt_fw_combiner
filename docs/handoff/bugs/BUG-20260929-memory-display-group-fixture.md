@@ -14,3 +14,9 @@ Owner: Codex, feature/1.1.15/memory-layout.
 Resolution: stage 1 completion commit following 37c6c9586 supplies DisplayGroup.Base
 in the fixture. `stage1-resume-ui-corrected.trx` and `stage1-final-ui.trx`:
 191 passed, zero failed. Application tests independently cover kept grouping.
+
+Correction review: the complete Release UiSmoke run over 8010d7770's correction
+also exposes missing typed SlaveLeft/SlaveRight facts in the same style fixture
+after absent groups become explicitly nullable. `review-full-uismoke.trx`
+records this new failure; the correction supplies those original group facts
+without restoring the Presentation classifier. See WS-MEMLAYOUT's final gates.

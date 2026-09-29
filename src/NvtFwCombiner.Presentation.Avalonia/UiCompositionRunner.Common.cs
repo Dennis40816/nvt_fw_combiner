@@ -113,17 +113,18 @@ internal static partial class UiCompositionRunner
         ShellTextResources text,
         IEnumerable<FirmwareSlotViewModel> slots,
         MemoryPendingPrerequisite fallbackPrerequisite,
-        ActiveSessionSnapshot? authoring = null)
+        ActiveSessionSnapshot? authoring = null, IReadOnlyList<string>? requiredAddressSpaces = null)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(slots);
         FirmwareSlotViewModel[] current = [.. slots];
         MemoryLayoutPendingDisplay projection = MemoryLayoutProjector.ProjectPending(authoring,
             current.Select(static slot => new MemoryLayoutPendingInput(slot.SlotId, slot.AddressSpaceId,
-                !slot.DeclaredIsOptional, slot.FilePath, slot.InputIssueStatus, slot.CompiledSlotId)), fallbackPrerequisite);
+                !slot.DeclaredIsOptional, slot.FilePath, slot.InputIssueStatus, slot.CompiledSlotId,
+                slot.InputAvailabilityIssue, slot.InputAuthoringIssues)), fallbackPrerequisite, requiredAddressSpaces);
         FirmwareSlotViewModel? pending = current.FirstOrDefault(slot => slot.SlotId == projection.SlotId);
         (string waitingLabel, string detail) = projection.Readiness == MemoryLayoutReadiness.Blocked
-            ? text.GetBlockingInputText(projection.ArtifactKind, pending!.Title, pending.InputInspectionStatus)
+            ? text.GetBlockingInputText(projection, pending!.Title)
             : pending is null ? text.GetPendingInputText(projection.FallbackPrerequisite)
             : text.GetPendingInputText(projection.ArtifactKind, pending.Title);
         string unavailableLabel = text.NotAvailableLabel;
@@ -208,7 +209,7 @@ internal static partial class UiCompositionRunner
             preservationDetails: segment.PreservationDetails,
             text: text,
             regionGroup: segment.RegionGroup,
-            displayGroup: MemoryLayoutProjector.GetDisplayGroup(layout.AfterSegments.Where(item => item.IsPrimaryContent && item.LogicalCoverageGroupId == segment.LogicalCoverageGroupId).DefaultIfEmpty(segment)),
+            displayGroup: layout.AfterDisplayGroups[segment.LogicalCoverageGroupId],
             rangeStart: segment.Range.Start,
             rangeEndExclusive: segment.Range.EndExclusive,
             addressSpaceId: segment.AddressSpaceId,

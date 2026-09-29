@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -8,12 +9,14 @@ internal sealed partial class FirmwareSlotViewModel
 {
     private ShellTextResources _issueText = ShellTextResources.For(ShellLanguage.English);
     internal AuthoringInputSlotStatus? InputIssueStatus { get; private set; }
+    internal MemoryInputAvailabilityIssue InputAvailabilityIssue { get; private set; }
+    internal IReadOnlyList<NvtFwCombiner.Domain.Composition.CompositionIssue> InputAuthoringIssues { get; private set; } = [];
     internal string? InspectedSlotId => InputIssueStatus?.SlotId;
 
     public bool HasIssueCard => IsSemanticStateError || IsSemanticStateWarning;
 
     public IssueCardViewModel? IssueCard => !HasIssueCard ? null
-        : !SelectionReadinessOwnsSemanticText && InputIssueStatus is { } status
+        : !SelectionReadinessOwnsSemanticText && InputIssueStatus is { IsTerminal: true } status
             ? _issueText.CreateInputIssueCard(status, Title)
             : _issueText.CreateIssueCard(Title, SemanticStateDetail, IsSemanticStateError);
 
@@ -152,6 +155,8 @@ internal sealed partial class FirmwareSlotViewModel
     partial void OnFilePathChanged(string? value)
     {
         InputIssueStatus = null;
+        InputAvailabilityIssue = MemoryInputAvailabilityIssue.None;
+        InputAuthoringIssues = [];
         ClearCurrentInspectionProjection();
         IsSemanticStateDetailExpanded = false;
         NotifySemanticStateChanged();

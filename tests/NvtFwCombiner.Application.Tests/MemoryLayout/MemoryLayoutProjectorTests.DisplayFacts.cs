@@ -1,6 +1,8 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.MemoryLayout;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.MemoryLayout;
@@ -92,5 +94,73 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(MemoryDiagnosticSeverity.Error, blocked.Severity);
         inputs[1] = inputs[1] with { SelectedPath = "different.bin" };
         Assert.Equal(MemoryPlanActionKind.Browse, MemoryLayoutProjector.ProjectPending(session, inputs, MemoryPendingPrerequisite.CtrlRamReplacement).Action);
+    }
+
+    /// <summary>Original unstable-content and authoring issues outrank another empty required slot.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PendingPreservesBlockingFactsWithoutTerminalInspection(bool stale)
+    {
+        CompositionIssue[] issues = stale ? [] : [new("test.blocked", "Rejected authoring input")];
+        MemoryLayoutPendingDisplay pending = MemoryLayoutProjector.ProjectPending(null,
+            [new("dp", "dp-input", true, "dp.bin", AvailabilityIssue: stale ? MemoryInputAvailabilityIssue.ContentChanged : MemoryInputAvailabilityIssue.None, AuthoringIssues: issues),
+                new("tp", "tp-input", true, null)], MemoryPendingPrerequisite.DpBin);
+        Assert.Equal("dp", pending.SlotId);
+        Assert.Equal(MemoryPlanActionKind.Blocked, pending.Action);
+        Assert.Equal(stale ? MemoryInputAvailabilityIssue.ContentChanged : MemoryInputAvailabilityIssue.None, pending.AvailabilityIssue);
+        Assert.Equal(issues, pending.AuthoringIssues);
+    }
+
+    /// <summary>Current Application requirements override a static optional slot declaration.</summary>
+    [Fact]
+    public void PendingUsesCurrentRequiredAddressSpaces()
+    {
+        MemoryLayoutPendingDisplay pending = MemoryLayoutProjector.ProjectPending(null,
+            [new("tp", "tp-input", false, null), new("ldc", "ldc-input", true, null)],
+            MemoryPendingPrerequisite.DpBin, ["tp-input"]);
+        Assert.Equal("tp", pending.SlotId);
+        Assert.Equal(MemoryPlanActionKind.Browse, pending.Action);
+    }
+
+    /// <summary>A single replacement source crossing declared display groups is published as Common.</summary>
+    [Fact]
+    public void SnapshotPublishesCommonForMixedLogicalCoverageGroups()
+    {
+        ProjectionFixture fixture = CreateFixture(CompositionKind.Replace, ctrlRamMap: true);
+        ActiveSessionSnapshot session = CreateSession(fixture, Slot("reference-base", AuthoringSlotLifecycle.Verified, Capacity),
+            Slot("dp-replacement", AuthoringSlotLifecycle.Verified, Capacity));
+        var display = new CtrlRamRegion("tp-code", "TP", 12, 4, false, ReplaceRegionGroup.Master, CtrlRamRegionRole.Normal);
+        MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(fixture.Capability, session, fixture.Composition, [display]);
+        MemoryLayoutSegment[] mixed = [.. snapshot.AfterSegments.Where(static segment => segment.IsReferenceContent)];
+        Assert.Contains(mixed, static segment => segment.RegionGroup == ReplaceRegionGroup.Master);
+        Assert.Equal(ReplaceRegionGroup.Base, snapshot.AfterDisplayGroups["slot:reference-base"]);
+        MemoryLayoutSegment[] selected = [.. snapshot.AfterSegments.Select(segment => MemoryLayoutSegment.Create("mixed-" + segment.SegmentId, segment.AddressSpaceId,
+                segment.Range, segment.CanonicalRegion!, segment.ContentRole, MemoryWorkflowDisposition.WillReplace,
+                segment.Endpoint, segment.Bank, segment.ProcessorEffect, segment.DiagnosticSeverity, segment.ObservedChange,
+                segment.Selection, segment.Focus, "dp-replacement", "dp-replacement", [], [], "slot:dp-replacement", segment.RegionGroup))];
+        var grouped = new MemoryLayoutSnapshot(fixture.Capability, session, fixture.ResolvedMap.ImageMap,
+            Capacity, snapshot.BeforeSegments, selected, snapshot.PendingItems, [], []);
+        Assert.Equal(ReplaceRegionGroup.Common, Assert.Single(grouped.AfterDisplayGroups).Value);
+    }
+
+    /// <summary>Blocked prerequisite readiness is retained without a terminal inspection lifecycle.</summary>
+    [Fact]
+    public void NonTerminalBlockedInspectionPublishesOriginalDiagnostic()
+    {
+        ProjectionFixture fixture = CreateFixture(CompositionKind.Merge);
+        var status = new AuthoringInputSlotStatus(fixture.Route, Token, new AuthoringRevision(1),
+            fixture.Capability.CapabilityFingerprint, null,
+            new InputSelectionMemberReadiness("dp-input", true, ResolvedChildReadiness.Blocked, false, "Blocked prerequisite", null),
+            "dp-input", null, null, null, "dp.bin");
+        MemoryLayoutPendingDisplay pending = MemoryLayoutProjector.ProjectPending(null,
+            [new("dp", "dp-input", true, "dp.bin", status), new("tp", "tp-input", true, null)], MemoryPendingPrerequisite.DpBin);
+        Assert.Equal("dp", pending.SlotId);
+        Assert.Equal(MemoryPlanActionKind.Blocked, pending.Action);
+        Assert.Same(status, pending.Inspection);
+        MemoryLayoutPendingDisplay changed = MemoryLayoutProjector.ProjectPending(null,
+            [new("dp", "dp-input", true, "different.bin", status), new("tp", "tp-input", true, null)], MemoryPendingPrerequisite.DpBin);
+        Assert.Equal("tp", changed.SlotId);
+        Assert.Null(changed.Inspection);
     }
 }
