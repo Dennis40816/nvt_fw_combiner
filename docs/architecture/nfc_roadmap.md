@@ -268,7 +268,10 @@ and sets the **full Launcher release to `2.0.0`**. The sequence below is the
 recommended allocation for owner adjustment. It supersedes earlier version
 allocations in this document and linked dated handoffs, not their retained
 acceptance criteria, historical evidence or permissions. Detailed work packages
-below retain their boundaries; they are not a second schedule.
+below retain their boundaries; they are not a second schedule. For the
+Launcher and `2.0.0`, decisions 188 and 190 (2026-09-29) supersede this
+direction: the Launcher completes in `1.2.13`, with `1.2.14` as the repair
+reserve, and `2.0.0` is redefined (see the version table).
 
 Owner amendment, 2026-09-16: swap the previous `1.1.8` and `1.1.9`
 allocations, and tentatively add CtrlRAM Replace of AB Code Flash inputs for
@@ -356,30 +359,32 @@ protected review/CI and candidate publication gates remain required.
 | `1.1.13` | In progress. **Items moved from 1.1.12, 1.1.12 follow-ups and the pre-built profile catalog, then process cancellation and window lifetime**: the items moved by the 2026-09-26 [1.1.12 release-scope disposition](#owner-release-scope-for-1112--2026-09-26) first (F08 and residual F20/F21, TP SVN modeling, the Header backup CRC investigation and the process, agent-document, test-architecture, parity and first-window work); the follow-ups and additions of the [2026-09-26 allocation](#owner-allocation-after-the-1112-release--2026-09-26), including the NT51950/NT51951 Display OSD NVT marker rule, release workflow cleanup and pre-built profile catalog; then F03/F06 before F01/F02/F25; bounded termination and recovery. Waves, order and state: [1.1.13 board](../handoff/1.1.13.md). |
 | `1.1.14` | **Controlled diagnostics, repair regression and the display-convention inventory**: F17/F23/F26, demonstrated F16 defects; retain F18 evidence throughout. The repository-wide display-convention inventory per the [2026-09-26 allocation](#owner-allocation-after-the-1112-release--2026-09-26) (decision 39) allocates its findings to `1.2.x` without implementing them in `1.1.14` (decision 149). The other `1.1.14` items follow decisions 163-181 (see the list at the top of this document). |
 | `1.2.0` | **User release after all `1.1.x` development** (decision 103, [2026-09-27 amendment](#owner-amendment-for-120-and-11x-releases--2026-09-27)): `1.2.0` is the release users receive once `1.1.x` development is complete; the standing firmware verification reminders apply at that release's approval. This supersedes the prior 2026-09-26 wording that `1.2.0` is no longer a release label. Historical note: on 2026-09-23 the owner explicitly chose `1.1.10`, not `1.2.0`, for that separate numbering correction; the former Launcher development tranche remains in `1.2.1`, and reference refresh/current evidence remain in the `1.1.10` delivery. |
-| `1.2.1` | **Early inventory and direction** (decision 175; the cross-page behavior audit R39 of decision 182; item lists in the [1.2.x allocation](../handoff/1.1.14/1.2.x-allocation.md)). Contracts, inventories and decisions only, without production changes: the General input lifecycle contract for large files, the Launcher state and first tranche, the delta-update baseline, the self-update and intranet source contracts, the Python Combiner candidate and mode list, the residual semantic-owner map and migration boundary, the shared-definition reference syntax, the overdesign and new-IC gap assessments, the UI interaction review, the .NET lane plan and the Header-copy facts. Claude Fable 5.1 or Codex `gpt-6-astra` at its highest effort performs each evaluation, and the other reviews it (decision 169). Sources: the [1.2.1 handoff](v1.2.1-handoff.md) and the [Python Combiner intake](#121-python-combiner-intake--2026-09-21). |
+| `1.2.1` | **Early inventory and direction** (decision 175; the cross-page behavior audit R39 of decision 182, its addendum final at 36-46 fewer non-blank lines; item lists in the [1.2.x allocation](../handoff/1.1.14/1.2.x-allocation.md)). Contracts, inventories and decisions only, without production changes: the General input lifecycle contract for large files, the Launcher state and first tranche together with the decision 188 necessity plan (the A1a independent publisher-trust security disposition and the R04-01 delta-update go/no-go), the delta-update baseline, the self-update and intranet source contracts, the Python Combiner candidate and mode list (decision 187: no switch yet, behavior comparison first), the residual semantic-owner map and migration boundary, the shared-definition reference syntax, the overdesign and new-IC gap assessments, the UI interaction review, the .NET lane plan and the Header-copy facts. Claude Fable 5.1 or Codex `gpt-6-astra` at its highest effort performs each evaluation, and the other reviews it (decision 169); the six accepted wave-1 reports are in [`docs/handoff/1.2.1/`](../handoff/1.2.1/README.md). Sources: the [1.2.1 handoff](v1.2.1-handoff.md) and the [Python Combiner intake](#121-python-combiner-intake--2026-09-21). |
 | `1.2.2` | **Parity P-2 comparator and the first formal ADR 0078 comparison** (decisions 167 and 175): stages 2-4 with the v0.9.16 baseline executor, then the first rolling report of record and the v0.9.16 milestone report. The `1.2.0` and `1.2.1` releases state ADR 0078 waivers (decision 176). |
 | `1.2.3` | **CLI and deterministic Desktop automation, and test selection**: workflow coverage, load-report/tab/state/capture/exit and actionable argument errors through the existing Application and startup owners; T3 selection, G2 coverage and the start of the T4a shadow evidence window. Prioritize this before broad UI acceptance. |
 | `1.2.4` | **Large-file implementation**: large-source identity and small-slice Preview to Build, large-output storage, mutation evidence and delivery, bounded intake (F22) and the aggregate budget assessment. |
 | `1.2.5` | **Firmware**: the B-bank CRC/postbuild mode and Header-copy decisions, Python Combiner byte parity and runtime switch, and the shared-definition resolver with the Perfect-family migration; retain each member's map, topology, identity and evidence, and avoid a wholesale profile rewrite. |
-| `1.2.6` | **Launcher update and release pipeline**: delta update, Launcher self-update and recovery, intranet transport and the old-client bridge; release workflow R-5 after the comparator. |
+| `1.2.6` | **Launcher update and release pipeline** (decision 188): the compiled-in locator with Registry-redirected Catalog/package sourcing over file/UNC, with no new HTTPS reader (the required Catalog/package HTTPS with one authentication, F14, is `1.2.13` work); the A1b field recheck of the `1.2.1` publisher-trust disposition, ahead of the intranet-transport work; Launcher self-update and recovery; the old-client bridge only where an actual incompatibility is found; delta update (R04-02) stays conditional on the `1.2.1` go/no-go; release workflow R-5 after the comparator, with the R-4 re-run recovery and R-6 CI-setup sharing scheduled here. |
 | `1.2.7` | **First-entry, page flow and modal interaction** (with the example-Golden drop-down of decision 183): IC/context lifetime, invalidation, Cancel/Back, custom-option density, modal exits and the modal keyboard contract, using approved previews. Do not reopen completed slot/Memory Layout styling. |
 | `1.2.8` | **Report, typed state and user text**: physical-section grouping and historical replay compatibility (preserve completed Changes cards/navigation), F09/F10/F12 and the text findings. |
 | `1.2.9` | **Shared visual and typography**: F11 semantic typography, theme, tooltip and spacing roles, and the memory detail visuals. |
 | `1.2.10` | **Native accessibility and notifications**: DPI, high contrast, screen reader, System activity and toasts, with Report and Message Center visual and interaction consistency (decision 173). |
 | `1.2.11` | **CI closure and test structure**: shared Release build and UiSmoke partition, T4b required-check activation after the shadow window, .NET lane regrouping, split pilots and mechanical splits. |
-| `1.2.12` | **Conditional performance and cleanup, closing 1.2.x**: F14/F15 and CtrlRAM cold first-open only with demonstrated value; the F13 helper; documentation reconciliation and proven-unused cleanup against a remeasured analyzer baseline. Home startup optimization stays delivered in `1.1.12`; do not claim a new ten-minute result. |
+| `1.2.12` | **Conditional performance and cleanup**: F14/F15 and CtrlRAM cold first-open only with demonstrated value; the F13 helper; documentation reconciliation (R25-03 to R25-05) and proven-unused cleanup against a remeasured analyzer baseline. Home startup optimization stays delivered in `1.1.12`; do not claim a new ten-minute result. R25-01/02 move to `1.2.13` (decision 188). |
+| `1.2.13` | **Launcher completion** (decision 188, main case): the final candidate closes publisher-content integrity (A2), controlled preproduction on the same share plus a staging Registry with a diagnostic override canary client (A3), the full clean-Windows candidate rerun for the normal and fault paths (A4/A5), cold-health acceptance (A6), the Catalog/package HTTPS requirement (F14), the final publisher-trust re-confirmation and release/security-owner GO (A7), and closing the SPEC/handoff/active-TODO alignment (A8, moved from `1.2.12`). No GO ships with a known defect; see `1.2.14`. |
+| `1.2.14` | **Launcher repair reserve** (decision 188, conditional): opens only if `1.2.13`'s final gates (A4-A7) find a defect that must close before GO; scope and weight are set from the finding when it occurs (fix, re-verification, and any carried-over `1.2.13` work), and the affected gates rerun on the refrozen candidate. |
 | `1.3.0` | **General Merge authoring** through existing typed mappings/compiler/executor. |
 | `1.3.1` | **General Replace authoring**, immutable reference and the same shared operation model. |
 | `1.3.2` | **Saved/custom rules**: edit, persistence, import and validation after the General contracts settle. Distinct from the narrow Settings marker editor. |
 | `1.3.3` | **Maintainer IC/family rule-authoring UI**: validate/export untrusted candidates; no live-catalog self-promotion. |
 | `1.4.0` | **Independent evidence completion** for retained input-only cases and fact-scoped aliases. This does not defer evidence required for an earlier changed route. |
 | `1.4.1` | **IC/capability evidence intake**: remaining NT51950/NT51951 AB, Perfect-family and `ldc-tp-only` gaps; NT51928BT awaits owner-confirmed facts and remains unavailable until separately admitted. Inventory existing support first, split into additional patch releases if the actual intake is large. |
-| `1.4.2` | **Launcher/publication extraction decision**: review a concrete need, contracts, trust boundaries and migration/deletion/rollback before any separately approved repository split. Extraction is optional, not a prerequisite for `2.0.0`. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
-| `1.5.0` | **Launcher publisher trust/signing/security closure** with independent evidence and actual key/service permissions. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
-| `1.5.1` | **Catalog/Registry controlled preproduction validation**: package identity, verification and update readiness; no implied production activation. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
-| `1.5.2` | **Installer/download/recovery refinements**: measured transfer savings, exact installed bytes, failure recovery and rollback. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
-| `1.5.3` | **Full Launcher candidate acceptance**: clean Windows install/update/failure/recovery/rollback and end-to-end evidence across the integrated candidate. Decision 186 moves this Launcher work into `1.2.x`; its placement follows the necessity plan. |
-| `2.0.0` | **Full Launcher release**. Actual Catalog/Registry production activation requires explicit owner GO and closed security/evidence/publication gates; the scheduled version is not approval to deploy. Decision 186 moves the full Launcher release into `1.2.x`; what remains for `2.0.0` follows the necessity plan. |
+| `1.4.2` | **Retired: no Launcher/publication repository split** (decision 188, F27). No concrete second-product, team or independent-lifecycle need is shown; the repository stays unsplit. A future real need still starts its own ADR, migration and deletion/rollback plan; this row is no longer an open TODO. |
+| `1.5.0` | **Retired as a separate version** (decision 188). Publisher trust/signing content splits into the `1.2.1` A1a disposition, the `1.2.6` A1b field recheck and the `1.2.13` A2/A7 closure. The main case keeps controlled ACL trust, with no independent publisher signing, unless A1a/A1b require the signed-Registry case, which would need its own re-planned technical/final versions. |
+| `1.5.1` | **Retired as a separate version** (decision 188). The controlled preproduction validation moves into `1.2.13` A3 (the same controlled share plus a staging Registry and a diagnostic override canary client); no implied production activation. |
+| `1.5.2` | **Retired as a separate version** (decision 188). The required installer/recovery corrections are decided in `1.2.1` (R05-01, C01-1; documents only), fixed with narrow acceptance in `1.2.6` (R05-02, C01-2) and rerun on the final candidate in `1.2.13` (A5). Delta transfer (F12/F13) stays conditional on the `1.2.1` R04-01 go/no-go; enterprise multi-auth and advanced download scheduling (F16) are dropped as unnecessary. |
+| `1.5.3` | **Retired as a separate version** (decision 188). The full clean-Windows candidate acceptance (normal and fault paths, cold performance) moves into `1.2.13` A4-A6, rerun on the final frozen candidate. Broader installer/recovery tooling beyond the required corrections (F28) is not included this round. |
+| `2.0.0` | **Formal release of the current product contract and evidence baseline** (decision 190; supersedes the prior full-Launcher-release definition now that the Launcher itself completes in `1.2.13`/`1.2.14`, decision 188). The blanket "all 64 routes pass v0.9.16 terminal certification" promise is withdrawn in favor of per-route evidence and explicit gaps, required Golden, rolling comparison between versions, and explicit upgrade/downgrade contracts; decision 64 is unchanged, so the `1.2.2` formal v0.9.16 milestone still runs first and this redefinition takes effect only once its evidence and rules close. The 27 debt routes and other gaps are handled per route (evidence, an accepted gap including the 11 ADR 0078 candidate gaps, or a separately reviewed retirement); required Golden blocks are not waived. A named predecessor/schema/protocol compatibility matrix covers `1.2.13`/`1.2.14` and the last `1.x` stable. Each `2.x` runs rolling comparison and the applicable Golden/owner/package gates, with one last formal v0.9.16 historical anchor before retirement and records only after that. `1.2.2` closes the 11 gaps and runs the first formal milestone; `1.4.x` organizes the evidence; `2.0.0`'s first admission re-runs RO-1 on the then-selected `1.x` source for the formal joint-owner decision; `1.2.6` keeps its R-5 scope. |
 
 ## Shared audit allocation — 2026-09-17
 
@@ -387,7 +392,9 @@ Owner direction: distribute the [shared review](https://chatgpt.com/share/6aaa7f
 across `1.2.0`–`1.2.x` by difficulty and comparable work volume, then resume
 `1.1.8` verification/publication. This table adds explicit acceptance to the
 existing version outcomes above; it does not merge future changes into the
-frozen `1.1.8` candidate. Full Launcher delivery remains `2.0.0`.
+frozen `1.1.8` candidate. Full Launcher delivery remains `2.0.0` as of this
+2026-09-17 direction; decision 188 later moves Launcher completion to
+`1.2.13`/`1.2.14` and decision 190 redefines `2.0.0` (see the version table).
 
 Source read on 2026-09-17: the page contains overlapping A01–A14 and F01–F18
 reviews of `c580476f`, followed by the fuller `1.1.7`/`e08bb4f4` review with
@@ -912,8 +919,9 @@ pre-`1.2.0`-scope delivery even if its release label is `1.2.0`.
 
 Historical allocation: first actual development under the `1.2.0` planning
 label; the 2026-09-22 amendment excludes that work from the next release and
-leaves its next development slot unscheduled. Complete Launcher release remains
-`2.0.0`. The data-refresh deadline below still applies to the next release,
+leaves its next development slot unscheduled. Complete Launcher release was then
+`2.0.0`; decision 188 moves Launcher completion to `1.2.13` (see the version
+table). The data-refresh deadline below still applies to the next release,
 not the later Launcher release.
 
 Owner reminder, 2026-09-14: **before this release**, request/confirm the latest
@@ -930,8 +938,9 @@ version begins real development: a comprehensive current defect, security and
 evidence inventory, followed by one owner-approved, reviewable remediation
 tranche. This is not merely an architecture or extraction review.
 
-Inventory remaining Launcher/Installer refinements for `1.5.x` acceptance
-and the `2.0.0` full release.
+Inventory remaining Launcher/Installer refinements. Decision 188 schedules
+only the necessary ones, in `1.2.6` and `1.2.13` (see the version table and
+the [Launcher necessity plan](../handoff/1.2.1/R03-launcher-plan.md)).
 Preserve package identity, installed bytes, managed-version, verification,
 recovery and rollback authority. Production activation remains NO-GO until the
 separate security/evidence and activation gates below close.
@@ -944,8 +953,14 @@ and future intranet migration is captured in the
 discussion and does not admit implementation or alter this release allocation.
 The expanded draft estimates 35–60 focused workdays, including a 10–18-day first
 vertical slice; these supersede neither an approved schedule nor completed evidence.
+Decision 188 (2026-09-29) decides its necessity: the main case adopts neither the
+proposal's external locator nor its signed Registry; they apply only if a later
+owner choice selects the external-configuration or signed-Registry case.
 
-Current allocation: `1.5.0`.
+Current allocation (decision 188): the `1.2.1` A1a publisher-trust disposition,
+the `1.2.6` A1b field recheck and the `1.2.13` A2/A7 closure; the separate
+`1.5.0` slot is retired. The main case keeps controlled ACL trust without
+independent publisher signing unless A1a/A1b require the signed-Registry case.
 
 Address the publisher trust, signing and security/evidence gaps identified by
 the `1.2.0` inventory as bounded reviewed changes. Key custody, signing
@@ -956,8 +971,10 @@ Catalog/Registry activation.
 
 ## Work package: conditional Catalog and Registry activation
 
-Current allocation: `1.5.1` controlled preproduction validation, followed by
-the separately approved production activation at the `2.0.0` release boundary.
+Current allocation (decision 188): the `1.2.13` A3 controlled preproduction
+validation, followed by the separately approved production GO and activation
+read-back in `1.2.13` A7; the separate `1.5.1` slot and the `2.0.0` activation
+boundary are retired.
 
 Make the production GO/NO-GO decision only after the independent R3 security
 and evidence closure passes and the owner approves the actual activation.
@@ -967,8 +984,11 @@ evidence or replace protected publication with an agent-side path.
 
 ## Work package: download minimization and Installer refinements
 
-Current allocation: `1.5.2`, followed by integrated candidate acceptance in
-`1.5.3`; neither is the full Launcher production release.
+Current allocation (decision 188): the necessary fault corrections are decided
+in `1.2.1` (R05-01, C01-1), fixed with narrow acceptance in `1.2.6` (R05-02,
+C01-2) and rerun on the final candidate in `1.2.13` (A4-A6). Delta transfer
+(R04-02) enters only if the `1.2.1` R04-01 go/no-go adopts it. The separate
+`1.5.2`/`1.5.3` slots are retired.
 
 Address delta-download minimization and the remaining bounded Launcher/
 Installer refinements from the `1.2.0` inventory. Preserve exact installed
@@ -1061,10 +1081,11 @@ The UI cannot mutate the live catalog, grant support or approve its own rules.
 
 ### Launcher and publication-system extraction review
 
-In `1.4.2`, after `1.2.0` begins the first remediation tranche, review whether Launcher
-and release/publication infrastructure can move to an independently versioned
-repository. This is not the first Launcher delivery, and extraction is not
-pre-approved.
+Retired by decision 188 (F27, 2026-09-29): no concrete need for an independently
+versioned Launcher/publication repository is shown, so the repository stays
+unsplit and `1.4.2` no longer holds this review. The original plan reviewed the
+move in `1.4.2`, after the first remediation tranche; extraction was never
+pre-approved. A future real need starts from the ADR below.
 
 An ADR must first define public contracts, migration/deletion milestones,
 repository trust boundary and rollback. Do not duplicate NVT FW Combiner's
