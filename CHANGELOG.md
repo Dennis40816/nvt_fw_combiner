@@ -9,6 +9,147 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 Later changes remain assigned by the canonical roadmap.
 
+## [1.1.14]
+
+### Summary
+
+Relative to 1.1.13, this release has five themes:
+
+- **Clearer messages:** save failures caused by a redirected local-state folder name their cause; the non-standard DP size warning states the actual and expected sizes and appears once; a DP Jira Index of 0 is shown as invalid.
+- **Controlled diagnostics:** invalid Desktop arguments, unknown workflow modes and oversized worker JSON integers fail in a controlled, reported way.
+- **Visual corrections:** Memory Layout connectors no longer cross the legend, the TP SVN note has consistent spacing and fonts, and start-up no longer places the focus ring on Home.
+- **Extraction without long paths:** the portable package extracts into an ordinary folder, such as the default Explorer extraction into Downloads, on Windows without long paths.
+- **Release without manual dispatch:** a stable release now starts automatically after its release pull request merges; the owner's approval of the protected `release` step is the one manual action.
+
+Existing firmware support levels, firmware output bytes, ranges, order, CRC/Header behavior and output naming are unchanged. 1.1.14 is the last 1.1.x feature version; the next user release is 1.2.0.
+
+Internal and process changes:
+
+- Release workflow R-3:
+  - The release starts through `workflow_run` when `ci` succeeds on a release pull request's merge commit into `main`.
+  - The commit, the pull request and `published_at` (the pull request's merge time) are derived rather than typed.
+  - Admission requires the owner's approval on the exact head; an App or agent approval never counts, and the owner self-approval exception is retired.
+  - Manual `workflow_dispatch` remains as a fallback.
+  - The dry-run manifest argument bug that stopped the 1.1.13 dry run is fixed.
+- `CODEOWNERS` now lists the paths with a higher risk floor, and the authority check requires an independent exact-head review record for every pull request, including low-risk (R0/R1) ones (decisions 165 and 172). After 1.1.14 is released, the owner changes the `1.1.x` and feature-branch rulesets so that low-risk pull requests merge with that record and green checks, while `CODEOWNERS` paths keep requiring the owner's review. `main` and release branches keep their approval rules.
+- The stable launcher start now returns a typed result (started, process creation failed, exited immediately with its exit code, handoff failed) for diagnostics, without delaying a successful start.
+- Developer tooling:
+  - the verifier checks for PyYAML before it starts;
+  - verifier paths are shorter for machines without Windows long paths;
+  - the predecessor validator reports a missing comparison side instead of failing;
+  - several timing-sensitive tests now use controlled clocks.
+
+### Product changes
+
+#### 1. A redirected local-state folder is named as the reason a save failed
+
+- Before → After: When NFC was started from another packaged (MSIX) app, Windows redirected NFC's local-state folder. Saving report history or preferences then failed with "an unexpected error", and Retry could never succeed. The notice now states that the local-state folder was redirected, asks you to start NFC directly, shows the diagnostic in the notice, and hides the Retry that cannot succeed. Other save failures keep Retry.
+- Affected: desktop report history and shell preferences.
+- Support status: unchanged/support-neutral.
+- Compatibility: The protection that refuses redirected writes is unchanged; file formats and locations are unchanged. A normal start (Explorer, shortcut, Launcher or a normal terminal) is not affected.
+- Verification: Mapping, Retry and inline-diagnostic regressions. A probe reproduced the redirect failure (NTSTATUS `0xC000050B`) from an MSIX process tree and confirmed that a normal start succeeds.
+- Limitations: Report history and preferences are not saved while NFC runs inside another app's package container; start NFC directly to save them.
+
+#### 2. The non-standard DP size warning is specific and shown once
+
+- Before → After: The DP_AB BIN card said only "DP size differs from standard capacity". The output confirmation repeated the full warning under its input sources and again under Build warnings, and its lower rows used a different style. The card, its popup, Build warnings and the reports now state the actual and expected BIN sizes and that the file may be a customized OSD application. The confirmation shows the full text once, in Build warnings; its source row keeps a small warning icon, and the lower rows use the same grid and type sizes as the rows above.
+- Affected: AB Code DP_AB input cards, the output confirmation and reports showing `DP_NONSTANDARD_SIZE_WARNING`.
+- Support status: unchanged/support-neutral.
+- Compatibility: Detection, threshold and Build blocking are unchanged; the issue code stays `DP_NONSTANDARD_SIZE_WARNING`. Reports written before 1.1.14 that lack the sizes show a specific sentence without numbers.
+- Verification: Single-display, shared-text, number-format and report-history regressions in both languages, plus the approved confirmation layouts.
+- Limitations: The input-issue popup text remains English in the Traditional Chinese interface, as before.
+
+#### 3. A DP Jira Index of 0 is shown as invalid
+
+- Before → After: A DP Jira Index of 0 was hidden on CMI cards and shown as `AUTO_PRJ-0` on A/B bank facts. It is now shown as `Invalid (AUTO_PRJ-0)` everywhere in the firmware facts.
+- Affected: firmware fact cards for DP inputs (CMI, A/B banks and inspection).
+- Support status: unchanged/support-neutral; presentation only.
+- Compatibility: Firmware facts, output bytes and output naming are unchanged.
+- Verification: Zero and non-zero cases for CMI, both banks and the inspection session; output naming is unchanged.
+- Limitations: None known.
+
+#### 4. Controlled errors for invalid arguments, unknown modes and oversized JSON
+
+- Before → After:
+  - Desktop: a missing value for a managed launch argument could crash the child process. It now fails before the host starts. Other argument problems, such as an unknown page, still open NFC and are shown in the start-up report.
+  - An unknown workflow inspection mode could borrow another mode's lifecycle; it is now rejected.
+  - A CRC worker request with a very long JSON integer returned a traceback; it now returns `CRC_PROTOCOL_INVALID_JSON`.
+- Affected: Desktop start-up arguments, workflow inspection, the CRC worker protocol.
+- Support status: unchanged/support-neutral.
+- Compatibility: Valid arguments, modes and requests behave as before; CRC computation is unchanged.
+- Verification: Red-to-green regressions for each case; the full UiSmoke suite on the fixing branch.
+- Limitations: The capacity-text finding F16 was not reproduced on the current screens; its probes are recorded.
+
+#### 5. Memory Layout, TP SVN and start-up focus corrections
+
+- Before → After:
+  - The dashed connector from an IC tab to its detail card crossed the legend. Connectors now stay inside the chart block, and nested and upward cards keep their connectors.
+  - The TP SVN info icon sat close to its value and its tooltip mixed fonts; the icon now has the standard spacing and the tooltip uses one font.
+  - On start-up the Home tab showed a focus ring and looked selected; start-up focus now rests on the window content, and one Tab press shows the ring on the navigation tab.
+- Affected: Memory Layout overview, TP SVN fact cards, start-up focus.
+- Support status: unchanged/support-neutral; presentation only.
+- Compatibility: Addresses, data, colors and keyboard navigation are unchanged.
+- Verification: Geometry regressions for the connectors, spacing and font tests for TP SVN, and focus and Tab tests, with before/after screenshots.
+- Limitations: None known.
+
+#### 6. The portable package extracts without Windows long paths
+
+- Before → After: The package carried golden reference evidence under paths of up to 207 characters. On Windows without long paths, extracting the ZIP with Explorer's default into Downloads failed for about 36 of those files. The evidence now sits in short case folders under `reference/golden/` with its original file names, and the packaged manifest maps each file to its canonical case. Every path inside the package is at most 140 characters, so an extracted package folder of up to 118 characters works, which covers Explorer's default extraction into Downloads.
+- Affected: the `reference/` folder of the portable package.
+- Support status: unchanged/support-neutral.
+- Compatibility: The application does not read these files. Fixture bytes and hashes are unchanged. The evidence moved from its deep repository-shaped folders under `reference/` to `reference/golden/c001`-`c040`; notes or tools that used the old paths must use the mapping in `reference/golden/manifest.json`. Case folder numbers can change between versions.
+- Verification: Package policy and smoke regressions, including a guard test that fails above 140 characters, and a full local package and smoke run. The longest path inside the package is now 127 characters; with a 20-character user name, Explorer's default extraction into Downloads gives at most 227.
+- Limitations: An extracted package folder longer than 118 characters still needs Windows long paths.
+
+### Performance
+
+1.1.13 shipped the pre-built profile catalog without its acceptance measurement (ADR 0077 B4). It was run on the 1.1.14 candidate in one idle session: v1.1.12 (A, the last version without the catalog), the 1.1.14 candidate (B) and the same candidate with its catalog file removed (C, the full profile check). There were two passes of five scored launches each, the second in reverse order, and three GC heap runs per variant.
+
+| Measure | v1.1.12 (A) | 1.1.14 (B) | 1.1.14 without the catalog (C) |
+| --- | --- | --- | --- |
+| Median first window | 716 ms | 757 ms | 744 ms |
+| Median start-up loading done | 2,197 ms | 1,304 ms | 2,199 ms |
+| Catalog stage, range | 1,344-1,409 ms | 435-456 ms | 1,336-1,491 ms |
+| Peak private memory, max | 318.7 MiB | 294.8 MiB | 325.9 MiB |
+| Peak working set, max | 317.4 MiB | 303.1 MiB | 322.3 MiB |
+| GC heap after warm-up, max | 36.2 MB | 29.4 MB | 40.8 MB |
+
+- Met:
+  - the catalog equivalence and damaged-file tests pass;
+  - in both passes every B catalog stage is shorter than every C stage;
+  - every B launch finished start-up loading within the 2,000 ms target (at most 1,327 ms);
+  - peak memory stays below the v1.1.12 maxima and the GC heap below 50 MB;
+  - the EXE (77,301,734 bytes) and the catalog (1,090,894 bytes) are within their limits; the release workflow checks the ZIP limit.
+- Not met: the first-window regression guard, which allows at most 20 ms above v1.1.12. The median first window is 41 ms later than v1.1.12. The same binary without the catalog is 28 ms later, so most of the difference does not come from the catalog. A separate idle measurement found 1.1.14 no slower than 1.1.13 (749 ms against 755 ms).
+- The owner accepted this measurement for 1.1.14 with the first-window guard missed (decision 179); the cause is investigated in 1.2.x.
+
+Timings depend on the machine. v1.1.12 was built from its release tag with the release package settings rather than taken from the published download.
+
+### Security
+
+No new external executable, update endpoint or permission is introduced.
+
+- Release admission requires the owner's approval on the exact release head; App and agent approvals never count; the owner self-approval exception is removed.
+- The automatic release start runs only for a release pull request merged into `main` with successful CI; the protected `release` environment approval still gates publication.
+- `CODEOWNERS` names the owner for firmware, profile, contract, release, workflow and governance paths. GitHub enforces it on `1.1.x` and feature branches after the owner applies the ruleset change following this release.
+- The local-state writer keeps refusing redirected (reparse) paths.
+
+### Known issues
+
+- The first window opens about 40 ms later than in v1.1.12 on the measuring machine (median 757 ms against 716 ms), above ADR 0077's 20 ms regression guard, while start-up loading finishes about 0.9 s earlier. The owner accepted this for 1.1.14; the cause is investigated in 1.2.x.
+- No formal predecessor comparison against v1.1.13 or the v0.9.16 1.x mode was run for this release. The comparator moved to 1.2.x (decisions 167 and 176). All owner-certified Golden cases are executed at the release candidate instead.
+- This is the first release that starts automatically. The throwaway-repository staging of the new start path was waived for this release (decision 174); manual dispatch remains the fallback.
+- NT51950 AB CtrlRAM Replace can still differ from an owner-built reference in the 32 Header and Header-copy CRC bytes described in 1.1.13; the handling decision is in 1.2.x.
+- If you change `TMP` or `TEMP` to shorten the legacy tool path (see 1.1.13), restart NFC and the Launcher so they read the new value.
+
+### Upgrade and rollback
+
+Extract the portable package into a separate directory and preserve existing settings and outputs. Keep the prior stable package for rollback. No saved session or rule identity changes in this release.
+
+### Downloads and integrity
+
+The Windows x64 portable package is `NvtFwCombiner-v1.1.14-win-x64.zip`. It is self-contained and carries the pre-built profile catalog. The coupled distribution Launcher is published as its separate five-asset set (EXE, manifest, SPDX, in-toto provenance and checksum).
+
 ## [1.1.13]
 
 ### Summary
