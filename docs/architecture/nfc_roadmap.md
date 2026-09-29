@@ -1077,6 +1077,11 @@ Owner requested these TODOs for `1.2.1`; this is planning intake, not a tool
 binding change or an approved new firmware mode. Existing `1.2.1` allocations
 remain; the current `1.1.10` / planned `1.2.0` AB Replace work stays separate.
 
+Source intake (decision 187, 2026-09-29): the public MIT Python Combiner is added
+as the `third-party/nvt_combiner` submodule, pinned to
+`6490edf3a357f6047a1e3f3aa1c1d70a767e68eb`; this does not switch the current
+Combiner, connect a processor or include the source in release packages.
+
 - [ ] Replace the current legacy Combiner with
   [Dennis40816/nvt_combiner](https://github.com/Dennis40816/nvt_combiner), the
   Python implementation that can be packaged as `Combiner.exe`. Intake source:

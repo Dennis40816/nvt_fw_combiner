@@ -138,6 +138,23 @@ class AuthorityPolicyTests(unittest.TestCase):
         unclassified = [path for path in TRACKED if POLICY.classify(path).unclassified]
         self.assertEqual(unclassified, [])
 
+    def test_source_submodule_uses_repository_configuration_and_tooling(self) -> None:
+        for path in (".gitmodules", "third-party/nvt_combiner"):
+            with self.subTest(path=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertEqual(result.floor, "R2")
+                self.assertEqual(result.roles, frozenset())
+                self.assertFalse(result.unclassified)
+
+        # Source intake must not relax executable packages or unknown root files.
+        executable = POLICY.classify("external-tools/nvt_combiner")
+        self.assertEqual(executable.floor, "R3")
+        self.assertEqual(executable.roles, {"firmware-owner", "release-owner"})
+        unknown = POLICY.classify(".gitmodules-extra")
+        self.assertEqual(unknown.floor, "R3")
+        self.assertEqual(unknown.roles, {"governance-owner"})
+        self.assertTrue(unknown.unclassified)
+
     def test_governance_paths_g1b_adds_are_classified_before_they_exist(self) -> None:
         # Fixed-head review F-2: ADR 0080 item 2's pin file and the three historical READMEs.
         planned = [
