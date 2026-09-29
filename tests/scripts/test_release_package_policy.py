@@ -24,6 +24,18 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def golden_package_path(
+    allowlist: dict[str, Any], case: dict[str, Any], relative_path: str
+) -> str:
+    case_ids = sorted(item["caseId"] for item in allowlist["cases"])
+    case_key = f"c{case_ids.index(case['caseId']) + 1:03d}"
+    case_root = Path(case["manifestPath"]).parent.parent.as_posix()
+    assert relative_path.startswith(case_root + "/")
+    return f"reference/golden/{case_key}/{relative_path[len(case_root) + 1:]}"
+
+
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
@@ -978,12 +990,12 @@ $Function = $Ast.Find({ param($Node)
 }, $true)
 if ($null -eq $Function) { throw 'Missing package path budget gate.' }
 . ([scriptblock]::Create($Function.Extent.Text))
-Assert-PackageRelativePathLength -RelativePaths @('README.txt', ('a' * 216))
-foreach ($Path in @(('a' * 217), (('a' * 215) + [char]0xd83d + [char]0xde00))) {
+Assert-PackageRelativePathLength -RelativePaths @('README.txt', ('a' * 140))
+foreach ($Path in @(('a' * 141), (('a' * 139) + [char]0xd83d + [char]0xde00))) {
     $Rejected = $false
     try { Assert-PackageRelativePathLength -RelativePaths @('README.txt', $Path) }
     catch {
-        if ($_.Exception.Message -notlike '*216 UTF-16*') { throw }
+        if ($_.Exception.Message -notlike '*140 UTF-16*') { throw }
         $Rejected = $true
     }
     if (-not $Rejected) { throw 'Overlong package path was accepted.' }
@@ -1774,7 +1786,7 @@ finally {
             "manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected",
             result.stdout,
         )
-        self.assertIn("Package relative-path budget passed: at most 216 UTF-16 code units.", result.stdout)
+        self.assertIn("Package relative-path budget passed: at most 140 UTF-16 code units.", result.stdout)
         self.assertIn(
             "Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected",
             result.stdout,
@@ -3800,10 +3812,31 @@ finally {
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
+    def test_release_smoke_rejects_projection_that_redirects_a_golden_file(self) -> None:
+        def redirect(golden_entries: dict[str, bytes]) -> None:
+            projection_key = "reference/golden/manifest.json"
+            projection = json.loads(golden_entries[projection_key].decode("utf-8"))
+            artifact = next(
+                item for item in projection["files"]
+                if item["packagePath"].endswith(".bin")
+            )
+            artifact["packagePath"] = "reference/golden/c001/inputs/redirected.bin"
+            golden_entries[projection_key] = (
+                json.dumps(projection, indent=2) + "\n"
+            ).encode()
+
+        result = self.run_smoke_with_canonical_golden_mutation(redirect)
+        output = normalize_console_output(result.stdout + result.stderr)
+        self.assertNotEqual(0, result.returncode, output)
+        self.assertIn("canonical Golden projection differs for artifact", output)
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
     def test_release_smoke_rejects_missing_input_only_alias_source_artifact(self) -> None:
         def omit_source(golden_entries: dict[str, bytes]) -> None:
             allowlist = json.loads(
-                golden_entries["reference/testdata/golden/release-canonical-v1.json"]
+                golden_entries["reference/golden/release-canonical-v1.json"]
             )
             source = next(
                 case for case in allowlist["cases"]
@@ -3812,7 +3845,7 @@ finally {
             self.assertTrue(source["directEvidence"])
             self.assertFalse(source["directGolden"])
             del golden_entries[
-                "reference/testdata/golden/canonical/" + source["artifacts"][0]["path"]
+                golden_package_path(allowlist, source, source["artifacts"][0]["path"])
             ]
 
         result = self.run_smoke_with_canonical_golden_mutation(omit_source)
@@ -3827,12 +3860,10 @@ finally {
         self,
     ) -> None:
         def substitute(golden_entries: dict[str, bytes]) -> None:
-            allowlist_key = "reference/testdata/golden/release-canonical-v1.json"
+            allowlist_key = "reference/golden/release-canonical-v1.json"
             allowlist = json.loads(golden_entries[allowlist_key].decode("utf-8"))
             selected_case = allowlist["cases"][0]
-            case_key = (
-                "reference/testdata/golden/canonical/" + selected_case["manifestPath"]
-            )
+            case_key = golden_package_path(allowlist, selected_case, selected_case["manifestPath"])
             case_manifest = json.loads(golden_entries[case_key].decode("utf-8"))
             case_manifest["privateMetadata"] = {"classification": "unapproved"}
             replacement = (json.dumps(case_manifest, indent=2) + "\n").encode()
@@ -3858,8 +3889,8 @@ finally {
         self,
     ) -> None:
         def substitute(golden_entries: dict[str, bytes]) -> None:
-            allowlist_key = "reference/testdata/golden/release-canonical-v1.json"
-            readme_key = "reference/testdata/golden/canonical/README.md"
+            allowlist_key = "reference/golden/release-canonical-v1.json"
+            readme_key = "reference/golden/README.md"
             replacement = (
                 golden_entries[readme_key] + b"\nPrivate replacement metadata.\n"
             )
@@ -3888,7 +3919,7 @@ finally {
         def omit_artifact(golden_entries: dict[str, bytes]) -> None:
             allowlist = json.loads(
                 golden_entries[
-                    "reference/testdata/golden/release-canonical-v1.json"
+                    "reference/golden/release-canonical-v1.json"
                 ].decode("utf-8")
             )
             artifact_path = next(
@@ -3896,7 +3927,11 @@ finally {
                 for case in allowlist["cases"]
                 for artifact in case["artifacts"]
             )
-            package_path = "reference/testdata/golden/canonical/" + artifact_path
+            source_case = next(
+                case for case in allowlist["cases"]
+                if any(artifact["path"] == artifact_path for artifact in case["artifacts"])
+            )
+            package_path = golden_package_path(allowlist, source_case, artifact_path)
             del golden_entries[package_path]
             removed.append(package_path)
 
@@ -3931,7 +3966,13 @@ finally {
         for provenance_path in provenance_paths:
             with self.subTest(path=provenance_path):
                 result = self.run_smoke_with_manifested_external_tool(
-                    Path("reference/testdata/golden/canonical") / provenance_path
+                    Path(golden_package_path(
+                        allowlist,
+                        next(case for case in allowlist["cases"] if any(
+                            artifact["path"] == provenance_path for artifact in case["artifacts"]
+                        )),
+                        provenance_path,
+                    ))
                 )
 
                 self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
@@ -4475,6 +4516,28 @@ finally {
             allowlist_payload = allowlist_source.read_bytes()
             allowlist = json.loads(allowlist_payload.decode("utf-8"))
             canonical_source = ROOT / "testdata/golden/canonical"
+            projected_files = [
+                {
+                    "caseId": "",
+                    "repositoryPath": "testdata/golden/canonical/README.md",
+                    "packagePath": "reference/golden/README.md",
+                },
+                {
+                    "caseId": "",
+                    "repositoryPath": "testdata/golden/release-canonical-v1.json",
+                    "packagePath": "reference/golden/release-canonical-v1.json",
+                },
+            ]
+            for case in allowlist["cases"]:
+                for relative_path in dict.fromkeys(
+                    [case["manifestPath"]]
+                    + [artifact["path"] for artifact in case["artifacts"]]
+                ):
+                    projected_files.append({
+                        "caseId": case["caseId"],
+                        "repositoryPath": "testdata/golden/canonical/" + relative_path,
+                        "packagePath": golden_package_path(allowlist, case, relative_path),
+                    })
             projection = {
                 "schemaVersion": "1.0",
                 "payloadClass": "owner-approved-golden",
@@ -4483,28 +4546,36 @@ finally {
                 "inventoryScope": "release-canonical-v1",
                 "sourceManifest": "testdata/golden/canonical/manifest.json",
                 "cases": [
-                    {"caseId": case["caseId"], "manifestPath": case["manifestPath"]}
+                    {
+                        "caseId": case["caseId"],
+                        "caseKey": golden_package_path(
+                            allowlist, case, case["manifestPath"]
+                        ).split("/")[2],
+                        "manifestPath": case["manifestPath"],
+                        "packageManifestPath": golden_package_path(
+                            allowlist, case, case["manifestPath"]
+                        ),
+                    }
                     for case in allowlist["cases"]
                 ],
+                "files": sorted(projected_files, key=lambda item: item["packagePath"]),
             }
             golden_entries: dict[str, bytes] = {
-                "reference/testdata/golden/release-canonical-v1.json": allowlist_payload,
-                "reference/testdata/golden/canonical/README.md": (
+                "reference/golden/release-canonical-v1.json": allowlist_payload,
+                "reference/golden/README.md": (
                     canonical_source / "README.md"
                 ).read_bytes(),
-                "reference/testdata/golden/canonical/manifest.json": (
+                "reference/golden/manifest.json": (
                     json.dumps(projection, indent=2) + "\n"
                 ).encode(),
             }
             for case in allowlist["cases"]:
                 manifest_relative_path = case["manifestPath"]
                 golden_entries[
-                    "reference/testdata/golden/canonical/" + manifest_relative_path
+                    golden_package_path(allowlist, case, manifest_relative_path)
                 ] = (canonical_source / manifest_relative_path).read_bytes()
                 for artifact in case["artifacts"]:
-                    artifact_key = (
-                        "reference/testdata/golden/canonical/" + artifact["path"]
-                    )
+                    artifact_key = golden_package_path(allowlist, case, artifact["path"])
                     golden_entries.setdefault(
                         artifact_key,
                         (canonical_source / artifact["path"]).read_bytes(),

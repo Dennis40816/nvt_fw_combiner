@@ -19,6 +19,7 @@ GOLDEN_PATH = Path(
     "testdata/golden/canonical/NT51927/standard-merge/gen-flash/"
     "topology-unscoped/nt51927-gen-flash/expected/nt51927-expected-output.bin"
 )
+GOLDEN_PACKAGE_PATH = Path("reference/golden/c021/expected/nt51927-expected-output.bin")
 
 # A captured pwsh error view can truncate a line with an ellipsis, encoded in
 # whatever code page the host console uses (e.g. Big5 on a zh-TW Windows
@@ -306,7 +307,7 @@ def test_packaged_combiner_executes_certified_crc_command_without_mutation() -> 
         tool_directory.mkdir(parents=True)
         for name in ("Combiner.exe", "vcruntime140.dll"):
             shutil.copy2(ROOT / COMBINER_DIRECTORY / name, tool_directory)
-        golden = package / "reference" / GOLDEN_PATH
+        golden = package / GOLDEN_PACKAGE_PATH
         golden.parent.mkdir(parents=True)
         shutil.copy2(ROOT / GOLDEN_PATH, golden)
         package_arg = str(package).replace("'", "''")
