@@ -12,7 +12,7 @@ the accepted bytes; the stale checks cover only a catalog reload and the externa
 Observed: NFC does not watch selected files. Selecting a file reads it into memory with its length and SHA-256;
 Build and Preview use those bytes. A file renamed, moved, modified or deleted afterwards keeps showing Verified
 with its old path, and Build uses the old content, until a re-inspection runs: another file selected in the same
-workflow (every loaded slot is re-read), an IC, Number or mode change, the AB same-TP or dummy-DP switch, or a
+workflow (the loaded Merge or Replace slots of that workflow are re-read), an IC, Number or mode change, the AB same-TP or dummy-DP switch, or a
 catalog republication. A re-inspection of a missing path fails the slot; a replaced file is inspected again.
 Expected: owner decision 203: when a selected file changes on disk, NFC shows a toast and unselects the file; at
 minimum the check runs when Build starts (the path still resolves to the same length and SHA-256 as the accepted
