@@ -408,3 +408,19 @@ and underlying stability evidence gates remain open. Local verification does
 not claim integration or release readiness.
 Next: commit locally with the requested co-author trailer, confirm its exact
 head read-only, and hand off without push or GitHub writes.
+
+### 2026-09-30 — delta review of `d2a1bc63c` (commander)
+
+State: local; a fresh claude/claude-opus-5-5 reviewer returned accept-with-changes with no
+P0/P1, one P2 and one P3. The reviewer confirmed that no admission error is masked, that no
+Golden is touched and that the documents match the code.
+Fixed by the commander:
+- P2: the flaky gate that closes `validate_repository_admission` had no direct test, although
+  `validate_review_snapshot` and the admission CLI rely on it as their only flaky check.
+  `test_policy_valid_admission_still_requires_clean_flaky_evidence` now rejects a
+  policy-valid admission with missing evidence or a flaky test in either attempt. With the
+  gate disabled in memory the test fails, so it is not vacuous.
+- P3: the three `BUG-20260930-release-*` records use the pending-merge status convention.
+  They are not flaky records, so decision 193 is unaffected.
+Open: as before, the first real CI hang, the first real retry, real annotation transport,
+D-P3-4 and both owner R3 approvals at the final head.

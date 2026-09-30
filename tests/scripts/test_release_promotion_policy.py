@@ -1472,6 +1472,31 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                     expected_tag="v1.1.1",
                 )
 
+    def test_policy_valid_admission_still_requires_clean_flaky_evidence(self) -> None:
+        # The flaky gate closes validate_repository_admission; the review
+        # snapshot and the admission CLI rely on it as their only flaky check.
+        arguments = {
+            "main_sha": SHA,
+            "review_head_sha": REVIEW_HEAD_SHA,
+            "expected_tag": "v1.1.1",
+        }
+        MODULE.validate_repository_admission(valid_repository_admission(), **arguments)
+
+        missing = valid_repository_admission()
+        missing["sourceCi"].pop("flakyEvidence")
+        with self.assertRaisesRegex(ValueError, "source CI"):
+            MODULE.validate_repository_admission(missing, **arguments)
+
+        for attempt in (0, 1):
+            flaky = valid_repository_admission()
+            job = flaky["sourceCi"]["flakyEvidence"][attempt]["jobs"][-1]
+            job["flakyTests"] = ["tests/Probe.Tests.csproj Probe.Tests.Case1"]
+            job["annotationCount"] = 1
+            with self.subTest(attempt=attempt), self.assertRaisesRegex(
+                ValueError, "zero flaky tests"
+            ):
+                MODULE.validate_repository_admission(flaky, **arguments)
+
     def test_v111_review_threads_allow_parallel_p2_p3_but_block_p0_p1(self) -> None:
         admission = valid_repository_admission()
         for body in ("[P2] Follow-up", "![P3 Badge](badge-url) Polish later"):

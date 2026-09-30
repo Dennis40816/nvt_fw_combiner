@@ -1,6 +1,6 @@
 # BUG-20260930-release-drift-test-message: new regression expected wrong SHA error
 
-Status: fixed
+Status: fixed (on `feature/1.1.15/ci-rerun`, pending merge)
 Severity: P3
 Found: 2026-09-30, Codex gpt-6-astra, first full script-suite verification of the
 PR 489 local correction based on `449714ac5`.

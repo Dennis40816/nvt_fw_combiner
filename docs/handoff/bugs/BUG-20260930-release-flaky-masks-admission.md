@@ -1,6 +1,6 @@
 # BUG-20260930-release-flaky-masks-admission: flaky evidence masks admission errors
 
-Status: fixed
+Status: fixed (on `feature/1.1.15/ci-rerun`, pending merge)
 Severity: P2
 Found: 2026-09-30, Codex gpt-6-astra, PR 489 CI diagnosis at
 `feature/1.1.15/ci-rerun@449714ac504da99bfef9af70055dfd360aea7df7`.
