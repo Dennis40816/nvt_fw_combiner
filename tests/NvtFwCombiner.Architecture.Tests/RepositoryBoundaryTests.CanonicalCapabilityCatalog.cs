@@ -77,6 +77,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Projection", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionHostServices.Canonical", bootstrap, StringComparison.Ordinal);
         AssertBootstrapTestsDoNotMutateTheSharedCatalogPublication();
+        AssertGoldenHostCatalogReloadIsSerialized();
     }
 
     /// <summary>The injected execution port is the execution owner, not a second forwarding shell.</summary>
