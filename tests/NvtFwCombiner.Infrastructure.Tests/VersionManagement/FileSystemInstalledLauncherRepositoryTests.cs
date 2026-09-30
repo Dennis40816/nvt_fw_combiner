@@ -228,7 +228,7 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
         var process = new AnonymousPipeManagedLauncherProcess(
             ManagedProcessTermination.Instance,
             admission,
-            beforeStartValidation: () => File.WriteAllText(unexpected, "foreign"));
+            beforeStartValidation: _ => File.WriteAllText(unexpected, "foreign"));
 
         LauncherProcessStartResult started = await process.StartUntilReadyAsync(
             fixture.ManagedRoot,

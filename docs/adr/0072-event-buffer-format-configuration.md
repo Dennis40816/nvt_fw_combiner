@@ -658,7 +658,8 @@ NT51929 pre-materialization resource-limit regression without adding CLI size
 rules or relaxing the original sparse-file assertion. The five topology/951
 tests use isolated persisted Config and asynchronous preparation, preserving
 their original issue codes and real execution checks. Common CLI naming now
-covers both actual 2-IC (`0x85016`) and 3-IC (`0x45016`) B CMI locations.
+covers both actual 2-IC (`0x85016`) and 3-IC (`0x45016`) B CMI locations
+(decision 195, 2026-09-29, later moves the 2-IC B CMI to `0x84016`).
 `ab-format-existing-runtime-compatibility-green.trx` passed all 95 cases, zero
 skips. Independent scoped review passed the seven formerly failing cases;
 this closes that selection only, not the complete candidate.
