@@ -1,6 +1,6 @@
 # BUG-20260930-merge-legend-highlight-stale-state: Merge legend rows of unmerged slices never light on hover
 
-Status: fixed (local, uncommitted in 1.1.15)
+Status: fixed (on `feature/1.1.15/memory-layout`, pull request #492, pending merge)
 Severity: P2
 Found: 2026-09-30, owner report "not every region lights the legend on hover", reproduced with a
 headless hover probe at feature/1.1.15/memory-layout@9c946e457 plus uncommitted changes.

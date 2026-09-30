@@ -697,4 +697,28 @@ measured hotspot baselines were raised (`MergePresentationViewModel` 2158 to 216
 plus `NavigationFocusIndicatorTests` ran 807/809: both failures are the open navigation focus flake
 (`BUG-20260929-nav-focus-underline-gap-flake`, missing-ring frame, class alone 3x 13/13), not this work.
 
-Open: push, pull request, independent exact-head R2 review, owner approval.
+## 2026-09-30 — pull request #492 and its independent review
+
+Pull request #492 (`feature/1.1.15/memory-layout` into `1.1.x`, R2, no roles) opened at head `ff99c5940`.
+Independent review by a fresh Claude Opus 5.5 session (same runtime as part of the implementation) at that
+exact head: `accept-with-changes`, no P0/P1/P2, four P3 findings, `state=complete`; its own narrow runs:
+UiSmoke memory classes 188/188 and `MemoryLayoutProjectorTests` 72/72; it measured the two hotspot baselines
+exactly (2158 to 2162, 2208 to 2211).
+
+- P3-1 fixed: a cleared Replace display kept its outer addresses because only
+  `ApplyReplaceMemoryDisplay` raised them. Their notifications now sit with the CtrlRAM ones in
+  `NotifyCoverageGroupingChanged`, which every publish (including the clear path) runs; the
+  extended `ReplaceFlashBarCarriesOuterAddresses` failed before and passes after.
+- P3-2 fixed: primary Unmapped and Reserved overview sections whose title equals their source label
+  could take ordinals; `CanNumberRepeatedTitle` now excludes them by role
+  (`OrdinalsSkipPrimaryUnmappedAndReservedSections`, RED before). Neutral "Context" sections stay
+  numberable, as decision 197 does not exclude them. Known limit: numbering is display state on
+  shared slices, so a row bound before the bar's first rebuild keeps the plain title until rebind.
+- P3-3 fixed: records said "local, uncommitted"; decision 197, the interaction contract (the lane's
+  local view keeps the containing row lit) and the bug records now name pull request #492.
+- P3-4 accepted as follow-ups (no production risk found): an integration test for the bank-view
+  second construction, a Merge-reorder test independent of the run-head rule, above-placement stem
+  tests for markers and lanes, and keyboard focus lighting a legend row.
+
+Open: delta review of the P3 fixes and the exact-head review record, CI, owner approval (including the
+code-size baseline raise).

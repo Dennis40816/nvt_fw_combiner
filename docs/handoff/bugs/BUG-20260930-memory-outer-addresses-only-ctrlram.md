@@ -1,6 +1,6 @@
 # BUG-20260930-memory-outer-addresses-only-ctrlram: Outer start/end addresses appear only on the CtrlRAM flash overview
 
-Status: fixed (local, uncommitted in 1.1.15)
+Status: fixed (on `feature/1.1.15/memory-layout`, pull request #492, pending merge)
 Severity: P3
 Found: 2026-09-30, owner question "why do not all memory layouts show the start and end hex address",
 at feature/1.1.15/memory-layout@9c946e457 plus uncommitted changes.

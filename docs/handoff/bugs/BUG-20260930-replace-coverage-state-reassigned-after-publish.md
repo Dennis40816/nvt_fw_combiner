@@ -1,6 +1,6 @@
 # BUG-20260930-replace-coverage-state-reassigned-after-publish: Replace reassigns slice interaction states after publishing them
 
-Status: fixed (local, uncommitted in 1.1.15)
+Status: fixed (on `feature/1.1.15/memory-layout`, pull request #492, pending merge)
 Severity: P3
 Found: 2026-09-30, while fixing BUG-20260930-merge-legend-highlight-stale-state, at
 feature/1.1.15/memory-layout@9c946e457 plus uncommitted changes.

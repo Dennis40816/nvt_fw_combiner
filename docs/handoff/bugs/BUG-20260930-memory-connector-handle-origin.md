@@ -1,6 +1,6 @@
 # BUG-20260930-memory-connector-handle-origin: Card and local-view stems started at the 24 DIP handle, not the real range
 
-Status: fixed (local, uncommitted; owner visual acceptance pending)
+Status: fixed (on `feature/1.1.15/memory-layout`, pull request #492, pending merge)
 Severity: P2
 Found: 2026-09-30, owner visual review of the running build with Golden examples loaded,
 at feature/1.1.15/memory-layout@9c946e457.
@@ -16,4 +16,4 @@ Owner: Claude Code, feature/1.1.15/memory-layout.
 Resolution: A tiny marker stores its true range centre (attached RangeCenter); OpenCard and OpenLocal
 start the stem at the flash track bottom edge at that x and cross the overview rows behind text
 obstacles. Amended the same day (owner): a CtrlRAM focus lane is the exception and again starts
-below its own label (LaneStemStartsBelowItsPositionLabel). Not committed; no PR yet.
+below its own label (LaneStemStartsBelowItsPositionLabel).
