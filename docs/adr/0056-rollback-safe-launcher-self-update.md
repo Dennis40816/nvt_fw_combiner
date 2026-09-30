@@ -7,7 +7,7 @@
 - Risk: R2 process/state/contract architecture; R3 first `v1.0.0` package and
   release evidence
 - Builds on: ADR 0051 managed application activation
-- Amended by: ADR 0064 explicit Windows child-handle containment
+- Amended by: ADR 0064 explicit Windows child-handle containment; decision 194 (2026-09-29)
 
 ## Context
 
@@ -122,6 +122,9 @@ wait failure that leaves exit unconfirmed returns a distinct fail-closed
 outcome, preserves the current recoverable launch-recorded phase, and starts no
 fallback. A later invocation continues to apply the existing power-loss
 recovery rule from that durable phase.
+Decision 194 amendment (2026-09-29; `docs/handoff/1.1.12.md`): each managed application's and
+version Launcher's ready deadline begins at start entry and includes lifetime
+lease acquisition, final validation, contained process creation, and readiness.
 
 Ordinary active application and launcher starts additionally persist
 `activeLaunchRecorded` before process creation. The start owner holds an

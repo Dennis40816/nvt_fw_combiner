@@ -637,14 +637,14 @@
       "evidenceId": "nt51950-ab-merge-1-ic-nt51950-ab-merge-maps-evidence-v116-primary",
       "kind": "contract-only",
       "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
-      "capabilityFingerprint": "74a9be089a81cc6bb7cc9c79af3c0e884427b00a9a127a3b5d0cf4c980c2dda5",
+      "capabilityFingerprint": "850fa2256876f45312cd22a08d31a9de99a452e24e54d3ab8f1e285a9565c5a8",
       "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge.json"
     },
     {
       "evidenceId": "nt51950-ab-cascade-evidence-v110-bank",
       "kind": "contract-only",
       "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
-      "capabilityFingerprint": "affe308c3f37457a88d8f6c3115adeb32fc5bbb8821cdaeabcda48ac3f1a3e19",
+      "capabilityFingerprint": "d2e3caabbd7ccb9347809b671b65ff710abc1cc4eec36b34ce78d62c510e0baa",
       "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51950-ab-merge-cascade.json"
     },
     {
@@ -733,7 +733,7 @@
       "evidenceId": "nt51951-ab-merge-selector-free-nt51951-ab-merge-1024k-evidence-v116-primary",
       "kind": "contract-only",
       "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
-      "capabilityFingerprint": "78fca93b4f32b002e7b9d8af24ef270457f69e0d3126e562cee6aac4c13a3270",
+      "capabilityFingerprint": "13886377d9f088faba6194d52003b3349b8426ae3eeda289ac62a46ff1e0dc93",
       "contractReference": "profiles/built-in/nt51950-ab-merge/profiles/nt51951-ab-merge.json"
     },
     {
@@ -845,28 +845,28 @@
       "evidenceId": "nt51950-ab-ctrlram-replace-1-ic-evidence-v1",
       "kind": "contract-only",
       "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
-      "capabilityFingerprint": "7598daef4291217ed1f575e7d49584299eede2a64d81e5bc494131a4ee559c76",
+      "capabilityFingerprint": "9e985b751b3ce598b7cdedb5cba1390cb7bc6c1a5538ae2636a57ee4f86508b8",
       "contractReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
     },
     {
       "evidenceId": "nt51950-ab-ctrlram-replace-2-ic-evidence-v1",
       "kind": "contract-only",
       "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
-      "capabilityFingerprint": "64b7283c22b9dec04f51a2cf3aa34cb56347abc00abd6be32789f6bfa7882822",
+      "capabilityFingerprint": "389e0e7a56cfcd8f345e18b5a57264cfdf044d4db0bc1da5d98ad4795f6e868e",
       "contractReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
     },
     {
       "evidenceId": "nt51951-ab-ctrlram-replace-1-ic-evidence-v1",
       "kind": "contract-only",
       "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
-      "capabilityFingerprint": "51dcd41ee4e3066b15250988b200d4a21a0cf0d12e751994e4faa7f18b6f7067",
+      "capabilityFingerprint": "a4ad18a29b179492d725464b7adfc54351d6ee9ed8c2a1b3fd1442fe4e8c8e8d",
       "contractReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
     },
     {
       "evidenceId": "nt51951-ab-ctrlram-replace-2-ic-evidence-v1",
       "kind": "contract-only",
       "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k",
-      "capabilityFingerprint": "ba736aaddc6ee201f18a0d176534b76a321115a4759abbf65ff455207b02c5b8",
+      "capabilityFingerprint": "c636736c7d8d8899d295ccc3e4aca7089c5106965d623914f290fdb84349dfef",
       "contractReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
     }
   ],

@@ -293,7 +293,11 @@ public sealed class NavigationFocusIndicatorTests
         try
         {
             await AwaitHistoryReadyAsync(window);
+            // Startup work after history can still move focus. Complete it and drain queued
+            // input work before transferring focus to Home for the render.
+            await window.StartupWork.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Dispatcher.UIThread.RunJobs();
+            Assert.True(window.FindControl<Grid>("ShellInteractionHost")!.IsFocused);
             window.SetRenderScaling(scale);
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -307,6 +311,12 @@ public sealed class NavigationFocusIndicatorTests
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
+            Assert.True(home.IsFocused);
+            Assert.Contains(":focus-visible", home.Classes);
+            ContentPresenter homePresenter = Assert.Single(
+                home.GetVisualDescendants().OfType<ContentPresenter>(), item => item.Name == "PART_ContentPresenter");
+            Assert.True(window.TryFindResource("NfcNavFocusRingShadow", window.ActualThemeVariant, out object? focusRingResource));
+            Assert.Equal(Assert.IsType<BoxShadows>(focusRingResource), homePresenter.BoxShadow);
 
             // The two regions share the exact same boundary row by construction, at any scale; neither
             // collapses to an empty band, which would make that equality trivially true.

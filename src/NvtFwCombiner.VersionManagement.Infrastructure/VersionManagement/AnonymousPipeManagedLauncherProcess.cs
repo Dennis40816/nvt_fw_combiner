@@ -53,7 +53,9 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
     private readonly BootstrapAdmissionSignal _admission;
     private readonly ManagedImmutableBootstrapIdentity? _inheritedBootstrapIdentity;
     private readonly IManagedProcessTermination _termination;
-    private readonly Action? _beforeStartValidation;
+    private readonly Action<ProcessStartInfo>? _beforeStartValidation;
+    private readonly Action? _afterProcessCreation;
+    private readonly CancellationToken _deadlineSignal;
 
     internal AnonymousPipeManagedLauncherProcess()
         : this(ManagedProcessTermination.Instance, BootstrapAdmissionSignal.Capture())
@@ -68,12 +70,16 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
     internal AnonymousPipeManagedLauncherProcess(
         IManagedProcessTermination termination,
         BootstrapAdmissionSignal admission,
-        Action? beforeStartValidation = null,
-        ManagedImmutableBootstrapIdentity? inheritedBootstrapIdentity = null)
+        Action<ProcessStartInfo>? beforeStartValidation = null,
+        ManagedImmutableBootstrapIdentity? inheritedBootstrapIdentity = null,
+        Action? afterProcessCreation = null,
+        CancellationToken deadlineSignal = default)
     {
         _termination = termination ?? throw new ArgumentNullException(nameof(termination));
         _admission = admission ?? throw new ArgumentNullException(nameof(admission));
         _beforeStartValidation = beforeStartValidation;
+        _deadlineSignal = deadlineSignal;
+        _afterProcessCreation = afterProcessCreation;
         _inheritedBootstrapIdentity = inheritedBootstrapIdentity;
     }
 
@@ -102,10 +108,28 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         ArgumentNullException.ThrowIfNull(launcher);
         ArgumentNullException.ThrowIfNull(executableLease);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(readyDeadline, TimeSpan.Zero);
+        var deadline = new ManagedStartDeadline(readyDeadline, cancellationToken, _deadlineSignal);
+        return await deadline.RunAsync(
+            () => StartCoreAsync(
+                managedRoot, statePath, launcher, executableLease, deadline, cancellationToken),
+            static () => new(LauncherProcessStartOutcome.TerminationUnconfirmed, null),
+            cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<LauncherProcessStartResult> StartCoreAsync(
+        string managedRoot,
+        string statePath,
+        ManagedLauncherIdentity launcher,
+        IManagedExecutableLaunchLease executableLease,
+        ManagedStartDeadline deadline,
+        CancellationToken cancellationToken)
+    {
         Process? process = null;
         ManagedProcessLifetimeLease? lifetime = null;
         try
         {
+            deadline.Token.ThrowIfCancellationRequested();
             if (_admission.Outcome == BootstrapAdmissionInheritanceOutcome.Invalid)
             {
                 return Failure(LauncherProcessStartOutcome.StartFailed);
@@ -113,6 +137,7 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             lifetime = ManagedProcessLifetimeLease.TryAcquire(
                 statePath,
                 ManagedProcessLifetimeKind.Launcher);
+            deadline.Token.ThrowIfCancellationRequested();
             if (lifetime is null)
             {
                 return Failure(LauncherProcessStartOutcome.TerminationUnconfirmed);
@@ -155,25 +180,35 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
                     ],
                     () =>
                     {
-                        _beforeStartValidation?.Invoke();
-                        return executableLease.TryValidateForStart();
+                        if (deadline.Token.IsCancellationRequested)
+                        {
+                            return false;
+                        }
+                        _beforeStartValidation?.Invoke(startInfo);
+                        return !deadline.Token.IsCancellationRequested &&
+                            executableLease.TryValidateForStart() &&
+                            deadline.TryBeginCreation();
                     });
             }
             finally
             {
                 DisposeLocalClientHandle(pipe);
             }
+            if (process is not null)
+            {
+                _afterProcessCreation?.Invoke();
+            }
+            deadline.Token.ThrowIfCancellationRequested();
             if (process is null)
             {
                 return Failure(LauncherProcessStartOutcome.StartFailed);
             }
-            if (!await _admission.ReportAdmittedAsync(cancellationToken).ConfigureAwait(false))
+            if (!await _admission.ReportAdmittedAsync(deadline.Token).ConfigureAwait(false))
             {
                 return Terminate(process, lifetime, LauncherProcessStartOutcome.StartFailed);
             }
+            deadline.Token.ThrowIfCancellationRequested();
 
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            deadline.CancelAfter(readyDeadline);
             Task<string?> readyTask = BoundedUtf8LineReader.ReadAsync(
                 pipe,
                 MaximumReadyLineCharacters,
@@ -181,6 +216,7 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
                 deadline.Token);
             Task exitTask = process.WaitForExitAsync(deadline.Token);
             Task completed = await Task.WhenAny(readyTask, exitTask).ConfigureAwait(false);
+            deadline.Token.ThrowIfCancellationRequested();
             if (readyTask.IsCompletedSuccessfully)
             {
                 if (LauncherReadyProtocol.TryParse(
