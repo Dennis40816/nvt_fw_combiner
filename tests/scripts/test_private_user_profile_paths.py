@@ -25,6 +25,7 @@ def test_allows_placeholder_accounts_and_other_path_roots(tmp_path: Path) -> Non
     document.write_text(
         "C:/Users/owner/example.png\n"
         "C:\\\\Users\\\\operator\\\\example.png\n"
+        "C:\\Users\\fake\\Documents\\PowerShell\\profile.ps1\n"
         "D:/NvtFwCombiner-TestArea/evidence\n"
     )
     errors: list[str] = []
