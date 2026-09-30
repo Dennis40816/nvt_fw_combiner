@@ -48,7 +48,7 @@ Internal and process changes:
 
 #### 2. NT51950/NT51951 AB images declare their DP regions; the 1024k B-bank CMI location is corrected
 
-- Before → After: On NT51950/NT51951 AB images, the flash ranges that TP does not overwrite (the A/B customer-information pages and, on the three Desay maps, the container tail) were declared `unknown`/unmapped, and each `cmi-dp-version` field stood alone. Every such range is DP (decision 192): all six AB maps now declare them as DP image regions with the CMI as a DP sub-field. Separately, the NT51950 cascade 1024k and NT51951 1024k maps read the B-bank CMI from `flash [0x85016,0x85019)`, one page off; it is now `flash [0x84016,0x84019)` (decision 195). The 512k and Desay maps' CMI positions are unchanged.
+- Before → After: On NT51950/NT51951 AB images, the flash ranges that TP does not overwrite (the A/B customer-information pages and, on the three Desay maps, the container tail; the Desay maps are not enabled today, decision 195) were declared `unknown`/unmapped, and each `cmi-dp-version` field stood alone. Every such range is DP (decision 192): all six AB maps now declare them as DP image regions with the CMI as a DP sub-field. Separately, the NT51950 cascade 1024k and NT51951 1024k maps read the B-bank CMI from `flash [0x85016,0x85019)`, one page off; it is now `flash [0x84016,0x84019)` (decision 195). The 512k and Desay maps' CMI positions are unchanged.
 - Affected: NT51950/NT51951 AB details and reports (DPB Version and DPB Jira Index on the two 1024k maps), the `dp-b` output-name token on those two maps, and the Memory Layout of the ranges TP does not overwrite, such as the A/B customer-information pages (now DP instead of an unknown range).
 - Support status: unchanged/support-neutral; a declared firmware fact and its display are corrected, no route is promoted.
 - Compatibility: The AB merge still writes TP only; write constraints are unchanged and no Golden expected-output hash changes. On the two 1024k maps the owner accepted that the `dp-b` output-name token now reads `0x84017`/`0x84018` instead of `0x85017`/`0x85018`; the name format is unchanged, and a file name changes only when the two locations hold different values. The NT51950/NT51951 family and bundle identities and seven AB Merge/AB CtrlRAM route fingerprints change with this declaration.
@@ -62,7 +62,7 @@ Internal and process changes:
 - Support status: unchanged/support-neutral.
 - Compatibility: No new outcome: the existing `ReadyTimeout` and `TerminationUnconfirmed` outcomes and `ProcessLaunchGate` are reused; no Launcher budget value changes.
 - Verification: Infrastructure 1,578/1,578, Bootstrap 2,142/2,142 and a controlled timeout group 7/7 on each of 30 loaded repeats; an independent review found no open P0/P1/P2.
-- Limitations: Four narrow residual timing windows remain recorded; each fails closed (no late process, no fallback without confirmed cleanup).
+- Limitations: Four narrow residual timing windows remain recorded; each fails closed and none starts a late process.
 
 ### Security
 
