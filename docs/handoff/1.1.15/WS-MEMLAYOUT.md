@@ -740,4 +740,4 @@ onto the card fixes the test (`BUG-20260930-memory-card-wheel-shrink-close-flake
 Open: exact-head record for the new head, CI, owner approval (including the code-size baseline raise).
 
 Merged into `1.1.x` through #492 (merge `efad0f294`, head `7a849e447`) on 2026-09-30 after the owner's
-approval of that head. Released with 1.1.15.
+approval of that head. It ships in the 1.1.15 release candidate (#494).
