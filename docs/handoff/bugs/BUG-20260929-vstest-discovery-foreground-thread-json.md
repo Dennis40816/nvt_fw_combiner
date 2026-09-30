@@ -38,3 +38,9 @@ identify which foreground thread was alive in #487. No root-cause correction,
 runner-output tolerance, or retry has been applied. Obtain a process dump or
 thread trace during the failing assembly-info query, then identify and fix the
 thread owner before marking this bug fixed.
+Second observation, 2026-09-30: pull request #493 (`feature/1.1.15/nav-focus-flake`@`6cc8880d1`, a test-only
+change to one UiSmoke test), CI job `109748581586` `dotnet / test (ui)`: "VSTest discovery produced no active
+inventory" for `NvtFwCombiner.UiSmoke.Tests`, attempt 1, no readable TRX. The same workflow's UI shard passed on
+pull request #492 at `468f24842`. The shard log lives in the run's `dotnet-test-ui-evidence-attempt-1` artifact,
+which was not downloaded, so whether the foreground-thread message caused it is unconfirmed. It widens the
+affected scope from the core shard to the UI shard.
