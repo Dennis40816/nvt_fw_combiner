@@ -72,7 +72,9 @@ public sealed partial class MemoryCoveragePopupTests
             Border card = FindNamed<Border>(window, "MemorySliceCard")!;
             window.MouseMove(BoundsInWindow(card, window).Center, RawInputModifiers.None);
             Render();
-            Assert.DoesNotContain("railActive", rows[0].Classes);
+            // The card belongs to its slice, so the slice's legend row stays lit while the pointer is on the card.
+            Assert.Contains("railActive", rows[0].Classes);
+            Assert.DoesNotContain("railActive", rows[1].Classes);
             Assert.Same(slices[0], card.DataContext);
             Assert.Equal(original, rows.Select(row => row.Bounds));
             window.MouseMove(BoundsInWindow(rows[1], window).Center, RawInputModifiers.None);

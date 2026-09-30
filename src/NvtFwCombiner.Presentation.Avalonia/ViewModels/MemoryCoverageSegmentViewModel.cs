@@ -34,6 +34,10 @@ internal enum MemoryCoverageFillRole
 
 internal sealed class MemoryCoverageSegmentViewModel
 {
+    private readonly string _accessibleBody;
+    private readonly string _baseDisplayTitle;
+    private bool _hasDisplayOrdinal;
+
     public MemoryCoverageSegmentViewModel(
         string rangeLabel,
         string sourceLabel,
@@ -166,18 +170,40 @@ internal sealed class MemoryCoverageSegmentViewModel
                 $"{item.IcLabel}, {item.BlockLabel}, {item.ArtifactRangeLabel}, {item.FlashRangeLabel}, {item.DispositionLabel}"));
         string stateAccessibility = HasChangeState ? $"{ChangeLabel}. " : string.Empty;
         string additionalDetail = HasDistinctDetail ? $" {Detail}" : string.Empty;
-        AccessibleDetail = string.IsNullOrEmpty(preservationAccessibility)
-            ? $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}.{additionalDetail}"
-            : $"{SourceLabel}. {RangeLabel}. {stateAccessibility}{PreservationSummary}. {preservationAccessibility}.{additionalDetail}";
-        if (HasSourceCaption)
-        {
-            AccessibleDetail = $"{DisplayTitle}. {SourceCaption}. {AccessibleDetail}";
-        }
-        else if (!StringComparer.Ordinal.Equals(DisplayTitle, SourceLabel))
-        {
-            AccessibleDetail = $"{DisplayTitle}. {SourceFieldLabel}: {SourceLabel}. {AccessibleDetail}";
-        }
+        _accessibleBody = string.IsNullOrEmpty(preservationAccessibility)
+            ? $"{RangeLabel}. {stateAccessibility}{PreservationSummary}.{additionalDetail}"
+            : $"{RangeLabel}. {stateAccessibility}{PreservationSummary}. {preservationAccessibility}.{additionalDetail}";
+        _baseDisplayTitle = DisplayTitle;
+        AccessibleDetail = ComposeAccessibleDetail();
     }
+
+    private string ComposeAccessibleDetail()
+    {
+        string plain = $"{SourceLabel}. {_accessibleBody}";
+        return (_hasDisplayOrdinal, HasSourceCaption, StringComparer.Ordinal.Equals(DisplayTitle, SourceLabel)) switch
+        {
+            (true, _, _) => $"{DisplayTitle}. {_accessibleBody}",
+            (_, true, _) => $"{DisplayTitle}. {SourceCaption}. {plain}",
+            (_, _, true) => plain,
+            _ => $"{DisplayTitle}. {SourceFieldLabel}: {SourceLabel}. {plain}",
+        };
+    }
+
+    /// <summary>
+    /// Numbers a legend title that repeats on one rail; 0 restores the plain title. Only a row whose title
+    /// is its source label may be numbered, so the ordinal replaces the source label in the accessible text.
+    /// </summary>
+    internal void SetDisplayOrdinal(int ordinal)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
+        _hasDisplayOrdinal = ordinal > 0;
+        DisplayTitle = _hasDisplayOrdinal ? FormattableString.Invariant($"{_baseDisplayTitle} #{ordinal}") : _baseDisplayTitle;
+        AccessibleDetail = ComposeAccessibleDetail();
+    }
+
+    /// <summary>True for a primary row whose title is its source label, the only rows a repeated title may number.</summary>
+    internal bool CanNumberRepeatedTitle => IsPrimaryContent && ContentRole != MemoryContentRole.CtrlRam &&
+        !UsesKeptPattern && StringComparer.Ordinal.Equals(_baseDisplayTitle, SourceLabel);
 
     /// <summary>Shared display-only interaction state for a row and its proportional segments.</summary>
     public MemoryCoverageInteractionState Interaction { get; internal set; } = new();
@@ -207,7 +233,7 @@ internal sealed class MemoryCoverageSegmentViewModel
     public string SourceLabel { get; }
     public string SourceFieldLabel { get; }
 
-    public string DisplayTitle { get; }
+    public string DisplayTitle { get; private set; }
     public string SourceCaption { get; }
     public bool HasSourceCaption => SourceCaption.Length > 0;
 
@@ -299,7 +325,7 @@ internal sealed class MemoryCoverageSegmentViewModel
 
     public string DetailsLabel { get; }
 
-    public string AccessibleDetail { get; }
+    public string AccessibleDetail { get; private set; }
 
 }
 

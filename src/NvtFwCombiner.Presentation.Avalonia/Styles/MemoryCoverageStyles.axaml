@@ -5,7 +5,6 @@
     <Setter Property="CornerRadius" Value="4" />
   </Style>
   <Style Selector="Border.memoryPassiveLegend.railActive">
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
     <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
   </Style>
   <Style Selector="Border.memoryTinyMarker, Border.memoryCollisionEntry">

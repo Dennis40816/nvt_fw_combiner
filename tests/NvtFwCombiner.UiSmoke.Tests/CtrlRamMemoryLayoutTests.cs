@@ -189,6 +189,46 @@ public sealed class CtrlRamMemoryLayoutTests
         finally { await CloseAndFlushAsync(window); }
     }
 
+    /// <summary>Real pointer hover on the TP FW slice keeps its legend row lit through the card and connects across the legend.</summary>
+    [AvaloniaFact]
+    public async Task HoveringTheTpFirmwareSliceLightsItsLegendRowAndConnectsItsCard()
+    {
+        using var workspace = TempWorkspace.Create("ctrlram-layout-tp-hover");
+        PresentationHostServices services = await CreateServicesAsync(workspace);
+        using var window = new MainWindow(UiLaunchOptions.Parse([]), StartupTraceSession.Disabled,
+            services, ShellPreferenceSnapshot.Default)
+        { Width = 1180, Height = 1040 };
+        window.Show();
+        try
+        {
+            await AwaitHistoryReadyAsync(window);
+            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
+            await MainWindow.ApplyCtrlRamLaunchAsync(shell, ThreeChipArguments().CtrlRam!, TestContext.Current.CancellationToken);
+            Render();
+            Control overview = Assert.Single(window.GetVisualDescendants().OfType<Control>(),
+                control => control.Name == "CtrlRamFlashOverview" && control.IsEffectivelyVisible);
+            Border legend = Assert.Single(overview.GetVisualDescendants().OfType<Border>(),
+                control => control.Name == "MemoryLegendTarget" && control.DataContext is MemoryCoverageSegmentViewModel slice && slice.AddressRangeLabel == "0x00000-0x34FFF");
+            Control rail = Assert.Single(overview.GetVisualDescendants().OfType<Control>(),
+                control => control.Classes.Contains("memoryExplorerSlice") && ReferenceEquals(control.DataContext, legend.DataContext));
+            Assert.DoesNotContain("railActive", legend.Classes);
+            window.MouseMove(Center(rail, window), RawInputModifiers.None);
+            await SettleAsync();
+            Assert.Contains("railActive", legend.Classes);
+            Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+            window.MouseMove(Center(card, window), RawInputModifiers.None);
+            await SettleAsync();
+            Assert.Contains("railActive", legend.Classes);
+            Control frame = Assert.IsType<StackPanel>(card.GetVisualParent());
+            Assert.Contains(frame.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Line>(),
+                line => line.StartPoint != line.EndPoint);
+            window.MouseMove(new Point(2, 2), RawInputModifiers.None);
+            await SettleAsync(500);
+            Assert.DoesNotContain("railActive", legend.Classes);
+        }
+        finally { await CloseAndFlushAsync(window); }
+    }
+
     /// <summary>Eight physical inputs project twelve targets into three distinct continuous endpoint lanes.</summary>
     [AvaloniaFact]
     public async Task ThreeChipWindowShowsFirmwareOverviewAndSeparatePhysicalLanes()

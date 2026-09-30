@@ -130,13 +130,13 @@ public sealed partial class MemoryCoveragePopupTests
         finally { window.Close(); }
     }
 
-    /// <summary>Legend emphasis has fixed geometry, a resource-overridable border and a light background.</summary>
+    /// <summary>Legend emphasis changes only the row background; the transparent border keeps geometry fixed.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void PassiveLegendEmphasisUsesFixedBorderAndThemeResources(bool dark, bool chinese)
+    public void PassiveLegendEmphasisChangesOnlyTheBackground(bool dark, bool chinese)
     {
         Window window = CreateWindow(420, dark, TransitSlices(), out MemoryCoverageBar bar);
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
@@ -151,19 +151,22 @@ public sealed partial class MemoryCoveragePopupTests
             Rect bounds = row.Bounds;
             Thickness border = row.BorderThickness;
             Rect[] textBounds = [.. row.GetVisualDescendants().OfType<TextBlock>().Select(block => BoundsInWindow(block, window))];
+            Assert.Null(row.Background);
             window.MouseMove(BoundsInWindow(MainTarget(bar, 0), window).Center, RawInputModifiers.None);
             Render();
+            Assert.Contains("railActive", row.Classes);
             Assert.Equal(bounds, row.Bounds);
             Assert.Equal(textBounds, row.GetVisualDescendants().OfType<TextBlock>().Select(block => BoundsInWindow(block, window)));
             Assert.Equal(border, row.BorderThickness);
-            Assert.True(border.Left >= 1);
-            Assert.NotEqual(Colors.Transparent, Assert.IsType<ISolidColorBrush>(row.BorderBrush, exactMatch: false).Color);
+            Assert.Equal(new Thickness(2), border);
+            Assert.Equal(Colors.Transparent, Assert.IsType<ISolidColorBrush>(row.BorderBrush, exactMatch: false).Color);
             Assert.NotNull(row.Background);
             Assert.Equal(Matrix.Identity, row.RenderTransform?.Value ?? Matrix.Identity);
             Capture(window, $"passive-highlight-{dark}-{chinese}");
-            window.Resources["NfcAccentStrongBrush"] = Brushes.Magenta;
+            window.Resources["NfcMemoryInteractionSurfaceBrush"] = Brushes.Magenta;
             Render();
-            Assert.Equal(Colors.Magenta, Assert.IsType<ISolidColorBrush>(row.BorderBrush, exactMatch: false).Color);
+            Assert.Equal(Colors.Magenta, Assert.IsType<ISolidColorBrush>(row.Background, exactMatch: false).Color);
+            Assert.Equal(Colors.Transparent, Assert.IsType<ISolidColorBrush>(row.BorderBrush, exactMatch: false).Color);
         }
         finally { window.Close(); }
     }

@@ -124,7 +124,7 @@ internal sealed class MemoryCoverageLogicalItemViewModel
             }
             else
             {
-                segment.Interaction = new MemoryCoverageInteractionState();
+                // A run head keeps its state, so building items again never strands a bound observer.
                 physicalRuns++;
             }
             previous = segment;

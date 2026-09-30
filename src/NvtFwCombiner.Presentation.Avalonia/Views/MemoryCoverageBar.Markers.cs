@@ -13,6 +13,8 @@ public sealed partial class MemoryCoverageBar
 {
     private const double MinimumMarkerSize = 24;
     private readonly Canvas _markers = new() { Name = "MemoryTinyMarkers", Height = MinimumMarkerSize, Margin = new Thickness(0, 4, 0, 0), IsVisible = false };
+    private static readonly AttachedProperty<double> RangeCenterProperty =
+        AvaloniaProperty.RegisterAttached<MemoryCoverageBar, Control, double>("RangeCenter", double.NaN);
     private double _markerWidth = double.NaN;
 
     /// <inheritdoc />
@@ -34,23 +36,24 @@ public sealed partial class MemoryCoverageBar
         _markers.Children.Clear();
         double total = _displaySegments.Sum(static slice => slice.BarWidth);
         double cursor = 0;
-        var clusters = new List<(double Left, double LastLeft, List<MemoryCoverageSegmentViewModel> Slices)>();
+        var clusters = new List<(double Left, double LastLeft, double FirstCenter, double LastCenter, List<MemoryCoverageSegmentViewModel> Slices)>();
         foreach (MemoryCoverageSegmentViewModel slice in _displaySegments)
         {
             double size = total > 0 ? width * slice.BarWidth / total : 0;
-            double left = Math.Clamp(cursor + (size / 2) - (MinimumMarkerSize / 2), 0, width - MinimumMarkerSize);
+            double center = cursor + (size / 2);
+            double left = Math.Clamp(center - (MinimumMarkerSize / 2), 0, width - MinimumMarkerSize);
             cursor += size;
             if (!slice.IsPrimaryContent || size <= 0 || size >= MinimumMarkerSize) { continue; }
             // Overlapping targets share a list, never a fabricated firmware range.
             if (clusters.Count > 0 && left < clusters[^1].LastLeft + MinimumMarkerSize + 2)
             {
-                (double firstLeft, _, List<MemoryCoverageSegmentViewModel> members) = clusters[^1];
+                (double firstLeft, _, double firstCenter, _, List<MemoryCoverageSegmentViewModel> members) = clusters[^1];
                 members.Add(slice);
-                clusters[^1] = (firstLeft, left, members);
+                clusters[^1] = (firstLeft, left, firstCenter, center, members);
             }
-            else { clusters.Add((left, left, [slice])); }
+            else { clusters.Add((left, left, center, center, [slice])); }
         }
-        foreach ((double left, double lastLeft, List<MemoryCoverageSegmentViewModel> slices) in clusters)
+        foreach ((double left, double lastLeft, double firstCenter, double lastCenter, List<MemoryCoverageSegmentViewModel> slices) in clusters)
         {
             var item = new MemoryCoverageBarItem(slices.AsReadOnly());
             var target = new Border
@@ -71,6 +74,7 @@ public sealed partial class MemoryCoverageBar
                 },
             };
             Canvas.SetLeft(target, (left + lastLeft) / 2);
+            _ = target.SetValue(RangeCenterProperty, (firstCenter + lastCenter) / 2);
             if (item.IsGroup)
             {
                 WireGroup(target, () => OpenLocal(item, target, collisionList: true));

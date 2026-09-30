@@ -37,7 +37,7 @@ public sealed partial class MemoryCoverageBar
     private readonly TextBlock _heading = new() { Name = "MemoryOverviewHeading", Classes = { "bodyEmphasisText" }, FontSize = 14, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _capacity = new() { Classes = { "captionText" }, VerticalAlignment = VerticalAlignment.Center };
     private readonly Grid _addresses = new() { Name = "MemoryOverviewAddresses", ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 0, 0, 4) };
-    private readonly TextBlock _startAddress = new() { Classes = { "monoText", "captionText" } };
+    private readonly TextBlock _startAddress = new() { Classes = { "monoText", "captionText" }, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly TextBlock _endAddress = new() { Classes = { "monoText", "captionText" } };
     private double _arrangedRailWidth;
 
@@ -61,9 +61,11 @@ public sealed partial class MemoryCoverageBar
     }
 
     // Text is not a byte range: preserve its natural width and clamp it to the rail.
-    // The stroke and hover endpoint retain their original proportional geometry.
+    // The hover endpoint keeps its proportional geometry; only the drawn stroke of a short
+    // range is widened to the tiny-marker size, centred on its range inside its own slot.
     private sealed class MemoryEndpointPanel : Panel
     {
+        private const double MinimumStrokeWidth = MinimumMarkerSize;
         private readonly MemoryCoverageBar _owner;
         private readonly double _startFraction;
         private readonly double _widthFraction;
@@ -89,9 +91,29 @@ public sealed partial class MemoryCoverageBar
             double start = _owner._arrangedRailWidth * _startFraction;
             double width = Math.Min(Children[1].DesiredSize.Width, _owner._arrangedRailWidth);
             double left = GetLabelLeft();
-            Children[0].Arrange(new Rect(0, 0, finalSize.Width, 2));
+            (double strokeLeft, double strokeWidth) = GetStroke();
+            Children[0].Arrange(new Rect(strokeLeft - start, 0, strokeWidth, 2));
             Children[1].Arrange(new Rect(left - start, 4, width, Math.Max(0, finalSize.Height - 4)));
             return finalSize;
+        }
+
+        private (double Left, double Width) GetStroke()
+        {
+            double rail = _owner._arrangedRailWidth;
+            double start = rail * _startFraction;
+            double width = rail * _widthFraction;
+            if (width >= MinimumStrokeWidth) { return (start, width); }
+            MemoryEndpointPanel[] peers = [.. _owner._positions.GetVisualDescendants().OfType<MemoryEndpointPanel>()
+                .OrderBy(static peer => peer._startFraction)];
+            int index = Array.IndexOf(peers, this);
+            // Each stroke stays inside the midpoint gap to its neighbours, so widened strokes never overlap.
+            double slotLeft = index > 0 ? ((rail * (peers[index - 1]._startFraction + peers[index - 1]._widthFraction)) + start) / 2 : 0;
+            double slotRight = index >= 0 && index < peers.Length - 1
+                ? (start + width + (rail * peers[index + 1]._startFraction)) / 2
+                : rail;
+            double drawn = Math.Min(MinimumStrokeWidth, slotRight - slotLeft - 2);
+            if (drawn <= width) { return (start, width); }
+            return (Math.Clamp(start + (width / 2) - (drawn / 2), slotLeft + 1, slotRight - 1 - drawn), drawn);
         }
 
         private double GetLabelLeft()
@@ -170,7 +192,7 @@ public sealed partial class MemoryCoverageBar
                 };
             }
             row.Children.Add(marker);
-            var title = new TextBlock { Text = slice.DisplayTitle, Classes = { "bodyText" }, Margin = new Thickness(6, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
+            var title = new TextBlock { Text = slice.DisplayTitle, Classes = { "bodyText" }, Margin = new Thickness(6, 0, 12, 0), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
             Grid.SetColumn(title, 1);
             row.Children.Add(title);
             var address = new TextBlock { Text = slice.AddressRangeLabel, Classes = { "monoText", "bodyText" }, VerticalAlignment = VerticalAlignment.Center };
@@ -183,6 +205,28 @@ public sealed partial class MemoryCoverageBar
             _legend.Children.Add(target);
         }
         _header.InvalidateMeasure();
+    }
+
+    // Text, not its column, is what a decorative stem must not cross.
+    private IEnumerable<Control> OverviewObstacles()
+    {
+        foreach (TextBlock text in this.GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible)) { yield return text; }
+        foreach (Control marker in LegendMarkers()) { yield return marker; }
+    }
+
+    private IEnumerable<Control> LegendMarkers()
+    {
+        return _legend.Children.OfType<Border>().Select(static row => row.Child).OfType<Grid>()
+            .Select(static row => row.Children[0]).Where(static marker => marker.IsEffectivelyVisible);
+    }
+
+    private static Rect[] ObstacleRects(IEnumerable<Control> controls, Visual reference, double offsetX, double offsetY)
+    {
+        return [.. controls.Select(control =>
+        {
+            Point point = control.TranslatePoint(default, reference) ?? default;
+            return new Rect(point.X + offsetX, point.Y + offsetY, control.Bounds.Width, control.Bounds.Height);
+        })];
     }
 
 }

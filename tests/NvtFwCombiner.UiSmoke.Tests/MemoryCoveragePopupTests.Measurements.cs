@@ -108,7 +108,8 @@ public sealed partial class MemoryCoveragePopupTests
             clock.AdvanceBy(TimeSpan.FromMilliseconds(1));
             Render();
             Assert.Same(slices[0], card.DataContext);
-            Assert.DoesNotContain(rows, row => row.Classes.Contains("railActive"));
+            // Crossing legend rows never lit them; only the card's own slice stays lit while the pointer is on its card.
+            Assert.Same(rows[0], Assert.Single(rows, row => row.Classes.Contains("railActive")));
             window.MouseMove(BoundsInWindow(rows[4], window).Center, RawInputModifiers.None);
             clock.AdvanceBy(TimeSpan.FromMilliseconds(320));
             Render();

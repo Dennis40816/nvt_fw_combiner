@@ -17,6 +17,9 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
         AvaloniaProperty.RegisterAttached<MemoryCoverageInteractionBehavior, Control, bool>("IsRail");
     internal static readonly AttachedProperty<bool> RailActiveProperty =
         AvaloniaProperty.RegisterAttached<MemoryCoverageInteractionBehavior, Control, bool>("RailActive");
+    // States whose legend rows stand for a target that has no row of its own; they take rail emphasis only.
+    internal static readonly AttachedProperty<IReadOnlyList<MemoryCoverageInteractionState>> RailContextProperty =
+        AvaloniaProperty.RegisterAttached<MemoryCoverageInteractionBehavior, Control, IReadOnlyList<MemoryCoverageInteractionState>>("RailContext", []);
 
     private static readonly AttachedProperty<InteractionLease?> LeaseProperty =
         AvaloniaProperty.RegisterAttached<MemoryCoverageInteractionBehavior, Control, InteractionLease?>(
@@ -161,7 +164,7 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
 
     private static MemoryCoverageInteractionState[] ResolveStates(Control control)
     {
-        return control.DataContext switch
+        MemoryCoverageInteractionState[] own = control.DataContext switch
         {
             MemoryCoverageSegmentViewModel segment => [segment.Interaction],
             MemoryCoverageLogicalItemViewModel item => [item.Interaction],
@@ -169,6 +172,8 @@ public sealed class MemoryCoverageInteractionBehavior : AvaloniaObject
             MemoryFocusPositionViewModel { Lane: { } lane } => [.. lane.Ranges.Select(static slice => slice.Interaction).Distinct()],
             _ => [],
         };
+        IReadOnlyList<MemoryCoverageInteractionState> context = control.GetValue(RailContextProperty);
+        return context.Count == 0 ? own : [.. own.Concat(context).Distinct()];
     }
 
     private sealed class InteractionLease(MemoryCoverageInteractionState[] states)

@@ -99,7 +99,11 @@ public sealed partial class MemoryCoverageBar : UserControl
                 panel.Children.Any(child => child.DataContext is MemoryCoverageBarItem { IsPrimaryContent: false } &&
                     child.Bounds.Contains(e.GetPosition(panel)))) { CloseAll(); }
         };
+        // The card belongs to its slice: while the pointer or focus is inside it, the slice's legend row stays lit.
+        _ = _card.SetValue(MemoryCoverageInteractionBehavior.IsRailProperty, true);
         MemoryCoverageInteractionBehavior.SetIsEnabled(_card, true);
+        _ = _local.SetValue(MemoryCoverageInteractionBehavior.IsRailProperty, true);
+        MemoryCoverageInteractionBehavior.SetIsEnabled(_local, true);
         PointerExited += (_, _) => StartCloseTimer();
         LostFocus += (_, _) => StartCloseTimer();
         _card.KeyDown += OnCardKeyDown;
@@ -314,6 +318,7 @@ public sealed partial class MemoryCoverageBar : UserControl
             };
             target.Classes.Set("reducedMotion", ReducedMotion);
             var item = new MemoryCoverageBarItem(lane.Ranges);
+            _ = target.SetValue(MemoryCoverageInteractionBehavior.RailContextProperty, ContainingStates(lane));
             WireGroup(target, () => OpenLocal(item, target, lane));
             AutomationProperties.SetName(target, $"{lane.Title} · {lane.RangeLabel}");
             AutomationProperties.SetHelpText(target, Text.MemoryLocalViewHint);
@@ -518,11 +523,20 @@ public sealed partial class MemoryCoverageBar : UserControl
         Grid.SetColumn(end, 1);
         endpoints.Children.Add(end);
         var content = new StackPanel { Spacing = 6, Name = lane is null ? null : "CtrlRamFocusLane", DataContext = lane };
+        _ = _local.SetValue(MemoryCoverageInteractionBehavior.RailContextProperty, lane is null ? [] : ContainingStates(lane));
         TopLevel top = TopLevel.GetTopLevel(this)!;
         Control anchor = collisionList ? _markers : lane is null ? _track : _positions;
-        double above = anchor.TranslatePoint(default, top)?.Y ?? 0;
-        double footerBottom = (_footer.TranslatePoint(default, top)?.Y ?? 0) + _footer.Bounds.Height;
-        _localAbove = above > top.Bounds.Height - (ShowLegend ? footerBottom : above + anchor.Bounds.Height);
+        // The stem names the true range on the flash bar, so it starts at the track and crosses
+        // any rail row between the track and the view; only the view itself keeps its place.
+        // A CtrlRAM lane is the exception: its stem leaves from its own label row.
+        Control origin = lane is null ? _track : _positions;
+        double trackTop = _track.TranslatePoint(default, top)?.Y ?? 0;
+        double originTop = origin.TranslatePoint(default, top)?.Y ?? 0;
+        double originBottom = originTop + origin.Bounds.Height;
+        double belowEdge = ShowLegend
+            ? (_footer.TranslatePoint(default, top)?.Y ?? 0) + _footer.Bounds.Height
+            : (anchor.TranslatePoint(default, top)?.Y ?? 0) + anchor.Bounds.Height;
+        _localAbove = trackTop > top.Bounds.Height - belowEdge;
         var header = new StackPanel { Name = "MemoryLocalHeader", Spacing = 3 };
         header.Children.Add(new TextBlock { Text = collisionList ? Text.FormatMemorySliceCount(item.Slices.Count) : lane?.Title ?? Text.MemoryLocalViewLabel, Classes = { "bodyEmphasisText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
         header.Children.Add(new TextBlock { Text = collisionList ? Text.MemoryLocalViewHint : $"{(lane is null ? Text.FormatMemorySliceCount(item.Slices.Count) : Text.MemoryCtrlRamDetailLabel)} · {item.SizeLabel} · {item.AddressSpace}", Classes = { "captionText" }, TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Left });
@@ -532,7 +546,7 @@ public sealed partial class MemoryCoverageBar : UserControl
         if (!collisionList) { content.Children.Add(endpoints); }
         // Leave the other half for the terminal card; dense lists scroll instead
         // of forcing the card to slide back over selectable entries.
-        _local.MaxHeight = collisionList ? Math.Max(64, ((_localAbove ? above : top.Bounds.Height - (ShowLegend ? footerBottom : above + anchor.Bounds.Height)) / 2) - 18) : double.PositiveInfinity;
+        _local.MaxHeight = collisionList ? Math.Max(64, ((_localAbove ? trackTop : top.Bounds.Height - belowEdge) / 2) - 18) : double.PositiveInfinity;
         if (collisionList)
         {
             var scroll = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, IsScrollChainingEnabled = false };
@@ -540,16 +554,24 @@ public sealed partial class MemoryCoverageBar : UserControl
             _local.Child = scroll;
         }
         else { _local.Child = content; }
-        double left = target.TranslatePoint(default, anchor)?.X ?? 0;
-        double connectorHeight = 10 + (ShowLegend && !_localAbove ? Math.Max(0, footerBottom - above - anchor.Bounds.Height) : 0);
-        // Footer spacing is layout only; the passive legend must remain outside popup input.
-        Control connector = ShowLegend && !_localAbove
-            ? new Border { Height = connectorHeight, IsHitTestVisible = false }
-            : MemoryCoverageConnectorVisuals.LocalConnector(left + (target.Bounds.Width / 2), 10);
+        double stemX = lane is null ? RangeCenterX(target, _track) : LabelCenterX(target);
+        double connectorHeight = 10 + (_localAbove ? originTop - trackTop : Math.Max(0, belowEdge - originBottom));
+        // Across the rail rows and the passive legend the stem is decorative: it stays out of
+        // input and is interrupted behind text so every label remains readable.
+        Control connector;
+        if (connectorHeight > 10)
+        {
+            double stemTop = _localAbove ? originTop - connectorHeight : originBottom;
+            Rect[] labels = ObstacleRects(OverviewObstacles(), _track, 0, trackTop - stemTop);
+            Canvas stem = MemoryCoverageConnectorVisuals.CardConnector(stemX, connectorHeight, _localAbove, labels, "MemoryLocal");
+            stem.Name = "MemoryLocalConnector";
+            connector = stem;
+        }
+        else { connector = MemoryCoverageConnectorVisuals.LocalConnector(stemX, 10); }
         StackPanel frame = PopupFrame(_local, connector, _localAbove);
         _localPopup.Child = frame;
         _localPopup.Width = Bounds.Width;
-        _localPopup.PlacementTarget = anchor;
+        _localPopup.PlacementTarget = origin;
         _localPopup.Placement = _localAbove ? PlacementMode.TopEdgeAlignedLeft : PlacementMode.BottomEdgeAlignedLeft;
         _localPopup.IsOpen = true;
         Reveal(_local, _localPopup, _localAbove);
@@ -569,12 +591,16 @@ public sealed partial class MemoryCoverageBar : UserControl
         content.Children.Add(details);
         _card.Child = new ScrollViewer { Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, IsScrollChainingEnabled = false };
         TopLevel top = TopLevel.GetTopLevel(this)!;
-        Point origin = target.TranslatePoint(default, top) ?? default;
-        double below = top.Bounds.Height - origin.Y - target.Bounds.Height;
+        // A tiny marker is only a 24 px handle: its stem starts at the slice's true range on the flash bar.
+        bool fromMarker = target.Classes.Contains("memoryTinyMarker");
+        Control source = fromMarker ? _track : target;
+        Point origin = source.TranslatePoint(default, top) ?? default;
+        double below = top.Bounds.Height - origin.Y - source.Bounds.Height;
         // Prefer the clear upper side when it can hold an expanded summary card.
         // Otherwise place direct cards below the endpoint row, not over the rail.
         bool above = preferredAbove ?? ((ShowLegend && origin.Y >= 300) || origin.Y > below);
-        Control placementTarget = preferredAbove is null && ShowLegend ? above ? this : _footer : target;
+        bool viaOverview = preferredAbove is null && (ShowLegend || fromMarker);
+        Control placementTarget = viaOverview ? above ? this : _footer : target;
         Point placementOrigin = placementTarget.TranslatePoint(default, top) ?? default;
         below = top.Bounds.Height - placementOrigin.Y - placementTarget.Bounds.Height;
         // Keep the approved header above the strip, with the card above that header.
@@ -582,6 +608,18 @@ public sealed partial class MemoryCoverageBar : UserControl
         double connectorHeight = preferredAbove.HasValue
             ? Math.Max(20, (above ? origin.Y - localOrigin.Y : localOrigin.Y + _local.Bounds.Height - origin.Y - target.Bounds.Height) + 4)
             : ShowLabels ? 8 : 20;
+        // A direct card opened from the main rail reaches across the overview text so the
+        // stem still names the exact slice. The card itself keeps its place: the placement
+        // target moves to the slice and the stem absorbs the distance.
+        bool crossesOverview = viaOverview;
+        if (crossesOverview)
+        {
+            connectorHeight += above ? origin.Y - placementOrigin.Y :
+                placementOrigin.Y + placementTarget.Bounds.Height - origin.Y - source.Bounds.Height;
+            placementTarget = source;
+            placementOrigin = origin;
+            below = top.Bounds.Height - origin.Y - source.Bounds.Height;
+        }
         double available = (above ? placementOrigin.Y : below) - connectorHeight - 8;
         _card.MaxHeight = Math.Max(64, available);
         double trackLeft = _track.TranslatePoint(default, top)?.X ?? 0;
@@ -589,19 +627,14 @@ public sealed partial class MemoryCoverageBar : UserControl
         double columnRight = Math.Min(top.Bounds.Width - 8, trackLeft + Bounds.Width);
         double width = Math.Min(Math.Clamp(Bounds.Width * 0.9, 240, 380), Math.Max(1, columnRight - columnLeft));
         _card.Width = width;
-        double center = origin.X + (target.Bounds.Width / 2);
+        double center = fromMarker ? trackLeft + RangeCenterX(target, _track) : origin.X + (target.Bounds.Width / 2);
         double left = Math.Clamp(center - (width / 2), columnLeft, Math.Max(columnLeft, columnRight - width));
         double anchor = center - left;
-        double connectorTop = above ? origin.Y - connectorHeight : origin.Y + target.Bounds.Height;
+        double connectorTop = above ? origin.Y - connectorHeight : origin.Y + source.Bounds.Height;
         Rect[] labels = preferredAbove.HasValue
-            ? [.. _local.GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible)
-                .Select(block =>
-                {
-                    Point point = block.TranslatePoint(default, top) ?? default;
-                    return new Rect(point.X - left, point.Y - connectorTop, block.Bounds.Width, block.Bounds.Height);
-                })]
-            : [];
-        Control connector = (ShowLegend && preferredAbove is null) || target.Classes.Contains("memoryCollisionEntry")
+            ? ObstacleRects(_local.GetVisualDescendants().OfType<TextBlock>().Where(static block => block.IsEffectivelyVisible), top, -left, -connectorTop)
+            : crossesOverview ? ObstacleRects(OverviewObstacles(), top, -left, -connectorTop) : [];
+        Control connector = target.Classes.Contains("memoryCollisionEntry")
             ? new Border { Height = connectorHeight, IsHitTestVisible = false }
             : MemoryCoverageConnectorVisuals.CardConnector(anchor, connectorHeight, above, labels);
         _cardPopup.Child = PopupFrame(_card, connector, above);
@@ -613,6 +646,30 @@ public sealed partial class MemoryCoverageBar : UserControl
         Reveal(_card, _cardPopup, above);
     }
 
+
+    // A CtrlRAM lane has no legend row; the rows of the sections it lies in stand for it.
+    private MemoryCoverageInteractionState[] ContainingStates(MemoryFocusLaneViewModel lane)
+    {
+        string? space = lane.Ranges[0].AddressSpaceId;
+        return [.. _displaySegments.Where(slice => slice.IsPrimaryContent && slice.RangeStart < lane.EndExclusive &&
+                lane.Start < slice.RangeEndExclusive && (space is null || slice.AddressSpaceId is null || slice.AddressSpaceId == space))
+            .Select(static slice => slice.Interaction).Distinct()];
+    }
+
+    private double LabelCenterX(Control target)
+    {
+        TextBlock label = target.GetVisualDescendants().OfType<TextBlock>().First();
+        return label.TranslatePoint(new Point(label.Bounds.Width / 2, 0), _track)?.X ?? RangeCenterX(target, _track);
+    }
+
+    // A tiny marker carries the true range centre of its slice(s); any other target is proportional.
+    private double RangeCenterX(Control target, Control reference)
+    {
+        double center = target.GetValue(RangeCenterProperty);
+        return double.IsNaN(center)
+            ? (target.TranslatePoint(default, reference)?.X ?? 0) + (target.Bounds.Width / 2)
+            : (_markers.TranslatePoint(default, reference)?.X ?? 0) + center;
+    }
 
     private StackPanel PopupFrame(Control body, Control connector, bool above)
     {

@@ -46,11 +46,13 @@ internal sealed partial class MergePresentationViewModel
                         IsGeneralMergeModeSelected ? _generalMergeAdmission : null);
             MergeMemoryRangeLabel = rangeLabel;
             ReplaceRows(MergeMemoryRows, rows);
+            // Logical items assign each slice's interaction state; publish only after, or the rail legend binds a discarded state.
+            IReadOnlyList<MemoryCoverageLogicalItemViewModel> logicalItems =
+                ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text);
             MergeCoverageSegments.ReplaceAll(coverageSegments);
-            ReplaceRows(
-                MergeCoverageRows,
-                ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text)
-                    .SelectMany(static item => item.Ranges));
+            ReplaceRows(MergeCoverageRows, logicalItems.SelectMany(static item => item.Ranges));
+            OnPropertyChanged(nameof(MergeStartAddress));
+            OnPropertyChanged(nameof(MergeEndAddress));
         }
     }
 
