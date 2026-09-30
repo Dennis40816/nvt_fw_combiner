@@ -428,3 +428,7 @@ Next: commit this coherent patch, obtain a read-only independent review of that 
 | `audit-comparison.json` | `2447625a755fad2d77ededfe70a082c6c396fb65eac7851153226593eca6a117` |
 | `route-pins.json` | `db09625b01c9db4969c240b11df361631bb7ba25016b309a7aeba92aa58a8b3e` |
 | `structure.log` | `213d5b5d2aa74efde40d4b6cdde6e1c1a49edad6115967d70f33a7531eeea6d8` |
+
+Merged into `1.1.x` through #490 (merge `329ae9f37`) on 2026-09-30 and shipped in v1.1.15 and v1.2.0. The owner's
+real-image check of both 1024k B-bank CMI locations was carried by the owner's `1.2.0` release approval
+(decisions 195, 199 and 206; see the [v1.2.0 closure](../1.2.x.md#released-v120--2026-09-30)).

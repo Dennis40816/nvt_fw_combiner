@@ -27,7 +27,8 @@ decision 178 startup-focus change (focus starts on inconspicuous shell content, 
 layout pass that measures the underline and focus-gap regions. The later observations show a missing ring frame
 instead of an overlap.
 Owner: Codex `gpt-6-sol`, `feature/1.1.15/flaky-fixes`.
-Resolution: test-only change fixed in `0700e25f4`. `AwaitHistoryReadyAsync` waits for report
+Resolution: test-only guard added in `0700e25f4` (#491, merge `2f8b31bb6`); frame hardening in #493 (merge
+`9d5783b4e`). `AwaitHistoryReadyAsync` waits for report
 history and calls `Dispatcher.UIThread.RunJobs()`, which drains the previously posted
 quiet-shell focus job. Startup work after history (report, diagnostics, deferred views, or
 external environment) can still affect focus; the exact interleaving behind the CI frame
@@ -52,3 +53,8 @@ matching pixels` at line 341, while the preceding state assertions passed (Home 
 hypothesis (not proven): under load the single render tick before the pixel read yields a frame composed
 before the ring was painted. Candidate test-only correction: pump render ticks until the frame reflects the
 asserted state, with a bound. Decision 193 (zero flaky at release) makes this a `1.1.15` release blocker.
+Release evidence, 2026-09-30: the v1.1.15 release (`ci` run `36697510116`, `release` run `36698726931`) and the
+v1.2.0 release (`ci` run `36738672808` on `3a73620c8`, `release` run `36740198408`) each passed the decision 193
+zero-flaky eligibility gate, which fails on any test that passed only on a retry in the release's source CI.
+The record stays open until later full runs confirm; the pull-request job summaries of #496-#500 were not
+checked for a retry of this test.

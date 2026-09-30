@@ -1,6 +1,6 @@
 # BUG-20260930-ab-pending-layout-splits-dp: with only the DP selected, the AB layout splits adjacent DP ranges into numbered rows
 
-Status: open (owner decision 204; fix in 1.2.x)
+Status: open (owner decision 204; fix in 1.2.9, decision 212)
 Severity: P3
 Found: 2026-09-30, owner photo of v1.1.15: NT51950 AB Code with only a 1024k DP_AB selected lists `DP AB #1` to
 `DP AB #5`, including `0x37000-0x3FFFF` / `0x40000-0x49FFF` and `0x77000-0x7FFFF` / `0x80000-0xFFFFF` as separate
@@ -22,5 +22,5 @@ accepted layout; internal region ids are not shown as content titles; a range is
 own it.
 Evidence: headless probe output (full vs DP-only segment identities) kept in the test area
 (`temp/diag-dp-only-keep.txt`); the photo in the owner's report.
-Owner: unassigned; the 1.2.x version slot is set in the allocation sync (decision 200).
+Owner: unassigned; `1.2.9` item R44 (decision 212).
 Resolution: pending.

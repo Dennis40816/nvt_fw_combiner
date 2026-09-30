@@ -74,7 +74,7 @@ single writer and rerun the affected checks.
 - One writer per file and per write-locked path. A worker that needs a path
   outside its lock records it under `Open` and stops that part.
 - The committed board and logs outrank chat messages.
-- Only the commander integrates into the trunk (for example `1.1.x`) or a
+- Only the commander integrates into the trunk (for example `1.2.x`) or a
   release branch.
 - Push, PR, GitHub writes, release, R3 approval and deletions outside the lock
   stay with the owner unless an envelope names them.

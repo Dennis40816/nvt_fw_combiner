@@ -1,6 +1,6 @@
 # BUG-20260928-b2-joint-recovery-entry-health-unavailable: Bootstrap recovery entry gate fails
 
-Status: deferred to the Launcher tranche (pre-existing cold-start health deadline; board decision 160)
+Status: deferred to `1.2.1` C01-1 (policy) and `1.2.6` C01-2 (bounded response with cold/warm evidence), decision 188 Q2 (pre-existing cold-start health deadline; board decision 160)
 Severity: P2
 Found: 2026-09-28, Codex (codex/gpt-6-astra), while running ADR 0077 B2 joint gates,
 at feature/1.1.13/b2a-prebuilt-catalog@8e74ece67.
@@ -23,6 +23,10 @@ failed 1/1 with the same expected/actual result (655 ms reported test time).
 The test-area evidence directory `v1113-b2-blocker-fixes` retains
 `base-restore.log`, `base-recovery.log` and `base-recovery.trx`.
 Owner: the Launcher tranche (board decision 160, 2026-09-28): not pursued in 1.1.13 or 1.1.14 because `1.2.0` is expected to ship as a single executable. Local runs of this test can fail on a cold start; CI passes.
+Update, 2026-09-30: that premise did not hold, since v1.2.0 ships the Launcher as its own five-asset set
+(`CHANGELOG.md` [1.2.0], Downloads and integrity). Decision 188 Q2 schedules the cold-health work: `1.2.1` C01-1
+decouples the health cutoff from `ProgressDelay` and `1.2.6` C01-2 delivers the bounded response with cold and warm
+evidence ([1.2.x allocation](../1.1.14/1.2.x-allocation.md)).
 Initial disposition: Classified pre-existing relative to B2; no product or assertion
 change, per the owner's base-failure stop rule. One baseline test run; no B2
 bisect. The detached baseline worktree was removed after collecting evidence.

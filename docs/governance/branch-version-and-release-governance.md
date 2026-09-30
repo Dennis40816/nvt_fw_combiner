@@ -54,7 +54,8 @@ manifest, or Catalog version into a different identity.
 
 Under [ADR 0080 items 10-12](../adr/0080-governance-reset.md#branches-releases-and-ci):
 
-1. `main` holds released code and `v*` tags. The minor-line trunk (`1.1.x`)
+1. `main` holds released code and `v*` tags. The minor-line trunk (currently
+   `1.2.x`; `1.1.x` retired after `v1.2.0`, board decisions 200 and 215)
    receives `feature/<version>/<topic>` pull requests.
 2. Cut the release branch `X.Y.Z` from the trunk at feature freeze. It takes
    release fixes, which merge back into the trunk, and opens the release pull
