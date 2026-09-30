@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`1.1.14 Released 2026-09-29; the next candidate rewrites this line`
-> 文件版本：`1.1.14`
+> 文件狀態：`1.2.0 Released 2026-09-30; the next candidate rewrites this line`
+> 文件版本：`1.2.0`
 > 文件基準日期：`2026-09-10`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
@@ -1150,7 +1150,7 @@ to each `0.10.x` version.
 30. As a firmware profile author, I want every physically declared repeated CRC field retained while applicability marks it Active, Unused, or Unknown, so that field existence is not mistaken for mutation authority.
 31. As a firmware profile author, I want `PerfectFamilyRelationship` to own one complete firmware definition while every partial relationship uses one typed, fact-scoped `SharedFactRelationship` with a readable role, so adding TP Flash Header or DiffDLM sharing does not require another relationship class and cannot leak unrelated facts.
 32. As a firmware profile author, I want symmetric AB layouts instantiated from one bank-relative definition where evidence supports it, so that A and B ranges are not duplicated.
-33. As a firmware profile author, I want irregular NT51950/NT51951 AB layouts to model only the opaque seed, required anchors, and TP paste mappings execution needs, so that the model does not invent unnecessary internal structure.
+33. As a firmware profile author, I want irregular NT51950/NT51951 AB layouts to model only the opaque seed, required anchors, and TP paste mappings execution needs, so that the model does not invent unnecessary internal structure. Since decision 192 (2026-09-29), the TP complement is declared as coarse owner-declared DP regions; DP-internal structure is still not modeled.
 34. As a firmware owner, I want TP BIN positions, final Flash positions, encoded Header addresses, and TP Backup placement distance to be distinct typed concepts, so that relocation cannot add an offset twice or mutate the wrong bytes.
 35. As a firmware owner, I want POSTBUILD transport scope separated from semantic write authority, so that an external processor may receive a staged bank container without gaining permission to change DP.
 36. As a firmware owner, I want TP Normal to remain immutable and TP Backup relocation/POSTBUILD to touch only explicitly declared fields, so that AB processing remains bounded by evidence.

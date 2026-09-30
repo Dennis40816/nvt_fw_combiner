@@ -17,7 +17,8 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
         string behavior,
         string? argumentsPath,
         TimeSpan deadline,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool expireAfterCreation = false)
     {
         string? previousBehavior = Environment.GetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR");
         string? previousArguments = Environment.GetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH");
@@ -33,9 +34,12 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", identity.OwnerReleaseManifestSha256);
             using TestExecutableLaunchLease executableLease = ExecutableLease(managedRoot, identity);
             using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
+            using var expiry = new CancellationTokenSource();
             var process = new AnonymousPipeManagedLauncherProcess(
                 ManagedProcessTermination.Instance,
-                admission);
+                admission,
+                deadlineSignal: expiry.Token,
+                afterProcessCreation: expireAfterCreation ? expiry.Cancel : null);
             return await process.StartUntilReadyAsync(
                 managedRoot,
                 statePath,

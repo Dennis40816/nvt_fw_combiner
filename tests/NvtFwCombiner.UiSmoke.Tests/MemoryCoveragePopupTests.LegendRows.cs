@@ -92,7 +92,8 @@ public sealed partial class MemoryCoveragePopupTests
                 Border marker = Assert.Single(row.GetVisualDescendants().OfType<Border>(), border => border.Classes.Contains("memoryCoverageMarker"));
                 Assert.Equal(new Size(10, 10), marker.Bounds.Size);
                 Assert.Equal(new CornerRadius(2), marker.CornerRadius);
-                Assert.InRange(Math.Abs(BoundsInWindow(marker, window).Left - railLeft), 0, 1);
+                Assert.Equal(new Thickness(2), row.BorderThickness);
+                Assert.InRange(Math.Abs(BoundsInWindow(marker, window).Left - railLeft - row.BorderThickness.Left), 0, 1);
             }
         }
         finally { window.Close(); }

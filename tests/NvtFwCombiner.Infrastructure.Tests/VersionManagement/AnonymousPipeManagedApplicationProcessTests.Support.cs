@@ -247,15 +247,22 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         ManagedAppVersion version,
         string behavior,
         TimeSpan deadline,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool expireAfterCreation = false,
+        Action? afterProcessCreation = null)
     {
         string? previous = Environment.GetEnvironmentVariable(BehaviorEnvironment);
         try
         {
             Environment.SetEnvironmentVariable(BehaviorEnvironment, behavior);
             using TestExecutableLaunchLease executableLease = ExecutableLease(managedRoot, version);
+            using var expiry = new CancellationTokenSource();
             string statePath = Path.Combine(managedRoot, "state", "version-manager.v1.json");
-            return await new AnonymousPipeManagedApplicationProcess(statePath).StartUntilReadyAsync(
+            return await new AnonymousPipeManagedApplicationProcess(
+                statePath,
+                ManagedProcessTermination.Instance,
+                deadlineSignal: expiry.Token,
+                afterProcessCreation: expireAfterCreation ? expiry.Cancel : afterProcessCreation).StartUntilReadyAsync(
                 managedRoot,
                 version,
                 executableLease,

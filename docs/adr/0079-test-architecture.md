@@ -20,10 +20,13 @@
   [1.1.12 board](../handoff/1.1.12.md) below reach these decisions in the
   integrated tree.
 - Date: 2026-09-26
+- Revised: 2026-09-29, owner decisions 191 and 193: CI-only failed-test retry and
+  five-minute blame-hang collection, with both attempts retained. See item 8
+  and the [CI failure-evidence contract](../ci/pull-request-ci.md#failure-evidence-and-in-job-retry).
 - Owners: Repository owner (test, CI and release policy)
 - Amends: [ADR 0027](0027-evidence-preserving-performance-remediation.md),
   section "2026-08-12 evidence-sharded .NET CI amendment", only as stated in
-  decision item 9
+  decision item 9 and the CI-only decision 191 amendment in item 8
 - Relates to: [ADR 0080](0080-governance-reset.md) (governance reset, accepted
   2026-09-27 as a staged design: the authority path map and the CI tiers of its
   batches G1-A, G1-B and G2); the CI failure-evidence
@@ -190,8 +193,10 @@ separately.
 - **Evidence.** The finalizer requires every shard's manifest, the exact
   eight-project inventory, and discovery reconciled with execution
   ([pull request CI](../ci/pull-request-ci.md)). ADR 0027 also asks for
-  "unique test ownership": no verifier lane runs the same test owner twice, and
-  artifacts carry logs, TRX and coverage only, never firmware payloads. The CI
+  "unique test ownership": one initial complete execution per test owner;
+  decisions 191/193 add the bounded CI failed-FQN retry of item 8. Artifacts
+  carry logs, TRX, coverage and bounded sequence diagnostics only, never memory
+  dumps or firmware payloads. GoldenRegression is never retried. The CI
   failure-evidence contract names every artifact by run attempt and has the
   finalizer verify each producer's newest attempt; until a real re-run has
   verified that, a failed run is followed by a new workflow run rather than
@@ -239,7 +244,9 @@ product issues waiting for that evidence.
    never whether it may be skipped at a full-suite boundary.
 5. Test moves are mechanical and preserve behavior; removing serialization and
    changing what a test asserts are separate, reviewed changes.
-6. Stability comes from isolation and deterministic budgets, not retries.
+6. Stability comes from isolation and deterministic budgets. Decision 191
+   (owner, 2026-09-29) permits one evidence-preserving CI retry of failed test
+   FQNs; recovery is recorded as flaky and never establishes that a bug is fixed.
 7. Each mechanism lands with its first consumer.
 
 ## Considered options
@@ -613,32 +620,74 @@ splits set their own in their plans.
 - A parallel test owns a temporary workspace under the session scratch root,
   never writes shared repository paths and never mutates process-wide state
   outside a serialized collection.
-- **Re-runs, two separate questions.** A passing re-run or a new run never
-  proves that an intermittent failure is fixed: the failure stays a bug file
-  until its cause is fixed or the change is reverted
-  ([tests instructions](../../tests/AGENTS.md)). Whether a re-run's artifacts
-  are valid verification evidence is decided by the CI failure-evidence
-  contract, not here: its finalizer verifies each producer's newest attempt
-  with attempt-named artifacts, and until a real re-run has verified that, a
-  failed run is followed by a new workflow run, not by "Re-run failed jobs".
-  This ADR keeps that pending gate. Shadow mode keeps every attempt.
-- No automatic retry in CI or in the verifier.
-- Timing assertions prefer counts and work units over wall-clock limits (ADR
-  0027).
-- **Hang detection (U1) is an R3 sub-item of the CI failure-evidence
-  contract.** VSTest blame with dump type `none` names the hanging test and
-  stops the test host without a memory dump. Its extra attachment changes the
-  producer allowlist, the manifest and the finalizer, so it is delivered with
-  them and with negative tests (a missing, extra or oversized attachment).
-  Memory dumps are not uploaded: ADR 0027 allows logs, TRX and coverage only
-  and forbids firmware payloads in artifacts, and a test-host dump can hold
-  fixture bytes.
+- **In-job retry (revised 2026-09-29, decisions 191/193).** CI reruns only
+  failed FQNs once after a complete initial run, using validated TRX TestMethod
+  metadata and exact equality filters. All theory rows of a selected method
+  rerun, including passing siblings. Only those definitions require retry
+  metadata validation; unrelated passing definitions cannot veto selection.
+  At most 20 distinct failed FQNs are admitted. Missing, extra, skipped,
+  inconsistent or still-failing retry results fail the shard. Both original
+  TRX files and attempt logs remain distinct, hashed evidence. Coverage uses
+  the first complete run only. Retry omits Coverlet instrumentation, so an
+  instrumentation-dependent failure can be labelled flaky, not fixed.
+  `NvtFwCombiner.GoldenRegression.Tests` is never retried: any failure directly
+  fails the shard and finalizer. Local/release verification retains no retry.
+- **Flaky is still a bug.** Shard and aggregate summaries report every
+  recovered FQN and emit `::warning title=Flaky test::<project> <FQN>`. The
+  finalizer recomputes the flaky list and requires a case-sensitive full FQN
+  mention in a checkout `docs/handoff/bugs/BUG-*.md` file, with the token
+  boundaries defined by the
+  [CI contract](../ci/pull-request-ci.md#flaky-bug-records-and-merge-gate).
+  Missing records fail the check. The commander links each identity and run to
+  its bug before merge; a passing retry does not fix or close it. Failed
+  producer diagnostics are best-effort and cannot mask the producer-failed
+  error. Two failures or invalid evidence/coverage keep the aggregate failed.
+- **Release requires zero flaky tests (decision 193).** Release source-CI
+  admission rejects any `Flaky test` annotation across every workflow attempt
+  of that source run, even with a bug record. Fix the test or start a completely
+  new run that passes on its first attempt; rerunning jobs cannot erase the
+  observation. The [release contract](../ci/release-package.md#source-ci-zero-flaky-gate)
+  owns the closed API evidence. The release policy is R3 with release-owner and
+  governance-owner under the authority path map. No workflow change is needed.
+- **Separate attempt scopes.** Job-local `attempt-1` and `attempt-2` differ
+  from GitHub's `runAttempt`. The finalizer recomputes both TRX verdicts and the
+  flaky list. Latest-producer workflow-attempt provenance remains in force.
+  Until a real workflow re-run verifies it, start a new workflow run instead
+  of "Re-run failed jobs". Shadow mode keeps every attempt.
+- **No other automatic retry.** Build, discovery, incomplete/aborted execution,
+  test-platform errors, hang and crash evidence are not retried: they cannot
+  establish a trustworthy complete failed-test selection. Retrying discovery
+  could hide the foreground-thread/JSON defect without identifying a failed
+  test. The exception applies only to the shared CI test-shard command;
+  release source-CI admission cannot use retry recovery as a release pass.
+- **CI hang budget (decisions 191/193).** VSTest blame-hang detects five
+  minutes of test-execution inactivity using `HangDumpType=None`: no memory
+  dump is collected. Progress resets the timer; it is not a strict deadline
+  for each parallel test, and termination adds time. Decision 193 accepts this.
+  The first real Windows CI hang is a closure gate: retain the real sequence,
+  stalled test identity, elapsed-time log, timer/termination behavior and proof
+  of no collected/uploaded dump. Fake runners do not satisfy this gate.
+  Only bounded `Sequence_<32 hex digits>.xml` files are staged, using exact
+  `re.fullmatch(r"Sequence_[0-9a-fA-F]{32}\.xml", name)` matching. Hangs fail
+  without retry. The [CI contract](../ci/pull-request-ci.md#hang-diagnostics)
+  owns sizes, allowlisting and validation. Decision 193 supersedes decision
+  191's interim mini-dump choice; ADR 0027's no-firmware-payload rule remains.
+  Reproduce any needed dump locally, never in CI artifacts.
+- **Retry admission budget.** Starting at shard-verifier entry, a monotonic
+  25-minute budget reserves five minutes of the 30-minute job for external
+  setup, cleanup and upload; any active lane deadline reduces it. Retry needs
+  at least five minutes plus two minutes margin remaining. Insufficient time
+  or more than 20 failed FQNs refuses attempt 2 with fixed reasons in the CI
+  contract. This admission guard cannot turn the inactivity timer into a
+  per-test wall-clock guarantee or bound unexpectedly long external setup.
 
 ### 9. Partitions and the ADR 0027 amendment
 
 ADR 0027's "each project is run unfiltered" becomes: in a full run, each test
 of each project runs exactly once, either in one unfiltered run or in a
-verified exact partition. A partition is allowed only when it is declared in
+verified exact partition. Decision 191 adds only the CI failed-FQN retry of
+item 8 after that complete first attempt; local/release full runs keep the
+single-execution rule. A partition is allowed only when it is declared in
 `scripts/verify.py` (never in workflow YAML), each part records its filtered
 discovery against the same assembly hash, the parts are disjoint and their
 union equals the unfiltered discovery, and the finalizer checks all of it. At
@@ -712,7 +761,7 @@ elsewhere are upper bounds, not waits.
 | ID | Option | Expected effect | Cost and risk | Needs |
 | --- | --- | --- | --- | --- |
 | U0 | Measure: per-class and per-test time from the TRX of a green CI UI shard (kept three days), the phase split from its shard log, and one local run on a quiet machine | Shows where the 479 s go; prerequisite for U2 to U5 | about an hour; none | an artifact download |
-| U1 | Diagnostics: hang detection without memory dumps (item 8), failing test names in the log (CI failure-evidence contract), per-test timeouts on UI waits | Faster diagnosis; no speed change | R3 sub-item of the CI failure-evidence contract for the hang attachment | `verify.py` owner |
+| U1 | Diagnostics: five-minute VSTest inactivity detection with sequence only (item 8, decisions 191/193), failing and flaky test names in the log and summary, per-test timeouts on UI waits | Bounded hang diagnosis; no retry for hangs | R3 CI failure-evidence sub-item; bounded sequence attachments, no memory dumps, both attempts retained | `verify.py` owner |
 | U2 | In-project fixes guided by U0. U2a: split the four mixed classes in two changes (S4): first a mechanical move that keeps every file in `UiAvaloniaRuntime`, then a separate change that takes out only the files whose S9 review shows no direct or indirect UI, global-resource, background or process-wide use. U2b: replace fixed sleeps with waits on the observed event. U2c: where U2a multiplies Bootstrap group fixtures, measure the cost and apply S5 | U2a is the largest expected in-project gain (size known only after U0); U2b is for stability | R1 test-only; each new class adds a Bootstrap fixture; unclear files stay serialized | U0; write locks clear |
 | U3 | Less coverage work on pull requests | Decided by board decision 69 (revised B): unchanged for pull requests that reach product code; none for those that reach no product module | a coverage policy and finalizer change (item 4) | G2 (R3) |
 | U4 | Build once; test shards reuse the Release build | Removes the per-shard restore and build from every shard | artifact transfer; build-output custody (hash checks exist) | G2 (R3) |
@@ -766,8 +815,18 @@ Infrastructure run inside `core`.
 - Splits collide with active work -> S7.
 - The selector wrongly marks a producer not applicable -> the finalizer
   recomputes the selection itself (item 9).
-- A later passing attempt hides a failure -> shadow mode keeps every attempt;
-  the CI failure-evidence contract owns re-run evidence.
+- A later passing attempt hides a failure -> decision 191 keeps both attempts,
+  requires the finalizer to reconcile their exact identities, reports flaky
+  tests, and requires checkout bug records in the finalizer. A passing retry
+  never proves the cause fixed; the CI failure-evidence contract owns evidence.
+- A hang consumes the job timeout -> five-minute VSTest inactivity detection,
+  bounded sequence evidence, no hang retry and conservative retry admission.
+  Concurrent progress and termination overhead require real CI confirmation.
+- A dump leaks memory or exhausts artifacts -> no dump collection or upload;
+  sequence-only regular files with size/count bounds and three-day retention.
+- Filtered retries inflate coverage or hide missing cases -> retain initial
+  complete coverage, compare exact selected theory rows, and fail on evidence
+  drift. Release verification and its Golden obligations do not use this retry.
 
 ## Compatibility and migration
 
@@ -989,8 +1048,8 @@ T4b activation.
    --all`, including its callers such as `main-package.yml`, and the other
    local runs of that inventory) runs UiSmoke as a verified exact partition of
    three parts, ahead of T4b. T4b's "the partition rule of item 9 in force"
-   then concerns the CI producers only; they still run each project
-   unfiltered. Release-Golden subsets and the CI shard, finalizer and
+   then concerns the CI producers only; their first attempt still runs each
+   project unfiltered (decision 191 later adds the CI-only retry). Release-Golden subsets and the CI shard, finalizer and
    required-check paths are unchanged, as are the coverage policy and the
    Infrastructure settings. On 2026-09-28, L3 removed project-level
    exclusivity for Infrastructure.Tests because the 1.1.10 IdentityConflict
@@ -1068,7 +1127,8 @@ T4b activation.
 - A rename of a listed type moves it to part 3 and reports the old name as
   stale; the balance drifts toward part 3 until the lists are updated.
 - G2 may reuse the same declaration and checker for CI; the CI manifest then
-  gains per-part rows. Until then CI stays unfiltered.
+  gains per-part rows. Until then CI's first attempt stays unfiltered;
+  decision 191's filtered failure retry is not a project partition.
 
 ### Verification
 

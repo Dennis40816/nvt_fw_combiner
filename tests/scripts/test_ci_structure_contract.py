@@ -60,7 +60,7 @@ class CiStructureContractTests(unittest.TestCase):
                     Loader=yaml.BaseLoader,
                 )
                 self.assertEqual(
-                    ["main", "1.1.x"], workflow["on"]["push"]["branches"]
+                    ["main", "1.2.x"], workflow["on"]["push"]["branches"]
                 )
                 self.assertIn("pull_request", workflow["on"])
 

@@ -18,7 +18,10 @@ covered only `1.1.x`.
 Evidence: `.github/workflows/ci.yml:6-7` and `docs/ci/workflow-templates/ci.yml:6-7`
 (`push: branches: [main, 1.1.x]`), pinned by the contract test above; decision 184 on the
 [`1.1.x` board](../1.1.12.md) cuts `1.2.x`; the trunk ruleset pattern `*.*.x` covers `1.2.x`.
-Owner: unassigned. The fix (add `1.2.x`, or match every trunk, in both workflow files and the contract test)
-changes a CI workflow, so it takes its own CI-governance gate and is not bundled with a records or dependency
-pull request.
-Resolution: not fixed.
+Owner: Claude Code, `feature/1.2.1/post-1.2.0-sync`. The fix changes a CI workflow; decision 200 (2026-09-30)
+places it in the post-`1.2.0` back-merge pull request, which is R3 (`release`: `VERSION` and
+`.github/workflows/**`) in any case, instead of the separate CI-governance pull request first planned. Decision
+215 chooses `[main, 1.2.x]` in both workflow files, the contract test and `.github/workflows/README.md`; `1.1.x`
+is frozen and takes no pull requests.
+Resolution: changed on `feature/1.2.1/post-1.2.0-sync`, pending review and merge; the first push `ci` run on the
+resulting `1.2.x` merge commit is the verification.

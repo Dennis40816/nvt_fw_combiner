@@ -24,6 +24,8 @@ internal static class MemoryCoverageBarProjection
     internal static IReadOnlyList<MemoryCoverageSegmentViewModel> CoalesceContent(
         IReadOnlyList<MemoryCoverageSegmentViewModel> slices, ShellTextResources text)
     {
+        // Numbering is display state on shared slices; clear a previous rebuild's before runs copy any title.
+        foreach (MemoryCoverageSegmentViewModel slice in slices) { slice.SetDisplayOrdinal(0); }
         var result = new List<MemoryCoverageSegmentViewModel>();
         for (int index = 0; index < slices.Count;)
         {
@@ -37,7 +39,21 @@ internal static class MemoryCoverageBarProjection
             }
             result.Add(parts.Count == 1 ? parts[0] : ContentRun(parts, text));
         }
+        NumberRepeatedTitles(result);
         return result.AsReadOnly();
+    }
+
+    /// <summary>A title shown on more than one row gets "#1", "#2" in rail order; a single row stays plain.</summary>
+    private static void NumberRepeatedTitles(List<MemoryCoverageSegmentViewModel> rows)
+    {
+        foreach (IGrouping<string, MemoryCoverageSegmentViewModel> repeated in rows
+            .Where(static row => row.CanNumberRepeatedTitle)
+            .GroupBy(static row => row.DisplayTitle, StringComparer.Ordinal)
+            .Where(static group => group.Skip(1).Any()))
+        {
+            int ordinal = 0;
+            foreach (MemoryCoverageSegmentViewModel row in repeated) { row.SetDisplayOrdinal(++ordinal); }
+        }
     }
 
     private static MemoryCoverageSegmentViewModel ContentRun(
@@ -75,6 +91,16 @@ internal static class MemoryCoverageBarProjection
     private static string Join(IEnumerable<string> values)
     {
         return string.Join(" / ", values.Distinct(StringComparer.Ordinal));
+    }
+
+    /// <summary>Outer start and end of the ranged slices of one address space; empty when there is none or several.</summary>
+    internal static (string Start, string End) OuterAddresses(IEnumerable<MemoryCoverageSegmentViewModel> slices)
+    {
+        MemoryCoverageSegmentViewModel[] ranged = [.. slices.Where(static slice => slice.RangeStart.HasValue && slice.RangeEndExclusive > slice.RangeStart)];
+        return ranged.Length == 0 || ranged.Select(static slice => slice.AddressSpaceId).OfType<string>().Distinct(StringComparer.Ordinal).Skip(1).Any()
+            ? (string.Empty, string.Empty)
+            : (FormattableString.Invariant($"0x{ranged.Min(static slice => slice.RangeStart!.Value):X5}"),
+                FormattableString.Invariant($"0x{ranged.Max(static slice => slice.RangeEndExclusive!.Value) - 1:X5}"));
     }
 
     internal static IReadOnlyList<MemoryCoverageBarItem> Create(IReadOnlyList<MemoryCoverageSegmentViewModel> slices)

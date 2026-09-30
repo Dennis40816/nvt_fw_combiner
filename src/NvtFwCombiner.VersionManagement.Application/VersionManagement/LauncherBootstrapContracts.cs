@@ -389,6 +389,7 @@ internal interface IManagedLauncherProcess
         ManagedProcessLifetimeKind kind,
         CancellationToken cancellationToken);
 
+    /// <summary>Bounds lease acquisition, validation, contained creation, and readiness from start entry (decision 194). Cleanup confirmation may extend the terminal result by up to ten seconds.</summary>
     ValueTask<LauncherProcessStartResult> StartUntilReadyAsync(
         string managedRoot,
         string statePath,

@@ -283,6 +283,14 @@ token with any other, so granting `workflows` on the installation is not
 enough for R-1: the helper's permission set needs an owner-reviewed change
 first.
 
+Amendment, 2026-10-01 ([board decision 216](../1.2.x.md)): that change is the opt-in
+`-IncludeWorkflowsWrite` switch of the reviewed helper revision `4ac380da8` (not merged
+into this trunk). The owner enabled it on 2026-10-01 and keeps it in the Git helper
+command until `1.2.1` is released, instead of per batch; at that release the owner
+decides whether it stays. Risk, explained to the owner before this choice: while it is on, every Git token issued for this
+repository may change `.github/workflows/`, and a pushed branch's pull-request CI runs
+that branch's workflow.
+
 - [ ] **owner → owner.** Optional preview, which contacts no GitHub: in your
       script folder run
       `pwsh -NoProfile -File .\New-NfcGitHubApp.ps1 -Owner <owner> -Repo <repo> -AppName nfc-agent-<owner> -DryRun`.
