@@ -720,5 +720,14 @@ exactly (2158 to 2162, 2208 to 2211).
   second construction, a Merge-reorder test independent of the run-head rule, above-placement stem
   tests for markers and lanes, and keyboard focus lighting a legend row.
 
-Open: delta review of the P3 fixes and the exact-head review record, CI, owner approval (including the
-code-size baseline raise).
+Delta review of `ff99c5940..468f24842` (fresh Claude Sonnet 5 session): accept, openP0P1 0; exact-head
+record posted as review 5361717605.
+
+CI on `468f24842` failed `python / repository policy (repository-scripts-s-z)` (and the aggregate
+`python-worker / verify`): `test_uismoke_writers_outside_the_session_are_isolated_per_compiled_type` found the
+unlisted variable `NFC_MEMORY_TIMING_OUTPUT_DIR`, added by stage commit `20a66dd3b` in
+`MemoryCoveragePopupTests.Measurements.cs`. The opening-time measurement now writes to the listed caller
+override `NFC_VISUAL_OUTPUT_DIR` (same opt-in evidence directory semantics); `verify.py` is unchanged. The
+policy test passes locally and the popup class stays 162/162.
+
+Open: exact-head record for the new head, CI, owner approval (including the code-size baseline raise).

@@ -49,7 +49,7 @@ public sealed partial class MemoryCoveragePopupTests
                 Assert.Same(slices[0], FindNamed<Border>(window, "MemorySliceCard")!.DataContext);
                 if (!reduced) { await Task.Delay(160, TestContext.Current.CancellationToken); Render(); }
             }
-            string? directory = Environment.GetEnvironmentVariable("NFC_MEMORY_TIMING_OUTPUT_DIR");
+            string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             if (!string.IsNullOrEmpty(directory))
             {
                 _ = Directory.CreateDirectory(directory);
