@@ -180,3 +180,6 @@ keeps the `0700e25f4` guard, the pixel thresholds and every gap/overlap assertio
   recorded observations. After the change: the class alone 5x 13/13, and 20 class runs (260 cases) passed
   under the same 614-test load. This shows no regression, not that the flake is gone.
 - The bug record stays open until a release run and later full runs show no recurrence.
+
+The navigation focus hardening merged into `1.1.x` through #493 (merge `9d5783b4e`) on 2026-09-30. The bug record
+stays open until the release run and later full runs show no recurrence.

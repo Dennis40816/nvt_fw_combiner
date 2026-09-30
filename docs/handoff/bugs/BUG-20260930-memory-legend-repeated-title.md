@@ -1,6 +1,6 @@
 # BUG-20260930-memory-legend-repeated-title: An AB image legend lists two rows with the same title
 
-Status: fixed (on `feature/1.1.15/memory-layout`, pull request #492, pending merge)
+Status: fixed (merged into `1.1.x` through #492, merge `efad0f294`)
 Severity: P3
 Found: 2026-09-30, AB Merge inventory, at feature/1.1.15/memory-layout@9c946e457.
 Where: MemoryCoverageBarProjection.cs (CoalesceContent), MemoryCoverageSegmentViewModel.cs

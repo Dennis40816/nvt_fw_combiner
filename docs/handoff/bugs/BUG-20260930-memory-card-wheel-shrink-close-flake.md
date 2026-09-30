@@ -1,6 +1,6 @@
 # BUG-20260930-memory-card-wheel-shrink-close-flake: the card-wheel test loses its card after shrinking it under load
 
-Status: fixed (on `feature/1.1.15/memory-layout`, pull request #492, pending merge)
+Status: fixed (merged into `1.1.x` through #492, merge `efad0f294`)
 Severity: P3
 Found: 2026-09-30, Claude Code commander (Claude Opus 5.5), CI run `36672274823` (`dotnet / test (ui)`, job
 `109749638184`) on pull request #492 head `60843aaec`: the test failed on attempt 1 and passed on the retry, so the

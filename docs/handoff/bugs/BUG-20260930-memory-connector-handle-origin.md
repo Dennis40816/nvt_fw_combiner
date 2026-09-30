@@ -1,6 +1,6 @@
 # BUG-20260930-memory-connector-handle-origin: Card and local-view stems started at the 24 DIP handle, not the real range
 
-Status: fixed (on `feature/1.1.15/memory-layout`, pull request #492, pending merge)
+Status: fixed (merged into `1.1.x` through #492, merge `efad0f294`)
 Severity: P2
 Found: 2026-09-30, owner visual review of the running build with Golden examples loaded,
 at feature/1.1.15/memory-layout@9c946e457.
