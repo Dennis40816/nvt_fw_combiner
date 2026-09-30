@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.MemoryLayout;
 using System.Globalization;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
@@ -211,7 +212,7 @@ internal static partial class UiCompositionRunner
                     CompositionAddressSpaceIds.TpInput))
             {
                 (string label, string detail) = text.GetPendingInputText(
-                    CompositionAddressSpaceIds.TpInput,
+                    MemoryArtifactKind.Tp,
                     "TP BIN");
                 return
                 [

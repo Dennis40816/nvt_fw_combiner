@@ -10,4 +10,7 @@ Evidence: harness run in the test area (`parity-1112/run-c1`), row in `docs/hand
 Evidence (added with the two-sided run): the map's 262144-byte capacity dates from `v0.9.16`; `99766df75` (first released in `v0.10.1`, "preserve 950-family active DiffNF (#188)") changed its topology from `cascade`, minimum 2 chips, to `exact-count` 2 and added the AUTO_PRJ-599 alias as evidence, without changing the capacity. With the approved predecessor build (run `run-bc1`), v0.9.16 builds the identical precursor base (`ff9ad012...aa32`) and then also blocks the CtrlRAM preview: `profile.v2.compile.map-selection-invalid` ("must identify a canonical image map for the requested runtime reference-replace capacity and topology"). Both versions therefore reject this plan-bound 512 KiB base, which supports hypothesis (a), a plan or alias binding defect, and makes a 1.x regression unlikely; the two versions only word the rejection differently.
 Owner: unassigned; plan and alias binding belong to the 1.1.13 formal comparator work, product classification to the firmware owner
 Allocation (2026-09-28): 1.1.14 with rolling parity P-2 (board decision 154).
+Allocation (2026-09-29): moved to 1.2.x with the rest of parity P-2 (board decision 167), landing with the R35
+work in `1.2.2` per the accepted [1.2.x allocation](../1.1.14/1.2.x-allocation.md) (board decision 175). This
+supersedes the 1.1.14 target above.
 Resolution:

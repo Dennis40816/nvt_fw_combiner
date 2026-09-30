@@ -496,3 +496,39 @@ inside protected CI after candidate verification and environment approval; the
 repository owner, not the workflow token, owns protection and immutability
 configuration.
 Development tags never publish assets.
+
+
+## Source-CI zero-flaky gate
+
+Owner decision 193 (2026-09-29) requires zero flaky tests in the release's exact
+source CI. Successful `dotnet / build-test` alone is insufficient: ordinary CI
+can accept a failed test recovered by a job-local retry when its checkout bug
+record exists. Release rejects that recovery even with a bug record. Fix the
+test or start a completely new workflow run that passes on the first attempt;
+rerunning jobs within the same run cannot erase a flaky observation.
+
+`scripts/release_promotion_policy.py` extends its existing exact-source latest
+push-main run selection with `sourceCi.flakyEvidence`. It reads every workflow
+attempt from 1 through the selected run's `run_attempt`, fully paginates each
+attempt's jobs, then reads every job's GitHub Actions check-run annotations.
+Check URLs must identify this repository; check id, source SHA, completed state,
+app identity and annotation count are verified. Annotation pagination must match
+the advertised count; check output and run identity are re-read after collection
+to reject drift. Any annotation titled `Flaky test` blocks release. Missing,
+unavailable, malformed or incomplete evidence fails closed; no API error is
+interpreted as zero flaky tests.
+
+The closed candidate observation retains each attempt number and job's id, run id,
+source SHA, name, status, conclusion, check-run id, annotation count, pagination
+completion and flaky messages. Unrelated annotation text, runner metadata and
+API URLs are excluded. The latest observed job inventory must equal the selected
+source-CI jobs; every earlier attempt remains represented. The existing
+`actions: read` and `checks: read` permissions suffice; workflows are unchanged.
+A real source-CI annotation/API observation is still required as integration
+validation; offline fixtures prove policy behavior, not GitHub transport behavior.
+
+Authority: the policy script is classified `release-approval-policy`, **R3** with
+**release-owner and governance-owner**. Its focused tests and exact-head review
+are required before integration/use, with both roles named in owner approval.
+The new zero-flaky evidence requirement does not alter release Golden execution,
+independent expected bytes, approval principals, signing or publication rules.

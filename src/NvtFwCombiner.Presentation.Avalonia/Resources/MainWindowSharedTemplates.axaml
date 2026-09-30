@@ -504,7 +504,7 @@
         </Border>
       </StackPanel>
 
-      <views:MemoryCoverageBar ItemsSource="{Binding MergeCoverageSegments}" Labels="{Binding Text}" IsPlain="True" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
+      <views:MemoryCoverageBar ItemsSource="{Binding MergeCoverageSegments}" StartAddress="{Binding MergeStartAddress}" EndAddress="{Binding MergeEndAddress}" Labels="{Binding Text}" IsPlain="True" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
       </StackPanel>
     </views:SpaciousPanel>
   </Border>

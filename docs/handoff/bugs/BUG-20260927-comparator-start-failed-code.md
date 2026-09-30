@@ -10,4 +10,8 @@ Expected: the comparator contract and its classification recognize the new code,
 Evidence: the W6-B review.
 Owner: rolling parity P-2 (contract change, R2).
 Allocation (2026-09-28): 1.1.14 with rolling parity P-2 (board decision 154).
-Resolution:
+Allocation (2026-09-29): moved to 1.2.x with the rest of parity P-2 (board decision 167); the comparator work
+lands in `1.2.2` as part of R35 per the accepted [1.2.x allocation](../1.1.14/1.2.x-allocation.md) (board decision
+175). This supersedes the 1.1.14 target above; the exact-output false-inconsistent fix is the one P-2 item that
+still shipped in 1.1.14 (`BUG-20260927-predecessor-validator-false-inconsistent`).
+Resolution: not fixed; pending the `1.2.2` comparator work.

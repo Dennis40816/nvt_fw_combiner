@@ -100,6 +100,11 @@ Rules:
   invocation only after the process adapter confirms exit. Unconfirmed
   termination returns a distinct fail-closed outcome and preserves the current
   recoverable journal phase without starting another process.
+- For both managed Desktop and version Launcher starts, the ready deadline runs
+  from start entry through lifetime lease acquisition, final validation,
+  contained process creation, and readiness; expiry prevents late creation and
+  requires cleanup confirmation before fallback (decision 194 in
+  `docs/handoff/1.1.12.md`).
 - Installed-Launcher verification and process creation share one repository-owned
   composite launch lease. The repository first acquires no-follow custody of
   the complete admitted version tree, then verifies the admission-pinned release

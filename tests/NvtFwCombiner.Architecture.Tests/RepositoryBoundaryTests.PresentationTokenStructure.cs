@@ -150,7 +150,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GroupBy(static slot => slot.RegionGroup)", builder, StringComparison.Ordinal);
         Assert.Contains("segment.LogicalCoverageGroupId", builder, StringComparison.Ordinal);
         Assert.Contains("GroupBy(static entry => entry.Key, StringComparer.Ordinal)", builder, StringComparison.Ordinal);
-        Assert.Contains("GroupBy(ResolveDisplayGroup)", builder, StringComparison.Ordinal);
+        Assert.Contains("segment.DisplayGroup", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveDisplayGroup", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesKeptPattern", builder, StringComparison.Ordinal);
         Assert.DoesNotContain("ResolveDisplayId", builder, StringComparison.Ordinal);
         Assert.DoesNotContain("selectedSlotsByRegion", builder, StringComparison.Ordinal);
         Assert.DoesNotContain("segment.SourceSlotId", builder, StringComparison.Ordinal);

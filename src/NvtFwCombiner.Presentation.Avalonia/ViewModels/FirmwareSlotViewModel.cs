@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.MemoryLayout;
 using System.Collections.ObjectModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -304,8 +305,10 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     public void SetInputInspectionPending(string status)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
-        _inputIssueStatus = null;
+        InputIssueStatus = null;
         IsInputInspectionPending = true;
+        InputAvailabilityIssue = MemoryInputAvailabilityIssue.None;
+        InputAuthoringIssues = [];
         IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;
         InputInspectionStatus = status;
@@ -315,7 +318,9 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     public void SetInputInspection(
         FirmwareInputInspectionSeverity severity,
         string status,
-        NvtFwCombiner.Application.Authoring.AuthoringInputSlotStatus? inspectedStatus = null)
+        NvtFwCombiner.Application.Authoring.AuthoringInputSlotStatus? inspectedStatus = null,
+        MemoryInputAvailabilityIssue availabilityIssue = MemoryInputAvailabilityIssue.None,
+        IReadOnlyList<NvtFwCombiner.Domain.Composition.CompositionIssue>? authoringIssues = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
         if (!Enum.IsDefined(severity))
@@ -323,7 +328,9 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
             throw new ArgumentOutOfRangeException(nameof(severity), severity, null);
         }
 
-        _inputIssueStatus = inspectedStatus;
+        InputIssueStatus = inspectedStatus;
+        InputAvailabilityIssue = availabilityIssue;
+        InputAuthoringIssues = Array.AsReadOnly([.. authoringIssues ?? []]);
         IsInputInspectionPending = false;
         IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = severity;
@@ -335,7 +342,9 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     public void SetBaseDiscoveryInspected(string detail)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
-        _inputIssueStatus = null;
+        InputIssueStatus = null;
+        InputAvailabilityIssue = MemoryInputAvailabilityIssue.None;
+        InputAuthoringIssues = [];
         IsInputInspectionPending = false;
         IsBaseDiscoveryInspected = true;
         InputInspectionSeverity = null;
@@ -346,7 +355,9 @@ internal sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Clears stale input health when the selected path or compiled context changes.</summary>
     public void ClearInputInspection()
     {
-        _inputIssueStatus = null;
+        InputIssueStatus = null;
+        InputAvailabilityIssue = MemoryInputAvailabilityIssue.None;
+        InputAuthoringIssues = [];
         IsInputInspectionPending = false;
         IsBaseDiscoveryInspected = false;
         InputInspectionSeverity = null;

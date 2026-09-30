@@ -148,7 +148,7 @@ public sealed partial class MemoryCoveragePopupTests
                 Assert.Equal(borderBrush, surface.BorderBrush);
                 Assert.NotEqual(default, surface.BoxShadow);
                 StackPanel frame = Assert.IsType<StackPanel>(surface.GetVisualParent());
-                Assert.Equal(global::Avalonia.Media.Brushes.Transparent, frame.Background);
+                Assert.Null(frame.Background);
             }
             global::Avalonia.Controls.Shapes.Polygon notch = Assert.Single(window.GetVisualDescendants()
                 .OfType<global::Avalonia.Controls.Shapes.Polygon>(), item => item.Name == "MemoryCardNotch");
@@ -977,7 +977,8 @@ public sealed partial class MemoryCoveragePopupTests
 
     private static ProportionalStackPanel MainPanel(MemoryCoverageBar bar)
     {
-        return Assert.Single(bar.GetVisualDescendants().OfType<ProportionalStackPanel>());
+        ItemsControl rail = Assert.Single(bar.GetVisualDescendants().OfType<ItemsControl>(), control => control.Name == "MemoryMainRail");
+        return Assert.Single(rail.GetVisualDescendants().OfType<ProportionalStackPanel>());
     }
 
     private static Control MainTarget(MemoryCoverageBar bar, int index)
@@ -1000,6 +1001,35 @@ public sealed partial class MemoryCoveragePopupTests
     private static Rect BoundsInWindow(Control control, Window window)
     {
         return new Rect(Assert.IsType<Point>(control.TranslatePoint(default, window)), control.Bounds.Size);
+    }
+
+    /// <summary>The overview text and legend markers a decorative stem must never cross.</summary>
+    private static Rect[] OverviewGlyphs(Window window, MemoryCoverageBar bar)
+    {
+        Panel legend = Assert.Single(bar.GetVisualDescendants().OfType<Panel>(), panel => panel.Name == "MemoryLegend");
+        return [.. bar.GetVisualDescendants().OfType<TextBlock>()
+            .Where(static block => block.IsEffectivelyVisible && !string.IsNullOrEmpty(block.Text))
+            .Select(block => BoundsInWindow(block, window))
+            .Concat(legend.Children.OfType<Border>().Select(static row => row.Child).OfType<Grid>()
+                .Where(static row => row.Children[0].IsEffectivelyVisible)
+                .Select(row => BoundsInWindow(row.Children[0], window)))];
+    }
+
+    /// <summary>Every visible stem under the frame stays clear of overview text and markers; returns the strokes.</summary>
+    private static Rect[] AssertStemsClearOfOverviewGlyphs(Window window, MemoryCoverageBar bar, Control frame)
+    {
+        Rect[] glyphs = OverviewGlyphs(window, bar);
+        List<Rect> strokes = [];
+        foreach (global::Avalonia.Controls.Shapes.Line line in frame.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Line>())
+        {
+            Point start = Assert.IsType<Point>(line.TranslatePoint(line.StartPoint, window));
+            Point end = Assert.IsType<Point>(line.TranslatePoint(line.EndPoint, window));
+            Rect stroke = new(Math.Min(start.X, end.X) - 0.5, Math.Min(start.Y, end.Y) - 0.5,
+                Math.Abs(end.X - start.X) + 1, Math.Abs(end.Y - start.Y) + 1);
+            foreach (Rect glyph in glyphs) { Assert.False(stroke.Intersects(glyph), $"Stem {stroke} crosses overview glyph {glyph}"); }
+            strokes.Add(stroke);
+        }
+        return [.. strokes];
     }
 
     private static T? FindNamed<T>(Window window, string name)

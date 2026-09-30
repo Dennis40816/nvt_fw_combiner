@@ -71,9 +71,9 @@ public sealed partial class MemoryCoveragePopupTests
         finally { window.Close(); }
     }
 
-    /// <summary>A later legend row must not hide earlier targets when its card opens upward.</summary>
+    /// <summary>An upward rail card preserves every passive legend row and leaves no input corridor.</summary>
     [AvaloniaFact]
-    public void UpperCardFromStackedLegendKeepsAllLegendRowsVisible()
+    public void UpperRailCardKeepsAllPassiveLegendRowsVisible()
     {
         MemoryCoverageSegmentViewModel[] slices = [.. Enumerable.Range(0, 4).Select(index =>
             new MemoryCoverageSegmentViewModel("range", $"Source {index}", "detail", MemoryCoverageFillRole.Tp, 1,
@@ -92,7 +92,8 @@ public sealed partial class MemoryCoveragePopupTests
             Control last = legend.Children[^1];
             Assert.True(BoundsInWindow(last, window).Top > BoundsInWindow(first, window).Top);
             Assert.True(BoundsInWindow(last, window).Top >= 300);
-            Assert.True(last.Focus(NavigationMethod.Tab));
+            Assert.False(last.Focus(NavigationMethod.Tab));
+            Assert.True(MainTarget(bar, 3).Focus(NavigationMethod.Tab));
             Render();
             Border card = FindNamed<Border>(window, "MemorySliceCard")!;
             Assert.Same(slices[^1], card.DataContext);
@@ -102,9 +103,9 @@ public sealed partial class MemoryCoveragePopupTests
             Rect frameBounds = BoundsInWindow(cardFrame, window);
             Rect cardBounds = BoundsInWindow(card, window);
             Assert.True(frameBounds.Height > cardBounds.Height);
-            Assert.True(new Rect(frameBounds.Left, cardBounds.Bottom, frameBounds.Width,
+            Assert.False(new Rect(frameBounds.Left, cardBounds.Bottom, frameBounds.Width,
                 frameBounds.Bottom - cardBounds.Bottom).Intersects(BoundsInWindow(legend, window)));
-            Assert.Empty(cardFrame.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>());
+            Assert.NotEmpty(AssertStemsClearOfOverviewGlyphs(window, bar, cardFrame));
         }
         finally { window.Close(); }
     }
@@ -156,10 +157,16 @@ public sealed partial class MemoryCoveragePopupTests
             Assert.True(localFrameBounds.Height > localBounds.Height);
             Assert.True(new Rect(localFrameBounds.Left, localFrameBounds.Top, localFrameBounds.Width,
                 localBounds.Top - localFrameBounds.Top).Intersects(legendBounds));
-            Assert.Empty(localFrame.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>());
+            Rect[] localStems = AssertStemsClearOfOverviewGlyphs(window, bar, localFrame);
+            Assert.NotEmpty(localStems);
+            Assert.True(localStems.Min(static stem => stem.Top) <= legendBounds.Top,
+                "The local stem starts at its position marker, above the legend.");
+            Assert.True(localStems.Max(static stem => stem.Bottom) >= legendBounds.Bottom,
+                "The local stem crosses the legend to reach its local view.");
             Assert.True(BoundsInWindow(local, window).Top >= legendBounds.Bottom);
             Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
-            Assert.True(legend.Children[2].Focus(NavigationMethod.Tab));
+            Assert.False(legend.Children[2].Focus(NavigationMethod.Tab));
+            Assert.True(MainTarget(bar, 2).Focus(NavigationMethod.Tab));
             Render();
             Assert.Same(last, FindNamed<Border>(window, "MemorySliceCard")!.DataContext);
             Border card = FindNamed<Border>(window, "MemorySliceCard")!;
@@ -167,12 +174,17 @@ public sealed partial class MemoryCoveragePopupTests
             Rect cardFrameBounds = BoundsInWindow(cardFrame, window);
             Rect cardBounds = BoundsInWindow(card, window);
             Assert.True(cardFrameBounds.Height > cardBounds.Height);
-            Assert.True(new Rect(cardFrameBounds.Left, cardFrameBounds.Top, cardFrameBounds.Width,
-                cardBounds.Top - cardFrameBounds.Top).Intersects(legendBounds));
-            Assert.Empty(cardFrame.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>());
+            Assert.False(cardBounds.Intersects(legendBounds));
+            Rect[] cardStems = AssertStemsClearOfOverviewGlyphs(window, bar, cardFrame);
+            Assert.NotEmpty(cardStems);
+            Assert.True(cardStems.Min(static stem => stem.Top) <= legendBounds.Top,
+                "The card stem starts at its rail slice, above the legend.");
+            Assert.True(cardStems.Max(static stem => stem.Bottom) >= legendBounds.Bottom,
+                "The card stem crosses the legend to reach its card.");
             Capture(window, "legend-connector-card");
             Assert.False(first.Interaction.IsActive);
-            Assert.True(legend.Children[1].Focus(NavigationMethod.Tab));
+            Assert.False(legend.Children[1].Focus(NavigationMethod.Tab));
+            Assert.True(MainTarget(bar, 1).Focus(NavigationMethod.Tab));
             Render();
             Border gapCard = FindNamed<Border>(window, "MemorySliceCard")!;
             Assert.Same(gap, gapCard.DataContext);

@@ -110,7 +110,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 identity,
                 "ready",
                 argumentsPath: null,
-                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
 
             Assert.Equal(LauncherProcessStartOutcome.StartFailed, result.Outcome);
@@ -184,7 +184,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 statePath,
                 candidate,
                 candidateLease,
-                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
 
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", "ready");
@@ -252,17 +252,27 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", identity.OwnerReleaseManifestSha256);
             using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
             var process = new AnonymousPipeManagedLauncherProcess(ManagedProcessTermination.Instance, admission);
+            using var expiry = new CancellationTokenSource();
+            var candidateProcess = new AnonymousPipeManagedLauncherProcess(
+                ManagedProcessTermination.Instance, admission, deadlineSignal: expiry.Token);
             admissionPipe.DisposeLocalCopyOfClientHandle();
 
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", "timeout");
             using TestExecutableLaunchLease candidateLease = ExecutableLease(workspace.Root, identity);
-            LauncherProcessStartResult candidate = await process.StartUntilReadyAsync(
+            Task<LauncherProcessStartResult> candidateStart = candidateProcess.StartUntilReadyAsync(
                 workspace.Root,
                 statePath,
                 identity,
                 candidateLease,
-                TimeSpan.FromMilliseconds(200),
+                TimeSpan.FromSeconds(10),
+                TestContext.Current.CancellationToken).AsTask();
+            using var reader = new StreamReader(admissionPipe);
+            using var receiptDeadline = CancellationTokenSource.CreateLinkedTokenSource(
                 TestContext.Current.CancellationToken);
+            receiptDeadline.CancelAfter(TimeSpan.FromSeconds(10));
+            string? admitted = await reader.ReadLineAsync(receiptDeadline.Token);
+            expiry.Cancel();
+            LauncherProcessStartResult candidate = await candidateStart;
 
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", "ready");
             using TestExecutableLaunchLease lkgLease = ExecutableLease(workspace.Root, identity);
@@ -275,11 +285,6 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 TestContext.Current.CancellationToken);
             Assert.Equal(LauncherProcessStartOutcome.ReadyTimeout, candidate.Outcome);
             Assert.Equal(LauncherProcessStartOutcome.Ready, lkg.Outcome);
-            using var reader = new StreamReader(admissionPipe);
-            using var receiptDeadline = CancellationTokenSource.CreateLinkedTokenSource(
-                TestContext.Current.CancellationToken);
-            receiptDeadline.CancelAfter(TimeSpan.FromSeconds(2));
-            string? admitted = await reader.ReadLineAsync(receiptDeadline.Token);
             string? second = await reader.ReadLineAsync(receiptDeadline.Token);
 
             Assert.Equal("ADMITTED", admitted);
@@ -479,8 +484,9 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             identity,
             "timeout",
             argumentsPath: null,
-            TimeSpan.FromMilliseconds(200),
-            TestContext.Current.CancellationToken);
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken,
+            expireAfterCreation: true);
 
         Assert.Equal(LauncherProcessStartOutcome.ReadyTimeout, result.Outcome);
     }
@@ -498,14 +504,19 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             var termination = new ManagedProcessTermination(
                 new FailingTerminationOperations());
             using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, identity);
+            using var expiry = new CancellationTokenSource();
+            using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
 
-            LauncherProcessStartResult result = await new AnonymousPipeManagedLauncherProcess(termination)
+            LauncherProcessStartResult result = await new AnonymousPipeManagedLauncherProcess(
+                termination, admission,
+                deadlineSignal: expiry.Token,
+                afterProcessCreation: expiry.Cancel)
                 .StartUntilReadyAsync(
                     workspace.Root,
                     Path.Combine(workspace.Root, "state.json"),
                     identity,
                     executableLease,
-                    TimeSpan.FromMilliseconds(200),
+                    TimeSpan.FromSeconds(10),
                     TestContext.Current.CancellationToken);
 
             Assert.Equal(LauncherProcessStartOutcome.TerminationUnconfirmed, result.Outcome);
@@ -622,7 +633,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 Path.Combine(workspace.Root, "state.json"),
                 identity,
                 executableLease,
-                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
 
         Assert.Equal(LauncherProcessStartOutcome.StartFailed, result.Outcome);
@@ -661,7 +672,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 Path.Combine(workspace.Root, "state.json"),
                 identity,
                 executableLease,
-                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
 
         Assert.Equal(LauncherProcessStartOutcome.StartFailed, result.Outcome);

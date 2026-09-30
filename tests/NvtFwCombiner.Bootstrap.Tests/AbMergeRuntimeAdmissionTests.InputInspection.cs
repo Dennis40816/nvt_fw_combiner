@@ -78,27 +78,32 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.True(inspection.InputSlotStatus.AcceptedBytes.GetValueOrDefault().IsEmpty);
     }
 
-    /// <summary>NT51950 Cascade projects DP versions from the compiled map CMI regions.</summary>
-    [Fact]
-    public async Task Nt51950CascadeLoadInspectionUsesCompiledCmiRegions()
+    /// <summary>Both 1024k maps project B version and Jira from the corrected compiled CMI region.</summary>
+    [Theory]
+    [InlineData("NT51950", "cascade", 2)]
+    [InlineData("NT51950", "cascade", 3)]
+    [InlineData("NT51951", null, 2)]
+    public async Task Nt51950AndNt51951LoadInspectionUsesCompiledCmiRegions(
+        string icId, string? topology, byte chipCount)
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-cascade-load-inspection");
         byte[] dpAb = new byte[0x100000];
         WriteCmiAt(dpAb, 0x5016, major: 0x82, minor: 0x03, jira: 0x123);
-        WriteCmiAt(dpAb, 0x85016, major: 0x83, minor: 0x04, jira: 0x456);
+        WriteCmiAt(dpAb, 0x84016, major: 0x83, minor: 0x04, jira: 0x456);
+        WriteCmiAt(dpAb, 0x85016, major: 0x91, minor: 0x09, jira: 0x789);
 
         CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
             loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         IEventBufferFormatConfigurationSession configuration = await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
-        byte[] tp = CreateTpImage(0x81, 0, chipCount: 3, length: 0x37000);
+        byte[] tp = CreateTpImage(0x81, 0, chipCount: chipCount, length: 0x37000);
         tp[0x22200] = 0x31;
         tp[0x22201] = 0xCE;
         tp[0x2220C] = 0x84;
-        FirmwareInspectionBatchResult batch = await host.FirmwareInspectionExperience.InspectFirmwareBatchAsync("NT51950",
-            [new("dp-ab-input", workspace.Write("dp-ab-cascade.bin", dpAb), AbMergeAddressSpaceId: "dp-ab-input", AbMergeTopologyToken: "cascade"),
-             new("tp-a-input", workspace.Write("a.bin", tp), AbMergeAddressSpaceId: "tp-a-input", AbMergeTopologyToken: "cascade"),
-             new("tp-b-input", workspace.Write("b.bin", tp), AbMergeAddressSpaceId: "tp-b-input", AbMergeTopologyToken: "cascade")],
+        FirmwareInspectionBatchResult batch = await host.FirmwareInspectionExperience.InspectFirmwareBatchAsync(icId,
+            [new("dp-ab-input", workspace.Write("dp-ab-cascade.bin", dpAb), AbMergeAddressSpaceId: "dp-ab-input", AbMergeTopologyToken: topology),
+             new("tp-a-input", workspace.Write("a.bin", tp), AbMergeAddressSpaceId: "tp-a-input", AbMergeTopologyToken: topology),
+             new("tp-b-input", workspace.Write("b.bin", tp), AbMergeAddressSpaceId: "tp-b-input", AbMergeTopologyToken: topology)],
             TestContext.Current.CancellationToken);
         FirmwareInspectionSnapshot inspection = batch.InspectionsById["dp-ab-input"];
 

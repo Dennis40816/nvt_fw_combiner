@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -28,9 +29,7 @@ internal sealed partial class MergePresentationViewModel
                 AbCodeMergeMode => _abMergeSession.CurrentSnapshot,
                 _ => _standardMergeSession.CurrentSnapshot,
             };
-            (
-                string rangeLabel,
-                IReadOnlyList<MemoryMapRowViewModel> rows,
+            (string rangeLabel, IReadOnlyList<MemoryMapRowViewModel> rows,
                 IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
                     acceptedSession?.ExactCapability is null
                     ? UiCompositionRunner.GetPendingMemoryDisplay(
@@ -38,7 +37,8 @@ internal sealed partial class MergePresentationViewModel
                         IsGeneralMergeModeSelected ? [] : MergeSlots,
                         IsGeneralMergeModeSelected
                             ? MemoryPendingPrerequisite.GeneralMergeSourceMapping
-                            : MemoryPendingPrerequisite.DpBin)
+                            : MemoryPendingPrerequisite.DpBin,
+                        acceptedSession, SelectedMergeMode == NormalMergeMode ? _appliedStandardMergeRequired : null)
                     : UiCompositionRunner.GetMemoryDisplay(
                         _compositionServices,
                         acceptedSession,
@@ -46,11 +46,13 @@ internal sealed partial class MergePresentationViewModel
                         IsGeneralMergeModeSelected ? _generalMergeAdmission : null);
             MergeMemoryRangeLabel = rangeLabel;
             ReplaceRows(MergeMemoryRows, rows);
+            // Logical items assign each slice's interaction state; publish only after, or the rail legend binds a discarded state.
+            IReadOnlyList<MemoryCoverageLogicalItemViewModel> logicalItems =
+                ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text);
             MergeCoverageSegments.ReplaceAll(coverageSegments);
-            ReplaceRows(
-                MergeCoverageRows,
-                ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text)
-                    .SelectMany(static item => item.Ranges));
+            ReplaceRows(MergeCoverageRows, logicalItems.SelectMany(static item => item.Ranges));
+            OnPropertyChanged(nameof(MergeStartAddress));
+            OnPropertyChanged(nameof(MergeEndAddress));
         }
     }
 

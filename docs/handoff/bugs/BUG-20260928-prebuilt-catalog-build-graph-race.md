@@ -1,6 +1,6 @@
 # BUG-20260928-prebuilt-catalog-build-graph-race: generator dependencies race with the host build
 
-Status: fixed locally (independent review pending)
+Status: fixed (merged into `1.1.x` by integration B #477, merge `912db1a5c`, commit `499b1d13c`; released in v1.1.13, `1268f72d2`, 2026-09-28)
 Severity: P1
 Found: 2026-09-28, Codex (codex/gpt-6-astra), during the ADR 0077 B2 build-graph fix,
 at feature/1.1.13/integration-b@79abc874c.
@@ -61,3 +61,5 @@ and TMPDIR to its existing temp child. Logs are retained there as `b2-race-*.log
 The build-race regression and the extra publishes did not disable parallel builds.
 Independent review and the commander's full verification remain outstanding;
 these local checks do not certify integration or release readiness.
+
+Closed (2026-09-29): commit `499b1d13c` is an ancestor of integration B's merge `912db1a5c` (#477) and of the v1.1.13 release merge `1268f72d2` (#479, published 2026-09-28).

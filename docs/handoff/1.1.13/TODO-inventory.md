@@ -1,6 +1,8 @@
 # 1.1.13 TODO inventory
 
-Commander, 2026-09-27, after #459; statuses refreshed after #462 the same day after #468, #475 and #476 on 2026-09-28. The owner asked that progress be counted
+Commander, 2026-09-27, after #459; statuses refreshed after #462 the same day after #468, #475 and #476 on 2026-09-28;
+refreshed again on 2026-09-29 after integration B #477 (`912db1a5c`), the v1.1.13 release (#479, `1268f72d2`,
+published 2026-09-28) and 1.1.14 (#480 `6703e2517`, #483 `32808e943`, published 2026-09-29). The owner asked that progress be counted
 over every item scheduled for 1.1.13, not only the scope table in
 [`../1.1.13.md`](../1.1.13.md). This list breaks that table into separately
 deliverable items and adds the records made outside it, the bugs whose owner
@@ -9,7 +11,7 @@ by evidence), active (someone is working on it), waiting (blocked on the owner,
 another item or a quiet machine), open (not started). The owner may add or
 remove items; the board decisions stay the authority for scope.
 
-## Done (52)
+## Done (63)
 
 | # | Item | Where |
 | --- | --- | --- |
@@ -65,40 +67,40 @@ remove items; the board decisions stay the authority for scope.
 | 52 | Legacy Combiner long path | #476 (`7e283c126`) |
 | 56 | Private-string check rejects user-profile paths in new changes (rest of the public-paths bug) | #476 (`7e283c126`) |
 | 70 | Local verify L3: Infrastructure.Tests shares the lane pool (decision 153) | #476 (`7e283c126`); timing with the release-candidate verify |
+| 26 | C-7 TP SVN display (R3) | #477 (`912db1a5c`); released in v1.1.13 (`1268f72d2`, 2026-09-28) |
+| 34 | Release workflow cleanup R-1 (`BUG-20260926-release-promote-skips-other-versions`) | #477 (`912db1a5c`); released in v1.1.13 (`1268f72d2`, 2026-09-28) |
+| 35 | Release workflow cleanup R-2 (`BUG-20260927-main-package-1x-launcher-contract`) | #477 (`912db1a5c`); released in v1.1.13 (`1268f72d2`, 2026-09-28) |
+| 41 | ADR 0077 B2a (R2) | #477 (`912db1a5c`); released in v1.1.13 (`1268f72d2`, 2026-09-28) |
+| 42 | ADR 0077 B2b trust policy (R3) | #477 (`912db1a5c`); released in v1.1.13 (`1268f72d2`, 2026-09-28) |
+| 43 | First window within the EXE size ceiling | #477 (`912db1a5c`); released in v1.1.13 (`1268f72d2`, 2026-09-28) |
+| 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150, 151) | #477 (`912db1a5c`); released in v1.1.13 (`1268f72d2`, 2026-09-28) |
+| 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | #479 (`1268f72d2`); v1.1.13 published 2026-09-28 |
+| 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | #477 (`912db1a5c`); released in v1.1.13 (`1268f72d2`, 2026-09-28) |
+| 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | v1.1.13 published 2026-09-28 (release pull request #479, tag `v1.1.13`, run `36443045295`) |
+| 68 | Predecessor validator false inconsistency (`BUG-20260927-predecessor-validator-false-inconsistent`) | #480 (`6703e2517`); released in v1.1.14 (`32808e943`, 2026-09-29) |
 
-## Active (8)
+## Active (0)
 
-| # | Item | Next |
-| --- | --- | --- |
-| 26 | C-7 TP SVN display (R3) | reviewed; in the 18:00 integration pull request (integration branch B) |
-| 44 | Wave 5 window lifetime F01/F02/F25 (W6-A, decisions 87, 150, 151) | reviewed; in the 18:00 integration pull request (integration branch B) |
-| 34 | Release workflow cleanup R-1 | reviewed; in the 18:00 integration pull request (integration branch B) |
-| 35 | Release workflow cleanup R-2 | reviewed; in the 18:00 integration pull request (integration branch B) |
-| 41 | ADR 0077 B2a (R2) | reviewed; in the 18:00 integration pull request (integration branch B) |
-| 42 | ADR 0077 B2b trust policy (R3) | reviewed; in the 18:00 integration pull request (integration branch B) |
-| 58 | 1.1.13 release notes, including the 1.1.12 changelog correction and decision 84 compatibility | in the release pull request; owner semantic review of the frozen notes |
-| 43 | First window within the EXE size ceiling | reviewed; in the 18:00 integration pull request (integration branch B) |
+All items that were active at the last refresh (26, 34, 35, 41, 42, 43, 44, 58) merged through
+integration B #477 (`912db1a5c`) and released in v1.1.13 (`1268f72d2`, 2026-09-28); moved to Done above.
 
-## Waiting or open (3)
+## Waiting or open (1)
 
 | # | Item | Blocked on |
 | --- | --- | --- |
 | 54 | CI failure evidence: controlled cross-attempt re-run | a real CI failure to re-run |
-| 66 | main-package 1.x launcher contract (`BUG-20260927-main-package-1x-launcher-contract`, R3) | release workflow cleanup R-1/R-2 |
-| 59 | Release: candidate, all Golden cases, owner approvals, promotion and publication | all items above |
 
-## Moved out (8)
+## Moved out (7)
 
 | # | Item | Now in |
 | --- | --- | --- |
-| 71 | ADR 0078 predecessor comparison against v1.1.12 and the v0.9.16 1.x mode | 1.1.14, with the comparator (decision 162 waives it for 1.1.13) |
+| 71 | ADR 0078 predecessor comparison against v1.1.12 and the v0.9.16 1.x mode | moved to 1.1.14 first (decision 162), then to 1.2.x: the comparator and the first formal comparison land in `1.2.2` (decision 167, `1.2.x-allocation.md`/decision 175). Not done; supersedes the 1.1.14 target. |
 | 32 | Header backup CRC (R3), with the stale B-normalization Header CRC bug | 1.2.x decision; root cause recorded (decision 161) |
 | 37 | WS-TEST: U0 measured, U2a closed (decisions 113-114), local verify speed merged (#464) | 1.2.x (decision 154) |
-| 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | 1.1.14 (decision 154) |
+| 39 | Parity P-2 comparator and the v0.9.16 baseline executor (decision 79), with the baseline-restore and cascade-plan bugs | moved to 1.2.x (`1.2.2`, decision 167/175), superseding the 1.1.14 target (decision 154). Not done. |
 | 49 | Test hygiene findings (WS-TEST T2-T4, G2) | 1.2.x (decision 154) |
-| 68 | Predecessor validator false inconsistency (`BUG-20260927-predecessor-validator-false-inconsistent`) | 1.1.14 (decision 154) |
-| 67 | G0 `gh` wrapper repository option conflict (`BUG-20260927-g0-gh-wrapper-repo-option-conflict`) | 1.1.14: the parameter rename needs an owner-controlled update of the installed wrapper and its G0 hash inventory (batch 6 review) |
-| 53 | CI core-shard H2 and H3 follow-ups | 1.1.14: H2 needs diagnostic evidence from a real CI failure; H3 changes a cross-layer contract (batch 6 review) |
+| 67 | G0 `gh` wrapper repository option conflict (`BUG-20260927-g0-gh-wrapper-repo-option-conflict`) | decided in 1.1.14 (board decision 181, 2026-09-29): documented ("omit `--repo`") instead of renamed; no wrapper or G0 hash-inventory change made |
+| 53 | CI core-shard H2 and H3 follow-ups | H3 (typed launcher start result) done in 1.1.14 (#480, `6703e2517`; released in v1.1.14, `32808e943`, 2026-09-29). H2 (diagnostic evidence from a real CI failure) moved to `1.2.11` (board decision 181, 2026-09-29). |
 
 Not 1.1.13: the display-convention inventory (1.1.14, decision 39); the 1.2.1
 architecture and UI reviews and Launcher; CtrlRAM cold first-open and F14/F15

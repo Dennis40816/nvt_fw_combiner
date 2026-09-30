@@ -53,8 +53,10 @@ internal sealed class MemoryFocusLaneViewModel
         IEnumerable<MemoryCoverageLogicalItemViewModel> items, ShellTextResources text, bool isSingleIc = false)
     {
         var runs = new List<List<MemoryCoverageSegmentViewModel>>();
+        // Single IC binds no Base-group CtrlRAM (the cascade-only DIFF region); its slice stays on the rail as context.
         foreach (MemoryCoverageSegmentViewModel range in items.SelectMany(static item => item.Ranges)
-            .Where(static range => range.ContentRole == MemoryContentRole.CtrlRam && range.RangeStart.HasValue)
+            .Where(range => range.ContentRole == MemoryContentRole.CtrlRam && range.RangeStart.HasValue &&
+                !(isSingleIc && range.RegionGroup == ReplaceRegionGroup.Base))
             .OrderBy(static range => range.AddressSpaceId, StringComparer.Ordinal).ThenBy(static range => range.RangeStart))
         {
             List<MemoryCoverageSegmentViewModel>? run = runs.LastOrDefault();

@@ -8,9 +8,22 @@ internal sealed partial class MemoryCoverageInteractionState : ObservableObject
 {
     private readonly HashSet<object> _focusOwners = [];
     private readonly HashSet<object> _pointerOwners = [];
+    private readonly HashSet<object> _railOwners = [];
 
     [ObservableProperty]
     public partial bool IsActive { get; private set; }
+
+    [ObservableProperty]
+    public partial bool IsRailActive { get; private set; }
+
+    internal void SetRailActive(object owner, bool active)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        if (active ? _railOwners.Add(owner) : _railOwners.Remove(owner))
+        {
+            IsRailActive = _railOwners.Count > 0;
+        }
+    }
 
     internal void SetPointerActive(object owner, bool active)
     {
@@ -111,7 +124,7 @@ internal sealed class MemoryCoverageLogicalItemViewModel
             }
             else
             {
-                segment.Interaction = new MemoryCoverageInteractionState();
+                // A run head keeps its state, so building items again never strands a bound observer.
                 physicalRuns++;
             }
             previous = segment;
