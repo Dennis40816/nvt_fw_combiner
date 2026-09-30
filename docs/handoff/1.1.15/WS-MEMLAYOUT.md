@@ -730,4 +730,11 @@ unlisted variable `NFC_MEMORY_TIMING_OUTPUT_DIR`, added by stage commit `20a66dd
 override `NFC_VISUAL_OUTPUT_DIR` (same opt-in evidence directory semantics); `verify.py` is unchanged. The
 policy test passes locally and the popup class stays 162/162.
 
+CI on `60843aaec` then passed every shard, but the aggregate `dotnet / build-test` failed the decision 193
+gate: two tests passed only on the retry. `NavigationFocusIndicatorTests.UnderlineAndGapRegionsNeverOverlapAtAnyRenderScaling`
+has its open record and a hardening in pull request #493. `MemoryCoveragePopupTests.CardWheelDoesNotScrollTheAncestorPage`
+(`direction: 0`) lost its card after shrinking it under the pointer: the passive close grace elapsed on the loaded
+runner. An amplified local run (500 ms wait after the shrink) reproduced the CI assertion; moving the pointer back
+onto the card fixes the test (`BUG-20260930-memory-card-wheel-shrink-close-flake`). No production change.
+
 Open: exact-head record for the new head, CI, owner approval (including the code-size baseline raise).

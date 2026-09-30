@@ -145,6 +145,9 @@ public sealed partial class MemoryCoveragePopupTests
             {
                 card.MaxHeight = 120;
                 Render();
+                // The shorter card can leave the pointer outside it; keep the pointer on the card, as a user scrolling it does.
+                window.MouseMove(BoundsInWindow(card, window).Center, RawInputModifiers.None);
+                Render();
             }
             ScrollViewer inner = Assert.IsType<ScrollViewer>(card.Child);
             double maximum = inner.Extent.Height - inner.Viewport.Height;
