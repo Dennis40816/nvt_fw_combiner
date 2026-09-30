@@ -13,7 +13,7 @@ Later changes remain assigned by the canonical roadmap.
 
 ### Summary
 
-1.2.0 is the user release of the 1.1.x line: users receive 1.2.0 once all 1.1.x development is complete (owner decisions 103, 184 and 189). Its code is exactly that of v1.1.15 (tag `v1.1.15`); 1.2.0 adds no code, only its version identity and release records. Firmware output bytes, write ranges, order, CRC/Header behavior and output naming are unchanged from 1.1.15. This entry is a cumulative summary for users who last ran an earlier release. Product change 5 names all 73 product changes of 1.1.0 through 1.1.15 by version and links each version's release notes, which carry each change's full Before → After, compatibility and verification; `CHANGELOG.md` holds the same entries.
+1.2.0 is the user release of the 1.1.x line: users receive 1.2.0 once all 1.1.x development is complete (owner decisions 103, 184 and 189). Its product code is exactly that of v1.1.15 (tag `v1.1.15`); 1.2.0 adds only its version identity, release records and one test-only fix to the scheduling of a Golden test (no shipped code). Firmware output bytes, write ranges, order, CRC/Header behavior and output naming are unchanged from 1.1.15. This entry is a cumulative summary for users who last ran an earlier release. Product change 5 names all 73 product changes of 1.1.0 through 1.1.15 by version and links each version's release notes, which carry each change's full Before → After, compatibility and verification; `CHANGELOG.md` holds the same entries.
 
 Three changes stand out (owner decision 202):
 
@@ -105,12 +105,12 @@ Main user-visible themes of 1.1.0 through 1.1.15, with the entry to read:
 - Affected: The workflows named in those entries; a user upgrading from an earlier release receives them together.
 - Support status: 1.2.0 promotes nothing. Each 1.1.x entry states its own support status. Besides the removal in item 4, Customized Merge/Replace entry points have been hidden since 1.1.11 (availability reduced; the underlying capabilities are neither promoted nor removed), and routes named Candidate or contract-only there keep that status.
 - Compatibility: The product source is that of v1.1.15. Notes for saved sessions, rules and scripts are in Upgrade and rollback.
-- Verification: 1.2.0 changes no code, so its verification is the release gates on its exact candidate: exact-source CI, every applicable owner-certified Golden output case executed against the candidate, package and smoke checks and the owner's approval. Each 1.1.x entry states the verification of its own changes.
+- Verification: 1.2.0 changes no product code, so its verification is the release gates on its exact candidate: exact-source CI, every applicable owner-certified Golden output case executed against the candidate, package and smoke checks and the owner's approval. Each 1.1.x entry states the verification of its own changes.
 - Limitations: See Known issues.
 
 ### Security
 
-No new external executable, update endpoint, network surface or permission is introduced, and 1.2.0 adds no code. Release admission still requires the owner's approval on the exact release head, and the protected `release` environment approval still gates publication (see 1.1.14). CI evidence contains no firmware payloads and no memory dumps (see 1.1.15).
+No new external executable, update endpoint, network surface or permission is introduced, and 1.2.0 adds no product code. Release admission still requires the owner's approval on the exact release head, and the protected `release` environment approval still gates publication (see 1.1.14). CI evidence contains no firmware payloads and no memory dumps (see 1.1.15).
 
 ### Known issues
 
@@ -121,7 +121,7 @@ No new external executable, update endpoint, network surface or permission is in
 - With only the DP_AB input selected, the AB Code Memory Layout lists adjacent DP ranges as separate numbered rows, can attribute the TP A range to the DP file and shows the internal region `ab-combiner-work` as a content row; the layout is correct once the TP inputs are selected. A fix is planned for 1.2.x.
 - AB CtrlRAM Replace routes and the NT51950 cascade AB configuration stay Candidate/contract-only (see 1.1.10 to 1.1.12); independent expected outputs and firmware-owner review are still required for uncovered cases.
 - NT51950 AB CtrlRAM Replace can still differ from an owner-built reference in the 32 Header and Header-copy CRC bytes described in 1.1.13; the handling decision is in 1.2.x.
-- The first-window time measured for 1.1.14 (about 40 ms later than v1.1.12, accepted by the owner in decision 179) was not re-measured for 1.1.15, and 1.2.0 carries the same code.
+- The first-window time measured for 1.1.14 (about 40 ms later than v1.1.12, accepted by the owner in decision 179) was not re-measured for 1.1.15, and 1.2.0 carries the same product code.
 - No formal predecessor comparison was run for this release: the owner waived ADR 0078 and the v0.9.16 milestone comparison for 1.2.0 (decisions 176 and 201) because the comparator lands in 1.2.2 (decisions 167 and 175). All owner-certified Golden cases are executed at the release candidate instead.
 - If you change `TMP` or `TEMP` to shorten the legacy tool path (see 1.1.13), restart NFC and the Launcher so they read the new value.
 

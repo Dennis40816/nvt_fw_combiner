@@ -17,8 +17,9 @@ started, so no output bytes were produced or compared. The admission test calls
 `GoldenTestHost.Services.CanonicalCatalogLoader.LoadAsync` on the shared static host while xUnit runs the other
 Golden test classes in parallel; a reload that lands between a Golden run's acceptance and its execution republishes
 the catalog, and the product refuses the stale run as designed.
-Expected: a test that mutates the shared host runs in a serialized collection (ADR 0079, "Stability": a parallel test
-never mutates process-wide state outside a serialized collection); Golden runs never see a concurrent reload.
+Expected: a test that mutates the shared host runs in a serialized collection (ADR 0079, "8. Stability rules": a
+parallel test never mutates process-wide state outside a serialized collection); Golden runs never see a concurrent
+reload. The race exists since the admission test arrived in v1.1.13 (`acab27dac`).
 Evidence: before the fix, three local runs of the GoldenRegression project each showed the admission test running at
 the same time as five Golden tests (TRX start and end times); after it, in three runs the admission test started
 only after every other Golden test had ended, and all 15 tests passed. The new architecture guard failed before the
@@ -27,7 +28,9 @@ Architecture 277/277). The failure was never reproduced locally, since the windo
 evidence.
 Owner: Claude Code, feature/1.2.0/golden-host-race.
 Resolution: `PrebuiltProfileCatalogAdmissionTests` joins the new `GoldenHostCatalogReloadSerialGroup` collection
-(`DisableParallelization = true`), which xUnit runs after all parallel collections; the architecture guard requires
-every GoldenRegression source that reloads the shared host's catalog to join it. No production change. The v1.2.0
+(`DisableParallelization = true`), which xUnit runs after all parallel collections. The architecture guard requires
+the admission test to join it and forbids the known catalog-mutation calls (`CanonicalCatalogLoader`,
+`.Catalog.Reload(`, `WarmCanonicalCapabilities(`, `CreateSystemInformationService(`) in every other GoldenRegression
+source; it is a text check, not a proof. No production change. The v1.2.0
 release continues with a new release pull request whose push-main CI passes on its first attempt (decision 193,
 ADR 0079), as the owner chose.

@@ -8,14 +8,22 @@ public sealed partial class RepositoryBoundaryTests
             Root.FullName,
             "tests",
             "NvtFwCombiner.GoldenRegression.Tests");
-        string reloadCall = "GoldenTestHost.Services.CanonicalCatalogLoader.LoadAsync(";
         string serialAttribute = "[Collection(nameof(GoldenHostCatalogReloadSerialGroup))]";
+        Assert.Contains(
+            serialAttribute,
+            File.ReadAllText(Path.Combine(directory, "PrebuiltProfileCatalogAdmissionTests.cs")),
+            StringComparison.Ordinal);
         foreach (string file in Directory.GetFiles(directory, "*.cs", SearchOption.TopDirectoryOnly))
         {
             string source = File.ReadAllText(file);
-            if (source.Contains(reloadCall, StringComparison.Ordinal))
+            if (!source.Contains(serialAttribute, StringComparison.Ordinal))
             {
-                Assert.Contains(serialAttribute, source, StringComparison.Ordinal);
+                AssertDoesNotContainAny(
+                    source,
+                    "CanonicalCatalogLoader",
+                    ".Catalog.Reload(",
+                    "WarmCanonicalCapabilities(",
+                    "CreateSystemInformationService(");
             }
         }
 
