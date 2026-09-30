@@ -153,3 +153,9 @@ the owner requested that test correction itself stay unchanged. #488's CI hang
 still needs a stack or phase trace. This checkpoint is not integration-ready:
 the observed UiSmoke failure, independent exact-head R3 review, both named
 owner approvals on the last push, and protected CI remain open. No push.
+
+Independent review of `95e2c1747` (2026-09-30): PASS; P2-1 to P2-5 resolved, no new P0/P1/P2;
+Infrastructure filter 122/122. Its P3 follow-ups: the navigation test comment no longer claims an
+interleaving the record calls unproven; the two cancellation records and the lease-hang record now cite
+the production commits instead of a head that no longer exists; residual windows N1-N4 are recorded in
+`BUG-20260930-managed-start-deadline-residual-windows` (fail-closed, open).

@@ -293,8 +293,8 @@ public sealed class NavigationFocusIndicatorTests
         try
         {
             await AwaitHistoryReadyAsync(window);
-            // History may finish before startup posts its quiet focus to the shell. Complete
-            // startup and that input job before transferring focus to Home for the render.
+            // Startup work after history can still move focus. Complete it and drain queued
+            // input work before transferring focus to Home for the render.
             await window.StartupWork.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Dispatcher.UIThread.RunJobs();
             Assert.True(window.FindControl<Grid>("ShellInteractionHost")!.IsFocused);
