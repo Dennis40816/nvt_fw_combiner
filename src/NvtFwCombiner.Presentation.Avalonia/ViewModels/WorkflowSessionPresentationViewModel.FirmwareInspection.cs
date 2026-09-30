@@ -355,7 +355,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                             {
                                 pending.SetInputInspection(
                                     FirmwareInputInspectionSeverity.Blocking,
-                                    Text.FirmwareInspectionFailedTitle);
+                                    Text.FirmwareInspectionFailedTitle, availabilityIssue: Application.MemoryLayout.MemoryInputAvailabilityIssue.InspectionFailed);
                             }
                         }
                         NotifySlotFileOutputNames();
@@ -431,7 +431,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                 {
                     slot.SetInputInspection(
                         FirmwareInputInspectionSeverity.Blocking,
-                        Text.FirmwareInspectionStaleFileStatus);
+                        Text.FirmwareInspectionStaleFileStatus, availabilityIssue: Application.MemoryLayout.MemoryInputAvailabilityIssue.ContentChanged);
                 }
                 else
                 {

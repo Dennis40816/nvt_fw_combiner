@@ -47,7 +47,7 @@ internal sealed partial class ReplacePresentationViewModel
         }
         MemoryLayoutBankLocator bank = layout.Banks.Single(item => item.BankId == _viewedCtrlRamBankId);
         CtrlRamOverview.ReplaceAll(UiCompositionRunner.GetMemoryOverview(layout, Text, bank));
-        RefreshReplaceCoverageGroups();
+        RefreshReplaceCoverageGroups(ReplaceCoverageSegments);
     }
 
     internal void ValidateContextRefresh(string icId, string number, string mode)
@@ -123,18 +123,18 @@ internal sealed partial class ReplacePresentationViewModel
             Text);
     }
 
-    private void RefreshReplaceCoverageGroups()
+    private void RefreshReplaceCoverageGroups(IReadOnlyList<MemoryCoverageSegmentViewModel> segments)
     {
         ReplaceCoverageGroups.Clear();
         CtrlRamFocusLanes.Clear();
         if (!IsCtrlRamReplaceModeSelected ||
-            ReplaceCoverageSegments.Any(static segment => segment.RegionId is null))
+            segments.Any(static segment => segment.RegionId is null))
         {
             return;
         }
 
         foreach (MemoryCoverageGroupViewModel group in ReplaceRegionGroupBuilder.CreateCoverageGroups(
-            ReplaceCoverageSegments,
+            segments,
             Text))
         {
             ReplaceCoverageGroups.Add(group);
@@ -144,7 +144,7 @@ internal sealed partial class ReplacePresentationViewModel
             : null;
         IEnumerable<MemoryCoverageLogicalItemViewModel> items = bank is null
             ? ReplaceCoverageGroups.SelectMany(static group => group.Items)
-            : ReplaceRegionGroupBuilder.CreateLogicalItems(ReplaceCoverageSegments.Where(segment =>
+            : ReplaceRegionGroupBuilder.CreateLogicalItems(segments.Where(segment =>
                 segment.AddressSpaceId == bank.AddressSpaceId && segment.RangeStart >= bank.Range.Start &&
                 segment.RangeEndExclusive <= bank.Range.EndExclusive), Text);
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? localMap = _ctrlRamMemoryLayout?.AfterSegments
@@ -214,7 +214,7 @@ internal sealed partial class ReplacePresentationViewModel
         if (acceptedSession?.ExactCapability is null)
         {
             result = UiCompositionRunner.GetPendingMemoryDisplay(
-                Text, ReplaceSlots, GetPendingReplaceMemoryPrerequisite());
+                Text, ReplaceSlots, GetPendingReplaceMemoryPrerequisite(), acceptedSession);
         }
         else
         {
@@ -314,9 +314,10 @@ internal sealed partial class ReplacePresentationViewModel
         HasMemoryLayoutDisplayError = false;
         ReplaceMemoryRangeLabel = rangeLabel;
         ReplaceRows(ReplaceMemoryRows, rows);
+        // Coverage groups assign each slice's interaction state; publish only after, so every bar binds the final state.
+        RefreshReplaceCoverageGroups(coverageSegments);
         ReplaceCoverageSegments.ReplaceAll(coverageSegments);
         CtrlRamOverview.ReplaceAll(overview ?? []);
-        RefreshReplaceCoverageGroups();
     }
 
     private void PublishReplaceMemoryContext()
@@ -338,6 +339,8 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(CtrlRamCapacityLabel));
         OnPropertyChanged(nameof(CtrlRamPositions));
         OnPropertyChanged(nameof(CtrlRamEndAddress));
+        OnPropertyChanged(nameof(ReplaceStartAddress));
+        OnPropertyChanged(nameof(ReplaceEndAddress));
         OnPropertyChanged(nameof(CtrlRamSharedInputHint));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
@@ -364,7 +367,7 @@ internal sealed partial class ReplacePresentationViewModel
             ? UiCompositionRunner.GetPendingMemoryDisplay(
                 Text,
                 ReplaceSlots,
-                GetPendingReplaceMemoryPrerequisite())
+                GetPendingReplaceMemoryPrerequisite(), acceptedSession)
             : UiCompositionRunner.GetMemoryDisplay(_compositionServices, acceptedSession, Text);
     }
 

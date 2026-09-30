@@ -121,6 +121,8 @@ internal sealed partial class MergePresentationViewModel
     public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
 
     public string MergeMemoryRangeLabel { get; private set; } = string.Empty;
+    public string MergeStartAddress => MemoryCoverageBarProjection.OuterAddresses(MergeCoverageSegments).Start;
+    public string MergeEndAddress => MemoryCoverageBarProjection.OuterAddresses(MergeCoverageSegments).End;
 
     public string SelectedMergeMode
     {

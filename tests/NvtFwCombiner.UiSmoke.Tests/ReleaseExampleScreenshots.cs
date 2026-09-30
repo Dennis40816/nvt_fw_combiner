@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -147,6 +148,27 @@ public sealed class ReleaseExampleScreenshots
                 slot.IsAdditionalFirmwareFactsExpanded = true;
             }
             if (!captureWarningPopup) { Save("details-open"); }
+            if (exampleId == "nt51929-ab-ctrlram-candidate")
+            {
+                Control overview = Assert.Single(window.GetVisualDescendants().OfType<Control>(),
+                    control => control.Name == "CtrlRamFlashOverview" && control.IsEffectivelyVisible);
+                Assert.Single(overview.GetVisualDescendants().OfType<MemoryCoverageBar>()).ReducedMotion = true;
+                Control dp = overview.GetVisualDescendants().OfType<Control>().First(control =>
+                    control.Classes.Contains("memoryExplorerSlice") && control.DataContext is MemoryCoverageSegmentViewModel
+                    { ContentRole: Application.MemoryLayout.MemoryContentRole.Dp });
+                Assert.True(dp.Focus(NavigationMethod.Tab));
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+                Assert.Single(card.GetVisualDescendants().OfType<Expander>()).IsExpanded = true;
+                await Task.Delay(350, TestContext.Current.CancellationToken);
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                Assert.Equal(1, card.Opacity);
+                Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), control => control.IsEffectivelyVisible && control.Text == "a-cmi-dp-version");
+                Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), control => control.IsEffectivelyVisible && control.Bounds.Width > 0 && control.Text == "flash [0x401A,0x401D)");
+                Save("dp-card");
+            }
         }
         finally { await CloseAndFlushAsync(window); }
 

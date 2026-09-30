@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.MemoryLayout;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal enum MemoryPlanSourceKind
@@ -24,32 +25,6 @@ internal enum MemoryPlanSourceKind
 internal readonly record struct MemoryPlanSource(
     MemoryPlanSourceKind Kind,
     string? DisplayText = null);
-
-internal enum MemoryPlanActionKind
-{
-    Browse,
-    Blocked,
-    Restore,
-    TransformAndOverlay,
-    Postbuild,
-    Copy,
-    ReplaceAndCrc,
-    Replace,
-    Preserve,
-    Initialize,
-    Overlay,
-    Project,
-}
-
-internal enum MemoryPlanDetailKind
-{
-    ProtectedCustomerInformationFromDp,
-    ProtectedCustomerInformationFromDpReplacement,
-    ReservedUnwritten,
-    Unmapped,
-    CopiedFromDp,
-    OverlaidFromTp,
-}
 
 /// <summary>One readable before/after memory-map row shown on Merge and Replace pages.</summary>
 internal sealed class MemoryMapRowViewModel

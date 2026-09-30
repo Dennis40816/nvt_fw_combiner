@@ -38,3 +38,12 @@ On 2026-09-30, one full `UiSmoke` run failed this test's `(scale: 1, dark: True)
 An unchanged full rerun with TRX logging passed 1,861/1,861, and the focused class
 passed 13/13. The test correction remains unchanged; the cause of this new local
 failure and whether it matches the earlier missing-ring frame are open.
+Third local observation, 2026-09-30, on `feature/1.1.15/memory-layout` after merging `1.1.x`
+(so with the `0700e25f4` guard): a narrow UiSmoke selection of 809 tests failed both scale-1 rows
+(`dark: True` and `dark: False`) with `scale=1: expected a rendered focus ring around Home; found 0
+matching pixels` at line 341, while the preceding state assertions passed (Home `IsFocused`,
+`:focus-visible`, and its presenter `BoxShadow` equal to `NfcNavFocusRingShadow`). The class alone passed
+13/13 three times. So the logical focus state is right and the sampled frame lacks the ring. Working
+hypothesis (not proven): under load the single render tick before the pixel read yields a frame composed
+before the ring was painted. Candidate test-only correction: pump render ticks until the frame reflects the
+asserted state, with a bound. Decision 193 (zero flaky at release) makes this a `1.1.15` release blocker.
