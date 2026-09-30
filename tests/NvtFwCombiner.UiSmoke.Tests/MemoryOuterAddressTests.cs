@@ -71,6 +71,10 @@ public sealed class MemoryOuterAddressTests
                 bar => ReferenceEquals(bar.ItemsSource, shell.Replace.ReplaceCoverageSegments));
             Assert.Equal("0x00000", flash.StartAddress);
             Assert.Equal("0x3FFFF", flash.EndAddress);
+            shell.Replace.ClearCtrlRamInspectionDisplay();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(string.IsNullOrEmpty(flash.StartAddress), "A cleared display keeps no outer start address.");
+            Assert.True(string.IsNullOrEmpty(flash.EndAddress), "A cleared display keeps no outer end address.");
         }
         finally { await CloseAndFlushAsync(window); }
     }

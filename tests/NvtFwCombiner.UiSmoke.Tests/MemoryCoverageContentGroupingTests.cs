@@ -148,6 +148,21 @@ public sealed class MemoryCoverageContentGroupingTests
         Assert.StartsWith("DP AB. ", dp1.AccessibleDetail, StringComparison.Ordinal);
     }
 
+    private static readonly long[] GapStarts = [0, 8];
+
+    /// <summary>Primary unmapped or reserved sections of an overview never take ordinals, even with a plain title.</summary>
+    [Theory]
+    [InlineData(MemoryContentRole.Unmapped, "Unmapped")]
+    [InlineData(MemoryContentRole.Reserved, "Reserved")]
+    public void OrdinalsSkipPrimaryUnmappedAndReservedSections(MemoryContentRole role, string title)
+    {
+        MemoryCoverageSegmentViewModel[] rail = [.. GapStarts.Select(start => new MemoryCoverageSegmentViewModel("gap", title,
+            "detail", MemoryCoverageFillRole.Neutral, 4, rangeStart: start, rangeEndExclusive: start + 4, contentRole: role,
+            addressSpaceId: "flash", contentArtifactIdentity: $"gap-{start}"))];
+        _ = MemoryCoverageBarProjection.CoalesceContent(rail, Text);
+        Assert.All(rail, slice => Assert.Equal(title, slice.DisplayTitle));
+    }
+
     private static MemoryCoverageSegmentViewModel Slice(long start, long end, string? identity,
         string slot = "slot", string title = "BIN", string? space = "output", bool primary = true, string source = "BIN")
     {

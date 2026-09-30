@@ -202,7 +202,8 @@ internal sealed class MemoryCoverageSegmentViewModel
     }
 
     /// <summary>True for a primary row whose title is its source label, the only rows a repeated title may number.</summary>
-    internal bool CanNumberRepeatedTitle => IsPrimaryContent && ContentRole != MemoryContentRole.CtrlRam &&
+    internal bool CanNumberRepeatedTitle => IsPrimaryContent &&
+        ContentRole is not (MemoryContentRole.CtrlRam or MemoryContentRole.Unmapped or MemoryContentRole.Reserved) &&
         !UsesKeptPattern && StringComparer.Ordinal.Equals(_baseDisplayTitle, SourceLabel);
 
     /// <summary>Shared display-only interaction state for a row and its proportional segments.</summary>

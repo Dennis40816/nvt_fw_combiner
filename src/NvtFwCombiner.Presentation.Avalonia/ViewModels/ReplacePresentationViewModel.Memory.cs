@@ -318,8 +318,6 @@ internal sealed partial class ReplacePresentationViewModel
         RefreshReplaceCoverageGroups(coverageSegments);
         ReplaceCoverageSegments.ReplaceAll(coverageSegments);
         CtrlRamOverview.ReplaceAll(overview ?? []);
-        OnPropertyChanged(nameof(ReplaceStartAddress));
-        OnPropertyChanged(nameof(ReplaceEndAddress));
     }
 
     private void PublishReplaceMemoryContext()
@@ -341,6 +339,8 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(CtrlRamCapacityLabel));
         OnPropertyChanged(nameof(CtrlRamPositions));
         OnPropertyChanged(nameof(CtrlRamEndAddress));
+        OnPropertyChanged(nameof(ReplaceStartAddress));
+        OnPropertyChanged(nameof(ReplaceEndAddress));
         OnPropertyChanged(nameof(CtrlRamSharedInputHint));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
