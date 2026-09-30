@@ -78,7 +78,14 @@ external processor may modify DP bytes.
 | Selection | DP input/output | A/B slot boundary | DP CMD/CMI base within each A/B slot | TPA target | TPB target | TPB DIFF addend |
 | --- | --- | --- | --- | --- | --- | --- |
 | `single` | `[0x00000,0x80000)` | `0x40000` | `0x3B000`; A CMI `[0x3B016,0x3B019)`, B CMI `[0x7B016,0x7B019)` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x40000` |
-| `cascade` | `[0x00000,0x100000)` | `0x80000` | `0x05000`; A CMI `[0x05016,0x05019)`, B CMI `[0x85016,0x85019)` | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | `0x80000` |
+| `cascade` | `[0x00000,0x100000)` | `0x80000` | `0x05000`; A CMI `[0x05016,0x05019)`, B CMI `[0x84016,0x84019)` (decision 195) | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | `0x80000` |
+
+Decision 195 (owner, 2026-09-29) moves the B-bank CMI of the `0x80000`
+layouts (NT51950 `cascade` and NT51951) from `[0x85016,0x85019)` to
+`[0x84016,0x84019)`, matching the reference workbook's CMD-BK page. The B
+DP pages are not a uniform `+0x80000` copy of the A pages. Written bytes are
+unchanged; the B-side DP CMI reading and the `dp-b` output-name token use
+the new field.
 
 The 2026-09-21 owner amendment replaces the old cascade `0x40000` bank
 geometry with the existing NT51951 `0x80000` region set and private transport.
@@ -94,7 +101,7 @@ NT51951's single/cascade contexts use one selector-free plan:
 
 | DP input/output | A slot | B slot | TPA target | TPB target | DP CMD/CMI base | TPB DIFF addend |
 | --- | --- | --- | --- | --- | --- | --- |
-| `[0x00000,0x100000)` | `[0x00000,0x80000)` | `[0x80000,0x100000)` | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | bank-relative `0x05000`; A CMI `[0x05016,0x05019)`, B CMI `[0x85016,0x85019)` | `0x80000` |
+| `[0x00000,0x100000)` | `[0x00000,0x80000)` | `[0x80000,0x100000)` | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | A CMI `[0x05016,0x05019)` (CMD `0x05000`), B CMI `[0x84016,0x84019)` (CMD-BK `0x84000`, decision 195) | `0x80000` |
 
 The TPB postbuild stage may write only the TPB header/CRC ranges declared by
 the profile and TP Flash Header catalog.  Observed TP FWConfig count remains
