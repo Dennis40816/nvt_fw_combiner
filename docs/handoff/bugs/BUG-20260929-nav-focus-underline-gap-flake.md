@@ -1,6 +1,6 @@
 # BUG-20260929-nav-focus-underline-gap-flake: navigation underline/gap region test fails intermittently at unchanged code
 
-Status: fixed on `feature/1.1.15/flaky-fixes`; pending review
+Status: open; test-only guard committed on `feature/1.1.15/flaky-fixes`, but a full-project local run still failed intermittently
 Severity: P2
 Found: 2026-09-29, Claude Code commander (Claude Opus 5.5), while checking CI on pull request #484 (run
 `36519114436`, job `109248204239`), at `feature/1.1.14/release-back-merge`@`a4e9ef6bf`
@@ -22,13 +22,19 @@ Second observation: pull request #486, CI run `36543531383`, head `347b8f3a8`, f
 The archived TRX is `evidence/1.1.15/ci-flakes/pr486-ui-test-results.trx` in the test area.
 The missing focus ring, rather than an overlap between two painted regions, is the observed failure.
 Owner: Codex `gpt-6-sol`, `feature/1.1.15/flaky-fixes`.
-Resolution: test-only change. `AwaitHistoryReadyAsync` waits for report history, while
-`MainWindow` separately posts the decision 178 quiet-shell focus at `DispatcherPriority.Input`
-after the required preload. The test could focus Home before that startup job ran, then sample a
-frame after focus had moved back to `ShellInteractionHost`. The test now waits for `StartupWork`
-and drains the queued input work before focusing Home, then checks Home's focus, `:focus-visible`
-class and `BoxShadow` after the render pump. The original pixel thresholds and gap/overlap
-assertions remain unchanged. The original focused test did not reproduce locally in 30 runs
-(120 parameter cases); the CI TRX is the red evidence. The corrected focused test passed 30/30
-runs (120 parameter cases) with the same command. Full `UiSmoke` project result is recorded in
-`docs/handoff/1.1.15/WS-FLAKES.md`.
+Resolution: test-only change fixed in `0700e25f4`. `AwaitHistoryReadyAsync` waits for report
+history and calls `Dispatcher.UIThread.RunJobs()`, which drains the previously posted
+quiet-shell focus job. Startup work after history (report, diagnostics, deferred views, or
+external environment) can still affect focus; the exact interleaving behind the CI frame
+has not been established. The test now waits for `StartupWork` and drains queued input work
+before focusing Home. It also checks Home's focus, `:focus-visible` class, and `BoxShadow`
+after the render pump, so a future missing ring gives direct focus-state evidence. The
+original pixel thresholds and gap/overlap assertions remain unchanged. The original focused
+test did not reproduce locally in 30 runs (120 parameter cases); the CI TRX is the red
+evidence. The corrected focused test passed 30/30 runs (120 parameter cases) with the same
+command. Full `UiSmoke` project result is recorded in `docs/handoff/1.1.15/WS-FLAKES.md`.
+On 2026-09-30, one full `UiSmoke` run failed this test's `(scale: 1, dark: True)` row
+(1 failure among 1,861 tests). Its quiet output did not retain the assertion message.
+An unchanged full rerun with TRX logging passed 1,861/1,861, and the focused class
+passed 13/13. The test correction remains unchanged; the cause of this new local
+failure and whether it matches the earlier missing-ring frame are open.

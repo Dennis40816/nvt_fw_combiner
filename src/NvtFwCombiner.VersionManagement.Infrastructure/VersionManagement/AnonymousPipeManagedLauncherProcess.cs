@@ -54,6 +54,8 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
     private readonly ManagedImmutableBootstrapIdentity? _inheritedBootstrapIdentity;
     private readonly IManagedProcessTermination _termination;
     private readonly Action<ProcessStartInfo>? _beforeStartValidation;
+    private readonly Action? _afterProcessCreation;
+    private readonly CancellationToken _deadlineSignal;
 
     internal AnonymousPipeManagedLauncherProcess()
         : this(ManagedProcessTermination.Instance, BootstrapAdmissionSignal.Capture())
@@ -69,11 +71,15 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         IManagedProcessTermination termination,
         BootstrapAdmissionSignal admission,
         Action<ProcessStartInfo>? beforeStartValidation = null,
-        ManagedImmutableBootstrapIdentity? inheritedBootstrapIdentity = null)
+        ManagedImmutableBootstrapIdentity? inheritedBootstrapIdentity = null,
+        Action? afterProcessCreation = null,
+        CancellationToken deadlineSignal = default)
     {
         _termination = termination ?? throw new ArgumentNullException(nameof(termination));
         _admission = admission ?? throw new ArgumentNullException(nameof(admission));
         _beforeStartValidation = beforeStartValidation;
+        _deadlineSignal = deadlineSignal;
+        _afterProcessCreation = afterProcessCreation;
         _inheritedBootstrapIdentity = inheritedBootstrapIdentity;
     }
 
@@ -102,11 +108,10 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
         ArgumentNullException.ThrowIfNull(launcher);
         ArgumentNullException.ThrowIfNull(executableLease);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(readyDeadline, TimeSpan.Zero);
-        var deadline = new ManagedStartDeadline(readyDeadline, cancellationToken);
+        var deadline = new ManagedStartDeadline(readyDeadline, cancellationToken, _deadlineSignal);
         return await deadline.RunAsync(
             () => StartCoreAsync(
                 managedRoot, statePath, launcher, executableLease, deadline, cancellationToken),
-            static () => new(LauncherProcessStartOutcome.ReadyTimeout, null),
             static () => new(LauncherProcessStartOutcome.TerminationUnconfirmed, null),
             cancellationToken)
             .ConfigureAwait(false);
@@ -189,12 +194,16 @@ internal sealed class AnonymousPipeManagedLauncherProcess : IManagedLauncherProc
             {
                 DisposeLocalClientHandle(pipe);
             }
+            if (process is not null)
+            {
+                _afterProcessCreation?.Invoke();
+            }
             deadline.Token.ThrowIfCancellationRequested();
             if (process is null)
             {
                 return Failure(LauncherProcessStartOutcome.StartFailed);
             }
-            if (!await _admission.ReportAdmittedAsync(cancellationToken).ConfigureAwait(false))
+            if (!await _admission.ReportAdmittedAsync(deadline.Token).ConfigureAwait(false))
             {
                 return Terminate(process, lifetime, LauncherProcessStartOutcome.StartFailed);
             }

@@ -2,7 +2,9 @@
 
 State: local work on `feature/1.1.15/flaky-fixes` from `origin/1.1.x` at `aba286bae`.
 Owner: Codex `gpt-6-sol`, single writer. Local commits are authorized; push, PR and GitHub writes are not.
-Risk: R1 test corrections; reclassify if a production owner changes.
+Risk: R3 for the branch diff because `docs/contracts/launcher-bootstrap-v1.md`
+is classified R3 by `docs/governance/authority-policy.json`; required roles are
+`firmware-owner` and `release-owner`. The earlier test-only phase was R1.
 Scope: `BUG-20260929-nav-focus-underline-gap-flake`,
 `BUG-20260929-repository-lease-test-hang`, then
 `BUG-20260929-vstest-discovery-foreground-thread-json`, one commit per bug.
@@ -76,7 +78,8 @@ after creation. The real CI hang still needs stack/phase evidence. No push.
 
 ### 2026-09-29 decision 194 whole-start deadline implementation
 
-State: local R2 production correction on the same feature branch; commit authorized,
+State: local R3 branch diff containing an R2 production correction and an R3
+contract path; commit authorized,
 push and GitHub writes remain prohibited. Decision 194 resolves the earlier
 pre-wait deadline question. The managed Desktop regression failed on the original
 source with a blocked final validation and a 150 ms ready deadline (1 failed);
@@ -84,7 +87,7 @@ the corrected Desktop and analogous version Launcher tests passed together (2/2)
 Both adapters now start one deadline at entry, reject process creation after it
 expires, and use the existing typed outcomes and cleanup owner. The launcher
 bootstrap contract and the affected port XML docs record the decision.
-Admission: base `d27c7c2fa`, risk R2, implementation owner Codex `gpt-6-sol`
+Admission: base `d27c7c2fa`, risk R3 (`firmware-owner`, `release-owner`), implementation owner Codex `gpt-6-sol`
 (single writer). Owner search found the two VersionManagement Infrastructure
 process adapters as the current producers, the Application managed-process
 ports and activation coordinators as callers, and `ProcessLaunchGate` as the
@@ -100,4 +103,53 @@ Both corrections and three controlled tests are included in the checkpoint;
 see `BUG-20260929-managed-start-cancellation-outcome` and
 `BUG-20260929-managed-start-cancellation-unbounded` for their evidence.
 Open: #488's actual CI hang cause remains unproven without a stack/phase trace.
-Independent R2 review and protected CI remain for integration; no push.
+Independent exact-head R3 review, both named owner approvals on the last push,
+and protected CI remain for integration; no push.
+
+### 2026-09-30 independent-review correction
+
+State: local correction to `e20119d71`, single writer; production behavior and
+test evidence updated, no push or GitHub write. The existing Application and
+Launcher process adapters own the typed start outcomes; `ManagedStartDeadline`
+owns the terminal wait, `ProcessLaunchGate` remains the only contained native
+start, and Application coordinators own fallback. Disposition: extend these
+owners, reuse `ReadyTimeout` and `TerminationUnconfirmed`, reject a second
+semantic launch path. No firmware bytes, write ranges, integrity order, profile
+support, or release payload change. The branch remains R3 because its contract
+path requires `firmware-owner` and `release-owner`; this local checkpoint does
+not supply their last-push approval.
+
+P2-1 red: `PreCreationTimeoutReleasesLeaseBeforeImmediateRollback` failed 1/1
+at `Assert.False(start.IsCompleted)` after controlled expiry while its fake
+lease was still held. Green: 1/1 after `RunAsync` waited for worker cleanup;
+the subsequent fallback acquired the lease and returned `Ready`. Both real
+adapter blocked-validation tests then returned `ReadyTimeout` only after lease
+status became `Exited`, and an immediate second start returned `Ready` (2/2).
+If cleanup cannot finish within two five-second termination intervals, the
+existing `TerminationUnconfirmed` blocks fallback. No outcome or SPEC change.
+
+P2-2/P2-3: controlled expiry now occurs after the chosen validation/creation
+or ADMITTED boundary. Tests no longer depend on a 150/200 ms process-creation
+budget or raw handle values; StartFailed budgets are five seconds. Lease status,
+worker completion, absent process marker, and successful immediate fallback
+verify cleanup. P3: `Interlocked.Exchange` publishes creation, both cleanup
+branches allow ten seconds, ADMITTED uses the deadline token, ADR 0056 records
+the amendment date, and the affected port docs state the cleanup extension.
+The navigation bug record now distinguishes the drained quiet-shell job from
+unconfirmed later startup/focus behavior and cites `0700e25f4`; the lease-hang
+record names its local correction owner.
+
+Verification at the changed source: Infrastructure 1,578/1,578; Bootstrap
+2,142/2,142; NavigationFocusIndicatorTests 13/13; Architecture
+RepositoryBoundaryTests 267/267; controlled timeout group 7/7 on each of 30
+loaded repeats; `python scripts/verify.py --structure-only` PASS.
+Full UiSmoke first ran 1,860/1,861, with the `(scale: 1, dark: True)` navigation
+focus row failing; its quiet output omitted the assertion. An unchanged rerun
+with TRX logging passed 1,861/1,861. The rerun artifact is under test-area
+`evidence/1.1.15/f115-flk-review-correction/`.
+
+Open: the intermittent full-project navigation failure remains unexplained;
+the owner requested that test correction itself stay unchanged. #488's CI hang
+still needs a stack or phase trace. This checkpoint is not integration-ready:
+the observed UiSmoke failure, independent exact-head R3 review, both named
+owner approvals on the last push, and protected CI remain open. No push.

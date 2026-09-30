@@ -25,15 +25,16 @@ The unchanged test passed 30/30 local runs with Coverlet and a 30-second blame-h
 project passed 1,572/1,572 twice (default and CI-serialized xUnit settings), and a concurrent six-project core
 run passed all projects. The original artifact has no stack or dump showing the blocked step. Local reproduction
 and a causal product/test fix remain open; see `docs/handoff/1.1.15/WS-FLAKES.md`.
-Owner: unassigned. First observation, cause unknown. Candidates to check: whether `StartUntilReadyAsync` enforces
+Owner: Codex `gpt-6-sol`, `feature/1.1.15/flaky-fixes` (pre-wait correction); #488 cause remains unassigned. Candidates to check: whether `StartUntilReadyAsync` enforces
 its timeout on every path; whether install or lease acquisition can block; and the child process and pipe cleanup.
 Resolution: decision 194's confirmed pre-wait deadline gap is corrected locally
 for both managed Desktop and version Launcher adapters. The committed regression
 gate blocks final validation inside `ProcessLaunchGate.StartContained`; before the
 production change, the Desktop test failed because start exceeded its 150 ms
 deadline. With the correction, both adapters return their existing typed
-`ReadyTimeout` while validation is blocked, reject process creation after the
-gate is released, and close the local ready and lifetime handles. A creation
+`ReadyTimeout` only after blocked validation is released and the worker has
+closed its ready pipe and lifetime lease. They reject process creation after the
+gate is released. A creation
 whose cleanup cannot be confirmed retains the existing
 `TerminationUnconfirmed` outcome. This establishes the pre-wait correction,
 not the root cause of #488's CI hang: that incident also had an invalid-handle

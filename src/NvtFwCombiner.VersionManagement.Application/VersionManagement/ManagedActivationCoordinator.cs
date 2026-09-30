@@ -45,7 +45,7 @@ public interface IManagedApplicationProcess
     /// <param name="managedRoot">Stable launcher-owned managed root.</param>
     /// <param name="version">Exact verified target version.</param>
     /// <param name="executableLease">Repository-owned exact executable held through process creation.</param>
-    /// <param name="readyDeadline">Budget from start entry through lease acquisition, validation, contained creation, and readiness (decision 194).</param>
+    /// <param name="readyDeadline">Budget from start entry through lease acquisition, validation, contained creation, and readiness (decision 194); cleanup confirmation may extend the terminal result by up to ten seconds.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The supervised start result.</returns>
     ValueTask<ManagedProcessStartResult> StartUntilReadyAsync(

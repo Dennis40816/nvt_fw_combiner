@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.InteropServices;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 using NvtFwCombiner.TestSupport;
@@ -24,65 +21,54 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
         string processMarker = Path.Combine(workspace.Root, "unexpected-launcher-start.txt");
         string? previousBehavior = Environment.GetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR");
         string? previousMarker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH");
+        string? previousVersion = Environment.GetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION");
+        string? previousAdmission = Environment.GetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION");
+        string? previousManifest = Environment.GetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST");
         using var entered = new ManualResetEventSlim();
         using var release = new ManualResetEventSlim();
-        IntPtr readyHandle = IntPtr.Zero;
-        IntPtr lifetimeHandle = IntPtr.Zero;
+        using var expiry = new CancellationTokenSource();
         Task<LauncherProcessStartResult>? start = null;
         try
         {
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", "ready");
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH", processMarker);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION", identity.OwnerAppVersion.ToString());
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION", identity.OwnerAdmissionIdentity);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", identity.OwnerReleaseManifestSha256);
             using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, identity);
             using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
             var adapter = new AnonymousPipeManagedLauncherProcess(
                 ManagedProcessTermination.Instance,
                 admission,
-                beforeStartValidation: startInfo =>
+                beforeStartValidation: _ =>
                 {
-                    readyHandle = new IntPtr(long.Parse(
-                        startInfo.Environment[AnonymousPipeManagedLauncherProcess.ReadyPipeHandleEnvironment]!,
-                        CultureInfo.InvariantCulture));
-                    lifetimeHandle = new IntPtr(long.Parse(
-                        startInfo.Environment[ManagedProcessLifetimeLease.HandleEnvironment]!,
-                        CultureInfo.InvariantCulture));
                     entered.Set();
                     release.Wait(TestContext.Current.CancellationToken);
-                });
-            var stopwatch = Stopwatch.StartNew();
-            start = Task.Run(async () => await adapter.StartUntilReadyAsync(
+                },
+                deadlineSignal: expiry.Token);
+            start = adapter.StartUntilReadyAsync(
                 workspace.Root,
                 statePath,
                 identity,
                 executableLease,
-                TimeSpan.FromMilliseconds(150),
-                TestContext.Current.CancellationToken));
+                TimeSpan.FromSeconds(10),
+                TestContext.Current.CancellationToken).AsTask();
             Assert.True(entered.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-
-            LauncherProcessStartResult result = await start.WaitAsync(
-                TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
-            Assert.Equal(LauncherProcessStartOutcome.ReadyTimeout, result.Outcome);
-            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(1));
-            Assert.False(File.Exists(processMarker));
+            expiry.Cancel();
+            Assert.False(start.IsCompleted);
             release.Set();
-            using var cleanupDeadline = CancellationTokenSource.CreateLinkedTokenSource(
-                TestContext.Current.CancellationToken);
-            cleanupDeadline.CancelAfter(TimeSpan.FromSeconds(2));
-            while (ManagedProcessLifetimeLease.GetStatus(
-                       statePath, ManagedProcessLifetimeKind.Launcher) != ManagedProcessLifetimeStatus.Exited ||
-                   GetHandleInformation(readyHandle, out _) ||
-                   GetHandleInformation(lifetimeHandle, out _))
-            {
-                await Task.Delay(20, cleanupDeadline.Token);
-            }
+            LauncherProcessStartResult result = await start.WaitAsync(
+                TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.Equal(LauncherProcessStartOutcome.ReadyTimeout, result.Outcome);
             Assert.False(File.Exists(processMarker));
             Assert.Equal(
                 ManagedProcessLifetimeStatus.Exited,
                 ManagedProcessLifetimeLease.GetStatus(statePath, ManagedProcessLifetimeKind.Launcher));
-            Assert.False(GetHandleInformation(readyHandle, out _));
-            Assert.Equal(6, Marshal.GetLastPInvokeError());
-            Assert.False(GetHandleInformation(lifetimeHandle, out _));
-            Assert.Equal(6, Marshal.GetLastPInvokeError());
+            LauncherProcessStartResult rollback = await new AnonymousPipeManagedLauncherProcess(
+                    ManagedProcessTermination.Instance, admission)
+                .StartUntilReadyAsync(workspace.Root, statePath, identity, executableLease,
+                    TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Assert.Equal(LauncherProcessStartOutcome.Ready, rollback.Outcome);
         }
         finally
         {
@@ -93,6 +79,9 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
             }
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", previousBehavior);
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH", previousMarker);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_VERSION", previousVersion);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_ADMISSION", previousAdmission);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_APP_MANIFEST", previousManifest);
         }
     }
 }

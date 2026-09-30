@@ -22,6 +22,8 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
     private readonly string _statePath;
     private readonly IManagedProcessTermination _termination;
     private readonly Action<ProcessStartInfo>? _beforeStartValidation;
+    private readonly Action? _afterProcessCreation;
+    private readonly CancellationToken _deadlineSignal;
 
     /// <summary>Creates a process adapter, optionally propagating an exact custom version-state path.</summary>
     public AnonymousPipeManagedApplicationProcess(string? statePath = null)
@@ -32,11 +34,15 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
     internal AnonymousPipeManagedApplicationProcess(
         string? statePath,
         IManagedProcessTermination termination,
-        Action<ProcessStartInfo>? beforeStartValidation = null)
+        Action<ProcessStartInfo>? beforeStartValidation = null,
+        Action? afterProcessCreation = null,
+        CancellationToken deadlineSignal = default)
     {
         _statePath = Path.GetFullPath(statePath ?? JsonVersionManagerStateStore.GetDefaultPath());
         _termination = termination ?? throw new ArgumentNullException(nameof(termination));
         _beforeStartValidation = beforeStartValidation;
+        _deadlineSignal = deadlineSignal;
+        _afterProcessCreation = afterProcessCreation;
     }
 
     /// <inheritdoc />
@@ -62,10 +68,9 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
         ArgumentException.ThrowIfNullOrWhiteSpace(managedRoot);
         ArgumentNullException.ThrowIfNull(executableLease);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(readyDeadline, TimeSpan.Zero);
-        var deadline = new ManagedStartDeadline(readyDeadline, cancellationToken);
+        var deadline = new ManagedStartDeadline(readyDeadline, cancellationToken, _deadlineSignal);
         return await deadline.RunAsync(
             () => StartCoreAsync(managedRoot, version, executableLease, deadline, cancellationToken),
-            static () => new(ManagedProcessStartOutcome.ReadyTimeout, null),
             static () => new(ManagedProcessStartOutcome.TerminationUnconfirmed, null),
             cancellationToken)
             .ConfigureAwait(false);
@@ -135,6 +140,10 @@ public sealed class AnonymousPipeManagedApplicationProcess : IManagedApplication
             finally
             {
                 DisposeLocalClientHandle(pipe);
+            }
+            if (process is not null)
+            {
+                _afterProcessCreation?.Invoke();
             }
             deadline.Token.ThrowIfCancellationRequested();
             if (process is null)

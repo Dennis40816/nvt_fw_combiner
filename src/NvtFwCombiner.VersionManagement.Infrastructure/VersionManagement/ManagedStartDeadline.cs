@@ -3,12 +3,17 @@ namespace NvtFwCombiner.Infrastructure.VersionManagement;
 /// <summary>Bounds a managed start, including its synchronous contained-launch preparation.</summary>
 internal sealed class ManagedStartDeadline
 {
+    private static readonly TimeSpan CleanupWaitTimeout =
+        2 * ManagedProcessTermination.DefaultWaitTimeout;
     private readonly CancellationTokenSource _deadline;
     private int _creationStarted;
 
-    internal ManagedStartDeadline(TimeSpan readyDeadline, CancellationToken cancellationToken)
+    internal ManagedStartDeadline(
+        TimeSpan readyDeadline,
+        CancellationToken cancellationToken,
+        CancellationToken testDeadlineSignal = default)
     {
-        _deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, testDeadlineSignal);
         _deadline.CancelAfter(readyDeadline);
     }
 
@@ -21,13 +26,12 @@ internal sealed class ManagedStartDeadline
         {
             return false;
         }
-        Volatile.Write(ref _creationStarted, 1);
+        _ = Interlocked.Exchange(ref _creationStarted, 1);
         return !Token.IsCancellationRequested;
     }
 
     internal async Task<TResult> RunAsync<TResult>(
         Func<Task<TResult>> start,
-        Func<TResult> timeout,
         Func<TResult> terminationUnconfirmed,
         CancellationToken cancellationToken)
     {
@@ -46,7 +50,7 @@ internal sealed class ManagedStartDeadline
                 try
                 {
                     return await worker.WaitAsync(
-                            ManagedProcessTermination.DefaultWaitTimeout,
+                            CleanupWaitTimeout,
                             CancellationToken.None)
                         .ConfigureAwait(false);
                 }
@@ -59,19 +63,13 @@ internal sealed class ManagedStartDeadline
         }
         catch (OperationCanceledException) when (Token.IsCancellationRequested)
         {
-            if (Volatile.Read(ref _creationStarted) == 0)
-            {
-                // The worker still owns its lease and pipe. Its gate callback must reject
-                // creation when released, then its finally block closes those resources.
-                return timeout();
-            }
-            // A native creation already in flight has no cancellable Windows API.
-            // Give the existing bounded cleanup policy time to confirm exit before
-            // returning the ordinary timeout; uncertain cleanup blocks rollback.
+            // Before creation the worker may still own its lease and pipe. After
+            // creation it may need both bounded termination steps. In either case,
+            // fallback is safe only after the worker has completed its cleanup.
             try
             {
                 return await worker.WaitAsync(
-                        ManagedProcessTermination.DefaultWaitTimeout,
+                        CleanupWaitTimeout,
                         CancellationToken.None)
                     .ConfigureAwait(false);
             }

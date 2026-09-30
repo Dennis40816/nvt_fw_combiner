@@ -6,6 +6,62 @@ namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 /// <summary>Exercises the shared terminal-result boundary used by both managed process adapters.</summary>
 public sealed class ManagedStartDeadlineTests
 {
+    /// <summary>A timed-out pre-creation start releases its lease before fallback starts.</summary>
+    [Fact]
+    public async Task PreCreationTimeoutReleasesLeaseBeforeImmediateRollback()
+    {
+        using var expiry = new CancellationTokenSource();
+        using var lease = new SemaphoreSlim(1, 1);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var deadline = new ManagedStartDeadline(
+            TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken, expiry.Token);
+        Task<ManagedProcessStartResult> start = deadline.RunAsync<ManagedProcessStartResult>(async () =>
+        {
+            Assert.True(await lease.WaitAsync(0, TestContext.Current.CancellationToken));
+            try
+            {
+                entered.SetResult();
+                await release.Task;
+                deadline.Token.ThrowIfCancellationRequested();
+                return new(ManagedProcessStartOutcome.Ready, null);
+            }
+            catch (OperationCanceledException)
+            {
+                return new(ManagedProcessStartOutcome.ReadyTimeout, null);
+            }
+            finally
+            {
+                _ = lease.Release();
+            }
+        },
+        static () => new(ManagedProcessStartOutcome.TerminationUnconfirmed, null),
+        TestContext.Current.CancellationToken);
+        try
+        {
+            await entered.Task.WaitAsync(TestContext.Current.CancellationToken);
+            expiry.Cancel();
+            // The fallback must never run while the first worker still owns the lease.
+            Assert.False(start.IsCompleted);
+            release.SetResult();
+            ManagedProcessStartResult candidate = await start.WaitAsync(
+                TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            Assert.Equal(ManagedProcessStartOutcome.ReadyTimeout, candidate.Outcome);
+            ManagedProcessStartOutcome rollback = await lease.WaitAsync(0, TestContext.Current.CancellationToken)
+                ? ManagedProcessStartOutcome.Ready
+                : ManagedProcessStartOutcome.TerminationUnconfirmed;
+            Assert.Equal(ManagedProcessStartOutcome.Ready, rollback);
+            if (rollback == ManagedProcessStartOutcome.Ready)
+            {
+                _ = lease.Release();
+            }
+        }
+        finally
+        {
+            _ = release.TrySetResult();
+        }
+    }
+
     /// <summary>Cancellation cannot hide an accepted child from its caller.</summary>
     [Fact]
     public async Task CallerCancellationDoesNotDiscardAlreadyAcceptedReady()
@@ -22,7 +78,6 @@ public sealed class ManagedStartDeadlineTests
             await release.Task;
             return new(ManagedProcessStartOutcome.Ready, null);
         },
-        static () => new(ManagedProcessStartOutcome.ReadyTimeout, null),
         static () => new(ManagedProcessStartOutcome.TerminationUnconfirmed, null),
         caller.Token);
         try
@@ -57,7 +112,6 @@ public sealed class ManagedStartDeadlineTests
             await Task.Delay(Timeout.InfiniteTimeSpan, caller.Token);
             return new(ManagedProcessStartOutcome.Ready, null);
         },
-        static () => new(ManagedProcessStartOutcome.ReadyTimeout, null),
         static () => new(ManagedProcessStartOutcome.TerminationUnconfirmed, null),
         caller.Token);
         await entered.Task.WaitAsync(TestContext.Current.CancellationToken);
@@ -91,7 +145,6 @@ public sealed class ManagedStartDeadlineTests
                 workerExited.SetResult();
             }
         },
-        static () => new(ManagedProcessStartOutcome.ReadyTimeout, null),
         static () => new(ManagedProcessStartOutcome.TerminationUnconfirmed, null),
         caller.Token);
         try
@@ -100,7 +153,7 @@ public sealed class ManagedStartDeadlineTests
             caller.Cancel();
 
             ManagedProcessStartResult result = await start.WaitAsync(
-                ManagedProcessTermination.DefaultWaitTimeout + TimeSpan.FromSeconds(2),
+                (2 * ManagedProcessTermination.DefaultWaitTimeout) + TimeSpan.FromSeconds(2),
                 TestContext.Current.CancellationToken);
             Assert.Equal(ManagedProcessStartOutcome.TerminationUnconfirmed, result.Outcome);
         }
