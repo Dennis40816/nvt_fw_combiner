@@ -9,6 +9,133 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 Later changes remain assigned by the canonical roadmap.
 
+## [1.2.0]
+
+### Summary
+
+1.2.0 is the user release of the 1.1.x line: users receive 1.2.0 once all 1.1.x development is complete (owner decisions 103, 184 and 189). Its code is exactly that of v1.1.15 (tag `v1.1.15`); 1.2.0 adds no code, only its version identity and release records. Firmware output bytes, write ranges, order, CRC/Header behavior and output naming are unchanged from 1.1.15. This entry is a cumulative summary for users who last ran an earlier release. Product change 5 names all 73 product changes of 1.1.0 through 1.1.15 by version and links each version's release notes, which carry each change's full Before → After, compatibility and verification; `CHANGELOG.md` holds the same entries.
+
+Three changes stand out (owner decision 202):
+
+- **NT51929 DP sub-version:** the DP CMI of the Perfect family is read completely, registers `0x16`-`0x18` of CMD1 Page 0, so the DP Version shows the DP sub-version as `Dxx-yy` (arrived in 1.1.2; see Product change 1).
+- **NT51950 2-IC public version:** the public NT51950 2-IC AB Code image starts its TP B code at `0x8A000` (arrived in 1.1.6, consolidated in 1.1.10; see Product change 2).
+- **NT51950 OSD merge:** an NT51950 AB Code whose DP carries Display OSD merges, keeping every DP byte outside the declared TP and postbuild writes and warning about a possible OSD customization (arrived in 1.1.10, owner-certified Golden case since 1.1.11; see Product change 3).
+
+Main user-visible themes of 1.1.0 through 1.1.15, with the entry to read:
+
+- **Baseline:** 1.1.0 republished the frozen 1.0.8 application as a direct Windows x64 package (see 1.1.0).
+- **AB Code:** opt-in Dummy DP (1.1.4), configurable Event Buffer Format recognition (1.1.6), shared NT51950/NT51951 layouts and nonstandard DP sizes (1.1.10).
+- **CtrlRAM Replace:** AB Code Flash Bases on Candidate routes (1.1.10, 1.1.11), NT51950/NT51951 Bases that carry Display OSD at any length (1.1.11, 1.1.12), AB Bases decided by NVT markers at the declared end flag (1.1.12, 1.1.13).
+- **Firmware information:** shared, prioritized facts with Event Buffer (1.1.7, 1.1.10, 1.1.11), TP SVN (1.1.13), a DP Jira Index of 0 shown as invalid (1.1.14).
+- **Memory Layout:** compact overview and interaction (1.1.4, 1.1.6, 1.1.10, 1.1.11); a passive, keyboard-accessible legend that card connectors cross from each slice's true range (1.1.15, replacing the 1.1.14 connectors that stayed clear of the legend).
+- **Build, reports and delivery:** report history and navigation (1.1.4), Build settings and source summary (1.1.7), name and Bundle recovery (1.1.9), per-BIN naming (1.1.10), self-validating Build, protected outputs and retryable saves (1.1.12, 1.1.13).
+- **Start-up and lifetime:** faster start-up loading (1.1.5, 1.1.12, 1.1.13); bounded close, version switch and start (1.1.13, 1.1.15).
+- **Removed or hidden:** the DP Replace experience is removed (1.1.10); Customized Merge/Replace entry points are hidden (1.1.11).
+- **Package:** the bundled VC++ Runtime with explicit Runtime selection (1.1.8, 1.1.9) and paths short enough for Explorer's default extraction (1.1.14).
+- **Not user-visible:** CI, verification and release automation (1.1.1 to 1.1.3, 1.1.5, 1.1.8, 1.1.13 to 1.1.15).
+
+### Product changes
+
+#### 1. NT51929 DP sub-version: the complete DP CMI is read and shown as `Dxx-yy`
+
+- Before → After:
+  - Before 1.1.2, Standard naming for the Perfect family (NT51919, NT51929 and NT51932) could take its DP version from compact-header DPCMI bytes and show `D0200`. Since 1.1.2 it reads only the three CMI bytes at CMD1 Page 0, registers `0x16`-`0x18` (flash `[0x401A,0x401D)`), which gives the intended `D2004` naming.
+  - The three bytes carry the DP major (register `0x17`), the DP sub-version (the high nibble of register `0x18`) and the Jira index (register `0x16` and the low nibble of register `0x18`). The DP Version is shown as `Dxx-yy`: DP major, then DP sub-version, in hexadecimal.
+  - AB inputs keep their A and B CMI reads at `[0x401A,0x401D)` and `[0x4401A,0x4401D)`.
+  - Later refinements in the same line: a Jira Index of 0 is shown as `Invalid (AUTO_PRJ-0)` (1.1.14); the DP CMI sub-field is listed with its exact range inside its DP section of the Memory Layout (1.1.15).
+- Affected: Standard Merge naming and the DP Version and Jira facts of NT51919, NT51929 and NT51932. AB Code inputs already read the A and B CMI and did not change in 1.1.2. General workflows have no DPCMI reader.
+- Support status: unchanged/support-neutral; no IC, route or mode is promoted.
+- Compatibility: Firmware bytes, ranges, CRC/Header behavior and the NT51929 Golden output SHA-256 are unchanged. Only the DP version and Jira facts and the DP token in output names read from the CMI instead of the compact header. The compact `[0x66,0x69)` observations remain historical only.
+- Verification: 1.1.2 recorded the DPCMI evidence for the existing path with exact targeted coverage and added the public NT51929 certified input observations (input-only; a non-zero DP sub-version case with DP major `09` and sub-version `01`). Every owner-certified Golden output case, including the NT51929 case, is executed against the release candidate.
+- Limitations: The public NT51929 observations are inputs only, not an expected output, and certify no route. The owner checked the complete `0x16`-`0x18` read on real images as a condition of the 1.2.0 release approval (decisions 15, 199 and 206).
+
+#### 2. NT51950 2-IC public version: the TP B code starts at `0x8A000`
+
+- Before → After:
+  - Before 1.1.6 every NT51950 AB image used the single-IC TP B position `0x4A000`, while NT51951 already used `0x8A000`. Since 1.1.6 the public (Common) NT51950 2-IC AB Code layout starts TP B at `0x8A000`; the coupled profile offsets and processor declarations follow the selected layout, and the 2-IC applicability is explicit rather than inferred from file size or bank count.
+  - 1.1.10 consolidated the Common geometry: NT51950 cascade and NT51951 use a 1 MiB output with `0x80000` banks and TP B at `[0x8A000,0xB7000)`; NT51950 single keeps 512 KiB with TP B at `[0x4A000,0x77000)`. The separate NT51950 exact-two-IC override was removed.
+  - 1.1.15 corrected the B-bank CMI of the NT51950 cascade 1024k and NT51951 1024k maps to `flash [0x84016,0x84019)`, one page off before.
+- Affected: AB Code for NT51950 (2-IC, cascade) and NT51951, including its Dummy DP path, Memory Layout, run reports and the `dp-b` output-name token of the two 1024k maps.
+- Support status: unchanged/support-neutral; the NT51950 cascade configuration is Candidate/contract-only (1.1.6, 1.1.10), the earlier generic Cascade `Supported` identity was retired in 1.1.10, and 1.2.0 promotes nothing.
+- Compatibility: Output bytes of the certified 512k Golden cases are unchanged. Compared with a release before 1.1.6, the same NT51950 2-IC inputs build a different AB image: TP B is written at `0x8A000` instead of `0x4A000`, in the 1.1.10 geometry above. Since 1.1.15 the `dp-b` output-name token of the two 1024k maps reads `0x84017`/`0x84018` instead of `0x85017`/`0x85018`; a file name changes only when the two locations hold different values. An explicit AB `--profile` ID now rejects a different detected profile, so use an IC selector for automatic selection (1.1.6). Saved sessions and rules tied to earlier NT51950/NT51951 identities can become stale (see Upgrade and rollback).
+- Verification: 1.1.6 recorded configuration, primary-field admission, profile, runtime, report and write-boundary regressions; an earlier development run passed all 25 certified output cases, and every owner-certified Golden case is executed against the release candidate. For 1.1.15 a before/after compiled-plan audit of all six NT51950/NT51951 AB maps showed identical write ranges and processor permissions.
+- Limitations: The maps other than 512k have no direct Golden case and rely on compiled-plan equivalence. The owner checked the public 2-IC TP B start `0x8A000` and the 1024k B-bank CMI on real images as a condition of the 1.2.0 release approval (decisions 15, 195, 199 and 206); the check covers these routes and is not extended to other topologies.
+
+#### 3. NT51950 OSD merge: an AB Code with Display OSD merges
+
+- Before → After:
+  - NT51950/NT51951 Standard Merge and AB Normal used to reject a DP whose size differs from the standard capacity, which a Display OSD application can cause (for example a 1 MiB DP on the 512 KiB NT51950 single-IC map). Since 1.1.10 the TP location still comes from the declared map, the output length follows the DP, every DP byte is kept except the declared TP and postbuild writes, and the input card, Output Settings and Report show a possible OSD customization warning.
+  - 1.1.11 admitted the owner-certified NT51950 single-IC OSD AB case (1 MiB DP, one TP shared by A and B, 1 MiB output) as a Direct Golden case. 1.1.14 made the warning state the actual and expected BIN sizes and appear once in the output confirmation.
+  - CtrlRAM Replace also accepts NT51950/NT51951 Bases that carry Display OSD: a 1 MiB single-IC OSD AB Base (1.1.11), any Base length beyond the IC's largest CtrlRAM map (1.1.12), and an NVT marker inside the OSD no longer overrides the declared NVT end flag (1.1.13).
+- Affected: NT51950/NT51951 Standard Merge; NT51950 Single and Cascade and NT51951 Single AB Code Normal; NT51950/NT51951 CtrlRAM Replace Bases. The disabled Desay layouts are not reopened.
+- Support status: unchanged/support-neutral; the Golden case does not promote a route.
+- Compatibility: Standard-size DP, no-DP and Dummy DP, bank staging, CRC/Header and naming paths keep their behavior. A nonstandard DP output has the length of its input, with no padding or truncation, and a missing required range still blocks Build. 1.1.14 changed the warning text only; its detection, threshold and Build blocking are unchanged.
+- Verification: The single-IC OSD AB Golden case reproduces identical complete output bytes and asserts the warning and immutable inputs; it is executed against every release candidate, and again for 1.1.15 (item 2 of that entry). The CtrlRAM cases are those recorded in 1.1.11 to 1.1.13.
+- Limitations: Only the single-IC OSD case has an owner-certified expected output; other nonstandard-size AB outputs have no independent expected-output Golden case. The owner checked on a real image that an NT51950 AB Code with Display OSD merges, as a condition of the 1.2.0 release approval (decisions 15, 199 and 206).
+
+#### 4. The DP Replace experience is removed (1.1.10)
+
+- Before → After: The dedicated DP Replace UI, CLI, service, profile and package execution were removed. The old CLI preview and build now report `cli.retired-experience` with exit code 64 before any input is read, anything runs or an output or report is created. Shared DP metadata and the surviving General Replace remain, and historical reports and history still load.
+- Affected: DP Replace users and automation scripts.
+- Support status: removed; 14 DP policy routes were retired.
+- Compatibility: The old command is not redirected to General Replace, and no automatically equivalent command exists; a script that called `dp-replace` needs adjusting. Existing files are kept.
+- Verification: Regressions cover the public CLI without side effects, a compiler that produces no retired artifact, package materialization and deployment, and the shared behavior and historical data that remain.
+- Limitations: None known beyond the missing automatic replacement command.
+
+#### 5. Every product change of 1.1.0 through 1.1.15, by version
+
+- Before → After: Each version below names all of its product changes (their number in parentheses); the linked release notes give each change's Before → After, and product changes 1 to 4 above cover the highlights and the removal in more detail. 1.2.0 adds no change of its own.
+  - [1.1.0](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.0) (1): Manual-only Windows distribution.
+  - [1.1.1](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.1) (1): Verification and protected release admission.
+  - [1.1.2](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.2) (5): Repository document convergence; bounded verification workflow; AB selector context correction; public NT51929 certified input evidence; Perfect-family DPCMI CMD Page authority (highlight 1).
+  - [1.1.3](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.3) (6): Isolated CI and exact-source release verification; reliable public-download smoke; mechanical preflight and repeatable test fixtures; reliable CI test fixtures; Windows-focused test scope; proportionate documentation and agent workflows.
+  - [1.1.4](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.4) (5): Input cards and validation feedback; Memory Layout; AB Dummy DP; reports, delivery and navigation; release test references.
+  - [1.1.5](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.5) (3): Bounded parallel local verification; start-up resource and catalog loading; complete-data workflow refresh with less reconstruction.
+  - [1.1.6](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.6) (3): Event Buffer Format configuration and AB layout selection (highlight 2: NT51950 2-IC TP B at `0x8A000`); Memory Layout and firmware input-card interaction; CtrlRAM readiness after external-tool publication.
+  - [1.1.7](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.7) (2): Firmware information and Details preference; Build settings output and source summary.
+  - [1.1.8](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.8) (5): Report Save failure handling; preserve pre-existing Combiner staging; complete portable Combiner dependencies; more focused development checks; consistent agent and release guidance.
+  - [1.1.9](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.9) (2): Recover invalid output and Bundle names; select a verified VC++ Runtime.
+  - [1.1.10](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.10) (13): AB Code: selector, Dummy DP, shared banks and TP validation (highlight 2 consolidated); settings: Event Buffer Format editing, reload and missing-file defaults; input cards and information: versions, Details, titles and scroll bars; Memory Layout: overview, interaction areas and merged BIN content; Build settings and delivery: per-BIN renaming, Bundle and file-name recovery; Report, History and message navigation; external tools and the portable package: Runtime selection and staging protection; start-up performance, refresh and run-state isolation; desktop start: Standard, AB Code and CtrlRAM inputs preloaded from the command line; firmware metadata: DPCMI naming and decoupled shared definitions; retired: DP Replace (product change 4); verification, release and development maintenance; nonstandard DP: the complete input is kept, with a possible OSD customization warning (highlight 3).
+  - [1.1.11](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.11) (6): Delayed file selections cannot overwrite newer work; Hex Editor keeps accepted bytes and filename together; shared firmware information and visible Event Buffer; correct AB memory overview and CtrlRAM labels; hide Customized workflows until their later release; preserve the full OSD Base during AB CtrlRAM replacement.
+  - [1.1.12](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.12) (4): Faster startup loading; a committed output survives an interrupted delivery or report; NT51950/NT51951 CtrlRAM Replace accepts a Base with Display OSD; AB Bases are decided by two NVT markers.
+  - [1.1.13](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.13) (8): CLI reports preserve committed outputs and existing reports; save failures are visible and can be retried; Display OSD markers no longer override the declared NVT end flag; navigation, Replace selection and external tool failures are clearer; Build checks every run itself, and long legacy tool paths fail early; TP SVN is shown for TP inputs; faster start-up with a pre-built profile catalog; closing and version switching are bounded and recoverable.
+  - [1.1.14](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.14) (6): A redirected local-state folder is named as the reason a save failed; the non-standard DP size warning is specific and shown once; a DP Jira Index of 0 is shown as invalid; controlled errors for invalid arguments, unknown modes and oversized JSON; Memory Layout, TP SVN and start-up focus corrections; the portable package extracts without Windows long paths.
+  - [1.1.15](https://github.com/Dennis40816/nvt_fw_combiner/releases/tag/v1.1.15) (3): The Memory Layout legend is passive, keyboard-accessible and easier to read; NT51950/NT51951 AB images declare their DP regions, and the 1024k B-bank CMI location is corrected; a managed Desktop or Launcher start is bounded by one whole-start deadline.
+  - Besides these product changes, 1.1.11 admitted the NT51950 single-IC OSD AB Code Merge case as an owner-certified Golden case (highlight 3); the AB CtrlRAM Replace of an OSD Base stays Candidate (see Known issues).
+- Affected: The workflows named in those entries; a user upgrading from an earlier release receives them together.
+- Support status: 1.2.0 promotes nothing. Each 1.1.x entry states its own support status. Besides the removal in item 4, Customized Merge/Replace entry points have been hidden since 1.1.11 (availability reduced; the underlying capabilities are neither promoted nor removed), and routes named Candidate or contract-only there keep that status.
+- Compatibility: The product source is that of v1.1.15. Notes for saved sessions, rules and scripts are in Upgrade and rollback.
+- Verification: 1.2.0 changes no code, so its verification is the release gates on its exact candidate: exact-source CI, every applicable owner-certified Golden output case executed against the candidate, package and smoke checks and the owner's approval. Each 1.1.x entry states the verification of its own changes.
+- Limitations: See Known issues.
+
+### Security
+
+No new external executable, update endpoint, network surface or permission is introduced, and 1.2.0 adds no code. Release admission still requires the owner's approval on the exact release head, and the protected `release` environment approval still gates publication (see 1.1.14). CI evidence contains no firmware payloads and no memory dumps (see 1.1.15).
+
+### Known issues
+
+- On single IC, the NT51950/NT51951 image maps still declare the cascade-only DIFF CtrlRAM region; 1.1.15 only hides it from the Memory Layout. Splitting the region set per topology is a profile change planned for 1.2.x.
+- The Memory Layout highlight is a background color only; NFC has no High Contrast palette yet (planned for 1.2.10).
+- The corrected 1024k B-bank CMI location has no direct Golden case; the owner's real-image check is its only evidence beyond the compiled-plan audit.
+- A selected input file that is renamed, moved, modified or deleted on disk afterwards is not noticed until the selection is inspected again (another file selected in the workflow, an IC, Number or mode change); until then its card still shows Verified with the old path, and Build uses the content read when the file was selected. Select the file again after changing it. A toast and automatic unselect are planned for 1.2.x.
+- With only the DP_AB input selected, the AB Code Memory Layout lists adjacent DP ranges as separate numbered rows, can attribute the TP A range to the DP file and shows the internal region `ab-combiner-work` as a content row; the layout is correct once the TP inputs are selected. A fix is planned for 1.2.x.
+- AB CtrlRAM Replace routes and the NT51950 cascade AB configuration stay Candidate/contract-only (see 1.1.10 to 1.1.12); independent expected outputs and firmware-owner review are still required for uncovered cases.
+- NT51950 AB CtrlRAM Replace can still differ from an owner-built reference in the 32 Header and Header-copy CRC bytes described in 1.1.13; the handling decision is in 1.2.x.
+- The first-window time measured for 1.1.14 (about 40 ms later than v1.1.12, accepted by the owner in decision 179) was not re-measured for 1.1.15, and 1.2.0 carries the same code.
+- No formal predecessor comparison was run for this release: the owner waived ADR 0078 and the v0.9.16 milestone comparison for 1.2.0 (decisions 176 and 201) because the comparator lands in 1.2.2 (decisions 167 and 175). All owner-certified Golden cases are executed at the release candidate instead.
+- If you change `TMP` or `TEMP` to shorten the legacy tool path (see 1.1.13), restart NFC and the Launcher so they read the new value.
+
+### Upgrade and rollback
+
+Extract the portable package into a separate directory and preserve existing settings and outputs. Keep the prior stable package for rollback.
+
+- From 1.1.15: nothing new beyond 1.1.15; 1.2.0 has the same product source.
+- From an earlier 1.1.x or from 1.0.x: the Upgrade and rollback text of every entry in between applies. In particular, saved sessions and saved General Merge and General Replace rules tied to earlier NT51950/NT51951 identities (the end-flag change in 1.1.13 and the DP declaration in 1.1.15) or to the 19 families and 24 bundles whose identities changed with the TP SVN display (1.1.13, notably NT51926 General Replace) can stop resolving and must be selected or saved again; no automatic saved-data migration is claimed. A script that called the DP Replace CLI must be adjusted (1.1.10), a script that read the Preview approval token line must stop relying on it (1.1.13), and a script that names an explicit AB `--profile` ID must match the detected profile (1.1.6). Notes that used the old `reference/` folder paths must use `reference/golden/manifest.json` (1.1.14). Versions before 1.1.6 do not implement the Event Buffer Format rules. Extract 1.1.0 and later into a new folder instead of overlaying an existing installation (1.1.0).
+
+### Downloads and integrity
+
+The Windows x64 portable package is `NvtFwCombiner-v1.2.0-win-x64.zip`. It is self-contained and carries the pre-built profile catalog. The coupled distribution Launcher is published as its separate five-asset set (EXE, manifest, SPDX, in-toto provenance and checksum). Its product source is that of `v1.1.15`; only the version identity differs. Publication requires exact-source protected CI, fresh execution of every applicable owner-certified Golden output case against this candidate, package and smoke checks and the owner's approvals; use the published checksums, SBOM and provenance to verify downloads.
+
 ## [1.1.15]
 
 ### Summary
