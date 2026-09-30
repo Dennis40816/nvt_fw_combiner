@@ -40,7 +40,11 @@ public sealed class MemoryCoverageBarGeometryTests
             ProportionalStackPanel panel = Assert.Single(bar.GetVisualDescendants().OfType<ProportionalStackPanel>());
             Assert.Equal(3, panel.Children.Count);
             Assert.Equal(width, panel.Bounds.Width);
-            Assert.Equal(34, bar.Bounds.Height);
+            Assert.Equal(34, panel.Bounds.Height);
+            Assert.Equal(62, bar.Bounds.Height);
+            Canvas markers = Assert.Single(bar.GetVisualDescendants().OfType<Canvas>(), control => control.Name == "MemoryTinyMarkers");
+            Assert.Equal(24, markers.Bounds.Height);
+            Assert.True(markers.IsEffectivelyVisible);
             Border[] mainSlices = [.. panel.GetVisualDescendants().OfType<Border>()
                 .Where(border => border.Classes.Contains("memoryExplorerSlice"))];
             Assert.Equal(2, mainSlices.Length);

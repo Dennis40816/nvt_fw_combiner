@@ -383,7 +383,7 @@
         <TextBlock Classes="captionText" FontSize="{DynamicResource NfcFontSize11}" Text="{Binding CtrlRamSharedInputHint}" TextWrapping="Wrap" />
       </StackPanel>
 
-      <views:MemoryCoverageBar IsVisible="{Binding !HasCtrlRamFocusLayout}" ItemsSource="{Binding ReplaceCoverageSegments}" Labels="{Binding Text}" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
+      <views:MemoryCoverageBar IsVisible="{Binding !HasCtrlRamFocusLayout}" ItemsSource="{Binding ReplaceCoverageSegments}" StartAddress="{Binding ReplaceStartAddress}" EndAddress="{Binding ReplaceEndAddress}" Labels="{Binding Text}" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
       </StackPanel>
       </Grid>
     </views:SpaciousPanel>

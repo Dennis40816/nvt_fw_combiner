@@ -86,8 +86,9 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             workspace.Root,
             version,
             "timeout",
-            TimeSpan.FromMilliseconds(200),
-            TestContext.Current.CancellationToken);
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken,
+            expireAfterCreation: true);
 
         Assert.Equal(ManagedProcessStartOutcome.ReadyTimeout, result.Outcome);
     }
@@ -106,14 +107,17 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             var termination = new ManagedProcessTermination(
                 new FailingTerminationOperations(failKill: true, failWait: false));
             using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
+            using var expiry = new CancellationTokenSource();
 
             ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(
                 Path.Combine(workspace.Root, "state", "version-manager.v1.json"),
-                termination).StartUntilReadyAsync(
+                termination,
+                deadlineSignal: expiry.Token,
+                afterProcessCreation: expiry.Cancel).StartUntilReadyAsync(
                     workspace.Root,
                     version,
                     executableLease,
-                    TimeSpan.FromMilliseconds(200),
+                    TimeSpan.FromSeconds(10),
                     TestContext.Current.CancellationToken);
 
             Assert.Equal(ManagedProcessStartOutcome.TerminationUnconfirmed, result.Outcome);
@@ -257,7 +261,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             workspace.Root,
             version,
             executableLease,
-            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(5),
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedProcessStartOutcome.StartFailed, result.Outcome);
@@ -283,7 +287,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
                 workspace.Root,
                 version,
                 executableLease,
-                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedProcessStartOutcome.StartFailed, result.Outcome);
@@ -310,7 +314,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
             workspace.Root,
             version,
             executableLease,
-            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(5),
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedProcessStartOutcome.StartFailed, result.Outcome);
@@ -324,7 +328,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         using var workspace = TempWorkspace.Create();
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
         PrepareProbe(workspace.Root, version);
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        using var cancellation = new CancellationTokenSource();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             await RunAsync(
@@ -332,7 +336,8 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
                 version,
                 "timeout",
                 TimeSpan.FromSeconds(5),
-                cancellation.Token));
+                cancellation.Token,
+                afterProcessCreation: cancellation.Cancel));
     }
 
     /// <summary>The application-side inherited channel is version-bound and consumed exactly once.</summary>

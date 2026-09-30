@@ -58,10 +58,19 @@ public sealed class CtrlRamOverviewCompletionTests
             Assert.Contains(shell.Replace.CtrlRamOverview, section => section.ContentRole == MemoryContentRole.Dp);
             Assert.Equal(3, shell.Replace.CtrlRamOverview.Count);
             Assert.Equal(ic == "NT51919" ? 1 : 2, shell.Replace.CtrlRamOverview.Count(section => section.ContentRole == MemoryContentRole.Dp));
-            Assert.All(shell.Replace.CtrlRamOverview.Where(section => section.ContentRole == MemoryContentRole.Dp),
-                section => Assert.Equal("DP", section.DisplayTitle));
+            // A repeated legend title is numbered in rail order (decision 197); a single DP stays plain.
+            string[] expectedDpTitles = ic == "NT51919" ? ["DP"] : ["DP #1", "DP #2"];
+            Assert.Equal(expectedDpTitles, shell.Replace.CtrlRamOverview
+                .Where(section => section.ContentRole == MemoryContentRole.Dp).Select(section => section.DisplayTitle));
             Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Master");
             Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Common");
+            // Single IC never binds a Base-group range (NT51950/51 DIFF CtrlRAM): no lane, no dot; the slice stays as context.
+            Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.PositionLabel == "•");
+            if (ic != "NT51919")
+            {
+                Assert.Contains(shell.Replace.ReplaceCoverageSegments, segment =>
+                    segment.ContentRole == MemoryContentRole.CtrlRam && segment.RegionGroup == ReplaceRegionGroup.Base);
+            }
             MemoryFocusLaneViewModel master = Assert.Single(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Master");
             Assert.All(master.Ranges, range => Assert.Equal(ReplaceRegionGroup.Common, range.RegionGroup));
             Assert.Equal("Master", master.PositionLabel);
@@ -91,8 +100,8 @@ public sealed class CtrlRamOverviewCompletionTests
             shell.SelectedLanguage = "Traditional Chinese";
             window.RequestedThemeVariant = ThemeVariant.Dark;
             CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-overview-dark-zh");
-            Assert.All(shell.Replace.CtrlRamOverview.Where(section => section.ContentRole == MemoryContentRole.Dp),
-                section => Assert.Equal("DP", section.DisplayTitle));
+            Assert.Equal(expectedDpTitles, shell.Replace.CtrlRamOverview
+                .Where(section => section.ContentRole == MemoryContentRole.Dp).Select(section => section.DisplayTitle));
             Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC");
             Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "共用");
             Dispatcher.UIThread.RunJobs();

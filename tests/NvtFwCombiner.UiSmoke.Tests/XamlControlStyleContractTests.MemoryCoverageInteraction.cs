@@ -307,13 +307,12 @@ public sealed partial class XamlControlStyleContractTests
             Border activeRow = Assert.Single(
                 panel.GetVisualDescendants().OfType<Border>(),
                 candidate => ReferenceEquals(candidate.DataContext, active) && candidate.Name == "MemoryLegendTarget");
-            Assert.True(MemoryCoverageInteractionBehavior.GetIsEnabled(activeRow));
+            Assert.False(MemoryCoverageInteractionBehavior.GetIsEnabled(activeRow));
             Assert.False(FocusToolTipBehavior.GetIsEnabled(activeRow));
             Assert.Null(ToolTip.GetTip(activeRow));
-            Assert.True(activeRow.Focus(NavigationMethod.Tab));
+            Assert.False(activeRow.Focus(NavigationMethod.Tab));
             Dispatcher.UIThread.RunJobs();
-            Assert.Same(active, Assert.Single(host.GetVisualDescendants().OfType<Border>(), candidate => candidate.Name == "MemorySliceCard").DataContext);
-            activeRow.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
+            Assert.DoesNotContain(host.GetVisualDescendants().OfType<Border>(), candidate => candidate.Name == "MemorySliceCard");
 
             for (Visual? ancestor = activeSegment; ancestor is not null && ancestor != track;
                  ancestor = ancestor.GetVisualParent())

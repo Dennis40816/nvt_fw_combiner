@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;

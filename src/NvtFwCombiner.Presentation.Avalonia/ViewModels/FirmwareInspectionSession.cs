@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
@@ -154,7 +155,7 @@ internal static class FirmwareInspectionProjection
             {
                 slot.SetInputInspection(
                     FirmwareInputInspectionSeverity.Blocking,
-                    readinessDetail);
+                    readinessDetail, status);
             }
             else
             {
@@ -187,7 +188,7 @@ internal static class FirmwareInspectionProjection
             string.Join(Environment.NewLine, issues.Select(static issue =>
                 issue.OperationId is { } operationId
                     ? $"{issue.Code} [{operationId}]: {issue.Message}"
-                    : $"{issue.Code}: {issue.Message}")));
+                    : $"{issue.Code}: {issue.Message}")), authoringIssues: issues);
     }
 
     private static void ApplyConfigurationPrerequisite(FirmwareSlotViewModel slot, AuthoringInputSlotStatus status, ShellTextResources text)
@@ -222,7 +223,7 @@ internal static class FirmwareInspectionProjection
 
             slot.SetInputInspection(
                 FirmwareInputInspectionSeverity.Blocking,
-                text.FirmwareInspectionStaleFileStatus);
+                text.FirmwareInspectionStaleFileStatus, availabilityIssue: MemoryInputAvailabilityIssue.ContentChanged);
             applied = true;
         }
 

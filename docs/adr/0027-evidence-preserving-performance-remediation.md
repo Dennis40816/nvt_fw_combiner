@@ -16,7 +16,11 @@
   (`python scripts/verify.py --all` and the other local runs of the complete
   .NET coverage inventory) through `VERIFY-UISMOKE-PARTITION-1113-01`, ahead of
   T4b; the CI producers still run each project unfiltered until the T4b
-  activation.
+  activation. Its 2026-09-29 [item 8 amendment](0079-test-architecture.md#8-stability-rules)
+  (board decisions 191/193) adds the bounded CI failed-FQN retry and sequence-only
+  hang diagnostics. GoldenRegression is never retried, release source CI requires
+  zero flaky tests, and CI evidence still contains no firmware payloads or memory
+  dumps; any needed dump is reproduced locally.
 - Supersedes: The former `v0.9.10` candidate-intake assignment
 - Superseded by: None
 

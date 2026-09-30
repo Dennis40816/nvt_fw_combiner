@@ -4,6 +4,7 @@ using NvtFwCombiner.Infrastructure.Diagnostics;
 namespace NvtFwCombiner.GoldenRegression.Tests;
 
 /// <summary>Golden output tests must run with the build's real accepted admission source.</summary>
+[Collection(nameof(GoldenHostCatalogReloadSerialGroup))]
 public sealed class PrebuiltProfileCatalogAdmissionTests
 {
     /// <summary>A successful JSON fallback must not conceal an unused default pack in this host.</summary>

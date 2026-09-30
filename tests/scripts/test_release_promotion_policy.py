@@ -426,8 +426,22 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                     emit({{"total_count": 1, "workflow_runs": [ci["run"]] if page_number == 1 else []}})
                 if endpoint == "repos/owner/repository/actions/runs/80":
                     emit(ci["run"])
-                if endpoint == "repos/owner/repository/actions/runs/80/attempts/2/jobs":
-                    emit({{"total_count": len(ci["jobs"]), "jobs": ci["jobs"] if page_number == 1 else []}})
+                if endpoint.startswith("repos/owner/repository/actions/runs/80/attempts/"):
+                    attempt = int(endpoint.split("/")[-2])
+                    jobs = [
+                        {{**job, "check_run_url": "https://api.github.com/repos/owner/repository/check-runs/" + str(job["checkRunId"])}}
+                        for job in ci["flakyEvidence"][attempt - 1]["jobs"]
+                    ]
+                    emit({{"total_count": len(jobs), "jobs": jobs if page_number == 1 else []}})
+                if endpoint.startswith("repos/owner/repository/check-runs/"):
+                    identifier = int(endpoint.split("/")[4])
+                    flaky = scenario == "source-flaky" and identifier == 1102
+                    if endpoint.endswith("/annotations"):
+                        annotations = [{{"annotation_level": "warning", "title": "Flaky test", "message": "tests/Probe.csproj Probe.Tests.Case1"}}] if flaky else []
+                        emit(annotations if page_number == 1 else [])
+                    emit({{"id": identifier, "head_sha": "{SHA}", "app": {{"slug": "github-actions"}},
+                          "status": "completed", "conclusion": "success",
+                          "output": {{"annotations_count": 1 if flaky else 0}}}})
                 if endpoint == "repos/owner/repository/branches/main":
                     if scenario == "gh_failure":
                         raise SystemExit(17)
@@ -775,7 +789,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             "created_at": "2026-09-05T02:00:00Z",
             "status": "completed", "conclusion": "success",
         }
-        return {
+        source = {
             "repository": "owner/repo", "run": run,
             "runsPaginationComplete": True, "jobsPaginationComplete": True,
             "jobs": [
@@ -784,6 +798,55 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 for index, name in enumerate(REQUIRED_RELEASE_CHECKS)
             ],
         }
+
+        source["flakyEvidence"] = [
+            {
+                "runAttempt": attempt,
+                "jobsPaginationComplete": True,
+                "jobs": [
+                    {**job, "id": job["id"] + (0 if attempt == 2 else 1000),
+                     "checkRunId": job["id"] + (0 if attempt == 2 else 1000),
+                     "annotationCount": 0, "annotationsPaginationComplete": True,
+                     "flakyTests": []}
+                    for job in source["jobs"]
+                ],
+            }
+            for attempt in (1, 2)
+        ]
+        return source
+
+    def test_source_ci_flaky_in_any_attempt_blocks_release(self) -> None:
+        for attempt in (0, 1):
+            source = self.source_ci_evidence()
+            source["flakyEvidence"][attempt]["jobs"][-1]["flakyTests"] = [
+                "tests/Probe.Tests.csproj Probe.Tests.Case1"
+            ]
+            source["flakyEvidence"][attempt]["jobs"][-1]["annotationCount"] = 1
+            with self.subTest(attempt=attempt), self.assertRaisesRegex(
+                ValueError, "zero flaky tests.*fix.*new run.*first attempt"
+            ):
+                MODULE.validate_source_ci(source, source_sha=SHA)
+        source = self.source_ci_evidence()
+        MODULE.validate_source_ci(source, source_sha=SHA)
+
+    def test_source_ci_rejects_missing_or_incomplete_flaky_observations(self) -> None:
+        for mutation in ("missing", "attempt", "job", "pagination", "check", "source"):
+            source = self.source_ci_evidence()
+            evidence = source["flakyEvidence"]
+            if mutation == "missing":
+                source.pop("flakyEvidence")
+            elif mutation == "attempt":
+                evidence.pop(0)
+            elif mutation == "job":
+                evidence[-1]["jobs"].pop()
+            elif mutation == "pagination":
+                evidence[0]["jobs"][0]["annotationsPaginationComplete"] = False
+            elif mutation == "check":
+                evidence[0]["jobs"][0]["checkRunId"] = True
+            else:
+                evidence[0]["jobs"][0]["head_sha"] = REVIEW_HEAD_SHA
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, "source CI"):
+                MODULE.validate_source_ci(source, source_sha=SHA)
 
     def test_v113_rejects_review_head_ci_without_actual_source_ci(self) -> None:
         # A green PR tree is not a successful CI run on its final merge commit.
@@ -873,13 +936,20 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         ]
         responses = [
             {"total_count": 1, "workflow_runs": [raw_run]},
-            {"total_count": 1, "workflow_runs": []}, raw_run,
+            {"total_count": 1, "workflow_runs": []},
+            raw_run,
             {"total_count": 3, "jobs": raw_jobs[:2]},
             {"total_count": 3, "jobs": raw_jobs[2:]},
-            {"total_count": 3, "jobs": []}, raw_run,
+            {"total_count": 3, "jobs": []},
+            raw_run,
+            raw_run,
         ]
-        with mock.patch.object(MODULE, "_read_github_json", side_effect=responses) as read:
-            actual = MODULE._collect_source_ci("owner/repo", SHA)
+        with mock.patch.object(MODULE, "_read_github_json", side_effect=responses) as read, \
+            mock.patch.object(MODULE, "_collect_source_ci_flaky_evidence", return_value=source["flakyEvidence"]):
+            actual = MODULE._complete_source_ci(
+                MODULE._collect_source_ci_run_and_jobs("owner/repo", SHA),
+                source_sha=SHA,
+            )
         self.assertEqual(source, actual)
         serialized = json.dumps(actual)
         for sentinel in (
@@ -922,8 +992,39 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             ]
             with self.subTest(runs=runs, after=after), \
                 mock.patch.object(MODULE, "_read_github_json", side_effect=responses), \
+                mock.patch.object(MODULE, "_collect_source_ci_flaky_evidence", return_value=source["flakyEvidence"]), \
                 self.assertRaisesRegex(ValueError, "source CI"):
-                MODULE._collect_source_ci("owner/repo", SHA)
+                MODULE._collect_source_ci_run_and_jobs("owner/repo", SHA)
+
+    def test_source_ci_completion_rejects_run_drift_after_annotations(self) -> None:
+        source = self.source_ci_evidence()
+        for change, message in (
+            ({"run_attempt": 3}, "source CI run or attempt changed during collection"),
+            (
+                {"head_sha": REVIEW_HEAD_SHA},
+                "source CI must be the exact-source push-main ci.yml workflow",
+            ),
+            (
+                {"status": "in_progress", "conclusion": None},
+                "source CI run or attempt changed during collection",
+            ),
+        ):
+            with (
+                self.subTest(change=change),
+                mock.patch.object(
+                    MODULE,
+                    "_collect_source_ci_flaky_evidence",
+                    return_value=source["flakyEvidence"],
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "_read_github_json",
+                    return_value={**source["run"], **change},
+                ),
+                self.assertRaises(ValueError) as error,
+            ):
+                MODULE._complete_source_ci(source, source_sha=SHA)
+            self.assertEqual(message, str(error.exception))
 
     def test_source_ci_inventory_rejects_incomplete_and_changing_pages(self) -> None:
         for responses in (
@@ -936,7 +1037,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             with self.subTest(responses=responses), \
                 mock.patch.object(MODULE, "_read_github_json", side_effect=responses), \
                 self.assertRaisesRegex(ValueError, "source CI"):
-                MODULE._collect_source_ci("owner/repo", SHA)
+                MODULE._collect_source_ci_run_and_jobs("owner/repo", SHA)
 
     def test_v111_repository_admission_accepts_only_exact_protected_policy(
         self,
@@ -1075,6 +1176,93 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         review_head_sha=REVIEW_HEAD_SHA,
                         expected_tag="v1.1.1",
                     )
+
+    def test_release_cli_blocks_flaky_from_previous_workflow_attempt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = self.run_admission_collector(root, scenario="source-flaky")
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("release requires zero flaky tests", result.stderr)
+            self.assertIn("completely new run", result.stderr)
+            self.assertFalse((root / "admission.json").exists())
+
+    def test_source_annotation_transport_is_complete_bound_and_sanitized(self) -> None:
+        source = self.source_ci_evidence()
+        run = {**source["run"], "run_attempt": 1}
+        job = {
+            **source["jobs"][-1],
+            "check_run_url": "https://api.github.com/repos/owner/repo/check-runs/900",
+        }
+        check = {
+            "id": 900,
+            "head_sha": SHA,
+            "status": "completed",
+            "conclusion": "success",
+            "app": {"slug": "github-actions"},
+            "output": {"annotations_count": 2},
+        }
+        ordinary = {
+            "annotation_level": "notice",
+            "title": "other",
+            "message": "discard-me",
+        }
+        flaky = {
+            "annotation_level": "warning",
+            "title": "Flaky test",
+            "message": "tests/Probe.csproj Probe.Tests.Case1",
+        }
+        for scenario in (
+            "valid",
+            "incomplete",
+            "drift",
+            "foreign",
+            "source",
+            "malformed",
+            "api-error",
+        ):
+            current_job = dict(job)
+            current_check = {**check, "output": dict(check["output"])}
+            if scenario == "foreign":
+                current_job["check_run_url"] = (
+                    "https://api.github.com/repos/foreign/repo/check-runs/900"
+                )
+            if scenario == "source":
+                current_check["head_sha"] = REVIEW_HEAD_SHA
+            annotations = [ordinary, flaky]
+            if scenario == "malformed":
+                annotations = [ordinary, {**flaky, "message": None}]
+            pages = [annotations[:1], annotations[1:], []]
+            if scenario == "incomplete":
+                pages = [annotations[:1], []]
+            confirmation = (
+                current_check
+                if scenario != "drift"
+                else {**check, "output": {"annotations_count": 3}}
+            )
+            responses = [current_check, *pages, confirmation]
+            if scenario == "api-error":
+                responses = [ValueError("source CI annotations could not be read")]
+            with (
+                self.subTest(scenario=scenario),
+                mock.patch.object(
+                    MODULE, "_read_github_json", side_effect=responses
+                ) as read,
+            ):
+                if scenario == "valid":
+                    evidence = MODULE._collect_source_ci_flaky_evidence(
+                        "owner/repo", run, [current_job]
+                    )
+                    self.assertEqual(
+                        [flaky["message"]], evidence[0]["jobs"][0]["flakyTests"]
+                    )
+                    self.assertEqual(2, evidence[0]["jobs"][0]["annotationCount"])
+                    self.assertNotIn("discard-me", json.dumps(evidence))
+                    self.assertEqual(5, read.call_count)
+                else:
+                    with self.assertRaisesRegex(ValueError, "source CI"):
+                        MODULE._collect_source_ci_flaky_evidence(
+                            "owner/repo", run, [current_job]
+                        )
 
     def test_repository_admission_collector_uses_complete_read_only_evidence(
         self,
@@ -1262,6 +1450,52 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         review_head_sha=REVIEW_HEAD_SHA,
                         expected_tag="v1.1.1",
                     )
+
+    def test_existing_admission_reasons_precede_missing_flaky_evidence(self) -> None:
+        for mutation, message in (
+            ({"remoteMain": {"sha": SHA, "protected": False}}, "protected"),
+            ({"mainRulesPaginationComplete": False}, "main rules"),
+            ({"checkRuns": []}, "check runs"),
+            ({"reviewThreadsPaginationComplete": False}, "review threads"),
+            ({"tagRulesets": []}, "update/deletion ruleset"),
+        ):
+            admission = valid_repository_admission()
+            admission["sourceCi"].pop("flakyEvidence")
+            with (
+                self.subTest(message=message),
+                self.assertRaisesRegex(ValueError, message),
+            ):
+                MODULE.validate_repository_admission(
+                    {**admission, **mutation},
+                    main_sha=SHA,
+                    review_head_sha=REVIEW_HEAD_SHA,
+                    expected_tag="v1.1.1",
+                )
+
+    def test_policy_valid_admission_still_requires_clean_flaky_evidence(self) -> None:
+        # The flaky gate closes validate_repository_admission; the review
+        # snapshot and the admission CLI rely on it as their only flaky check.
+        arguments = {
+            "main_sha": SHA,
+            "review_head_sha": REVIEW_HEAD_SHA,
+            "expected_tag": "v1.1.1",
+        }
+        MODULE.validate_repository_admission(valid_repository_admission(), **arguments)
+
+        missing = valid_repository_admission()
+        missing["sourceCi"].pop("flakyEvidence")
+        with self.assertRaisesRegex(ValueError, "source CI"):
+            MODULE.validate_repository_admission(missing, **arguments)
+
+        for attempt in (0, 1):
+            flaky = valid_repository_admission()
+            job = flaky["sourceCi"]["flakyEvidence"][attempt]["jobs"][-1]
+            job["flakyTests"] = ["tests/Probe.Tests.csproj Probe.Tests.Case1"]
+            job["annotationCount"] = 1
+            with self.subTest(attempt=attempt), self.assertRaisesRegex(
+                ValueError, "zero flaky tests"
+            ):
+                MODULE.validate_repository_admission(flaky, **arguments)
 
     def test_v111_review_threads_allow_parallel_p2_p3_but_block_p0_p1(self) -> None:
         admission = valid_repository_admission()
@@ -1897,16 +2131,19 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         ]
         responses = [
             {"total_count": 1, "workflow_runs": [raw_run]},
-            {"total_count": 1, "workflow_runs": []}, raw_run,
+            {"total_count": 1, "workflow_runs": []},
+            raw_run,
             {"total_count": 3, "jobs": raw_jobs[:2]},
             {"total_count": 3, "jobs": raw_jobs[2:]},
-            {"total_count": 3, "jobs": []}, raw_run,
+            {"total_count": 3, "jobs": []},
+            raw_run,
+            raw_run,
         ]
         with tempfile.TemporaryDirectory(
             prefix="release-candidate-source-ci-"
         ) as temporary, mock.patch.object(
             MODULE, "_read_github_json", side_effect=responses
-        ):
+        ), mock.patch.object(MODULE, "_collect_source_ci_flaky_evidence", return_value=source["flakyEvidence"]):
             temporary_root = Path(temporary)
             asset_dir = temporary_root / "assets"
             asset_dir.mkdir()
@@ -1916,8 +2153,9 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             notes = asset_dir / "RELEASE-NOTES.md"
             notes.write_text("release notes\n", encoding="utf-8")
             review = valid_snapshot()
-            review["repositoryAdmission"]["sourceCi"] = MODULE._collect_source_ci(
-                "owner/repo", SHA
+            review["repositoryAdmission"]["sourceCi"] = MODULE._complete_source_ci(
+                MODULE._collect_source_ci_run_and_jobs("owner/repo", SHA),
+                source_sha=SHA,
             )
             review_path = temporary_root / "review.json"
             review_path.write_text(json.dumps(review), encoding="utf-8")
