@@ -4,11 +4,12 @@ Status: open
 Severity: P3
 Found: 2026-09-30, independent Claude Opus 5.5 R3 delta review of
 `feature/1.1.15/flaky-fixes`@`95e2c1747`
-Where: `ManagedStartDeadline.cs`, `BootstrapStartupProtocol.cs`,
-`AnonymousPipeManagedApplicationProcess.cs`, `AnonymousPipeManagedLauncherProcess.cs`
+Where: `src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedStartDeadline.cs:23-62`, `src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/BootstrapStartupProtocol.cs:238-272`,
+`src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs:94`, `src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs:140,206-208,229-230`
 Observed: none reproduced; each window is found by reading the code.
-- N1: `BootstrapStartupProtocol.ReportAdmittedAsync` does not catch cancellation. If the deadline fires after
-  its entry check and before the flush completes, the reported state stays unset. The candidate and the
+- N1: `BootstrapAdmissionSignal.ReportAdmittedAsync` (`BootstrapStartupProtocol.cs:238`) does not catch cancellation. If
+  the deadline fires after its entry check and before the flush completes, the reported state stays at the in-flight
+  value `-1` (set at `:248`), so no later report can succeed. The candidate and the
   last-known-good fallback share one process object, so the fallback's admission report returns false and the
   result is `StartFailed`, not a rollback.
 - N2: both adapters check the deadline before they check whether the lifetime lease was acquired. If the deadline
@@ -21,8 +22,8 @@ Observed: none reproduced; each window is found by reading the code.
   finishes near the bound can report a false `TerminationUnconfirmed`.
 Expected: each path settles on the outcome ADR 0056 and `docs/contracts/launcher-bootstrap-v1.md` name for its
 actual state, or the window is recorded as accepted with its reason.
-Evidence: reviewer citations are in the review record for `95e2c1747`; every case fails closed and none can start
-a late process.
+Evidence: the code lines under Where; the independent review of `95e2c1747` is recorded in
+`docs/handoff/1.1.15/WS-FLAKES.md`. Every case fails closed and none can start a late process.
 Owner: unassigned. Candidate: 1.2.x hardening of the managed start, after the owner decides whether N1-N4 are
 accepted or need a fix.
 Resolution: open; no production change made for these four windows.

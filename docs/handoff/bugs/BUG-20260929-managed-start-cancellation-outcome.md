@@ -20,4 +20,4 @@ retains the cancellation path.
 Owner: Codex `gpt-6-sol`, `feature/1.1.15/flaky-fixes`.
 Resolution: fixed in `e20119d71` (corrected by `95e2c1747`), the decision 194 production-change checkpoint by returning
 the worker's terminal result after bounded supervision. Both controlled tests
-passed locally; independent review of the corrected head remains required.
+passed locally; the independent review of the corrected head (`95e2c1747`) passed with no open P0/P1/P2; see `docs/handoff/1.1.15/WS-FLAKES.md`.
