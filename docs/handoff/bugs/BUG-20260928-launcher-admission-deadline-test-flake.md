@@ -1,6 +1,6 @@
 # BUG-20260928-launcher-admission-deadline-test-flake: the late-admission launcher test can see the admission deadline before the process is created
 
-Status: fixed on `feature/1.1.15/bootstrap-flake`, pending review and merge
+Status: fixed; the Bootstrap host follow-up (`a5b7019f5`) merged into `1.1.x` through #488 (merge `aba286bae`)
 Severity: P3
 Found: 2026-09-28, CI run 36373462006 (`dotnet / test (core)`) on pull request #474 head `46d73bf91`
 Where: `tests/NvtFwCombiner.Application.Tests/VersionManagement/ManagedLauncherEntryCoordinatorTests.cs`,

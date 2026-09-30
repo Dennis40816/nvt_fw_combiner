@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.MemoryLayout;
 // Resource bags intentionally expose many concise bindable labels; XML comments on each label add noise.
 #pragma warning disable CS1591
 
@@ -551,12 +552,14 @@ internal sealed partial class ShellTextResources
     private static string GetInputArtifactRoleLabel(string artifactId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
-        return artifactId switch
+        return MemoryLayoutProjector.GetArtifactKind(artifactId) switch
         {
-            CompositionAddressSpaceIds.ReferenceBase => "Reference FlashCode",
-            CompositionAddressSpaceIds.DpInput => "DP BIN",
-            CompositionAddressSpaceIds.TpInput => "TP BIN",
-            _ => artifactId,
+            MemoryArtifactKind.Reference => "Reference FlashCode",
+            MemoryArtifactKind.Dp => "DP BIN",
+            MemoryArtifactKind.Tp => "TP BIN",
+            MemoryArtifactKind.Other or MemoryArtifactKind.DpReplacement or MemoryArtifactKind.Ldc or MemoryArtifactKind.LdcReplacement or
+                MemoryArtifactKind.DpAb or MemoryArtifactKind.TpA or MemoryArtifactKind.TpB or MemoryArtifactKind.TpBWork => artifactId,
+            _ => throw new ArgumentOutOfRangeException(nameof(artifactId)),
         };
     }
 

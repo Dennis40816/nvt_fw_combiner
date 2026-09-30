@@ -222,6 +222,20 @@ public sealed class AbCtrlRamMemoryLayoutTests
             }
         }
         Assert.Contains(layout.SectionLocators, static section => section.ContentRole == MemoryContentRole.Tp);
+        foreach (long bankStart in new[] { 0L, 0x40000L })
+        {
+            MemoryLayoutSectionLocator dp = Assert.Single(layout.SectionLocators, section =>
+                section.Range.Contains(new ByteRange(bankStart + 0x401A, 3)));
+            Assert.Equal(MemoryContentRole.Dp, dp.ContentRole);
+            Assert.Equal(new ByteRange(bankStart, 0x7000), dp.Range);
+            MemoryLayoutSectionField field = Assert.Single(dp.Fields, item => item.Range == new ByteRange(bankStart + 0x401A, 3));
+            Assert.Equal("flash", field.AddressSpaceId);
+            string resolvedId = bankStart == 0 ? "a-cmi-dp-version" : "b-cmi-dp-version";
+            Assert.Equal(resolvedId, field.CanonicalRegion.RegionId);
+            Assert.Equal(new ByteRange(bankStart + 0x401A, 3), field.Range);
+            Assert.DoesNotContain(layout.SectionLocators, section =>
+                section.CanonicalRegion?.RegionId == resolvedId || section.Range == field.Range);
+        }
         long sectionEnd = 0;
         foreach (MemoryLayoutSectionLocator section in layout.SectionLocators)
         {
@@ -271,5 +285,7 @@ public sealed class AbCtrlRamMemoryLayoutTests
 
         Assert.Empty(layout.Banks);
         Assert.NotEmpty(layout.SectionLocators);
+        Assert.Contains(layout.SectionLocators, section => section.ContentRole == MemoryContentRole.Unmapped &&
+            section.Range == new ByteRange(0x6000, 0x1000));
     }
 }

@@ -273,6 +273,7 @@ public sealed partial class CtrlRamWorkflowTests
                         regionId: $"{role}-common",
                         sourceSlotId: sourceSlotId,
                         regionGroup: ReplaceRegionGroup.Common,
+                        displayGroup: ReplaceRegionGroup.Common,
                         rangeStart: 0x400,
                         rangeEndExclusive: 0x410, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
                     new MemoryCoverageSegmentViewModel(
@@ -285,6 +286,7 @@ public sealed partial class CtrlRamWorkflowTests
                         regionId: $"{role}-master",
                         sourceSlotId: sourceSlotId,
                         regionGroup: ReplaceRegionGroup.Master,
+                        displayGroup: ReplaceRegionGroup.Common,
                         rangeStart: 0x500,
                         rangeEndExclusive: 0x510, logicalCoverageGroupId: $"slot:{sourceSlotId}"),
                 ],

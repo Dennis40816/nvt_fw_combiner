@@ -389,34 +389,7 @@ public static partial class MemoryLayoutProjector
                 MemoryLayoutReadiness readiness,
                 MemoryLayoutPrerequisite prerequisite,
                 MemoryLayoutNextAction nextAction,
-                MemoryDiagnosticSeverity severity) = state.Lifecycle switch
-                {
-                    AuthoringSlotLifecycle.Empty => (
-                        MemoryLayoutReadiness.PendingInput,
-                        MemoryLayoutPrerequisite.SelectInput,
-                        MemoryLayoutNextAction.SelectInput,
-                        MemoryDiagnosticSeverity.Information),
-                    AuthoringSlotLifecycle.Selected => (
-                        MemoryLayoutReadiness.PendingInput,
-                        MemoryLayoutPrerequisite.CompleteInspection,
-                        MemoryLayoutNextAction.RunInspection,
-                        MemoryDiagnosticSeverity.Information),
-                    AuthoringSlotLifecycle.Checking => (
-                        MemoryLayoutReadiness.PendingInput,
-                        MemoryLayoutPrerequisite.CompleteInspection,
-                        MemoryLayoutNextAction.WaitForInspection,
-                        MemoryDiagnosticSeverity.Information),
-                    AuthoringSlotLifecycle.Error => (
-                        MemoryLayoutReadiness.Blocked,
-                        MemoryLayoutPrerequisite.ResolveInputIssue,
-                        MemoryLayoutNextAction.ReviewInputIssue,
-                        MemoryDiagnosticSeverity.Error),
-                    AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning =>
-                        throw new InvalidOperationException(
-                            "Admitted authoring lifecycle reached pending projection."),
-                    _ => throw new InvalidOperationException(
-                        "Unknown authoring lifecycle reached pending projection."),
-                };
+                MemoryDiagnosticSeverity severity) = PendingLifecycle(state.Lifecycle);
             pending.Add(
                 new MemoryLayoutPendingItem(
                     stateId,
@@ -474,7 +447,8 @@ public static partial class MemoryLayoutProjector
                     diagnosticSeverity: MemoryDiagnosticSeverity.None,
                     selection: MemorySelectionState.NotSelected,
                     processorEffect: MemoryProcessorEffect.None,
-                    contentSource: contentSources.Initial(region.Range))),
+                    contentSource: contentSources.Initial(region.Range),
+                    initializationFillByte: initialization.Kind == ImageInitializationKind.Blank ? initialization.FillByte : null)),
         ];
     }
 
@@ -553,7 +527,8 @@ public static partial class MemoryLayoutProjector
                                 out string? companionSlotId)
                                 ? companionSlotId
                                 : null,
-                        contentSource: contentSources.Initial(range)));
+                        contentSource: contentSources.Initial(range),
+                        initializationFillByte: plan.OutputInitialization.Kind == ImageInitializationKind.Blank ? plan.OutputInitialization.FillByte : null));
                 continue;
             }
 
@@ -657,7 +632,8 @@ public static partial class MemoryLayoutProjector
         MemorySelectionState selection,
         MemoryProcessorEffect processorEffect,
         string? retainedCompanionSlotId = null,
-        MemoryLayoutContentSource? contentSource = null)
+        MemoryLayoutContentSource? contentSource = null,
+        byte? initializationFillByte = null)
     {
         string segmentId = FormattableString.Invariant(
             $"{canonicalRegion.RegionId}:{range.Start:x}-{range.EndExclusive:x}");
@@ -690,7 +666,8 @@ public static partial class MemoryLayoutProjector
                 canonicalRegion.RegionGroup,
                 canonicalRegion.CtrlRamRegionRole,
                 contentSource,
-                canonicalRegion.BankRegion)
+                canonicalRegion.BankRegion,
+                initializationFillByte)
             : MemoryLayoutSegment.CreateLogical(
                 segmentId,
                 addressSpaceId,
@@ -717,7 +694,8 @@ public static partial class MemoryLayoutProjector
                     retainedCompanionSlotId),
                 canonicalRegion.RegionGroup,
                 canonicalRegion.CtrlRamRegionRole,
-                contentSource);
+                contentSource,
+                initializationFillByte);
     }
 
     private static MemoryContentRole ClassifyContent(FirmwareRegion region)

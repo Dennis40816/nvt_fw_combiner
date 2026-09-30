@@ -57,6 +57,17 @@ public sealed partial class MemoryCoveragePopupTests
                 Assert.True(bounds.Left >= rail.Left - 1 && bounds.Right <= rail.Right + 1);
             }
             Assert.False(BoundsInWindow(labels[0], window).Intersects(BoundsInWindow(labels[1], window)));
+            // A short range keeps a visible stroke at the tiny-marker size, inside the rail and clear of its neighbour.
+            Border[] strokes = [.. bar.GetVisualDescendants().OfType<Border>().Where(border => border.Classes.Contains("memoryPositionUnderline"))];
+            Assert.Equal(2, strokes.Length);
+            Rect railBounds = BoundsInWindow(bar, window);
+            foreach (Border stroke in strokes)
+            {
+                Rect drawn = BoundsInWindow(stroke, window);
+                Assert.True(drawn.Width >= 23.5, $"Stroke {drawn} is narrower than the tiny-marker size.");
+                Assert.True(drawn.Left >= railBounds.Left - 1 && drawn.Right <= railBounds.Right + 1);
+            }
+            Assert.False(BoundsInWindow(strokes[0], window).Intersects(BoundsInWindow(strokes[1], window)));
         }
         finally { window.Close(); }
     }
