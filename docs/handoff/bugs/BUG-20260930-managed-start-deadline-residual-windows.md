@@ -5,7 +5,7 @@ Severity: P3
 Found: 2026-09-30, independent Claude Opus 5.5 R3 delta review of
 `feature/1.1.15/flaky-fixes`@`95e2c1747`
 Where: `src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/ManagedStartDeadline.cs:23-62`, `src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/BootstrapStartupProtocol.cs:238-272`,
-`src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs:94`, `src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs:140,206-208,229-230`
+`src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedApplicationProcess.cs:94,229-230`, `src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/AnonymousPipeManagedLauncherProcess.cs:140,206-208,299-300`
 Observed: none reproduced; each window is found by reading the code.
 - N1: `BootstrapAdmissionSignal.ReportAdmittedAsync` (`BootstrapStartupProtocol.cs:238`) does not catch cancellation. If
   the deadline fires after its entry check and before the flush completes, the reported state stays at the in-flight
