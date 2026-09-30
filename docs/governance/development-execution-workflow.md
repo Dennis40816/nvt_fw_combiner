@@ -130,6 +130,12 @@ record to confirm the reviewer session differs from the implementer session
 and records both session IDs in the pull request.
 The latest record of each listed principal decides.
 Posting or editing a review starts no run, and a new head needs a new record.
+`authority.yml` does run on a description edit (`edited`), and the agent
+GitHub App has no Actions write permission (`gh run rerun` answers "Resource
+not accessible by integration"), so after posting a record the agent starts a
+fresh check by editing the description in the same step, for example adding
+the record's review id: post the record first, then edit (observed
+2026-09-30 on #490-#498).
 
 **R2/R3 approval.** A changed path with an R2/R3 floor is assigned to
 `@Dennis40816` by CODEOWNERS. The owner approves the most recent reviewable
@@ -141,6 +147,13 @@ byte and Golden evidence and the exact write-range audit; release authority
 retains release-policy evidence; governance authority retains the statement
 of the affected rule, permission or approval authority. A new head requires a
 new review and approval, even if its tree is identical.
+
+**Pushes after an approval.** The ruleset dismisses an approval when a new
+commit is pushed. Batch fixes before asking for approval. Before any push to
+an open pull request, read its review list
+(`gh api repos/Dennis40816/nvt_fw_combiner/pulls/<n>/reviews`); if an
+approval exists, say in the same message that the push dismisses it and that
+the new head needs a fresh approval (2026-09-30: #489, #498).
 
 **Approval snapshot.** When a target requires owner approval, the commander
 records in the pull request the head SHA, the authority block as approved and
@@ -170,7 +183,9 @@ every valid review record with its review id, head, verdict and complete body.
    (`GITHUB_TOKEN` may hold a read-only token; unset, the public API is read
    anonymously.) If the pull request changes these files on purpose, the
    self-change check below applies.
-2. Re-run `governance / authority` (`gh run rerun <run-id>`) and wait for it.
+2. Re-run `governance / authority` (`gh run rerun <run-id>`) and wait for it;
+   without Actions write permission, edit the description instead (see
+   Review record).
 3. Confirm through the API that this run reports success for the current head
    (`gh api repos/Dennis40816/nvt_fw_combiner/commits/<head>/check-runs`).
    Recheck the live exact-head review records and their current verdicts.
@@ -229,7 +244,7 @@ handoff, workload completion, and exact-session cleanup.
 | Agent config, governance, normative or classifier-governed documents | `python scripts/verify.py --structure-only`, plus tests of any affected executable/contract behavior. |
 | Domain | `dotnet test tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj` |
 | Application | `dotnet test tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj` |
-| Profile/schema | `dotnet test tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj` |
+| Profile/schema | `dotnet test tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj`; a profile, bundle or catalog change also runs the whole `NvtFwCombiner.Bootstrap.Tests` project before owner approval, because more than one Bootstrap test pins the catalog snapshot digest (`CanonicalCatalogSnapshotDigestTests`, `PrebuiltProfileCatalogEquivalenceTests`; #490, 2026-09-30) |
 | Infrastructure/process adapter | `dotnet test tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj` |
 | Bootstrap/CLI | `dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj` |
 | Avalonia/ViewModels | `dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj` |
