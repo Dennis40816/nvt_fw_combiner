@@ -159,3 +159,24 @@ Infrastructure filter 122/122. Its P3 follow-ups: the navigation test comment no
 interleaving the record calls unproven; the two cancellation records and the lease-hang record now cite
 the production commits instead of a head that no longer exists; residual windows N1-N4 are recorded in
 `BUG-20260930-managed-start-deadline-residual-windows` (fail-closed, open).
+
+## 2026-09-30 — navigation focus: missing-ring frame hardening
+
+Owner decision (2026-09-30, commander recommendation accepted): fix the navigation focus flake now in a
+separate test-only R1 pull request on `1.1.x`, because decision 193 requires zero flaky tests at
+release. This supersedes the earlier request above to leave the test correction unchanged; the change
+keeps the `0700e25f4` guard, the pixel thresholds and every gap/overlap assertion.
+
+- Failure mode (three observations: CI #486, the 2026-09-30 full local run, and a 2026-09-30 narrow run on
+  `feature/1.1.15/memory-layout` after merging `1.1.x`): `expected a rendered focus ring around Home; found 0
+  matching pixels`, while Home's focus, `:focus-visible` and presenter `BoxShadow` were already asserted.
+  The ring has no transition. Working hypothesis: under load the last rendered frame is one composed before
+  the ring was painted.
+- Change: `UnderlineAndGapRegionsNeverOverlapAtAnyRenderScaling` re-renders a bounded number of frames
+  (at most 19 more, 25 ms apart) while the ring's pixel count is at or below its threshold, then keeps
+  every original assertion. A ring that never paints still fails after the bound.
+- Evidence limit: the failure did not reproduce locally before the change (20 class runs, 260 cases, while a
+  614-test UiSmoke selection ran as load), so there is no local red run; the red evidence is the three
+  recorded observations. After the change: the class alone 5x 13/13, and 20 class runs (260 cases) passed
+  under the same 614-test load. This shows no regression, not that the flake is gone.
+- The bug record stays open until a release run and later full runs show no recurrence.

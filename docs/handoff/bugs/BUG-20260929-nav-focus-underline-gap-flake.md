@@ -1,6 +1,6 @@
 # BUG-20260929-nav-focus-underline-gap-flake: navigation underline/gap region test fails intermittently at unchanged code
 
-Status: open; test-only guard committed on `feature/1.1.15/flaky-fixes`, but a full-project local run still failed intermittently
+Status: open; missing-ring frame hardening on `feature/1.1.15/nav-focus-flake` (see `docs/handoff/1.1.15/WS-FLAKES.md`, 2026-09-30); stays open until release evidence shows no recurrence
 Severity: P2
 Found: 2026-09-29, Claude Code commander (Claude Opus 5.5), while checking CI on pull request #484 (run
 `36519114436`, job `109248204239`), at `feature/1.1.14/release-back-merge`@`a4e9ef6bf`
