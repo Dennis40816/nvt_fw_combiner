@@ -424,3 +424,8 @@ Fixed by the commander:
   They are not flaky records, so decision 193 is unaffected.
 Open: as before, the first real CI hang, the first real retry, real annotation transport,
 D-P3-4 and both owner R3 approvals at the final head.
+
+Merged into `1.1.x` through #489 (merge `e5e93f635`) on 2026-09-30 after the owner's approvals. Still open after
+the merge: the first real CI hang, the first real retry in CI evidence review, and a release flaky signal. On
+2026-09-30 the gate caught its first real flaky tests on #492 (a card-wheel test, fixed in the test, and the
+navigation focus test, hardened in #493).

@@ -1,6 +1,6 @@
 # BUG-20260929-ci-rerun-unknown-identity-veto: an unrelated placeholder result blocks every retry of its project
 
-Status: fixed (on `feature/1.1.15/ci-rerun`, pending merge)
+Status: fixed (merged into `1.1.x` through #489, merge `e5e93f635`)
 Severity: P3
 Found: 2026-09-29, Claude Opus (independent delta review), at `feature/1.1.15/ci-rerun`@`2c63aa1e6`
 Where: `scripts/verify.py`, `ci_trx_method_identities` (selected-method filter) and `ci_retry_selection`
