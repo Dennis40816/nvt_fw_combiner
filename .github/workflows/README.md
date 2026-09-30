@@ -1,6 +1,6 @@
 # Active workflow policy
 
-`ci.yml` is active for pull requests and pushes to `main` and the `1.1.x` integration trunk. Branch protection
+`ci.yml` is active for pull requests and pushes to `main` and the `1.2.x` integration trunk. Branch protection
 retains three stable required checks:
 
 - `policy / polytail`
