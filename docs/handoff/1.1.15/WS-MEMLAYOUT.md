@@ -489,3 +489,206 @@ AB CtrlRAM scenario remains commander's integration check. During transition,
 an orphan command without a declared DP code/image owner remains neutral
 Context. Native first-readable timing and High Contrast remain their existing
 separate acceptance work; no new work is started here.
+
+### 2026-09-30 — owner visual review corrections (uncommitted)
+
+Owner review of the running build found four display problems; all four are
+corrected locally in Presentation and UiSmoke tests only. No profile, Domain,
+Application, firmware, release or CI file changed.
+
+- Legend highlight is background only (decision 196, amending decision 189 Q2):
+  `Border.memoryPassiveLegend` keeps a transparent 2 DIP border for layout
+  size, and `.railActive` sets only `NfcMemoryInteractionSurfaceBrush`. The
+  popup card is now a rail owner, so its legend row stays lit while the card is
+  hovered or focused, and only that row. The non-colour cue is lost until the
+  High Contrast work (1.2.10).
+- Connectors were missing after `20a66dd3b` removed the `crossesOverview`
+  block (earlier `0e6e6f6be` had hidden stems across the interactive legend).
+  `OpenCard` again computes `crossesOverview` and `OverviewObstacles()`; the
+  open local view (`OpenLocal`) uses `CardConnector` (`MemoryLocalConnector`)
+  when the legend is shown and the view opens downward. Stems cross the legend
+  and break behind labels; `LegendMarkers()` and `FooterObstacles()` supply
+  the obstacle rectangles.
+- Start address and legend title are left aligned.
+- The "•" lane beside CtrlRAM on NT51950 1 IC is the DIFF CtrlRAM region
+  (`diff-ctrlram`, role DiffDLM, `DiffDLM.bin`) at `0x33200` (0x1400 bytes,
+  `explicit-range`, flash-map visibility `multi-chip-only`) with a neutral
+  position label. Correction of the earlier "it is not a Slave" note, which
+  reasoned only from the Master/Slave group names (those exist only outside the
+  cascade branch): NT51950 has no separate Slave `nf/normal/vn` regions (the
+  cascade branch groups them as Common); the only multi-chip-specific region is
+  this DiffDLM one. Its policy `nt51950-nt51951-preserve-active-diffnf`
+  (`profiles/built-in/ctrlram-postbuild-v2/catalog.json`) is exact-2-IC, active
+  records = IC count - 1 (one record for the one Slave; inferred from the count
+  offset, not declared as "Slave"), record `[0x33200,0x34600)`: `DiffDLM.bin`
+  writes `[0x33200,0x33B10)` (2320 B) and `[0x33B10,0x34600)` (2800 B) keeps the
+  reference bytes. Labelling it as Slave data or hiding it was owner question Q4;
+  decided by decision 197 (single IC hides it, only 2 IC cascade says "Slave DIFF
+  CtrlRAM").
+
+Verification (local, uncommitted, source = this worktree at `9c946e457` plus
+the changes above): narrow memory-popup/CtrlRAM/AB tests 163/163; wider
+`NvtFwCombiner.UiSmoke.Tests` 253/253. Screenshots `review-after2` in the test
+area; gallery `acceptance-1115.html`.
+
+Findings recorded, not fixed here:
+
+- AB Merge DP card shows no CMI row. `MemoryLayoutProjector.ProjectSections`
+  returns no sections outside `CtrlRamReplace`, so `GetMemoryDisplay` facts
+  carry only Region ID and Operation. Listing the CMI needs a declared
+  AB Merge layout context (route/profile contract, R3) - proposed for 1.2.x.
+- AB Merge rail legend has two rows both named "DP AB" (0x00000-0x06FFF and
+  0x40000-0x46FFF); decided by decision 197 (ordinals "#1"/"#2", no bank suffix).
+- P3-6 (raw `a-cmi-dp-version` label versus a readable name) still open.
+
+Open: owner visual acceptance, the decisions above, independent exact-head R2
+review, commit/push/PR (not authorized yet).
+
+### 2026-09-30 — owner answers (decision 197) and true-range connectors (uncommitted)
+
+Owner answers after the `review-after2` build, recorded in decision 197
+(`docs/handoff/1.1.12.md`). All work below is local and uncommitted; no commit, push or PR
+is authorized yet.
+
+- Connector origin (implemented). The owner observed that the black stem always started at the
+  24x24 minimum marker (or the position row) under the rail, even for a tiny slice. It now
+  starts at the slice's true range on the flash bar. `MemoryCoverageBar.Markers.cs` stores the
+  true range centre of each tiny marker in the attached property `RangeCenter` (a collision
+  group uses the midpoint of its first and last slice); `RangeCenterX` reads it, so a handle
+  clamped inside the rail still points at its real address. `OpenCard` and `OpenLocal` start
+  the stem at the bottom edge of the flash track and cross the overview rows behind text
+  obstacles (`OverviewObstacles`, `FooterObstacles`). A popup that opens above rests above the
+  track top, not above the marker row. The 24 DIP handle is unchanged as the pointer target
+  and minimum visible mark.
+  Tests: `MemoryCoveragePopupTests.TrueRange.cs`, 8 cases (a focus-lane stem, a single tiny
+  marker, a collision list and clamped edge markers, at 240 and 420 or 620 DIP). A first
+  mutation check (reverting the range centre) was too weak; the edge-marker case was added and
+  then failed under the same mutation. The narrow `Memory|CtrlRam` UiSmoke run passes 504/504
+  (local, source = this worktree at `9c946e457` plus the uncommitted changes).
+- Single IC has no "•" lane (implemented, local). The lane was an unbound Base-group CtrlRAM
+  range, the NT51950/NT51951 `diff-ctrlram` region, which single IC never binds.
+  `MemoryFocusLaneViewModel.Create` now skips Base-group CtrlRAM ranges when `isSingleIc`; the
+  slice stays on the flash bar as context. Tests: `MemoryFocusLaneTopologyTests` (theory:
+  single IC yields `["Master"]`, cascade yields `["Common", "•"]`) and
+  `CtrlRamOverviewCompletionTests` (the 950/951 single-IC golden has no "•" lane and still keeps
+  the Base CtrlRAM slice in `ReplaceCoverageSegments`). Both failed before the change (RED).
+  The per-topology region-set split is R3 and belongs to `1.2.x`.
+- "Slave DIFF CtrlRAM" is the label for 2 IC cascade only; nothing new to implement beyond the
+  lane filter.
+- Legend ordinals (implemented, local). `MemoryCoverageBarProjection.CoalesceContent` first
+  resets every input slice to ordinal 0 (numbering is display state on shared slice
+  view-models, so a rebuild must be idempotent), coalesces adjacent same-artifact ranges, then
+  `NumberRepeatedTitles` gives rows that share one title "#1", "#2" in rail order.
+  `MemoryCoverageSegmentViewModel.CanNumberRepeatedTitle` limits it to primary content that is
+  not CtrlRAM, not a kept pattern and whose title still equals its source label (a captioned
+  row such as "Unmapped" or "Reserved" is never numbered); `SetDisplayOrdinal` rewrites
+  `DisplayTitle` and `AccessibleDetail` together. A coalesced run counts as one row.
+  Tests: three facts in `MemoryCoverageContentGroupingTests` (physical order with singletons
+  plain, runs counted once, exclusions and rerun reset).
+- Consequence to disclose: the rule is uniform, so the CtrlRAM overview bar of NT51950/51
+  single IC, which lists two DP sections, now also reads "DP #1" and "DP #2" (NT51919 has one
+  DP section and stays "DP"). The existing assertion in
+  `CtrlRamOverviewCompletionTests` (`Assert.Equal("DP", section.DisplayTitle)`) was changed to
+  expect the ordinals; nothing else in the suite changed its expectation.
+
+Verification (local, uncommitted): targeted 18/18 (`MemoryFocusLaneTopologyTests`,
+`MemoryCoverageContentGroupingTests`, `FullFlashInputsShowTpAndDpContext`); wider narrow run
+`Memory|CtrlRam|Legend|AbMerge|AbDp` on UiSmoke 593/593. Source = this worktree at `9c946e457`
+plus the uncommitted changes.
+
+Wider run (local, same source): the whole UiSmoke project 1936/1937; the one failure is the
+known navigation focus flake `NavigationFocusIndicatorTests.UnderlineAndGapRegionsNeverOverlapAtAnyRenderScaling`
+(`BUG-20260929-nav-focus-underline-gap-flake`), unrelated to this work.
+
+## 2026-09-30 — owner review round 2 (legend hover, outer addresses, CtrlRAM stem origin)
+
+The owner reviewed the rebuilt examples over a remote-desktop session and reported four items.
+
+- Not every region lit its legend row on hover (fixed, local). Evidence: a scratch headless
+  probe hovered every rail target of four Golden screens and read the legend rows. On AB
+  Merge only coalesced runs lit (NT51929: 0 of 4 slices and 0 of 2 tiny markers; NT51950: 2
+  of 5); CtrlRAM Replace lit every slice. The hovered slice's state became rail-active and
+  raised `PropertyChanged`, yet the row stayed dark with a direct binding and with a strong
+  subscription alike, so the row was watching a different state object. Cause:
+  `MergePresentationViewModel.Memory.cs` published `MergeCoverageSegments` first, which
+  rebuilds the bar and binds each legend row to the slice's current `Interaction`, and only
+  then called `ReplaceRegionGroupBuilder.CreateLogicalItems`, whose
+  `MemoryCoverageLogicalItemViewModel` constructor replaces every slice's `Interaction`.
+  The rail resolves the state at hover time, so it wrote the new object while the row
+  watched the discarded one. A coalesced run is created inside the bar and never passes
+  through a logical item, which is why only runs worked. Fix: create the logical items
+  before publishing the slices. Test first: `MemoryLegendRailHighlightTests` hovers every AB
+  rail slice of the NT51929 and NT51950 Golden and requires exactly its own row lit; both
+  cases failed before the change and pass after. Record:
+  `BUG-20260930-merge-legend-highlight-stale-state`. The same publish-then-reassign order
+  exists in `ReplacePresentationViewModel.ApplyReplaceMemoryDisplay` (and the bank view
+  builds logical items a second time); it is not user visible today because that bar is
+  hidden whenever CtrlRAM lanes exist, so it is recorded separately and left open:
+  `BUG-20260930-replace-coverage-state-reassigned-after-publish`.
+- Hovering a CtrlRAM lane label ("Master", "Common", "Cascade") lights no legend row: the
+  overview legend has rows only for DP and TP FW, and the lane's CtrlRAM ranges live inside
+  TP FW. Whether the containing row should light is an owner decision (open).
+- Outer start/end addresses appear only on the CtrlRAM flash overview. Cause: only
+  `MainWindowWorkflowTemplates.axaml` line 380 binds `StartAddress`/`EndAddress`
+  (`CtrlRamStartAddress`/`CtrlRamEndAddress`); the Replace flash bar (line 386) and the Merge
+  bar (`MainWindowSharedTemplates.axaml` line 507) bind neither. Merge shows the whole range in
+  a text box above the bar instead (`MergeMemoryRangeLabel`, for example
+  "0x00000-0x7FFFF (len 0x80000)"). Record: `BUG-20260930-memory-outer-addresses-only-ctrlram`
+  (open; the owner decides whether every bar shows them).
+- A seam at the DP #1 / TP FW boundary seen over remote desktop is a transport artefact, not
+  the app: a local capture of the same window shows every one of the 34 rail rows switching
+  from (37,99,235) to (22,163,74) with no intermediate pixel, while the remote image is
+  compressed and scaled (text blurred the same way).
+- CtrlRAM lane stems (owner amendment to decision 197, implemented, local): a lane's local
+  view again leaves from its own label row. `MemoryCoverageBar.OpenLocal` uses the position
+  row as the stem origin for a lane, places the popup against it, starts the stem at the
+  label centre (`LabelCenterX`) and interrupts it behind every overview glyph
+  (`OverviewObstacles`; the footer-only helper was removed as unused). Tiny markers,
+  collision lists and the "⋮" group keep the true-range origin. Test first:
+  `LaneStemStartsBelowItsPositionLabel` (240 and 620 DIP) replaced
+  `LaneStemStartsAtTheTrueRangeOnTheFlashBar`; it failed before the change. A Golden render
+  of NT51950 single and NT51951 cascade shows the stem leaving below "Master" and "Common".
+
+Verification (local, uncommitted): `MemoryLegendRailHighlightTests` 2/2 and the whole
+`MemoryCoveragePopupTests` class 162/162.
+
+Owner answers (2026-09-30, all recommendations accepted): a lane label lights the legend
+row of its containing section; every bar shows outer start/end addresses and Merge keeps its
+range box; the Replace publish-then-reassign path is fixed in `1.1.15`; after these, sync
+`1.1.x`, commit, push and open the R2 pull request (authorized). Visual acceptance of the
+round-2 fixes was given with that authorization.
+
+Implementation of the answers (local, uncommitted):
+
+- Lane label lights its containing section. A new attached property
+  `MemoryCoverageInteractionBehavior.RailContext` lists states that take rail emphasis only;
+  `ResolveStates` appends them. `MemoryCoverageBar` sets it on each lane position to the
+  states of the primary display slices the lane overlaps in its address space
+  (`ContainingStates`), and on the local view (now rail-enabled like the card) while a lane's
+  view is open, so the row stays lit inside the view. Test first:
+  `HoveringACtrlRamLaneLightsItsContainingSectionRow` (NT51950 single Golden: hovering
+  "Master" lights exactly the TP FW row, it stays lit inside the local view and clears on
+  exit); RED before, GREEN after.
+- Outer addresses on every bar. `MemoryCoverageBarProjection.OuterAddresses` is the one
+  owner: the lowest start and highest end of the ranged slices of a single address space,
+  empty otherwise. `CtrlRamStartAddress`/`CtrlRamEndAddress` now use it, and the new
+  `ReplaceStartAddress`/`ReplaceEndAddress` and `MergeStartAddress`/`MergeEndAddress` bind the
+  Replace flash bar and the Merge bar; the Merge range box stays. Tests:
+  `MemoryOuterAddressTests` (NT51929 AB bar shows 0x00000 and 0x7FFFF with its range box;
+  NT51950 single Replace flash bar carries the CtrlRAM overview's addresses). A stub-first RED
+  run was not possible because the analyzers reject constant properties (CA1822); the
+  pre-change evidence is the missing template bindings.
+- Replace publish order and idempotent logical items. `ApplyReplaceMemoryDisplay` now builds
+  the coverage groups (`RefreshReplaceCoverageGroups(segments)`) before publishing
+  `ReplaceCoverageSegments` and `CtrlRamOverview`, and the `MemoryCoverageLogicalItemViewModel`
+  constructor keeps a run head's existing state instead of creating one, so building items
+  again (the bank view) never strands a bound observer. Tests:
+  `MemoryCoverageStatePublicationTests` (logical-item idempotence; Replace and Merge Golden
+  launches keep every published slice's state). The Replace case (15 of 19 slices changed
+  state after publication) and the idempotence case were RED before; Merge was already GREEN
+  after the round-2 fix.
+
+Verification (local, before the `1.1.x` sync): narrow UiSmoke selection
+`Memory|CtrlRam|Legend|Merge|Replace|AbDp|AbDummy` 798/798.
+
+Open: sync `1.1.x`, commit/push/PR, independent exact-head R2 review.
