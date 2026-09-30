@@ -1,6 +1,6 @@
 # BUG-20260929-repository-lease-test-hang: the repository launch-lease test hangs until the CI job times out
 
-Status: open; pre-wait timeout gap corrected locally, CI hang cause unproven
+Status: open; pre-wait timeout gap corrected and merged into `1.1.x` through #491 (merge `2f8b31bb6`), CI hang cause unproven
 Severity: P2
 Found: 2026-09-29, Claude Code commander (Claude Opus 5.5), while checking CI on pull request #488 (run
 `36549856597`), at `feature/1.1.15/bootstrap-flake`@`a5b7019f5`

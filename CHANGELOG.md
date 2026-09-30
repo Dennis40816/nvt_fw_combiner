@@ -24,7 +24,7 @@ Firmware output bytes, write ranges, order and CRC/Header behavior are unchanged
 Internal and process changes:
 
 - CI (decisions 191 and 193; ADR 0079 amended): a shard retries only its failed tests once, by fully qualified name (at most 20, when the remaining time budget allows), and keeps both attempts' TRX and logs. A test that passes only on the retry is marked flaky and needs a named open bug record, or the check fails; a test that fails twice still fails the shard. Hangs, discovery failures and `NvtFwCombiner.GoldenRegression.Tests` are never retried. A hung test is bounded by VSTest's five-minute inactivity timer; no memory dump is collected. Release promotion rejects a candidate whose source CI shows a flaky test in any attempt; only a new run that passes on its first attempt clears it.
-- The navigation focus-ring render test re-renders a bounded number of frames before it counts the ring's pixels, without changing any threshold; its intermittent failure stays tracked as an open bug.
+- The navigation focus-ring render test re-renders up to 19 more frames while the ring's pixel count is still at or below its threshold, without changing any threshold; its intermittent failure stays tracked as an open bug.
 - Two code-size hotspot baselines were raised with owner approval (`MergePresentationViewModel` 2,162 and `ReplacePresentationViewModel` 2,211 nonblank lines).
 
 ### Product changes
@@ -33,7 +33,7 @@ Internal and process changes:
 
 - Before → After:
   - The legend intercepted the pointer through a transparent card corridor and could open a card on hover; after a passive close, moving within the same slice never reopened its card. The legend now has no interaction of its own, and the same slice reopens its card (decision 189).
-  - A legend row lights (background only) while its rail region, tiny marker or open card is hovered or focused (decision 196). Merge and CtrlRAM Replace published their slices before those slices' interaction states were final, so on Merge the row of any slice that was not merged with a neighbour never lit; every row now lights. A CtrlRAM lane label ("Master", "Common", ...) has no row of its own and lights the row of the section that contains it (decision 197).
+  - A legend row lights (background only) while its rail region, tiny marker or open card is hovered or focused (decision 196). A CtrlRAM lane label ("Master", "Common", ...) has no row of its own and lights the row of the section that contains it (decision 197).
   - Every rail slice, tiny ones included, takes keyboard focus and Escape unwinds one level. A slice narrower than 24 DIP gets a visible marker of at least 24x24 DIP or, when crowded, a scrollable collision list.
   - Declared DP sub-fields such as `cmi-dp-version` fold into their DP section instead of forming a neutral "Context" slice.
   - Connectors cross the legend. A card or collision-list connector starts at the slice's true range on the bar, not at its 24 DIP marker; a CtrlRAM lane's local view starts below its own label.
@@ -48,21 +48,21 @@ Internal and process changes:
 
 #### 2. NT51950/NT51951 AB images declare their DP regions; the 1024k B-bank CMI location is corrected
 
-- Before → After: On NT51950/NT51951 AB images, the flash ranges that TP does not overwrite (the A/B customer-information pages and, on the three Desay maps, the container tail) were declared `unknown`/unmapped, and each `cmi-dp-version` field stood alone. Every such range is DP (decision 192): all six AB maps now declare them as DP image regions with the CMI as a DP sub-field. Separately, the NT51950 cascade 1024k and NT51951 1024k maps read the B-bank CMI from `flash [0x85016,0x85019)`, one page off; it is now `flash [0x84016,0x84019)` (decision 195). The 512k and Desay maps' CMI positions are unchanged.
-- Affected: NT51950/NT51951 AB details and reports (DPB Version and DPB Jira Index on the two 1024k maps), the `dp-b` output-name token on those two maps, and the Memory Layout of the Desay container tail (now DP instead of Unmapped).
+- Before → After: On NT51950/NT51951 AB images, the flash ranges that TP does not overwrite (the A/B customer-information pages and, on the three Desay maps, the container tail; the Desay maps are not enabled today, decision 195) were declared `unknown`/unmapped, and each `cmi-dp-version` field stood alone. Every such range is DP (decision 192): all six AB maps now declare them as DP image regions with the CMI as a DP sub-field. Separately, the NT51950 cascade 1024k and NT51951 1024k maps read the B-bank CMI from `flash [0x85016,0x85019)`, one page off; it is now `flash [0x84016,0x84019)` (decision 195). The 512k and Desay maps' CMI positions are unchanged.
+- Affected: NT51950/NT51951 AB details and reports (DPB Version and DPB Jira Index on the two 1024k maps), the `dp-b` output-name token on those two maps, and the Memory Layout of the ranges TP does not overwrite, such as the A/B customer-information pages (now DP instead of an unknown range).
 - Support status: unchanged/support-neutral; a declared firmware fact and its display are corrected, no route is promoted.
 - Compatibility: The AB merge still writes TP only; write constraints are unchanged and no Golden expected-output hash changes. On the two 1024k maps the owner accepted that the `dp-b` output-name token now reads `0x84017`/`0x84018` instead of `0x85017`/`0x85018`; the name format is unchanged, and a file name changes only when the two locations hold different values. The NT51950/NT51951 family and bundle identities and seven AB Merge/AB CtrlRAM route fingerprints change with this declaration.
 - Verification: The three owner-certified direct Golden cases (BOE, Hiway and OSD, all on the 512k map) reproduce identical complete output bytes; a before/after compiled-plan audit of all six maps with normal and dummy DP (12 cases) shows identical initializer, operation, write-range and processor-permission projections; GoldenRegression 15/15 and ProfileContract 484/484. An independent review accepted with no open P0/P1.
 - Limitations: The five maps other than 512k have no direct Golden case and rely on compiled-plan equivalence. A real-image check of the corrected 1024k B-bank CMI (version, Jira index and output name) is an owner verification item for 1.2.0.
 
-#### 3. A managed Desktop or Launcher start cannot hang past one whole-start deadline
+#### 3. A managed Desktop or Launcher start is bounded by one whole-start deadline
 
 - Before → After: The ready deadline of a managed Desktop start or a version-switch Launcher start began only after lifetime-lease acquisition and contained process creation, so the steps before it were unbounded. The deadline now runs from the start's entry through lease acquisition, validation and process creation to readiness (decision 194). On expiry the process is never created late, and the coordinator waits at most two 5-second intervals for cleanup confirmation before it falls back; an unconfirmed cleanup blocks the fallback.
 - Affected: the managed Desktop start and the version-switch Launcher handoff.
 - Support status: unchanged/support-neutral.
 - Compatibility: No new outcome: the existing `ReadyTimeout` and `TerminationUnconfirmed` outcomes and `ProcessLaunchGate` are reused; no Launcher budget value changes.
 - Verification: Infrastructure 1,578/1,578, Bootstrap 2,142/2,142 and a controlled timeout group 7/7 on each of 30 loaded repeats; an independent review found no open P0/P1/P2.
-- Limitations: Four fail-closed residual timing windows remain recorded (`BUG-20260930-managed-start-deadline-residual-windows`).
+- Limitations: Four narrow residual timing windows remain recorded; each fails closed and none starts a late process.
 
 ### Security
 
