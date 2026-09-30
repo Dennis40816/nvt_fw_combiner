@@ -299,3 +299,112 @@ Open (closure gates, with evidence from the first real CI runs):
 - D-P3-4: if real VSTest writes a Sequence file on ordinary failures, retries never start
   (fail-closed). The first real ordinary-failure-plus-retry run must show which it is.
 - As before: the first real CI hang, the first real retry, and the owner's R3 approvals.
+
+### 2026-09-30 PR 489 CI-failure correction admission
+
+State: planned; local correction and commit only, no GitHub writes.
+Source: clean `449714ac504da99bfef9af70055dfd360aea7df7` on
+`feature/1.1.15/ci-rerun`; comparison base `aba286bae`.
+Owner: Codex gpt-6-astra, high effort, sole writer.
+Outcome: restore existing admission error precedence and complete the exact
+workflow fixtures for the accepted zero-flaky contract. No workflow, firmware,
+approval-principal, release-threshold or Golden expectation change.
+
+Owner search: `validate_repository_admission`, `validate_source_ci` and
+`_collect_source_ci` in `scripts/release_promotion_policy.py` own admission;
+`collect_review_snapshot` and the repository-admission CLI consume the same
+closed JSON evidence. `release_admission_fixture` and `FAKE_ADMISSION_GH` in
+`tests/scripts/test_release_package_policy.py` supply the exact workflow's API
+responses. Searches of these callers and `test_release_promotion_policy.py`
+found no separate admission owner. Disposition: `extend-owner`; split existing
+validation/collection phases to preserve legacy reasons before new flaky
+evidence, without a bypass or second policy path.
+
+Risk: R3 path `release-approval-policy`; release-owner and governance-owner
+review/approval remain integration gates. Owned surfaces: the policy script,
+its two affected script-test files, this checkpoint and scoped bug records.
+Red: the five reported test methods reproduced failures on the starting head;
+each reached `source CI inventory could not be read` at missing attempt-1 jobs.
+The fixture also lacks job check URLs, check metadata and annotations transport.
+Acceptance: original rejection messages, complete clean-attempt fixtures,
+negative precedence coverage, all `tests/scripts`, and structure verification.
+Every test process loads user-level `NFC_TEST_AREA_ROOT` and pins all three
+temp variables to its existing `temp` child. Compare remaining failures to base.
+Stop: workflow change, new owner decision, same test failing after two fixes,
+or the 90-minute task budget. No push, PR, fetch/prune/gc or rebase.
+
+### 2026-09-30 PR 489 verified CI-failure correction checkpoint
+
+State: verified locally; not integrated or published.
+Commit: the commit containing this checkpoint, parent
+`449714ac504da99bfef9af70055dfd360aea7df7`.
+Owner: Codex gpt-6-astra, high effort, sole writer.
+
+Causes and corrections:
+
+- [BUG-20260930-release-flaky-masks-admission](../bugs/BUG-20260930-release-flaky-masks-admission.md):
+  flaky transport/validation ran before existing repository admission reasons.
+  Split the existing owner's run/jobs validation from flaky completion; preserve
+  the established main/source/jobs/rules/checks/threads/tag validation order
+  before collecting annotations. Both public validators and collector output
+  still require complete zero-flaky evidence. Run identity is confirmed before
+  and after annotation collection; final JSON retains its closed projection.
+- [BUG-20260930-release-workflow-flaky-fixture](../bugs/BUG-20260930-release-workflow-flaky-fixture.md):
+  the shared exact-workflow fixture declared attempt 2 but omitted attempt-1
+  jobs, job check URLs, check metadata and annotations endpoints. Both attempts
+  now provide paginated jobs, distinct check identities, zero annotation counts
+  and empty annotation pages. The original four duplicate dimensions retain
+  their `check runs` rejection; candidate/promote, pre-tag and release-create
+  positives pass. New negative cases prove missing/flaky annotations still
+  reject and cannot emit an admitted snapshot or a mutation.
+- Base comparison: `test_release_package_policy.py` is identical at `aba286bae`
+  and the starting head; the intervening policy change added the flaky gate.
+  All five originally reported test methods reproduced the missing inventory
+  error on the starting head. This was a new policy/fixture integration defect.
+- [BUG-20260930-release-drift-test-message](../bugs/BUG-20260930-release-drift-test-message.md):
+  the first full run found one additional failure in this correction's new
+  regression assertion. The wrong-SHA guard correctly uses the existing
+  exact-source message, not the later run-drift message. The test is absent
+  from `aba286bae`; an in-memory base/current probe confirmed identical guard
+  behavior. One test-only correction now compares each case's exact message.
+  No production change was made to accommodate that assertion.
+
+Commands/results, with user-level `NFC_TEST_AREA_ROOT` loaded and `TEMP`, `TMP`,
+`TMPDIR` set to its existing `temp` child before every test/verifier process:
+
+- Original-failure reproduction: five selected workflow methods -> **5 failed,
+  84 deselected in 24.95s**. New precedence tests also failed before the policy fix.
+- Focused policy/workflow verification -> **17 passed, 131 deselected in 73.41s**.
+- First `python -m pytest tests/scripts -q` -> **1442 passed, 1 failed,
+  4 skipped in 1923.47s**. Sole failure was the new assertion described above;
+  no base suite pass is claimed. All originally reported failures were fixed.
+- Exact-message correction: `python -m pytest tests/scripts/test_release_promotion_policy.py -q -k source_ci_completion_rejects_run_drift_after_annotations`
+  -> **1 passed, 57 deselected in 0.39s** after one correction.
+- Final `python -m pytest tests/scripts -q` -> **1443 passed, 0 failed,
+  4 skipped in 1687.20s**. This is the entire directory, with no selection filter;
+  its existing local package tests also executed their .NET build/publish paths.
+- `python scripts/verify.py --structure-only` -> **PASS**, first run 21.1s,
+  final documentation confirmation **PASS in 13.7s**; both changed zero derived
+  files and passed repository structure and Polytail fast checks.
+- Ruff formatting of changed regions, `ruff check --select E9,F63,F7,F82` on
+  all three changed Python files, and `git diff --check` -> **PASS**.
+- Added-line machine-path, user-identity and credential-pattern scan -> **PASS**;
+  staged scope is exactly the seven owned files, with no workflow change.
+
+Fresh-session read-only Codex gpt-6-astra/high review found no P0-P3 findings in
+the policy/fixture diff or the test-only correction. Independent in-memory
+evidence covered four duplicate/flaky combinations and all three drift errors;
+no reviewer writes. Final exact-head confirmation is reported with the commit.
+Scoped Polytail: **PASS-WITH-HUMAN-GATE**. No firmware bytes, ranges, processing
+order, integrity, support, Golden expectations, approval principals or workflow
+permissions changed. No workflow edit or new owner decision was required;
+no test remained failing after two corrections. No prohibited Git/GitHub action
+or generated release payload is part of this change.
+
+Open: required remote CI and exact-head review record remain for separately
+authorized integration; last-push approval must name **release-owner and
+governance-owner**. Previously recorded real annotation/API transport, hang/retry
+and underlying stability evidence gates remain open. Local verification does
+not claim integration or release readiness.
+Next: commit locally with the requested co-author trailer, confirm its exact
+head read-only, and hand off without push or GitHub writes.

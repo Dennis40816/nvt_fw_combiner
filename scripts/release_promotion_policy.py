@@ -285,6 +285,12 @@ def _source_ci_run_identity(run: object, repository: str, source_sha: str) -> tu
 
 def validate_source_ci(snapshot: object, *, source_sha: str) -> None:
     """Require one complete, successful attempt; never transfer PR-tree proof."""
+    _validate_source_ci_run_and_jobs(snapshot, source_sha=source_sha)
+    _validate_source_ci_flaky_evidence(snapshot)
+
+
+def _validate_source_ci_run_and_jobs(snapshot: object, *, source_sha: str) -> None:
+    """Validate the source attempt before requesting its annotation evidence."""
     _require(isinstance(snapshot, dict), "source CI evidence is missing")
     repository = snapshot.get("repository")
     _require(
@@ -328,8 +334,6 @@ def validate_source_ci(snapshot: object, *, source_sha: str) -> None:
             and matches[0].get("conclusion") == "success",
             f"source CI requires one exact successful job: {name}",
         )
-
-    _validate_source_ci_flaky_evidence(snapshot)
 
 
 def _validate_source_ci_flaky_evidence(snapshot: dict[str, Any]) -> None:
@@ -414,6 +418,25 @@ def validate_repository_admission(
     source_sha: str | None = None,
 ) -> None:
     """Validate fresh GitHub repository policy at a stable-release boundary."""
+    _validate_repository_admission_policy(
+        snapshot,
+        main_sha=main_sha,
+        review_head_sha=review_head_sha,
+        expected_tag=expected_tag,
+        source_sha=source_sha,
+    )
+    _validate_source_ci_flaky_evidence(snapshot["sourceCi"])
+
+
+def _validate_repository_admission_policy(
+    snapshot: dict[str, Any],
+    *,
+    main_sha: str,
+    review_head_sha: str,
+    expected_tag: str,
+    source_sha: str | None = None,
+) -> None:
+    """Preserve established rejection order before the additional flaky gate."""
 
     _require(isinstance(snapshot, dict), "repository admission must be an object")
     _require_sha(main_sha, "repository admission main SHA")
@@ -428,7 +451,7 @@ def validate_repository_admission(
     _validate_remote_main(snapshot, main_sha)
     source_sha = source_sha or main_sha
     _require_sha(source_sha, "source CI SHA")
-    validate_source_ci(snapshot.get("sourceCi"), source_sha=source_sha)
+    _validate_source_ci_run_and_jobs(snapshot.get("sourceCi"), source_sha=source_sha)
 
     _require(
         snapshot.get("mainRulesPaginationComplete") is True,
@@ -1456,7 +1479,8 @@ def _collect_source_ci_flaky_evidence(
     return attempts
 
 
-def _collect_source_ci(repository: str, source_sha: str) -> dict[str, Any]:
+def _collect_source_ci_run_and_jobs(repository: str, source_sha: str) -> dict[str, Any]:
+    """Collect pending source evidence; admission still requires flaky completion."""
     runs = _collect_actions_inventory(
         f"repos/{repository}/actions/workflows/ci.yml/runs", "workflow_runs",
         (("head_sha", source_sha), ("event", "push"), ("branch", "main")),
@@ -1477,15 +1501,31 @@ def _collect_source_ci(repository: str, source_sha: str) -> dict[str, Any]:
     jobs = _collect_actions_inventory(
         f"{endpoint}/attempts/{before['run_attempt']}/jobs", "jobs",
     )
-    flaky_evidence = _collect_source_ci_flaky_evidence(repository, before, jobs)
     after = _read_github_json(["api", endpoint], "source CI confirmation")
     _require(identity == _source_ci_run_identity(after, repository, source_sha),
              "source CI run or attempt changed during collection")
     snapshot = {
         "repository": repository, "run": before, "jobs": jobs,
-        "flakyEvidence": flaky_evidence,
         "runsPaginationComplete": True, "jobsPaginationComplete": True,
     }
+    _validate_source_ci_run_and_jobs(snapshot, source_sha=source_sha)
+    return snapshot
+
+
+def _complete_source_ci(snapshot: dict[str, Any], *, source_sha: str) -> dict[str, Any]:
+    """Add mandatory flaky evidence, confirm the run again, and close the payload."""
+    repository, before, jobs = snapshot["repository"], snapshot["run"], snapshot["jobs"]
+    flaky_evidence = _collect_source_ci_flaky_evidence(repository, before, jobs)
+    after = _read_github_json(
+        ["api", f"repos/{repository}/actions/runs/{before['id']}"],
+        "source CI confirmation",
+    )
+    _require(
+        _source_ci_run_identity(before, repository, source_sha)
+        == _source_ci_run_identity(after, repository, source_sha),
+        "source CI run or attempt changed during collection",
+    )
+    snapshot = {**snapshot, "flakyEvidence": flaky_evidence}
     validate_source_ci(snapshot, source_sha=source_sha)
     closed_snapshot = {
         "repository": repository,
@@ -1593,7 +1633,17 @@ def collect_repository_admission(
     }
     source_sha = source_sha or main_sha
     _require_sha(source_sha, "source CI SHA")
-    snapshot["sourceCi"] = _collect_source_ci(repository, source_sha)
+    snapshot["sourceCi"] = _collect_source_ci_run_and_jobs(repository, source_sha)
+    _validate_repository_admission_policy(
+        snapshot,
+        main_sha=main_sha,
+        review_head_sha=review_head_sha,
+        expected_tag=expected_tag,
+        source_sha=source_sha,
+    )
+    snapshot["sourceCi"] = _complete_source_ci(
+        snapshot["sourceCi"], source_sha=source_sha
+    )
     validate_repository_admission(
         snapshot, main_sha=main_sha, review_head_sha=review_head_sha,
         expected_tag=expected_tag, source_sha=source_sha,

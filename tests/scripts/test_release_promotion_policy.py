@@ -936,14 +936,20 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         ]
         responses = [
             {"total_count": 1, "workflow_runs": [raw_run]},
-            {"total_count": 1, "workflow_runs": []}, raw_run,
+            {"total_count": 1, "workflow_runs": []},
+            raw_run,
             {"total_count": 3, "jobs": raw_jobs[:2]},
             {"total_count": 3, "jobs": raw_jobs[2:]},
-            {"total_count": 3, "jobs": []}, raw_run,
+            {"total_count": 3, "jobs": []},
+            raw_run,
+            raw_run,
         ]
         with mock.patch.object(MODULE, "_read_github_json", side_effect=responses) as read, \
             mock.patch.object(MODULE, "_collect_source_ci_flaky_evidence", return_value=source["flakyEvidence"]):
-            actual = MODULE._collect_source_ci("owner/repo", SHA)
+            actual = MODULE._complete_source_ci(
+                MODULE._collect_source_ci_run_and_jobs("owner/repo", SHA),
+                source_sha=SHA,
+            )
         self.assertEqual(source, actual)
         serialized = json.dumps(actual)
         for sentinel in (
@@ -988,7 +994,37 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                 mock.patch.object(MODULE, "_read_github_json", side_effect=responses), \
                 mock.patch.object(MODULE, "_collect_source_ci_flaky_evidence", return_value=source["flakyEvidence"]), \
                 self.assertRaisesRegex(ValueError, "source CI"):
-                MODULE._collect_source_ci("owner/repo", SHA)
+                MODULE._collect_source_ci_run_and_jobs("owner/repo", SHA)
+
+    def test_source_ci_completion_rejects_run_drift_after_annotations(self) -> None:
+        source = self.source_ci_evidence()
+        for change, message in (
+            ({"run_attempt": 3}, "source CI run or attempt changed during collection"),
+            (
+                {"head_sha": REVIEW_HEAD_SHA},
+                "source CI must be the exact-source push-main ci.yml workflow",
+            ),
+            (
+                {"status": "in_progress", "conclusion": None},
+                "source CI run or attempt changed during collection",
+            ),
+        ):
+            with (
+                self.subTest(change=change),
+                mock.patch.object(
+                    MODULE,
+                    "_collect_source_ci_flaky_evidence",
+                    return_value=source["flakyEvidence"],
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "_read_github_json",
+                    return_value={**source["run"], **change},
+                ),
+                self.assertRaises(ValueError) as error,
+            ):
+                MODULE._complete_source_ci(source, source_sha=SHA)
+            self.assertEqual(message, str(error.exception))
 
     def test_source_ci_inventory_rejects_incomplete_and_changing_pages(self) -> None:
         for responses in (
@@ -1001,7 +1037,7 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             with self.subTest(responses=responses), \
                 mock.patch.object(MODULE, "_read_github_json", side_effect=responses), \
                 self.assertRaisesRegex(ValueError, "source CI"):
-                MODULE._collect_source_ci("owner/repo", SHA)
+                MODULE._collect_source_ci_run_and_jobs("owner/repo", SHA)
 
     def test_v111_repository_admission_accepts_only_exact_protected_policy(
         self,
@@ -1414,6 +1450,27 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         review_head_sha=REVIEW_HEAD_SHA,
                         expected_tag="v1.1.1",
                     )
+
+    def test_existing_admission_reasons_precede_missing_flaky_evidence(self) -> None:
+        for mutation, message in (
+            ({"remoteMain": {"sha": SHA, "protected": False}}, "protected"),
+            ({"mainRulesPaginationComplete": False}, "main rules"),
+            ({"checkRuns": []}, "check runs"),
+            ({"reviewThreadsPaginationComplete": False}, "review threads"),
+            ({"tagRulesets": []}, "update/deletion ruleset"),
+        ):
+            admission = valid_repository_admission()
+            admission["sourceCi"].pop("flakyEvidence")
+            with (
+                self.subTest(message=message),
+                self.assertRaisesRegex(ValueError, message),
+            ):
+                MODULE.validate_repository_admission(
+                    {**admission, **mutation},
+                    main_sha=SHA,
+                    review_head_sha=REVIEW_HEAD_SHA,
+                    expected_tag="v1.1.1",
+                )
 
     def test_v111_review_threads_allow_parallel_p2_p3_but_block_p0_p1(self) -> None:
         admission = valid_repository_admission()
@@ -2049,10 +2106,13 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
         ]
         responses = [
             {"total_count": 1, "workflow_runs": [raw_run]},
-            {"total_count": 1, "workflow_runs": []}, raw_run,
+            {"total_count": 1, "workflow_runs": []},
+            raw_run,
             {"total_count": 3, "jobs": raw_jobs[:2]},
             {"total_count": 3, "jobs": raw_jobs[2:]},
-            {"total_count": 3, "jobs": []}, raw_run,
+            {"total_count": 3, "jobs": []},
+            raw_run,
+            raw_run,
         ]
         with tempfile.TemporaryDirectory(
             prefix="release-candidate-source-ci-"
@@ -2068,8 +2128,9 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
             notes = asset_dir / "RELEASE-NOTES.md"
             notes.write_text("release notes\n", encoding="utf-8")
             review = valid_snapshot()
-            review["repositoryAdmission"]["sourceCi"] = MODULE._collect_source_ci(
-                "owner/repo", SHA
+            review["repositoryAdmission"]["sourceCi"] = MODULE._complete_source_ci(
+                MODULE._collect_source_ci_run_and_jobs("owner/repo", SHA),
+                source_sha=SHA,
             )
             review_path = temporary_root / "review.json"
             review_path.write_text(json.dumps(review), encoding="utf-8")
