@@ -334,7 +334,17 @@ public sealed class NavigationFocusIndicatorTests
                 window.TryFindResource("NfcAccentBorderStrongBrush", window.ActualThemeVariant, out object? focusColorResource));
             Color selectedColor = Assert.IsType<ISolidColorBrush>(selectedBrushResource, exactMatch: false).Color;
             Color focusColor = Assert.IsType<ISolidColorBrush>(focusColorResource, exactMatch: false).Color;
+            // The focus state above is final, but under load the last rendered frame can still be one
+            // composed before the ring was painted; pump a bounded number of frames until it shows.
             int ringPixels = CountColorPixels(window, RingHaloRegion(window, home, outset: 3), focusColor, tolerance: 24);
+            for (int frame = 1; frame < 20 && ringPixels <= 20; frame++)
+            {
+                Thread.Sleep(25);
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
+                ringPixels = CountColorPixels(window, RingHaloRegion(window, home, outset: 3), focusColor, tolerance: 24);
+            }
             int underlinePixels = CountColorPixels(window, underline, selectedColor, tolerance: 24);
             int gapPixels = CountColorPixels(window, gap, selectedColor, tolerance: 24) +
                 CountColorPixels(window, gap, focusColor, tolerance: 24);
