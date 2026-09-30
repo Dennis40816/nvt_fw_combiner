@@ -19,7 +19,7 @@ Three changes stand out (owner decision 202):
 
 - **NT51929 DP sub-version:** the DP CMI of the Perfect family is read completely, registers `0x16`-`0x18` of CMD1 Page 0, so the DP Version shows the DP sub-version as `Dxx-yy` (arrived in 1.1.2; see Product change 1).
 - **NT51950 2-IC public version:** the public NT51950 2-IC AB Code image starts its TP B code at `0x8A000` (arrived in 1.1.6, consolidated in 1.1.10; see Product change 2).
-- **NT51950 OSD merge:** an NT51950 AB Code whose DP carries Display OSD merges, keeping every DP byte and warning about a possible OSD customization (arrived in 1.1.10, owner-certified Golden case since 1.1.11; see Product change 3).
+- **NT51950 OSD merge:** an NT51950 AB Code whose DP carries Display OSD merges, keeping every DP byte outside the declared TP and postbuild writes and warning about a possible OSD customization (arrived in 1.1.10, owner-certified Golden case since 1.1.11; see Product change 3).
 
 Main user-visible themes of 1.1.0 through 1.1.15, with the entry to read:
 
@@ -27,7 +27,7 @@ Main user-visible themes of 1.1.0 through 1.1.15, with the entry to read:
 - **AB Code:** opt-in Dummy DP (1.1.4), configurable Event Buffer Format recognition (1.1.6), shared NT51950/NT51951 layouts and nonstandard DP sizes (1.1.10).
 - **CtrlRAM Replace:** AB Code Flash Bases on Candidate routes (1.1.10, 1.1.11), NT51950/NT51951 Bases that carry Display OSD at any length (1.1.11, 1.1.12), AB Bases decided by NVT markers at the declared end flag (1.1.12, 1.1.13).
 - **Firmware information:** shared, prioritized facts with Event Buffer (1.1.7, 1.1.10, 1.1.11), TP SVN (1.1.13), a DP Jira Index of 0 shown as invalid (1.1.14).
-- **Memory Layout:** compact overview and interaction (1.1.4, 1.1.6, 1.1.10, 1.1.11), connectors that stay clear of the legend (1.1.14), a passive, keyboard-accessible legend (1.1.15).
+- **Memory Layout:** compact overview and interaction (1.1.4, 1.1.6, 1.1.10, 1.1.11); a passive, keyboard-accessible legend that card connectors cross from each slice's true range (1.1.15, replacing the 1.1.14 connectors that stayed clear of the legend).
 - **Build, reports and delivery:** report history and navigation (1.1.4), Build settings and source summary (1.1.7), name and Bundle recovery (1.1.9), per-BIN naming (1.1.10), self-validating Build, protected outputs and retryable saves (1.1.12, 1.1.13).
 - **Start-up and lifetime:** faster start-up loading (1.1.5, 1.1.12, 1.1.13); bounded close, version switch and start (1.1.13, 1.1.15).
 - **Removed or hidden:** the DP Replace experience is removed (1.1.10); Customized Merge/Replace entry points are hidden (1.1.11).
@@ -43,7 +43,7 @@ Main user-visible themes of 1.1.0 through 1.1.15, with the entry to read:
   - The three bytes carry the DP major (register `0x17`), the DP sub-version (the high nibble of register `0x18`) and the Jira index (register `0x16` and the low nibble of register `0x18`). The DP Version is shown as `Dxx-yy`: DP major, then DP sub-version, in hexadecimal.
   - AB inputs keep their A and B CMI reads at `[0x401A,0x401D)` and `[0x4401A,0x4401D)`.
   - Later refinements in the same line: a Jira Index of 0 is shown as `Invalid (AUTO_PRJ-0)` (1.1.14); the DP CMI sub-field is listed with its exact range inside its DP section of the Memory Layout (1.1.15).
-- Affected: Standard Merge naming and the DP Version and Jira facts of NT51919, NT51929 and NT51932; AB Code DP_AB input cards and reports for the same family. General workflows have no DPCMI reader.
+- Affected: Standard Merge naming and the DP Version and Jira facts of NT51919, NT51929 and NT51932. AB Code inputs already read the A and B CMI and did not change in 1.1.2. General workflows have no DPCMI reader.
 - Support status: unchanged/support-neutral; no IC, route or mode is promoted.
 - Compatibility: Firmware bytes, ranges, CRC/Header behavior and the NT51929 Golden output SHA-256 are unchanged. Only the DP version and Jira facts and the DP token in output names read from the CMI instead of the compact header. The compact `[0x66,0x69)` observations remain historical only.
 - Verification: 1.1.2 recorded the DPCMI evidence for the existing path with exact targeted coverage and added the public NT51929 certified input observations (input-only; a non-zero DP sub-version case with DP major `09` and sub-version `01`). Every owner-certified Golden output case, including the NT51929 case, is executed against the release candidate.
@@ -57,7 +57,7 @@ Main user-visible themes of 1.1.0 through 1.1.15, with the entry to read:
   - 1.1.15 corrected the B-bank CMI of the NT51950 cascade 1024k and NT51951 1024k maps to `flash [0x84016,0x84019)`, one page off before.
 - Affected: AB Code for NT51950 (2-IC, cascade) and NT51951, including its Dummy DP path, Memory Layout, run reports and the `dp-b` output-name token of the two 1024k maps.
 - Support status: unchanged/support-neutral; the NT51950 cascade configuration is Candidate/contract-only (1.1.6, 1.1.10), the earlier generic Cascade `Supported` identity was retired in 1.1.10, and 1.2.0 promotes nothing.
-- Compatibility: Output bytes of the certified 512k Golden cases are unchanged. An explicit AB `--profile` ID now rejects a different detected profile, so use an IC selector for automatic selection (1.1.6). Saved sessions and rules tied to earlier NT51950/NT51951 identities can become stale (see Upgrade and rollback).
+- Compatibility: Output bytes of the certified 512k Golden cases are unchanged. Compared with a release before 1.1.6, the same NT51950 2-IC inputs build a different AB image: TP B is written at `0x8A000` instead of `0x4A000`, in the 1.1.10 geometry above. Since 1.1.15 the `dp-b` output-name token of the two 1024k maps reads `0x84017`/`0x84018` instead of `0x85017`/`0x85018`; a file name changes only when the two locations hold different values. An explicit AB `--profile` ID now rejects a different detected profile, so use an IC selector for automatic selection (1.1.6). Saved sessions and rules tied to earlier NT51950/NT51951 identities can become stale (see Upgrade and rollback).
 - Verification: 1.1.6 recorded configuration, primary-field admission, profile, runtime, report and write-boundary regressions; an earlier development run passed all 25 certified output cases, and every owner-certified Golden case is executed against the release candidate. For 1.1.15 a before/after compiled-plan audit of all six NT51950/NT51951 AB maps showed identical write ranges and processor permissions.
 - Limitations: The maps other than 512k have no direct Golden case and rely on compiled-plan equivalence. The owner checked the public 2-IC TP B start `0x8A000` and the 1024k B-bank CMI on real images as a condition of the 1.2.0 release approval (decisions 15, 195, 199 and 206); the check covers these routes and is not extended to other topologies.
 
@@ -100,8 +100,8 @@ No new external executable, update endpoint, network surface or permission is in
 - On single IC, the NT51950/NT51951 image maps still declare the cascade-only DIFF CtrlRAM region; 1.1.15 only hides it from the Memory Layout. Splitting the region set per topology is a profile change planned for 1.2.x.
 - The Memory Layout highlight is a background color only; NFC has no High Contrast palette yet (planned for 1.2.10).
 - The corrected 1024k B-bank CMI location has no direct Golden case; the owner's real-image check is its only evidence beyond the compiled-plan audit.
-- A selected input file that is renamed, moved, modified or deleted on disk afterwards is not noticed until the selection is inspected again (another file selected in the workflow, an IC, Number or mode change); Build uses the content read when the file was selected. Select the file again after changing it. A toast and automatic unselect are planned for 1.2.x.
-- With only the DP_AB input selected, the AB Code Memory Layout lists adjacent DP ranges as separate numbered rows; they join once the TP inputs are selected. A fix is planned for 1.2.x.
+- A selected input file that is renamed, moved, modified or deleted on disk afterwards is not noticed until the selection is inspected again (another file selected in the workflow, an IC, Number or mode change); until then its card still shows Verified with the old path, and Build uses the content read when the file was selected. Select the file again after changing it. A toast and automatic unselect are planned for 1.2.x.
+- With only the DP_AB input selected, the AB Code Memory Layout lists adjacent DP ranges as separate numbered rows, can attribute the TP A range to the DP file and shows the internal region `ab-combiner-work` as a content row; the layout is correct once the TP inputs are selected. A fix is planned for 1.2.x.
 - AB CtrlRAM Replace routes and the NT51950 cascade AB configuration stay Candidate/contract-only (see 1.1.10 to 1.1.12); independent expected outputs and firmware-owner review are still required for uncovered cases.
 - NT51950 AB CtrlRAM Replace can still differ from an owner-built reference in the 32 Header and Header-copy CRC bytes described in 1.1.13; the handling decision is in 1.2.x.
 - The first-window time measured for 1.1.14 (about 40 ms later than v1.1.12, accepted by the owner in decision 179) was not re-measured for 1.1.15, and 1.2.0 carries the same code.
