@@ -2,6 +2,29 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    private static void AssertGoldenHostCatalogReloadIsSerialized()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "tests",
+            "NvtFwCombiner.GoldenRegression.Tests");
+        string reloadCall = "GoldenTestHost.Services.CanonicalCatalogLoader.LoadAsync(";
+        string serialAttribute = "[Collection(nameof(GoldenHostCatalogReloadSerialGroup))]";
+        foreach (string file in Directory.GetFiles(directory, "*.cs", SearchOption.TopDirectoryOnly))
+        {
+            string source = File.ReadAllText(file);
+            if (source.Contains(reloadCall, StringComparison.Ordinal))
+            {
+                Assert.Contains(serialAttribute, source, StringComparison.Ordinal);
+            }
+        }
+
+        Assert.Contains(
+            "[CollectionDefinition(nameof(GoldenHostCatalogReloadSerialGroup), DisableParallelization = true)]",
+            File.ReadAllText(Path.Combine(directory, "GoldenHostCatalogReloadSerialGroup.cs")),
+            StringComparison.Ordinal);
+    }
+
     private static void AssertBootstrapTestsDoNotMutateTheSharedCatalogPublication()
     {
         string directory = Path.Combine(
