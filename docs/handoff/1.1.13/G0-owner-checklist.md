@@ -287,7 +287,7 @@ Amendment, 2026-10-01 ([board decision 216](../1.2.x.md)): that change is the op
 `-IncludeWorkflowsWrite` switch of the reviewed helper revision `4ac380da8` (not merged
 into this trunk). The owner enabled it on 2026-10-01 and keeps it in the Git helper
 command until `1.2.1` is released, instead of per batch; at that release the owner
-decides whether it stays. Risk accepted: while it is on, every Git token issued for this
+decides whether it stays. Risk, explained to the owner before this choice: while it is on, every Git token issued for this
 repository may change `.github/workflows/`, and a pushed branch's pull-request CI runs
 that branch's workflow.
 

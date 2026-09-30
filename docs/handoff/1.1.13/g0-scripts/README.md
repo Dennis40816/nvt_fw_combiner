@@ -63,7 +63,7 @@ Amendment, 2026-10-01 ([board decision 216](../../1.2.x.md)): the owner-installe
 not merged into this trunk; this copy of the scripts and this text predate it). That revision's rule adds the
 switch only for an owner-authorized batch that writes `.github/workflows/` and removes it afterwards. Decision 216
 keeps it in the configured Git helper command until `1.2.1` is released; the owner then decides whether it stays
-or the per-batch rule returns. Risk accepted: while it is on, every Git token issued for this repository may change
+or the per-batch rule returns. Risk, explained to the owner before this choice: while it is on, every Git token issued for this repository may change
 `.github/workflows/`, and a pushed branch's pull-request CI runs that branch's workflow.
 
 For `gh`, the agent invokes the owner-installed `Invoke-NfcGh.ps1` with its configured App identifiers and the desired `-GhArguments`. The wrapper starts the helper as a separate `pwsh -NoProfile -File` subprocess, privately captures its token and exit status, and supplies `GH_TOKEN` only to a single `gh` subprocess. It does not set the parent process environment. It replaces the exact token if it appears in captured `gh` stdout or stderr before forwarding that output, and its own error messages do not include the token. A child process started by `gh` may inherit `GH_TOKEN`; do not enable debug or recording output that exposes credentials. For example, after owner setup the agent may use the wrapper to run `gh api /installation/repositories` for checklist D3a.
