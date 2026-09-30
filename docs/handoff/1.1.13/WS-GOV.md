@@ -1308,3 +1308,36 @@ verified afterwards, and the board records it (G0 checklist, C3).
   by Dennis40816 at 17:18:02Z. The commander read both through the App
   (Activity API) and a read-only browser capture kept in the test area; the
   owner confirmed both, and confirmed the Bitwarden backup. G0 is complete.
+
+## G0 seventh version acceptance (2026-10-01)
+
+Recorded on the `1.2.x` trunk by the commander (board decision 220); the sections above are kept as recorded.
+
+- Subject: helper and `gh` wrapper revision `4ac380da8` (seventh version: `workflows: write` only with
+  `-IncludeWorkflowsWrite`; `gh` arguments forwarded unchanged; Pester 3.4.0 test runner), cherry-picked onto
+  `1.2.x` for the G0 landing pull request. The owner had already installed it; the installed copy is
+  byte-identical to `4ac380da8` (SHA-256 of the five scripts and the README, checked 2026-10-01). The earlier
+  reviews G0HR, G0HR2 and G0HR3 (`codex/gpt-6-astra`, ACCEPT-WITH-CHANGES; F-1 closed by G0HR3) had no
+  recorded acceptance, and the checklist still called the version pending.
+- Review: a fresh Claude Opus 5.5 session, read-only, 2026-10-01, on the landing head: **accept-with-changes,
+  no P0 or P1**. The offline suite passed 64/64 (Pester 3.4.0, isolated runner). Verified by reading the code:
+  the default permission set and the switch; the exact reply checks (one repository, exact-case name, no extra
+  or different permission, `workflows: write` required when requested); the Git protocol (`get` only, scope
+  checked before the key is read, exact `https`/`github.com`/repository path, duplicate keys rejected,
+  `store`/`erase` save nothing, fixed error text); DPAPI CurrentUser scope with cleared buffers; the wrapper's
+  launch-form and direct-call checks, repository refusal before any token request, `ArgumentList` forwarding
+  and `GH_TOKEN` confined to one child; the README states the wrapper's limits honestly.
+- F-1 (launch identity) and F-5 (test runner) are resolved in this revision; the A6a notes are implemented and
+  tested; the content of F-2 to F-4 is not recorded in the repository and could not be checked.
+- Findings, tracked in `BUG-20261001-g0-gh-wrapper-console-codepage` (fix in an eighth version the owner
+  installs after its own review, `1.2.1`):
+  - P2: the wrapper decodes `gh` output with the console code page (`Invoke-NfcGh.ps1` 159-175, already in the
+    sixth version), which corrupts Traditional Chinese text and can defeat the token scrub when a CJK character
+    precedes the token.
+  - P3: the helper accepts a trailing newline in one input check (`$` instead of `\z`; it still fails safe) and
+    writes the token into the Git response without the CR/LF check the wrapper has.
+  - P2 (records): the risk of decision 216 was understated; restated on the board and in the checklist and sent
+    to the owner for re-confirmation with three settings the App cannot read.
+  - P3 (records): the documents did not forbid `git credential fill` or a storing helper; the checklist now does.
+- Not verifiable by the reviewer: the live App and installation permissions, the repository's Actions and
+  environment settings, and the content of G0HR's findings.

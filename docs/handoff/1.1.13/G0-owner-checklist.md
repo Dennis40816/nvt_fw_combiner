@@ -1,5 +1,14 @@
 # G0 owner checklist: agent GitHub identity and rulesets
 
+Amendment, 2026-10-01 (status; the 1.1.13 text below is kept as recorded): the seventh version
+(`4ac380da8`) is the installed version. The owner installed it before an acceptance was recorded; the
+installed copy is byte-identical to `4ac380da8` (SHA-256 of the five scripts and the README, checked
+2026-10-01). A fresh independent security review on 2026-10-01 (Claude Opus 5.5) accepted it with
+changes, no P0 or P1; the record is in [WS-GOV](WS-GOV.md#g0-seventh-version-acceptance-2026-10-01).
+The **pending review** markers below therefore describe the history, not the current state. The
+trunk carries this version since the G0 landing pull request; its files still match the hashes in the
+inventory table below.
+
 **Pending independent review: seventh version, 2026-09-27.** This version
 proposes a change to the token helper, the `gh` wrapper, their README and the
 tests: a token carries `workflows: write` only on explicit request (A6a), and
@@ -343,11 +352,24 @@ unless the helper is started with `-IncludeWorkflowsWrite`, which adds
 
 Amendment, 2026-10-01 ([board decision 216](../1.2.x.md)): that change is the opt-in
 `-IncludeWorkflowsWrite` switch of helper revision `4ac380da8`, which this trunk carries
-since the G0 landing pull request. The owner enabled it on 2026-10-01 and keeps it in the Git helper
-command until `1.2.1` is released, instead of per batch; at that release the owner
-decides whether it stays. Risk, explained to the owner before this choice: while it is on, every Git token issued for this
-repository may change `.github/workflows/`, and a pushed branch's pull-request CI runs
-that branch's workflow.
+since the G0 landing pull request. The owner enabled it on 2026-10-01 and keeps it in the Git
+helper command until `1.2.1` is released, instead of adding it per batch as the scripts'
+README describes; at that release the owner decides whether it stays. This note lives here
+and on the board, not in the scripts' README, so that the README keeps the reviewed hash.
+Risk, as restated after the independent review of 2026-10-01: while it is on, every Git token
+issued for this repository can create or change `.github/workflows/` on any branch. Such a
+workflow runs on push, without a pull request or review, with `GITHUB_TOKEN` at the
+repository's default workflow permissions and with every secret that no environment protection
+rule guards. The `release` environment requires the owner's approval and protected branches;
+the `firmware-parity` environment named in `release.yml` does not exist yet, so its secrets
+`NFC_FIRMWARE_OWNER_*` would be unguarded if they were stored as repository secrets. The owner
+chose the switch after a narrower explanation (pull-request CI only); the fuller risk was
+reported to the owner on 2026-10-01 for re-confirmation, together with three settings the App
+cannot read: read-only default workflow permissions, GitHub Actions not allowed to create or
+approve pull requests, and which repository secrets exist.
+Agents never run `git credential fill`, `git credential approve`, a credential manager
+command, or `git -c credential.helper=store` (or any caching helper) for this repository: each
+would expose or persist the one-hour token.
 
 - [ ] **owner → owner.** Optional preview, which contacts no GitHub: in your
       script folder run
