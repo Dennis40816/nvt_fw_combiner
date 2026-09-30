@@ -1,6 +1,6 @@
 # BUG-20260930-managed-start-deadline-residual-windows: four microsecond-scale, fail-closed windows in the managed start deadline
 
-Status: open
+Status: open (owner decision 218; fix in 1.2.6)
 Severity: P3
 Found: 2026-09-30, independent Claude Opus 5.5 R3 delta review of
 `feature/1.1.15/flaky-fixes`@`95e2c1747`
@@ -25,6 +25,6 @@ actual state, or the window is recorded as accepted with its reason.
 Evidence: the code lines under Where; the independent review of `95e2c1747` is recorded in
 `docs/handoff/1.1.15/WS-FLAKES.md`. Every case fails closed and none can start a late process.
 Owner: unassigned. Candidate: 1.2.x hardening of the managed start, after the owner decides whether N1-N4 are
-accepted or need a fix. That owner question is open on the [1.2.x board](../1.2.x.md) (2026-09-30); the
-commander recommends a fix in `1.2.6` with C01-2 and R05-02.
+accepted or need a fix. Decision 218 (owner, 2026-10-01, [1.2.x board](../1.2.x.md)): fix them in `1.2.6` with
+C01-2 and R05-02 (item R51).
 Resolution: open; no production change made for these four windows.
