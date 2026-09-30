@@ -416,7 +416,7 @@ P0/P1, one P2 and one P3. The reviewer confirmed that no admission error is mask
 Golden is touched and that the documents match the code.
 Fixed by the commander:
 - P2: the flaky gate that closes `validate_repository_admission` had no direct test, although
-  `validate_review_snapshot` and the admission CLI rely on it as their only flaky check.
+  `validate_candidate_context` and the admission CLI rely on it as their only flaky check.
   `test_policy_valid_admission_still_requires_clean_flaky_evidence` now rejects a
   policy-valid admission with missing evidence or a flaky test in either attempt. With the
   gate disabled in memory the test fails, so it is not vacuous.
