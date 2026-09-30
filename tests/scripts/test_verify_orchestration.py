@@ -701,7 +701,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     f"Probe.Tests.Case{index}" for index in range(total)
                 )
                 skipped = 0
-                result_root = shard_root / "results" / project.name
+                result_root = shard_root / "results" / project.name / "attempt-1"
                 discovery = result_root / "discovered-tests.txt"
                 trx = result_root / "test-results.trx"
                 coverage_root = result_root / "coverage"
@@ -717,7 +717,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 coverage_root.mkdir()
                 coverage_json.write_text("{}\n", encoding="utf-8")
                 cobertura.write_text("<coverage />\n", encoding="utf-8")
-                evidence_paths = (discovery, trx, coverage_json, cobertura)
+                attempt_log = result_root / "attempt.log"
+                attempt_log.write_text("test passed\n", encoding="utf-8")
+                evidence_paths = (discovery, trx, coverage_json, cobertura, attempt_log)
                 for evidence in evidence_paths:
                     relative = evidence.relative_to(artifact_root).as_posix()
                     files[relative] = hashlib.sha256(evidence.read_bytes()).hexdigest()
@@ -729,6 +731,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
                         "failed": 0,
                         "skipped": skipped,
                         "testAssemblySha256": "a" * 64,
+                        "attemptLog": attempt_log.relative_to(artifact_root).as_posix(),
+                        "retry": None,
                         "discovery": discovery.relative_to(artifact_root).as_posix(),
                         "trx": trx.relative_to(artifact_root).as_posix(),
                         "coverageJson": coverage_json.relative_to(
@@ -751,6 +755,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     "shard": shard,
                     "producerPlatform": "windows",
                     "projects": rows,
+                    "flakyTests": [],
                     "files": files,
                 },
             )
@@ -6301,12 +6306,13 @@ class VerifyOrchestrationTests(unittest.TestCase):
             with self.subTest(owner=owner.__name__):
                 for marker in (
                     "DOTNET_TEST_PARTITIONS",
-                    "test_case_filter",
                     "dotnet_partition",
                     "local_dotnet_test_partitions",
                     "require_exact_partition",
                 ):
                     self.assertNotIn(marker, source)
+                if owner is not MODULE.verify_ci_dotnet_test_shard:
+                    self.assertNotIn("test_case_filter", source)
 
     def test_uismoke_writers_outside_the_session_are_isolated_per_compiled_type(self) -> None:
         project_root = ROOT / "tests" / MODULE.UISMOKE_TEST_PROJECT
@@ -7649,6 +7655,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     class_filenames=(source,),
                 )
                 (results / "attempt/sequence.dmp").write_bytes(b"not evidence")
+                (results / "attempt/Sequence_af6bc426faab481fa504c42e3d52afd2.xml").write_text(
+                    "<TestSequence />", encoding="utf-8"
+                )
                 (results / "testhost.log").write_text("not evidence\n", encoding="utf-8")
                 raise subprocess.CalledProcessError(1, command)
 
@@ -7694,16 +7703,18 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     return_value=(output, Path("bin/Release/net10.0")),
                 ),
                 patch.object(MODULE, "cleanup_dotnet_batch"),
-                self.assertRaisesRegex(RuntimeError, "First: Command"),
+                self.assertRaisesRegex(RuntimeError, "First: CI hang/crash"),
             ):
                 MODULE.verify_ci_dotnet_test_shard("probe")
 
-            project_root = "shards/probe/results/First"
+            project_root = "shards/probe/results/First/attempt-1"
             expected_evidence = {
                 f"{project_root}/discovered-tests.txt",
                 f"{project_root}/test-results.trx",
                 f"{project_root}/attempt/coverage.json",
                 f"{project_root}/attempt/coverage.cobertura.xml",
+                f"{project_root}/attempt.log",
+                f"{project_root}/attempt/Sequence_af6bc426faab481fa504c42e3d52afd2.xml",
             }
             uploaded = {
                 path.relative_to(upload_root).as_posix()
@@ -7835,7 +7846,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 ),
                 self.assertRaisesRegex(
                     RuntimeError,
-                    r"^First: Command .*; First failure evidence not uploaded: "
+                    r"^First: .*reparse-point .*; First failure evidence not uploaded: "
                     r"results failed the regular-file checks \(see shard\.log\)$",
                 ),
             ):
@@ -7954,11 +7965,11 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     return_value=(output, Path("bin/Release/net10.0")),
                 ),
                 patch.object(MODULE, "cleanup_dotnet_batch"),
-                self.assertRaisesRegex(RuntimeError, r"^First: Command "),
+                self.assertRaisesRegex(RuntimeError, r"^First: Coverlet JSON source is outside"),
             ):
                 MODULE.verify_ci_dotnet_test_shard("probe")
 
-            project_root = "shards/probe/results/First"
+            project_root = "shards/probe/results/First/attempt-1"
             uploaded = {
                 path.relative_to(upload_root).as_posix()
                 for path in upload_root.rglob("*")
@@ -7970,6 +7981,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     "shards/probe/shard.log",
                     f"{project_root}/discovered-tests.txt",
                     f"{project_root}/test-results.trx",
+                    f"{project_root}/attempt.log",
                 },
                 uploaded,
             )
@@ -8179,6 +8191,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         def fake_run(command: list[str], **_kwargs: object) -> None:
             commands.append(command)
+            if "--ListTests" in command:
+                self.write_vstest_discovery(Path(str(_kwargs["log_path"])), 1)
             if (
                 len(command) > 2
                 and command[1] == "build"
@@ -8295,6 +8309,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
     def test_ci_dotnet_shard_rejects_snapshot_hash_drift_before_evidence(self) -> None:
         project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj")
+        def fake_run(command: list[str], **kwargs: object) -> None:
+            if "--ListTests" in command:
+                self.write_vstest_discovery(Path(str(kwargs["log_path"])), 1)
+
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             collect = MagicMock()
@@ -8327,7 +8345,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 ),
                 patch.object(MODULE, "repository_sdk_version", return_value="10.0.301"),
                 patch.object(MODULE, "require_logged_sdk_version"),
-                patch.object(MODULE, "run"),
+                patch.object(MODULE, "run", side_effect=fake_run),
                 patch.object(
                     MODULE, "run_solution_restore_preserving_lock_projections"
                 ),

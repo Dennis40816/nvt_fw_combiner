@@ -181,6 +181,7 @@ def release_admission_fixture(
     *,
     tag_state: str = "absent",
     remote_source_sha: str = RELEASE_MAIN_SHA,
+    source_annotations: str = "clean",
 ) -> dict[str, Any]:
     """Build deterministic, multi-page GitHub evidence for exact workflow execution."""
 
@@ -359,10 +360,60 @@ def release_admission_fixture(
         "status": "completed", "conclusion": "success",
     }
     source_jobs = [
-        {"id": index + 100, "run_id": 80, "head_sha": RELEASE_MAIN_SHA,
-         "name": name, "status": "completed", "conclusion": "success"}
+        {
+            "id": index + 100,
+            "run_id": 80,
+            "head_sha": RELEASE_MAIN_SHA,
+            "name": name,
+            "status": "completed",
+            "conclusion": "success",
+            "check_run_url": f"https://api.github.com/repos/{repository}/check-runs/{index + 100}",
+        }
         for index, name in enumerate(RELEASE_REQUIRED_CHECKS)
     ]
+    source_pages = {}
+    for attempt in (1, 2):
+        jobs = [
+            {
+                **job,
+                "id": job["id"] + (1000 if attempt == 1 else 0),
+                "check_run_url": (
+                    f"https://api.github.com/repos/{repository}/check-runs/"
+                    f"{job['id'] + (1000 if attempt == 1 else 0)}"
+                ),
+            }
+            for job in source_jobs
+        ]
+        source_pages[
+            f"repos/{repository}/actions/runs/80/attempts/{attempt}/jobs?per_page=100"
+        ] = [
+            {"total_count": len(jobs), "jobs": jobs[:2]},
+            {"total_count": len(jobs), "jobs": jobs[2:]},
+            {"total_count": len(jobs), "jobs": []},
+        ]
+        for job in jobs:
+            endpoint = f"repos/{repository}/check-runs/{job['id']}"
+            annotations = (
+                [
+                    {
+                        "annotation_level": "warning",
+                        "title": "Flaky test",
+                        "message": "tests/Probe.csproj Probe.Tests.Case1",
+                    }
+                ]
+                if source_annotations == "flaky" and job["id"] == 1100
+                else []
+            )
+            api[endpoint] = {
+                "id": job["id"],
+                "head_sha": RELEASE_MAIN_SHA,
+                "app": {"slug": "github-actions"},
+                "status": "completed",
+                "conclusion": "success",
+                "output": {"annotations_count": len(annotations)},
+            }
+            if source_annotations != "missing":
+                source_pages[f"{endpoint}/annotations?per_page=100"] = [annotations, []]
     api[f"repos/{repository}/actions/runs/80"] = source_run
     if scenario == "unprotected_main":
         api[f"repos/{repository}/branches/main"]["protected"] = False
@@ -397,15 +448,17 @@ def release_admission_fixture(
         "api": api,
         "paginated": {
             f"repos/{repository}/commits/{RELEASE_MAIN_SHA}/pulls?per_page=100": [
-                [{
-                    "number": 406,
-                    "state": "closed",
-                    "merged_at": "2026-09-01T00:00:00Z",
-                    "merge_commit_sha": RELEASE_MAIN_SHA,
-                    "base": {"ref": "main"},
-                    "head": {"ref": "1.1.1", "sha": RELEASE_REVIEW_HEAD_SHA},
-                    "user": {"login": "release-author"},
-                }],
+                [
+                    {
+                        "number": 406,
+                        "state": "closed",
+                        "merged_at": "2026-09-01T00:00:00Z",
+                        "merge_commit_sha": RELEASE_MAIN_SHA,
+                        "base": {"ref": "main"},
+                        "head": {"ref": "1.1.1", "sha": RELEASE_REVIEW_HEAD_SHA},
+                        "user": {"login": "release-author"},
+                    }
+                ],
                 [],
             ],
             f"repos/{repository}/rules/branches/main?per_page=100": [
@@ -438,13 +491,8 @@ def release_admission_fixture(
                 {"total_count": 1, "workflow_runs": [source_run]},
                 {"total_count": 1, "workflow_runs": []},
             ],
-            f"repos/{repository}/actions/runs/80/attempts/2/jobs?per_page=100": [
-                {"total_count": len(source_jobs), "jobs": source_jobs},
-                {"total_count": len(source_jobs), "jobs": []},
-            ],
-            f"repos/{repository}/tags?per_page=100": [
-                [{"name": "v1.1.0"}], []
-            ],
+            **source_pages,
+            f"repos/{repository}/tags?per_page=100": [[{"name": "v1.1.0"}], []],
         },
         "graphqlPages": review_thread_pages,
         "commentPages": comment_pages,
@@ -641,7 +689,8 @@ if "page" in form:
         fixture_endpoint = endpoint + "?filter=latest&per_page=100"
     elif (endpoint.endswith("/actions/workflows/ci.yml/runs") or endpoint.endswith("/jobs")
           or endpoint.endswith("/tags") or endpoint.endswith("/pulls")
-          or endpoint.endswith("/reviews") or endpoint.endswith("/comments")):
+          or endpoint.endswith("/reviews") or endpoint.endswith("/comments")
+          or endpoint.endswith("/annotations")):
         fixture_endpoint = endpoint + "?per_page=100"
     else:
         raise SystemExit(93)
@@ -1493,6 +1542,7 @@ foreach ($Path in @(('a' * 141), (('a' * 139) + [char]0xd83d + [char]0xde00))) {
         source_branch: str = "main",
         tag_state: str = "absent",
         remote_source_sha: str = RELEASE_MAIN_SHA,
+        source_annotations: str = "clean",
     ) -> tuple[subprocess.CompletedProcess[str], Path, list[list[str]]]:
         """Execute an exact YAML run block against a deterministic fake GitHub."""
 
@@ -1500,6 +1550,7 @@ foreach ($Path in @(('a' * 141), (('a' * 139) + [char]0xd83d + [char]0xde00))) {
             scenario,
             tag_state=tag_state,
             remote_source_sha=remote_source_sha,
+            source_annotations=source_annotations,
         )
         if source_branch != "main":
             fixture["api"][f"repos/owner/repository/git/ref/heads/{source_branch}"] = (
@@ -3223,6 +3274,16 @@ finally {
                     (fixture_root / snapshot_relative).read_text(encoding="utf-8-sig")
                 )
                 admission = snapshot[admission_key] if admission_key else snapshot
+                attempts = admission["sourceCi"]["flakyEvidence"]
+                self.assertEqual(
+                    [1, 2], [attempt["runAttempt"] for attempt in attempts]
+                )
+                for attempt in attempts:
+                    self.assertEqual(3, len(attempt["jobs"]))
+                    for source_job in attempt["jobs"]:
+                        self.assertEqual(0, source_job["annotationCount"])
+                        self.assertEqual([], source_job["flakyTests"])
+                        self.assertTrue(source_job["annotationsPaginationComplete"])
                 self.assertEqual(2, len(admission["mainRules"]))
                 self.assertEqual(2, len(admission["tagRulesets"]))
                 self.assertEqual(7, len(admission["checkRuns"]))
@@ -3274,6 +3335,54 @@ finally {
                 self.assertFalse(
                     any(call[:4] == ["gh", "api", "--method", "POST"] for call in calls),
                     calls,
+                )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_exact_candidate_preserves_check_rejection_before_flaky_evidence(
+        self,
+    ) -> None:
+        for source_annotations in ("missing", "flaky"):
+            with self.subTest(source_annotations=source_annotations):
+                result, _, calls = self.run_release_workflow_step(
+                    "candidate",
+                    "Collect and validate final PR review/check evidence",
+                    scenario="check_duplicate_failure",
+                    source_annotations=source_annotations,
+                )
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertNotEqual(0, result.returncode, output)
+                self.assertIn("required check runs are not exact and passing", output)
+                self.assertFalse(
+                    any("/annotations" in arg for call in calls for arg in call)
+                )
+
+    @unittest.skipUnless(
+        PWSH, "PowerShell 7 is required for exact release-workflow execution"
+    )
+    def test_exact_candidate_rejects_missing_or_flaky_source_annotations(self) -> None:
+        for source_annotations, message in (
+            ("missing", "source CI annotations could not be read"),
+            ("flaky", "release requires zero flaky tests"),
+        ):
+            with self.subTest(source_annotations=source_annotations):
+                result, fixture_root, calls = self.run_release_workflow_step(
+                    "candidate",
+                    "Collect and validate final PR review/check evidence",
+                    source_annotations=source_annotations,
+                )
+                output = normalize_console_output(result.stdout + result.stderr)
+                self.assertNotEqual(0, result.returncode, output)
+                self.assertIn(message, output)
+                self.assertFalse(
+                    (
+                        fixture_root
+                        / "workspace/artifacts/release-evidence/review-snapshot.json"
+                    ).exists()
+                )
+                self.assertFalse(
+                    any(call[:4] == ["gh", "api", "--method", "POST"] for call in calls)
                 )
 
     def test_candidate_delegates_review_check_projection_to_policy_owner(

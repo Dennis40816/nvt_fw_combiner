@@ -4,8 +4,8 @@ Status: open; test-only guard committed on `feature/1.1.15/flaky-fixes`, but a f
 Severity: P2
 Found: 2026-09-29, Claude Code commander (Claude Opus 5.5), while checking CI on pull request #484 (run
 `36519114436`, job `109248204239`), at `feature/1.1.14/release-back-merge`@`a4e9ef6bf`
-Where: `NavigationFocusIndicatorTests.UnderlineAndGapRegionsNeverOverlapAtAnyRenderScaling` (render scaling 1, both
-`dark: False` and `dark: True`)
+Where: `NvtFwCombiner.UiSmoke.Tests.NavigationFocusIndicatorTests.UnderlineAndGapRegionsNeverOverlapAtAnyRenderScaling`
+(render scaling 1, both `dark: False` and `dark: True`; this full FQN is what the CI flaky-test bug gate matches)
 Observed: both rows of this test failed in that one CI run. The code at `a4e9ef6bf` is identical to `main`
 `32808e943` for the affected navigation/render paths (`git diff --name-status 32808e943 a4e9ef6bf` lists only
 `SPEC.md` and `docs/` changes), where the same `ci` workflow passed, and the test also passed on pull requests

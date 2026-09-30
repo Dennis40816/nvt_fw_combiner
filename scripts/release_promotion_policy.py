@@ -32,6 +32,7 @@ REQUIRED_RELEASE_CHECKS = (
 )
 MAX_GITHUB_PAGES = 100
 MAX_GITHUB_ITEMS = 10_000
+SOURCE_CI_JOB_FIELDS = ("id", "run_id", "head_sha", "name", "status", "conclusion")
 
 
 def _require(condition: bool, message: str) -> None:
@@ -284,6 +285,12 @@ def _source_ci_run_identity(run: object, repository: str, source_sha: str) -> tu
 
 def validate_source_ci(snapshot: object, *, source_sha: str) -> None:
     """Require one complete, successful attempt; never transfer PR-tree proof."""
+    _validate_source_ci_run_and_jobs(snapshot, source_sha=source_sha)
+    _validate_source_ci_flaky_evidence(snapshot)
+
+
+def _validate_source_ci_run_and_jobs(snapshot: object, *, source_sha: str) -> None:
+    """Validate the source attempt before requesting its annotation evidence."""
     _require(isinstance(snapshot, dict), "source CI evidence is missing")
     repository = snapshot.get("repository")
     _require(
@@ -329,6 +336,79 @@ def validate_source_ci(snapshot: object, *, source_sha: str) -> None:
         )
 
 
+def _validate_source_ci_flaky_evidence(snapshot: dict[str, Any]) -> None:
+    """A workflow rerun cannot erase an earlier job-local recovered failure."""
+    run = snapshot["run"]
+    attempts = snapshot.get("flakyEvidence")
+    _require(
+        isinstance(attempts, list) and len(attempts) == run["run_attempt"],
+        "source CI flaky evidence must cover every workflow attempt",
+    )
+    seen_jobs: set[int] = set()
+    seen_checks: set[int] = set()
+    for number, attempt in enumerate(attempts, 1):
+        _require(
+            isinstance(attempt, dict)
+            and type(attempt.get("runAttempt")) is int
+            and attempt["runAttempt"] == number
+            and attempt.get("jobsPaginationComplete") is True,
+            "source CI flaky attempt inventory is incomplete",
+        )
+        jobs = attempt.get("jobs")
+        _require(
+            isinstance(jobs, list) and bool(jobs),
+            "source CI flaky attempt jobs are missing",
+        )
+        for job in jobs:
+            _require(isinstance(job, dict), "source CI flaky job is malformed")
+            job_id, check_id = job.get("id"), job.get("checkRunId")
+            _require(
+                type(job_id) is int
+                and job_id > 0
+                and job_id not in seen_jobs
+                and type(check_id) is int
+                and check_id > 0
+                and check_id not in seen_checks,
+                "source CI flaky job/check identity is invalid or duplicated",
+            )
+            seen_jobs.add(job_id)
+            seen_checks.add(check_id)
+            _require(
+                job.get("run_id") == run["id"]
+                and job.get("head_sha") == run["head_sha"],
+                "source CI flaky job source or run differs",
+            )
+            count, flaky = job.get("annotationCount"), job.get("flakyTests")
+            _require(
+                job.get("annotationsPaginationComplete") is True
+                and type(count) is int
+                and count >= 0
+                and isinstance(flaky, list)
+                and len(flaky) <= count
+                and all(isinstance(value, str) and bool(value) for value in flaky),
+                "source CI flaky annotations are missing or incomplete",
+            )
+            _require(
+                not flaky,
+                "release requires zero flaky tests in source CI: fix the test or start a "
+                "completely new run that passes on the first attempt; a workflow rerun "
+                "cannot erase flaky evidence",
+            )
+        if number == run["run_attempt"]:
+            closed_jobs = [
+                {field: job.get(field) for field in SOURCE_CI_JOB_FIELDS}
+                for job in jobs
+            ]
+            _require(
+                closed_jobs
+                == [
+                    {field: job.get(field) for field in SOURCE_CI_JOB_FIELDS}
+                    for job in snapshot["jobs"]
+                ],
+                "source CI flaky evidence differs from latest job inventory",
+            )
+
+
 def validate_repository_admission(
     snapshot: dict[str, Any],
     *,
@@ -338,6 +418,25 @@ def validate_repository_admission(
     source_sha: str | None = None,
 ) -> None:
     """Validate fresh GitHub repository policy at a stable-release boundary."""
+    _validate_repository_admission_policy(
+        snapshot,
+        main_sha=main_sha,
+        review_head_sha=review_head_sha,
+        expected_tag=expected_tag,
+        source_sha=source_sha,
+    )
+    _validate_source_ci_flaky_evidence(snapshot["sourceCi"])
+
+
+def _validate_repository_admission_policy(
+    snapshot: dict[str, Any],
+    *,
+    main_sha: str,
+    review_head_sha: str,
+    expected_tag: str,
+    source_sha: str | None = None,
+) -> None:
+    """Preserve established rejection order before the additional flaky gate."""
 
     _require(isinstance(snapshot, dict), "repository admission must be an object")
     _require_sha(main_sha, "repository admission main SHA")
@@ -352,7 +451,7 @@ def validate_repository_admission(
     _validate_remote_main(snapshot, main_sha)
     source_sha = source_sha or main_sha
     _require_sha(source_sha, "source CI SHA")
-    validate_source_ci(snapshot.get("sourceCi"), source_sha=source_sha)
+    _validate_source_ci_run_and_jobs(snapshot.get("sourceCi"), source_sha=source_sha)
 
     _require(
         snapshot.get("mainRulesPaginationComplete") is True,
@@ -1284,7 +1383,104 @@ def _collect_actions_inventory(
     raise ValueError("source CI inventory exceeded the page limit")
 
 
-def _collect_source_ci(repository: str, source_sha: str) -> dict[str, Any]:
+def _collect_source_ci_flaky_evidence(
+    repository: str,
+    run: dict[str, Any],
+    latest_jobs: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Read all job check annotations, including earlier attempts, without artifacts."""
+    attempts = []
+    for number in range(1, run["run_attempt"] + 1):
+        jobs = (
+            latest_jobs
+            if number == run["run_attempt"]
+            else _collect_actions_inventory(
+                f"repos/{repository}/actions/runs/{run['id']}/attempts/{number}/jobs",
+                "jobs",
+            )
+        )
+        observations = []
+        for job in jobs:
+            _require(
+                job.get("run_id") == run["id"]
+                and job.get("head_sha") == run["head_sha"],
+                "source CI annotation job source or run differs",
+            )
+            match = re.fullmatch(
+                rf"https://api\.github\.com/repos/{re.escape(repository)}/check-runs/([1-9][0-9]*)",
+                job.get("check_run_url", ""),
+            )
+            _require(
+                match is not None, "source CI job check-run URL is missing or foreign"
+            )
+            check_id = int(match[1])
+            endpoint = f"repos/{repository}/check-runs/{check_id}"
+            before = _read_github_json(["api", endpoint], "source CI check")
+            _require(
+                isinstance(before, dict)
+                and before.get("id") == check_id
+                and before.get("head_sha") == run["head_sha"]
+                and isinstance(before.get("app"), dict)
+                and before["app"].get("slug") == "github-actions"
+                and before.get("status") == "completed",
+                "source CI check identity or status differs",
+            )
+            output = before.get("output")
+            _require(
+                isinstance(output, dict)
+                and type(output.get("annotations_count")) is int
+                and 0 <= output["annotations_count"] <= MAX_GITHUB_ITEMS,
+                "source CI annotation count is malformed",
+            )
+            annotations = _read_github_paginated_array(
+                f"{endpoint}/annotations",
+                "source CI annotations",
+            )
+            _require(
+                len(annotations) == output["annotations_count"],
+                "source CI annotations pagination is incomplete",
+            )
+            flaky = []
+            for annotation in annotations:
+                _require(
+                    isinstance(annotation, dict)
+                    and annotation.get("annotation_level")
+                    in {"notice", "warning", "failure"}
+                    and isinstance(annotation.get("message"), str),
+                    "source CI annotation is malformed",
+                )
+                if annotation.get("title") == "Flaky test":
+                    _require(
+                        bool(annotation["message"]),
+                        "source CI flaky annotation is empty",
+                    )
+                    flaky.append(annotation["message"])
+            after = _read_github_json(["api", endpoint], "source CI check confirmation")
+            _require(
+                isinstance(after, dict)
+                and all(
+                    after.get(field) == before.get(field)
+                    for field in ("id", "head_sha", "status", "conclusion", "output")
+                ),
+                "source CI check annotations changed during collection",
+            )
+            observations.append(
+                {
+                    **{field: job.get(field) for field in SOURCE_CI_JOB_FIELDS},
+                    "checkRunId": check_id,
+                    "annotationCount": len(annotations),
+                    "annotationsPaginationComplete": True,
+                    "flakyTests": flaky,
+                }
+            )
+        attempts.append(
+            {"runAttempt": number, "jobsPaginationComplete": True, "jobs": observations}
+        )
+    return attempts
+
+
+def _collect_source_ci_run_and_jobs(repository: str, source_sha: str) -> dict[str, Any]:
+    """Collect pending source evidence; admission still requires flaky completion."""
     runs = _collect_actions_inventory(
         f"repos/{repository}/actions/workflows/ci.yml/runs", "workflow_runs",
         (("head_sha", source_sha), ("event", "push"), ("branch", "main")),
@@ -1312,9 +1508,28 @@ def _collect_source_ci(repository: str, source_sha: str) -> dict[str, Any]:
         "repository": repository, "run": before, "jobs": jobs,
         "runsPaginationComplete": True, "jobsPaginationComplete": True,
     }
+    _validate_source_ci_run_and_jobs(snapshot, source_sha=source_sha)
+    return snapshot
+
+
+def _complete_source_ci(snapshot: dict[str, Any], *, source_sha: str) -> dict[str, Any]:
+    """Add mandatory flaky evidence, confirm the run again, and close the payload."""
+    repository, before, jobs = snapshot["repository"], snapshot["run"], snapshot["jobs"]
+    flaky_evidence = _collect_source_ci_flaky_evidence(repository, before, jobs)
+    after = _read_github_json(
+        ["api", f"repos/{repository}/actions/runs/{before['id']}"],
+        "source CI confirmation",
+    )
+    _require(
+        _source_ci_run_identity(before, repository, source_sha)
+        == _source_ci_run_identity(after, repository, source_sha),
+        "source CI run or attempt changed during collection",
+    )
+    snapshot = {**snapshot, "flakyEvidence": flaky_evidence}
     validate_source_ci(snapshot, source_sha=source_sha)
     closed_snapshot = {
         "repository": repository,
+        "flakyEvidence": flaky_evidence,
         "run": {
             "id": before.get("id"),
             "run_attempt": before.get("run_attempt"),
@@ -1418,7 +1633,17 @@ def collect_repository_admission(
     }
     source_sha = source_sha or main_sha
     _require_sha(source_sha, "source CI SHA")
-    snapshot["sourceCi"] = _collect_source_ci(repository, source_sha)
+    snapshot["sourceCi"] = _collect_source_ci_run_and_jobs(repository, source_sha)
+    _validate_repository_admission_policy(
+        snapshot,
+        main_sha=main_sha,
+        review_head_sha=review_head_sha,
+        expected_tag=expected_tag,
+        source_sha=source_sha,
+    )
+    snapshot["sourceCi"] = _complete_source_ci(
+        snapshot["sourceCi"], source_sha=source_sha
+    )
     validate_repository_admission(
         snapshot, main_sha=main_sha, review_head_sha=review_head_sha,
         expected_tag=expected_tag, source_sha=source_sha,
