@@ -691,4 +691,10 @@ Implementation of the answers (local, uncommitted):
 Verification (local, before the `1.1.x` sync): narrow UiSmoke selection
 `Memory|CtrlRam|Legend|Merge|Replace|AbDp|AbDummy` 798/798.
 
-Open: sync `1.1.x`, commit/push/PR, independent exact-head R2 review.
+After merging `1.1.x` (#489, #490, #491; no conflicts): `verify.py --structure-only` PASS once the two
+measured hotspot baselines were raised (`MergePresentationViewModel` 2158 to 2162,
+`ReplacePresentationViewModel` 2208 to 2211; owner approval in the pull request). The narrow selection
+plus `NavigationFocusIndicatorTests` ran 807/809: both failures are the open navigation focus flake
+(`BUG-20260929-nav-focus-underline-gap-flake`, missing-ring frame, class alone 3x 13/13), not this work.
+
+Open: push, pull request, independent exact-head R2 review, owner approval.
