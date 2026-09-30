@@ -1,6 +1,6 @@
 # BUG-20260930-memory-single-ic-diff-lane: Single IC shows a "•" focus lane for the cascade-only DIFF CtrlRAM region
 
-Status: fixed (on `feature/1.1.15/memory-layout`, pull request #492, pending merge)
+Status: fixed (merged into `1.1.x` through #492, merge `efad0f294`)
 Severity: P2
 Found: 2026-09-30, owner question about the small black dot beside Master CtrlRAM on NT51950,
 at feature/1.1.15/memory-layout@9c946e457.

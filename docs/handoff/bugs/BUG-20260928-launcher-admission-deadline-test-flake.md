@@ -13,7 +13,7 @@ touch the launcher coordinator or this test.
 Expected: the test controls the order of process creation and the deadline (for example with the manual time provider
 the neighbouring tests use), so it checks the post-creation outcome without depending on runner speed.
 Evidence: the TRX in the run's `dotnet-test-core-evidence-attempt-1` artifact.
-Owner: 1.1.14 (test-only, R1) for the Application fix, delivered; the Bootstrap host follow-up is a 1.1.15 test-only R1 correction on `feature/1.1.15/bootstrap-flake`, with a later merge up from 1.1.x to 1.2.x.
+Owner: 1.1.14 (test-only, R1) for the Application fix, delivered; the Bootstrap host follow-up is a 1.1.15 test-only R1 correction on `feature/1.1.15/bootstrap-flake`, reaching 1.2.x through the post-1.2.0 back-merge of main (decision 200).
 Resolution:
 The Application test now injects the existing `ManualTimeProvider`, waits for the launch receipt's admission wait
 to start, and only then advances the 25 ms cutoff. Both immediate and 100 ms delayed payload admission exercise
@@ -61,7 +61,7 @@ runs of the class under load; it passes in isolation, consistent with a timing-s
 production regression. The Application-side fix (this bug's original scope) is unaffected and stays fixed;
 only the Bootstrap host class is reopened. The 1.1.15 test-only correction on
 `feature/1.1.15/bootstrap-flake` injects the manual clock into the remaining time-dependent tests in this class
-the same way `0b20f5bd7` did for one of them; 1.1.x will later merge up to 1.2.x. No
+the same way `0b20f5bd7` did for one of them; 1.1.x reaches 1.2.x through the post-1.2.0 back-merge of main (decision 200). No
 production behavior, firmware bytes, ranges, integrity, ordering, or support declarations are implicated.
 
 Bootstrap follow-up Resolution (2026-09-29, 1.1.15): all four remaining `RunAsync` tests now inject the
