@@ -1,6 +1,6 @@
 # BUG-20260929-vstest-discovery-foreground-thread-json: an extra xUnit runner line empties the Domain test discovery and fails the core shard
 
-Status: open
+Status: open; CI failure observed, local cause not reproduced
 Severity: P2
 Found: 2026-09-29, Claude Code commander (Claude Opus 5.5), while checking CI on pull request #487 (run
 `36562321491`), at `feature/1.1.15/records`@`247473864`
@@ -22,4 +22,19 @@ Owner: unassigned. First observation, cause unknown. Candidates to check: which 
 xUnit v3 assembly-info query in `NvtFwCombiner.Domain.Tests`, for example a module initializer or a static
 resource, and whether discovery should be retried or its runner output parsed more tolerantly. That choice
 belongs to the decision 191 work and its ADR 0079 amendment.
-Resolution: not fixed.
+Resolution: not fixed. On `feature/1.1.15/flaky-fixes`, the unchanged Release
+`NvtFwCombiner.Domain.Tests.dll` completed 30 consecutive `dotnet vstest
+<dll> --ListTests` discoveries: exit 0, 475 listed tests, and no foreground-thread
+wait or invalid-JSON message in every run. One complete `dotnet test
+tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj -c Release
+--no-build --no-restore` passed 475/475. The archived #487 output remains the
+only red observation; this local sample does not disprove it. Source inspection
+found no thread/timer creation, module initializer, assembly fixture, or custom
+test-framework extension in Domain.Tests, its linked TestSupport sources, or
+Domain. The generated test entry point routes the assembly-info query through
+xUnit v3's in-process console runner; the waiting message is present in the
+installed `xunit.v3.runner.inproc.console` package. Its appearance does not
+identify which foreground thread was alive in #487. No root-cause correction,
+runner-output tolerance, or retry has been applied. Obtain a process dump or
+thread trace during the failing assembly-info query, then identify and fix the
+thread owner before marking this bug fixed.

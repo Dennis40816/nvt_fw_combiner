@@ -30,7 +30,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         var process = new AnonymousPipeManagedApplicationProcess(
             workspace.PathFor("state/version-manager.v1.json"),
             ManagedProcessTermination.Instance,
-            beforeStartValidation: () => File.WriteAllText(unexpected, "foreign"));
+            beforeStartValidation: _ => File.WriteAllText(unexpected, "foreign"));
 
         ManagedProcessStartResult started = await process.StartUntilReadyAsync(
             managedRoot,
