@@ -1,13 +1,18 @@
 # G0 owner checklist: agent GitHub identity and rulesets
 
+R41 amendment, 2026-10-01: the new ruleset script/templates/README/tests below
+have a separate candidate hash table in [C1a](#c1a-r41-approval-scope-trial-apply-and-rollback-2026-10-01).
+It supersedes earlier hashes only for those changed files after review and
+installation; earlier installed-version statements remain dated history.
+
 Amendment, 2026-10-01 (status; the 1.1.13 text below is kept as recorded): the seventh version
 (`4ac380da8`) is the installed version. The owner installed it before an acceptance was recorded; the
 installed copy is byte-identical to `4ac380da8` (the commander's SHA-256 check of the five scripts and
 the README, 2026-10-01; the reviewer could not verify the installed copy). A fresh independent security review on 2026-10-01 (Claude Opus 5.5) accepted it with
 changes, no P0 or P1; the record is in [WS-GOV](WS-GOV.md#g0-seventh-version-acceptance-2026-10-01).
 The **pending review** markers below therefore describe the history, not the current state. The
-trunk carried this version from the G0 landing pull request; the proposed eighth version
-([A6b](#a6b-eighth-helper-and-wrapper-version-pending-review), pending review) changes four of its
+trunk carried this version from the G0 landing pull request; the eighth version
+([A6b](#a6b-eighth-helper-and-wrapper-version-installed-2026-10-01), installed 2026-10-01) changes four of its
 files, whose new hashes are listed there; every other file still matches the inventory table below.
 
 **Pending independent review: seventh version, 2026-09-27.** This version
@@ -728,15 +733,18 @@ sixth version then works as before, including its `gh` option limits (A6).
 Since board decision 222 (2026-10-01), setting **Workflows** to **No access**
 is required, not optional.
 
-### A6b. Eighth helper and wrapper version (pending review)
+### A6b. Eighth helper and wrapper version (installed 2026-10-01)
 
 Amendment, 2026-10-01: the eighth version fixes the findings of the seventh
 version's review, tracked in `BUG-20261001-g0-gh-wrapper-console-codepage`. It
 changes four files of the seventh version; `NfcG0.Common.ps1`,
 `tests/Invoke-NfcG0Tests.ps1`, the setup scripts and the ruleset templates keep
-the hashes of the inventory table above. It is **pending independent review**:
-do not install it before the review is recorded. The seventh version stays
-installed until then.
+the hashes of the inventory table above. The independent exact-head review of
+#504 accepted it (head `36754c99f`, no P0 or P1), and it was installed on
+2026-10-01 in a new folder beside the seventh version; steps 1-4 and their
+results are recorded in
+[WS-GOV](WS-GOV.md#g0-eighth-version-installation-2026-10-01). The seventh
+version's folder stays for rollback.
 
 - `Invoke-NfcGh.ps1`: copies `gh` stdout and stderr as raw bytes, replaces the
   exact token bytes and writes everything else unchanged, so Traditional Chinese
@@ -754,7 +762,7 @@ installed until then.
 - `tests/NfcG0.Tests.ps1`: five new cases; through the runner the suite passed
   69/69 with fake secrets on source commit `8057d32d5` (2026-10-01).
 
-| File | SHA-256 (eighth version, pending review) |
+| File | SHA-256 (eighth version, installed 2026-10-01) |
 | --- | --- |
 | `nfc-app-token-helper.ps1` | `73e9d63271889dfac8710e13cb7336dd1a3575117bcd0b7e8c8689054f5f32f0` |
 | `Invoke-NfcGh.ps1` | `be793f98913792cbff4bb5fba39b5b91bf1a421d6a6a0e10a53693d8ab064a82` |
@@ -1037,6 +1045,90 @@ Notes:
   and you create `recovery/**`.
 - Unchanged: the protected `release` environment with you as the required
   reviewer, the Codex review app, and the read-only default workflow token.
+
+### C1a. R41 approval scope trial, apply and rollback (2026-10-01)
+
+Status: local implementation of decisions 225 W1 and 233; pending independent
+exact-head review, required CI, owner approval and live trial/cutover. This
+amendment supersedes C1's one-general-approval values only on targets whose
+R41 cutover is complete. Earlier inventory tables and G0 acceptance remain
+historical; neither certifies R41. The new G0 hashes below identify this local
+candidate; commander binds them to the reviewed commit before installation.
+
+1. **commander / owner:** review the R41 candidate and base-checker self-change
+   evidence under the existing rules. The owner's last-push approval names
+   `governance-owner` and `release-owner` separately. Open one Workflows batch
+   under A6a and decision 222; after the final workflow push remove the helper
+   switch and return the App permission to No access, without waiting for merge.
+2. **owner:** inspect all effective rulesets and confirm the existing IDs to
+   update. Use an isolated trial target whose base contains candidate policy,
+   CODEOWNERS, checker and W1 workflow. Preserve live repository/ruleset backups;
+   no concurrent ruleset changes or bypass during this maintenance window.
+   Use the new `-UpdateApprovals -RulesetIds <confirmed IDs>` mode in the
+   [README](g0-scripts/README.md#r41-update-existing-approval-fields-2026-10-01-pending-owner-trial),
+   with separate new preview/apply backup directories. Do not rerun initial
+   G0 creation or pass `-AdminBypassAvailable` to an update.
+3. **owner:** confirm the complete ID/body/scope and all four approval fields
+   before any write. Only `required_approving_review_count` becomes 0;
+   `require_code_owner_review`, `dismiss_stale_reviews_on_push` and
+   `require_last_push_approval` stay true. Live check names/integration IDs,
+   check options, include/exclude scope, bypass and other rules stay identical.
+   Read back each body and effective target rules; RS-4 and `release`
+   environment approval remain protected. Do not add a required-check context.
+4. **commander / owner:** retain candidate SHA, confirmed trial ruleset IDs,
+   before/after JSON, review IDs, run IDs, check SHA/source, merge state and
+   merge commit, and proof no bypass was used. Trial acceptance requires:
+   - R1 and R2 independently COMMENT-reviewed exact heads with green required
+     CI auto-merge without any owner APPROVED review. Missing, reject,
+     incomplete and old-head records block.
+   - R3 with identical record/CI blocks without code-owner approval; owner
+     exact-head last-push approval naming every role permits merge. A
+     diff-changing push dismisses approval; a new SHA needs a new record.
+   - W1 COMMENT submission starts a run without a PR-body edit; editing to
+     reject/incomplete or dismissing the record reruns and fails. Owner
+     APPROVED review alone cannot replace the independent COMMENT record.
+   - Both events' results satisfy the same `governance / authority` required
+     context. Missing/failed/cancelled runs block. Read-only permissions,
+     no secrets, head checkout, `persist-credentials: false`, no conditional
+     skip, no path filter and no `pull_request_target` remain.
+5. **stop condition:** zero general approvals plus last-push true may still
+   require an approval for non-R3 on GitHub. If the trial shows that, do not
+   relax formal rules or silently set last-push false; obtain the owner's
+   explicit decision accepting the changed M2 guarantee, then review and retrial.
+6. **owner:** after trial passes, patch only confirmed formal IDs whose target
+   bases already contain the amended authority files. Record a cutover and
+   effective-rules readback per target. Unswitched `main`, release or older
+   trunk targets keep their live protections. Templates alone prove no cutover.
+7. **commander:** verify live records/checks and base authority; R3 additionally
+   needs role evidence and an approval snapshot. Enable auto-merge with
+   `--auto --merge --match-head-commit <head>`; it checks the head at the call,
+   not future queued heads. Before a push or authority/record/evidence edit,
+   cancel with `gh pr merge <n> --disable-auto`, repeat verification and renew
+   required review/approval/snapshot before re-enabling.
+8. **rollback:** trial failure leaves formal rules unchanged. After a cutover
+   failure cancel auto-merge; owner runs `-Restore` from that update's backup,
+   previews/approves the exact before bodies and verifies readback/effective
+   rules. Pending/unknown outcomes or later live changes require reconciliation
+   first. Restore never disables an existing updated ruleset. Follow with an
+   R3 repository revert PR when needed; retain required CI, tags and release
+   environment protection.
+
+R41 changed G0 files, SHA-256 of the candidate bytes (new table; pending review):
+
+| Changed G0 file | SHA-256 (LF repository source) |
+| --- | --- |
+| `Set-NfcRulesets.ps1` | `fc5062a6c41a25188184a4d61c4f2535b74f5efea657b56b4a86950ae46026e4` |
+| `rulesets/RS-1a-to-1k.json` | `2c7afbe6b73be54154e618c0f8c950e60c47dcaf000a86a249215b2ed77b9dae` |
+| `rulesets/RS-2.json` | `dfde6fc9eb8ac9f012d6e2727a0a35bfcf9d5f19ef124bd6e0c37a3db6ac705d` |
+| `rulesets/RS-3.json` | `347977f5b34852dfe8337280c652cd8f82a9a4bb84be821af61c817ae99af4ac` |
+| `README.md` | `60ef1440484295c61321bc756f3c43914d8a6501b00645c2ebb84d887b7fde44` |
+| `tests/NfcG0.Tests.ps1` | `a4b3a60ef4c4f47cf2e3a7d8909db1d6526218c2c8adb0ae6d0c1098ed767c73` |
+
+These hashes use the LF repository source bytes, as the earlier source
+inventories did. If a Windows checkout converts `.ps1` to CRLF under
+`.gitattributes`, compare its LF-normalized content and retain the raw
+installed-copy hash separately; no other content normalization is allowed.
+RS-4 and the token/key/helper files are unchanged by R41.
 
 ### C2. Bypass procedure (decision 77)
 

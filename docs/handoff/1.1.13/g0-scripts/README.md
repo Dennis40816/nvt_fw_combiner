@@ -46,6 +46,67 @@ Before any remote write, the script reads all ruleset pages up to its safety lim
 
 Proposed fields and rules are displayed for individual owner approval. In a live apply, every `YES` approval, including the unchanged RS-4 confirmation, occurs before the first remote write; a refusal stops without sending a write. The script rechecks the complete writable state of every relevant ruleset and the ID list after approval and before each write. It verifies the readback against the requested body before marking a change applied. A mismatch remains pending and stops the transaction for owner reconciliation. `-WhatIf` still reads GitHub and writes a local backup, but sends no remote write and asks for no item approvals. The apply records each pending, completed, or uncertain write in `index.json`, including IDs actually created and verified post-write snapshots. If a request or snapshot fails, the owner must inspect the transaction record and live GitHub state before proceeding or restoring; a failed client call does not prove that GitHub made no change. The script does not automatically roll back a partial apply. **No one may modify repository rulesets concurrently during the owner's apply or restore maintenance window.** The read, write, and readback sequence is not atomic.
 
+## R41: update existing approval fields (2026-10-01, pending owner trial)
+
+The original G0 creation procedure above is retained for its historical setup;
+do not rerun it to modify existing RS-2/RS-3. R41 changes the three branch
+templates to zero general approvals, keeping code-owner review, stale dismissal
+and last-push approval true. RS-4 is unchanged. The new inventory is appended
+in [checklist C1a](../G0-owner-checklist.md#c1a-r41-approval-scope-trial-apply-and-rollback-2026-10-01);
+older hash/acceptance tables remain evidence for their recorded versions.
+
+Only the owner operates this mode, using a confirmed list of existing ruleset
+IDs from the live UI/API and a new private backup directory per attempt.
+In an owner PowerShell 7.4+ session, replace the example IDs with confirmed IDs:
+
+```powershell
+$confirmedIds = @(CONFIRMED_RULESET_ID_1, CONFIRMED_RULESET_ID_2)
+& .\Set-NfcRulesets.ps1 -Owner OWNER -Repo REPO -UpdateApprovals -RulesetIds $confirmedIds -BackupDirectory 'NEW_PREVIEW_BACKUP' -WhatIf
+& .\Set-NfcRulesets.ps1 -Owner OWNER -Repo REPO -UpdateApprovals -RulesetIds $confirmedIds -BackupDirectory 'NEW_APPLY_BACKUP'
+& .\Set-NfcRulesets.ps1 -Owner OWNER -Repo REPO -Restore -BackupDirectory 'NEW_APPLY_BACKUP' -WhatIf
+& .\Set-NfcRulesets.ps1 -Owner OWNER -Repo REPO -Restore -BackupDirectory 'NEW_APPLY_BACKUP'
+```
+
+`-UpdateApprovals` requires positive unique IDs and active branch rulesets
+with one PR rule and one required-check rule. It does not require three checks
+or copy main's checks. It backs up all live bodies, shows each confirmed ID's
+complete before/after body and four fields for `YES` approval before any write,
+then patches only `required_approving_review_count`, `require_code_owner_review`,
+`dismiss_stale_reviews_on_push`, `require_last_push_approval`. It preserves
+each target's live name, scope, checks and integration IDs, check options,
+bypass, thread/merge options and other rules; no POST or tag write occurs.
+Do not pass `-AdminBypassAvailable` or combine update with restore. A changed
+list/body during confirmation or between writes stops the transaction.
+Failed/mismatched readback stays pending; unknown outcomes require owner
+reconciliation before restore. This is a maintenance window, not an atomic API.
+
+For an approval update, `-Restore` writes each updated ID's exact backed-up
+before body, including its original approval values; it never disables an
+existing ruleset. It checks the current body against the recorded after body
+before confirmation and again before writing, then checks the restore readback.
+Initial G0 transactions still restore main and disable only IDs they created.
+
+Trial on an isolated target with the candidate policy/CODEOWNERS/checker/W1
+on its base before touching formal targets. Prove R1/R2 COMMENT-record plus
+green-CI auto-merges without an owner APPROVED review, and R3 blocks until
+owner approval on the exact last push names its roles. Record edits/dismissals
+must trigger the same required authority context without body edits; missing,
+rejecting, incomplete or stale records and missing/failed/cancelled checks
+block. If last-push true still requires an approval for R0–R2, stop and obtain
+a new owner decision before changing it. Preserve candidate SHA, trial IDs,
+before/after JSON, review/run IDs, check SHA/source, merge state/commit and
+no-bypass evidence. Only switch a formal target whose base has the amended
+authority files; leave unswitched targets protected. Release environment stays.
+
+Enable `--auto --merge --match-head-commit <head>` only after live record/check
+verification and any required R3 approval snapshot. The guard checks the head
+at the call. Cancel auto-merge before subsequent pushes or authority/record
+edits and repeat verification. Trial failure leaves formal rules unchanged.
+After a formal-cutover problem, cancel auto-merge, restore the saved live body
+and read back effective rules, then use an R3 revert PR for repository changes.
+Keep required CI, RS-4 and the release environment; never disable a trunk
+ruleset as a substitute for restore.
+
 ## 3. Install the daily-use interfaces
 
 The owner reviews and installs the helper and wrapper outside the repository. For repository Git credential configuration, preserve a private copy of the old settings, then set the helper and `useHttpPath` for `https://github.com`. Replace `HELPER_COMMAND` with the reviewed helper's full invocation, including `-Owner`, `-Repo`, `-ClientId`, `-InstallationId`, and `-DpapiPath`. Do not put a token or PEM in the command.

@@ -71,11 +71,14 @@ waivers remain frozen evidence; this location grants no wider waiver power.
 `scripts/authority_check.py`) and its path map
 [`authority-policy.json`](authority-policy.json). It binds a branch once the
 owner has made the context required on that branch's ruleset.
-Decision 165's R0/R1 owner-approval exemption applies only where the owner
-activates the amended trunk/feature ruleset; `main` and release-branch
-approval rules remain unchanged.
-The check proves presence and form at the time it ran; the owner judges R2/R3
-evidence, and the procedures below close what the check leaves open (ADR 0080,
+Decisions 225 W1 and 233 make owner approval R3-only after each target's
+trial/cutover: the target base must contain the amended policy, CODEOWNERS,
+checker and workflow, and the owner must verify its effective rulesets.
+Unswitched targets retain their live protections, including `main` or a
+release branch not yet switched. R2 keeps architecture/contract review,
+relevant tests, scoped Polytail and an independent exact-head record.
+The check proves presence and form at the time it ran; the owner judges R3
+role evidence, and the procedures below close what the check leaves open (ADR 0080,
 safeguards P1 to P9). Once the context is required, a pull request whose head
 predates the workflow or checker reports a failure or no context at all, and
 either blocks the merge: rebase it onto the base, then renew its review record
@@ -90,15 +93,16 @@ and any required code-owner approval on the new head.
 unclassified path, a `classification`). The check takes the changed paths from
 the merge base of the live base tip and the head, both sides of renames and
 copies included for classification, and applies the stricter of the base and
-head policies to each path. Code ownership needs a case-sensitive R2/R3 match
+head policies to each path. Code ownership needs a case-sensitive R3 match
 on a GitHub-listed changed path, using only the destination of a copy or rename
 until GitHub's behavior for rename sources is verified. A path
-that matches R2/R3 only without case sensitivity fails closed. It fails when
+that matches R3 only without case sensitivity fails closed. It fails when
 the block is missing or malformed, the declared risk
 is below the floor, a role the paths, a review record or a classification
 require is not declared, a declared role lacks its entries, any change has no
-valid independent review record on the head, a declared R2/R3 change has no
-classified code-owned path, a policy is missing or invalid, or an API or Git
+valid independent review record on the head, a declared R3 change has no
+classified code-owned path, an R3-source rename has no owned destination,
+a policy is missing or invalid, or an API or Git
 call fails. A required or declared role makes the change R3. The check does
 not decide whether the owner approved; CODEOWNERS and the ruleset do that.
 
@@ -125,32 +129,33 @@ another runtime uses `other-runtime`; a fresh session of the author's runtime,
 including the same model, uses `same-runtime-fresh-session`. The check compares
 the runtimes and modes; agents can share a GitHub App principal, so actual
 session independence remains procedural.
-Before merging an R0/R1 pull request, the commander checks the dispatch
+Before merging any R0–R3 pull request, the commander checks the dispatch
 record to confirm the reviewer session differs from the implementer session
 and records both session IDs in the pull request.
 The latest record of each listed principal decides.
-Posting or editing a review starts no run, and a new head needs a new record.
-`authority.yml` does run on a description edit (`edited`), and the agent
-GitHub App has no Actions write permission (`gh run rerun` answers "Resource
-not accessible by integration"), so after posting a record the agent starts a
-fresh check by editing the description in the same step, for example adding
-the record's review id: post the record first, then edit (observed
-2026-09-30 on #490-#498).
+W1 starts a run on review submission, edit or dismissal; posting the COMMENT
+record requires no description edit. Wait for the review-event run, then
+verify the check SHA and live records. A new head needs a new record.
+The 2026-09-30 #490–#498 post-record body edit was the pre-W1 workaround;
+it is no longer the normal flow. The App still has no Actions write permission.
+An owner's APPROVED review cannot replace the independent COMMENT record.
 
-**R2/R3 approval.** A changed path with an R2/R3 floor is assigned to
-`@Dennis40816` by CODEOWNERS. The owner approves the most recent reviewable
-push at its exact head; for R3, the approval names every required role:
+**R3 approval.** CODEOWNERS projects exactly the policy's R3 patterns to
+`@Dennis40816`; R2 floors and empty roles remain without code ownership.
+The owner approves the most recent reviewable R3 push at its exact head,
+naming every required role:
 `firmware-owner`, `release-owner` and `governance-owner` as the authority
 policy, author or reviewer requires. The approver must be a code owner other
 than the pusher. Firmware authority retains
 byte and Golden evidence and the exact write-range audit; release authority
 retains release-policy evidence; governance authority retains the statement
 of the affected rule, permission or approval authority. A new head requires a
-new review and approval, even if its tree is identical.
+new review and, for R3, approval, even if its tree is identical. On switched
+targets R0–R2 need no owner approval; their review/test/CI gates remain.
 
-**Pushes after an approval.** The ruleset dismisses an approval when a new
+**Pushes after an approval.** The ruleset dismisses an approval when a diff-changing
 commit is pushed. Batch fixes before asking for approval. Before any push to
-an open pull request, read its review list
+an open pull request, cancel auto-merge and read its review list
 (`gh api repos/Dennis40816/nvt_fw_combiner/pulls/<n>/reviews`); if an
 approval exists, say in the same message that the push dismisses it and that
 the new head needs a fresh approval (2026-09-30: #489, #498).
@@ -159,7 +164,7 @@ the new head needs a fresh approval (2026-09-30: #489, #498).
 records in the pull request the head SHA, the authority block as approved and
 every valid review record with its review id, head, verdict and complete body.
 
-**Pre-merge verification** (commander, before asking for the merge):
+**Pre-merge verification** (commander, before enabling auto-merge):
 
 1. Base authority code. Compare the blob IDs of
    `.github/workflows/authority.yml`, `scripts/authority_check.py`,
@@ -183,9 +188,11 @@ every valid review record with its review id, head, verdict and complete body.
    (`GITHUB_TOKEN` may hold a read-only token; unset, the public API is read
    anonymously.) If the pull request changes these files on purpose, the
    self-change check below applies.
-2. Re-run `governance / authority` (`gh run rerun <run-id>`) and wait for it;
-   without Actions write permission, edit the description instead (see
-   Review record).
+2. Wait for the W1 event run and inspect its checker/base identity. When
+   explicit re-verification is needed, an authorized operator re-runs
+   `governance / authority` (`gh run rerun <run-id>`); without Actions write,
+   deliberately edit the description to trigger a new run. Posting a record
+   itself needs no body edit. Missing, failed or cancelled checks block merge.
 3. Confirm through the API that this run reports success for the current head
    (`gh api repos/Dennis40816/nvt_fw_combiner/commits/<head>/check-runs`).
    Recheck the live exact-head review records and their current verdicts.
@@ -199,12 +206,15 @@ every valid review record with its review id, head, verdict and complete body.
    edit under the same review id
    included, stops the merge until the owner reconfirms by a new approving
    review or a comment naming the head SHA and the change; record the new
-   snapshot. For R0/R1 under the amended ruleset, a changed record requires
+   snapshot. For R0–R2 under the amended ruleset, a changed record requires
    another successful check.
-5. Merge with `gh pr merge <n> --merge --match-head-commit <head>` after the
-   applicable gates pass. R2/R3 and targets still requiring a general approval
-   also need the owner's go-ahead. If anything changed after step 1, start
-   again.
+5. Enable `gh pr merge <n> --auto --merge --match-head-commit <head>` after
+   the applicable gates pass. R3 and unswitched targets still requiring a
+   general approval also need the owner's go-ahead. This guard checks the
+   head at the call; it does not permanently lock a queued PR's head.
+   Before a push or authority/record/evidence change, cancel auto-merge with
+   `gh pr merge <n> --disable-auto`, restart from step 1, renew records and
+   any required R3 approval/snapshot, then re-enable only after the gates pass.
 
 The pull request records the blob IDs compared in step 1 and the run id and
 head SHA of steps 2 and 3; any owner-approved pull request also records the

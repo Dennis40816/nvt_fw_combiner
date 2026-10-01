@@ -38,7 +38,14 @@ nfc-review-record and this JSON object:
    "mode": "other-runtime | same-runtime-fresh-session",
    "verdict": "accept | accept-with-changes | reject", "openP0P1": 0,
    "state": "complete | incomplete", "addedRoles": []}
-A new head needs a new record.
+Posting the COMMENT record starts governance / authority through W1 without
+editing the PR body; review edits/dismissals also start a run. Wait for the
+current-head result and verify the live record. A new head needs a new record.
+R0–R2 need no owner approval on a target whose R41 trial/cutover is complete;
+R3 needs code-owner approval naming every required role. Unswitched targets
+retain live rules. Enable --auto --merge --match-head-commit <head> only after
+the gates pass; cancel auto-merge before a push or authority/record/evidence
+change, repeat verification, then re-enable. The head guard applies at the call.
 -->
 
 ```nfc-authority
@@ -69,9 +76,16 @@ A new head needs a new record.
 - Residual evidence:
 - Merge target:
 
-## R2/R3 evidence
+## R2 architecture/contract evidence
 
 - ADR/contract:
+- Relevant behavioral tests:
+- Scoped Polytail:
+- Independent exact-head review record and session IDs:
+
+## R3 role evidence and owner approval
+
+- Required roles and authority change:
 - Byte or golden evidence:
 - Write ranges:
 - Human approval:
