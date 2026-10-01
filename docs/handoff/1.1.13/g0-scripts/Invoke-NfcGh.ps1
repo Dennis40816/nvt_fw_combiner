@@ -111,6 +111,14 @@ function Assert-NfcGhRepository {
     }
 }
 
+function Assert-NfcGhSubcommand {
+    # Alias shell commands and extensions run as children of gh with GH_TOKEN, beyond the exact-string redaction.
+    param([Parameter(Mandatory)][AllowEmptyString()][string[]]$GhArguments)
+    if ($GhArguments.Count -gt 0 -and $GhArguments[0] -cin @('alias', 'extension', 'extensions', 'ext')) {
+        throw "gh $($GhArguments[0]) is refused: its commands would run with the wrapper's token."
+    }
+}
+
 $callStackScripts = @(Get-PSCallStack | ForEach-Object { [string]$_.ScriptName })
 try {
     Assert-NfcStandaloneInvocation -CommandOrigin ([string]$MyInvocation.CommandOrigin) `
@@ -118,6 +126,7 @@ try {
     $parsed = Split-NfcGhCommandLine -CommandLine ([Environment]::GetCommandLineArgs()) -ScriptPath $PSCommandPath
     Assert-NfcGhRepository -GhArguments $parsed.GhArguments -Owner $parsed.Owner -Repo $parsed.Repo `
         -EnvironmentRepo $env:GH_REPO
+    Assert-NfcGhSubcommand -GhArguments $parsed.GhArguments
 } catch {
     [Console]::Error.WriteLine("NFC gh wrapper usage error: $($_.Exception.Message)")
     exit 64
@@ -162,6 +171,10 @@ try {
     $gh.CreateNoWindow = $true
     $gh.RedirectStandardOutput = $true
     $gh.RedirectStandardError = $true
+    # gh writes UTF-8; the console code page would corrupt non-ASCII text and could hide the token from redaction.
+    $utf8 = [Text.UTF8Encoding]::new($false)
+    $gh.StandardOutputEncoding = $utf8
+    $gh.StandardErrorEncoding = $utf8
     $gh.Environment['GH_TOKEN'] = $token
     foreach ($arg in $GhArguments) { [void]$gh.ArgumentList.Add($arg) }
     $proc = [Diagnostics.Process]::Start($gh)
@@ -171,8 +184,11 @@ try {
         $proc.WaitForExit()
         $stdout = $outTask.GetAwaiter().GetResult().Replace($token, '[redacted]')
         $stderr = $errTask.GetAwaiter().GetResult().Replace($token, '[redacted]')
-        [Console]::Out.Write($stdout)
-        [Console]::Error.Write($stderr)
+        foreach ($pair in @(@([Console]::OpenStandardOutput(), $stdout), @([Console]::OpenStandardError(), $stderr))) {
+            $bytes = $utf8.GetBytes($pair[1])
+            $pair[0].Write($bytes, 0, $bytes.Length)
+            $pair[0].Flush()
+        }
         exit $proc.ExitCode
     } finally { $proc.Dispose() }
 } catch {
