@@ -1,6 +1,7 @@
 # BUG-20261001-g0-gh-wrapper-console-codepage: the G0 gh wrapper decodes gh output with the console code page
 
-Status: open (fix in an eighth G0 version, `1.2.1`; the owner installs it after its own independent review)
+Status: open; fix proposed in the eighth G0 version (2026-10-01, source commit `8f327e7b8` on
+`feature/1.2.1/g0-eighth`, G0 owner checklist A6b), pending independent review and the owner's installation
 Severity: P2
 Found: 2026-10-01, independent security review of the seventh G0 version (Claude Opus 5.5) for the G0 landing
 pull request (board decision 220), by code reading and a fake-value test.
@@ -24,4 +25,7 @@ Evidence: the review record in `docs/handoff/1.1.13/WS-GOV.md` ("G0 seventh vers
 the landing pull request's exact-head review (board decision 222).
 Owner: unassigned; `1.2.1` batch A (decisions 210 and 217). The installed scripts change only when the owner
 installs a reviewed eighth version.
-Resolution: pending.
+Resolution: pending. The proposed fix reads and writes `gh` output as UTF-8, refuses `gh alias` and
+`gh extension`, checks `-Owner`/`-Repo` with `\z` and refuses a token containing CR, LF or NUL; four new
+offline cases cover them (68/68 through the runner). It closes when the owner installs the reviewed version
+and the commander's A6b step 4 check is recorded.

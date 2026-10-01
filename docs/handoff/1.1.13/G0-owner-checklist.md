@@ -6,8 +6,9 @@ installed copy is byte-identical to `4ac380da8` (the commander's SHA-256 check o
 the README, 2026-10-01; the reviewer could not verify the installed copy). A fresh independent security review on 2026-10-01 (Claude Opus 5.5) accepted it with
 changes, no P0 or P1; the record is in [WS-GOV](WS-GOV.md#g0-seventh-version-acceptance-2026-10-01).
 The **pending review** markers below therefore describe the history, not the current state. The
-trunk carries this version since the G0 landing pull request; its files still match the hashes in the
-inventory table below.
+trunk carried this version from the G0 landing pull request; the proposed eighth version
+([A6b](#a6b-eighth-helper-and-wrapper-version-pending-review), pending review) changes four of its
+files, whose new hashes are listed there; every other file still matches the inventory table below.
 
 **Pending independent review: seventh version, 2026-09-27.** This version
 proposes a change to the token helper, the `gh` wrapper, their README and the
@@ -725,6 +726,55 @@ optionally set **Workflows** to **No access** on the App. The installed
 sixth version then works as before, including its `gh` option limits (A6).
 Since board decision 222 (2026-10-01), setting **Workflows** to **No access**
 is required, not optional.
+
+### A6b. Eighth helper and wrapper version (pending review)
+
+Amendment, 2026-10-01: the eighth version fixes the findings of the seventh
+version's review, tracked in `BUG-20261001-g0-gh-wrapper-console-codepage`. It
+changes four files of the seventh version; `NfcG0.Common.ps1`,
+`tests/Invoke-NfcG0Tests.ps1`, the setup scripts and the ruleset templates keep
+the hashes of the inventory table above. It is **pending independent review**:
+do not install it before the review is recorded. The seventh version stays
+installed until then.
+
+- `Invoke-NfcGh.ps1`: reads `gh` stdout and stderr as UTF-8 and writes them as
+  UTF-8 bytes, so Traditional Chinese text passes unchanged and the redaction
+  finds a token that follows a CJK character; refuses `gh alias` and
+  `gh extension` (also `ext` and `extensions`) as the first `gh` argument with
+  exit code 64 before it requests a token.
+- `nfc-app-token-helper.ps1`: checks `-Owner` and `-Repo` to the end of the
+  value before it reads the DPAPI file; refuses a token that contains a carriage
+  return, line feed or NUL.
+- `README.md`: states these behaviors.
+- `tests/NfcG0.Tests.ps1`: four new cases; through the runner the suite passed
+  68/68 with fake secrets on source commit `8f327e7b8` (2026-10-01).
+
+| File | SHA-256 (eighth version, pending review) |
+| --- | --- |
+| `nfc-app-token-helper.ps1` | `3c0d58e5f7f647ffcfd047566cf9808a5c9d578fabb007aac3445f01b10955de` |
+| `Invoke-NfcGh.ps1` | `fbe8e0daa819ff3e6f9e69414deb5ea4fdbd38f931478eb884e706e16662cfd8` |
+| `README.md` | `7e7d4125d81673b01b8910830a2cb3e2390c044793c904fc2eb4cfda87ea2cc6` |
+| `tests/NfcG0.Tests.ps1` | `1f8038a447b6ca37fce12f9e7e5ba8537a9b860b7999ad2f9be8674f5cae441f` |
+
+1. **owner → owner.** After the review is recorded, copy the complete script
+   folder from the reviewed source commit into a new folder outside every
+   repository, worktree and AppData tree; keep the seventh version's folder for
+   rollback. Compare the four files with the hashes above and every other file
+   with the inventory table above.
+2. **owner → owner.** In the new folder run
+   `pwsh -NoProfile -File tests/Invoke-NfcG0Tests.ps1`; it must exit with 0
+   and report 68 passed.
+3. **owner → owner.** Point the repository's Git helper entry at the new
+   folder's helper with the same options and without `-IncludeWorkflowsWrite`
+   (board decisions 221 and 222), and tell the commander the new wrapper path.
+4. **agent → App.** The commander compares the installed copy with the hashes,
+   runs one read-only wrapper call whose output contains Traditional Chinese,
+   such as `gh api repos/<owner>/<repo>/contents/docs/handoff/1.1.14/1.2.x-allocation.md -H "Accept: application/vnd.github.raw"`,
+   and confirms the text arrives intact, and confirms that `gh alias list`
+   stops with exit code 64. The results are recorded in WS-GOV.
+
+Rollback: point the Git helper entry back at the seventh version's folder and
+tell the commander; nothing else changes.
 
 ### A7. Agent commit identity
 
