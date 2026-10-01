@@ -44,7 +44,7 @@ function Split-NfcGhCommandLine {
         }
         $option = @($valueOptions | Where-Object { $_ -eq $name })
         if ($option.Count -ne 1) {
-            throw "Unknown wrapper option '$arg'. Wrapper options come first; put -- before gh arguments that begin with an option."
+            throw "Unknown wrapper option '$arg'. Wrapper options come first, then the gh command; gh options go after the command."
         }
         $key = $option[0]
         if ($parsed.ContainsKey($key)) { throw "Wrapper option -$key is given more than once." }
