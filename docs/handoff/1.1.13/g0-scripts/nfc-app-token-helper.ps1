@@ -31,6 +31,9 @@ function Request-NfcInstallationToken {
         $reply = Invoke-RestMethod -Method Post -Uri "https://api.github.com/app/installations/$InstallationId/access_tokens" `
             -Headers @{ Authorization = "Bearer $Jwt"; Accept = 'application/vnd.github+json'; 'User-Agent' = 'nfc-g0-token-helper' } `
             -ContentType 'application/json' -Body $body -MaximumRedirection 0 -TimeoutSec 30
+        if ($reply.token -isnot [string] -or $reply.token -cnotmatch '^[\x21-\x7E]+\z') {
+            throw 'Installation token has an unexpected form.'
+        }
         if (-not $reply.token -or $reply.repositories.Count -ne 1 -or
             $reply.repositories[0].full_name -cne "$Owner/$Repo") {
             throw 'Installation token was not restricted to the configured repository.'
@@ -57,7 +60,7 @@ function Get-NfcInstallationToken {
           [switch]$IncludeWorkflowsWrite)
     $cipher = $null; $plain = $null; $pem = $null; $rsa = $null; $jwt = $null
     try {
-        if ($Owner -notmatch '^[A-Za-z0-9-]+$' -or $Repo -notmatch '^[A-Za-z0-9_.-]+$' -or
+        if ($Owner -cnotmatch '^[A-Za-z0-9-]+\z' -or $Repo -cnotmatch '^[A-Za-z0-9_.-]+\z' -or
             $InstallationId -lt 1) { throw 'Invalid helper configuration.' }
         $cipher = [IO.File]::ReadAllBytes($DpapiPath)
         $plain = [Security.Cryptography.ProtectedData]::Unprotect($cipher, $null,
