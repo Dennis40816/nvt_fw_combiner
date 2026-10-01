@@ -1,6 +1,6 @@
 # BUG-20261001-g0-gh-wrapper-console-codepage: the G0 gh wrapper decodes gh output with the console code page
 
-Status: open; fix proposed in the eighth G0 version (2026-10-01, source commits `8f327e7b8` and `ac87137de` on
+Status: open; fix proposed in the eighth G0 version (2026-10-01, source commits `8f327e7b8`, `ac87137de` and `8057d32d5` on
 `feature/1.2.1/g0-eighth`, G0 owner checklist A6b), pending independent review and the owner's installation
 Severity: P2
 Found: 2026-10-01, independent security review of the seventh G0 version (Claude Opus 5.5) for the G0 landing

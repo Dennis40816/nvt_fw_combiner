@@ -593,7 +593,8 @@ each workflow-writing batch starts with A6a steps 3 to 6. The owner set it to No
       each of them. Every `gh` option listed for the installed version, and
       arguments such as `--head=<owner>:<branch>`, now reach `gh` unchanged.
       Put `--` between the wrapper options and `<gh arguments>` when these
-      begin with an option. Wrapper options come first: an option placed
+      begin with an option (since the eighth version, A6b, the `gh` arguments
+      must begin with the `gh` command and `--` is optional). Wrapper options come first: an option placed
       after the `gh` arguments goes to `gh`. It also stops, with exit code 64,
       on a missing, repeated, unknown or malformed wrapper option.
 
@@ -711,7 +712,7 @@ started with `-IncludeWorkflowsWrite`.
 | "NFC gh wrapper failed" or "NFC token helper failed" in step 2 | The new version or its configuration does not work; nothing was written | Put the private copy of step 1 back, compare it with the installed reviewed hashes, and tell the commander |
 | "NFC gh wrapper usage error: ... limited to `<owner>/<repo>`" (exit code 64) | A `--repo`/`-R` value or `GH_REPO` named another repository; no token was requested | Omit `--repo` or pass exactly `--repo <owner>/<repo>`; unset `GH_REPO` or set it to exactly `<owner>/<repo>` |
 | "NFC gh wrapper usage error: Start the wrapper as its own process" | The wrapper was dot-sourced, called with `&`, started through `-Command` or from another script, started without `-NoProfile` or with another PowerShell option before `-File` (only `-NonInteractive` and `-NoLogo` are allowed), started through a relative `-File` path, or started through a path it cannot match to itself (a link is not supported); no token was requested | Run it as `pwsh -NoProfile -File "<script folder>/Invoke-NfcGh.ps1" ...` with its real, fully qualified path |
-| "NFC gh wrapper usage error: Unknown wrapper option ...", "... is required", "... needs a value" or "... more than once" | A wrapper option is missing, mistyped or repeated, or a `gh` option came before the `gh` arguments without `--` | Correct the wrapper options; put `--` before `gh` arguments that begin with an option |
+| "NFC gh wrapper usage error: Unknown wrapper option ...", "... is required", "... needs a value" or "... more than once" | A wrapper option is missing, mistyped or repeated, or a `gh` option came before the `gh` arguments without `--` | Correct the wrapper options; put `--` before `gh` arguments that begin with an option (eighth version, A6b: start the `gh` arguments with the `gh` command instead) |
 | `gh` reports an unknown flag `-IncludeWorkflowsWrite` | The installed wrapper is the old version, which passes the switch to `gh` | Complete step 1 first |
 | Git asks for credentials or reports failed authentication after step 6 | The installed helper is the old version, which takes the switch as an unknown Git action and answers nothing | Put the A6 entry back without the switch, then complete step 1 |
 | Step 5 fails with "NFC gh wrapper failed" | The installation has not accepted `workflows`, so GitHub refuses the token request; or the old helper is installed | Check steps 3 and 4 and the hashes; nothing was written |
@@ -751,13 +752,13 @@ installed until then.
   token printed verbatim (`--jq` reading `env.GH_TOKEN` or a browser setting can
   still print it transformed).
 - `tests/NfcG0.Tests.ps1`: five new cases; through the runner the suite passed
-  69/69 with fake secrets on source commit `ac87137de` (2026-10-01).
+  69/69 with fake secrets on source commit `8057d32d5` (2026-10-01).
 
 | File | SHA-256 (eighth version, pending review) |
 | --- | --- |
 | `nfc-app-token-helper.ps1` | `73e9d63271889dfac8710e13cb7336dd1a3575117bcd0b7e8c8689054f5f32f0` |
-| `Invoke-NfcGh.ps1` | `91d151fe269361aab630496d344f04ff1e95969998cb6d70f827e758febe1b62` |
-| `README.md` | `d94cb86813a9ce3b7c65c0a3b7ec60ef8db3a5711ffa2bef1bd88989aeddbf9b` |
+| `Invoke-NfcGh.ps1` | `be793f98913792cbff4bb5fba39b5b91bf1a421d6a6a0e10a53693d8ab064a82` |
+| `README.md` | `3be6415a66c41c7d6dfbb16a8292aad1d70fe08642cbe60e5598c82d4e240193` |
 | `tests/NfcG0.Tests.ps1` | `297403ed071abf536fa4240202a7d509d9ac9652cad901fd34d237439d61112f` |
 
 1. **owner → owner.** After the review is recorded, copy the complete script
