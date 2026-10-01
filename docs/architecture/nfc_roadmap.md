@@ -1025,6 +1025,11 @@ Current allocation (decision 188): the `1.2.1` A1a publisher-trust disposition,
 the `1.2.6` A1b field recheck and the `1.2.13` A2/A7 closure; the separate
 `1.5.0` slot is retired. The main case keeps controlled ACL trust without
 independent publisher signing unless A1a/A1b require the signed-Registry case.
+Decision 239 (A1a, 2026-10-01) selects that case for `1.2.x`: a stolen publisher
+account is accepted as residual risk, releases record an explicit unsigned
+approval, and publishing stays "build from a clone, place on the share or the
+designated HTTPS path". Detection of writes to the update share and an
+independent publication record are deferred to a `1.3.x` slot not yet assigned.
 
 Address the publisher trust, signing and security/evidence gaps identified by
 the `1.2.0` inventory as bounded reviewed changes. Key custody, signing

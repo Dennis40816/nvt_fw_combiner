@@ -36,9 +36,11 @@ Wave 2 (2026-10-01; fixed source `<worktrees>/e121b` at `d5770e52e`, the `1.2.x`
 | [R12-01.md](R12-01.md) | Codex `gpt-6-astra` -> Claude Fable 5.1 | accept-with-changes, revised; Fable confirmed accept | Decision 237 (UI interaction review scope) |
 | [R13-01.md](R13-01.md) | Codex `gpt-6-astra` -> Claude Fable 5.1 | accept-with-changes, revised; Fable confirmed accept; appendix A adds the UI and core timing (Codex) | Decision 236 (.NET lane plan input) |
 | [R31-01.md](R31-01.md) | Codex `gpt-6-astra` -> Claude Fable 5.1 | accept-with-changes, revised; Fable confirmed accept | Decision 238 (Header-copy facts mostly unknown; asked again before `1.2.5`) |
+| [A1a.md](A1a.md) | Claude Fable 5.1 -> Codex `gpt-6-astra` | revisions 1-3 rejected; revision 4 accept-with-changes, its P2 fixed in place and confirmed accept | Decision 239 (Case A for `1.2.x`, conditional on the owner's field evidence; write detection deferred to `1.3.x`) |
+| [R12-02.md](R12-02.md) | Claude Fable 5.1 -> Codex `gpt-6-astra` | accept-with-changes, revised; Codex confirmed accept (revision 2) | Decisions 240 and 241 (Report history clear-all confirmation; headless checks H1/H2 now, the rest in `1.2.7`) |
 | [R50.md](R50.md) | Claude Code commander (retrospective, not cross-reviewed; data `evidence/1.2.1/R50-data.md`) | — | Decisions 225 and 233 (workflow changes; only R3 needs the owner's approval) |
 
-The wave-2 reports for A1a and R12-02 are added when accepted. The owner's A1a deployment facts are in
+All wave-2 reports are entered. The owner's A1a deployment facts are in
 `evidence/1.2.1/A1a-facts.md` (test area).
 
 None of these reports is itself a specification approval, an implementation
