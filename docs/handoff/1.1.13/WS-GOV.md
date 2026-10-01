@@ -1377,3 +1377,18 @@ Recorded by the commander; the sections above are kept as recorded.
   blob `064d0af48`, Traditional Chinese intact; `gh alias list` stopped with exit code 64 and the refusal message
   before any token request; `git push --dry-run` through the new helper authenticated ("Everything up-to-date").
 - `BUG-20261001-g0-gh-wrapper-console-codepage` is fixed by this installation.
+
+## R41 ruleset cutover on the trunk (2026-10-01)
+
+Recorded by the commander; decision 246.
+
+- Before: the four live rulesets were read through the App (read-only) and saved in the test area
+  (`evidence/1.2.1/R41-ruleset/before-<id>.json`): `trunk` 24060410 (`refs/heads/*.*.x`; checks policy / polytail,
+  python-worker / verify, dotnet / build-test, governance / authority), `release branches` 24060414, `Protect main
+  release checks` 22009240 (branch rulesets, each with one general approval, code-owner review, stale dismissal and
+  last-push approval) and `Protect stable v* tags` 22009138; no bypass actor.
+- Change: the owner set `trunk`'s Required approvals from 1 to 0 in the GitHub settings page. Read-back
+  (`after-24060410.json`) differs from the backup only in `required_approving_review_count` (1 -> 0); code-owner
+  review, stale dismissal, last-push approval, required checks, scope and bypass are unchanged. `main`, release
+  branches and tags keep one general approval.
+- Trial: one ordinary (R0) pull request and one R3 pull request on `1.2.x`; results are added when they finish.
