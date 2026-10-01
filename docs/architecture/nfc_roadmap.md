@@ -46,15 +46,17 @@ Earlier dated checkpoints below remain history, not open release gates.
   goal and adds one L item (40 -> 44 units). Decision 217 (2026-10-01) adds a workflow
   smoothness and speed item (R50) whose weight is set at the `1.2.1` allocation, and
   decision 216 kept the workflows-write token switch on until `1.2.1`; decision 221 withdrew
-  it the same day (back to the per-batch rule).
+  it the same day (back to the per-batch rule). Decision 225 (R50): `governance / authority`
+  also runs on review submission, in the same workflow batch as R41, and the App enables
+  auto-merge after each owner approval.
 - **`1.2.5`** (decisions 195, 197 and 213): the per-topology NT51950/NT51951 region
   set, the Desay AB map retirement within R10-04 and a declared AB Merge layout
   context for the DP card CMI row.
 - **`1.2.7`** (decisions 181, 203, 207 and 212): selected files that change on disk,
   four fact columns in a full-width firmware info area and the WS-FLOW F1
   output-directory anchor.
-- **`1.2.9`** (decisions 181, 189, 204 and 212): Memory Layout design A and the
-  DP-only AB layout fix.
+- **`1.2.9`** (decisions 181, 189, 204, 212 and 226): Memory Layout design A, the
+  DP-only AB layout fix and the redesigned highlight of a selected small slice (R53).
 - **`1.2.10`** (decisions 189, 196, 205 and 212): the Memory Layout legend's
   non-colour cue in the High Contrast acceptance, and the hideable inspection panel.
 - **`1.2.11`** (decision 181): the CI core-shard H2, diagnostic evidence from a real CI
@@ -420,7 +422,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.2.6` | **Launcher update and release pipeline** (decision 188): the compiled-in locator with Registry-redirected Catalog/package sourcing over file/UNC, with no new HTTPS reader (the required Catalog/package HTTPS with one authentication, F14, is `1.2.13` work); the A1b field recheck of the `1.2.1` publisher-trust disposition, ahead of the intranet-transport work; Launcher self-update and recovery; the old-client bridge only where an actual incompatibility is found; delta update (R04-02) stays conditional on the `1.2.1` go/no-go; release workflow R-5 after the comparator, with the R-4 re-run recovery and R-6 CI-setup sharing scheduled here. The managed-start residual windows N1-N4 are fixed here with C01-2 and R05-02 (decision 218). |
 | `1.2.7` | **First-entry, page flow and modal interaction** (with the example-Golden drop-down of decision 183): IC/context lifetime, invalidation, Cancel/Back, custom-option density, modal exits and the modal keyboard contract, using approved previews. Decision 212 adds selected files that change on disk (decision 203), four fact columns in a full-width firmware info area (decision 207, meaning confirmed first) and the WS-FLOW F1 output-directory anchor (decision 181). Otherwise do not reopen completed slot/Memory Layout styling. |
 | `1.2.8` | **Report, typed state and user text**: physical-section grouping and historical replay compatibility (preserve completed Changes cards/navigation), F09/F10/F12 and the text findings. |
-| `1.2.9` | **Shared visual and typography**: F11 semantic typography, theme, tooltip and spacing roles, and the memory detail visuals, including Memory Layout design A (decisions 181 and 189) and the DP-only AB layout fix (decisions 204 and 212). |
+| `1.2.9` | **Shared visual and typography**: F11 semantic typography, theme, tooltip and spacing roles, and the memory detail visuals, including Memory Layout design A (decisions 181 and 189), the DP-only AB layout fix (decisions 204 and 212) and the selected-slice highlight redesign (R53, decision 226), approved on a real-screen preview first. |
 | `1.2.10` | **Native accessibility and notifications**: DPI, high contrast, screen reader, System activity and toasts, with Report and Message Center visual and interaction consistency (decision 173); the high-contrast acceptance includes the Memory Layout legend's non-colour cue (decisions 189 and 196), and the inspection panel becomes hideable (decisions 205 and 212). |
 | `1.2.11` | **CI closure and test structure**: shared Release build and UiSmoke partition, T4b required-check activation after the shadow window, .NET lane regrouping, split pilots and mechanical splits, and the CI core-shard H2 (decision 181). |
 | `1.2.12` | **Conditional performance and cleanup**: F14/F15 and CtrlRAM cold first-open only with demonstrated value; the F13 helper; documentation reconciliation (R25-03 to R25-05) and proven-unused cleanup against a remeasured analyzer baseline. Home startup optimization stays delivered in `1.1.12`; do not claim a new ten-minute result. R25-01/02 move to `1.2.13` (decision 188). A native first-readable measurement of Memory Layout card opening decides whether that needs work (decisions 189 and 219). |

@@ -7,9 +7,9 @@ on `1.2.x` at `d5770e52e` (the merge of #503), job `dotnet / test (bootstrap)` (
 attempt 1 and passed on the in-job retry, so the decision 193 gate marked it flaky and `dotnet / build-test` failed
 with "flaky test has no bug record". #503 changed no product or test code (G0 scripts and records only).
 Where: `NvtFwCombiner.Bootstrap.Tests.CanonicalSupportMatrixHostTests.QueryReturnsLoadingWhileBackgroundWarmIsInFlight`,
-`tests/NvtFwCombiner.Bootstrap.Tests/CanonicalSupportMatrixHostTests.cs` lines 37-71.
+`tests/NvtFwCombiner.Bootstrap.Tests/CanonicalSupportMatrixHostTests.cs` lines 37-71 at `d5770e52e` (37-74 after the fix).
 Observed: the attempt-1 TRX (artifact `dotnet-test-bootstrap-evidence-attempt-1`, downloaded with the owner's
-approval) shows `Assert.Same() Failure` at line 57: expected the query task, actual the one-second `Task.Delay`;
+approval) shows `Assert.Same() Failure` at line 57 (numbering at `d5770e52e`): expected the query task, actual the one-second `Task.Delay`;
 the query task's status was **`WaitingToRun`**, so its `Task.Run` work item had not even started when the delay
 elapsed (duration 1.83 s; 2157 of 2158 Bootstrap tests passed; attempt 2 passed). The test blocks a background
 catalog load on `AllowLoad`, starts `catalog.Query` with `Task.Run` and requires it to finish within one second
