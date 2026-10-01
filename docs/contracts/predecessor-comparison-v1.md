@@ -396,8 +396,9 @@ reused unchanged:
 A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's
 format into the normalized projection these functions read. It may not relax,
-skip or reorder these checks. The reader and schemas are in effect under
-R35-01/R35-02; executor records remain pending.
+skip or reorder these checks. The reader and the report and declaration
+schemas are in effect; the two executor interfaces are still pending
+([Interface status](#interface-status)).
 
 #### Report reader v1
 
