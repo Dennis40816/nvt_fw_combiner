@@ -46,15 +46,17 @@ Earlier dated checkpoints below remain history, not open release gates.
   goal and adds one L item (40 -> 44 units). Decision 217 (2026-10-01) adds a workflow
   smoothness and speed item (R50) whose weight is set at the `1.2.1` allocation, and
   decision 216 kept the workflows-write token switch on until `1.2.1`; decision 221 withdrew
-  it the same day (back to the per-batch rule).
+  it the same day (back to the per-batch rule). Decision 225 (R50): `governance / authority`
+  also runs on review submission, in the same workflow batch as R41, and the App enables
+  auto-merge after each owner approval.
 - **`1.2.5`** (decisions 195, 197 and 213): the per-topology NT51950/NT51951 region
   set, the Desay AB map retirement within R10-04 and a declared AB Merge layout
   context for the DP card CMI row.
 - **`1.2.7`** (decisions 181, 203, 207 and 212): selected files that change on disk,
   four fact columns in a full-width firmware info area and the WS-FLOW F1
   output-directory anchor.
-- **`1.2.9`** (decisions 181, 189, 204 and 212): Memory Layout design A and the
-  DP-only AB layout fix.
+- **`1.2.9`** (decisions 181, 189, 204, 212 and 226): Memory Layout design A, the
+  DP-only AB layout fix and the redesigned highlight of a selected small slice (R53).
 - **`1.2.10`** (decisions 189, 196, 205 and 212): the Memory Layout legend's
   non-colour cue in the High Contrast acceptance, and the hideable inspection panel.
 - **`1.2.11`** (decision 181): the CI core-shard H2, diagnostic evidence from a real CI
@@ -63,6 +65,11 @@ Earlier dated checkpoints below remain history, not open release gates.
   fixed with C01-2 and R05-02.
 - **`1.2.12`** (decisions 189 and 219, 2026-10-01): a native first-readable measurement
   of Memory Layout card opening; no card-opening work before it.
+- **`1.3.0`** (decisions 223 and 224, 2026-10-01): the user release of the `1.2.x` line, as
+  `1.2.0` was for `1.1.x`, unless a hotfix is needed on the way; each `1.2.x` version is
+  still published. General Merge authoring, General Replace authoring, saved/custom rules
+  and the maintainer IC/family rule-authoring UI move one version later, to `1.3.1`-`1.3.4`.
+  After `v1.3.0` is published, the commander syncs a repository template (decision 223).
 
 This amendment records allocation only; each item keeps its own review, evidence
 and owner gates.
@@ -193,7 +200,7 @@ This amendment supersedes the affected F01–F26 allocations below. The owner ac
   accepts the corresponding functionality, not automatically at a version bump.
   CLI/direct-launch availability is an explicit implementation-scope question;
   this UI-hide decision does not silently remove command compatibility or delete
-  functionality. General Merge/Replace milestones currently remain 1.3.0/1.3.1.
+  functionality. General Merge/Replace milestones are now 1.3.1/1.3.2 (decision 224).
 - **1.1.12**: F07/F08 and residual F20/F21: committed BIN receipts, visible and
   retryable persistence failures, remaining picker/I/O consumers and local
   atomic Report replacement. Preserve the already shipped Report Save fixes.
@@ -415,16 +422,17 @@ protected review/CI and candidate publication gates remain required.
 | `1.2.6` | **Launcher update and release pipeline** (decision 188): the compiled-in locator with Registry-redirected Catalog/package sourcing over file/UNC, with no new HTTPS reader (the required Catalog/package HTTPS with one authentication, F14, is `1.2.13` work); the A1b field recheck of the `1.2.1` publisher-trust disposition, ahead of the intranet-transport work; Launcher self-update and recovery; the old-client bridge only where an actual incompatibility is found; delta update (R04-02) stays conditional on the `1.2.1` go/no-go; release workflow R-5 after the comparator, with the R-4 re-run recovery and R-6 CI-setup sharing scheduled here. The managed-start residual windows N1-N4 are fixed here with C01-2 and R05-02 (decision 218). |
 | `1.2.7` | **First-entry, page flow and modal interaction** (with the example-Golden drop-down of decision 183): IC/context lifetime, invalidation, Cancel/Back, custom-option density, modal exits and the modal keyboard contract, using approved previews. Decision 212 adds selected files that change on disk (decision 203), four fact columns in a full-width firmware info area (decision 207, meaning confirmed first) and the WS-FLOW F1 output-directory anchor (decision 181). Otherwise do not reopen completed slot/Memory Layout styling. |
 | `1.2.8` | **Report, typed state and user text**: physical-section grouping and historical replay compatibility (preserve completed Changes cards/navigation), F09/F10/F12 and the text findings. |
-| `1.2.9` | **Shared visual and typography**: F11 semantic typography, theme, tooltip and spacing roles, and the memory detail visuals, including Memory Layout design A (decisions 181 and 189) and the DP-only AB layout fix (decisions 204 and 212). |
+| `1.2.9` | **Shared visual and typography**: F11 semantic typography, theme, tooltip and spacing roles, and the memory detail visuals, including Memory Layout design A (decisions 181 and 189), the DP-only AB layout fix (decisions 204 and 212) and the selected-slice highlight redesign (R53, decision 226), approved on a real-screen preview first. |
 | `1.2.10` | **Native accessibility and notifications**: DPI, high contrast, screen reader, System activity and toasts, with Report and Message Center visual and interaction consistency (decision 173); the high-contrast acceptance includes the Memory Layout legend's non-colour cue (decisions 189 and 196), and the inspection panel becomes hideable (decisions 205 and 212). |
 | `1.2.11` | **CI closure and test structure**: shared Release build and UiSmoke partition, T4b required-check activation after the shadow window, .NET lane regrouping, split pilots and mechanical splits, and the CI core-shard H2 (decision 181). |
 | `1.2.12` | **Conditional performance and cleanup**: F14/F15 and CtrlRAM cold first-open only with demonstrated value; the F13 helper; documentation reconciliation (R25-03 to R25-05) and proven-unused cleanup against a remeasured analyzer baseline. Home startup optimization stays delivered in `1.1.12`; do not claim a new ten-minute result. R25-01/02 move to `1.2.13` (decision 188). A native first-readable measurement of Memory Layout card opening decides whether that needs work (decisions 189 and 219). |
 | `1.2.13` | **Launcher completion** (decision 188, main case): the final candidate closes publisher-content integrity (A2), controlled preproduction on the same share plus a staging Registry with a diagnostic override canary client (A3), the full clean-Windows candidate rerun for the normal and fault paths (A4/A5), cold-health acceptance (A6), the Catalog/package HTTPS requirement (F14), the final publisher-trust re-confirmation and release/security-owner GO (A7), and closing the SPEC/handoff/active-TODO alignment (A8, moved from `1.2.12`). No GO ships with a known defect; see `1.2.14`. |
 | `1.2.14` | **Launcher repair reserve** (decision 188, conditional): opens only if `1.2.13`'s final gates (A4-A7) find a defect that must close before GO; scope and weight are set from the finding when it occurs (fix, re-verification, and any carried-over `1.2.13` work), and the affected gates rerun on the refrozen candidate. |
-| `1.3.0` | **General Merge authoring** through existing typed mappings/compiler/executor. |
-| `1.3.1` | **General Replace authoring**, immutable reference and the same shared operation model. |
-| `1.3.2` | **Saved/custom rules**: edit, persistence, import and validation after the General contracts settle. Distinct from the narrow Settings marker editor. |
-| `1.3.3` | **Maintainer IC/family rule-authoring UI**: validate/export untrusted candidates; no live-catalog self-promotion. |
+| `1.3.0` | **User release after all `1.2.x` development** (decision 224): the product source of the last `1.2.x` version with its version identity and release notes that name every `1.2.x` change, as `1.2.0` was for `1.1.x`; each `1.2.x` version is still published through the full release process. A hotfix needed on the way is released on its own. After `v1.3.0` is published, the commander syncs the folder structure and settings it considers best, combining local disk-space management with the development and release workflow, to a GitHub template repository for later projects (decision 223). |
+| `1.3.1` | **General Merge authoring** through existing typed mappings/compiler/executor (moved from `1.3.0` by decision 224). |
+| `1.3.2` | **General Replace authoring**, immutable reference and the same shared operation model. |
+| `1.3.3` | **Saved/custom rules**: edit, persistence, import and validation after the General contracts settle. Distinct from the narrow Settings marker editor. |
+| `1.3.4` | **Maintainer IC/family rule-authoring UI**: validate/export untrusted candidates; no live-catalog self-promotion. |
 | `1.4.0` | **Independent evidence completion** for retained input-only cases and fact-scoped aliases. This does not defer evidence required for an earlier changed route. |
 | `1.4.1` | **IC/capability evidence intake**: remaining NT51950/NT51951 AB, Perfect-family and `ldc-tp-only` gaps; NT51928BT awaits owner-confirmed facts and remains unavailable until separately admitted. Inventory existing support first, split into additional patch releases if the actual intake is large. |
 | `1.4.2` | **Retired: no Launcher/publication repository split** (decision 188, F27). No concrete second-product, team or independent-lifecycle need is shown; the repository stays unsplit. A future real need still starts its own ADR, migration and deletion/rollback plan; this row is no longer an open TODO. |
@@ -1046,18 +1054,18 @@ improvement claim; later-discovered unrelated work needs a new allocation.
 
 ## Work package: General Merge authoring
 
-Current allocation: `1.3.0`.
+Current allocation: `1.3.1` (decision 224).
 
 Complete the retained General Merge authoring scope through the existing
 typed mappings, profile compiler and shared planner/executor. Define the
 bounded authoring gaps and acceptance from the current implementation before
 coding; do not rebuild already-complete execution infrastructure.
 Preserve profile-owned access, overlap, range, validation and integrity rules.
-Saved/custom rule persistence is a separate `1.3.2` outcome.
+Saved/custom rule persistence is a separate `1.3.3` outcome.
 
 ## Work package: General Replace authoring
 
-Current allocation: `1.3.1`.
+Current allocation: `1.3.2` (decision 224).
 
 Complete retained General Replace authoring through the same typed operation
 model, immutable required reference and canonical access/postbuild policies.
@@ -1071,7 +1079,7 @@ implicitly reopen the retired DP Replace experience.
 
 ## Work package: saved and customized rule authoring
 
-Current allocation: `1.3.2`.
+Current allocation: `1.3.3` (decision 224).
 
 After the General authoring contracts are settled, complete saved/customized
 rule authoring, persistence, import and validation through the existing typed
@@ -1110,8 +1118,8 @@ automation only for behavior that genuinely requires native interaction.
 ### IC family / rule-authoring UI
 
 Historical owner decision on 2026-09-05 deferred this feature to `1.3.0`.
-The current sequence assigns the maintainer UI to `1.3.3`, after General
-Merge/Replace and saved/custom user rules in `1.3.0`-`1.3.2`. This schedules
+The current sequence assigns the maintainer UI to `1.3.4`, after General
+Merge/Replace and saved/custom user rules in `1.3.1`-`1.3.3` (decision 224). This schedules
 the maintenance feature, not an already-approved screen specification.
 
 The [SPEC](../../SPEC.md) describes a future maintainer-facing editor that
