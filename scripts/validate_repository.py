@@ -375,7 +375,7 @@ SEMVER = re.compile(
 USER_PROFILE_PATH = re.compile(
     r"(?i)(?<![A-Za-z0-9])[A-Za-z]:[\\/]+Users[\\/]+(?P<account>[^\\/\s\"'<>:]+)"
 )
-USER_PROFILE_PLACEHOLDERS = {"owner", "operator", "user", "username", "example", "public", "default"}
+USER_PROFILE_PLACEHOLDERS = {"owner", "operator", "user", "username", "example", "public", "default", "fake"}
 HISTORICAL_PRIVATE_PATH_EVIDENCE = {
     # SHA-256 of each existing source line, with its allowed private-path occurrence count.
     "docs/governance/change-records/DOC-HYGIENE-1113-PRIVATE-PATHS-01.json": {},

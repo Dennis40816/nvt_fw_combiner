@@ -25,6 +25,7 @@ def test_allows_placeholder_accounts_and_other_path_roots(tmp_path: Path) -> Non
     document.write_text(
         "C:/Users/owner/example.png\n"
         "C:\\\\Users\\\\operator\\\\example.png\n"
+        "C:\\Users\\fake\\Documents\\PowerShell\\profile.ps1\n"
         "D:/NvtFwCombiner-TestArea/evidence\n"
     )
     errors: list[str] = []
@@ -32,6 +33,17 @@ def test_allows_placeholder_accounts_and_other_path_roots(tmp_path: Path) -> Non
     validate_private_user_profile_paths([document], errors, root=tmp_path)
 
     assert errors == []
+
+
+@pytest.mark.parametrize("account", ["fakeuser", "fake.user", "fake2", "xfake"])
+def test_rejects_near_miss_placeholder_accounts(tmp_path: Path, account: str) -> None:
+    document = tmp_path / "new.md"
+    document.write_text("C:/Users/" + account + "/Desktop/image.png\n")
+    errors: list[str] = []
+
+    validate_private_user_profile_paths([document], errors, root=tmp_path)
+
+    assert errors == ["private user-profile path in new.md:1"]
 
 
 def test_rejects_private_path_in_extensionless_tracked_text(tmp_path: Path) -> None:
