@@ -27,6 +27,9 @@ try:
         canonical_json_sha256,
         cli_selection_token,
         compare_transitive_payloads,
+        validate_report_sequence,
+        validate_report_projection_against_compiled_authority,
+        validate_semantic_report_ranges,
     )
 except ModuleNotFoundError as error:
     if error.name != "scripts":
@@ -39,6 +42,9 @@ except ModuleNotFoundError as error:
         canonical_json_sha256,
         cli_selection_token,
         compare_transitive_payloads,
+        validate_report_sequence,
+        validate_report_projection_against_compiled_authority,
+        validate_semantic_report_ranges,
     )
 
 
@@ -91,6 +97,201 @@ class Failure(NamedTuple):
 
 def _failure(code: str, subject: str, detail: str) -> Failure:
     return Failure(f"PREDECESSOR_{code}", subject, detail)
+
+
+class SideProcessEvidence(NamedTuple):
+    """Measured process and reader projection; no file or process access."""
+
+    process: Mapping[str, Any]
+    projection: Mapping[str, Any] | None
+    context: Mapping[str, Any] | None
+    issues: Sequence[Mapping[str, str]]
+    inputs: Sequence[Mapping[str, Any]]
+    output: Mapping[str, Any] | None
+    failures: Sequence[Failure]
+    settings_present: bool
+
+
+class SideVerdict(NamedTuple):
+    status: str
+    stopped_at: str | None
+    failures: list[Failure]
+
+
+def pending_execution_interfaces(
+    contract: Mapping[str, Any], amendment: Mapping[str, Any] | None = None,
+) -> list[str]:
+    """Only statuses explicitly in effect admit a formal execution."""
+
+    pending = [name for name, value in contract["interfaces"].items()
+               if isinstance(value, Mapping) and value.get("status") != "in-effect"]
+    if contract["executor"]["compilerHost"].get("status") != "in-effect":
+        pending.append("compilerHost")
+    if amendment is not None and amendment["baselineExecutor"].get("status") != "in-effect":
+        pending.append("baselineExecutor")
+    return sorted(pending)
+
+
+def execution_environment_failures(
+    *, temporary_root_length: int, maximum_length: int, formal: bool,
+    before: Mapping[str, str | None], after: Mapping[str, str | None] | None = None,
+    subject: str = "environment",
+) -> list[Failure]:
+    failures: list[Failure] = []
+    if not 0 < temporary_root_length <= maximum_length:
+        failures.append(_failure("ENVIRONMENT_INVALID", subject, "temporary root exceeds its length bound"))
+    if formal and any(value is not None for value in (after if after is not None else before).values()):
+        failures.append(_failure("ENVIRONMENT_INVALID", subject, "per-user settings present in a formal run"))
+    if after is not None and dict(before) != dict(after):
+        failures.append(_failure("ENVIRONMENT_INVALID", subject, "per-user settings changed"))
+    return failures
+
+
+def input_capture_failures(
+    expected: Sequence[Mapping[str, Any]], before: Sequence[Mapping[str, Any] | None],
+    after: Sequence[Mapping[str, Any] | None], subject: str,
+) -> list[Failure]:
+    identities = [_identity(item) for item in expected]
+    if identities != list(before) or list(before) != list(after):
+        return [_failure("INPUT_INVALID", subject, "staged input differs from admission or changed during process")]
+    return []
+
+
+def executor_source_failures(
+    *, commit: str, observed_commit: str, dirty_paths: Sequence[str],
+    build_paths: Sequence[str], tracked_paths: Sequence[str], forbidden_segments: Sequence[str],
+) -> list[Failure]:
+    failures: list[Failure] = []
+    if not re.fullmatch(r"[0-9a-f]{40}", commit) or observed_commit != commit:
+        failures.append(_failure("EXECUTOR_INVALID", commit, "worktree is not the exact commit"))
+    if dirty_paths:
+        failures.append(_failure("EXECUTOR_INVALID", commit, "worktree is dirty"))
+    if build_paths or any(set(path.split("/")) & set(forbidden_segments) for path in tracked_paths):
+        failures.append(_failure("EXECUTOR_INVALID", commit, "pre-existing bin or obj path"))
+    return failures
+
+
+def executor_lock_failures(
+    expected: Mapping[str, bytes], observed: Mapping[str, bytes | None], subject: str,
+) -> list[Failure]:
+    if dict(expected) != dict(observed):
+        return [_failure("EXECUTOR_INVALID", subject, "lock file differs from its Git blob")]
+    return []
+
+
+def executor_process_failures(process: Mapping[str, Any]) -> list[Failure]:
+    if process["timedOut"] or process["exitCode"] != 0:
+        return [_failure("EXECUTOR_INVALID", process["stage"], "SDK resolution, restore or build failed")]
+    return []
+
+
+def executor_sdk_failures(version: str) -> list[Failure]:
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+        return [_failure("EXECUTOR_INVALID", "sdk", "SDK resolution did not return a version")]
+    return []
+
+
+def executor_closure_failures(expected: Mapping[str, str], observed: Mapping[str, str | None]) -> list[Failure]:
+    if dict(expected) != dict(observed):
+        return [_failure("EXECUTOR_INVALID", "closure", "execution closure changed or disappeared")]
+    return []
+
+
+def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
+    assert evidence.context is not None
+    subject = evidence.process["stage"]
+    expected_inputs = [
+        {"size": item["size"], "sha256": item["sha256"]} for item in evidence.inputs
+    ]
+    actual_inputs = [_identity(item) for item in evidence.context["orderedInputs"]]
+    if actual_inputs != expected_inputs:
+        return [_failure("REPORT_INVALID", subject, "report input identities differ from capture")]
+    for reported, captured in zip(evidence.context["orderedInputs"], evidence.inputs):
+        for key in ("addressSpaceId", "artifactId"):
+            if key in captured and reported[key] != captured[key]:
+                return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
+    reported_output = evidence.context["output"]
+    if _identity(reported_output) != _identity(evidence.output):
+        return [_failure("REPORT_INVALID", subject, "report output differs from capture")]
+    if evidence.output is not None and (
+        not reported_output["committed"] or any(issue["severity"] == "error" for issue in evidence.issues)
+    ):
+        return [_failure("REPORT_INVALID", subject, "output is uncommitted or has an error issue")]
+    return []
+
+
+def side_execution_verdict(
+    processes: Sequence[SideProcessEvidence], *, capacities: Mapping[str, int],
+    capacities_by_stage: Mapping[str, Mapping[str, int]] | None = None,
+) -> SideVerdict:
+    """Shared side classification; ADR 0057 safety owners remain unchanged.
+
+    A rejected Preview supplies its own (possibly empty) compiled authority.
+    Build, including a rejected Build, uses only this side's preceding Preview.
+    Sequence, projection and ranges run in contract order, then capture checks.
+    """
+
+    if not processes:
+        return SideVerdict("invalid", None, [_failure("PROCESS_FAILED", "side", "no processes captured")])
+    stages = [item.process["stage"] for item in processes]
+    expected_stages = (["precursor-preview", "precursor-build"] if stages[0].startswith("precursor-") else [])
+    expected_stages += ["preview", "build"]
+    if stages != expected_stages[:len(stages)]:
+        return SideVerdict("invalid", stages[-1], [_failure("REPORT_INVALID", "side", "invalid Preview/Build process order")])
+    authority: Mapping[str, Any] | None = None
+    for index, evidence in enumerate(processes):
+        process = evidence.process
+        stage = process["stage"]
+        failures = list(evidence.failures)
+        capture_failures = [item for item in failures if item.code != "PREDECESSOR_REPORT_INVALID"]
+        if capture_failures:
+            return SideVerdict("invalid", stage, capture_failures)
+        if process["timedOut"] or process["exitCode"] is None or process["exitCode"] < 0:
+            return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "process crashed or timed out")])
+        if failures:
+            return SideVerdict("invalid", stage, failures)
+        if process["report"] is None:
+            code = "ENVIRONMENT_INVALID" if evidence.settings_present else "PROCESS_FAILED"
+            return SideVerdict("invalid", stage, [_failure(code, stage, "process wrote no report")])
+        if any(issue["code"] in PROCESS_FAILURE_ISSUE_CODES for issue in evidence.issues):
+            return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "report contains process-failure issue")])
+        if evidence.projection is None or evidence.context is None:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "report could not be read")])
+        projection = evidence.projection
+        if stage.endswith("preview"):
+            authority = projection
+        if authority is None:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "no same-side Preview authority")])
+        try:
+            validate_report_sequence(
+                authority_operations=authority["compiledOperations"],
+                observed_operations=projection["compiledOperations"],
+                observed_mutations=projection["compiledMutations"],
+            )
+            validate_report_projection_against_compiled_authority(projection, authority)
+            validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities))
+        except (ParityError, KeyError, TypeError, ValueError) as error:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, str(error))])
+        if stage.endswith("build") and (
+            projection["compilationFingerprint"] is None
+            or projection["compilationFingerprint"] != authority["compilationFingerprint"]
+        ):
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Build fingerprint absent or differs from Preview")])
+        failures = _side_capture_failures(evidence)
+        if failures:
+            return SideVerdict("invalid", stage, failures)
+        if process["exitCode"] != 0:
+            if evidence.output is None and any(issue["severity"] == "error" for issue in evidence.issues):
+                if index != len(processes) - 1:
+                    return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "execution continued after rejection")])
+                return SideVerdict("rejected", stage, [])
+            return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "nonzero exit is not a typed rejection")])
+        if any(issue["severity"] == "error" for issue in evidence.issues):
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful process has error issue")])
+    last = processes[-1]
+    if last.process["stage"] != "build" or last.output is None:
+        return SideVerdict("invalid", last.process["stage"], [_failure("PROCESS_FAILED", "build", "no completed Build output")])
+    return SideVerdict("output", None, [])
 
 
 class _RouteKey(NamedTuple):
