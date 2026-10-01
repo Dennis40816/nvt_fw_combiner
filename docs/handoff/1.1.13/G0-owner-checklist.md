@@ -737,24 +737,28 @@ the hashes of the inventory table above. It is **pending independent review**:
 do not install it before the review is recorded. The seventh version stays
 installed until then.
 
-- `Invoke-NfcGh.ps1`: reads `gh` stdout and stderr as UTF-8 and writes them as
-  UTF-8 bytes, so Traditional Chinese text passes unchanged and the redaction
-  finds a token that follows a CJK character; refuses `gh alias` and
-  `gh extension` (also `ext` and `extensions`) as the first `gh` argument with
-  exit code 64 before it requests a token.
-- `nfc-app-token-helper.ps1`: checks `-Owner` and `-Repo` to the end of the
-  value before it reads the DPAPI file; refuses a token that contains a carriage
-  return, line feed or NUL.
-- `README.md`: states these behaviors.
-- `tests/NfcG0.Tests.ps1`: four new cases; through the runner the suite passed
-  68/68 with fake secrets on source commit `8f327e7b8` (2026-10-01).
+- `Invoke-NfcGh.ps1`: copies `gh` stdout and stderr as raw bytes, replaces the
+  exact token bytes and writes everything else unchanged, so Traditional Chinese
+  text, a byte order mark, invalid UTF-8 or binary output pass through and none
+  of them can hide the token from the redaction; refuses `gh` arguments that do
+  not start with the `gh` command, and `gh alias` and `gh extension` (also
+  `ext` and `extensions`) as that command, with exit code 64 before it requests
+  a token; checks `-Owner` and `-Repo` case-sensitively.
+- `nfc-app-token-helper.ps1`: checks `-Owner` and `-Repo` case-sensitively and
+  to the end of the value before it reads the DPAPI file; accepts only a token
+  of printable ASCII without spaces.
+- `README.md`: states these behaviors, and that the redaction only catches a
+  token printed verbatim (`--jq` reading `env.GH_TOKEN` or a browser setting can
+  still print it transformed).
+- `tests/NfcG0.Tests.ps1`: five new cases; through the runner the suite passed
+  69/69 with fake secrets on source commit `ac87137de` (2026-10-01).
 
 | File | SHA-256 (eighth version, pending review) |
 | --- | --- |
-| `nfc-app-token-helper.ps1` | `3c0d58e5f7f647ffcfd047566cf9808a5c9d578fabb007aac3445f01b10955de` |
-| `Invoke-NfcGh.ps1` | `fbe8e0daa819ff3e6f9e69414deb5ea4fdbd38f931478eb884e706e16662cfd8` |
-| `README.md` | `7e7d4125d81673b01b8910830a2cb3e2390c044793c904fc2eb4cfda87ea2cc6` |
-| `tests/NfcG0.Tests.ps1` | `1f8038a447b6ca37fce12f9e7e5ba8537a9b860b7999ad2f9be8674f5cae441f` |
+| `nfc-app-token-helper.ps1` | `73e9d63271889dfac8710e13cb7336dd1a3575117bcd0b7e8c8689054f5f32f0` |
+| `Invoke-NfcGh.ps1` | `91d151fe269361aab630496d344f04ff1e95969998cb6d70f827e758febe1b62` |
+| `README.md` | `d94cb86813a9ce3b7c65c0a3b7ec60ef8db3a5711ffa2bef1bd88989aeddbf9b` |
+| `tests/NfcG0.Tests.ps1` | `297403ed071abf536fa4240202a7d509d9ac9652cad901fd34d237439d61112f` |
 
 1. **owner → owner.** After the review is recorded, copy the complete script
    folder from the reviewed source commit into a new folder outside every
@@ -763,7 +767,7 @@ installed until then.
    with the inventory table above.
 2. **owner → owner.** In the new folder run
    `pwsh -NoProfile -File tests/Invoke-NfcG0Tests.ps1`; it must exit with 0
-   and report 68 passed.
+   and report 69 passed.
 3. **owner → owner.** Point the repository's Git helper entry at the new
    folder's helper with the same options and without `-IncludeWorkflowsWrite`
    (board decisions 221 and 222), and tell the commander the new wrapper path.
@@ -772,6 +776,12 @@ installed until then.
    such as `gh api repos/<owner>/<repo>/contents/docs/handoff/1.1.14/1.2.x-allocation.md -H "Accept: application/vnd.github.raw"`,
    and confirms the text arrives intact, and confirms that `gh alias list`
    stops with exit code 64. The results are recorded in WS-GOV.
+
+| Message or symptom | State | What you do |
+| --- | --- | --- |
+| "NFC gh wrapper usage error: gh alias is refused" (or `extension`, `ext`, `extensions`), exit code 64 | Intended: these commands would run child processes with the token; no token was requested | Nothing; an owner who needs an alias or extension uses their own `gh` login, not the wrapper |
+| "NFC gh wrapper usage error: gh arguments must start with the gh command", exit code 64 | A global option such as `--help=false` or `--version` came before the `gh` command; no token was requested | Put the `gh` command first, options after it |
+| Non-ASCII text from `gh` looks corrupted in the agent's terminal | The bytes are forwarded unchanged; the terminal decodes them with its own code page | Nothing in the wrapper; the agent reads the output as UTF-8 |
 
 Rollback: point the Git helper entry back at the seventh version's folder and
 tell the commander; nothing else changes.
