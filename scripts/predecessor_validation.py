@@ -474,11 +474,14 @@ def declared_side(side: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def process_failure_issue_failures(subject: str, sides: Iterable[Mapping[str, Any] | None]) -> list[Failure]:
-    """A process-failure issue at any severity is never an approvable product result."""
+    """A process-failure issue at any severity is never an approvable product result.
+
+    An `invalid` side is the faithful report of such a failure and is not repeated here.
+    """
 
     codes = {
         issue["code"]
-        for side in sides if side is not None
+        for side in sides if side is not None and side.get("status") != "invalid"
         for issue in side.get("issues", ())
         if issue["code"] in PROCESS_FAILURE_ISSUE_CODES
     }

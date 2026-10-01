@@ -420,10 +420,13 @@ The required top-level members are the ADR 0057 report members; `MapId` is
 optional on both formats and is `null` in the context when absent. No map id
 is invented for v0.9.16. The 1.x extensions `AbMergeFormat` and
 `SourceEnvelope` are unknown optional members recorded by name, without
-becoming authority. Unknown members in projected input, output, issue,
-operation, mutation, range, provenance and command objects are likewise
-recorded and excluded before normalization. Known presentation members
-(`OriginalFileName`, `FileName`, `Message`) are ignored; `OutputDifferences`,
+becoming authority. Unknown members in input, output and issue objects are
+likewise recorded and excluded. An unknown member in an operation or mutation
+object, or in a range, provenance or command object inside one, is refused
+with `PREDECESSOR_REPORT_INVALID`: those rows carry write authority, and the
+ADR 0057 normalizers' exact-member rule is not relaxed. Known presentation
+members (`OriginalFileName`, `FileName`, `Message` and an issue's
+`OperationId`) are ignored; `OutputDifferences`,
 `Validations` and `OutputNaming` remain unconsumed and supply no authority.
 Required members are never supplied by an optional extension.
 

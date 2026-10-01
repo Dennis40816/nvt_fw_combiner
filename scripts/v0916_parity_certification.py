@@ -2046,8 +2046,9 @@ def runtime_closure_inventory(
     runtime_root: Path,
     *,
     cli_relative: str,
+    expected_cli: tuple[int, str] | None = None,
 ) -> CapturedExecutionClosure:
-    """Measure the terminal closure inventory without requiring a pinned expectation."""
+    """Measure the terminal closure inventory; `expected_cli` (size, SHA-256) pins the CLI as the terminal path does."""
 
     files: dict[str, bytes] = {}
     total = 0
@@ -2066,6 +2067,12 @@ def runtime_closure_inventory(
                 _fail("PARITY_AUTHORITY_MISMATCH")
             files[relative] = payload
     except OSError:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    if expected_cli is not None and (
+        files.get(cli_relative) is None
+        or len(files[cli_relative]) != expected_cli[0]
+        or _sha256(files[cli_relative]) != expected_cli[1]
+    ):
         _fail("PARITY_AUTHORITY_MISMATCH")
     inventory = [
         {"path": relative, "size": len(payload), "sha256": _sha256(payload)}
@@ -2106,10 +2113,11 @@ def validate_verified_source_executor(
     )
     if not valid:
         _fail("PARITY_AUTHORITY_MISMATCH")
-    closure = runtime_closure_inventory(cli.parent, cli_relative=cli.relative_to(cli.parent).as_posix())
-    payload = closure.files.get(closure.cli_relative)
-    if payload is None or len(payload) != executor.cli_size or _sha256(payload) != executor.cli_sha256:
-        _fail("PARITY_AUTHORITY_MISMATCH")
+    closure = runtime_closure_inventory(
+        cli.parent,
+        cli_relative=cli.relative_to(cli.parent).as_posix(),
+        expected_cli=(executor.cli_size, executor.cli_sha256),
+    )
     if (
         executor.runtime_closure_sha256,
         executor.runtime_file_count,

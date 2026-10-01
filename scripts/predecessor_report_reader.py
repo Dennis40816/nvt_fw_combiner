@@ -3,7 +3,8 @@
 No process, Git, capture validation or outcome classification lives here.
 The caller applies sequence, compiled-authority and range checks unchanged,
 in contract order, using the typed Preview of the same side as authority.
-Unknown optional members are recorded as JSON pointers, never as values.
+Unknown optional members are recorded as JSON pointers, never as values;
+an unknown member of an operation or mutation row is refused.
 """
 
 from __future__ import annotations
@@ -32,21 +33,12 @@ REPORT_MEMBERS = frozenset({
     "StartedAtUtc", "CompletedAtUtc", "Inputs", "Operations", "Mutations", "Issues", "Output",
     "OutputDifferences", "CompilationFingerprint", "Validations", "OutputNaming",
 })
-OPERATION_MEMBERS = frozenset({
-    "OperationId", "Sequence", "Kind", "Status", "SourceSpaceId", "SourceRange", "TargetSpaceId",
-    "TargetRange", "OverlapPolicy", "ProcessorId", "ToolBindingId", "ProcessorAllowedReadRanges",
-    "ProcessorAllowedWriteRanges", "ExecutedCommands", "Reason", "Provenance",
-})
-MUTATION_MEMBERS = frozenset({
-    "OperationId", "Kind", "TargetSpaceId", "TargetRange", "ChangedByteCount", "BeforeSha256",
-    "AfterSha256", "Reason",
-})
-RANGE_MEMBERS = frozenset({"Start", "Length", "EndExclusive"})
 PROVENANCE_MEMBERS = frozenset({"Kind", "SourceId", "SourceVersion"})
 COMMAND_MEMBERS = frozenset({"ExecutablePath", "WorkingDirectory", "Arguments"})
 INPUT_MEMBERS = frozenset({"AddressSpaceId", "ArtifactId", "Size", "Sha256"})
 OUTPUT_MEMBERS = frozenset({"Size", "Sha256", "Committed"})
 ISSUE_MEMBERS = frozenset({"Code", "Severity"})
+ISSUE_PRESENTATION_MEMBERS = frozenset({"Message", "OperationId"})
 ISSUE_SEVERITIES = frozenset({"error", "info", "unspecified", "warning"})
 
 
@@ -86,33 +78,29 @@ def _rows(raw: Any, path: str) -> list[Any]:
     return raw
 
 
-def _range(raw: Any, path: str, unknown: list[str]) -> dict[str, Any] | None:
-    return None if raw is None else _members(raw, RANGE_MEMBERS, path, unknown)
+def _exact(raw: Any, members: frozenset[str], path: str) -> None:
+    if not isinstance(raw, Mapping) or set(raw) != members:
+        raise ReportReaderError(f"missing or unknown members at {path}")
 
 
-def _operation(raw: Any, path: str, unknown: list[str]) -> dict[str, Any]:
-    row = _members(raw, OPERATION_MEMBERS, path, unknown)
-    for key in ("SourceRange", "TargetRange"):
-        row[key] = _range(row[key], _pointer(path, key), unknown)
-    for key in ("ProcessorAllowedReadRanges", "ProcessorAllowedWriteRanges"):
-        row[key] = [_range(span, f"{path}/{key}/{index}", unknown)
-                    for index, span in enumerate(_rows(row[key], f"{path}/{key}"))]
-    row["Provenance"] = _members(row["Provenance"], PROVENANCE_MEMBERS, f"{path}/Provenance", unknown)
-    row["ExecutedCommands"] = [
-        _members(command, COMMAND_MEMBERS, f"{path}/ExecutedCommands/{index}", unknown)
-        for index, command in enumerate(_rows(row["ExecutedCommands"], f"{path}/ExecutedCommands"))
-    ]
-    return normalize_raw_operation(row)
+def _operation(raw: Any, path: str) -> dict[str, Any]:
+    """Operation rows carry write authority: an unknown member is refused, never dropped.
 
+    The ADR 0057 normalizer keeps its exact-member rule for the row and its
+    ranges; provenance and command objects, which it reads by name, are held
+    to the same rule here.
+    """
 
-def _mutation(raw: Any, path: str, unknown: list[str]) -> dict[str, Any]:
-    row = _members(raw, MUTATION_MEMBERS, path, unknown)
-    row["TargetRange"] = _range(row["TargetRange"], f"{path}/TargetRange", unknown)
-    return normalize_raw_mutation(row)
+    if not isinstance(raw, Mapping):
+        raise ReportReaderError(f"malformed operation at {path}")
+    _exact(raw.get("Provenance"), PROVENANCE_MEMBERS, f"{path}/Provenance")
+    for index, command in enumerate(_rows(raw.get("ExecutedCommands"), f"{path}/ExecutedCommands")):
+        _exact(command, COMMAND_MEMBERS, f"{path}/ExecutedCommands/{index}")
+    return normalize_raw_operation(raw)
 
 
 def _issue(raw: Any, path: str, unknown: list[str]) -> dict[str, str]:
-    row = _members(raw, ISSUE_MEMBERS, path, unknown, frozenset({"Message"}))
+    row = _members(raw, ISSUE_MEMBERS, path, unknown, ISSUE_PRESENTATION_MEMBERS)
     if not isinstance(row["Code"], str) or not row["Code"] or not isinstance(row["Severity"], str):
         raise ReportReaderError(f"malformed issue at {path}")
     severity = row["Severity"].lower()
@@ -125,7 +113,8 @@ def read_cli_report(raw: Mapping[str, Any], *, report_version: str) -> ReadRepor
     """Read a written `v0916` or `1x` CLI report, selected by executor version.
 
     MapId is optional and is never inferred. AbMergeFormat, SourceEnvelope
-    and future optional members are recorded only by name. Issues come only
+    and future optional members outside operation and mutation rows are
+    recorded only by name; inside those rows they are refused. Issues come only
     from this report; stderr and missing-report handling belong to the caller.
     The caller loads JSON with the ADR 0057 duplicate-rejecting loader.
     """
@@ -135,10 +124,9 @@ def read_cli_report(raw: Mapping[str, Any], *, report_version: str) -> ReadRepor
     unknown: list[str] = []
     report = _members(raw, REPORT_MEMBERS, "", unknown, frozenset({"MapId"}))
     try:
-        operations = [_operation(row, f"/Operations/{index}", unknown)
+        operations = [_operation(row, f"/Operations/{index}")
                       for index, row in enumerate(_rows(report["Operations"], "/Operations"))]
-        mutations = [_mutation(row, f"/Mutations/{index}", unknown)
-                     for index, row in enumerate(_rows(report["Mutations"], "/Mutations"))]
+        mutations = [normalize_raw_mutation(row) for row in _rows(report["Mutations"], "/Mutations")]
         inputs = []
         for index, row in enumerate(_rows(report["Inputs"], "/Inputs")):
             item = _members(row, INPUT_MEMBERS, f"/Inputs/{index}", unknown, frozenset({"OriginalFileName"}))

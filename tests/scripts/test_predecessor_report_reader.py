@@ -58,17 +58,65 @@ class ReportReaderTests(unittest.TestCase):
     def test_1x_extensions_are_recorded_by_name_without_becoming_authority(self) -> None:
         raw = raw_report()
         raw.update(MapId="declared-map", AbMergeFormat={"authority": "fake"}, SourceEnvelope="fake")
-        raw["Operations"][0]["FutureWriteAuthority"] = {"end": 9999}
-        raw["Operations"][0]["TargetRange"]["FutureCapacity"] = 9999
+        raw["Inputs"][0]["FutureInput"] = "private-value"
+        raw["Output"]["FutureOutput"] = "private-value"
         raw["Issues"] = [{"Code": "input.address-space.truncated", "Severity": "Warning",
-                          "Message": "synthetic", "Future/Member~": "private-value"}]
+                          "Message": "synthetic", "OperationId": "copy", "Future/Member~": "private-value"}]
         result = reader.read_cli_report(raw, report_version="1x")
         self.assertEqual("cli-1x-v1", result.reader_version)
         self.assertEqual("declared-map", result.context["mapId"])
-        self.assertEqual(["/AbMergeFormat", "/Issues/0/Future~1Member~0", "/Operations/0/FutureWriteAuthority",
-                          "/Operations/0/TargetRange/FutureCapacity", "/SourceEnvelope"], result.unknown_members)
+        self.assertEqual(["/AbMergeFormat", "/Inputs/0/FutureInput", "/Issues/0/Future~1Member~0",
+                          "/Output/FutureOutput", "/SourceEnvelope"], result.unknown_members)
         self.assertNotIn("private-value", repr(result))
-        self.assertNotIn("FutureWriteAuthority", repr(result.projection))
+        self.assertNotIn("fake", repr(result))
+
+    def test_unknown_members_in_operation_and_mutation_rows_are_refused(self) -> None:
+        """Rows that carry write authority keep the ADR 0057 exact-member rule; nothing is dropped."""
+
+        def processor_command(raw: dict[str, Any]) -> None:
+            raw["Operations"][0].update(
+                ProcessorId="processor", ToolBindingId="tool",
+                ProcessorAllowedReadRanges=[{"Start": 0, "Length": 8, "EndExclusive": 8}],
+                ProcessorAllowedWriteRanges=[{"Start": 0, "Length": 8, "EndExclusive": 8}],
+                ExecutedCommands=[{"ExecutablePath": "C:/package/external-tools/tool.exe",
+                                   "WorkingDirectory": "C:/staging", "Arguments": ["run"]}],
+            )
+
+        self.assertEqual([], reader.read_cli_report(raw_report(), report_version="1x").unknown_members)
+        with_command = raw_report()
+        processor_command(with_command)
+        self.assertEqual([], reader.read_cli_report(with_command, report_version="1x").unknown_members)
+
+        def operation(raw: dict[str, Any]) -> None:
+            raw["Operations"][0]["AdditionalTargetRanges"] = [{"Start": 4096, "Length": 16, "EndExclusive": 4112}]
+
+        def operation_range(raw: dict[str, Any]) -> None:
+            raw["Operations"][0]["TargetRange"]["FutureCapacity"] = 9999
+
+        def provenance(raw: dict[str, Any]) -> None:
+            raw["Operations"][0]["Provenance"]["FutureSource"] = "x"
+
+        def command(raw: dict[str, Any]) -> None:
+            processor_command(raw)
+            raw["Operations"][0]["ExecutedCommands"][0]["FutureArgument"] = "x"
+
+        def processor_range(raw: dict[str, Any]) -> None:
+            processor_command(raw)
+            raw["Operations"][0]["ProcessorAllowedWriteRanges"][0]["FutureCapacity"] = 9999
+
+        def mutation(raw: dict[str, Any]) -> None:
+            raw["Mutations"][0]["FutureWrite"] = {"end": 9999}
+
+        def mutation_range(raw: dict[str, Any]) -> None:
+            raw["Mutations"][0]["TargetRange"]["FutureCapacity"] = 9999
+
+        for change in (operation, operation_range, provenance, command, processor_range, mutation, mutation_range):
+            with self.subTest(change=change.__name__):
+                raw = raw_report()
+                change(raw)
+                with self.assertRaises(reader.ReportReaderError) as raised:
+                    reader.read_cli_report(raw, report_version="1x")
+                self.assertEqual("PREDECESSOR_REPORT_INVALID", raised.exception.code)
 
     def test_issue_codes_and_severities_are_preserved_without_classification(self) -> None:
         raw = raw_report()

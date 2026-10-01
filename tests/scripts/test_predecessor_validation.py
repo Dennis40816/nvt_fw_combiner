@@ -911,6 +911,20 @@ class V0916ModeValidationTests(unittest.TestCase):
                 route_of(world, proof_kind)[side_name]["issues"][0]["code"] = "external-tool.process.start-failed"
                 self.assertIn("PREDECESSOR_PROCESS_FAILED", codes(v0916_failures(world)))
 
+    def test_invalid_side_faithfully_reports_its_process_failure(self) -> None:
+        """The guard is for sides offered as product results; an invalid side reporting its failure stays valid."""
+
+        for code in sorted(validation.PROCESS_FAILURE_ISSUE_CODES):
+            with self.subTest(code=code):
+                world = v0916_world()
+                route = independent_exact_route(world)
+                failed = {**rejected_side(), "status": "invalid",
+                          "issues": [{"code": code, "severity": "error", "source": "report"}]}
+                route.update(candidate=failed, result="invalid", failureCode="PREDECESSOR_PROCESS_FAILED")
+                world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({})
+                recount(world)
+                self.assertEqual([], v0916_failures(world))
+
     def test_runnable_transitive_proof_cannot_be_missing_even_on_invalid_route(self) -> None:
         world = v0916_world()
         self.assertEqual([], v0916_failures(world))

@@ -209,8 +209,9 @@ with its ledger and its proposed declaration and report schemas, and the
 
 ## Open items
 
-- The report reader rules and the revision of the proposed report and
-  declaration schemas (a separate pull request after the P-0.5 spike).
+- Closed in `1.2.2`: the report reader rules and the revised report and
+  declaration schemas are in effect
+  ([contract](../contracts/predecessor-comparison-v1.md#report-reader-v1)).
 - The second v0.9.16 executor contract and the compiler-host pinning of
   decision 79 (a separate executor pull request after the P-0.5 spike).
 - A Draft 2020-12 validator for the comparator's Python runtime, or keeping

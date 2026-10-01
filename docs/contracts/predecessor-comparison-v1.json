@@ -113,7 +113,7 @@
     },
     "reportReader": {
       "status": "in-effect",
-      "reason": "R35-01/R35-02 implement the P-0.5 reader rules: format only, ADR 0057 public normalizers, optional MapId, unknown optional members recorded by JSON pointer without values or authority, report issue severity and code preserved, and no report invented from stderr. Per-side checks keep their owners and order.",
+      "reason": "R35-01/R35-02 implement the P-0.5 reader rules: format only, ADR 0057 public normalizers, optional MapId, unknown optional members recorded by JSON pointer without values or authority and refused inside operation and mutation rows, report issue severity and code preserved, and no report invented from stderr. Per-side checks keep their owners and order.",
       "path": "scripts/predecessor_report_reader.py",
       "readerVersions": ["cli-1x-v1", "cli-v0916-v1"]
     },
