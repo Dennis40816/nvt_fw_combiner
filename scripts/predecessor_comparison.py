@@ -8,8 +8,10 @@ bytes remain local and are never included in a side object or executor identity.
 from __future__ import annotations
 
 from contextlib import contextmanager
+import argparse
 import ctypes
 import hashlib
+import json
 import os
 from pathlib import Path, PurePosixPath
 import stat
@@ -546,6 +548,40 @@ class SideResult(NamedTuple):
     failures: list[validation.Failure]
 
 
+class ScenarioExecution(NamedTuple):
+    result: SideResult
+    captures: Sequence[ProcessCapture]
+
+
+def execute_side_stages(
+    runner: ProcessRunner, executor: Executor, request: Mapping[str, Any],
+    authority: MaterializedCanonicalAuthority, artifacts: Mapping[str, Mapping[str, Any]],
+    bindings: Sequence[Mapping[str, Any]], *, precursor_request: Mapping[str, Any] | None = None,
+    precursor_bindings: Sequence[Mapping[str, Any]] = (), execution_role: str = "candidate",
+) -> ScenarioExecution:
+    """Run each required Preview/Build once, stopping at the shared verdict."""
+    stages = []
+    if precursor_request is not None:
+        stages += [(stage, precursor_request, precursor_bindings) for stage in ("precursor-preview", "precursor-build")]
+    stages += [(stage, request, bindings) for stage in ("preview", "build")]
+    captures = []
+    capacities = {}
+    precursor = None
+    for stage, stage_request, stage_bindings in stages:
+        capture = execute_cli_stage(runner, executor, stage_request, authority, artifacts, stage_bindings,
+                                    stage=stage, execution_role=execution_role,
+                                    precursor=precursor if not stage.startswith("precursor-") else None)
+        captures.append(capture)
+        capacities[stage] = validation.execution_capacities(capture.evidence())
+        verdict = validation.side_execution_verdict([item.evidence() for item in captures], capacities={},
+                                                    capacities_by_stage=capacities, complete=False)
+        if verdict.status != "ready":
+            break
+        if stage == "precursor-build":
+            precursor = capture
+    return ScenarioExecution(assemble_side_result(captures, capacities={}, capacities_by_stage=capacities), captures)
+
+
 def assemble_side_result(
     captures: Sequence[ProcessCapture], *, capacities: Mapping[str, int],
     capacities_by_stage: Mapping[str, Mapping[str, int]] | None = None,
@@ -597,10 +633,53 @@ def compare_output_bytes(baseline: bytes, candidate: bytes) -> ByteComparison:
                           projection["differentByteCount"], projection["rangeListSha256"])
 
 
+def measured_scopes(
+    baseline: ScenarioExecution, candidate: ScenarioExecution,
+    custody: Callable = hold_read_only_file_custody,
+) -> tuple[dict[str, Any], list[validation.Failure]]:
+    evidence = {}
+    failures = []
+    for scope, stage in (("output", "build"), ("precursor", "precursor-build")):
+        if any(side.result.side[scope] is None for side in (baseline, candidate)):
+            continue
+        captures = [next(item for item in side.captures if item.record["stage"] == stage) for side in (baseline, candidate)]
+        paths = [capture.output_path for capture in captures]
+        with custody(paths):
+            payloads = [path.read_bytes() for path in paths]
+            for side, payload in zip((baseline, candidate), payloads):
+                failures.extend(validation.scope_capture_failures(scope, side.result.side[scope],
+                                                                  {"size": len(payload), "sha256": _sha256(payload)}))
+        measurement = compare_output_bytes(*payloads)
+        evidence[scope] = measurement.scope_evidence
+    return evidence, failures
+
+
+def informational_differences(baseline: ScenarioExecution, candidate: ScenarioExecution) -> list[dict[str, Any]]:
+    def facts(side: ScenarioExecution) -> dict[str, str | None]:
+        reports = [capture.report for capture in side.captures if capture.report is not None]
+        report = reports[-1] if reports else None
+        return {"capability-fingerprint": None if report is None else report.projection["compilationFingerprint"],
+                "map-id": None if report is None else report.context["mapId"],
+                "issue-codes": json.dumps(sorted({issue["code"] for issue in side.result.side["issues"]}), separators=(",", ":")),
+                "operation-projection-sha256": None if report is None else canonical_json_sha256(report.projection["compiledOperations"])}
+    left, right = facts(baseline), facts(candidate)
+    return [{"field": field, "baseline": left[field], "candidate": right[field]}
+            for field in sorted(left) if left[field] != right[field]]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    """Dispatch rolling; B2b can add its mode without changing shared execution."""
+    """Dispatch the two contract modes to their orchestration modules."""
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    parser = argparse.ArgumentParser(description="Predecessor comparison")
+    modes = parser.add_subparsers(dest="mode", required=True)
+    modes.add_parser("rolling", add_help=False, help="compare with the previous stable release")
+    modes.add_parser("v0916-1x", add_help=False, help="check the historical v0.9.16 plan at a milestone")
+    selected, _ = parser.parse_known_args(arguments)
+    if selected.mode == "v0916-1x":
+        from scripts.predecessor_v0916 import v0916_main
+        return v0916_main(arguments)
     from scripts.predecessor_rolling import rolling_main
-    return rolling_main(argv)
+    return rolling_main(arguments)
 
 
 if __name__ == "__main__":

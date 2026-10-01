@@ -332,6 +332,20 @@ public sealed class PredecessorComparisonSchemaContractTests
         Assert.True(IsValid(ReportSchema, document), $"{fixtureName} must satisfy {ReportSchema}.");
     }
 
+    /// <summary>Each synthetic milestone report written by the builder satisfies the report schema.</summary>
+    /// <param name="fixtureName">Fixture file under <c>tests/scripts/fixtures/predecessor-comparison</c>.</param>
+    [Theory]
+    [InlineData("v0916-consistent.json")]
+    [InlineData("v0916-inconsistent.json")]
+    public void V0916BuilderFixtureSatisfiesDraft202012Schema(string fixtureName)
+    {
+        string path = RepositoryPaths.FromRepositoryRoot(
+            "tests", "scripts", "fixtures", "predecessor-comparison", fixtureName);
+        JsonNode document = JsonNode.Parse(File.ReadAllText(path))!;
+
+        Assert.True(IsValid(ReportSchema, document), $"{fixtureName} must satisfy {ReportSchema}.");
+    }
+
     /// <summary>Internally consistent reports and declarations of both modes.</summary>
     public static TheoryData<string> ExampleNames()
     {

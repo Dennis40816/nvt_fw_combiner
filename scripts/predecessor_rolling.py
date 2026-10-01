@@ -14,9 +14,10 @@ from typing import Any, Callable, Mapping, NamedTuple, Protocol, Sequence
 
 from scripts import predecessor_comparison as execution
 from scripts import predecessor_validation as validation
+from scripts.predecessor_comparison import ScenarioExecution, measured_scopes, informational_differences
 from scripts.v0916_parity_certification import (
     MaterializedCanonicalAuthority, ParityError, PinnedGitReader, canonical_json_sha256,
-    hold_read_only_file_custody, load_json_reject_duplicates,
+    load_json_reject_duplicates,
     materialize_and_validate_canonical_input_authority, resolve_case, write_json_exclusive_atomic,
 )
 
@@ -255,11 +256,6 @@ def materialize_rolling_inputs(
     return authority, manifest, cases
 
 
-class ScenarioExecution(NamedTuple):
-    result: execution.SideResult
-    captures: Sequence[execution.ProcessCapture]
-
-
 def execute_rolling_side(
     runner: execution.ProcessRunner, executor: execution.Executor, scenario: Mapping[str, Any],
     authority: MaterializedCanonicalAuthority, manifest: Mapping[str, Any],
@@ -271,63 +267,15 @@ def execute_rolling_side(
                "cliSelectionToken": scenario["cli"]["selectionToken"]}
     bindings = scenario["inputs"]
     base = scenario["ctrlRamBase"] or {}
-    stages = []
+    precursor_request = None
+    precursor_bindings = []
     if base.get("kind") == "standard-merge":
         precursor_request = {"workflowId": "standard-merge", "profileId": request["profileId"],
                              "cliSelectionToken": None}
         precursor_bindings = [binding for binding in bindings if binding["slotId"] in ("dp-input", "tp-input")]
-        stages += [(stage, precursor_request, precursor_bindings) for stage in ("precursor-preview", "precursor-build")]
         bindings = [binding for binding in bindings if binding["slotId"] not in ("dp-input", "tp-input")]
-    stages += [(stage, request, bindings) for stage in ("preview", "build")]
-    captures = []
-    capacities = {}
-    precursor = None
-    for stage, stage_request, stage_bindings in stages:
-        capture = execution.execute_cli_stage(runner, executor, stage_request, authority, artifacts, stage_bindings,
-                                              stage=stage, precursor=precursor if not stage.startswith("precursor-") else None)
-        captures.append(capture)
-        capacities[stage] = validation.execution_capacities(capture.evidence())
-        verdict = validation.side_execution_verdict([item.evidence() for item in captures], capacities={},
-                                                    capacities_by_stage=capacities, complete=False)
-        if verdict.status != "ready":
-            break
-        if stage == "precursor-build":
-            precursor = capture
-    return ScenarioExecution(execution.assemble_side_result(captures, capacities={}, capacities_by_stage=capacities), captures)
-
-
-def measured_scopes(
-    baseline: ScenarioExecution, candidate: ScenarioExecution,
-    custody: Callable = hold_read_only_file_custody,
-) -> tuple[dict[str, Any], list[validation.Failure]]:
-    evidence = {}
-    failures = []
-    for scope, stage in (("output", "build"), ("precursor", "precursor-build")):
-        if any(side.result.side[scope] is None for side in (baseline, candidate)):
-            continue
-        captures = [next(item for item in side.captures if item.record["stage"] == stage) for side in (baseline, candidate)]
-        paths = [capture.output_path for capture in captures]
-        with custody(paths):
-            payloads = [path.read_bytes() for path in paths]
-            for side, payload in zip((baseline, candidate), payloads):
-                failures.extend(validation.scope_capture_failures(scope, side.result.side[scope],
-                                                                  {"size": len(payload), "sha256": sha256(payload)}))
-        measurement = execution.compare_output_bytes(*payloads)
-        evidence[scope] = measurement.scope_evidence
-    return evidence, failures
-
-
-def informational_differences(baseline: ScenarioExecution, candidate: ScenarioExecution) -> list[dict[str, Any]]:
-    def facts(side: ScenarioExecution) -> dict[str, str | None]:
-        reports = [capture.report for capture in side.captures if capture.report is not None]
-        report = reports[-1] if reports else None
-        return {"capability-fingerprint": None if report is None else report.projection["compilationFingerprint"],
-                "map-id": None if report is None else report.context["mapId"],
-                "issue-codes": json.dumps(sorted({issue["code"] for issue in side.result.side["issues"]}), separators=(",", ":")),
-                "operation-projection-sha256": None if report is None else canonical_json_sha256(report.projection["compiledOperations"])}
-    left, right = facts(baseline), facts(candidate)
-    return [{"field": field, "baseline": left[field], "candidate": right[field]}
-            for field in sorted(left) if left[field] != right[field]]
+    return execution.execute_side_stages(runner, executor, request, authority, artifacts, bindings,
+                                         precursor_request=precursor_request, precursor_bindings=precursor_bindings)
 
 
 @dataclass(frozen=True)

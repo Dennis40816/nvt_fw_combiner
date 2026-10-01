@@ -26,6 +26,7 @@ try:
         ParityError,
         canonical_json_sha256,
         cli_selection_token,
+        compare_approved_semantic_correction_payloads,
         compare_transitive_payloads,
         validate_report_sequence,
         validate_report_projection_against_compiled_authority,
@@ -41,6 +42,7 @@ except ModuleNotFoundError as error:
         ParityError,
         canonical_json_sha256,
         cli_selection_token,
+        compare_approved_semantic_correction_payloads,
         compare_transitive_payloads,
         validate_report_sequence,
         validate_report_projection_against_compiled_authority,
@@ -1310,6 +1312,11 @@ def amendment_binding_failures(amendment: Mapping[str, Any], plan: Mapping[str, 
     ]
 
 
+def v0916_policy_capture_failures(plan: Mapping[str, Any], raw_sha256: str) -> list[Failure]:
+    return [] if plan["policyBinding"]["sha256"] == raw_sha256 else [
+        _failure("INPUT_INVALID", "policy", "policy differs from the plan's pinned authority")]
+
+
 def v0916_route_dispositions(
     plan: Mapping[str, Any], amendment: Mapping[str, Any], pinned_policy: Mapping[str, Any]
 ) -> tuple[list[RouteDisposition], list[Failure]]:
@@ -1369,6 +1376,7 @@ class TransitiveEvidence(NamedTuple):
     tp_length: int
     checks: Mapping[str, bool] | None
     failure_code: str | None
+    failure_checks: Mapping[str, bool] | None = None
 
 
 def transitive_evidence(
@@ -1379,7 +1387,12 @@ def transitive_evidence(
     try:
         result = compare_transitive_payloads(baseline_full, candidate_full, candidate_tp, candidate_base, tp_length)
     except ParityError as error:
-        return TransitiveEvidence(tp_length, None, error.code)
+        checks = None
+        if error.code in {"PARITY_TP_PREFIX_MISMATCH", "PARITY_TAIL_MUTATED"}:
+            checks = dict(zip(TRANSITIVE_CHECKS, (candidate_tp == candidate_full[:tp_length],
+                                                candidate_tp == baseline_full[:tp_length],
+                                                candidate_full[tp_length:] == candidate_base[tp_length:]), strict=True))
+        return TransitiveEvidence(tp_length, None, error.code, checks)
     return TransitiveEvidence(tp_length, {check: result[check] for check in TRANSITIVE_CHECKS}, None)
 
 
@@ -1395,6 +1408,8 @@ def _transitive_checks_agree(reported: Mapping[str, Any], evidence: TransitiveEv
     values = tuple(reported.get(check) for check in TRANSITIVE_CHECKS)
     if evidence.checks is not None:
         return values == tuple(evidence.checks[check] for check in TRANSITIVE_CHECKS)
+    if evidence.failure_checks is not None:
+        return values == tuple(evidence.failure_checks[check] for check in TRANSITIVE_CHECKS)
     if evidence.failure_code == "PARITY_TAIL_MUTATED":
         return values == (True, True, False)
     if evidence.failure_code == "PARITY_TP_PREFIX_MISMATCH":
@@ -1411,6 +1426,69 @@ class V0916RouteEvidence(NamedTuple):
 
     scopes: ScopeEvidence
     transitive: TransitiveEvidence | None = None
+    correction_reproduced: bool | None = None
+    binding: Mapping[str, Any] | None = None
+
+
+def approved_correction_evidence(before: bytes, after: bytes, row: Mapping[str, Any]) -> bool:
+    """Apply the unchanged ADR 0057 correction primitive to this exact row."""
+    try:
+        compare_approved_semantic_correction_payloads(before, after, row)
+    except ParityError:
+        return False
+    return True
+
+
+def transitive_projection(row: Mapping[str, Any], computed: TransitiveEvidence) -> dict[str, Any]:
+    """Project the primitive's pass or first failure into the report checks."""
+    checks = computed.checks or computed.failure_checks
+    if checks is None:
+        # Invalid lengths admit no byte relation as a passing proof.
+        checks = dict.fromkeys(TRANSITIVE_CHECKS, False)
+    return {"fullRouteId": row["fullRouteId"], "tpLength": computed.tp_length, **checks}
+
+
+class V0916RouteVerdict(NamedTuple):
+    result: str
+    failure_code: str | None
+    failures: list[Failure]
+
+
+def v0916_route_verdict(
+    route: Mapping[str, Any], disposition: RouteDisposition, evidence: V0916RouteEvidence | None,
+    routes: Mapping[str, Mapping[str, Any]], execution_failures: Sequence[Failure] = (),
+) -> V0916RouteVerdict:
+    """Classify an acquired route with the same rules that validate its report."""
+    subject = disposition.route_id
+    if disposition.proof_kind == "not-covered":
+        return V0916RouteVerdict("not-covered", None, [])
+    failures = [Failure(item.code, subject, item.detail) for item in execution_failures]
+    if failures:
+        return V0916RouteVerdict("invalid", failures[0].code, failures)
+    sides = [route["baseline"], route["candidate"]]
+    full = routes.get((disposition.row or {}).get("fullRouteId", ""))
+    if disposition.proof_kind == "tp-prefix-transitive":
+        if _transitive_blocker(route, full) == "invalid":
+            code = (full or {}).get("failureCode") or "PREDECESSOR_REPORT_INVALID"
+            return V0916RouteVerdict("invalid", code, [Failure(code, subject, "transitive dependency failed")])
+    if any(side is not None and side["status"] == "invalid" for side in sides):
+        return V0916RouteVerdict("invalid", "PREDECESSOR_REPORT_INVALID",
+                                 [_failure("REPORT_INVALID", subject, "route has an invalid side")])
+    tentative = {**route, "result": "consistent", "failureCode": None}
+    failures = _v0916_route_failures(tentative, disposition, evidence, routes)
+    if disposition.proof_kind == "exact-output-with-approved-semantic-correction" and (
+        evidence is None or evidence.correction_reproduced is not True
+    ):
+        failures.append(_failure("AMENDMENT_MISMATCH", subject, "outputs do not reproduce the exact correction row"))
+    if disposition.proof_kind == "tp-prefix-transitive" and _transitive_blocker(route, full) is not None:
+        failures = [_failure("UNAPPROVED_DIFFERENCE", subject, "a typed rejection prevents the transitive proof")]
+    if failures:
+        mismatch = disposition.proof_kind in {"exact-output-with-approved-semantic-correction", "canonical-binding-not-applicable-to-v0916"}
+        # Value mismatches are product inconsistency; acquisition/safety was
+        # already classified above through the shared execution verdict.
+        code = "PREDECESSOR_AMENDMENT_MISMATCH" if mismatch else "PREDECESSOR_UNAPPROVED_DIFFERENCE"
+        return V0916RouteVerdict("inconsistent", code, [Failure(code, subject, "route does not reproduce its proof")])
+    return V0916RouteVerdict("consistent", None, [])
 
 
 def _transitive_blocker(route: Mapping[str, Any], full_route: Mapping[str, Any] | None) -> str | None:
@@ -1428,6 +1506,9 @@ def _transitive_blocker(route: Mapping[str, Any], full_route: Mapping[str, Any] 
     if any(side is None or side["status"] == "invalid" for side in sides):
         return "invalid"
     return "rejected"
+
+
+transitive_blocker = _transitive_blocker
 
 
 def _transitive_route_failures(
@@ -1494,7 +1575,13 @@ def _v0916_route_failures(
     subject = route["planRouteId"]
     failures = process_failure_issue_failures(subject, (route["baseline"], route["candidate"]))
     if route["result"] == "not-covered":
+        if disposition.proof_kind != "not-covered" or any(route[member] is not None for member in (
+            "baseline", "candidate", "comparison", "dispositionRow", "transitive", "failureCode"
+        )) or evidence is not None:
+            failures.append(_failure("REPORT_INVALID", subject, "not-covered route was executed or counted as compared"))
         return failures
+    if disposition.proof_kind == "not-covered":
+        return failures + [_failure("REPORT_INVALID", subject, "not-covered route counted as compared")]
     # A route is invalid when a side fails for a reason that is not a product
     # result, with the codes of the shared execution failures (contract).
     if route["result"] == "invalid" and route["failureCode"] not in EXECUTION_FAILURE_CODES:
@@ -1522,6 +1609,10 @@ def _v0916_route_failures(
         failures.append(_failure("REPORT_INVALID", subject, "an exact-output route is missing a report side"))
     if disposition.proof_kind == "exact-output" and route["result"] == "consistent" and output_differs:
         failures.append(_failure("UNAPPROVED_DIFFERENCE", subject, "a consistent exact-output route with differing bytes"))
+    if disposition.proof_kind == "exact-output" and route["result"] == "consistent" and (
+        baseline_output is None or candidate_output is None
+    ):
+        failures.append(_failure("UNAPPROVED_DIFFERENCE", subject, "an exact-output route without both outputs"))
     if (
         disposition.proof_kind == "exact-output"
         and not output_differs
@@ -1531,6 +1622,8 @@ def _v0916_route_failures(
     ):
         failures.append(_failure("REPORT_INVALID", subject, "an exact-output route with equal outputs must be consistent"))
     if disposition.proof_kind == "exact-output-with-approved-semantic-correction" and route["result"] == "consistent":
+        if evidence.correction_reproduced is False:
+            failures.append(_failure("AMENDMENT_MISMATCH", subject, "correction primitive did not reproduce its row"))
         row = disposition.row or {}
         observed = {
             "baselineOutput": _identity(route["baseline"]["output"]),
@@ -1544,6 +1637,10 @@ def _v0916_route_failures(
     if disposition.proof_kind == "canonical-binding-not-applicable-to-v0916" and route["result"] == "consistent":
         row = disposition.row or {}
         baseline, candidate = route["baseline"], route["candidate"]
+        if baseline is None or candidate is None or baseline["status"] != "rejected" or candidate["status"] != "output":
+            return failures + [_failure("AMENDMENT_MISMATCH", subject, "not-applicable row requires a baseline rejection and candidate output")]
+        if evidence.binding is not None and evidence.binding != row["binding"]:
+            failures.append(_failure("AMENDMENT_MISMATCH", subject, "canonical binding does not reproduce the approved row"))
         observed_rows = {
             "precursor": (_identity(baseline["precursor"]), _identity(candidate["precursor"])),
             "stage": baseline["stoppedAt"],
@@ -1576,10 +1673,15 @@ def v0916_report_failures(
     report: Mapping[str, Any],
     dispositions: Sequence[RouteDisposition],
     evidence: Mapping[str, V0916RouteEvidence | None],
+    *, authority: SourceAuthority | None = None, plan: Mapping[str, Any] | None = None,
 ) -> list[Failure]:
     """A v0.9.16 1.x report covers each plan route once with its proof, row, evidence, summary and result."""
 
     failures: list[Failure] = []
+    if authority is not None:
+        failures.extend(source_binding_failures(report, authority))
+    if plan is not None and report["planBinding"] != v0916_plan_binding(plan):
+        failures.append(_failure("SOURCE_MISMATCH", "planBinding", "report binds another plan"))
     expected = {row.route_id: row for row in dispositions}
     reported = [route["planRouteId"] for route in report["routes"]]
     for route_id in _duplicates(reported):
@@ -1619,3 +1721,16 @@ def v0916_report_failures(
     if report["result"] != v0916_result(values):
         failures.append(_failure("REPORT_INVALID", "result", "result differs from the route results"))
     return failures
+
+
+def v0916_plan_binding(plan: Mapping[str, Any]) -> dict[str, str]:
+    """Bind only the historical authority; candidateAuthority is never consumed."""
+    return {"path": "docs/contracts/v0916-parity-certification-v1.json",
+            "withoutCandidateAuthorityJcsSha256": canonical_json_sha256(
+                {key: value for key, value in plan.items() if key != "candidateAuthority"}),
+            "canonicalInputAuthorityJcsSha256": canonical_json_sha256(plan["canonicalInputAuthority"])}
+
+
+def v0916_summary(route_results: Sequence[str]) -> dict[str, int]:
+    return {"consistent": route_results.count("consistent"), "inconsistent": route_results.count("inconsistent"),
+            "invalid": route_results.count("invalid"), "notCovered": route_results.count("not-covered")}
