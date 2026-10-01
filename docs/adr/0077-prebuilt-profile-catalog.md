@@ -535,12 +535,12 @@ otherwise join to keep the preload.
   both sources give the same General Merge and General Replace parents, so
   Saved Rule acceptance, staleness and messages do not change.
 - General Merge is hidden and will be reimplemented (owner decision 37;
-  [roadmap](../architecture/nfc_roadmap.md) `1.3.0` authoring, `1.3.2` saved
-  and custom rules). Its five logical-candidate bundles are trusted, so they
+  [roadmap](../architecture/nfc_roadmap.md) `1.3.1` authoring, `1.3.3` saved
+  and custom rules, after decision 224). Its five logical-candidate bundles are trusted, so they
   are carried, but open on demand only. When their profiles change, the
   pre-built catalog regenerates, and rules bound to earlier parent hashes
   become stale exactly as today, which decision 37 accepted.
-- A future maintainer-authored IC candidate (roadmap `1.3.3`) stays untrusted
+- A future maintainer-authored IC candidate (roadmap `1.3.4`) stays untrusted
   until the trust index promotes it; the runtime never writes a pre-built
   catalog for a candidate.
 - The capability policy and the `ctrlram-postbuild-v2` runtime catalogs keep
