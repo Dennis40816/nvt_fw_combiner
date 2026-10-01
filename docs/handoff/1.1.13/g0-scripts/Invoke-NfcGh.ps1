@@ -56,10 +56,10 @@ function Split-NfcGhCommandLine {
     foreach ($key in $valueOptions) {
         if (-not $parsed.ContainsKey($key)) { throw "Wrapper option -$key is required." }
     }
-    if ($parsed.Owner -notmatch '^[A-Za-z0-9-]+\z' -or $parsed.Repo -notmatch '^[A-Za-z0-9_.-]+\z') {
+    if ($parsed.Owner -cnotmatch '^[A-Za-z0-9-]+\z' -or $parsed.Repo -cnotmatch '^[A-Za-z0-9_.-]+\z') {
         throw 'Wrapper options -Owner and -Repo must name one GitHub repository.'
     }
-    if ($parsed.InstallationId -notmatch '^[1-9][0-9]{0,17}\z') {
+    if ($parsed.InstallationId -cnotmatch '^[1-9][0-9]{0,17}\z') {
         throw 'Wrapper option -InstallationId must be a positive number.'
     }
     if ($i -ge $CommandLine.Count) { throw 'No gh arguments were given.' }
@@ -112,8 +112,12 @@ function Assert-NfcGhRepository {
 }
 
 function Assert-NfcGhSubcommand {
-    # Alias shell commands and extensions run as children of gh with GH_TOKEN, beyond the exact-string redaction.
+    # Alias shell commands and extensions run as children of gh with GH_TOKEN, beyond the exact-string redaction;
+    # gh accepts global options before the command, so the command must come first.
     param([Parameter(Mandatory)][AllowEmptyString()][string[]]$GhArguments)
+    if ($GhArguments.Count -gt 0 -and $GhArguments[0].StartsWith([char]'-')) {
+        throw "gh arguments must start with the gh command; '$($GhArguments[0])' before it is refused."
+    }
     if ($GhArguments.Count -gt 0 -and $GhArguments[0] -cin @('alias', 'extension', 'extensions', 'ext')) {
         throw "gh $($GhArguments[0]) is refused: its commands would run with the wrapper's token."
     }
@@ -161,8 +165,7 @@ try {
         $proc.WaitForExit()
         $token = $outTask.GetAwaiter().GetResult()
         $null = $errTask.GetAwaiter().GetResult()
-        if ($proc.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($token) -or
-            $token -match '[\r\n]') { throw 'Could not obtain an installation token.' }
+        if ($proc.ExitCode -ne 0 -or $token -cnotmatch '^[\x21-\x7E]+\z') { throw 'Could not obtain an installation token.' }
     } finally { $proc.Dispose() }
 
     $gh = [Diagnostics.ProcessStartInfo]::new()
@@ -171,21 +174,21 @@ try {
     $gh.CreateNoWindow = $true
     $gh.RedirectStandardOutput = $true
     $gh.RedirectStandardError = $true
-    # gh writes UTF-8; the console code page would corrupt non-ASCII text and could hide the token from redaction.
-    $utf8 = [Text.UTF8Encoding]::new($false)
-    $gh.StandardOutputEncoding = $utf8
-    $gh.StandardErrorEncoding = $utf8
     $gh.Environment['GH_TOKEN'] = $token
     foreach ($arg in $GhArguments) { [void]$gh.ArgumentList.Add($arg) }
     $proc = [Diagnostics.Process]::Start($gh)
     try {
-        $outTask = $proc.StandardOutput.ReadToEndAsync()
-        $errTask = $proc.StandardError.ReadToEndAsync()
+        # Raw bytes, never decoded: no code page or byte order mark can hide the ASCII token from redaction.
+        $outBuffer = [IO.MemoryStream]::new()
+        $errBuffer = [IO.MemoryStream]::new()
+        $outTask = $proc.StandardOutput.BaseStream.CopyToAsync($outBuffer)
+        $errTask = $proc.StandardError.BaseStream.CopyToAsync($errBuffer)
         $proc.WaitForExit()
-        $stdout = $outTask.GetAwaiter().GetResult().Replace($token, '[redacted]')
-        $stderr = $errTask.GetAwaiter().GetResult().Replace($token, '[redacted]')
-        foreach ($pair in @(@([Console]::OpenStandardOutput(), $stdout), @([Console]::OpenStandardError(), $stderr))) {
-            $bytes = $utf8.GetBytes($pair[1])
+        $null = $outTask.GetAwaiter().GetResult()
+        $null = $errTask.GetAwaiter().GetResult()
+        $latin1 = [Text.Encoding]::Latin1
+        foreach ($pair in @(@([Console]::OpenStandardOutput(), $outBuffer), @([Console]::OpenStandardError(), $errBuffer))) {
+            $bytes = $latin1.GetBytes($latin1.GetString($pair[1].ToArray()).Replace($token, '[redacted]'))
             $pair[0].Write($bytes, 0, $bytes.Length)
             $pair[0].Flush()
         }

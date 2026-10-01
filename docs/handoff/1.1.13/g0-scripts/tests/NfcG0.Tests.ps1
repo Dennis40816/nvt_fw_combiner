@@ -26,7 +26,7 @@ if ($nfcCredentialNames.Count -gt 0) {
 # Every child process gets the same cleaned environment plus the fake values of its test.
 function Invoke-NfcTestProcess {
     param([Parameter(Mandatory)][AllowEmptyString()][string[]]$Arguments, [hashtable]$Environment = @{}, [string]$StandardInput = '',
-          [string]$WorkingDirectory = '', [switch]$Utf8)
+          [string]$WorkingDirectory = '', [switch]$RawOutput)
     $psi = [Diagnostics.ProcessStartInfo]::new()
     $psi.FileName = (Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
     $psi.UseShellExecute = $false
@@ -34,10 +34,6 @@ function Invoke-NfcTestProcess {
     $psi.RedirectStandardInput = $true
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
-    if ($Utf8) {
-        $psi.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
-        $psi.StandardErrorEncoding = [Text.UTF8Encoding]::new($false)
-    }
     foreach ($name in @($psi.Environment.Keys)) {
         if (Test-NfcCredentialVariableName $name) { [void]$psi.Environment.Remove($name) }
     }
@@ -47,6 +43,16 @@ function Invoke-NfcTestProcess {
     try {
         $proc.StandardInput.Write($StandardInput)
         $proc.StandardInput.Close()
+        if ($RawOutput) {
+            $outBuffer = [IO.MemoryStream]::new()
+            $errBuffer = [IO.MemoryStream]::new()
+            $outTask = $proc.StandardOutput.BaseStream.CopyToAsync($outBuffer)
+            $errTask = $proc.StandardError.BaseStream.CopyToAsync($errBuffer)
+            $proc.WaitForExit()
+            $null = $outTask.GetAwaiter().GetResult()
+            $null = $errTask.GetAwaiter().GetResult()
+            return @{ ExitCode = $proc.ExitCode; OutputBytes = $outBuffer.ToArray(); ErrorBytes = $errBuffer.ToArray() }
+        }
         $outTask = $proc.StandardOutput.ReadToEndAsync()
         $errTask = $proc.StandardError.ReadToEndAsync()
         $proc.WaitForExit()
@@ -56,8 +62,8 @@ function Invoke-NfcTestProcess {
 }
 
 # A fake gh.exe that records each argument it received (CommandLineToArgvW, UTF-8, base64 per line)
-# in NFC_TEST_GH_ARGV and prints GH_TOKEN on stdout and stderr; with NFC_TEST_GH_UTF8_PREFIX it writes
-# that prefix and the token as UTF-8 bytes, as gh does.
+# in NFC_TEST_GH_ARGV and prints GH_TOKEN on stdout and stderr; with NFC_TEST_GH_RAW_PREFIX_B64 it writes
+# those raw bytes, then the token and a line feed, to both streams.
 function New-NfcFakeGh {
     param([Parameter(Mandatory)][string]$Directory)
     $exe = Join-Path $Directory 'gh.exe'
@@ -86,9 +92,14 @@ static class FakeGh {
         LocalFree(argv);
         File.WriteAllText(Environment.GetEnvironmentVariable("NFC_TEST_GH_ARGV"), lines.ToString());
         string token = Environment.GetEnvironmentVariable("GH_TOKEN") ?? "";
-        string prefix = Environment.GetEnvironmentVariable("NFC_TEST_GH_UTF8_PREFIX");
+        string prefix = Environment.GetEnvironmentVariable("NFC_TEST_GH_RAW_PREFIX_B64");
         if (prefix != null) {
-            byte[] bytes = Encoding.UTF8.GetBytes(prefix + token + "\n");
+            MemoryStream raw = new MemoryStream();
+            byte[] head = Convert.FromBase64String(prefix);
+            byte[] tail = Encoding.ASCII.GetBytes(token + "\n");
+            raw.Write(head, 0, head.Length);
+            raw.Write(tail, 0, tail.Length);
+            byte[] bytes = raw.ToArray();
             using (Stream output = Console.OpenStandardOutput()) { output.Write(bytes, 0, bytes.Length); }
             using (Stream error = Console.OpenStandardError()) { error.Write(bytes, 0, bytes.Length); }
             return 0;
@@ -961,7 +972,8 @@ Describe 'NFC G0 token permission set' {
     It 'rejects a fake token that could break the Git credential response' {
         Mock Invoke-RestMethod { return $global:NfcFakeReply }
         $default = New-NfcTokenPermissionSet
-        foreach ($token in @("FAKE_TOKEN`n", "FAKE`rprotocol=https", "FAKE_A`nusername=other", "FAKE$([char]0)TOKEN")) {
+        foreach ($token in @("FAKE_TOKEN`n", "FAKE`rprotocol=https", "FAKE_A`nusername=other", "FAKE$([char]0)TOKEN",
+            'FAKE TOKEN', "FAKE`tTOKEN", "FAKE$([char]0x212A)TOKEN", "FAKE$([char]0xE9)TOKEN")) {
             $global:NfcFakeReply = New-NfcFakeTokenReply -Permissions $default -Token $token
             (Get-NfcThrownMessage { Request-NfcInstallationToken -Owner owner -Repo repo -InstallationId 7 -Jwt 'FAKE.JWT.VALUE' -Permissions $default }) |
                 Should BeExactly 'Installation token has an unexpected form.'
@@ -975,7 +987,8 @@ Describe 'NFC G0 token permission set' {
         . ([scriptblock]::Create($ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
             $node.Name -eq 'Get-NfcInstallationToken' }, $true)[0].Extent.Text))
         $missing = Join-Path $TestDrive 'nonexistent.dpapi'
-        foreach ($case in @(@("owner`n", 'repo'), @('owner', "repo`n"), @('own er', 'repo'), @('owner', 'repo/other'))) {
+        foreach ($case in @(@("owner`n", 'repo'), @('owner', "repo`n"), @('own er', 'repo'), @('owner', 'repo/other'),
+            @("$([char]0x212A)owner", 'repo'), @('owner', "rep$([char]0x212A)"))) {
             (Get-NfcThrownMessage { Get-NfcInstallationToken -Owner $case[0] -Repo $case[1] -ClientId 'Iv1.fake' -InstallationId 7 -DpapiPath $missing }) |
                 Should BeExactly 'Invalid helper configuration.'
         }
@@ -1140,6 +1153,15 @@ Describe 'NFC G0 gh wrapper argument handling' {
         $message | Should Match 'limited to owner/repo'
     }
 
+    It 'checks the wrapper owner and repository case-sensitively, so a Kelvin sign is not a letter' {
+        foreach ($pair in @(@("$([char]0x212A)owner", 'repo'), @('owner', "rep$([char]0x212A)"))) {
+            $line = @('C:\fake\pwsh.dll', '-NoProfile', '-File', $script:NfcWrapperPath, '-Owner', $pair[0], '-Repo', $pair[1],
+                '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'C:\fake\app-key.dpapi', 'pr', 'list')
+            (Get-NfcThrownMessage { Split-NfcGhCommandLine -CommandLine $line -ScriptPath $script:NfcWrapperPath }) |
+                Should BeExactly 'Wrapper options -Owner and -Repo must name one GitHub repository.'
+        }
+    }
+
     It 'sets the workflows switch only when given among the wrapper options' {
         $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('-IncludeWorkflowsWrite', '--', 'pr', 'list')) -ScriptPath $script:NfcWrapperPath
         $parsed.IncludeWorkflowsWrite | Should Be $true
@@ -1239,7 +1261,7 @@ function New-NfcFakeWrapperDirectory {
 
 function Invoke-NfcFakeWrapper {
     param([string]$WorkDir, [string[]]$Arguments = @(), [string[]]$Launch, [string]$WorkingDirectory = '',
-          [hashtable]$ExtraEnvironment = @{}, [switch]$Utf8)
+          [hashtable]$ExtraEnvironment = @{}, [switch]$RawOutput)
     $helperArgs = Join-Path $WorkDir 'helper-args.txt'
     $ghArgv = Join-Path $WorkDir 'gh-argv.txt'
     foreach ($file in @($helperArgs, $ghArgv)) { if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file } }
@@ -1247,7 +1269,7 @@ function Invoke-NfcFakeWrapper {
     $environment = @{ PATH = (Join-Path $WorkDir 'bin') + ';' + $env:PATH; GH_CONFIG_DIR = (Join-Path $WorkDir 'gh-config')
         NFC_TEST_HELPER_ARGS = $helperArgs; NFC_TEST_GH_ARGV = $ghArgv }
     foreach ($key in $ExtraEnvironment.Keys) { $environment[$key] = $ExtraEnvironment[$key] }
-    $result = Invoke-NfcTestProcess -Arguments ($Launch + $Arguments) -Environment $environment -WorkingDirectory $WorkingDirectory -Utf8:$Utf8
+    $result = Invoke-NfcTestProcess -Arguments ($Launch + $Arguments) -Environment $environment -WorkingDirectory $WorkingDirectory -RawOutput:$RawOutput
     $result.HelperArguments = $null
     if (Test-Path -LiteralPath $helperArgs) { $result.HelperArguments = [IO.File]::ReadAllText($helperArgs) }
     $result.GhArguments = Read-NfcFakeGhArguments -Path $ghArgv
@@ -1329,16 +1351,24 @@ Describe 'NFC G0 gh wrapper process with a fake helper and a fake gh' {
         }
     }
 
-    It 'reads gh output as UTF-8, forwards it unchanged and redacts a token that follows a CJK character' {
+    It 'passes gh output bytes unchanged and redacts the token after CJK text, a byte order mark, invalid UTF-8 or binary bytes' {
         New-NfcFakeWrapperDirectory -WorkDir $TestDrive
         $options = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'unused')
-        $prefix = "$([char]0x7E41)$([char]0x9AD4) $([char]0x2713) caf$([char]0xE9) x$([char]0x9AD4)"
-        $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Arguments ($options + @('pr', 'view', '1')) `
-            -ExtraEnvironment @{ NFC_TEST_GH_UTF8_PREFIX = $prefix } -Utf8
-        if ($result.ExitCode -ne 0) { throw "Fake wrapper failed: $($result.Error)" }
-        $result.Output | Should BeExactly ($prefix + '[redacted]' + "`n")
-        $result.Error | Should BeExactly ($prefix + '[redacted]' + "`n")
-        ($result.Output + $result.Error).Contains('FAKE_TOKEN_24680') | Should Be $false
+        $prefixes = @(
+            [Text.Encoding]::UTF8.GetBytes("$([char]0x7E41)$([char]0x9AD4) $([char]0x2713) caf$([char]0xE9) x$([char]0x9AD4)"),
+            [byte[]]@(0xFF, 0xFE, 0x41),
+            [byte[]]@(0xC3, 0x28, 0xE4, 0xBD),
+            [byte[]]@(0x00, 0xFF, 0x80, 0x0D, 0x0A, 0x1B)
+        )
+        $redacted = [Text.Encoding]::ASCII.GetBytes("[redacted]`n")
+        foreach ($prefix in $prefixes) {
+            $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Arguments ($options + @('pr', 'view', '1')) `
+                -ExtraEnvironment @{ NFC_TEST_GH_RAW_PREFIX_B64 = [Convert]::ToBase64String($prefix) } -RawOutput
+            $result.ExitCode | Should Be 0
+            $expected = [Convert]::ToBase64String([byte[]]($prefix + $redacted))
+            [Convert]::ToBase64String($result.OutputBytes) | Should BeExactly $expected
+            [Convert]::ToBase64String($result.ErrorBytes) | Should BeExactly $expected
+        }
     }
 
     It 'refuses gh alias and gh extension before starting the helper or gh' {
@@ -1351,6 +1381,13 @@ Describe 'NFC G0 gh wrapper process with a fake helper and a fake gh' {
             $result.ExitCode | Should Be 64
             $result.Error | Should Match 'NFC gh wrapper usage error: gh (alias|extension|extensions|ext) is refused'
             $result.Output | Should BeExactly ''
+            ($null -eq $result.HelperArguments) | Should Be $true
+            ($null -eq $result.GhArguments) | Should Be $true
+        }
+        foreach ($gh in @(@('--', '--help=false', 'alias', 'set', 'x', 'version'), @('--', '--version'), @('--', '-R', 'owner/repo', 'pr', 'list'))) {
+            $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Arguments ($options + $gh)
+            $result.ExitCode | Should Be 64
+            $result.Error | Should Match 'NFC gh wrapper usage error: gh arguments must start with the gh command'
             ($null -eq $result.HelperArguments) | Should Be $true
             ($null -eq $result.GhArguments) | Should Be $true
         }
