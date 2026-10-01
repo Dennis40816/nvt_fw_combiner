@@ -35,9 +35,10 @@ Wave 2 (2026-10-01; fixed source `<worktrees>/e121b` at `d5770e52e`, the `1.2.x`
 | [R10-01.md](R10-01.md) | Claude Fable 5.1 -> Codex `gpt-6-astra` | revisions 1 and 2 rejected; revision 3 accept-with-changes; revisions 4-5 confirmed (one P3 fixed) | Decision 235 (shared-definition reference contract; parallel loading kept) |
 | [R12-01.md](R12-01.md) | Codex `gpt-6-astra` -> Claude Fable 5.1 | accept-with-changes, revised; Fable confirmed accept | Decision 237 (UI interaction review scope) |
 | [R13-01.md](R13-01.md) | Codex `gpt-6-astra` -> Claude Fable 5.1 | accept-with-changes, revised; Fable confirmed accept; appendix A adds the UI and core timing (Codex) | Decision 236 (.NET lane plan input) |
+| [R31-01.md](R31-01.md) | Codex `gpt-6-astra` -> Claude Fable 5.1 | accept-with-changes, revised; Fable confirmed accept | Decision 238 (Header-copy facts mostly unknown; asked again before `1.2.5`) |
 | [R50.md](R50.md) | Claude Code commander (retrospective, not cross-reviewed; data `evidence/1.2.1/R50-data.md`) | — | Decisions 225 and 233 (workflow changes; only R3 needs the owner's approval) |
 
-The wave-2 reports for A1a, R31-01 and R12-02 are added when accepted. The owner's A1a deployment facts are in
+The wave-2 reports for A1a and R12-02 are added when accepted. The owner's A1a deployment facts are in
 `evidence/1.2.1/A1a-facts.md` (test area).
 
 None of these reports is itself a specification approval, an implementation
