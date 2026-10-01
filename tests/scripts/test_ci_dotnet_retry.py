@@ -16,6 +16,267 @@ from tests.scripts import test_verify_orchestration as fixtures
 MODULE = fixtures.MODULE
 
 
+class CiFailureDetailsTests(unittest.TestCase):
+    def write_trx(self, path, failures, *, passed=True):
+        identities = tuple(failures) + (("Probe.Tests.Passed",) if passed else ())
+        fixtures.VerifyOrchestrationTests().write_ci_trx(
+            path,
+            total=len(identities),
+            skipped=0,
+            identities=identities,
+            outcomes=("Failed",) * len(failures) + (("Passed",) if passed else ()),
+        )
+        tree = MODULE.ET.parse(path)
+        for result in tree.findall(".//{*}UnitTestResult"):
+            output = MODULE.ET.SubElement(result, "Output")
+            MODULE.ET.SubElement(output, "StdOut").text = "DO NOT REPORT STDOUT"
+            info = MODULE.ET.SubElement(output, "ErrorInfo")
+            message, stack = failures.get(
+                result.get("testName"), ("DO NOT REPORT PASSED", "passed stack")
+            )
+            MODULE.ET.SubElement(info, "Message").text = message
+            MODULE.ET.SubElement(info, "StackTrace").text = stack
+        # Preserve CR in XML text, instead of XML's literal-CR normalization.
+        path.write_bytes(MODULE.ET.tostring(tree.getroot()).replace(b"\r", b"&#13;"))
+
+    def test_existing_outcome_parser_carries_only_failed_result_text(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "test-results.trx"
+            self.write_trx(path, {"Probe.Tests.Case(value: 1)": ("failure", "frame")})
+            before = MODULE.parse_trx_test_outcomes(path, preserve_case_identity=True)
+            details = []
+            after = MODULE.parse_trx_test_outcomes(
+                path, preserve_case_identity=True, failed_results=details
+            )
+            self.assertEqual(before, after)
+            self.assertEqual({"Probe.Tests.Case(value: 1)": 1}, after["Failed"])
+            self.assertEqual({"Probe.Tests.Passed": 1}, after["Passed"])
+            self.assertEqual(
+                [("Probe.Tests.Case(value: 1)", "failure", "frame")],
+                [(item.identity, item.message, item.stack_trace) for item in details],
+            )
+
+    def test_message_and_stack_are_bounded_escaped_and_summary_sanitized(self):
+        message = "failure 100%\r\n::error::injected\n```message " + "x" * 1600
+        stack = "frame 100%\r\n::warning::stack\n```frame\n" + "\n".join(
+            f"frame-{index:02d}" for index in range(20)
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            trx = root / "test-results.trx"
+            summary_path = root / "summary.md"
+            self.write_trx(trx, {"Probe.Tests.Failed": (message, stack)})
+            console = io.StringIO()
+            with (
+                redirect_stdout(console),
+                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}),
+            ):
+                MODULE.report_ci_test_failure_details(
+                    "shard core", [("Project", "attempt-1", trx)]
+                )
+            log = console.getvalue()
+            summary = summary_path.read_text(encoding="utf-8")
+            self.assertIn(
+                "::notice title=Failed test::Project Probe.Tests.Failed", log
+            )
+            self.assertIn("failure 100%25%0D%0A::error::injected%0A```message", log)
+            self.assertIn("frame 100%25%0D%0A::warning::stack%0A```frame", log)
+            self.assertNotIn("\r", log)
+            self.assertNotIn("\n::error::", log)
+            self.assertEqual(1, len(log.splitlines()))
+            decoded = log.replace("%0D", "\r").replace("%0A", "\n").replace("%25", "%")
+            logged_message = decoded.split("Message:\n", 1)[1].split(
+                "\nStack trace:", 1
+            )[0]
+            self.assertEqual(1500, len(logged_message))
+            for output in (log, summary):
+                self.assertIn("[truncated]", output)
+                self.assertIn("frame-11", output)
+                self.assertNotIn("frame-12", output)
+                self.assertNotIn("DO NOT REPORT", output)
+                self.assertNotIn("passed stack", output)
+            summary_message = summary.split("Message:\n", 1)[1].split(
+                "\nStack trace:", 1
+            )[0]
+            self.assertLessEqual(len(summary_message), 1500)
+            self.assertEqual(2, summary.count("```"))
+            self.assertIn("'''message", summary)
+            self.assertIn("'''frame", summary)
+
+    def test_twenty_identity_cap_keeps_both_attempts_of_each_failure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            first, retry = root / "first.trx", root / "retry.trx"
+            failures = {
+                f"Probe.Tests.Case{index:02d}": (f"original-{index:02d}", "frame")
+                for index in range(21)
+            }
+            self.write_trx(first, failures)
+            self.write_trx(
+                retry, {"Probe.Tests.Case00": ("retry failure", "retry frame")}
+            )
+            console = io.StringIO()
+            with (
+                redirect_stdout(console),
+                patch.dict(
+                    os.environ, {"GITHUB_STEP_SUMMARY": str(root / "summary.md")}
+                ),
+            ):
+                MODULE.report_ci_test_failure_details(
+                    "shard core",
+                    [("Project", "attempt-1", first), ("Project", "attempt-2", retry)],
+                )
+            for output in (console.getvalue(), (root / "summary.md").read_text()):
+                self.assertIn("Probe.Tests.Case19", output)
+                self.assertNotIn("Probe.Tests.Case20", output)
+                self.assertIn("original-00", output)
+                self.assertIn("retry failure", output)
+                self.assertIn("retry frame", output)
+                self.assertIn(
+                    "... 1 more failed identities in the TRX [truncated]", output
+                )
+            self.assertEqual(
+                21, console.getvalue().count("::notice title=Failed test::")
+            )
+
+    def test_missing_invalid_or_passing_trx_adds_no_diagnostics(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            invalid, passed = root / "invalid.trx", root / "passed.trx"
+            invalid.write_text("<broken", encoding="utf-8")
+            self.write_trx(passed, {})
+            console = io.StringIO()
+            summary = root / "summary.md"
+            with (
+                redirect_stdout(console),
+                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary)}),
+            ):
+                MODULE.report_ci_test_failure_details(
+                    "aggregate",
+                    [
+                        ("Project", "attempt-1", path)
+                        for path in (root / "missing.trx", invalid, passed)
+                    ],
+                )
+            self.assertEqual("", console.getvalue())
+            self.assertFalse(summary.exists())
+
+    def test_resolved_placeholder_identity_and_missing_errorinfo_remain_reportable(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "test-results.trx"
+            self.write_trx(path, {"Probe.Tests.Case(value: 1)": ("failure", "frame")})
+            tree = MODULE.ET.parse(path)
+            failed = tree.find(".//{*}UnitTestResult")
+            failed.set("testName", "<unknown test ID " + "a" * 64 + ">")
+            failed.set("testId", "case-1")
+            failed.remove(failed.find("{*}Output"))
+            definitions = MODULE.ET.SubElement(tree.getroot(), "TestDefinitions")
+            MODULE.ET.SubElement(
+                definitions, "UnitTest", id="case-1", name="Probe.Tests.Case(value: 1)"
+            )
+            tree.write(path, encoding="utf-8")
+            before = MODULE.parse_trx_test_outcomes(path)
+            details = []
+            self.assertEqual(
+                before, MODULE.parse_trx_test_outcomes(path, failed_results=details)
+            )
+            self.assertEqual(
+                ("Probe.Tests.Case", "", ""),
+                (details[0].identity, details[0].message, details[0].stack_trace),
+            )
+            console = io.StringIO()
+            with (
+                redirect_stdout(console),
+                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}),
+            ):
+                MODULE.report_ci_test_failure_details(
+                    "shard core", [("Project", "attempt-1", path)]
+                )
+            self.assertIn("Probe.Tests.Case(value: 1)", console.getvalue())
+            self.assertIn("(no message in TRX)", console.getvalue())
+            self.assertIn("(no stack trace in TRX)", console.getvalue())
+
+    def test_exact_message_and_stack_limits_do_not_truncate(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "test-results.trx"
+            self.write_trx(
+                path,
+                {
+                    "Probe.Tests.Case": (
+                        "x" * 1500,
+                        "\r\n".join(f"frame-{index}" for index in range(15)),
+                    )
+                },
+            )
+            console = io.StringIO()
+            with (
+                redirect_stdout(console),
+                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}),
+            ):
+                MODULE.report_ci_test_failure_details(
+                    "shard core", [("Project", "attempt-1", path)]
+                )
+            self.assertNotIn("[truncated]", console.getvalue())
+            self.assertIn("x" * 1500, console.getvalue())
+            self.assertIn("frame-13%0D%0Aframe-14", console.getvalue())
+
+    def test_duplicate_results_do_not_multiply_details_and_projects_have_distinct_identities(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "test-results.trx"
+            self.write_trx(path, {"Probe.Tests.Case": ("original", "frame")})
+            tree = MODULE.ET.parse(path)
+            results = tree.find("{*}Results")
+            duplicate = MODULE.ET.fromstring(MODULE.ET.tostring(results[0]))
+            duplicate.find("{*}Output/{*}ErrorInfo/{*}Message").text = "duplicate"
+            results.append(duplicate)
+            tree.write(path, encoding="utf-8")
+            details = []
+            outcomes = MODULE.parse_trx_test_outcomes(path, failed_results=details)
+            self.assertEqual(2, outcomes["Failed"]["Probe.Tests.Case"])
+            self.assertEqual(2, len(details))
+            console = io.StringIO()
+            with (
+                redirect_stdout(console),
+                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}),
+            ):
+                MODULE.report_ci_test_failure_details(
+                    "aggregate",
+                    [("First", "attempt-1", path), ("Second", "attempt-1", path)],
+                )
+            self.assertEqual(
+                2, console.getvalue().count("::notice title=Failed test::")
+            )
+            self.assertIn("First Probe.Tests.Case", console.getvalue())
+            self.assertIn("Second Probe.Tests.Case", console.getvalue())
+            self.assertNotIn("duplicate", console.getvalue())
+
+    def test_flaky_warning_keeps_existing_workflow_escaping(self):
+        console = io.StringIO()
+        with (
+            redirect_stdout(console),
+            patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}),
+        ):
+            MODULE.report_ci_flaky_tests(
+                "shard core",
+                [
+                    {
+                        "project": "Project%\r\n::error::data",
+                        "fullyQualifiedName": "Probe.Tests.Case",
+                    }
+                ],
+            )
+        self.assertTrue(
+            console.getvalue().startswith(
+                "::warning title=Flaky test::Project%25%0D%0A::error::data Probe.Tests.Case\n"
+            )
+        )
+
+
 class CiDotnetRetryTests(unittest.TestCase):
     @contextmanager
     def shard(self, scenario, *, bug_text="Probe.Tests.Case1"):
@@ -194,6 +455,16 @@ class CiDotnetRetryTests(unittest.TestCase):
                         tree.findall(".//{*}UnitTestResult")
                     ):
                         identity = identities[index]
+                        output = MODULE.ET.SubElement(result, ns + "Output")
+                        info = MODULE.ET.SubElement(output, ns + "ErrorInfo")
+                        MODULE.ET.SubElement(info, ns + "Message").text = (
+                            f"attempt-{2 if retry else 1} failure for {identity}"
+                            if result.get("outcome") == "Failed"
+                            else "DO NOT REPORT PASSED"
+                        )
+                        MODULE.ET.SubElement(
+                            info, ns + "StackTrace"
+                        ).text = "at Probe.Tests.Run()\n at Runner.Main()"
                         result.set("testId", str(index))
                         definition = MODULE.ET.SubElement(
                             definitions, ns + "UnitTest", id=str(index), name=identity
@@ -261,7 +532,8 @@ class CiDotnetRetryTests(unittest.TestCase):
             ):
                 stack.enter_context(patch.object(MODULE, name))
             stack.enter_context(patch.object(MODULE, "run", side_effect=fake_run))
-            stack.enter_context(redirect_stdout(io.StringIO()))
+            console = io.StringIO()
+            stack.enter_context(redirect_stdout(console))
             if scenario in {"budget", "budget-at-limit"}:
                 stack.enter_context(
                     patch.object(
@@ -288,14 +560,16 @@ class CiDotnetRetryTests(unittest.TestCase):
             manifest = json.loads(
                 (root / "upload/shards/core/manifest.json").read_text(encoding="utf-8")
             )
+            (root / "job.log").write_text(console.getvalue(), encoding="utf-8")
             yield root, project, commands, attempts, manifest, error
 
     def test_first_pass_does_not_retry(self):
-        with self.shard("green") as (_, _, _, attempts, manifest, error):
+        with self.shard("green") as (root, _, _, attempts, manifest, error):
             self.assertIsNone(error)
             self.assertEqual(1, len(attempts))
             self.assertTrue(manifest["success"])
             self.assertEqual([], manifest["flakyTests"])
+            self.assertNotIn("Failed test", (root / "job.log").read_text())
 
     def test_failed_tests_only_retry_once_and_preserve_both_attempts(self):
         with self.shard("recover") as (
@@ -338,13 +612,23 @@ class CiDotnetRetryTests(unittest.TestCase):
             summary = (root / "summary.md").read_text(encoding="utf-8")
             self.assertIn("Probe.Tests.Case1", summary)
             self.assertIn("bug record", summary)
+            for output in (summary, (root / "job.log").read_text()):
+                self.assertIn("attempt-1 failure for Probe.Tests.Case1", output)
+                self.assertIn("at Probe.Tests.Run()", output)
+                self.assertNotIn("DO NOT REPORT PASSED", output)
 
     def test_second_failure_fails_without_a_third_attempt(self):
-        with self.shard("twice") as (_, _, _, attempts, manifest, error):
+        with self.shard("twice") as (root, _, _, attempts, manifest, error):
             self.assertIsNotNone(error)
             self.assertEqual(2, len(attempts))
             self.assertFalse(manifest["success"])
             self.assertEqual([], manifest["flakyTests"])
+            for output in (
+                (root / "summary.md").read_text(), (root / "job.log").read_text()
+            ):
+                self.assertIn("attempt-1 failure for Probe.Tests.Case1", output)
+                self.assertIn("attempt-2 failure for Probe.Tests.Case1", output)
+                self.assertIn("at Runner.Main()", output.replace("%0A", "\n"))
 
     def test_recovered_method_is_recorded_even_when_another_method_fails_twice(self):
         with self.shard("partial-recovery") as (
@@ -789,6 +1073,14 @@ class CiDotnetRetryTests(unittest.TestCase):
             self.assertIn("Probe.Tests.Case1", console.getvalue())
             self.assertIn("bug record", console.getvalue())
             self.assertIn("GoldenRegression 3/3", console.getvalue())
+            self.assertIn("attempt-1 failure for Probe.Tests.Case1", console.getvalue())
+            self.assertIn("at Probe.Tests.Run()", console.getvalue())
+            self.assertIn("aggregate", (root / "summary.md").read_text())
+            # Details use the separate notice quota; original Flaky test warning
+            # annotations remain visible to the release zero-flaky evidence gate.
+            self.assertIn("::notice title=Failed test::", console.getvalue())
+            self.assertEqual(1, console.getvalue().count("::warning"))
+            self.assertIn("::warning title=Flaky test::", console.getvalue())
             # Editing only the manifest must not erase evidence of a recovered failure.
             manifest["flakyTests"] = []
             fixture.write_ci_manifest(artifact / "shards/core/manifest.json", manifest)
@@ -820,6 +1112,87 @@ class CiDotnetRetryTests(unittest.TestCase):
             coverage.assert_not_called()
             self.assertIn("Probe.Tests.Case1", console.getvalue())
             self.assertIn("unverified", console.getvalue())
+            self.assertIn("attempt-1 failure for Probe.Tests.Case1", console.getvalue())
+
+    def test_failed_aggregate_prints_both_attempts_without_changing_producer_failure(
+        self,
+    ):
+        with self.shard("twice") as (root, _, _, _, _, error):
+            self.assertIsNotNone(error)
+            fixture = fixtures.VerifyOrchestrationTests()
+            downloads = root / "downloads"
+            fixture.stage_complete_ci_dotnet_evidence(
+                downloads, "a" * 40, owners=("build",)
+            )
+            shutil.copytree(
+                root / "upload", fixture.ci_artifact_root(downloads, "core")
+            )
+            console = io.StringIO()
+            summary = root / "aggregate-summary.md"
+            with (
+                patch.dict(
+                    os.environ,
+                    {
+                        "NFC_CI_DOTNET_TEST_RESULT": "failure",
+                        "GITHUB_STEP_SUMMARY": str(summary),
+                    },
+                ),
+                redirect_stdout(console),
+                self.assertRaisesRegex(RuntimeError, "test producer failed: failure"),
+                patch.object(MODULE, "verify_coverage") as coverage,
+            ):
+                MODULE.finalize_ci_dotnet_evidence(downloads)
+            coverage.assert_not_called()
+            for output in (console.getvalue(), summary.read_text()):
+                self.assertIn("attempt-1 failure for Probe.Tests.Case1", output)
+                self.assertIn("attempt-2 failure for Probe.Tests.Case1", output)
+                self.assertIn("at Probe.Tests.Run()", output)
+
+    def test_failed_aggregate_without_readable_trx_keeps_identity_only_report(self):
+        for case in ("missing", "invalid"):
+            with (
+                self.subTest(case=case),
+                self.shard("recover") as (root, project, _, _, _, _),
+            ):
+                fixture = fixtures.VerifyOrchestrationTests()
+                downloads = root / "downloads"
+                fixture.stage_complete_ci_dotnet_evidence(
+                    downloads, "a" * 40, owners=("build",)
+                )
+                artifact = fixture.ci_artifact_root(downloads, "core")
+                shutil.copytree(root / "upload", artifact)
+                first = (
+                    artifact
+                    / f"shards/core/results/{project.name}/attempt-1/test-results.trx"
+                )
+                if case == "missing":
+                    first.unlink()
+                else:
+                    first.write_text("<broken", encoding="utf-8")
+                console = io.StringIO()
+                summary = root / "aggregate-summary.md"
+                with (
+                    patch.dict(
+                        os.environ,
+                        {
+                            "NFC_CI_DOTNET_TEST_RESULT": "failure",
+                            "GITHUB_STEP_SUMMARY": str(summary),
+                        },
+                    ),
+                    redirect_stdout(console),
+                    self.assertRaisesRegex(
+                        RuntimeError, "test producer failed: failure"
+                    ),
+                    patch.object(MODULE, "verify_coverage") as coverage,
+                ):
+                    MODULE.finalize_ci_dotnet_evidence(downloads)
+                coverage.assert_not_called()
+                for output in (console.getvalue(), summary.read_text()):
+                    self.assertIn("Probe.Tests.Case1", output)
+                    self.assertIn("bug record", output)
+                    self.assertNotIn("failed test details", output)
+                    self.assertNotIn("attempt-1 failure", output)
+                    self.assertNotIn("DO NOT REPORT PASSED", output)
 
 
 if __name__ == "__main__":
