@@ -2,11 +2,14 @@ name: authority
 
 # ADR 0080 (G1-A): the `governance / authority` pull request check. It runs on
 # every pull request, draft included, and on description edits, because the
-# declared risk, roles and evidence live in the description. It ends in success
+# declared risk, roles and evidence live in the description. Review submission,
+# edit and dismissal also start a run (decisions 225 W1 and 233). It ends in success
 # or failure only: one job, no `if:`, no path filter, no `continue-on-error`.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, edited]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
 
 permissions:
   contents: read
