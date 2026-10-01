@@ -64,8 +64,12 @@ Earlier dated checkpoints below remain history, not open release gates.
   non-colour cue in the High Contrast acceptance, and the hideable inspection panel.
 - **`1.2.11`** (decision 181): the CI core-shard H2, diagnostic evidence from a real CI
   failure.
-- **`1.2.6`** (decision 218, 2026-10-01): the managed-start residual windows N1-N4 are
-  fixed with C01-2 and R05-02.
+- **`1.2.6`** (decisions 218, 231, 232 and 234, 2026-10-01): the managed-start residual windows
+  N1-N4 are fixed with C01-2 and R05-02; the health result gains a typed reason; no delta update
+  (R04-02 not built); version management moves into the Launcher, which starts the default version
+  and lists installed and available versions, opens that list without starting the application
+  and automatically after repeated start failures or crashes (offering the last known good
+  version), and updates keep every value the user set (R55, accepted in `1.2.13`).
 - **`1.2.12`** (decisions 189 and 219, 2026-10-01): a native first-readable measurement
   of Memory Layout card opening; no card-opening work before it.
 - **`1.3.0`** (decisions 223 and 224, 2026-10-01): the user release of the `1.2.x` line, as
