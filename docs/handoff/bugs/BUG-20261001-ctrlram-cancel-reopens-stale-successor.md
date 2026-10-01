@@ -1,7 +1,6 @@
 # BUG-20261001-ctrlram-cancel-reopens-stale-successor: Cancel during the CtrlRAM Build Settings readiness wait reopens the confirmation, and its Build writes the cancelled firmware version
 
-Status: fixed on `feature/1.2.1/ctrlram-cancel-reopen` (commit `1427142d2`, R56); closes when that branch merges
-into `1.2.x`
+Status: fixed on `feature/1.2.1/ctrlram-cancel-reopen` (R56, PR #507); closes when that branch merges into `1.2.x`
 Severity: P2 confirmed (R12-02 F02). The released CtrlRAM Replace workflows (Standard and AB) reach it. The output's
 Backup (or AB B-bank) FirmwareVersion/FirmwareSubVersion bytes differ from what the confirmation shows, without a
 warning. It needs Cancel to land inside the readiness wait and a second Confirm.
@@ -39,13 +38,22 @@ Fix: `1.2.1` R56 (decision 242), split out of R39 B13 (`1.2.7`). It changes the 
 R3 firmware-semantic gate (firmware-owner review, byte evidence, write-range audit), with these tests turned into
 regression tests that assert the expected behavior.
 Resolution (R56, decision 242): the CtrlRAM Confirm begins its output preparation before the readiness wait, and
-only a still-current preparation may open the confirmation; when a Cancel invalidates it while it still owns the shared
-session, the previous draft is restored through the existing transition (the publication is invalidated if that
-fails), and a newer session is never replaced. The same restore removes the cancelled version a Cancel during the
-naming wait used to leave in the draft. Implementation Codex `gpt-6.1-sol`, integration and review Claude Code
-commander. Evidence (`evidence/1.2.1/R56-runs/`, test-area relative): the 11 regression tests (Standard and AB, loose
-and bundle, Keep and Edit after the Cancel, naming control) passed 11/11 in each of 3 runs and failed 11/11 on the
-unfixed `6f2e2cfa2`; the CtrlRAM, Replace, OutputDelivery and shared-confirmation scope passed 808/808; the
-Presentation project built with warnings as errors. Write ranges, mappings, CRC/Header processing, order, length and
-naming are unchanged; only which version reaches the existing write plan changes.
+only a still-current preparation may open the confirmation. The independent review of the first fix (Codex
+`gpt-6-astra`, reject, P1 admission evidence, two P2) found that restoring the cancelled version only when the old
+continuation resumed left two interleavings: a Cancel during the naming wait followed by a new Build Settings let the
+late restore invalidate the new dialog's lease (its Confirm was refused), and on AB a bank switch after the Cancel
+could copy the cancelled B version into the new bank's session. The fix now restores at the moment the preparation is
+invalidated (`OutputDeliveryConfirmationViewModel.BeginPreparation` runs the previous preparation's invalidation
+callback on Cancel, a new preparation or Open; the CtrlRAM dialog's close and context invalidation trigger it),
+synchronously, while the cancelled preparation still owns the shared session, through the existing
+`TransitionFirmwareVersionCompilation` (the publication is invalidated if that fails); a newer session is never
+replaced, an opened confirmation releases the callback, and the old continuation no longer restores or reopens.
+Implementation Codex `gpt-6.1-sol`, integration and review Claude Code commander. Evidence
+(`evidence/1.2.1/R56-runs-v2/`, test-area relative): 15 regression tests passed 15/15 in each of 3 runs (8 compare the
+written version bytes, 2 check that nothing is written, 1 checks the naming-cancel restore, 4 cover the two
+interleavings; the AB A-bank check compares FWConfig metadata, not all A-bank bytes); the 4 interleaving tests fail on
+the first fix `be5f79c9e` and the first 11 fail on the unfixed `6f2e2cfa2` (`evidence/1.2.1/R56-runs/red.log`); the
+related scope passed 812/812; the Presentation project built with warnings as errors. Write ranges, mappings,
+CRC/Header processing, order, length and naming are unchanged; only which version reaches the existing write plan
+changes.
 Owner: Claude Code commander (R56).

@@ -6,6 +6,8 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed partial class ReplacePresentationViewModel
 {
+    private Action? _restoreCtrlRamBuildPreparation;
+
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     public string ReplaceReadinessStatus => !HasSelectedIc
@@ -57,6 +59,11 @@ internal sealed partial class ReplacePresentationViewModel
         {
             return false;
         }
+        if (exactSession is not null)
+        {
+            // The exact successor takes ownership before Open invalidates its preparation.
+            _restoreCtrlRamBuildPreparation = null;
+        }
         CloseSelectionForRun();
         _stateBindings.OutputDelivery.Open(new OutputDeliveryRequest(
             proposal,
@@ -106,7 +113,7 @@ internal sealed partial class ReplacePresentationViewModel
     internal async Task<bool> RequestCtrlRamBuildOutputDeliveryAsync(
         CtrlRamAuthoringDraftState? edit)
     {
-        long preparation = _stateBindings.OutputDelivery.BeginPreparation();
+        long preparation = _stateBindings.OutputDelivery.BeginPreparation(RestoreCancelledCtrlRamBuildPreparation);
         if (!IsCtrlRamReplaceModeSelected ||
             !await IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync() ||
             !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
@@ -115,18 +122,42 @@ internal sealed partial class ReplacePresentationViewModel
         }
 
         CtrlRamAuthoringDraftState? previousDraft = CurrentCtrlRamDraft;
+        string icId = SelectedIc;
+        string number = SelectedNumber;
+        IReadOnlyDictionary<string, string> slotPaths = CreateReplaceSlotPaths();
         CtrlRamAuthoringTransitionResult transition =
             _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
                 _ctrlRamReplaceSession,
-                SelectedIc,
-                SelectedNumber,
-                CreateReplaceSlotPaths(),
+                icId,
+                number,
+                slotPaths,
                 edit);
         if (!transition.Succeeded || transition.Session is null)
         {
             return false;
         }
 
+        _restoreCtrlRamBuildPreparation = () =>
+        {
+            // Restore synchronously at invalidation, while the preparation still owns
+            // the session. A newer authoring session must never be replaced.
+            if (ReferenceEquals(transition.Session, _ctrlRamReplaceSession.CurrentSnapshot))
+            {
+                CtrlRamAuthoringTransitionResult restored =
+                    _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
+                        _ctrlRamReplaceSession,
+                        icId,
+                        number,
+                        slotPaths,
+                        previousDraft);
+                if (!restored.Succeeded || restored.Session is null)
+                {
+                    _ctrlRamReplaceSession.InvalidateCanonicalPublication();
+                }
+                CurrentCtrlRamDraft = previousDraft;
+                _ = RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
+            }
+        };
         CurrentCtrlRamDraft = transition.Session.DraftState as CtrlRamAuthoringDraftState;
         await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
         if (_stateBindings.OutputDelivery.IsPreparationCurrent(preparation) &&
@@ -136,28 +167,22 @@ internal sealed partial class ReplacePresentationViewModel
             CloseCtrlRamFirmwareVersionModal();
             return true;
         }
-        if (!_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
-        {
-            // Readiness belongs to the edited compilation. Roll back only while this
-            // cancelled preparation still owns it; never replace a newer authoring session.
-            if (ReferenceEquals(transition.Session, _ctrlRamReplaceSession.CurrentSnapshot))
-            {
-                CtrlRamAuthoringTransitionResult restored =
-                    _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
-                        _ctrlRamReplaceSession,
-                        SelectedIc,
-                        SelectedNumber,
-                        CreateReplaceSlotPaths(),
-                        previousDraft);
-                if (!restored.Succeeded || restored.Session is null)
-                {
-                    _ctrlRamReplaceSession.InvalidateCanonicalPublication();
-                }
-                CurrentCtrlRamDraft = previousDraft;
-                await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
-            }
-        }
         return false;
+    }
+
+    private void RestoreCancelledCtrlRamBuildPreparation()
+    {
+        Action? restore = _restoreCtrlRamBuildPreparation;
+        _restoreCtrlRamBuildPreparation = null;
+        restore?.Invoke();
+    }
+
+    private void InvalidatePendingCtrlRamBuildPreparation()
+    {
+        if (_restoreCtrlRamBuildPreparation is not null)
+        {
+            _ = _stateBindings.OutputDelivery.BeginPreparation();
+        }
     }
 
     private Task PreviewReplaceAsync()

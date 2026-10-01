@@ -13,7 +13,8 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>
 /// R56 regressions for R12-02 H2/F02: Cancel invalidates a pending CtrlRAM Confirm,
-/// including its readiness wait, without retaining the cancelled firmware-version draft.
+/// restores its draft, and guards later confirmations and bank switches. Output checks
+/// compare FWConfig version metadata; they do not establish complete-image byte parity.
 /// </summary>
 /// <param name="fixture">The group-local Bootstrap graph.</param>
 public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixture)
@@ -63,8 +64,7 @@ public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixtur
     }
 
     /// <summary>
-    /// H2(a) control: Cancel during the successor naming/hashing await is already guarded by the
-    /// captured generation (<c>Execution.cs:49</c>/<c>:55</c>) and does not reopen.
+    /// Cancel during successor naming refuses the old confirmation and restores the draft.
     /// </summary>
     [Fact]
     public async Task R12H2aCancelDuringNamingDoesNotReopen()
@@ -91,6 +91,160 @@ public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixtur
         Assert.Empty(harness.Execution.Requests);
         Assert.Equal(previousDraft, viewModel.Replace.CurrentCtrlRamDraft);
         Assert.Equal(previousDraft, Assert.IsType<ActiveSessionSnapshot>(harness.Readiness.LastSession).DraftState);
+    }
+
+    /// <summary>
+    /// A modal reopened while cancelled naming is held keeps its lease and writes its Keep/Edit choice.
+    /// </summary>
+    /// <param name="edit">Whether the new confirmation edits the version.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task R12H2NamingCancelReopenBeforeReleaseKeepsNewConfirmationCurrent(bool edit)
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using var workspace = TempWorkspace.Create($"r56-naming-reopen-{edit}");
+        Harness harness = CreateHarness();
+        MainWindowViewModel viewModel = harness.ViewModel;
+        PrepareStandardReady(viewModel, workspace);
+        string sourcePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
+        FirmwareConfigMetadataSnapshot source = Assert.IsType<FirmwareConfigMetadataSnapshot>(
+            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, "NT51926", sourcePath));
+        CtrlRamAuthoringDraftState? previousDraft = viewModel.Replace.CurrentCtrlRamDraft;
+        Assert.True(await viewModel.Replace.RequestCtrlRamBuildSettingsAsync());
+        viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
+        viewModel.Replace.CtrlRamFirmwareVersionText = "2A";
+        viewModel.Replace.CtrlRamFirmwareSubVersionText = "0C";
+
+        Task namingHeld = harness.Naming.Arm();
+        Task<bool> firstConfirm = viewModel.OutputDelivery.PrepareModeSpecificAsync();
+        await namingHeld.WaitAsync(Wait, cancellationToken);
+        viewModel.OutputDelivery.CancelCommand.Execute(null);
+        Assert.False(firstConfirm.IsCompleted);
+        Assert.Equal(previousDraft, viewModel.Replace.CurrentCtrlRamDraft);
+        ActiveSessionSnapshot restored = Assert.IsType<ActiveSessionSnapshot>(harness.Readiness.LastSession);
+        Assert.Equal(previousDraft, restored.DraftState);
+        Assert.Equal(2, harness.Readiness.VersionTransitions);
+        Assert.True(await viewModel.Replace.RequestCtrlRamBuildSettingsAsync());
+        if (edit)
+        {
+            viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
+            viewModel.Replace.CtrlRamFirmwareVersionText = "33";
+            viewModel.Replace.CtrlRamFirmwareSubVersionText = "44";
+        }
+        else
+        {
+            viewModel.Replace.SelectCtrlRamFirmwareVersionPreserveCommand.Execute(null);
+        }
+        long newPreparation = viewModel.OutputDelivery.PreparationGeneration;
+        harness.Naming.Release();
+
+        Assert.False(await firstConfirm.WaitAsync(Wait, cancellationToken));
+        Assert.Equal(2, harness.Readiness.VersionTransitions);
+        Assert.Same(restored, harness.Readiness.LastSession);
+        Assert.Equal(newPreparation, viewModel.OutputDelivery.PreparationGeneration);
+        Assert.True(viewModel.OutputDelivery.IsOpen);
+        Assert.True(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.True(viewModel.Replace.CanConfirmCtrlRamFirmwareVersion);
+        Assert.Equal(edit, viewModel.Replace.IsCtrlRamFirmwareVersionEditSelected);
+        Assert.Empty(harness.Execution.Requests);
+
+        string outputPath = await ConfirmAsync(viewModel, workspace, bundle: false);
+        AcceptedCompositionExecutionRequest executed = Assert.Single(harness.Execution.Requests);
+        Assert.Equal(edit ? new CtrlRamFirmwareVersionDraftState(0x33, 0x44) : null,
+            executed.AcceptedSession.DraftState);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        FirmwareConfigMetadataSnapshot output = Assert.IsType<FirmwareConfigMetadataSnapshot>(
+            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, "NT51926", outputPath));
+        Assert.Equal(edit ? 0x33 : source.FirmwareVersion, output.FirmwareVersion);
+        Assert.Equal(edit ? 0x44 : source.FirmwareSubVersion, output.FirmwareSubVersion);
+        Assert.Equal(edit ? 0xCC : source.FirmwareVersionBar, output.FirmwareVersionBar);
+        Assert.False(viewModel.OutputDelivery.IsOpen);
+    }
+
+    /// <summary>
+    /// A bank switch before cancelled readiness resumes keeps the old B-version in Preview's
+    /// accepted draft; the next Build's B-bank FWConfig metadata follows its new Keep/Edit choice.
+    /// </summary>
+    /// <param name="edit">Whether the next Build edits the B-version.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task R12H2AbCancelSwitchBankBeforeReleaseDoesNotCarryCancelledVersion(bool edit)
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        using var workspace = TempWorkspace.Create($"r56-ab-bank-switch-{edit}");
+        Harness harness = CreateHarness();
+        MainWindowViewModel viewModel = harness.ViewModel;
+        ConfigureAbCtrlRamPage(viewModel);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionSlotIds.ReplaceBase, AbCtrlRamReferencePath, cancellationToken);
+        await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.Both);
+        await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", AbCtrlRamNfPath, cancellationToken);
+        AbCtrlRamDraftState previousDraft = Assert.IsType<AbCtrlRamDraftState>(viewModel.Replace.CurrentCtrlRamDraft);
+        Assert.True(await viewModel.Replace.RequestCtrlRamBuildSettingsAsync());
+        CtrlRamFirmwareVersionEditorViewModel bankB = Assert.Single(
+            viewModel.Replace.AbCtrlRamVersionEditors, static editor => editor.BankId == "b-bank");
+        bankB.EditCommand.Execute(null);
+        bankB.VersionText = "34";
+        bankB.SubVersionText = "12";
+
+        Task readinessHeld = harness.Readiness.Arm();
+        Task<bool> firstConfirm = viewModel.OutputDelivery.PrepareModeSpecificAsync();
+        await readinessHeld.WaitAsync(Wait, cancellationToken);
+        viewModel.OutputDelivery.CancelCommand.Execute(null);
+        Assert.False(firstConfirm.IsCompleted);
+        Assert.Equal(previousDraft, viewModel.Replace.CurrentCtrlRamDraft);
+        Assert.Equal(previousDraft, Assert.IsType<ActiveSessionSnapshot>(harness.Readiness.LastSession).DraftState);
+        Assert.Equal(2, harness.Readiness.VersionTransitions);
+        await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.B);
+        var expectedDraft = new AbCtrlRamDraftState(AbCtrlRamBankSelection.B, previousDraft.AVersion, previousDraft.BVersion);
+        ActiveSessionSnapshot bankSession = Assert.IsType<ActiveSessionSnapshot>(harness.Readiness.LastSession);
+        Assert.Equal(expectedDraft, bankSession.DraftState);
+        harness.Readiness.Release();
+
+        Assert.False(await firstConfirm.WaitAsync(Wait, cancellationToken));
+        Assert.Equal(2, harness.Readiness.VersionTransitions);
+        Assert.Same(bankSession, harness.Readiness.LastSession);
+        Assert.Equal(expectedDraft, viewModel.Replace.CurrentCtrlRamDraft);
+        Assert.False(viewModel.OutputDelivery.IsOpen);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.Empty(harness.Execution.Requests);
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
+        AcceptedCompositionExecutionRequest preview = Assert.Single(harness.Execution.Requests);
+        Assert.Equal(expectedDraft, preview.AcceptedSession.DraftState);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.Empty(Directory.GetFiles(workspace.Root, "*.bin"));
+
+        Assert.True(await viewModel.Replace.RequestCtrlRamBuildSettingsAsync());
+        bankB = Assert.Single(viewModel.Replace.AbCtrlRamVersionEditors, static editor => editor.BankId == "b-bank");
+        if (edit)
+        {
+            bankB.EditCommand.Execute(null);
+            bankB.VersionText = "33";
+            bankB.SubVersionText = "44";
+        }
+        else
+        {
+            bankB.PreserveCommand.Execute(null);
+        }
+        string outputPath = await ConfirmAsync(viewModel, workspace, bundle: false);
+        Assert.Equal(2, harness.Execution.Requests.Count);
+        AbCtrlRamDraftState builtDraft = Assert.IsType<AbCtrlRamDraftState>(harness.Execution.Requests[1].AcceptedSession.DraftState);
+        Assert.Equal(expectedDraft.Banks, builtDraft.Banks);
+        Assert.Equal(expectedDraft.AVersion, builtDraft.AVersion);
+        Assert.Equal(edit ? new CtrlRamFirmwareVersionDraftState(0x33, 0x44) : previousDraft.BVersion, builtDraft.BVersion);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        byte[] reference = await File.ReadAllBytesAsync(AbCtrlRamReferencePath, cancellationToken);
+        byte[] actual = await File.ReadAllBytesAsync(outputPath, cancellationToken);
+        Assert.Equal(reference.Length, actual.Length);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference.AsSpan(0x40000, 0x40000), out FirmwareConfigMetadata before));
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(actual.AsSpan(0x40000, 0x40000), out FirmwareConfigMetadata after));
+        Assert.Equal(edit ? 0x33 : before.FirmwareVersion, after.FirmwareVersion);
+        Assert.Equal(edit ? 0x44 : before.FirmwareSubVersion, after.FirmwareSubVersion);
+        Assert.Equal(edit ? 0xCC : before.FirmwareVersionBar, after.FirmwareVersionBar);
+        Assert.False(viewModel.OutputDelivery.IsOpen);
     }
 
     /// <summary>
@@ -167,7 +321,8 @@ public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixtur
     }
 
     /// <summary>
-    /// After Cancel during readiness, a fresh AB confirmation writes only its new B-bank Keep/Edit choice.
+    /// After Cancel during readiness, a fresh AB confirmation writes its B-bank Keep/Edit choice.
+    /// The A-bank check compares FWConfig metadata, not all A-bank bytes.
     /// </summary>
     /// <param name="visibleChange">The B-bank version choice in the next Build Settings flow.</param>
     /// <param name="bundle">Whether the next Confirm requests bundle delivery.</param>
@@ -347,6 +502,7 @@ public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixtur
 
         internal ICtrlRamAuthoring Inner { get; set; } = null!;
         internal ActiveSessionSnapshot? LastSession { get; private set; }
+        internal int VersionTransitions { get; private set; }
 
         internal Task Arm()
         {
@@ -367,6 +523,10 @@ public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixtur
         {
             ArgumentNullException.ThrowIfNull(targetMethod);
             ArgumentNullException.ThrowIfNull(args);
+            if (targetMethod.Name == nameof(ICtrlRamAuthoring.TransitionFirmwareVersionCompilation))
+            {
+                VersionTransitions++;
+            }
             if (targetMethod.Name == nameof(ICtrlRamAuthoring.GetActionReadinessAsync))
             {
                 LastSession = (ActiveSessionSnapshot)args[3]!;

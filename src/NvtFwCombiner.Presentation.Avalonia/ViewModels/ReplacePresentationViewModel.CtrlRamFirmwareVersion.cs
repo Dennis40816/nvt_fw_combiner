@@ -88,6 +88,7 @@ internal sealed partial class ReplacePresentationViewModel
             return Task.FromCanceled<bool>(cancellationToken);
         }
 
+        InvalidatePendingCtrlRamBuildPreparation();
         ActiveSessionSnapshot? acceptedSession = _ctrlRamReplaceSession.CurrentSnapshot;
         if (!IsCtrlRamReplaceModeSelected || !CanRunReplace() || acceptedSession is null)
         {
@@ -221,6 +222,7 @@ internal sealed partial class ReplacePresentationViewModel
     /// <summary>Closes the CtrlRAM firmware-version confirmation without changing the source image.</summary>
     public void CloseCtrlRamFirmwareVersionModal()
     {
+        InvalidatePendingCtrlRamBuildPreparation();
         _ctrlRamFirmwareVersionModalLease = null;
         _ctrlRamFirmwareVersionAcceptedSession = null;
         _ctrlRamFirmwareVersionObservation = null;
@@ -256,6 +258,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private void InvalidateCtrlRamFirmwareVersionContext()
     {
+        InvalidatePendingCtrlRamBuildPreparation();
         _ = Interlocked.Increment(ref _ctrlRamFirmwareVersionContextGeneration);
         _ctrlRamFirmwareVersionModalLease = null;
         _ctrlRamFirmwareVersionAcceptedSession = null;
