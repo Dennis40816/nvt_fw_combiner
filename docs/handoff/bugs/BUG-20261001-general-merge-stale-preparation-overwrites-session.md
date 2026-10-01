@@ -1,7 +1,7 @@
 # BUG-20261001-general-merge-stale-preparation-overwrites-session: a superseded General Merge preparation can overwrite the accepted session, and Build then writes the stale mapping
 
-Status: test flake fixed on `feature/1.2.1/ctrlram-cancel-reopen` (commit `0930eb181`); the Application freshness gap
-(hypothesis B) stays open for the `1.2.4` General Merge reopening
+Status: open for the Application freshness gap (hypothesis B), a prerequisite of the `1.2.4` General Merge reopening;
+the test flake itself is fixed (#507, merge `de58ebaf3`, test-only; released in `v1.2.1`)
 Severity: P3 as a test flake. If either hypothesis below can occur on the desktop path, it is a latent P2: General Merge
 would write a mapping the screen no longer shows, without a warning. The released UI hides the General Merge entry
 and each CLI run uses its own session, so no released path is known to reach it; it blocks reopening the Customized

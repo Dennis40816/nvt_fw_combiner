@@ -9,6 +9,61 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 Later changes remain assigned by the canonical roadmap.
 
+## [1.2.1]
+
+### Summary
+
+1.2.1 is the inventory and direction version of the 1.2.x line (owner decision 175): it evaluated the remaining 1.2.x work with independent cross-reviews and recorded the owner's decisions; those reports and decisions plan later versions and change no product behavior. It carries one product fix:
+
+- **CtrlRAM Replace keeps the version you confirm:** a Cancel while Build Settings is still preparing no longer reopens the confirmation, and the next Build writes exactly the firmware version the confirmation shows (owner decision 242; see Product change 1).
+
+Users of 1.2.0 who never press Cancel during that short preparation see no change. Firmware output bytes, write ranges, order, CRC/Header behavior and naming are otherwise unchanged; 1.3.0 remains the user release of the 1.2.x line (owner decision 224).
+
+Internal and process changes:
+
+- Approval scope (R41; owner decisions 233, 244, 246, 247 and 248; ADR 0080 amended): only R3 pull requests (firmware semantics, release, signing and permissions, the governance rules, CI verdict owners and the agents' runtime permission files) need the owner's approval on the `*.*.x` trunks; other pull requests merge after an independent exact-head review record and green required CI. CODEOWNERS now lists exactly the R3 paths. The trunk ruleset requires zero general approvals and no last-push approval, and still requires code-owner review with stale approvals dismissed; `main` and release branches keep one required approval, so a release still needs the owner. A trial on `1.2.x` confirmed both sides: an R0 pull request merged without the owner's approval (#510), an R3 pull request stayed blocked until the owner approved it (#511).
+- The `governance / authority` check also runs when a review is submitted, edited or dismissed (decision 225 W1). A failing run from an earlier push still counts until the pull-request event runs again, so the commander still edits the description once after posting a record (decision 248); the fix is planned for 1.2.11.
+- The .NET CI report prints each failed or flaky test's first-attempt message and first stack lines in the job log and step summary (decision 243), bounded and escaped; no gate, retry or flaky rule changed.
+- `ci` runs on pushes to `main` and `1.2.x` only (decision 215; the retired `1.1.x` no longer triggers it).
+- The G0 `gh` wrapper used by the agents' GitHub App (eighth version) passes `gh` output as raw bytes, so Traditional Chinese text survives and cannot hide the token from redaction, and refuses `gh alias` and `gh extension`; the token helper checks its owner, repository and token forms more strictly.
+- The public Python Combiner source is pinned as the `third-party/nvt_combiner` submodule for a later behavior comparison (decision 187); it is not connected to a processor and is not in the release package, and the current Combiner remains in use.
+- Test fixes: the support-matrix Loading query test runs on a dedicated thread; the General Merge mapping test runs on a UI-thread context (a harness race, not a desktop defect); a stable-launcher handoff flake is recorded as an open bug.
+- The `ReplacePresentationViewModel` code-size hotspot baseline rose from 2,211 to 2,263 nonblank lines with owner approval (the Product change 1 fix).
+
+### Product changes
+
+#### 1. CtrlRAM Replace: a Cancel during Build Settings preparation no longer brings back the cancelled version
+
+- Before → After: In CtrlRAM Replace (Standard and AB), pressing Confirm in Build Settings starts a short preparation (a readiness wait, then output naming). A Cancel during the readiness wait used to close the dialog and then reopen it by itself, and a Build from the reopened dialog wrote the cancelled firmware version (the Standard Backup version, or the AB B-bank version) even when you then chose Keep or typed another version, without a warning; a Cancel during the naming wait did not reopen the dialog but left the cancelled version in the current draft. Now a Cancel at any point of the preparation invalidates that Confirm at once: the dialog stays closed, nothing is written, and the cancelled version leaves nothing behind, so a new Build Settings, an AB bank switch or the next Build starts from the version you had before (R12-02 F02; owner decisions 241 and 242).
+- Affected: CtrlRAM Replace Build Settings for Standard and AB references, including bundle delivery.
+- Support status: unchanged/support-neutral.
+- Compatibility: The version write plan, its ranges, mappings, CRC/Header processing, order, output length and naming rules are unchanged; only which version reaches the existing plan after a Cancel changes. A Confirm without a Cancel behaves as before. `ReplacePresentationViewModel.Execution.cs` and `ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs` now need the firmware owner's approval for later changes (owner decision 245).
+- Verification: 15 regression tests (8 compare the written version bytes with the confirmation's choice, 2 check that a Cancel writes nothing, 1 checks the restore after a Cancel during naming, 4 cover a new Build Settings and an AB bank switch right after a Cancel) passed in each of three runs; the first 11 fail on the unfixed code and the 4 interleaving tests fail on the first fix; the related UI scope passed 812/812. The independent firmware review rejected the first fix (two interleavings) and accepted the final head (#507).
+- Limitations: The tests hold the preparation open with gates; the real length of the preparation window was not measured. On AB the A-bank check compares the FWConfig metadata, not the whole A bank.
+
+### Security
+
+No new external executable, update endpoint, network surface or permission is introduced; the product fix changes no write path. The approval-scope change keeps code-owner review for every R3 path and stale-approval dismissal; the agents' runtime permission files became R3. The G0 wrapper's raw-byte redaction removes a case in which a code page could hide the token. Release admission still requires the owner's approval and the protected `release` environment approval.
+
+### Known issues
+
+- A Settings dialog closed by an IC-mismatch prompt while a Toolchain save runs leaves the saved configuration unloaded and the screen showing unsaved changes; with Event Buffer edits pending, the hidden draft or its confirmation survives until Escape. A fix is planned for 1.2.7.
+- The highlight of a selected small Memory Layout slice is hard to see and can overlap its neighbours; a redesign is planned for 1.2.9.
+- A superseded General Merge preparation can still replace a newer accepted session at the Application API when two calls share a session; no current caller does so (the desktop serializes preparations, each CLI run uses its own session). It must be fixed before the Customized Merge entry reopens in 1.2.4.
+- The stable-launcher handoff test failed once on CI (most likely a transient sharing violation on a freshly copied file; not proven); its record stays open.
+- The known issues listed for 1.2.0 remain (see 1.2.0).
+
+### Upgrade and rollback
+
+Extract the portable package into a separate directory and preserve existing settings and outputs. Keep the prior stable package for rollback.
+
+- From 1.2.0: only the CtrlRAM Build Settings Cancel behavior above changes; settings, saved sessions and saved rules are unaffected.
+- From an earlier version: the Upgrade and rollback text of 1.2.0 and every entry before it applies.
+
+### Downloads and integrity
+
+The Windows x64 portable package is `NvtFwCombiner-v1.2.1-win-x64.zip`. It is self-contained and carries the pre-built profile catalog. The coupled distribution Launcher is published as its separate five-asset set (EXE, manifest, SPDX, in-toto provenance and checksum). Publication requires exact-source protected CI, fresh execution of every applicable owner-certified Golden output case against this candidate, package and smoke checks and the owner's approvals; use the published checksums, SBOM and provenance to verify downloads.
+
 ## [1.2.0]
 
 ### Summary
