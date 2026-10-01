@@ -112,6 +112,8 @@ CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 4
 CI_SHARD_RETRY_BUDGET_SECONDS = 25 * 60
 CI_RETRY_REQUIRED_SECONDS = 5 * 60 + 2 * 60
 CI_RETRY_MAX_FQNS = 20
+CI_FAILURE_MESSAGE_MAX_CHARS = 1500
+CI_FAILURE_STACK_MAX_LINES = 15
 CI_HANG_SEQUENCE_MAX_BYTES = 1024 * 1024
 CI_DOTNET_ARTIFACT_ATTEMPT_SEPARATOR = "-attempt-"
 CI_FAILED_TEST_REPORT_LIMIT = 50
@@ -402,6 +404,15 @@ class CiDotnetProject:
     @property
     def name(self) -> str:
         return Path(self.relative_path).stem
+
+
+@dataclass(frozen=True)
+class TrxTestFailure:
+    """One resolved failed TRX result's error text, without captured test output."""
+
+    identity: str
+    message: str
+    stack_trace: str
 
 
 @dataclass(frozen=True)
@@ -3221,9 +3232,12 @@ def approved_platform_skip_identities(
 
 
 def parse_trx_test_outcomes(
-    path: Path, *, preserve_case_identity: bool = False,
+    path: Path,
+    *,
+    preserve_case_identity: bool = False,
+    failed_results: list[TrxTestFailure] | None = None,
 ) -> dict[str, Counter[str]]:
-    """Read terminal outcomes, optionally preserving resolved theory display identities."""
+    """Read outcomes and optionally carry failed ErrorInfo through the same identities."""
 
     try:
         document = ET.parse(path)
@@ -3253,7 +3267,16 @@ def parse_trx_test_outcomes(
                 )
             identity = candidates[0]
         method = canonical_vstest_identity(identity)
-        outcomes[outcome][identity if preserve_case_identity else method] += 1
+        resolved_identity = identity if preserve_case_identity else method
+        outcomes[outcome][resolved_identity] += 1
+        if outcome == "Failed" and failed_results is not None:
+            failed_results.append(
+                TrxTestFailure(
+                    resolved_identity,
+                    result.findtext("{*}Output/{*}ErrorInfo/{*}Message", default=""),
+                    result.findtext("{*}Output/{*}ErrorInfo/{*}StackTrace", default=""),
+                )
+            )
     return outcomes
 
 
@@ -5438,6 +5461,80 @@ def ci_report_line(text: str) -> str:
     return re.sub(r"[\x00-\x1f\x7f]", " ", text).replace("`", "'")
 
 
+def ci_workflow_command_data(text: str) -> str:
+    """Escape workflow-command data, including unverified producer diagnostics."""
+
+    return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def report_ci_test_failure_details(
+    label: str,
+    reports: Sequence[tuple[str, str, Path]],
+) -> None:
+    """Project bounded failed ErrorInfo from retained TRX; never decide a verdict.
+
+    Callers supply canonical regular files under existing evidence custody. A
+    missing/unreadable TRX adds no details and does not change its caller's gate.
+    Both attempts share the identity cap; duplicate results cannot multiply output.
+    """
+
+    failures: dict[tuple[str, str], dict[str, TrxTestFailure]] = {}
+    for project, attempt, trx in reports:
+        details: list[TrxTestFailure] = []
+        try:
+            parse_trx_test_outcomes(
+                trx, preserve_case_identity=True, failed_results=details
+            )
+        # LookupError: a TRX that declares an unknown XML encoding.
+        except (RuntimeError, OSError, ValueError, LookupError):
+            continue
+        for failure in details:
+            failures.setdefault((project, failure.identity), {}).setdefault(
+                attempt, failure
+            )
+    if not failures:
+        return
+    summary = [
+        f"### .NET CI {ci_report_line(label)}: failed test details",
+        "",
+        "```text",
+    ]
+    marker = "... [truncated]"
+    for (project, identity), attempts in list(failures.items())[:CI_RETRY_MAX_FQNS]:
+        for attempt, failure in attempts.items():
+            message = failure.message
+            if len(message) > CI_FAILURE_MESSAGE_MAX_CHARS:
+                message = message[: CI_FAILURE_MESSAGE_MAX_CHARS - len(marker)] + marker
+            stack_lines = failure.stack_trace.splitlines(keepends=True)
+            stack = "".join(stack_lines[:CI_FAILURE_STACK_MAX_LINES])
+            if len(stack_lines) > CI_FAILURE_STACK_MAX_LINES:
+                stack += marker
+            lines = [
+                f"{project} {identity} ({attempt})",
+                "Message:",
+                message or "(no message in TRX)",
+                "Stack trace:",
+                stack or "(no stack trace in TRX)",
+            ]
+            # Only this command carries raw TRX text into the log. In particular,
+            # a line beginning with :: stays data inside the escaped command.
+            # Notices do not consume the warning quota used by the release's
+            # existing Flaky test annotations, even in the early aggregate report.
+            data = ci_workflow_command_data("\n".join(lines))
+            write_console_text(f"::notice title=Failed test::{data}\n")
+            summary.extend(
+                ci_report_line(line) for line in "\n".join(lines).splitlines()
+            )
+            summary.append("")
+    omitted = len(failures) - CI_RETRY_MAX_FQNS
+    if omitted > 0:
+        note = f"... {omitted} more failed identities in the TRX [truncated]"
+        write_console_text(note + "\n")
+        summary.append(note)
+    summary.extend(["```", ""])
+    append_ci_step_summary("\n".join(summary))
+
+
 def report_ci_failed_tests(
     shard: str,
     artifact_name: str,
@@ -5445,8 +5542,9 @@ def report_ci_failed_tests(
 ) -> None:
     """Name failed tests and omitted evidence in the job log and step summary.
 
-    Only TRX test names and fixed omission reasons are printed, never TRX
-    messages, test output or raw exception text.
+    This inventory prints only TRX names and fixed omission reasons. Failed
+    ErrorInfo is projected separately by report_ci_test_failure_details; captured
+    test output and raw collection exception text are never printed here.
     """
 
     if not failed_projects:
@@ -5773,9 +5871,8 @@ def report_ci_flaky_tests(label: str, flaky: Sequence[dict[str, str]]) -> None:
     if not flaky:
         return
     for item in flaky:
-        # Escape workflow-command data even for unverified producer diagnostics.
         message = f"{item['project']} {item['fullyQualifiedName']}"
-        message = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+        message = ci_workflow_command_data(message)
         write_console_text(f"::warning title=Flaky test::{message}\n")
     lines = [
         f"### .NET CI {label}: flaky tests",
@@ -6118,6 +6215,16 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
         failed_projects,
     )
     report_ci_flaky_tests(f"shard {shard}", flaky_tests)
+    report_ci_test_failure_details(
+        f"shard {shard}",
+        [
+            (project.relative_path, attempt, trx)
+            for project in projects
+            for attempt in ("attempt-1", "attempt-2")
+            if (trx := results_root / project.name / attempt / "test-results.trx")
+            in evidence_paths
+        ],
+    )
     if fatal_failure is not None:
         raise fatal_failure
 
@@ -6311,6 +6418,24 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
                 for shard in CI_DOTNET_SHARDS
             },
         }
+
+        # Failed producers can omit project rows, but retain canonical attempt
+        # TRX in the downloaded artifact. Diagnostics never validate that evidence.
+        failure_reports: list[tuple[str, str, Path]] = []
+        for shard, projects in CI_DOTNET_SHARDS.items():
+            for project in projects:
+                for attempt in ("attempt-1", "attempt-2"):
+                    relative = (
+                        f"shards/{shard}/results/{project.name}/{attempt}/test-results.trx"
+                    )
+                    try:
+                        trx = resolve_ci_evidence_file(artifact_roots[shard], relative)
+                    except (RuntimeError, OSError, ValueError):
+                        continue
+                    failure_reports.append((project.relative_path, attempt, trx))
+        report_ci_test_failure_details(
+            "aggregate (producer evidence; unverified)", failure_reports
+        )
 
         if producer_failure is not None:
             # Diagnostics only: never treat producer declarations as a validated

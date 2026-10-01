@@ -1,5 +1,6 @@
-# R2/R3 path patterns from docs/governance/authority-policy.json.
-# Keep this set identical to the classifier; tests/scripts/test_authority_policy.py checks it.
+# R3 path patterns from docs/governance/authority-policy.json.
+# Only R3 requires owner approval (ADR 0080, decision 233).
+# Keep this projection identical to the policy R3 set; authority policy tests enforce it.
 # firmware (R3)
 /profiles/** @Dennis40816
 /testdata/** @Dennis40816
@@ -19,6 +20,8 @@
 /src/NvtFwCombiner.Infrastructure/FlashMaps/** @Dennis40816
 /src/NvtFwCombiner.Infrastructure/Metadata/** @Dennis40816
 /src/NvtFwCombiner.Infrastructure/Capabilities/** @Dennis40816
+/src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs @Dennis40816
+/src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs @Dennis40816
 # contracts (R3)
 /docs/contracts/** @Dennis40816
 # external-tools (R3)
@@ -68,6 +71,11 @@
 /.github/workflows/authority.yml @Dennis40816
 /.github/CODEOWNERS @Dennis40816
 /AGENTS.md @Dennis40816
+/docs/adr/0080-governance-reset.md @Dennis40816
+/docs/governance/agent-issue-tracker.md @Dennis40816
+/docs/governance/agent-skill-routing.md @Dennis40816
+/.github/pull_request_template.md @Dennis40816
+/docs/handoff/1.1.13/G0-owner-checklist.md @Dennis40816
 /docs/governance/development-execution-workflow.md @Dennis40816
 /docs/governance/branch-version-and-release-governance.md @Dennis40816
 /docs/policies/** @Dennis40816
@@ -77,34 +85,18 @@
 /docs/governance/trusted-initial-capability-checkpoint.v1.json @Dennis40816
 /docs/governance/frozen-evidence-pins.json @Dennis40816
 /docs/handoff/**/g0-scripts/** @Dennis40816
-# agent-instructions (R2)
-/.agents/** @Dennis40816
-/.codex/** @Dennis40816
-/.claude/** @Dennis40816
-/**/AGENTS.md @Dennis40816
-# decisions-and-specifications (R2)
-/docs/governance/** @Dennis40816
-/docs/adr/** @Dennis40816
-/docs/specs/** @Dennis40816
-/SPEC.md @Dennis40816
-/docs/architecture/experience-and-access-policy.md @Dennis40816
-/docs/architecture/nfc_roadmap.md @Dennis40816
-/docs/architecture/supported-ic-matrix.md @Dennis40816
-/docs/architecture/ic-workflow-flowcharts.md @Dennis40816
-# repository-tooling (R2)
-/.github/** @Dennis40816
-/scripts/** @Dennis40816
-/tests/scripts/** @Dennis40816
-/eng/** @Dennis40816
-/third-party/** @Dennis40816
-# repository-configuration (R2)
-/CONTRIBUTING.md @Dennis40816
-/SECURITY.md @Dennis40816
-/**/Directory.Build.* @Dennis40816
-/**/Directory.Packages.props @Dennis40816
-/global.json @Dennis40816
-/**/NuGet.config @Dennis40816
-/*.slnx @Dennis40816
-/**/.gitattributes @Dennis40816
-/**/.gitignore @Dennis40816
-/**/.editorconfig @Dennis40816
+# ci-verdict-authority (R3)
+/scripts/verify.py @Dennis40816
+/scripts/validate_repository.py @Dennis40816
+/scripts/polytail_check.py @Dennis40816
+/scripts/code_size_policy.py @Dennis40816
+/scripts/coverage_configuration_policy.py @Dennis40816
+/scripts/coverage_policy.py @Dennis40816
+/scripts/repository_contract_validation.py @Dennis40816
+/scripts/skill_metadata_validation.py @Dennis40816
+/scripts/sync_derived.py @Dennis40816
+# agent-runtime-permissions (R3)
+/.codex/config.toml @Dennis40816
+/.codex/agents/** @Dennis40816
+/.claude/settings.json @Dennis40816
+/.claude/settings.local.json @Dennis40816

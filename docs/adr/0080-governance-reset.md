@@ -12,7 +12,7 @@
   direction after G1-A's fixed-head review, 2026-09-27) differ from the
   accepted draft.
 - Date: 2026-09-26; revised 2026-09-27; accepted 2026-09-27;
-  amended 2026-09-29 (board decision 165).
+  amended 2026-09-29 (board decision 165) and 2026-10-01 (decisions 225 W1 and 233).
 - Owners (board decision 102, three roles recorded separately, today all held
   by the repository owner): the **governance owner** (governance rules,
   permissions, approval policy), the **firmware owner** and the **release
@@ -75,6 +75,9 @@
 
 ## Amendment: R0/R1 pull request merges (2026-09-29, decisions 165 and 172)
 
+Historical amendment: its R2 ownership and target exclusions are superseded by
+the 2026-10-01 amendment below; its recorded trial and acceptance remain history.
+
 Board decision 165 adopts the approval split proposed by decision 158 for
 1.1.14, and board decision 172 implements it through CODEOWNERS. This amendment supersedes the earlier all-path CODEOWNERS default and
 the all-risk owner-approval and review-record wording in items 4, 6, 7 and 8
@@ -124,6 +127,89 @@ branch rulesets are outside this amendment.
   record immediately before merge. GitHub's effective behavior with zero
   required approvals plus last-push approval is verified by two trial pull
   requests before relying on this split.
+
+## Amendment: only R3 needs owner approval (2026-10-01, decisions 225 W1 and 233)
+
+The owner's [decisions 225 W1 and 233](../handoff/1.2.x.md) define decision
+210's "major change" as R3 authority. This amendment supersedes the R2
+ownership/approval parts of decisions 165 and 172 and their blanket exclusion
+of `main` and release branches. It becomes effective separately for each
+protected target after the target's base contains the amended policy,
+CODEOWNERS, checker and workflow, and the owner completes the trial and reads
+back its effective rulesets. Targets not yet switched retain their existing
+protections; repository templates do not prove a live cutover.
+
+- CODEOWNERS projects exactly the policy's R3 patterns to `@Dennis40816`.
+  R2 entries retain their floors and empty roles, architecture/contract review,
+  relevant tests, scoped Polytail and independent exact-head review records.
+  R0–R2 merge through auto-merge after those gates and green required CI,
+  without owner approval. Any required or declared role escalates to R3.
+- The governance R3 closed set additionally protects this ADR, the issue
+  mutation and skill-routing authorities, the PR admission template and the
+  G0 owner checklist. The CI verdict entry explicitly lists `verify.py`,
+  `validate_repository.py`, `polytail_check.py`, `code_size_policy.py`,
+  `coverage_configuration_policy.py`, `coverage_policy.py`,
+  `repository_contract_validation.py`, `skill_metadata_validation.py` and
+  `sync_derived.py` (including the validator's function-local import).
+  Existing firmware/release dependencies keep their existing R3 roles;
+  ordinary tooling remains R2. Policy/tests own the exact path set.
+- Agent runtime permission and sandbox files (`.codex/config.toml`,
+  `.codex/agents/**`, `.claude/settings.json`, `.claude/settings.local.json`)
+  are R3 with the `governance-owner` role (owner decision 244); CI install
+  scripts (`scripts/install-dotnet.*`, `scripts/bootstrap.*`) remain R2 by
+  the same owner decision.
+- Ownership is required only for R3, using case-sensitive matches on confirmed
+  GitHub changed destinations. Classification still uses both rename/copy
+  ends and the stricter base/head authority. R3-only case-insensitive matches,
+  unclassified paths, and owned-source renames to unowned destinations remain
+  fail closed, even when another owned file changes. R2→R3 renames escalate.
+- W1 adds `pull_request_review` types `submitted`, `edited`, `dismissed` to
+  the existing `pull_request` triggers. Posting the COMMENT record starts the
+  authority run without editing the description. Both events use
+  `github.event.pull_request.number` and head checkout; the same required
+  context stays `governance / authority`. Permissions remain read-only,
+  no secrets, no persisted credentials, no `pull_request_target`, no condition
+  or path filter. An owner's APPROVED review never replaces the COMMENT record.
+- The three branch templates set `required_approving_review_count: 0` and keep
+  code-owner review, stale dismissal and last-push approval true; RS-4 and the
+  `release` environment remain protected. The owner first trials R1/R2 merges
+  without approving reviews and R3 blocking/approval, W1 edits/dismissals and
+  new-head invalidation, with no bypass. If last-push approval still requires
+  an approval for R0–R2, stop: changing it to false needs a new explicit owner
+  decision and a stated reduction of M2's native guarantee.
+- Cutover result (2026-10-01, board decisions 246-248): the trial on the trunk
+  ruleset showed that last-push approval true still requires an approval from
+  someone other than the last pusher for every pull request ("New changes
+  require approval from someone other than the last pusher"). The owner set it
+  to false on the trunk ruleset only (decision 247). M2's native guarantee is
+  reduced accordingly: R3 still needs a code owner's approval and a
+  diff-changing push still dismisses it, but a push that does not change the
+  diff no longer needs a new approval, and the platform no longer checks that
+  the approver is not the last pusher (the App pushes; the owner approves).
+  `main` and release branches keep one approval and last-push approval true.
+  The trial then merged an R0 pull request without an approving review (#510)
+  and kept an R3 pull request blocked until the owner approved it (#511). W1
+  reruns the check on review submission, edit and dismissal, but a failing
+  `pull_request`-event run from before the record still counts as the required
+  context; until a fix (planned for `1.2.11`), the commander edits the
+  description once after posting a record (decision 248).
+- Existing rulesets are updated only by confirmed ID using the live backup;
+  only the four approval fields change. Live checks/integration IDs, scope,
+  bypass and other rules are preserved. Restore writes the exact saved before
+  body for each updated ID. See [C1a trial/apply/rollback and new hashes](../handoff/1.1.13/G0-owner-checklist.md#c1a-r41-approval-scope-trial-apply-and-rollback-2026-10-01).
+- Pre-merge base-authority comparison and live exact-head record/check
+  verification remain. R3 also needs the owner's last-push approval naming
+  each role, evidence judgment and approval snapshot. Enable auto-merge with
+  `--auto --merge --match-head-commit <head>` after these checks; this guards
+  the head at the call, not future queued heads. Cancel auto-merge before a
+  push or authority/record/evidence edit, repeat verification, and re-enable
+  only after the new gates pass. Event delay, older base code and parallel
+  runs leave P1/P2/P9 procedural safeguards necessary.
+
+R41 delivery is local until commander review/CI, owner governance/release
+approval, Workflows permission handling and ruleset trial/cutover evidence are
+recorded. Historical G0/G1-A acceptance and earlier platform observations below
+are retained; they are not evidence for this new cutover.
 
 ## Context
 
@@ -428,7 +514,8 @@ failures or other release failures.
    | `docs/contracts/`: each file firmware, release or both; a file the map does not name individually gets both | R3 | firmware and/or release |
    | `external-tools/` (external processors and their packaged allowlist) | R3 | firmware, release |
    | `.github/workflows/`, `.github/actions/`, `VERSION`, `docs/ci/release-package.md`, the package inputs `CHANGELOG.md`, `LICENSE` and `THIRD_PARTY_NOTICES.md`, and the release scripts of the table below | R3 | release |
-   | Approval authority: the authority policy file and its schema, the authority checker, every repository file it imports or reads to reach its verdict (G1-A lists them, and a test proves the list against the checker's imports), its tests, the authority workflow (also release by its folder), `.github/CODEOWNERS`, root `AGENTS.md`, `docs/governance/development-execution-workflow.md`, `docs/governance/branch-version-and-release-governance.md`, `docs/policies/`, the frozen evidence paths and the pin file, and the G0 scripts and ruleset bodies (`docs/handoff/**/g0-scripts/`) | R3 | governance |
+   | Approval authority: the authority policy/schema, checker and its verdict dependencies/tests, authority workflow (also release by its folder), `.github/CODEOWNERS`, root `AGENTS.md`, this ADR, `docs/governance/development-execution-workflow.md`, `docs/governance/branch-version-and-release-governance.md`, `docs/governance/agent-issue-tracker.md`, `docs/governance/agent-skill-routing.md`, `.github/pull_request_template.md`, `docs/handoff/1.1.13/G0-owner-checklist.md`, `docs/policies/`, frozen evidence and pins, G0 scripts/rulesets (`docs/handoff/**/g0-scripts/`) | R3 | governance |
+   | CI verdict authority: `scripts/verify.py`, `scripts/validate_repository.py`, `scripts/polytail_check.py`, `scripts/code_size_policy.py`, `scripts/coverage_configuration_policy.py`, `scripts/coverage_policy.py`, `scripts/repository_contract_validation.py`, `scripts/skill_metadata_validation.py`, `scripts/sync_derived.py`; existing firmware/release dependencies retain their original roles | R3 | governance |
    | `.agents/`, `.codex/`, `.claude/`, every other `AGENTS.md`, the rest of `docs/governance/`, `docs/adr/`, `docs/specs/`, `SPEC.md` and the four canonical architecture documents, the rest of `.github/`, the rest of `scripts/`, `tests/scripts/`, `eng/`, `third-party/`, `CONTRIBUTING.md`, `SECURITY.md`, root build and repository configuration (`Directory.*`, `global.json`, `NuGet.config`, `*.slnx`, `.gitattributes`, `.gitignore`, `.editorconfig`) | R2 | — |
    | The rest of `src/` and `tests/`; the rest of `docs/` (the prose list excluded); `README.md` | R1 | — |
    | `prose`: an explicit list of files that are not an input to any product test or other semantic verification; only listed generic document-structure checks may read them (Markdown links and anchors, the line ceiling, encoding and file-name rules). A document a topic test still reads is not prose. Joint definition with WS-TEST (ADR 0079); initially `docs/handoff/` Markdown | R0 | — |
@@ -446,18 +533,20 @@ failures or other release failures.
    | Raised from R2: `v0916_parity_certification.py` (terminal certification, decision 47), `release_source_pins.py` (projects the capability policy, the package trust index and the Golden allowlist) | firmware, release |
    | Raised from R2: `deploy-update-source.ps1` | release |
 
-   `.github/CODEOWNERS` agrees with the policy, because GitHub's code-owner
-   review is the approval mechanism (item 7): every path with a role is owned
-   by that role's principals, and the default line keeps every other path with
-   the owner, as today. G1-A proves this with a consistency test; a generated
-   projection (ADR 0068) can replace the test once a role has a principal of
-   its own.
+   `.github/CODEOWNERS` projects exactly the policy's R3 patterns, with no
+   R2 or all-path ownership default (2026-10-01 amendment). The consistency
+   test checks both sets and principals. The approval-authority row now also
+   includes this ADR, `agent-issue-tracker.md`, `agent-skill-routing.md`, the
+   PR template and G0 owner checklist; the closed CI verdict set is listed
+   in the amendment and policy. R2 floors and empty roles stay intact.
+   A path requiring or declaring a role escalates to R3; unmapped semantics
+   still follow P6. Ownership/case/rename stops apply to R3, not ordinary R2.
 5. R0-R3 stay the vocabulary for choosing evidence, reviewers and approvals
    (root [`AGENTS.md`](../../AGENTS.md)).
 
 ### Review and approval
 
-6. **Independent review, R1 to R3.** Another agent runtime reviews; when it is
+6. **Independent review, R0 to R3.** Another agent runtime reviews; when it is
    unavailable (token limits, or a developer with one runtime), a fresh session
    of the same runtime reviews, preferably with another model, and never shares
    the author's conversation. No process requires two agent products (1.1.12
@@ -473,9 +562,10 @@ failures or other release failures.
    the policy's reviewer list (the agent App, the fallback machine account,
    the owner); a comment by anyone else, on this public repository, is
    ignored. The latest record of each listed principal on the head decides.
-   Posting or editing a review starts no run: the check stays red until its
-   next run (a push, a description edit or a re-run), and the pre-merge
-   verification re-runs it. GitHub records the principal that posted it; the
+   Review submission, edit or dismissal starts the W1 authority run; posting
+   the COMMENT record needs no description edit. The commander waits for
+   the event run and verifies its head and the live records before merge.
+   GitHub records the principal that posted it; the
    runtime identifier and the GitHub principal stay separate fields, and
    neither is inferred from the other. A new head needs a new record.
    Independence between agent sessions is procedural: GitHub proves who
@@ -490,7 +580,7 @@ failures or other release failures.
    the release owner, and also the governance owner when they change who may
    approve, publish or bypass (by the map, or declared by the author or a
    reviewer where the map does not already require it). Under decision 105
-   the parts are:
+   the parts are (R0–R2 need no owner approval after their target's R41 cutover):
    - **The last-push approval: GitHub's own (machine-enforced).** An approving
      review by a code owner of the changed files on the most recent reviewable
      push, given by someone other than its pusher, is required by the
@@ -531,11 +621,11 @@ failures or other release failures.
 
    | Boundary | Gates |
    | --- | --- |
-   | Pull request into the trunk (`1.1.x`) or a release branch | required checks (items 13 and 14), `governance / authority` from G1-A (items 4 and 6), GitHub's code-owner approval of the last push (item 7), conversation resolution (item 12), the pre-merge verification |
+   | Pull request into the active trunk or a release branch | required checks (items 13 and 14), `governance / authority` (items 4 and 6), R3 code-owner approval of the last push and role evidence (item 7), conversation resolution (item 12), pre-merge verification and auto-merge after the target's R41 cutover; unswitched targets retain their live approval rules |
    | Release pull request into `main` | the same over the whole release diff, the full suite with Golden, the release owner's approval of the exact release head, an up-to-date base. `governance / authority` runs on it once the release branch contains the workflow; it becomes a required `main` context only in G2 (below) |
    | Release workflow from `main` | ADR 0033 admission at the candidate, pre-tag and pre-Release boundaries; the protected `release` environment |
 
-   **In force since G0 (2026-09-27):** active branch rulesets on `main`, the
+   **Historical G0 state (2026-09-27; R41 cutover is per target):** active branch rulesets on `main`, the
    trunk (`*.*.x`) and release branches (`*.*.*` without `*.*.x`) require pull
    requests, one approval, the existing required checks,
    `dismiss_stale_reviews_on_push`, `require_last_push_approval`, code-owner
@@ -597,7 +687,9 @@ or `scripts/verify.py`, which the CI failure-evidence change owns.
   `.github/workflows/authority.yml`) runs on `pull_request` with the types
   `opened`, `synchronize`, `reopened`, `ready_for_review` and `edited`: the
   declared risk, roles and evidence live in the description, and `ci.yml`'s
-  four types do not include `edited`. One job produces the context
+  four types do not include `edited`. W1 also runs on `pull_request_review`
+  types `submitted`, `edited`, `dismissed`; both events supply the PR number
+  and head through `github.event.pull_request`. One job produces the context
   `governance / authority`. It has no `if:` condition, no path filter and no
   `continue-on-error`, runs on draft pull requests too, and ends in success or
   failure, never neutral or skipped, which GitHub counts as passing. It has
@@ -613,7 +705,9 @@ or `scripts/verify.py`, which the CI failure-evidence change owns.
 - **What it checks.** The changed paths of item 4 against the policy; the
   declared risk and roles against the floor and the role union, including the
   roles review records add; the evidence entries of each required role (item
-  7); for R1 to R3, a valid review record on the head (item 6); and the policy
+  7); for R0 to R3, a valid review record on the head (item 6); R3-only
+  code ownership with case-sensitive matches and rename/copy safeguards;
+  and the policy
   files against their schema. It uses the head's policy and, when the base
   has one, the base's too, the stricter applying to each path. A missing base
   policy is accepted only when the pull request itself adds the policy file
@@ -622,7 +716,9 @@ or `scripts/verify.py`, which the CI failure-evidence change owns.
 - **It fails when** the description's authority block is missing or
   malformed; the declared risk is below the floor; a required role is not
   declared, or is declared without its evidence entries; an unclassified path
-  has no governance-owner role and classification; an R1 to R3 change has no
+  has no governance-owner role and classification; a declared R3 change has
+  no code-owned changed path, an owned rename loses its owned destination,
+  or an R3 match exists only without case sensitivity; an R0 to R3 change has no
   valid review record on the head; a policy is missing (outside the case
   above), violates its schema, or names a role without a principal; an API
   call fails, times out or hits a rate limit, or a list is incomplete; a Git
@@ -640,7 +736,7 @@ or `scripts/verify.py`, which the CI failure-evidence change owns.
 | --- | --- | --- |
 | Required checks | the rulesets (GitHub), while Active and not bypassed | every required context, `governance / authority` included, has an accepted conclusion for the head commit being merged, as M4 states: GitHub accepts success, neutral and skipped, and the authority job is designed to report only success or failure; a missing or failed context blocks |
 | `governance / authority` | a CI job running the pull request's own workflow and checker | at the time of its run: paths classified, risk and roles declared, evidence entries present, a review record on the head |
-| Exact-head human approval | the rulesets' code-owner review, last-push approval and stale dismissal (GitHub) | a code owner, today the owner, approved the most recent reviewable push; a diff-changing push dismisses it |
+| R3 exact-head human approval | the rulesets' code-owner review, last-push approval and stale dismissal (GitHub), after the target's R41 trial | a code owner, today the owner, approved the most recent reviewable R3 push; a diff-changing push dismisses it; R0–R2 need no approval on switched targets |
 | Review threads | the rulesets' conversation resolution | no unresolved thread at merge |
 | Evidence content, role naming, the approval snapshot, stale results, base authority code updates, changes to the check itself | the owner and the commander | the pre-merge verification, the self-change check and the bootstrap approval below |
 
@@ -653,21 +749,21 @@ the time it ran; whether that result still holds at merge is P2 and P9.
 | # | Safeguard | Kind | Carried by |
 | --- | --- | --- | --- |
 | M1 | In the normal, non-bypass flow, every change to a protected branch goes through a pull request | machine, rulesets Active | rulesets |
-| M2 | In that flow, a code owner approved the most recent reviewable push, and not as its pusher; a diff-changing push dismisses the approval | machine, rulesets Active | rulesets |
+| M2 | For R3 on a target whose R41 trial/cutover is complete, a code owner approved the pull request and a diff-changing push dismisses the approval; on the trunk ruleset last-push approval is false since decision 247, so a push that does not change the diff keeps the approval and the platform does not check the approver against the pusher (`main` and release branches keep last-push approval) | machine, rulesets Active; trunk trial done (decisions 246-247) | rulesets |
 | M3 | In that flow, no review thread is unresolved at merge | machine, rulesets Active | rulesets |
 | M4 | In that flow, every required context has, for the merged head commit, a conclusion GitHub accepts (success, neutral or skipped); a missing, failed or cancelled one blocks. That `governance / authority` can only end in success or failure, never neutral or skipped, comes from its workflow (one job without `if:`, path filter or `continue-on-error`), not from the platform | machine (platform) plus the workflow's design | rulesets; authority workflow |
 | M5 | Floor, role union, declared roles, evidence entries, review record on the head, policy schema and fail-closed inputs, as judged by the checker that ran, when it ran, for a pull request that does not change the check | machine at run time | authority check |
 | M6 | At run time, a new SHA has no valid review record until a new record names it | machine at run time | authority check |
 | M7 | Force pushes are blocked on `main`, the trunk and release branches; deletion is blocked on `main` and the trunk only, since a release branch is deleted after its tag (the release-branch ruleset has no deletion rule); only the owner can bypass, under board decisions 77 and 78 | machine, rulesets Active | rulesets |
 | P1 | A pull request can edit the check it runs (workflow, checker, policy, schema, files the checker reads), so its own result proves nothing about that change; when the base has no checker yet, there is no base result either. The same holds today for every required check, since each runs the pull request's workflow | procedural | self-change check or bootstrap approval |
-| P2 | An earlier green result on the same head survives a change that starts no run: a new or edited review record; a change of the authority workflow, checker, schema, policy or checker dependencies on the base, while the pull request still runs an older version; a run that was skipped, queued, cancelled or never triggered; a re-run of an older run | procedural | pre-merge verification, steps 1 to 3 |
+| P2 | W1 starts a run on record submission/edit/dismissal, but an earlier green result can outlive event delay or a queued/cancelled run, parallel runs, changed base authority while the PR runs older code, or a re-run of an older workflow | procedural | pre-merge verification, steps 1 to 3; cancel auto-merge before changes |
 | P3 | A push that keeps the tree identical may keep the approval | procedural until D4 shows GitHub asks again | pre-merge verification, step 3 |
 | P4 | The owner's approval names each role it exercises (decision 102) | procedural | owner |
 | P5 | The evidence is correct (bytes, Golden, write ranges, release evidence), not only present | procedural | owner and reviewer |
 | P6 | A firmware-semantic or approval-authority change outside the mapped paths is declared | procedural | author and reviewer (item 4) |
 | P7 | Reviewer independence; one writer per mutable surface | procedural | items 6 and 3 |
 | P8 | Before G2, `governance / authority` is not required on `main` | procedural | release owner's approval cites it (item 8) |
-| P9 | After the owner's approval, the authority block, the review records or the evidence can change on the same head while the check stays green, since the check verifies presence and form, and the approval stays on the head | procedural | approval snapshot, pre-merge verification step 4 |
+| P9 | After R3 owner approval, the authority block, records or evidence can change on the same head; W1 does not judge evidence content or revoke the approval snapshot | procedural | R3 approval snapshot, pre-merge verification step 4; cancel auto-merge before changes |
 
 **Pre-merge verification (procedural, decision 105).** When the owner
 approves, the commander records in the pull request the **approval
@@ -688,14 +784,16 @@ edit that keeps the review id, head SHA and verdict is still detected. Then, bef
    description, and attaches the result; a failing result stops the merge. If
    the pull request changes them on purpose, the self-change check below
    applies.
-2. **Re-run.** The commander re-runs `governance / authority` on the pull
-   request (a re-run reads the live description, review records and base) and
-   waits for its result.
+2. **Current run.** Wait for the W1 review-event run (no body edit). A required
+   explicit re-verification uses an owner-authorized re-run; without Actions
+   write permission, a deliberate description edit can trigger it. Confirm
+   the current checker/base and live records; event delivery is not a pass.
 3. **Head and approval.** Through the API the commander confirms that this
-   run's check reports success for the current head SHA and that the owner's
-   approval is on that SHA and on its most recent push; for an
-   identical-tree push under P3, a new approval is asked for.
-4. **Snapshot.** The commander compares the live authority block and valid
+   run's check reports success for the current head SHA and the live exact-head
+   record still accepts. For R3 (or an unswitched target still requiring it),
+   confirm owner approval on that SHA and its most recent push; an
+   identical-tree push under P3 needs renewed approval too.
+4. **Snapshot (R3).** The commander compares the live authority block and valid
    review records with the approval snapshot. If they differ (evidence
    replaced, a role added or removed, a review record edited, including a
    body edit under the same review id, head SHA and verdict, added or
@@ -703,11 +801,14 @@ edit that keeps the review id, head SHA and verdict is still detected. Then, bef
    explicitly, by a new approving review or by a comment from the owner's
    account that names the head SHA and the changed content; the commander
    then records the new snapshot.
-5. **Merge.** The merge names that head (`gh pr merge --match-head-commit
-   <sha>`) and happens on the owner's go-ahead. If anything changed after
-   step 1, the steps start again.
+5. **Auto-merge.** After the gates pass, enable `gh pr merge <n> --auto --merge
+   --match-head-commit <head>`. R3 and unswitched targets also need the owner's
+   go-ahead. The guard protects the head at this call, not subsequent queued
+   heads. Before any push or authority/record/evidence edit, cancel auto-merge
+   (`gh pr merge <n> --disable-auto`), restart verification at step 1, renew
+   exact-head records and required R3 approval/snapshot, then re-enable.
 
-The pull request records the snapshot, the versions compared in step 1, and
+The pull request records any required R3 snapshot, the versions compared in step 1, and
 the run id and head SHA of steps 2 and 3. The window between the last check
 and the merge is not machine-closed; the `--match-head-commit` guard only
 rejects a moved head.
@@ -891,11 +992,19 @@ What G1-B removes, and what it keeps (second review):
 | Rebinding the checkpoint and redoing admissions after each seal | removed |
 | Per-record finalization, batch coverage, evidence commit, JSON attestation | removed; pull request evidence and exact-head approvals instead |
 | A reviewed head that fails the final gate because of `design-active` | removed |
-| A new review and owner approval for every new SHA, one with an identical tree included | **kept** |
+| A new independent review for every new SHA, one with an identical tree included | **kept**; owner approval is R3-only on switched targets |
 | A real test failure and its fix and re-verification | **kept**; G1-B fixes no test |
 | Full-suite duration | not addressed by G1-A or G1-B; WS-TEST and G2 own it |
 
 ### Negative / trade-offs
+
+R41 current cost amendment (2026-10-01): each merge retains base-authority and
+live exact-head record/check verification; only R3 adds an owner approval
+snapshot on switched targets. W1 removes the normal post-record body edit.
+Auto-merge needs cancellation and re-verification before changes. Target
+trial/apply/rollback remains owner work; zero approvals with last-push true
+is not locally certified. The G1-A/G1-B transition-cost statements below are
+kept as historical text, including their former per-merge snapshot cost.
 
 - The machine-checked "admission before implementation" ledger ends. Pull
   request fields carry that evidence, and their completeness is reviewed.

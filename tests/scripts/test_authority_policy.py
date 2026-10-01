@@ -16,6 +16,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -80,6 +81,40 @@ SCRIPT_ROLES = {
         {"release-owner"},
     ),
     "release_promotion_policy.py": {"release-owner", "governance-owner"},
+    **dict.fromkeys(
+        [
+            "verify.py",
+            "validate_repository.py",
+            "polytail_check.py",
+            "code_size_policy.py",
+            "coverage_configuration_policy.py",
+            "coverage_policy.py",
+            "repository_contract_validation.py",
+            "skill_metadata_validation.py",
+            "sync_derived.py",
+        ],
+        {"governance-owner"},
+    ),
+}
+CI_VERDICT_OWNERS = {
+    "scripts/verify.py", "scripts/validate_repository.py", "scripts/polytail_check.py",
+    "scripts/code_size_policy.py", "scripts/coverage_configuration_policy.py",
+    "scripts/coverage_policy.py", "scripts/repository_contract_validation.py",
+    "scripts/skill_metadata_validation.py",
+    "scripts/sync_derived.py",
+}
+AGENT_RUNTIME_PERMISSION_PATTERNS = {
+    ".codex/config.toml",
+    ".codex/agents/**",
+    ".claude/settings.json",
+    ".claude/settings.local.json",
+}
+GOVERNANCE_DOCUMENTS = {
+    "docs/adr/0080-governance-reset.md",
+    "docs/governance/agent-issue-tracker.md",
+    "docs/governance/agent-skill-routing.md",
+    ".github/pull_request_template.md",
+    "docs/handoff/1.1.13/G0-owner-checklist.md",
 }
 CHECKER_FILES = (
     check.CHECKER_PATH,
@@ -109,7 +144,7 @@ def codeowner_pattern_errors(content: str, policy_bytes: bytes) -> list[str]:
     expected = {
         pattern
         for entry in policy["entries"]
-        if entry["floor"] in {"R2", "R3"}
+        if entry["floor"] == "R3"
         for pattern in entry["patterns"]
     }
     lines = [
@@ -137,6 +172,31 @@ class AuthorityPolicyTests(unittest.TestCase):
     def test_every_tracked_path_is_classified(self) -> None:
         unclassified = [path for path in TRACKED if POLICY.classify(path).unclassified]
         self.assertEqual(unclassified, [])
+
+    def test_source_submodule_uses_repository_configuration_and_tooling(self) -> None:
+        for path, entry_id in (
+            (".gitmodules", "repository-configuration"),
+            ("third-party/nvt_combiner", "repository-tooling"),
+        ):
+            with self.subTest(path=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertEqual(result.floor, "R2")
+                self.assertEqual(result.roles, frozenset())
+                self.assertFalse(result.unclassified)
+                owners = {
+                    entry.id for entry in POLICY.entries
+                    if entry.matches(path, case_sensitive=True)
+                }
+                self.assertEqual(owners, {entry_id})
+
+        # Source intake must not relax executable packages or unknown root files.
+        executable = POLICY.classify("external-tools/nvt_combiner")
+        self.assertEqual(executable.floor, "R3")
+        self.assertEqual(executable.roles, {"firmware-owner", "release-owner"})
+        unknown = POLICY.classify(".gitmodules-extra")
+        self.assertEqual(unknown.floor, "R3")
+        self.assertEqual(unknown.roles, {"governance-owner"})
+        self.assertTrue(unknown.unclassified)
 
     def test_governance_paths_g1b_adds_are_classified_before_they_exist(self) -> None:
         # Fixed-head review F-2: ADR 0080 item 2's pin file and the three historical READMEs.
@@ -217,7 +277,7 @@ class AuthorityPolicyTests(unittest.TestCase):
                 self.assertEqual(result.floor, "R3")
                 self.assertIn("governance-owner", result.roles)
 
-    def test_codeowners_exactly_matches_r2_and_r3_patterns(self) -> None:
+    def test_codeowners_exactly_matches_r3_patterns(self) -> None:
         content = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")
         policy_bytes = (ROOT / check.POLICY_PATH).read_bytes()
         self.assertEqual(codeowner_pattern_errors(content, policy_bytes), [])
@@ -229,25 +289,130 @@ class AuthorityPolicyTests(unittest.TestCase):
         ):
             self.assertGreaterEqual(check.RISKS.index(POLICY.classify(path).floor), 2)
 
-    def test_nested_msbuild_configuration_is_owned_and_classified(self) -> None:
+    def test_ordinary_r2_paths_are_classified_without_code_ownership(self) -> None:
         for path in (
             "Directory.Build.props",
             "src/Directory.Build.props",
             "tests/Directory.Build.targets",
             "src/Directory.Packages.props",
             "src/NuGet.config",
+            "SECURITY.md",
+            "scripts/collect_review_handoff.py",
+            "tests/scripts/test_private_user_profile_paths.py",
+            "docs/adr/0077-prebuilt-profile-catalog.md",
+            ".agents/skills/nfc-review/SKILL.md",
+            ".claude/agents/reviewer.md",
+            "docs/AGENTS.md",
+            "scripts/install-dotnet.ps1",
+            "scripts/install-dotnet.sh",
+            "scripts/bootstrap.ps1",
+            "scripts/bootstrap.sh",
         ):
             with self.subTest(path=path):
                 result = POLICY.classify(path, case_sensitive=True)
-                self.assertGreaterEqual(check.RISKS.index(result.floor), 2)
+                self.assertEqual(result.floor, "R2")
+                self.assertEqual(result.roles, frozenset())
                 self.assertFalse(result.unclassified)
-                self.assertTrue(
+                self.assertFalse(
                     any(
-                        entry.floor in {"R2", "R3"}
+                        entry.floor == "R3"
                         and entry.matches(path, case_sensitive=True)
                         for entry in POLICY.entries
                     )
                 )
+
+    def test_agent_runtime_permissions_require_governance_owner_approval(self) -> None:
+        policy = json.loads((ROOT / check.POLICY_PATH).read_bytes())
+        entries = [
+            entry for entry in policy["entries"]
+            if entry["id"] == "agent-runtime-permissions"
+        ]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(set(entries[0]["patterns"]), AGENT_RUNTIME_PERMISSION_PATTERNS)
+        codeowner_patterns = [
+            check.compile_pattern(line.split()[0].removeprefix("/"))
+            for line in (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        for path in (
+            ".codex/config.toml",
+            ".codex/agents/reviewer.toml",
+            ".codex/agents/nested/reviewer.toml",
+            ".claude/settings.json",
+            ".claude/settings.local.json",
+        ):
+            with self.subTest(path=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertEqual((result.floor, result.roles), ("R3", {"governance-owner"}))
+                self.assertFalse(result.unclassified)
+                self.assertTrue(
+                    any(re.fullmatch(pattern.pattern, path) for pattern in codeowner_patterns),
+                    f"{path} is not code-owned",
+                )
+
+    def test_governance_and_ci_verdict_owners_are_a_closed_r3_set(self) -> None:
+        policy = json.loads((ROOT / check.POLICY_PATH).read_bytes())
+        ci = next(entry for entry in policy["entries"] if entry["id"] == "ci-verdict-authority")
+        self.assertEqual(set(ci["patterns"]), CI_VERDICT_OWNERS)
+        for path in CI_VERDICT_OWNERS | GOVERNANCE_DOCUMENTS:
+            with self.subTest(path=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertEqual((result.floor, result.roles), ("R3", {"governance-owner"}))
+        for owner in sorted(CI_VERDICT_OWNERS):
+            tree = ast.parse((ROOT / owner).read_text(encoding="utf-8"))
+            modules = {
+                alias.name
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            modules.update(
+                node.module
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module is not None
+            )
+            modules.update(
+                alias.name
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module in (None, "scripts")
+                for alias in node.names
+            )
+            for module in sorted(modules):
+                path = f"scripts/{module.removeprefix('scripts.').replace('.', '/')}.py"
+                if (ROOT / path).is_file():
+                    with self.subTest(owner=owner, dependency=path):
+                        result = POLICY.classify(path, case_sensitive=True)
+                        self.assertEqual(result.floor, "R3")
+                        self.assertTrue(result.roles)
+                        self.assertFalse(result.unclassified)
+
+        spec = importlib.util.spec_from_file_location(
+            "authority_policy_verify", ROOT / "scripts/verify.py"
+        )
+        assert spec is not None and spec.loader is not None
+        verifier = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = verifier
+        spec.loader.exec_module(verifier)
+        with patch.object(verifier, "run") as run_command:
+            verifier.verify_structure()
+        verdict_scripts = {
+            Path(call.args[0][1]).as_posix()
+            if not Path(call.args[0][1]).is_absolute()
+            else Path(call.args[0][1]).relative_to(ROOT).as_posix()
+            for call in run_command.call_args_list
+        }
+        self.assertEqual(verdict_scripts, {
+            "scripts/sync_derived.py",
+            "scripts/validate_repository.py",
+            "scripts/polytail_check.py",
+            "scripts/create_ctrlram_universal_sentinel.py",
+        })
+        for path in verdict_scripts:
+            with self.subTest(subprocess=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertEqual(result.floor, "R3")
+                self.assertTrue(result.roles)
+                self.assertFalse(result.unclassified)
 
     def test_codeowners_mismatch_with_policy_fails(self) -> None:
         content = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")
@@ -291,7 +456,8 @@ class AuthorityPolicyTests(unittest.TestCase):
             {
                 "pull_request": {
                     "types": ["opened", "synchronize", "reopened", "ready_for_review", "edited"]
-                }
+                },
+                "pull_request_review": {"types": ["submitted", "edited", "dismissed"]},
             },
         )
         self.assertEqual(workflow["permissions"], {"contents": "read", "pull-requests": "read"})
@@ -320,6 +486,9 @@ class AuthorityPolicyTests(unittest.TestCase):
         run = next(step["run"] for step in job["steps"] if "run" in step)
         self.assertIn("python scripts/authority_check.py", run)
         self.assertIn('--summary "$GITHUB_STEP_SUMMARY"', run)
+        self.assertIn('--pull-request "$NFC_PULL_REQUEST"', run)
+        checker_step = next(step for step in job["steps"] if "run" in step)
+        self.assertEqual(checker_step["env"]["NFC_PULL_REQUEST"], "${{ github.event.pull_request.number }}")
 
 
 if __name__ == "__main__":

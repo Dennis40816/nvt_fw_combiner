@@ -21,7 +21,8 @@ run's `dotnet-test-core-evidence-attempt-1` artifact; `scripts/verify.py` `parse
 Owner: unassigned. First observation, cause unknown. Candidates to check: which foreground thread outlives the
 xUnit v3 assembly-info query in `NvtFwCombiner.Domain.Tests`, for example a module initializer or a static
 resource, and whether discovery should be retried or its runner output parsed more tolerantly. That choice
-belongs to the decision 191 work and its ADR 0079 amendment.
+belongs to the decision 191 work and its ADR 0079 amendment. Update, 2026-09-30: #489 delivered that work without
+changing discovery handling; this record is bug work of the `1.2.1` decision 191 residual (decision 214).
 Resolution: not fixed. On `feature/1.1.15/flaky-fixes`, the unchanged Release
 `NvtFwCombiner.Domain.Tests.dll` completed 30 consecutive `dotnet vstest
 <dll> --ListTests` discoveries: exit 0, 475 listed tests, and no foreground-thread

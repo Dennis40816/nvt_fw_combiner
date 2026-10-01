@@ -16,13 +16,19 @@ scaling, per the test's own assertion and the selected-page underline rule of de
 passes do not rule out a real but intermittent rendering or focus race.
 Evidence: CI run `36519114436`, job `109248204239`, pull request #484 head `a4e9ef6bf`; comparison runs on `main`
 `32808e943` (passed) and pull requests #480/#483 (passed) on their own branches.
-Second observation: pull request #486, CI run `36543531383`, head `347b8f3a8`, failed only
+Second observation: pull request #486, CI run `36543531383`, job `109324369132`, head `347b8f3a8` (no .NET change),
+1860 of 1861 tests passed; it failed only
 `UnderlineAndGapRegionsNeverOverlapAtAnyRenderScaling(scale: 1, dark: True)` at
 `NavigationFocusIndicatorTests.cs:331`: `expected a rendered focus ring around Home; found 0 matching pixels`.
 The archived TRX is `evidence/1.1.15/ci-flakes/pr486-ui-test-results.trx` in the test area.
 The missing focus ring, rather than an overlap between two painted regions, is the observed failure.
+First-observation hypothesis (2026-09-29, recorded on the `1.2.x` trunk before the later observations): the
+decision 178 startup-focus change (focus starts on inconspicuous shell content, not a navigation tab) racing the
+layout pass that measures the underline and focus-gap regions. The later observations show a missing ring frame
+instead of an overlap.
 Owner: Codex `gpt-6-sol`, `feature/1.1.15/flaky-fixes`.
-Resolution: test-only change fixed in `0700e25f4`. `AwaitHistoryReadyAsync` waits for report
+Resolution: test-only guard added in `0700e25f4` (#491, merge `2f8b31bb6`); frame hardening in #493 (merge
+`9d5783b4e`). `AwaitHistoryReadyAsync` waits for report
 history and calls `Dispatcher.UIThread.RunJobs()`, which drains the previously posted
 quiet-shell focus job. Startup work after history (report, diagnostics, deferred views, or
 external environment) can still affect focus; the exact interleaving behind the CI frame
@@ -47,3 +53,8 @@ matching pixels` at line 341, while the preceding state assertions passed (Home 
 hypothesis (not proven): under load the single render tick before the pixel read yields a frame composed
 before the ring was painted. Candidate test-only correction: pump render ticks until the frame reflects the
 asserted state, with a bound. Decision 193 (zero flaky at release) makes this a `1.1.15` release blocker.
+Release evidence, 2026-09-30: the v1.1.15 release (`ci` run `36697510116`, `release` run `36698726931`) and the
+v1.2.0 release (`ci` run `36738672808` on `3a73620c8`, `release` run `36740198408`) each passed the decision 193
+zero-flaky eligibility gate, which fails on any test that passed only on a retry in the release's source CI.
+The record stays open until later full runs confirm; the pull-request job summaries of #496-#500 were not
+checked for a retry of this test.

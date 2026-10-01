@@ -27,7 +27,7 @@ run passed all projects. The original artifact has no stack or dump showing the 
 and a causal product/test fix remain open; see `docs/handoff/1.1.15/WS-FLAKES.md`.
 Owner: Codex `gpt-6-sol`, `feature/1.1.15/flaky-fixes` (pre-wait correction); #488 cause remains unassigned. Candidates to check: whether `StartUntilReadyAsync` enforces
 its timeout on every path; whether install or lease acquisition can block; and the child process and pipe cleanup.
-Resolution: decision 194's confirmed pre-wait deadline gap is corrected locally
+Resolution: decision 194's confirmed pre-wait deadline gap is corrected
 (`e20119d71`, corrected by `95e2c1747`) for both managed Desktop and version Launcher adapters. The committed regression
 gate blocks final validation inside `ProcessLaunchGate.StartContained`; before the
 production change, the Desktop test failed because start exceeded its 150 ms
@@ -54,4 +54,5 @@ pre-wait step as `ReadyTimeout`. No production code changed.
 
 Decision 194 in `docs/handoff/1.1.12.md` now owns the whole-start deadline.
 Open: capture a stack or phase trace from a real #488 recurrence before
-assigning its cause. Protected CI and independent review remain outstanding.
+assigning its cause. The pre-wait correction passed independent review and protected CI and merged through
+#491 (merge `2f8b31bb6`); it shipped in v1.1.15 and v1.2.0. Only the #488 hang cause stays open.

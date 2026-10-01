@@ -1308,3 +1308,95 @@ verified afterwards, and the board records it (G0 checklist, C3).
   by Dennis40816 at 17:18:02Z. The commander read both through the App
   (Activity API) and a read-only browser capture kept in the test area; the
   owner confirmed both, and confirmed the Bitwarden backup. G0 is complete.
+
+## G0 seventh version acceptance (2026-10-01)
+
+Recorded on the `1.2.x` trunk by the commander (board decision 220); the sections above are kept as recorded.
+
+- Subject: helper and `gh` wrapper revision `4ac380da8` (seventh version: `workflows: write` only with
+  `-IncludeWorkflowsWrite`; `gh` arguments forwarded unchanged; Pester 3.4.0 test runner), cherry-picked onto
+  `1.2.x` for the G0 landing pull request. The owner had already installed it; the commander's SHA-256
+  check of the five scripts and the README (2026-10-01) found the installed copy byte-identical to
+  `4ac380da8`. The earlier
+  reviews G0HR, G0HR2 and G0HR3 (`codex/gpt-6-astra`, ACCEPT-WITH-CHANGES; F-1 closed by G0HR3) had no
+  recorded acceptance, and the checklist still called the version pending.
+- Review: a fresh Claude Opus 5.5 session, read-only, 2026-10-01, on the landing head: **accept-with-changes,
+  no P0 or P1**. The offline suite passed 64/64 (Pester 3.4.0, isolated runner). Verified by reading the code:
+  the default permission set and the switch; the exact reply checks (one repository, exact-case name, no extra
+  or different permission, `workflows: write` required when requested); the Git protocol (`get` only, scope
+  checked before the key is read, exact `https`/`github.com`/repository path, duplicate keys rejected,
+  `store`/`erase` save nothing, fixed error text); DPAPI CurrentUser scope with cleared buffers; the wrapper's
+  launch-form and direct-call checks, repository refusal before any token request, `ArgumentList` forwarding
+  and `GH_TOKEN` supplied only to the one `gh` child (its own children, such as an alias, an extension or
+  a Git process, inherit it); the README states the wrapper's limits honestly.
+- F-1 (launch identity) and F-5 (test runner) are resolved in this revision; the A6a notes are implemented and
+  tested; the content of F-2 to F-4 is not recorded in the repository and could not be checked.
+- Findings, tracked in `BUG-20261001-g0-gh-wrapper-console-codepage` (fix in an eighth version the owner
+  installs after its own review, `1.2.1`):
+  - P2: the wrapper decodes `gh` output with the console code page (`Invoke-NfcGh.ps1` 159-175, already in the
+    sixth version), which corrupts Traditional Chinese text and can defeat the token scrub when a CJK character
+    precedes the token.
+  - P3: the helper accepts a trailing newline in one input check (`$` instead of `\z`; it still fails safe) and
+    writes the token into the Git response without the CR/LF check the wrapper has.
+  - P2 (records): the risk of decision 216 was understated; restated on the board and in the checklist and sent
+    to the owner for re-confirmation with three settings the App cannot read.
+  - P3 (records): the documents did not forbid `git credential fill` or a storing helper; the checklist now does.
+  - P2 (records): no G0HR record existed in the repository, the checklist still said "Pending ... Do not
+    install" for the installed version, and the commit message claimed F-1 to F-5 closed; this section and
+    the checklist's dated status note reconcile them.
+  - P3 (records, fixed): the README amendment had changed the README hash that A6a step 1 compares; the
+    README is back to the reviewed bytes and the note lives in the checklist and on the board.
+- Follow-up the same day: the owner withdrew decision 216 after the restated risk (board decision 221);
+  the Git helper command no longer carries `-IncludeWorkflowsWrite`. The exact-head review of the landing
+  pull request (fresh Claude Opus 5.5, accept-with-changes, no P0 or P1) found that this alone is a
+  procedural limit while the App holds `workflows: write` (P2); the owner chose to set the App's
+  Workflows permission to No access between batches (board decision 222).
+- Not verifiable by the reviewer: the live App and installation permissions, the repository's Actions and
+  environment settings, the installed copy's bytes (checked by the commander), and the content of G0HR's
+  findings.
+
+## G0 eighth version installation (2026-10-01)
+
+Recorded by the commander; the sections above are kept as recorded.
+
+- Subject: the eighth helper and wrapper version (G0 owner checklist A6b), reviewed on #504 at the exact head
+  `36754c99f` (fresh Claude session, accept, no P0 or P1) and merged into `1.2.x` as `6f2e2cfa2`.
+- Step 1 (the owner delegated it to Codex `gpt-6.1-sol`, 2026-10-01): the twelve files under
+  `docs/handoff/1.1.13/g0-scripts/` were written from the raw Git blobs of `36754c99f` into a new folder beside the
+  seventh version's; the four changed files match the A6b table and the other eight match the inventory table
+  (checked by Codex and again by the commander).
+- Step 2 (commander, because the Codex sandbox cannot read the user-level test-area variable): the offline suite
+  passed 69/69 (Pester 3.4.0, isolated runner, fake secrets).
+- Step 3 (the commander ran it once on the owner's explicit approval in chat, 2026-10-01, because the owner could
+  not paste the command at that moment): a reviewed script re-checked the four A6b hashes, replaced only the folder
+  name in the repository's one Git helper entry, kept the empty first entry and `useHttpPath`, did not add
+  `-IncludeWorkflowsWrite`, and read the entry back; it has a `-Rollback` mode. The script was first exercised on a
+  scratch repository with a fake helper entry.
+- Step 4 (commander): the four hashes match again; a read-only wrapper call of
+  `repos/<owner>/<repo>/contents/docs/handoff/1.1.14/1.2.x-allocation.md` (raw) returned bytes identical to the Git
+  blob `064d0af48`, Traditional Chinese intact; `gh alias list` stopped with exit code 64 and the refusal message
+  before any token request; `git push --dry-run` through the new helper authenticated ("Everything up-to-date").
+- `BUG-20261001-g0-gh-wrapper-console-codepage` is fixed by this installation.
+
+## R41 ruleset cutover on the trunk (2026-10-01)
+
+Recorded by the commander; decision 246.
+
+- Before: the four live rulesets were read through the App (read-only) and saved in the test area
+  (`evidence/1.2.1/R41-ruleset/before-<id>.json`): `trunk` 24060410 (`refs/heads/*.*.x`; checks policy / polytail,
+  python-worker / verify, dotnet / build-test, governance / authority), `release branches` 24060414, `Protect main
+  release checks` 22009240 (branch rulesets, each with one general approval, code-owner review, stale dismissal and
+  last-push approval) and `Protect stable v* tags` 22009138 (tag update and deletion protection); no bypass actor.
+- Change: the owner set `trunk`'s Required approvals from 1 to 0 in the GitHub settings page. Read-back
+  (`after-24060410.json`) differs from the backup in one rule field, `required_approving_review_count` (1 -> 0), and
+  in the ruleset's `updated_at` timestamp; code-owner review, stale dismissal, last-push approval, required checks,
+  scope and bypass are unchanged. `main` and release branches keep one general approval; the tag ruleset (update and
+  deletion protection, no approvals) is unchanged.
+- Trial (decisions 246-248): #510 (R0) stayed blocked by "New changes require approval from someone other than
+  the last pusher"; the owner then unchecked last-push approval on `trunk` (decision 247; `after2-24060410.json`
+  differs from the original backup in exactly two rule fields). #510 then merged through auto-merge by the App with
+  only COMMENT reviews (merge `fde57050a`). #511 (R3) was refused with "Waiting on code owner review from
+  Dennis40816"; after the owner's approval GitHub refused it next for the failing `pull_request`-event
+  `governance / authority` run from before the record, and merged (`d8d852f0f`) after a description edit reran
+  that event. W1 itself worked: the record submissions, an `incomplete` trial record (failed as intended) and the
+  owner's approval each started a `pull_request_review` run.

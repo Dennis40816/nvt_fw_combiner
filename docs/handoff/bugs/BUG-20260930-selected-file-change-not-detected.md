@@ -1,6 +1,6 @@
 # BUG-20260930-selected-file-change-not-detected: a selected input file that changes on disk is not noticed before Build
 
-Status: open (owner decision 203; scheduled for 1.2.x)
+Status: open (owner decision 203; scheduled for 1.2.7, decision 212)
 Severity: P2
 Found: 2026-09-30, owner question "if a user loads a file and then changes its path, when does Verified reload?",
 answered from code at `1.1.x`@`9d5783b4e` (v1.1.15 content); not reproduced in the running app.
@@ -18,5 +18,5 @@ Expected: owner decision 203: when a selected file changes on disk, NFC shows a 
 minimum the check runs when Build starts (the path still resolves to the same length and SHA-256 as the accepted
 snapshot), and it may also run earlier (a watcher or on focus).
 Evidence: the code paths above; no test covers a file changed after selection.
-Owner: unassigned; the 1.2.x version slot is set in the allocation sync (decision 200).
+Owner: unassigned; `1.2.7` item R43 (decision 212).
 Resolution: pending.

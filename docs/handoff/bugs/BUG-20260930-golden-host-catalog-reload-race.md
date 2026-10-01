@@ -1,6 +1,6 @@
 # BUG-20260930-golden-host-catalog-reload-race: a parallel catalog reload makes a Golden run stale
 
-Status: fixed on `feature/1.2.0/golden-host-race` (release fix into `1.2.0`), pending review and merge
+Status: fixed (release fix #499 merged into `1.2.0` as `75cdad7ba`; released in v1.2.0, `3a73620c8`, 2026-09-30)
 Severity: P2 (it blocked the v1.2.0 release: the push-main CI of release merge `31603c145` failed)
 Found: 2026-09-30, Claude Code commander (Claude Opus 5.5), `ci` run `36726559665` (push to `main`, `dotnet / test
 (core)`, job `109924822956`) on `31603c145`, the merge commit of release pull request #497. The same tree
@@ -34,3 +34,5 @@ the admission test to join it and forbids the known catalog-mutation calls (`Can
 source; it is a text check, not a proof. No production change. The v1.2.0
 release continues with a new release pull request whose push-main CI passes on its first attempt (decision 193,
 ADR 0079), as the owner chose.
+Verified: the second release pull request #500 merged as `3a73620c8`; its push `ci` run `36738672808` passed on
+attempt 1 and `release` run `36740198408` published v1.2.0.

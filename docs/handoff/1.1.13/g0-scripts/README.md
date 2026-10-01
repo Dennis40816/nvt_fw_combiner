@@ -13,7 +13,7 @@ Run on **Windows with PowerShell 7.4 or later** (`pwsh`). Before opening the App
 | `Set-NfcRulesets.ps1`, `rulesets/*.json` | owner → owner through authenticated `gh` | Back up, inspect, approve, and apply rulesets; restore only this transaction's changes if needed. |
 | `nfc-app-token-helper.ps1` | agent → App, after owner installation | Read the DPAPI copy, request a repository-scoped installation token, and answer a matching Git credential `get` request. |
 | `Invoke-NfcGh.ps1` | agent → App, after owner installation | Run one `gh` subprocess with an installation token in that subprocess's environment. |
-| `NfcG0.Common.ps1`, `tests/` | no GitHub identity | Shared functions and offline tests. |
+| `NfcG0.Common.ps1`, `tests/` | no GitHub identity | Shared functions and offline tests with fake secrets. Run them with `pwsh -NoProfile -File tests/Invoke-NfcG0Tests.ps1`, which starts the suite in its own process without GitHub, Git credential or Bitwarden variables and with the test-area temp folder; the suite stops if such a variable is present. The runner supports only Pester 3.4.0, whose failure count includes setup, cleanup and block failures; any other requested version exits with 2. It exits with 0 only when Pester 3.4.0 ran at least one test and none failed, 1 when a test or block failed, and 2 when the run itself failed (another, missing or unloadable Pester version, no valid result, or no executed test). |
 
 The same-Windows-user separation in decision 65 is **a rule, not a technical security boundary**. A process under that user may technically access the DPAPI file, an unlocked vault, the owner's browser session, Git settings, or the helper. These scripts cannot enforce isolation between such processes.
 
@@ -46,6 +46,67 @@ Before any remote write, the script reads all ruleset pages up to its safety lim
 
 Proposed fields and rules are displayed for individual owner approval. In a live apply, every `YES` approval, including the unchanged RS-4 confirmation, occurs before the first remote write; a refusal stops without sending a write. The script rechecks the complete writable state of every relevant ruleset and the ID list after approval and before each write. It verifies the readback against the requested body before marking a change applied. A mismatch remains pending and stops the transaction for owner reconciliation. `-WhatIf` still reads GitHub and writes a local backup, but sends no remote write and asks for no item approvals. The apply records each pending, completed, or uncertain write in `index.json`, including IDs actually created and verified post-write snapshots. If a request or snapshot fails, the owner must inspect the transaction record and live GitHub state before proceeding or restoring; a failed client call does not prove that GitHub made no change. The script does not automatically roll back a partial apply. **No one may modify repository rulesets concurrently during the owner's apply or restore maintenance window.** The read, write, and readback sequence is not atomic.
 
+## R41: update existing approval fields (2026-10-01, pending owner trial)
+
+The original G0 creation procedure above is retained for its historical setup;
+do not rerun it to modify existing RS-2/RS-3. R41 changes the three branch
+templates to zero general approvals, keeping code-owner review, stale dismissal
+and last-push approval true. RS-4 is unchanged. The new inventory is appended
+in [checklist C1a](../G0-owner-checklist.md#c1a-r41-approval-scope-trial-apply-and-rollback-2026-10-01);
+older hash/acceptance tables remain evidence for their recorded versions.
+
+Only the owner operates this mode, using a confirmed list of existing ruleset
+IDs from the live UI/API and a new private backup directory per attempt.
+In an owner PowerShell 7.4+ session, replace the example IDs with confirmed IDs:
+
+```powershell
+$confirmedIds = @(CONFIRMED_RULESET_ID_1, CONFIRMED_RULESET_ID_2)
+& .\Set-NfcRulesets.ps1 -Owner OWNER -Repo REPO -UpdateApprovals -RulesetIds $confirmedIds -BackupDirectory 'NEW_PREVIEW_BACKUP' -WhatIf
+& .\Set-NfcRulesets.ps1 -Owner OWNER -Repo REPO -UpdateApprovals -RulesetIds $confirmedIds -BackupDirectory 'NEW_APPLY_BACKUP'
+& .\Set-NfcRulesets.ps1 -Owner OWNER -Repo REPO -Restore -BackupDirectory 'NEW_APPLY_BACKUP' -WhatIf
+& .\Set-NfcRulesets.ps1 -Owner OWNER -Repo REPO -Restore -BackupDirectory 'NEW_APPLY_BACKUP'
+```
+
+`-UpdateApprovals` requires positive unique IDs and active branch rulesets
+with one PR rule and one required-check rule. It does not require three checks
+or copy main's checks. It backs up all live bodies, shows each confirmed ID's
+complete before/after body and four fields for `YES` approval before any write,
+then patches only `required_approving_review_count`, `require_code_owner_review`,
+`dismiss_stale_reviews_on_push`, `require_last_push_approval`. It preserves
+each target's live name, scope, checks and integration IDs, check options,
+bypass, thread/merge options and other rules; no POST or tag write occurs.
+Do not pass `-AdminBypassAvailable` or combine update with restore. A changed
+list/body during confirmation or between writes stops the transaction.
+Failed/mismatched readback stays pending; unknown outcomes require owner
+reconciliation before restore. This is a maintenance window, not an atomic API.
+
+For an approval update, `-Restore` writes each updated ID's exact backed-up
+before body, including its original approval values; it never disables an
+existing ruleset. It checks the current body against the recorded after body
+before confirmation and again before writing, then checks the restore readback.
+Initial G0 transactions still restore main and disable only IDs they created.
+
+Trial on an isolated target with the candidate policy/CODEOWNERS/checker/W1
+on its base before touching formal targets. Prove R1/R2 COMMENT-record plus
+green-CI auto-merges without an owner APPROVED review, and R3 blocks until
+owner approval on the exact last push names its roles. Record edits/dismissals
+must trigger the same required authority context without body edits; missing,
+rejecting, incomplete or stale records and missing/failed/cancelled checks
+block. If last-push true still requires an approval for R0–R2, stop and obtain
+a new owner decision before changing it. Preserve candidate SHA, trial IDs,
+before/after JSON, review/run IDs, check SHA/source, merge state/commit and
+no-bypass evidence. Only switch a formal target whose base has the amended
+authority files; leave unswitched targets protected. Release environment stays.
+
+Enable `--auto --merge --match-head-commit <head>` only after live record/check
+verification and any required R3 approval snapshot. The guard checks the head
+at the call. Cancel auto-merge before subsequent pushes or authority/record
+edits and repeat verification. Trial failure leaves formal rules unchanged.
+After a formal-cutover problem, cancel auto-merge, restore the saved live body
+and read back effective rules, then use an R3 revert PR for repository changes.
+Keep required CI, RS-4 and the release environment; never disable a trunk
+ruleset as a substitute for restore.
+
 ## 3. Install the daily-use interfaces
 
 The owner reviews and installs the helper and wrapper outside the repository. For repository Git credential configuration, preserve a private copy of the old settings, then set the helper and `useHttpPath` for `https://github.com`. Replace `HELPER_COMMAND` with the reviewed helper's full invocation, including `-Owner`, `-Repo`, `-ClientId`, `-InstallationId`, and `-DpapiPath`. Do not put a token or PEM in the command.
@@ -58,7 +119,11 @@ git config --local credential.https://github.com.useHttpPath true
 
 `HELPER_COMMAND` has the form `pwsh -NoProfile -File "FULL_PATH_TO_HELPER" -Mode git -Owner OWNER -Repo REPO -ClientId CLIENT_ID -InstallationId INSTALLATION_ID -DpapiPath "OWNER_CHOSEN_PATH"`. Git appends `get`, `store`, or `erase`. The helper only answers `get` for an exact HTTPS GitHub request whose path is `OWNER/REPO` or `OWNER/REPO.git`. A missing, blank, or different repo path exits without reading the DPAPI store or returning credentials. `store` and `erase` do not save anything. Git receives the credential response through its helper protocol; that protocol contains the token, so the agent must not invoke or capture the helper directly. Tokens are not cached on disk.
 
-For `gh`, the agent invokes the owner-installed `Invoke-NfcGh.ps1` with its configured App identifiers and the desired `-GhArguments`. The wrapper starts the helper as a separate `pwsh -NoProfile -File` subprocess, privately captures its token and exit status, and supplies `GH_TOKEN` only to a single `gh` subprocess. It does not set the parent process environment. It replaces the exact token if it appears in captured `gh` stdout or stderr before forwarding that output, and its own error messages do not include the token. A child process started by `gh` may inherit `GH_TOKEN`; do not enable debug or recording output that exposes credentials. For example, after owner setup the agent may use the wrapper to run `gh api /installation/repositories` for checklist D3a.
+Every token requests the fixed A1 permission set for the one repository. `-IncludeWorkflowsWrite` adds `workflows: write` to that one token and changes nothing else; without it the helper never requests `workflows`. The helper refuses a reply that is not limited to `OWNER/REPO`, that goes beyond the requested set or carries a permission at a different level, that lacks `workflows: write` when it was requested, or whose token is not printable ASCII without spaces, so a reply cannot add lines to the Git credential response. It checks `OWNER` and `REPO` case-sensitively and to the end of the value before it reads the DPAPI file. As in the reviewed version, a reply that omits one of the other requested permissions is accepted; the call that needs the missing permission then fails at GitHub, and the owner compares the App's permissions with checklist A1. Use the switch only after the owner has granted `workflows` to the App and accepted it on the installation, and only for an owner-authorized batch that writes `.github/workflows/`; for Git, the owner adds it to the configured helper command for that batch window and removes it afterwards. The Git setting is shared by every worktree of the repository, so every Git token issued in that window carries `workflows: write`; removing the switch affects only tokens issued afterwards and revokes none already issued.
+
+For `gh`, the agent invokes the owner-installed wrapper as its own process: `pwsh -NoProfile [-NonInteractive] [-NoLogo] -File "FULL_PATH_TO_WRAPPER" -Owner OWNER -Repo REPO -ClientId CLIENT_ID -InstallationId INSTALLATION_ID -DpapiPath "OWNER_CHOSEN_PATH" [-IncludeWorkflowsWrite] [--] GH_ARGUMENTS`. The wrapper has no PowerShell parameter block. It reads its own process command line: it requires `-NoProfile`, accepts only `-NonInteractive` and `-NoLogo` besides it, and the first execution mode must be `-File` with the fully qualified path of the wrapper itself, so neither a profile nor the working directory takes part. It also requires that the process invoked the wrapper directly: no other script, profile or command may be on its call stack. `-Command`, another script (including one with the same name that changes the working directory), a relative `-File` path, a missing `-NoProfile`, any other start-up option, dot-sourcing or a call with `&` stops it with exit code 64 before the helper runs; it never searches later arguments for another `-File`. It then takes its own options up to `--` or up to the first argument that does not begin with `-`, and passes every remaining argument to `gh` unchanged, so PowerShell no longer binds `gh` options such as `--repo`, `-R` or `-v` or splits arguments such as `--head=owner:branch`. The `gh` arguments must begin with the `gh` command (see below), so `--` before them is optional. It passes `-IncludeWorkflowsWrite` to the helper only when that switch is among its own options.
+
+Before it requests a token, the wrapper also refuses common repository options early: it stops with exit code 64 and a message naming `OWNER/REPO` when a `--repo`/`-R` value or `GH_REPO` names anything other than exactly `OWNER/REPO`, when a group of short options contains `-R`, or when its own options are missing, repeated, unknown or malformed. It also refuses, with exit code 64, `gh` arguments that do not start with the `gh` command (global options such as `--help=false` before it), and `gh alias` and `gh extension` (and `ext`, `extensions`) as that command, because alias shell commands and extensions run as children of `gh` with the token. This is an early refusal of common options, not a limit on what `gh` does. It does not inspect `gh api repos/OTHER/...` paths, GraphQL queries, `gh repo` positional repository arguments or the repository `gh` derives from the working directory; `GH_HOST` or any other API host or URL selection; or an alias or extension that already exists and is invoked by its own name, other child processes, and whichever `pwsh` or `gh` executable `PATH` selects. The installation token authorizes this one repository only, but that does not prove that each request targets it, and a request to another host may use a different login. The wrapper therefore does not technically guarantee the App identity or the destination host of a call. Use it only with a trusted `pwsh` and `gh` installation, only against GitHub.com (no `GH_HOST` or enterprise host), with no untrusted `gh` alias or extension, and only for authorized commands. The wrapper starts the helper as a separate `pwsh -NoProfile -File` subprocess, privately captures its token and exit status, and supplies `GH_TOKEN` only to a single `gh` subprocess. It does not set the parent process environment. It reads `gh` stdout and stderr as raw bytes, replaces each occurrence of the exact token bytes, and writes the bytes unchanged otherwise, so text in any encoding (such as Traditional Chinese) and binary output pass through whatever the console code page is. This redaction only catches the token printed verbatim by accident. A command can still print it transformed: `--jq` can read environment variables (for example `env.GH_TOKEN` piped through a filter), and an alias, extension or browser setting (`GH_BROWSER`, `gh config set browser`) runs a child process with the token. The wrapper is therefore no defense against a deliberate command; use it only for authorized commands. Its own error messages do not include the token. A child process started by `gh` may inherit `GH_TOKEN`; do not enable debug or recording output that exposes credentials. For example, after owner setup the agent may use the wrapper to run `gh api /installation/repositories` for checklist D3a.
 
 The owner sets the bot commit identity and performs the remaining checklist steps A7–A8 and D1–D7. These scripts do not auto-approve pull requests, create releases, invoke bypass, change account login, or perform the checklist's remote write validation.
 

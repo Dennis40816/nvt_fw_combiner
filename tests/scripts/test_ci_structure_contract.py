@@ -1,8 +1,10 @@
 """CI source binding and Windows structure contracts."""
 import tempfile
+import subprocess
 import unittest
 from pathlib import Path
 import sys
+from unittest.mock import patch
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -15,6 +17,31 @@ class CiStructureContractTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+
+    def test_repository_files_accepts_gitlink_without_reading_submodule_contents(self) -> None:
+        def git(*arguments: str) -> None:
+            subprocess.run(
+                ["git", *arguments], cwd=self.root, check=True, capture_output=True
+            )
+
+        git("init", "--quiet")
+        readme = self.root / "README.md"
+        readme.write_text("# Test repository\n", encoding="utf-8")
+        git("add", "README.md")
+        # A gitlink records a foreign commit; its object need not exist locally.
+        git("update-index", "--add", "--cacheinfo", "160000", "1" * 40,
+            "third-party/example")
+        submodule = self.root / "third-party/example"
+        with patch.object(repository_validator, "ROOT", self.root):
+            for state in ("absent", "empty", "populated"):
+                with self.subTest(state=state):
+                    if state == "empty":
+                        submodule.mkdir(parents=True)
+                    elif state == "populated":
+                        (submodule / "invalid.py").write_text("invalid Python!", encoding="utf-8")
+                    self.assertEqual([readme], repository_validator.repository_files())
+                    tracked = repository_validator._git_tracked_paths()
+                    self.assertEqual([readme], repository_validator.repository_files(tracked))
 
     def test_ci_structure_checkout_fetches_complete_history(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -33,7 +60,7 @@ class CiStructureContractTests(unittest.TestCase):
                     Loader=yaml.BaseLoader,
                 )
                 self.assertEqual(
-                    ["main", "1.1.x"], workflow["on"]["push"]["branches"]
+                    ["main", "1.2.x"], workflow["on"]["push"]["branches"]
                 )
                 self.assertIn("pull_request", workflow["on"])
 

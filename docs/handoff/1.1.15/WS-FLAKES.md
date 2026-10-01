@@ -183,3 +183,7 @@ keeps the `0700e25f4` guard, the pixel thresholds and every gap/overlap assertio
 
 The navigation focus hardening merged into `1.1.x` through #493 (merge `9d5783b4e`) on 2026-09-30. The bug record
 stays open until the release run and later full runs show no recurrence.
+
+Earlier merges of this workstream: the Bootstrap host race through #488 (merge `aba286bae`) on 2026-09-29, and the
+flaky fixes with the pre-wait deadline correction through #491 (merge `2f8b31bb6`) on 2026-09-30. All shipped in
+v1.1.15 and v1.2.0.
