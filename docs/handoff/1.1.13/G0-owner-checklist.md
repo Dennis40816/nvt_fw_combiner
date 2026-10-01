@@ -701,6 +701,8 @@ started with `-IncludeWorkflowsWrite`.
 8. **owner → owner**, optional. After the batch you may set **Workflows** back
    to **No access** on the App and check on the installation page that it is
    gone; before the next workflow-writing batch, repeat steps 3 to 6.
+   Since [board decision 222](../1.2.x.md) (2026-10-01) this step is required
+   after every batch, not optional.
 
 | Message or symptom | State | What you do |
 | --- | --- | --- |
@@ -721,6 +723,8 @@ Rollback: put the private copy of step 1 back, remove
 reviewed hashes; put the A6 Git entry back without the switch;
 optionally set **Workflows** to **No access** on the App. The installed
 sixth version then works as before, including its `gh` option limits (A6).
+Since board decision 222 (2026-10-01), setting **Workflows** to **No access**
+is required, not optional.
 
 ### A7. Agent commit identity
 
