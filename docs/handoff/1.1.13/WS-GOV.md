@@ -1315,8 +1315,9 @@ Recorded on the `1.2.x` trunk by the commander (board decision 220); the section
 
 - Subject: helper and `gh` wrapper revision `4ac380da8` (seventh version: `workflows: write` only with
   `-IncludeWorkflowsWrite`; `gh` arguments forwarded unchanged; Pester 3.4.0 test runner), cherry-picked onto
-  `1.2.x` for the G0 landing pull request. The owner had already installed it; the installed copy is
-  byte-identical to `4ac380da8` (SHA-256 of the five scripts and the README, checked 2026-10-01). The earlier
+  `1.2.x` for the G0 landing pull request. The owner had already installed it; the commander's SHA-256
+  check of the five scripts and the README (2026-10-01) found the installed copy byte-identical to
+  `4ac380da8`. The earlier
   reviews G0HR, G0HR2 and G0HR3 (`codex/gpt-6-astra`, ACCEPT-WITH-CHANGES; F-1 closed by G0HR3) had no
   recorded acceptance, and the checklist still called the version pending.
 - Review: a fresh Claude Opus 5.5 session, read-only, 2026-10-01, on the landing head: **accept-with-changes,
@@ -1339,5 +1340,13 @@ Recorded on the `1.2.x` trunk by the commander (board decision 220); the section
   - P2 (records): the risk of decision 216 was understated; restated on the board and in the checklist and sent
     to the owner for re-confirmation with three settings the App cannot read.
   - P3 (records): the documents did not forbid `git credential fill` or a storing helper; the checklist now does.
+  - P2 (records): no G0HR record existed in the repository, the checklist still said "Pending ... Do not
+    install" for the installed version, and the commit message claimed F-1 to F-5 closed; this section and
+    the checklist's dated status note reconcile them.
+  - P3 (records, fixed): the README amendment had changed the README hash that A6a step 1 compares; the
+    README is back to the reviewed bytes and the note lives in the checklist and on the board.
+- Follow-up the same day: the owner withdrew decision 216 after the restated risk (board decision 221);
+  the Git helper command no longer carries `-IncludeWorkflowsWrite`.
 - Not verifiable by the reviewer: the live App and installation permissions, the repository's Actions and
-  environment settings, and the content of G0HR's findings.
+  environment settings, the installed copy's bytes (checked by the commander), and the content of G0HR's
+  findings.

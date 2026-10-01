@@ -2,8 +2,8 @@
 
 Amendment, 2026-10-01 (status; the 1.1.13 text below is kept as recorded): the seventh version
 (`4ac380da8`) is the installed version. The owner installed it before an acceptance was recorded; the
-installed copy is byte-identical to `4ac380da8` (SHA-256 of the five scripts and the README, checked
-2026-10-01). A fresh independent security review on 2026-10-01 (Claude Opus 5.5) accepted it with
+installed copy is byte-identical to `4ac380da8` (the commander's SHA-256 check of the five scripts and
+the README, 2026-10-01; the reviewer could not verify the installed copy). A fresh independent security review on 2026-10-01 (Claude Opus 5.5) accepted it with
 changes, no P0 or P1; the record is in [WS-GOV](WS-GOV.md#g0-seventh-version-acceptance-2026-10-01).
 The **pending review** markers below therefore describe the history, not the current state. The
 trunk carries this version since the G0 landing pull request; its files still match the hashes in the
@@ -357,7 +357,8 @@ helper command until `1.2.1` is released, instead of adding it per batch as the 
 README describes; at that release the owner decides whether it stays. This note lives here
 and on the board, not in the scripts' README, so that the README keeps the reviewed hash.
 Risk, as restated after the independent review of 2026-10-01: while it is on, every Git token
-issued for this repository can create or change `.github/workflows/` on any branch. Such a
+issued for this repository can create or change `.github/workflows/` on any branch the rulesets
+let it push. Such a
 workflow runs on push, without a pull request or review, with `GITHUB_TOKEN` at the
 repository's default workflow permissions and with every secret that no environment protection
 rule guards. The `release` environment requires the owner's approval and protected branches;
@@ -370,6 +371,10 @@ approve pull requests, and which repository secrets exist.
 Agents never run `git credential fill`, `git credential approve`, a credential manager
 command, or `git -c credential.helper=store` (or any caching helper) for this repository: each
 would expose or persist the one-hour token.
+
+Amendment, 2026-10-01 ([board decision 221](../1.2.x.md)): decision 216 is withdrawn. After the
+fuller risk above was reported, the owner removed `-IncludeWorkflowsWrite` from the Git helper
+command; the per-batch rule of the scripts' README applies again.
 
 - [ ] **owner → owner.** Optional preview, which contacts no GitHub: in your
       script folder run

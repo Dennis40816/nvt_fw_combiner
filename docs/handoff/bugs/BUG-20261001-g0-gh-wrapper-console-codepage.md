@@ -11,7 +11,8 @@ response carries the token without a CR/LF check).
 Observed: a `pwsh` started from Git Bash on this machine uses code page 950. `gh` writes UTF-8, so `體` arrives as
 the bytes `e9 3f` (corrupted), and in `x體ghs_FAKE123` the byte `0x94` joins `g` into one CP950 character, so the
 exact-string token replacement does not match and the fake token passes through unredacted. Agents read
-Traditional Chinese pull request text corrupted and may write it back. The helper findings fail safe today.
+Traditional Chinese pull request text corrupted and may write it back. The helper's line 60 finding fails safe;
+line 92 is safe only while GitHub returns a well-formed token.
 Expected: the wrapper decodes `gh` output as UTF-8 and forwards it unchanged, the token scrub works on the
 decoded text, and a test covers non-ASCII output with a token after a CJK character; the helper input check uses
 `\z` and the Git response refuses a token with CR or LF.
