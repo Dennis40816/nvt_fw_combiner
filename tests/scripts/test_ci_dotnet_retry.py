@@ -143,7 +143,12 @@ class CiFailureDetailsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             invalid, passed = root / "invalid.trx", root / "passed.trx"
+            unknown_encoding = root / "unknown-encoding.trx"
             invalid.write_text("<broken", encoding="utf-8")
+            unknown_encoding.write_text(
+                '<?xml version="1.0" encoding="not-a-real-encoding"?><TestRun/>',
+                encoding="utf-8",
+            )
             self.write_trx(passed, {})
             console = io.StringIO()
             summary = root / "summary.md"
@@ -155,7 +160,9 @@ class CiFailureDetailsTests(unittest.TestCase):
                     "aggregate",
                     [
                         ("Project", "attempt-1", path)
-                        for path in (root / "missing.trx", invalid, passed)
+                        for path in (
+                            root / "missing.trx", invalid, unknown_encoding, passed
+                        )
                     ],
                 )
             self.assertEqual("", console.getvalue())
@@ -1149,7 +1156,7 @@ class CiDotnetRetryTests(unittest.TestCase):
                 self.assertIn("at Probe.Tests.Run()", output)
 
     def test_failed_aggregate_without_readable_trx_keeps_identity_only_report(self):
-        for case in ("missing", "invalid"):
+        for case in ("missing", "invalid", "unknown-encoding"):
             with (
                 self.subTest(case=case),
                 self.shard("recover") as (root, project, _, _, _, _),
@@ -1167,6 +1174,12 @@ class CiDotnetRetryTests(unittest.TestCase):
                 )
                 if case == "missing":
                     first.unlink()
+                elif case == "unknown-encoding":
+                    first.write_text(
+                        '<?xml version="1.0" encoding="not-a-real-encoding"?>'
+                        "<TestRun/>",
+                        encoding="utf-8",
+                    )
                 else:
                     first.write_text("<broken", encoding="utf-8")
                 console = io.StringIO()

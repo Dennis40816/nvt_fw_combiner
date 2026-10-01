@@ -5485,7 +5485,8 @@ def report_ci_test_failure_details(
             parse_trx_test_outcomes(
                 trx, preserve_case_identity=True, failed_results=details
             )
-        except (RuntimeError, OSError, ValueError):
+        # LookupError: a TRX that declares an unknown XML encoding.
+        except (RuntimeError, OSError, ValueError, LookupError):
             continue
         for failure in details:
             failures.setdefault((project, failure.identity), {}).setdefault(
