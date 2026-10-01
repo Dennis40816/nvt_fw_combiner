@@ -38,8 +38,8 @@ The first two items are carried to the contract change that goes with R35-06, be
    that the `1.2.2` run is the deferred `1.2.0-release-approval` milestone (decisions 201 and 250), or add a value.
 3. **The CLI still has no supplier for release inventory or the baseline builder.** The rolling report of record
    (R36-02) needs a release-host adapter that supplies the published stable release inventory to
-   `run_rolling(published=...)`. The CLI currently passes none, so `rolling --formal` ends
-   `PREDECESSOR_BASELINE_INVALID`. The rehearsal and the v0.9.16 report (R35-09, R36-03) need the CLI to pass
+   `run_rolling(published=...)`. The CLI passes none, so once R35-06 is in effect `rolling --formal` ends
+   `PREDECESSOR_BASELINE_INVALID` (today it is refused earlier with `PREDECESSOR_CONTRACT_PENDING`). The rehearsal and the v0.9.16 report (R35-09, R36-03) need the CLI to pass
    the baseline executor builder of R35-06; until then every `v0916-1x` CLI run ends
    `PREDECESSOR_CONTRACT_PENDING`.
 
