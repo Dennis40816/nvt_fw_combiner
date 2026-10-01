@@ -93,3 +93,8 @@
 /scripts/repository_contract_validation.py @Dennis40816
 /scripts/skill_metadata_validation.py @Dennis40816
 /scripts/sync_derived.py @Dennis40816
+# agent-runtime-permissions (R3)
+/.codex/config.toml @Dennis40816
+/.codex/agents/** @Dennis40816
+/.claude/settings.json @Dennis40816
+/.claude/settings.local.json @Dennis40816

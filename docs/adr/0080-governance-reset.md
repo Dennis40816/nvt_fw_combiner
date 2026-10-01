@@ -153,6 +153,11 @@ protections; repository templates do not prove a live cutover.
   `sync_derived.py` (including the validator's function-local import).
   Existing firmware/release dependencies keep their existing R3 roles;
   ordinary tooling remains R2. Policy/tests own the exact path set.
+- Agent runtime permission and sandbox files (`.codex/config.toml`,
+  `.codex/agents/**`, `.claude/settings.json`, `.claude/settings.local.json`)
+  are R3 with the `governance-owner` role (owner decision 244); CI install
+  scripts (`scripts/install-dotnet.*`, `scripts/bootstrap.*`) remain R2 by
+  the same owner decision.
 - Ownership is required only for R3, using case-sensitive matches on confirmed
   GitHub changed destinations. Classification still uses both rename/copy
   ends and the stricter base/head authority. R3-only case-insensitive matches,

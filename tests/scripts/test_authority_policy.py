@@ -16,6 +16,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -101,6 +102,12 @@ CI_VERDICT_OWNERS = {
     "scripts/coverage_policy.py", "scripts/repository_contract_validation.py",
     "scripts/skill_metadata_validation.py",
     "scripts/sync_derived.py",
+}
+AGENT_RUNTIME_PERMISSION_PATTERNS = {
+    ".codex/config.toml",
+    ".codex/agents/**",
+    ".claude/settings.json",
+    ".claude/settings.local.json",
 }
 GOVERNANCE_DOCUMENTS = {
     "docs/adr/0080-governance-reset.md",
@@ -294,6 +301,12 @@ class AuthorityPolicyTests(unittest.TestCase):
             "tests/scripts/test_private_user_profile_paths.py",
             "docs/adr/0077-prebuilt-profile-catalog.md",
             ".agents/skills/nfc-review/SKILL.md",
+            ".claude/agents/reviewer.md",
+            "docs/AGENTS.md",
+            "scripts/install-dotnet.ps1",
+            "scripts/install-dotnet.sh",
+            "scripts/bootstrap.ps1",
+            "scripts/bootstrap.sh",
         ):
             with self.subTest(path=path):
                 result = POLICY.classify(path, case_sensitive=True)
@@ -308,6 +321,35 @@ class AuthorityPolicyTests(unittest.TestCase):
                     )
                 )
 
+    def test_agent_runtime_permissions_require_governance_owner_approval(self) -> None:
+        policy = json.loads((ROOT / check.POLICY_PATH).read_bytes())
+        entries = [
+            entry for entry in policy["entries"]
+            if entry["id"] == "agent-runtime-permissions"
+        ]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(set(entries[0]["patterns"]), AGENT_RUNTIME_PERMISSION_PATTERNS)
+        codeowner_patterns = [
+            check.compile_pattern(line.split()[0].removeprefix("/"))
+            for line in (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        for path in (
+            ".codex/config.toml",
+            ".codex/agents/reviewer.toml",
+            ".codex/agents/nested/reviewer.toml",
+            ".claude/settings.json",
+            ".claude/settings.local.json",
+        ):
+            with self.subTest(path=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertEqual((result.floor, result.roles), ("R3", {"governance-owner"}))
+                self.assertFalse(result.unclassified)
+                self.assertTrue(
+                    any(re.fullmatch(pattern.pattern, path) for pattern in codeowner_patterns),
+                    f"{path} is not code-owned",
+                )
+
     def test_governance_and_ci_verdict_owners_are_a_closed_r3_set(self) -> None:
         policy = json.loads((ROOT / check.POLICY_PATH).read_bytes())
         ci = next(entry for entry in policy["entries"] if entry["id"] == "ci-verdict-authority")
@@ -316,17 +358,61 @@ class AuthorityPolicyTests(unittest.TestCase):
             with self.subTest(path=path):
                 result = POLICY.classify(path, case_sensitive=True)
                 self.assertEqual((result.floor, result.roles), ("R3", {"governance-owner"}))
-        tree = ast.parse((ROOT / "scripts/validate_repository.py").read_text(encoding="utf-8"))
-        local_imports = {
-            f"scripts/{node.module}.py"
-            for node in ast.walk(tree)
-            if isinstance(node, ast.ImportFrom)
-            and (ROOT / "scripts" / f"{node.module}.py").is_file()
+        for owner in sorted(CI_VERDICT_OWNERS):
+            tree = ast.parse((ROOT / owner).read_text(encoding="utf-8"))
+            modules = {
+                alias.name
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            modules.update(
+                node.module
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module is not None
+            )
+            modules.update(
+                alias.name
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module in (None, "scripts")
+                for alias in node.names
+            )
+            for module in sorted(modules):
+                path = f"scripts/{module.removeprefix('scripts.').replace('.', '/')}.py"
+                if (ROOT / path).is_file():
+                    with self.subTest(owner=owner, dependency=path):
+                        result = POLICY.classify(path, case_sensitive=True)
+                        self.assertEqual(result.floor, "R3")
+                        self.assertTrue(result.roles)
+                        self.assertFalse(result.unclassified)
+
+        spec = importlib.util.spec_from_file_location(
+            "authority_policy_verify", ROOT / "scripts/verify.py"
+        )
+        assert spec is not None and spec.loader is not None
+        verifier = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = verifier
+        spec.loader.exec_module(verifier)
+        with patch.object(verifier, "run") as run_command:
+            verifier.verify_structure()
+        verdict_scripts = {
+            Path(call.args[0][1]).as_posix()
+            if not Path(call.args[0][1]).is_absolute()
+            else Path(call.args[0][1]).relative_to(ROOT).as_posix()
+            for call in run_command.call_args_list
         }
-        for path in local_imports:
-            with self.subTest(dependency=path):
-                self.assertEqual(POLICY.classify(path).floor, "R3")
-                self.assertTrue(POLICY.classify(path).roles)
+        self.assertEqual(verdict_scripts, {
+            "scripts/sync_derived.py",
+            "scripts/validate_repository.py",
+            "scripts/polytail_check.py",
+            "scripts/create_ctrlram_universal_sentinel.py",
+        })
+        for path in verdict_scripts:
+            with self.subTest(subprocess=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertEqual(result.floor, "R3")
+                self.assertTrue(result.roles)
+                self.assertFalse(result.unclassified)
 
     def test_codeowners_mismatch_with_policy_fails(self) -> None:
         content = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")

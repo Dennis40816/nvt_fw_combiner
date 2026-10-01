@@ -168,6 +168,18 @@
       ]
     },
     {
+      "id": "agent-runtime-permissions",
+      "description": "Agent runtime permission and sandbox settings require governance-owner approval (owner decision 244, 2026-10-01).",
+      "floor": "R3",
+      "roles": ["governance-owner"],
+      "patterns": [
+        ".codex/config.toml",
+        ".codex/agents/**",
+        ".claude/settings.json",
+        ".claude/settings.local.json"
+      ]
+    },
+    {
       "id": "agent-instructions",
       "description": "Agent configuration, skills and every AGENTS.md.",
       "floor": "R2",

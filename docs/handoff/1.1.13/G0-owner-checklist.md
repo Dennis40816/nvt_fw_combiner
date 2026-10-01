@@ -762,7 +762,7 @@ version's folder stays for rollback.
 - `tests/NfcG0.Tests.ps1`: five new cases; through the runner the suite passed
   69/69 with fake secrets on source commit `8057d32d5` (2026-10-01).
 
-| File | SHA-256 (eighth version, pending review) |
+| File | SHA-256 (eighth version, installed 2026-10-01) |
 | --- | --- |
 | `nfc-app-token-helper.ps1` | `73e9d63271889dfac8710e13cb7336dd1a3575117bcd0b7e8c8689054f5f32f0` |
 | `Invoke-NfcGh.ps1` | `be793f98913792cbff4bb5fba39b5b91bf1a421d6a6a0e10a53693d8ab064a82` |
