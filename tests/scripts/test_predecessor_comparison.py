@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 from scripts import predecessor_comparison as comparison
 from scripts import v0916_parity_certification as parity
+from tests.scripts.predecessor_test_support import contract_for_fake_processes
 from tests.scripts.test_predecessor_report_reader import raw_report
 
 
@@ -102,7 +103,7 @@ class FakeGitHost:
 
 class ComparisonTests(unittest.TestCase):
     def setUp(self):
-        self.scratch = tempfile.TemporaryDirectory(prefix="b")
+        self.scratch = tempfile.TemporaryDirectory(prefix="b", dir=os.environ["TEMP"])
         self.root = Path(self.scratch.name)
         self.settings = self.root / "settings"
         self.settings.mkdir()
@@ -110,7 +111,7 @@ class ComparisonTests(unittest.TestCase):
         self.runner = comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, admission=self.admission())
 
     def admission(self, formal=False):
-        contract = copy.deepcopy(self.contract)
+        contract = contract_for_fake_processes(self.contract, self.root)
         if formal:
             contract["executor"]["compilerHost"]["status"] = "in-effect"
         return comparison.admit_loaded_execution_contract(contract, mode="rolling", formal=formal)
@@ -154,10 +155,29 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(Path(os.environ["TEMP"]).resolve(), self.root.parent.resolve())
         self.assertFalse(self.root.resolve().is_relative_to(ROOT.resolve()))
 
-    def test_long_temporary_root_is_refused_before_process(self):
+    def test_temporary_root_at_bound_is_accepted_and_one_over_is_refused(self):
+        at_bound = self.root / "x"
+        over_bound = self.root / "xx"
+        contract = copy.deepcopy(self.contract)
+        contract["environment"]["temporaryRootMaxLength"] = len(str(at_bound.resolve()))
+        admission = comparison.admit_loaded_execution_contract(contract, mode="rolling", formal=False)
+        host = FakeProcessHost()
+        comparison.ProcessRunner(host, at_bound, self.settings, admission=admission)
         with self.assertRaises(comparison.ExecutionError) as found:
-            comparison.ProcessRunner(FakeProcessHost(), self.root / ("x" * 65), self.settings, admission=self.admission())
+            comparison.ProcessRunner(host, over_bound, self.settings, admission=admission)
         self.assertEqual("PREDECESSOR_ENVIRONMENT_INVALID", found.exception.code)
+        self.assertEqual([], host.calls)
+        self.assertFalse(over_bound.exists())
+
+    def test_committed_temporary_root_bound_is_64_and_loader_passes_it_unchanged(self):
+        self.assertEqual(64, self.contract["environment"]["temporaryRootMaxLength"])
+        admission = comparison.admit_execution_contract(CONTRACT, mode="rolling", formal=False)
+        check = comparison.validation.execution_environment_failures
+        with (patch.object(comparison.validation, "execution_environment_failures", wraps=check) as validate,
+              self.assertRaises(comparison.ExecutionError) as found):
+            comparison.ProcessRunner(FakeProcessHost(), self.root / ("x" * 65), self.settings, admission=admission)
+        self.assertEqual("PREDECESSOR_ENVIRONMENT_INVALID", found.exception.code)
+        self.assertEqual(64, validate.call_args.kwargs["maximum_length"])
 
     def test_process_inputs_and_captures_are_confined_to_fresh_staging(self):
         work = self.root / "confined"

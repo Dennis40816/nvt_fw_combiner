@@ -241,14 +241,30 @@ def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
     return []
 
 
-def report_input_binding(slot_id: str) -> dict[str, str]:
+def report_input_binding(
+    slot_id: str, *, request: Mapping[str, Any] | None = None, execution_role: str | None = None,
+) -> dict[str, str]:
     """V2 v0.9.16 and 1.x reports use the compiled address-space id for both ids.
 
     Golden artifact ids only locate materialization bytes. The CLI's base
     option uses replace-base; its compiled report binding is reference-base.
     """
     address_space = "reference-base" if slot_id == "replace-base" else slot_id
+    # The historical plan authorizes only the baseline report alias. Golden
+    # materialization and CLI slots keep the resolver's original identities.
+    if request is not None and execution_role == "baseline-exact":
+        alias = next((row for row in request.get("inputIdentityAliases", ())
+                      if row["routeId"] == request["routeId"]
+                      and row["capabilityFingerprint"] == request["capabilityFingerprint"]), None)
+        if alias is not None and slot_id == alias["candidateInputSlotId"]:
+            address_space = alias["baselineInputSlotId"]
     return {"expectedReportAddressSpaceId": address_space, "expectedReportArtifactId": address_space}
+
+
+def v0916_milestone_failures(*, formal: bool, milestone: str | None) -> list[Failure]:
+    """A formal v0.9.16 comparison must identify its milestone."""
+    return ([_failure("INPUT_INVALID", "milestone", "formal comparison requires a milestone")]
+            if formal and milestone is None else [])
 
 
 def output_destination_failures(*, exists: bool, is_symlink: bool) -> list[Failure]:
@@ -1656,8 +1672,8 @@ def _v0916_route_failures(
             failures.append(_failure("AMENDMENT_MISMATCH", subject, "correction primitive did not reproduce its row"))
         row = disposition.row or {}
         observed = {
-            "baselineOutput": _identity(route["baseline"]["output"]),
-            "candidateOutput": _identity(route["candidate"]["output"]),
+            "baselineOutput": _identity(baseline_output),
+            "candidateOutput": _identity(candidate_output),
             "differentRanges": None if not output_differs else [dict(item) for item in evidence.scopes["output"]],
         }
         observed["differentByteCount"] = None if route["comparison"] is None else route["comparison"]["differentByteCount"]
@@ -1707,7 +1723,7 @@ def v0916_report_failures(
 ) -> list[Failure]:
     """A v0.9.16 1.x report covers each plan route once with its proof, row, evidence, summary and result."""
 
-    failures: list[Failure] = []
+    failures = v0916_milestone_failures(formal=report.get("formal", False), milestone=report.get("milestone"))
     if authority is not None:
         failures.extend(source_binding_failures(report, authority))
     if plan is not None and report["planBinding"] != v0916_plan_binding(plan):

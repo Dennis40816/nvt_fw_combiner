@@ -17,6 +17,7 @@ from scripts import predecessor_comparison as execution
 from scripts import predecessor_rolling as rolling
 from scripts import predecessor_validation as validation
 from scripts import v0916_parity_certification as parity
+from tests.scripts.predecessor_test_support import contract_for_fake_processes
 from tests.scripts.test_predecessor_comparison import FakeGitHost, FakeProcessHost
 from tests.scripts.test_predecessor_report_reader import raw_report
 from scripts.render_release_notes import REQUIRED_FEATURE_FIELDS
@@ -340,7 +341,8 @@ class RollingTests(unittest.TestCase):
         loader = rolling.load_rolling_sources
         def stable_sources(*args, **kwargs):
             sources = loader(*args, **kwargs)
-            return sources._replace(authority=sources.authority._replace(comparator_sha256="c" * 64))
+            return sources._replace(contract=contract_for_fake_processes(sources.contract, temporary),
+                                    authority=sources.authority._replace(comparator_sha256="c" * 64))
         with patch.object(rolling, "load_rolling_sources", side_effect=stable_sources):
             report = rolling.run_rolling(git=git, host=host, candidate_commit=CANDIDATE, baseline_tag="v1.2.1",
                                          output_path=output, temporary_root=temporary, settings_folder=self.settings,

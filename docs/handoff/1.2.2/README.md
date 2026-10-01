@@ -23,7 +23,7 @@ A formal run is refused with `PREDECESSOR_CONTRACT_PENDING` until R35-06 is in e
 
 ## Open items found in review
 
-These are carried to the contract change that goes with R35-06, because they need a change under
+The first two items are carried to the contract change that goes with R35-06, because they need a change under
 `docs/contracts/`:
 
 1. **`deterministicSha256` does not reproduce between real runs.** Each process entry of a report carries the size
@@ -36,6 +36,12 @@ These are carried to the contract change that goes with R35-06, because they nee
    `1.1.13-final-candidate`, `1.2.0-release-approval` and `before-ro-1-decision`, and the contract still describes
    the mode as a milestone check. Decision 250 makes the deferred milestone comparison block `1.2.2`: either state
    that the `1.2.2` run is the deferred `1.2.0-release-approval` milestone (decisions 201 and 250), or add a value.
+3. **The CLI still has no supplier for release inventory or the baseline builder.** The rolling report of record
+   (R36-02) needs a release-host adapter that supplies the published stable release inventory to
+   `run_rolling(published=...)`. The CLI currently passes none, so `rolling --formal` ends
+   `PREDECESSOR_BASELINE_INVALID`. The rehearsal and the v0.9.16 report (R35-09, R36-03) need the CLI to pass
+   the baseline executor builder of R35-06; until then every `v0916-1x` CLI run ends
+   `PREDECESSOR_CONTRACT_PENDING`.
 
 To check at the rehearsal, because every test so far uses synthetic CLI reports:
 

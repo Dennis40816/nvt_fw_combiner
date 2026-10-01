@@ -422,6 +422,7 @@ class ProcessRunner:
 def stage_case_inputs(
     authority: MaterializedCanonicalAuthority, artifacts: Mapping[str, Mapping[str, Any]],
     bindings: Sequence[tuple[str, str] | Mapping[str, Any]], target_root: Path,
+    *, request: Mapping[str, Any] | None = None, execution_role: str | None = None,
 ) -> list[dict[str, Any]]:
     """Reuse admission and carry bindings into read-only captures under custody.
 
@@ -436,7 +437,7 @@ def stage_case_inputs(
                                 [(binding["artifactId"], binding["slotId"]) for binding in captured_bindings],
                                 target_root=target_root)
         for row in rows:
-            row.update(validation.report_input_binding(row["slotId"]))
+            row.update(validation.report_input_binding(row["slotId"], request=request, execution_role=execution_role))
             Path(row["path"]).chmod(stat.S_IREAD)
         return rows
     except (ParityError, OSError, KeyError, TypeError, IndexError) as error:
@@ -522,7 +523,7 @@ def execute_cli_stage(
     """Fresh runtime and admitted input copies for one Preview or Build."""
 
     work = Path(tempfile.mkdtemp(prefix="cli-", dir=runner.temporary_root))
-    rows = stage_case_inputs(authority, artifacts, bindings, work / "inputs")
+    rows = stage_case_inputs(authority, artifacts, bindings, work / "inputs", request=request, execution_role=execution_role)
     if precursor is not None:
         if precursor.output_path is None or precursor.output is None:
             raise ExecutionError("PREDECESSOR_INPUT_INVALID", "precursor capture is missing")

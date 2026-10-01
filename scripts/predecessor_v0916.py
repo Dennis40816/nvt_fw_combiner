@@ -111,7 +111,7 @@ def execute_v0916_side(
         "candidate-tp" if disposition.proof_kind == "tp-prefix-transitive" else "candidate-exact")
     verified = resolve_canonical_route_input(plan, authority, admitted_input_root=runner.temporary_root / side,
                                              route_id=disposition.route_id, execution_role=role)
-    request = verified.request
+    request = {**verified.request, "inputIdentityAliases": plan.raw.get("inputIdentityAliases", ())}
     # Use the captured authority with the resolver's exact artifacts and slot
     # identities rather than inventing a second artifact admission path.
     manifest = load_json_reject_duplicates(authority.files[authority.manifest_relative])
@@ -272,6 +272,7 @@ def run_v0916(
 ) -> dict[str, Any]:
     execution.require_fresh_output(output_path)
     execution.admit_execution_contract(mode="v0916-1x", formal=formal)
+    execution._refuse(validation.v0916_milestone_failures(formal=formal, milestone=milestone))
     try:
         sources = load_v0916_sources(git, candidate_commit, formal=formal)
         admission = execution.admit_loaded_execution_contract(sources.contract, mode="v0916-1x", formal=formal,
@@ -334,8 +335,6 @@ def v0916_main(argv: Sequence[str] | None = None) -> int:
     try:
         execution.require_fresh_output(args.output)
         execution.admit_execution_contract(mode="v0916-1x", formal=args.formal)
-        if args.formal and args.milestone is None:
-            raise execution.ExecutionError("PREDECESSOR_INPUT_INVALID", "formal comparison requires --milestone")
         with tempfile.TemporaryDirectory(prefix="v0916-", dir=args.temporary_root) as temporary:
             report = run_v0916(git=LocalV0916GitHost(execution.ROOT), host=execution.LocalExecutionHost(),
                                 baseline_builder=None, candidate_commit=args.candidate_commit, output_path=args.output,

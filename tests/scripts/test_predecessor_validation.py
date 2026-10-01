@@ -903,6 +903,23 @@ def independent_exact_route(world: dict[str, Any]) -> dict[str, Any]:
 class V0916ModeValidationTests(unittest.TestCase):
     """The v0.9.16 1.x mode on a fresh valid report: each change fails its own rule."""
 
+    def test_consistent_correction_with_missing_baseline_returns_failure(self) -> None:
+        world = v0916_world()
+        self.assertEqual([], v0916_failures(world))
+        route = route_of(world, "exact-output-with-approved-semantic-correction")
+        route["baseline"] = None
+        failures = v0916_failures(world)
+        self.assertIn("PREDECESSOR_AMENDMENT_MISMATCH", codes(failures))
+        self.assertTrue(any(item.subject == route["planRouteId"] and
+                            item.detail == "baselineOutput does not reproduce the approved row" for item in failures))
+
+    def test_formal_v0916_report_requires_milestone(self) -> None:
+        world = v0916_world()
+        world["report"].update(formal=True, milestone="1.2.0-release-approval")
+        self.assertEqual([], v0916_failures(world))
+        world["report"]["milestone"] = None
+        self.assertIn("PREDECESSOR_INPUT_INVALID", codes(v0916_failures(world)))
+
     def test_consistent_exact_output_with_typed_rejection_is_unapproved(self) -> None:
         world = v0916_world()
         self.assertEqual([], v0916_failures(world))

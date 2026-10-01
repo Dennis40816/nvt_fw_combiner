@@ -15,6 +15,7 @@ from scripts import predecessor_comparison as execution
 from scripts import predecessor_v0916 as milestone
 from scripts import predecessor_validation as validation
 from scripts import v0916_parity_certification as parity
+from tests.scripts.predecessor_test_support import contract_for_fake_processes
 from tests.scripts.test_predecessor_rolling import (
     BASELINE, CANDIDATE, TAG_OBJECT, FIXTURES, PAYLOAD, CHANGED, ROOT,
     RollingFakeGit, SyntheticProcesses, SyntheticReader, encoded, identity, synthetic_world,
@@ -196,6 +197,12 @@ class V0916Processes(SyntheticProcesses):
         if report_path.exists():
             report = json.loads(report_path.read_bytes())
             report.update(ProfileId=profile, IcId=profile)
+            for item in report["Inputs"]:
+                if item["ArtifactId"] in ("ld", "ldc"):
+                    binding = item["ArtifactId"] + "-input"
+                    if change == "candidate-alias" and binding == "ldc-input":
+                        binding = "ld-input"
+                    item.update(AddressSpaceId=binding, ArtifactId=binding)
             if change == "wrong-rejection-code":
                 report["Issues"][0]["Code"] = "synthetic.other-rejection"
             if side == "baseline" and change in ("process-failed", "start-failed"):
@@ -267,7 +274,8 @@ class V0916Tests(unittest.TestCase):
 
         def sources(*args, **kwargs):
             value = original(*args, **kwargs)
-            return value._replace(authority=value.authority._replace(comparator_sha256="c" * 64))
+            return value._replace(contract=contract_for_fake_processes(value.contract, self.root / f"run-{self.counter}"),
+                                  authority=value.authority._replace(comparator_sha256="c" * 64))
 
         with (patch.object(milestone, "load_v0916_sources", side_effect=sources),
               patch.object(milestone, "execute_v0916_side", wraps=milestone.execute_v0916_side) as execute):
@@ -352,6 +360,68 @@ class V0916Tests(unittest.TestCase):
                                 output_path=Path("unused.json"), temporary_root=Path(os.environ["TEMP"]),
                                 settings_folder=Path("unused-settings"), formal=True)
         self.assertEqual("PREDECESSOR_CONTRACT_PENDING", found.exception.code)
+
+    def test_formal_run_without_milestone_refuses_before_source_or_process(self):
+        with (patch.object(execution, "admit_execution_contract"),
+              patch.object(milestone, "load_v0916_sources") as sources,
+              self.assertRaises(execution.ExecutionError) as found):
+            milestone.run_v0916(git=None, host=None, baseline_builder=None, candidate_commit=CANDIDATE,
+                                output_path=self.root / "formal.json", temporary_root=self.root,
+                                settings_folder=self.settings, formal=True)
+        self.assertEqual("PREDECESSOR_INPUT_INVALID", found.exception.code)
+        sources.assert_not_called()
+        self.assertFalse((self.root / "formal.json").exists())
+
+    def alias_world_git(self, *, alias=True, matching_fingerprint=True):
+        route = self.world["policy"]["routes"][2]
+        historical = json.loads((ROOT / milestone.PLAN).read_bytes())["inputIdentityAliases"][0]
+        self.world["plan"]["inputIdentityAliases"] = [{
+            **historical, "routeId": route["routeId"],
+            "capabilityFingerprint": route["capabilityFingerprint"] if matching_fingerprint else "0" * 64,
+        }] if alias else []
+        ldc = {"artifactId": "ldc-input", "role": "input", "path": "ldc-input.bin", **identity(PAYLOAD)}
+        case = {"caseId": "alias-case", "artifacts": [*self.world["case"]["artifacts"][:2], ldc]}
+        self.world["manifest"]["cases"].append({"caseId": "alias-case", "manifestPath": "alias-case.json"})
+        self.world["manifest"]["routeEvidence"][2]["caseId"] = "alias-case"
+        raw = encoded(self.world["manifest"])
+        self.world["plan"]["canonicalInputAuthority"].update(
+            manifestRawSha256=identity(raw)["sha256"], manifestSize=len(raw),
+            manifestBlob=SyntheticReader({"manifest": raw}).entry("manifest")[2])
+        rebind_amendment(self.world)
+        git = V0916FakeGit(self.world)
+        git.commits[INPUT_COMMIT].update({"testdata/golden/canonical/alias-case.json": encoded(case),
+                                         "testdata/golden/canonical/ldc-input.bin": PAYLOAD})
+        return git
+
+    def test_plan_baseline_alias_accepts_ld_and_candidate_ldc_reports(self):
+        git = self.alias_world_git()
+        with patch.object(execution, "execute_cli_stage", wraps=execution.execute_cli_stage) as stages:
+            report, host, _, _ = self.run_world(git=git)
+        route = route_of(report, "amendment-correction")
+        self.assertEqual("consistent", report["result"], report["failures"])
+        self.assertEqual("consistent", route["result"])
+        for side, option in (("baseline", "--ld"), ("candidate", "--ldc")):
+            calls = [call for call in host.calls if "--profile" in call[0] and
+                     call[0][call[0].index("--profile") + 1] == "NT51928" and
+                     Path(call[0][0]).read_bytes() == side.encode()]
+            self.assertEqual(2, len(calls))
+            self.assertTrue(all(option in call[0] for call in calls))
+            stage_calls = [call for call in stages.call_args_list if call.args[2]["routeId"] == "route-amendment-correction"
+                           and call.kwargs["execution_role"] == side + "-exact"]
+            self.assertEqual(2, len(stage_calls))
+            self.assertTrue(all(call.args[5][-1] == {"artifactId": "ldc-input", "slotId": "ldc-input"}
+                                for call in stage_calls))
+
+    def test_historical_alias_on_candidate_or_unbound_route_is_report_invalid(self):
+        for change in ("candidate", "no-alias", "wrong-fingerprint"):
+            with self.subTest(change=change):
+                self.world = v0916_world()
+                git = self.alias_world_git(alias=change != "no-alias", matching_fingerprint=change != "wrong-fingerprint")
+                mutations = {("candidate", "amendment-correction"): "candidate-alias"} if change == "candidate" else None
+                report, _, _, _ = self.run_world(mutations, git=git)
+                route = route_of(report, "amendment-correction")
+                self.assertEqual("invalid", route["result"])
+                self.assertEqual("PREDECESSOR_REPORT_INVALID", route["failureCode"])
 
     def test_amendment_binding_mismatch_refuses_before_materialization_or_execution(self):
         for member in ("withoutCandidateAuthorityJcsSha256", "canonicalInputAuthorityJcsSha256", "policySha256",
