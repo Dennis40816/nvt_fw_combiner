@@ -48,12 +48,15 @@ public sealed class CanonicalSupportMatrixHostTests
         try
         {
             await source.LoadStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
-            Task<CanonicalSupportMatrixQueryResult> queryTask = Task.Run(
+            // Dedicated thread: a busy pool cannot delay it, and the blocked load makes any bound sufficient.
+            Task<CanonicalSupportMatrixQueryResult> queryTask = Task.Factory.StartNew(
                 catalog.Query,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
             Task completed = await Task.WhenAny(
                 queryTask,
-                Task.Delay(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken));
+                Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
             Assert.Same(queryTask, completed);
             Assert.Equal(
                 CanonicalSupportMatrixCatalogState.Loading,

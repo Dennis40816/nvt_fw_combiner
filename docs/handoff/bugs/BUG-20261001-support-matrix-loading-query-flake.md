@@ -1,6 +1,6 @@
 # BUG-20261001-support-matrix-loading-query-flake: the support-matrix Loading query test failed once on the 1.2.x push CI
 
-Status: open
+Status: fixed locally on `feature/1.2.1/owner-decisions` (test-only); closes when that branch merges into `1.2.x`
 Severity: P3
 Found: 2026-10-01, Claude Code commander (Claude Opus 5.5), from the R50 workflow data: push CI run `36799283122`
 on `1.2.x` at `d5770e52e` (the merge of #503), job `dotnet / test (bootstrap)` (`110169758777`). The test failed on
@@ -17,7 +17,13 @@ catalog load on `AllowLoad`, starts `catalog.Query` with `Task.Run` and requires
 loaded runner.
 Expected: the test proves that a query during an in-flight warm returns `Loading` without waiting for the load,
 independent of runner load and thread-pool scheduling.
-Evidence: the attempt-1 TRX above (`evidence/1.2.1/flake-36799283122/`, test-area relative). Still to do before a
-fix: a local amplification with a saturated thread pool that reproduces `WaitingToRun` first.
-Owner: unassigned; `1.2.1` flake bug work (decision 214, beside the other open flake records).
-Resolution: pending.
+Evidence: the attempt-1 TRX above (`evidence/1.2.1/flake-36799283122/`, test-area relative). Local amplification
+(a temporary, uncommitted variant of the test): with the global thread-pool queue saturated by blocking work items
+and the query queued from a non-pool thread, as xUnit's own threads do, the `Task.Run` form failed with the same
+`Assert.Same() Failure ... Status = WaitingToRun` in 1 of 1 run, while a `TaskCreationOptions.LongRunning` query
+passed in the same conditions. Without the saturation both forms passed.
+Owner: Claude Code commander, `feature/1.2.1/owner-decisions`.
+Resolution: the test runs the query on a dedicated thread (`Task.Factory.StartNew` with
+`TaskCreationOptions.LongRunning`) and allows ten seconds instead of one; the load stays blocked until the
+`finally` block, so a query that waited for it still could never finish within the bound. No production change.
+The fixed class passed 3 of 3 local runs (4 tests each).
