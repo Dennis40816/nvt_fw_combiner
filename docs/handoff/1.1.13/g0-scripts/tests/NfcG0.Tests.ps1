@@ -199,6 +199,13 @@ Describe 'NFC G0 pure functions' {
         ('deletion' -in @($release.rules.type)) | Should Be $false
         $tag.action | Should Be 'confirm_only'
         $tag.bypass_actors.Count | Should Be 0
+        foreach ($branch in @($main, $trunk, $release)) {
+            $pr = @($branch.rules | Where-Object type -eq 'pull_request')[0].parameters
+            $pr.required_approving_review_count | Should Be 0
+            $pr.require_code_owner_review | Should Be $true
+            $pr.dismiss_stale_reviews_on_push | Should Be $true
+            $pr.require_last_push_approval | Should Be $true
+        }
     }
 
     It 'formats the app summary without conversion secrets' {
@@ -422,6 +429,34 @@ function New-NfcMockRulesets {
     return @{ '42' = $main; '43' = $tag }
 }
 
+function Add-NfcMockApprovalRulesets {
+    # Existing rulesets with four checks, distinct sources, scope, bypass and extra rules.
+    $savedChecks = @($global:NfcMockRulesets['42'].rules | Where-Object type -eq 'required_status_checks') |
+        ConvertTo-Json -Depth 50
+    foreach ($item in @(@{ id = 42; template = 'RS-1a-to-1k' },
+        @{ id = 44; template = 'RS-2' }, @{ id = 45; template = 'RS-3' })) {
+        $body = Get-Content "$PSScriptRoot/../rulesets/$($item.template).json" -Raw |
+            ConvertFrom-Json -AsHashtable -Depth 50
+        $body.id = $item.id
+        $body.name = "confirmed live $($item.id)"
+        $body.conditions.ref_name.exclude += 'refs/heads/owner-excluded'
+        $body.bypass_actors = @(@{ actor_type = 'RepositoryRole'; actor_id = 5; bypass_mode = 'pull_request' })
+        $pr = @($body.rules | Where-Object type -eq 'pull_request')[0]
+        $pr.parameters.required_approving_review_count = 1
+        $pr.parameters.require_code_owner_review = $false
+        $pr.parameters.dismiss_stale_reviews_on_push = $false
+        $pr.parameters.require_last_push_approval = $false
+        $pr.parameters.required_review_thread_resolution = $false
+        $pr.parameters.allowed_merge_methods = @('merge', 'squash')
+        $body.rules = @($body.rules | Where-Object type -ne 'required_status_checks') +
+            @($savedChecks | ConvertFrom-Json -AsHashtable -Depth 50)
+        $checks = @($body.rules | Where-Object type -eq 'required_status_checks')[0]
+        $checks.parameters.required_status_checks += @{ context = 'governance / authority'; integration_id = 9876 }
+        $body.rules += @{ type = 'required_signatures' }
+        $global:NfcMockRulesets[[string]$item.id] = $body
+    }
+}
+
 Describe 'NFC G0 offline ruleset transaction' {
     BeforeEach {
         $global:NfcMockRulesets = New-NfcMockRulesets
@@ -439,7 +474,8 @@ Describe 'NFC G0 offline ruleset transaction' {
             param($Prompt)
             $global:NfcMockApprovalCount++
             if ($global:NfcMockApprovalCount -eq $global:NfcMockMutateAtApproval) {
-                $global:NfcMockRulesets['42'].rules[0].parameters.required_status_checks[0].context = 'parallel-change'
+                $checks = @($global:NfcMockRulesets['42'].rules | Where-Object type -eq 'required_status_checks')[0]
+                $checks.parameters.required_status_checks[0].context = 'parallel-change'
             }
             if ($global:NfcMockApprovalCount -eq $global:NfcMockRejectAt) { return 'NO' }
             return $global:NfcMockApproval
@@ -494,6 +530,123 @@ Describe 'NFC G0 offline ruleset transaction' {
     AfterEach {
         Remove-Item Function:\gh -ErrorAction SilentlyContinue
         Remove-Item Function:\Read-Host -ErrorAction SilentlyContinue
+    }
+
+    It 'updates only four approval fields of confirmed live IDs and restores exact before bodies' {
+        Add-NfcMockApprovalRulesets
+        $before = $global:NfcMockRulesets | ConvertTo-Json -Depth 50 | ConvertFrom-Json -AsHashtable -Depth 50
+        $backup = Join-Path $TestDrive 'r41-update'
+        $null = & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -UpdateApprovals -RulesetIds 42,44,45
+        $global:NfcMockWrites.Count | Should Be 3
+        ($global:NfcMockWrites.method -join ',') | Should Be 'PUT,PUT,PUT'
+        foreach ($id in @('42', '44', '45')) {
+            $expected = Get-NfcWriteBody ($before[$id] | ConvertTo-Json -Depth 50 | ConvertFrom-Json -AsHashtable -Depth 50)
+            $pr = @($expected.rules | Where-Object type -eq 'pull_request')[0].parameters
+            $pr.required_approving_review_count = 0
+            $pr.require_code_owner_review = $true
+            $pr.dismiss_stale_reviews_on_push = $true
+            $pr.require_last_push_approval = $true
+            (Test-NfcSameBody $global:NfcMockRulesets[$id] $expected) | Should Be $true
+        }
+        $global:NfcMockWrites.Clear()
+        $null = & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -Restore
+        $global:NfcMockWrites.Count | Should Be 3
+        foreach ($id in @('42', '44', '45', '43')) {
+            (Test-NfcSameBody $global:NfcMockRulesets[$id] $before[$id]) | Should Be $true
+        }
+    }
+
+    It 'requires explicit unique existing active branch IDs and one PR rule for an approval update' {
+        foreach ($case in @('missing', 'duplicate', 'absent', 'tag', 'inactive', 'no-pr', 'multiple-pr', 'no-check', 'mixed-mode', 'ids-without-mode', 'bypass-option')) {
+            $global:NfcMockRulesets = New-NfcMockRulesets
+            Add-NfcMockApprovalRulesets
+            $global:NfcMockWrites.Clear()
+            $arguments = @{ Owner = 'owner'; Repo = 'repo'; BackupDirectory = (Join-Path $TestDrive "r41-$case"); UpdateApprovals = $true; RulesetIds = @(42) }
+            switch ($case) {
+                missing { $arguments.Remove('RulesetIds') }
+                duplicate { $arguments.RulesetIds = @(42, 42) }
+                absent { $arguments.RulesetIds = @(99) }
+                tag { $arguments.RulesetIds = @(43) }
+                inactive { $global:NfcMockRulesets['42'].enforcement = 'disabled' }
+                no-pr { $global:NfcMockRulesets['42'].rules = @($global:NfcMockRulesets['42'].rules | Where-Object type -ne 'pull_request') }
+                multiple-pr { $global:NfcMockRulesets['42'].rules += @($global:NfcMockRulesets['42'].rules | Where-Object type -eq 'pull_request')[0] }
+                no-check { $global:NfcMockRulesets['42'].rules = @($global:NfcMockRulesets['42'].rules | Where-Object type -ne 'required_status_checks') }
+                mixed-mode { $arguments.Restore = $true }
+                ids-without-mode { $arguments.Remove('UpdateApprovals'); $arguments.AdminBypassAvailable = 'No' }
+                bypass-option { $arguments.AdminBypassAvailable = 'No' }
+            }
+            $message = Get-NfcThrownMessage { & "$PSScriptRoot/../Set-NfcRulesets.ps1" @arguments }
+            $expected = switch ($case) {
+                missing { 'explicit positive unique confirmed RulesetIds' }
+                duplicate { 'explicit positive unique confirmed RulesetIds' }
+                absent { 'Confirmed ruleset 99 is absent' }
+                mixed-mode { 'separate modes' }
+                ids-without-mode { 'RulesetIds requires UpdateApprovals' }
+                bypass-option { 'preserves live bypass' }
+                default { 'active branch ruleset with one pull-request rule and one required-check rule' }
+            }
+            $message | Should Match ([regex]::Escape($expected))
+            $global:NfcMockWrites.Count | Should Be 0
+        }
+    }
+
+    It 'sends no approval update for WhatIf or any declined ID or field confirmation' {
+        Add-NfcMockApprovalRulesets
+        $backup = Join-Path $TestDrive 'r41-whatif'
+        $null = & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -UpdateApprovals -RulesetIds 42,44 -WhatIf
+        $global:NfcMockWrites.Count | Should Be 0
+        $global:NfcMockApprovalCount | Should Be 0
+        $backup = Join-Path $TestDrive 'r41-count'
+        $null = & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -UpdateApprovals -RulesetIds 42,44
+        $count = $global:NfcMockApprovalCount
+        $count | Should BeGreaterThan 1
+        for ($n = 1; $n -le $count; $n++) {
+            $global:NfcMockRulesets = New-NfcMockRulesets
+            Add-NfcMockApprovalRulesets
+            $global:NfcMockWrites.Clear()
+            $global:NfcMockApprovalCount = 0
+            $global:NfcMockRejectAt = $n
+            $backup = Join-Path $TestDrive "r41-decline-$n"
+            (Test-NfcThrows { & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -UpdateApprovals -RulesetIds 42,44 }) | Should Be $true
+            $global:NfcMockWrites.Count | Should Be 0
+        }
+    }
+
+    It 'stops an approval update if live checks change during confirmation' {
+        Add-NfcMockApprovalRulesets
+        $global:NfcMockMutateAtApproval = 1
+        $backup = Join-Path $TestDrive 'r41-race'
+        (Test-NfcThrows { & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -UpdateApprovals -RulesetIds 42,44 }) | Should Be $true
+        $global:NfcMockWrites.Count | Should Be 0
+    }
+
+    It 'retains an approval update partial failure or bad readback as pending and blocks restore' {
+        foreach ($case in @('write', 'readback')) {
+            $global:NfcMockRulesets = New-NfcMockRulesets
+            Add-NfcMockApprovalRulesets
+            $global:NfcMockWrites.Clear()
+            $global:NfcMockFailWriteAt = if ($case -eq 'write') { 2 } else { 0 }
+            $global:NfcMockMutateReadbackAt = if ($case -eq 'readback') { 2 } else { 0 }
+            $backup = Join-Path $TestDrive "r41-partial-$case"
+            (Test-NfcThrows { & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -UpdateApprovals -RulesetIds 42,44,45 }) | Should Be $true
+            $global:NfcMockWrites.Count | Should Be 2
+            $index = Get-Content (Join-Path $backup 'index.json') -Raw | ConvertFrom-Json -AsHashtable
+            $index.transaction.changes[0].status | Should Be 'applied'
+            $index.transaction.changes[1].status | Should Be 'pending'
+            $global:NfcMockWrites.Clear()
+            (Test-NfcThrows { & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -Restore }) | Should Be $true
+            $global:NfcMockWrites.Count | Should Be 0
+        }
+    }
+
+    It 'refuses approval-update restore if a live body changed after the transaction' {
+        Add-NfcMockApprovalRulesets
+        $backup = Join-Path $TestDrive 'r41-stale-restore'
+        $null = & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -UpdateApprovals -RulesetIds 42,44
+        $global:NfcMockRulesets['44'].conditions.ref_name.exclude += 'refs/heads/later-change'
+        $global:NfcMockWrites.Clear()
+        (Test-NfcThrows { & "$PSScriptRoot/../Set-NfcRulesets.ps1" -Owner owner -Repo repo -BackupDirectory $backup -Restore }) | Should Be $true
+        $global:NfcMockWrites.Count | Should Be 0
     }
 
     It 'sends no writes for WhatIf or a failed RS-4 preflight' {

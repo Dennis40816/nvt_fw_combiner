@@ -168,7 +168,7 @@ class EvaluationTests(unittest.TestCase):
     def test_r1_change_with_independent_review_passes(self) -> None:
         self.assert_passes(check.evaluate(inputs([CODE], description(), (review(OWNER),))))
 
-    def test_r2_code_owned_change_passes_without_r3_role(self) -> None:
+    def test_r2_without_owned_path_passes_with_independent_record(self) -> None:
         r2_path = change("M", "SECURITY.md")
         verdict = check.evaluate(inputs([r2_path], description(risk="R2"), (review(OWNER),)))
         self.assert_passes(verdict)
@@ -180,17 +180,52 @@ class EvaluationTests(unittest.TestCase):
             "declared risk R1 is below the floor R3",
         )
 
-    def test_self_reported_r2_without_code_owned_path_fails(self) -> None:
+    def test_self_reported_r2_without_code_owned_path_passes(self) -> None:
+        self.assert_passes(check.evaluate(inputs([CODE], description(risk="R2"), (review(),))))
+
+    def test_r2_without_record_still_fails(self) -> None:
         self.assert_fails(
-            check.evaluate(inputs([CODE], description(risk="R2"), (review(OWNER),))),
-            "owner approval on the exact head",
+            check.evaluate(inputs([change("M", "SECURITY.md")], description(risk="R2"))),
+            "needs a valid independent review record",
         )
+
+    def test_r2_renames_and_case_only_matches_do_not_require_ownership(self) -> None:
+        for item in (
+            change("R", "SECURITY.md", "docs/security-notes.md"),
+            change("R", "scripts/collect_review_handoff.py", "scripts/renamed_tool.py"),
+            change("M", "src/Foo/Agents.md"),
+            change("M", "Security.md"),
+        ):
+            with self.subTest(change=item):
+                verdict = check.evaluate(inputs([item], description(risk="R2"), (review(),)))
+                self.assert_passes(verdict)
+                self.assertEqual(verdict.floor, "R2")
+
+    def test_r2_to_r3_rename_escalates_and_requires_role_evidence(self) -> None:
+        moved = change("R", "scripts/ordinary.py", "scripts/verify.py")
+        verdict = check.evaluate(inputs([moved], description(risk="R2"), (review(),)))
+        self.assert_fails(verdict, "below the floor R3")
+        self.assert_fails(verdict, "required roles are not declared: ['governance-owner']")
+        text = description(risk="R3", roles=["governance-owner"])
+        self.assert_passes(check.evaluate(inputs([moved], text, (review(),))))
+
+    def test_ci_owner_case_only_destination_fails_even_with_an_owned_change(self) -> None:
+        moved = change("R", "scripts/ordinary.py", "scripts/Verify.py")
+        text = description(risk="R3", roles=["governance-owner"])
+        verdict = check.evaluate(inputs([moved, change("M", check.POLICY_PATH)], text, (review(),)))
+        self.assert_fails(verdict, "case-sensitive CODEOWNERS")
+
+    def test_r3_ci_owner_rename_to_ordinary_tool_stays_blocked(self) -> None:
+        moved = change("R", "scripts/verify.py", "scripts/ordinary.py")
+        text = description(risk="R3", roles=["governance-owner"])
+        verdict = check.evaluate(inputs([moved, change("M", check.POLICY_PATH)], text, (review(),)))
+        self.assert_fails(verdict, "owner approval or split the rename into deletion and addition")
 
     def test_case_only_matches_of_owned_paths_fail_closed(self) -> None:
         for path in (
             "Profiles/evil.json",
             "src/NvtFwCombiner.domain/Evil.cs",
-            "src/Foo/Agents.md",
+            "scripts/Verify.py",
         ):
             with self.subTest(path=path):
                 text = description(risk="R3", roles=["governance-owner", "firmware-owner"])
@@ -278,7 +313,7 @@ class EvaluationTests(unittest.TestCase):
         verdict = check.evaluate(
             inputs([change("M", "scripts/verify.py")], description(risk="R1"), (review(),))
         )
-        self.assert_fails(verdict, "the declared risk R1 is below the floor R2")
+        self.assert_fails(verdict, "the declared risk R1 is below the floor R3")
 
     def test_unclassified_path_without_governance_role_and_classification_fails(self) -> None:
         verdict = check.evaluate(

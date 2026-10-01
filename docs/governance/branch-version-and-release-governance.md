@@ -88,12 +88,17 @@ release-note entry, and rollback or compatibility impact.
 
 Admit it only when the completed review record binds its exact head, its target
 follows the branch model above, P0/P1 findings are closed, required CI/tests are
-green, and R2/R3 code-owner approvals and R3 role evidence are complete.
-After its ruleset change is active on `1.1.x` or an applicable protected feature
-target, board decision 165 lets R0/R1 pull requests merge without owner
-approval once their independent exact-head review record and required checks
-are green; R2/R3 paths are assigned to the owner by `.github/CODEOWNERS`.
-`main` and release-branch approval rules remain unchanged. Every review thread
+green, and required R3 code-owner approval and role evidence are complete.
+Decisions 225 W1 and 233 make owner approval R3-only on each target after its
+base contains the amended CODEOWNERS/policy/checker/workflow and the owner
+trials and verifies the effective rulesets. R0–R2 then merge through auto-merge
+after independent exact-head review and green required CI; R2 keeps its
+architecture/contract, test and scoped Polytail evidence. CODEOWNERS owns only
+R3 patterns. Unswitched targets retain existing rules; there is no blanket
+`main`/release exclusion from the new boundary. Release evidence and the
+protected `release` environment approval remain. Follow the execution
+workflow's auto-merge cancellation and re-verification before changes.
+Every review thread
 must be resolved, including on a release pull request. Resolution alone does
 not prove that review finished; the completed exact-head review record does.
 The three release boundaries retain their P0/P1 check. Check merge-tree equivalence when

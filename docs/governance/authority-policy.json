@@ -122,7 +122,7 @@
     },
     {
       "id": "approval-authority",
-      "description": "This policy and its schema, the authority checker, every repository file it reads, its tests and workflow, CODEOWNERS, the rule owners of ADR 0080, the waiver rules, the frozen evidence paths, the frozen-evidence pin file that G1-B adds (ADR 0080 item 2) and the G0 scripts and ruleset bodies.",
+      "description": "Approval rules and their authority documents (ADR 0080, decisions 225 W1 and 233), this policy and schema, the checker and its tests/workflow, CODEOWNERS, waivers, frozen evidence and the G0 ruleset procedures and bodies.",
       "floor": "R3",
       "roles": ["governance-owner"],
       "patterns": [
@@ -134,6 +134,11 @@
         ".github/workflows/authority.yml",
         ".github/CODEOWNERS",
         "AGENTS.md",
+        "docs/adr/0080-governance-reset.md",
+        "docs/governance/agent-issue-tracker.md",
+        "docs/governance/agent-skill-routing.md",
+        ".github/pull_request_template.md",
+        "docs/handoff/1.1.13/G0-owner-checklist.md",
         "docs/governance/development-execution-workflow.md",
         "docs/governance/branch-version-and-release-governance.md",
         "docs/policies/**",
@@ -143,6 +148,23 @@
         "docs/governance/trusted-initial-capability-checkpoint.v1.json",
         "docs/governance/frozen-evidence-pins.json",
         "docs/handoff/**/g0-scripts/**"
+      ]
+    },
+    {
+      "id": "ci-verdict-authority",
+      "description": "Closed set of CI verdict owners and the otherwise-R2 rule modules imported by validate_repository.py. Ordinary tooling remains R2; dependencies already classified as firmware/release R3 keep their existing roles.",
+      "floor": "R3",
+      "roles": ["governance-owner"],
+      "patterns": [
+        "scripts/verify.py",
+        "scripts/validate_repository.py",
+        "scripts/polytail_check.py",
+        "scripts/code_size_policy.py",
+        "scripts/coverage_configuration_policy.py",
+        "scripts/coverage_policy.py",
+        "scripts/repository_contract_validation.py",
+        "scripts/skill_metadata_validation.py",
+        "scripts/sync_derived.py"
       ]
     },
     {

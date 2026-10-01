@@ -1354,3 +1354,26 @@ Recorded on the `1.2.x` trunk by the commander (board decision 220); the section
 - Not verifiable by the reviewer: the live App and installation permissions, the repository's Actions and
   environment settings, the installed copy's bytes (checked by the commander), and the content of G0HR's
   findings.
+
+## G0 eighth version installation (2026-10-01)
+
+Recorded by the commander; the sections above are kept as recorded.
+
+- Subject: the eighth helper and wrapper version (G0 owner checklist A6b), reviewed on #504 at the exact head
+  `36754c99f` (fresh Claude session, accept, no P0 or P1) and merged into `1.2.x` as `6f2e2cfa2`.
+- Step 1 (the owner delegated it to Codex `gpt-6.1-sol`, 2026-10-01): the twelve files under
+  `docs/handoff/1.1.13/g0-scripts/` were written from the raw Git blobs of `36754c99f` into a new folder beside the
+  seventh version's; the four changed files match the A6b table and the other eight match the inventory table
+  (checked by Codex and again by the commander).
+- Step 2 (commander, because the Codex sandbox cannot read the user-level test-area variable): the offline suite
+  passed 69/69 (Pester 3.4.0, isolated runner, fake secrets).
+- Step 3 (the commander ran it once on the owner's explicit approval in chat, 2026-10-01, because the owner could
+  not paste the command at that moment): a reviewed script re-checked the four A6b hashes, replaced only the folder
+  name in the repository's one Git helper entry, kept the empty first entry and `useHttpPath`, did not add
+  `-IncludeWorkflowsWrite`, and read the entry back; it has a `-Rollback` mode. The script was first exercised on a
+  scratch repository with a fake helper entry.
+- Step 4 (commander): the four hashes match again; a read-only wrapper call of
+  `repos/<owner>/<repo>/contents/docs/handoff/1.1.14/1.2.x-allocation.md` (raw) returned bytes identical to the Git
+  blob `064d0af48`, Traditional Chinese intact; `gh alias list` stopped with exit code 64 and the refusal message
+  before any token request; `git push --dry-run` through the new helper authenticated ("Everything up-to-date").
+- `BUG-20261001-g0-gh-wrapper-console-codepage` is fixed by this installation.

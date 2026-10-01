@@ -6,6 +6,8 @@ param(
     [Parameter(Mandatory)][string]$BackupDirectory,
     [ValidateSet('Yes', 'No')][string]$AdminBypassAvailable,
     [long]$MainRulesetId = 22009240,
+    [switch]$UpdateApprovals,
+    [long[]]$RulesetIds,
     [switch]$WhatIf,
     [switch]$Restore
 )
@@ -105,7 +107,7 @@ function Assert-NfcRulesetShape {
     if ($Ruleset.target -ne 'branch' -or $Ruleset.enforcement -ne 'active' -or
         @($Ruleset.rules | Where-Object type -eq 'pull_request').Count -ne 1 -or
         @($Ruleset.rules | Where-Object type -eq 'required_status_checks').Count -ne 1) {
-        throw 'Ruleset template or required checks have an invalid structure.'
+        throw 'Expected an active branch ruleset with one pull-request rule and one required-check rule.'
     }
 }
 
@@ -135,7 +137,21 @@ try {
         throw 'Windows and PowerShell 7.4 or later are required.'
     }
     if ($Owner -notmatch '^[A-Za-z0-9-]+$' -or $Repo -notmatch '^[A-Za-z0-9_.-]+$') { throw 'Invalid repository name.' }
-    if (-not $Restore -and -not $AdminBypassAvailable) { throw 'Specify -AdminBypassAvailable Yes or No after checking the owner UI.' }
+    if ($Restore -and ($UpdateApprovals -or $PSBoundParameters.ContainsKey('RulesetIds'))) {
+        throw 'Restore and approval update are separate modes; restore uses the recorded IDs.'
+    }
+    if ($UpdateApprovals) {
+        if (-not $RulesetIds -or @($RulesetIds | Where-Object { $_ -le 0 }).Count -gt 0 -or
+            @($RulesetIds | Sort-Object -Unique).Count -ne $RulesetIds.Count) {
+            throw 'Approval update requires explicit positive unique confirmed RulesetIds.'
+        }
+        if ($PSBoundParameters.ContainsKey('AdminBypassAvailable')) {
+            throw 'Approval update preserves live bypass; do not pass AdminBypassAvailable.'
+        }
+    } elseif ($PSBoundParameters.ContainsKey('RulesetIds')) {
+        throw 'RulesetIds requires UpdateApprovals; the initial G0 mode does not update existing IDs.'
+    }
+    if (-not $Restore -and -not $UpdateApprovals -and -not $AdminBypassAvailable) { throw 'Specify -AdminBypassAvailable Yes or No after checking the owner UI.' }
     if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw 'The owner must install and authenticate gh.' }
     $login = & gh api user --jq .login
     if ($LASTEXITCODE -ne 0 -or $login -cne $Owner) {
@@ -164,13 +180,15 @@ try {
             if (-not (Test-NfcSameBody $current $after)) {
                 throw "Ruleset $($change.id) changed after G0. Owner must reconcile before restore."
             }
-            if ($change.kind -eq 'main') {
+            if ($change.kind -in @('main', 'approval-update')) {
                 $before = Get-Content -LiteralPath (Join-Path $backupPath "ruleset-$($change.id).json") -Raw |
                     ConvertFrom-Json -AsHashtable -Depth 50
                 $desired = Get-NfcWriteBody $before
-            } else {
+            } elseif ($change.kind -in @('RS-2', 'RS-3')) {
                 $desired = Get-NfcWriteBody $current
                 $desired.enforcement = 'disabled'
+            } else {
+                throw 'Unknown transaction kind; owner must reconcile before restore.'
             }
             $restorePlan.Add(@{ change = $change; current = $current; desired = $desired })
         }
@@ -224,6 +242,60 @@ try {
         transaction = @{ changes = @() } }
     Save-NfcIndex $indexPath $index
     Write-Output "Backup exported to $backupPath"
+
+    if ($UpdateApprovals) {
+        # R41: project only the four reviewed approval values onto deep copies of live bodies.
+        # Never seed updates from template checks, scope, bypass, or other rules.
+        $template = Read-NfcTemplate 'RS-1a-to-1k'
+        $parameters = @($template.rules | Where-Object type -eq 'pull_request')[0].parameters
+        $approvalFields = @('required_approving_review_count', 'require_code_owner_review',
+            'dismiss_stale_reviews_on_push', 'require_last_push_approval')
+        if ($parameters.required_approving_review_count -ne 0 -or
+            $parameters.require_code_owner_review -ne $true -or
+            $parameters.dismiss_stale_reviews_on_push -ne $true -or
+            $parameters.require_last_push_approval -ne $true) {
+            throw 'Approval template differs from the R41 trial contract; stop for owner review.'
+        }
+        $updates = [Collections.Generic.List[object]]::new()
+        foreach ($id in $RulesetIds) {
+            if (-not $snapshots.ContainsKey([string]$id)) { throw "Confirmed ruleset $id is absent." }
+            $before = $snapshots[[string]$id]
+            Assert-NfcRulesetShape $before
+            $desired = Get-NfcWriteBody ($before | ConvertTo-Json -Depth 50 |
+                ConvertFrom-Json -AsHashtable -Depth 50)
+            $pr = @($desired.rules | Where-Object type -eq 'pull_request')[0]
+            foreach ($field in $approvalFields) { $pr.parameters[$field] = $parameters[$field] }
+            $updates.Add(@{ id = $id; before = $before; desired = $desired })
+        }
+        foreach ($item in $updates) {
+            Show-NfcApproval -Label "R41 confirmed ruleset ID $($item.id) (complete live body and scope)" `
+                -Before (Get-NfcWriteBody $item.before) -After $item.desired -WhatIf:$WhatIf
+            $oldPr = @($item.before.rules | Where-Object type -eq 'pull_request')[0].parameters
+            foreach ($field in $approvalFields) {
+                $oldValue = if ($oldPr.ContainsKey($field)) { $oldPr[$field] } else { $null }
+                Show-NfcApproval -Label "R41 ruleset $($item.id) $field" `
+                    -Before $oldValue -After $parameters[$field] -WhatIf:$WhatIf
+            }
+        }
+        if ($WhatIf) { return }
+        foreach ($item in $updates) {
+            Assert-NfcLiveRulesets $base $snapshots
+            $change = @{ kind = 'approval-update'; id = $item.id; status = 'pending'; after_file = "after-$($item.id).json" }
+            $index.transaction.changes += $change
+            Save-NfcIndex $indexPath $index
+            $null = Invoke-NfcGhWrite PUT "$base/rulesets/$($item.id)" $item.desired
+            $after = Invoke-NfcGhGet "$base/rulesets/$($item.id)"
+            if (-not (Test-NfcSameBody $after $item.desired)) {
+                throw "Ruleset $($item.id) approval update readback differs; outcome is unknown. Owner must reconcile live state."
+            }
+            $after | ConvertTo-Json -Depth 50 |
+                Set-Content -LiteralPath (Join-Path $backupPath $change.after_file) -Encoding utf8
+            $change.status = 'applied'
+            Save-NfcIndex $indexPath $index
+            $snapshots[[string]$item.id] = $after
+        }
+        return
+    }
 
     if (-not $snapshots.ContainsKey([string]$MainRulesetId)) { throw 'The specified main ruleset is absent.' }
     $mainOld = $snapshots[[string]$MainRulesetId]

@@ -692,18 +692,18 @@ def evaluate(inputs: CheckInputs) -> Verdict:
 
         def code_owned(path: str) -> bool:
             return any(
-                entry.floor in {"R2", "R3"} and entry.matches(path, case_sensitive=True)
+                entry.floor == "R3" and entry.matches(path, case_sensitive=True)
                 for policy in policies
                 for entry in policy.entries
             )
 
-        owned_renames_to_r1 = [
+        owned_renames_to_unowned = [
             change
             for change in inputs.changes
             if change.status == "R" and code_owned(change.paths[0])
             and not code_owned(change.paths[-1])
         ]
-        for change in owned_renames_to_r1:
+        for change in owned_renames_to_unowned:
             verdict.errors.append(
                 f"owned-path rename {change.paths[0]} -> {change.paths[-1]} has no "
                 "code-owned destination; obtain owner approval or split the rename into "
@@ -712,23 +712,23 @@ def evaluate(inputs: CheckInputs) -> Verdict:
             )
         for path in sorted(github_paths):
             insensitive_owned = any(
-                entry.floor in {"R2", "R3"} and entry.matches(path)
+                entry.floor == "R3" and entry.matches(path)
                 for policy in policies
                 for entry in policy.entries
             )
             sensitive_owned = any(
-                entry.floor in {"R2", "R3"} and entry.matches(path, case_sensitive=True)
+                entry.floor == "R3" and entry.matches(path, case_sensitive=True)
                 for policy in policies
                 for entry in policy.entries
             )
             if insensitive_owned and not sensitive_owned:
                 verdict.errors.append(
-                    f"path {path} matches an R2/R3 policy pattern only without case sensitivity; "
+                    f"path {path} matches an R3 policy pattern only without case sensitivity; "
                     "case-sensitive CODEOWNERS cannot request owner review"
                 )
-        if _risk_index(block.risk) >= 2 and not any(map(code_owned, github_paths)):
+        if block.risk == "R3" and not any(map(code_owned, github_paths)):
             verdict.errors.append(
-                "declared R2/R3 risk has no code-owned path; update the policy "
+                "declared R3 risk has no code-owned path; update the policy "
                 "and CODEOWNERS, obtain owner approval on the exact head, "
                 "then rerun the authority check"
             )
