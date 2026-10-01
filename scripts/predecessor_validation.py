@@ -1619,8 +1619,12 @@ def _v0916_route_failures(
         failures.append(_failure("REPORT_INVALID", subject, "a non-transitive route with an invalid side must be invalid"))
     if route["result"] == "invalid":
         return failures
+    if disposition.proof_kind == "canonical-binding-not-applicable-to-v0916" and route["result"] == "consistent" and (
+        evidence is None or evidence.binding is None
+    ):
+        failures.append(_failure("AMENDMENT_MISMATCH", subject, "canonical binding evidence is missing"))
     if evidence is None:
-        return [_failure("REPORT_INVALID", subject, "computed evidence for a run route is missing")]
+        return failures + [_failure("REPORT_INVALID", subject, "computed evidence for a run route is missing")]
     # A v0.9.16 route reports only its output comparison; its consistency is its
     # proof kind's (a precursor enters only through a not-applicable row).
     failures.extend(
@@ -1746,6 +1750,8 @@ def v0916_report_failures(
         failures.append(_failure("REPORT_INVALID", "summary", "summary differs from the route results"))
     if report["result"] != v0916_result(values):
         failures.append(_failure("REPORT_INVALID", "result", "result differs from the route results"))
+    if report["result"] == "consistent" and not any(value != "not-covered" for value in values):
+        failures.append(_failure("REPORT_INVALID", "result", "a consistent result requires at least one compared route"))
     return failures
 
 

@@ -291,15 +291,60 @@ class V0916Tests(unittest.TestCase):
         self.assertEqual([CANDIDATE], [commit for commit, _ in git.detached])
         for side in ("baseline", "candidate"):
             for name in ("exact", "plan-correction", "amendment-correction", "full", "tp", "not-applicable"):
-                self.assertEqual(1, self.executed.count(("route-" + name, side)))
+                expected = 0 if (side, name) == ("baseline", "tp") else 1
+                self.assertEqual(expected, self.executed.count(("route-" + name, side)))
             for name in ("plan-correction", "amendment-correction", "full", "tp", "not-applicable"):
                 for stage in ("preview", "build"):
-                    expected = 0 if (side, name, stage) == ("baseline", "not-applicable", "build") else 2 if name == "plan-correction" else 1
+                    skipped = (side, name) == ("baseline", "tp") or (side, name, stage) == ("baseline", "not-applicable", "build")
+                    expected = 0 if skipped else 2 if name == "plan-correction" else 1
                     self.assertEqual(expected, sum(item[:2] == (side, name) and item[-1] == stage for item in host.routes_run))
             self.assertEqual(2, host.routes_run.count((side, "exact", "standard-merge", "preview")))
             self.assertEqual(2, host.routes_run.count((side, "exact", "standard-merge", "build")))
         self.assertFalse(any("declarations/" in path for _, path in git.reads))
         self.assertFalse(any(commit == CANDIDATE and "testdata/golden/" in path for commit, path in git.reads))
+
+    def test_baseline_tp_crash_does_not_affect_candidate_transitive_proof(self):
+        report, host, _, _ = self.run_world({("baseline", "tp"): "crash"})
+        route = route_of(report, "tp")
+        self.assertEqual("consistent", report["result"], report["failures"])
+        self.assertEqual("consistent", route["result"])
+        self.assertIsNone(route["baseline"])
+        self.assertIsNone(route["comparison"])
+        self.assertEqual([], route["informational"])
+        self.assertTrue(all(route["transitive"][check] for check in validation.TRANSITIVE_CHECKS))
+        self.assertNotIn(("route-tp", "baseline"), self.executed)
+        self.assertFalse(any(item[:2] == ("baseline", "tp") for item in host.routes_run))
+
+    def test_exact_output_typed_rejections_are_unapproved_differences(self):
+        for mutations in ({("candidate", "exact"): "reject"},
+                          {("baseline", "exact"): "reject", ("candidate", "exact"): "reject"}):
+            with self.subTest(mutations=mutations):
+                report, _, _, _ = self.run_world(mutations)
+                route = route_of(report, "exact")
+                self.assertEqual("inconsistent", report["result"])
+                self.assertEqual("inconsistent", route["result"])
+                self.assertEqual("PREDECESSOR_UNAPPROVED_DIFFERENCE", route["failureCode"])
+                self.assertIsNone(route["comparison"])
+                for side, _ in mutations:
+                    self.assertEqual("rejected", route[side]["status"])
+                self.assertTrue(any(item["subject"] == "route-exact" and
+                                    item["code"] == "PREDECESSOR_UNAPPROVED_DIFFERENCE"
+                                    for item in report["failures"]))
+
+    def test_missing_admitted_artifact_returns_typed_input_failure(self):
+        resolve = milestone.resolve_canonical_route_input
+
+        def unmatched(*args, **kwargs):
+            verified = resolve(*args, **kwargs)
+            verified.request["orderedInputs"][0]["path"] = str(self.root / "unmatched.bin")
+            return verified
+
+        with (patch.object(milestone, "resolve_canonical_route_input", side_effect=unmatched),
+              self.assertRaises(execution.ExecutionError) as found):
+            self.run_world()
+        self.assertEqual("PREDECESSOR_INPUT_INVALID", found.exception.code)
+        self.assertIsInstance(found.exception.__cause__, StopIteration)
+        self.assertFalse((self.root / "report-1.json").exists())
 
     def test_pending_formal_refuses_before_any_host(self):
         with self.assertRaises(execution.ExecutionError) as found:

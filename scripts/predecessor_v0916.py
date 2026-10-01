@@ -98,7 +98,7 @@ def materialize_v0916_inputs(
 
 
 class RouteExecution(NamedTuple):
-    baseline: execution.ScenarioExecution
+    baseline: execution.ScenarioExecution | None
     candidate: execution.ScenarioExecution
     inputs: Mapping[str, Any]
 
@@ -107,11 +107,8 @@ def execute_v0916_side(
     runner: execution.ProcessRunner, executor: execution.Executor, plan: Plan,
     authority: MaterializedCanonicalAuthority, disposition: validation.RouteDisposition, *, side: str,
 ) -> tuple[execution.ScenarioExecution, Mapping[str, Any]]:
-    # The terminal resolver admits a TP request as candidate-tp. Both executors
-    # receive those same admitted inputs here; the report retains the schema's
-    # candidate-only TP proof, whose baseline is the full-route output.
-    role = "candidate-tp" if disposition.proof_kind == "tp-prefix-transitive" else (
-        "baseline-exact" if side == "baseline" else "candidate-exact")
+    role = "baseline-exact" if side == "baseline" else (
+        "candidate-tp" if disposition.proof_kind == "tp-prefix-transitive" else "candidate-exact")
     verified = resolve_canonical_route_input(plan, authority, admitted_input_root=runner.temporary_root / side,
                                              route_id=disposition.route_id, execution_role=role)
     request = verified.request
@@ -135,7 +132,7 @@ def execute_v0916_side(
         bindings = bindings[2:]
     result = execution.execute_side_stages(
         runner, executor, request, authority, artifacts, bindings, precursor_request=precursor_request,
-        precursor_bindings=precursor_bindings, execution_role="baseline-exact" if side == "baseline" else role)
+        precursor_bindings=precursor_bindings, execution_role=role)
     return result, {**request, "canonicalBinding": {"evidenceCaseId": evidence_case, "inputCaseId": case["caseId"],
                                                     "precursorMapVariant": request.get("baseRecipe", {}).get("mapVariant")}}
 
@@ -176,19 +173,20 @@ def build_route_report(
         return row, None, verdict.failures
     left, right, inputs = acquired
     payload = asdict(row)
-    payload.update(baseline=left.result.side, candidate=right.result.side,
-                   informational=execution.informational_differences(left, right))
+    payload.update(baseline=None if left is None else left.result.side, candidate=right.result.side,
+                   informational=[] if left is None else execution.informational_differences(left, right))
     if disposition.row_member in {"approvedSemanticCorrections", "baselineNotApplicable"}:
         payload["dispositionRow"] = {"source": disposition.row_source, "member": disposition.row_member,
                                      "routeId": disposition.route_id}
-    failures = [*left.result.failures, *right.result.failures]
+    failures = [*(() if left is None else left.result.failures), *right.result.failures]
     scopes = {}
     computed = None
     correction = None
     binding = None
     try:
-        scopes, capture_failures = execution.measured_scopes(left, right, runner.custody)
-        failures.extend(capture_failures)
+        if left is not None:
+            scopes, capture_failures = execution.measured_scopes(left, right, runner.custody)
+            failures.extend(capture_failures)
         if disposition.proof_kind == "exact-output-with-approved-semantic-correction" and all(
             side.result.side["output"] is not None for side in (left, right)
         ):
@@ -199,8 +197,6 @@ def build_route_report(
         if disposition.proof_kind == "canonical-binding-not-applicable-to-v0916":
             binding = inputs["canonicalBinding"]
         if disposition.proof_kind == "tp-prefix-transitive":
-            payload.update(baseline=None, comparison=None)
-            scopes = {}
             full_id = disposition.row["fullRouteId"]
             if validation.transitive_blocker(payload, routes.get(full_id)) is None:
                 full = executions[full_id]
@@ -292,7 +288,9 @@ def run_v0916(
             for disposition in dispositions:
                 if disposition.proof_kind == "not-covered":
                     continue
-                left, _ = execute_v0916_side(runner, baseline, plan, authority, disposition, side="baseline")
+                left = None
+                if disposition.proof_kind != "tp-prefix-transitive":
+                    left, _ = execute_v0916_side(runner, baseline, plan, authority, disposition, side="baseline")
                 right, inputs = execute_v0916_side(runner, candidate, plan, authority, disposition, side="candidate")
                 executions[disposition.route_id] = RouteExecution(left, right, inputs)
             routes_by_id, evidence, failures = {}, {}, []
@@ -317,7 +315,7 @@ def run_v0916(
         raise
     except subprocess.SubprocessError as error:
         raise execution.ExecutionError("PREDECESSOR_SOURCE_MISMATCH", "candidate Git acquisition failed") from error
-    except (ParityError, OSError, KeyError, TypeError, ValueError) as error:
+    except (ParityError, OSError, KeyError, TypeError, ValueError, StopIteration) as error:
         raise execution.ExecutionError("PREDECESSOR_INPUT_INVALID", "historical source or input acquisition failed") from error
 
 
