@@ -1061,6 +1061,11 @@ runs on `1.2.x` with one R0 and one R3 pull request. `main` and release-branch
 rulesets keep one general approval; the tag ruleset (update and deletion
 protection, no approvals) is unchanged. Rollback: set Required approvals back
 to 1. Step 2's script mode stays available for future updates.
+Step 5 applied (board decision 247): with zero approvals, last-push approval
+true blocked the R0 trial pull request, so the owner unchecked it on `trunk`
+only; the R0 (#510) and R3 (#511) trials then passed. W1's remaining
+limitation (a failing pull-request-event run from before the record still
+counts) is handled by a description edit until `1.2.11` (decision 248).
 
 The status recorded before the cutover, kept as written:
 

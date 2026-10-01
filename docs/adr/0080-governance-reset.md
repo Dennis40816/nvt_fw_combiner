@@ -177,6 +177,22 @@ protections; repository templates do not prove a live cutover.
   new-head invalidation, with no bypass. If last-push approval still requires
   an approval for R0–R2, stop: changing it to false needs a new explicit owner
   decision and a stated reduction of M2's native guarantee.
+- Cutover result (2026-10-01, board decisions 246-248): the trial on the trunk
+  ruleset showed that last-push approval true still requires an approval from
+  someone other than the last pusher for every pull request ("New changes
+  require approval from someone other than the last pusher"). The owner set it
+  to false on the trunk ruleset only (decision 247). M2's native guarantee is
+  reduced accordingly: R3 still needs a code owner's approval and a
+  diff-changing push still dismisses it, but a push that does not change the
+  diff no longer needs a new approval, and the platform no longer checks that
+  the approver is not the last pusher (the App pushes; the owner approves).
+  `main` and release branches keep one approval and last-push approval true.
+  The trial then merged an R0 pull request without an approving review (#510)
+  and kept an R3 pull request blocked until the owner approved it (#511). W1
+  reruns the check on review submission, edit and dismissal, but a failing
+  `pull_request`-event run from before the record still counts as the required
+  context; until a fix (planned for `1.2.11`), the commander edits the
+  description once after posting a record (decision 248).
 - Existing rulesets are updated only by confirmed ID using the live backup;
   only the four approval fields change. Live checks/integration IDs, scope,
   bypass and other rules are preserved. Restore writes the exact saved before
@@ -733,7 +749,7 @@ the time it ran; whether that result still holds at merge is P2 and P9.
 | # | Safeguard | Kind | Carried by |
 | --- | --- | --- | --- |
 | M1 | In the normal, non-bypass flow, every change to a protected branch goes through a pull request | machine, rulesets Active | rulesets |
-| M2 | For R3 on a target whose R41 trial/cutover is complete, a code owner approved the most recent reviewable push, and not as its pusher; a diff-changing push dismisses the approval. Zero general approvals plus last-push approval true must be trialed before relying on the R0–R2 exemption | machine, rulesets Active; target trial required | rulesets |
+| M2 | For R3 on a target whose R41 trial/cutover is complete, a code owner approved the pull request and a diff-changing push dismisses the approval; on the trunk ruleset last-push approval is false since decision 247, so a push that does not change the diff keeps the approval and the platform does not check the approver against the pusher (`main` and release branches keep last-push approval) | machine, rulesets Active; trunk trial done (decisions 246-247) | rulesets |
 | M3 | In that flow, no review thread is unresolved at merge | machine, rulesets Active | rulesets |
 | M4 | In that flow, every required context has, for the merged head commit, a conclusion GitHub accepts (success, neutral or skipped); a missing, failed or cancelled one blocks. That `governance / authority` can only end in success or failure, never neutral or skipped, comes from its workflow (one job without `if:`, path filter or `continue-on-error`), not from the platform | machine (platform) plus the workflow's design | rulesets; authority workflow |
 | M5 | Floor, role union, declared roles, evidence entries, review record on the head, policy schema and fail-closed inputs, as judged by the checker that ran, when it ran, for a pull request that does not change the check | machine at run time | authority check |

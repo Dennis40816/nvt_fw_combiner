@@ -1392,4 +1392,11 @@ Recorded by the commander; decision 246.
   in the ruleset's `updated_at` timestamp; code-owner review, stale dismissal, last-push approval, required checks,
   scope and bypass are unchanged. `main` and release branches keep one general approval; the tag ruleset (update and
   deletion protection, no approvals) is unchanged.
-- Trial: one ordinary (R0) pull request and one R3 pull request on `1.2.x`; results are added when they finish.
+- Trial (decisions 246-248): #510 (R0) stayed blocked by "New changes require approval from someone other than
+  the last pusher"; the owner then unchecked last-push approval on `trunk` (decision 247; `after2-24060410.json`
+  differs from the original backup in exactly two rule fields). #510 then merged through auto-merge by the App with
+  only COMMENT reviews (merge `fde57050a`). #511 (R3) was refused with "Waiting on code owner review from
+  Dennis40816"; after the owner's approval GitHub refused it next for the failing `pull_request`-event
+  `governance / authority` run from before the record, and merged (`d8d852f0f`) after a description edit reran
+  that event. W1 itself worked: the record submissions, an `incomplete` trial record (failed as intended) and the
+  owner's approval each started a `pull_request_review` run.
