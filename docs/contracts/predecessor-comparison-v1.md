@@ -15,8 +15,8 @@ their own:
 | --- | --- |
 | `predecessor-comparison-v1.json` and its schema | the two modes, executor recipe, environment policy, per-side safety, typed rejection, interface status, failure codes |
 | `predecessor-comparison-scenarios-v1.json` and its schema | the rolling coverage ledger: scenarios, decision 12's debt set, accepted and pending gaps, retired scenarios |
-| `predecessor-comparison-declaration-v1.schema.json` | one declaration per release under `predecessor-comparison-declarations/` (proposed) |
-| `predecessor-comparison-report-v1.schema.json` | the comparator's payload-free report of either mode (proposed) |
+| `predecessor-comparison-declaration-v1.schema.json` | one declaration per release under `predecessor-comparison-declarations/` (in effect, R35-02) |
+| `predecessor-comparison-report-v1.schema.json` | the comparator's payload-free report of either mode (in effect, R35-02) |
 
 The contract, the amendment and every report state `certification: none` and
 `terminal: false`; the ledger and the declarations are inputs and make no
@@ -98,6 +98,11 @@ Rules:
    revision is a coverage disposition declared by this release. A Golden input
    change updates the scenario's pinned inputs in the same pull request and
    increments its `inputRevision`.
+   Every accepted-gap row must have `approvedInVersion` equal to the release
+   it covers. An earlier release's approval carries over to no later release,
+   successor or renamed route. A new or renewed gap row is an `accepted-gap`
+   coverage change, declared with this release's entry, approval and CHANGELOG
+   id (1.1.12 board decision 60, 1.1.13 decision 96, 1.2.x decision 251).
 4. A scenario compares only what its inputs make comparable; it never makes a
    route Golden-verified.
 
@@ -269,6 +274,17 @@ plan binding is checked before any route runs; a mismatch stops the mode with
 `PREDECESSOR_AMENDMENT_MISMATCH`. Rows are never widened into patterns, and a
 row that no longer reproduces needs a new owner decision.
 
+For a `tp-prefix-transitive` route, the proof can run only when the candidate
+TP output and both outputs of the plan's full route exist. A runnable proof
+is never missing, including on an `invalid` route. If the proof cannot run,
+`transitive` is `null` and no computed proof is supplied: a typed rejection
+makes the route `inconsistent` with `PREDECESSOR_UNAPPROVED_DIFFERENCE`, and a
+shared execution failure makes it `invalid` with its execution failure code.
+A `consistent` route carries a passing proof and a consistent full route.
+The schema expresses the candidate-side structural conditions and requires a
+passing proof for `consistent`; the single validator checks availability
+against the full route named by the plan, the TP length and computed evidence.
+
 ## Shared execution
 
 ### Executors
@@ -333,8 +349,9 @@ A side is a **typed product rejection** only when a Preview or Build process
 exits with a nonzero code and a written report that carries at least one
 `error` issue, and no issue code of the report is a process failure listed in
 `typedRejection.processFailureIssueCodes`. The list holds
-`external-tool.process.failed`, which the P-0.5 spike saw inside written
-reports when an argument path reached 260 characters. A process that crashes,
+`external-tool.process.failed` and `external-tool.process.start-failed`, at
+any severity. The P-0.5 spike saw the former inside written reports when an
+argument path reached 260 characters. A process that crashes,
 times out, exits without a report or reports a process failure is
 `PREDECESSOR_PROCESS_FAILED`; it is never a rejection and can never be
 declared or approved.
@@ -378,11 +395,49 @@ reused unchanged:
 
 A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's
-format into the normalized projection these functions read (member names,
-issue severities and codes, unknown optional members recorded by name and
-never used as authority). It may not relax, skip or reorder these checks; its rules are admitted by their own pull request after the P-0.5 spike, with
-the review and approvals their paths require, and until then
-`reportReader` is `pending-reader-record`.
+format into the normalized projection these functions read. It may not relax,
+skip or reorder these checks. The reader and schemas are in effect under
+R35-01/R35-02; executor records remain pending.
+
+#### Report reader v1
+
+`scripts/predecessor_report_reader.py:read_cli_report` takes an already-loaded
+written JSON report and the executor's declared `report_version` (`v0916` or
+`1x`), never inferred from the payload. JSON is loaded by the ADR 0057
+duplicate-rejecting loader. The returned `ReadReport` carries:
+
+- `reader_version`: `cli-v0916-v1` or `cli-1x-v1`;
+- `projection`: `compiledOperations`, `compiledMutations` and
+  `compilationFingerprint`, consumed by the existing per-side checks;
+- `context`: report identity, input/output identities, times, composition
+  kind and optional `mapId`, for the caller's capture checks;
+- `issues`: each report issue's exact code and lower-case severity (`error`,
+  `warning`, `info` or `unspecified`), with `source: report`;
+- `unknown_members`: sorted JSON pointers naming unknown optional members,
+  without their values. JSON pointer escaping uses `~0` and `~1`.
+
+The required top-level members are the ADR 0057 report members; `MapId` is
+optional on both formats and is `null` in the context when absent. No map id
+is invented for v0.9.16. The 1.x extensions `AbMergeFormat` and
+`SourceEnvelope` are unknown optional members recorded by name, without
+becoming authority. Unknown members in projected input, output, issue,
+operation, mutation, range, provenance and command objects are likewise
+recorded and excluded before normalization. Known presentation members
+(`OriginalFileName`, `FileName`, `Message`) are ignored; `OutputDifferences`,
+`Validations` and `OutputNaming` remain unconsumed and supply no authority.
+Required members are never supplied by an optional extension.
+
+The reader reuses `normalize_raw_operation` and `normalize_raw_mutation`, the
+ADR 0057 public aliases, without copying their implementations. It preserves
+operation/mutation/input/issue order, named address spaces and half-open
+ranges. It does no file, process or Git access and makes no semantic verdict.
+A malformed format, unsupported version or absent report is
+`PREDECESSOR_REPORT_INVALID` at this format boundary; the process runner owns
+the contract's classification of an absent report as a process/environment
+failure. In particular, `AB_FORMAT_CONFIGURATION_INVALID` or
+`capability.readiness.runtime-dependency-blocked` appearing only on stderr
+does not create a report or a typed rejection. Stderr issues, when captured,
+stay separate and cannot satisfy a written report's `error` requirement.
 
 ### Comparison and attribution
 
@@ -467,9 +522,9 @@ of the report without that member; timings are never part of the report.
 
 | Interface | Status | Until it is in effect |
 | --- | --- | --- |
-| declaration schema | proposed | revised with the report schema before any release commits a declaration |
-| report schema | proposed | revised by the reader pull request, with the review and approvals its paths require; any R3 approval binds the last push and names each required role (ADR 0080 item 7); no report of record |
-| report reader | `pending-reader-record` | no report of record |
+| declaration schema | in effect (R35-02) | — |
+| report schema | in effect (R35-02) | — |
+| report reader | in effect (R35-01) | — |
 | compiler-host pinning | `pending-executor-record` (board decision 79) | no formal run |
 | v0.9.16 baseline executor | `pending-executor-record` in the amendment (board decisions 63 and 79) | no formal v0.9.16 1.x run |
 

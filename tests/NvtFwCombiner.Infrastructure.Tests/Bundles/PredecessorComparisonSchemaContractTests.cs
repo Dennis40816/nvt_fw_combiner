@@ -10,7 +10,7 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 /// <summary>
 /// Runs the predecessor-comparison contracts through the repository's real Draft 2020-12 engine: every
 /// schema against the meta-schema, the committed documents against their closed schemas, and one
-/// counterexample for each relation the proposed report and declaration schemas must hold.
+/// counterexample for each relation the in-effect report and declaration schemas must hold.
 /// </summary>
 public sealed class PredecessorComparisonSchemaContractTests
 {
@@ -41,6 +41,9 @@ public sealed class PredecessorComparisonSchemaContractTests
         ["rolling-blocked"] = new(ReportSchema, RollingBlocked()),
         ["v0916-formal-consistent"] = new(ReportSchema, V0916FormalConsistent()),
         ["v0916-inconsistent"] = new(ReportSchema, V0916Inconsistent()),
+        ["v0916-transitive-rejected-without-proof"] = new(ReportSchema, V0916TransitiveUnavailable("rejected-tp")),
+        ["v0916-transitive-invalid-without-proof"] = new(ReportSchema, V0916TransitiveUnavailable("invalid-tp")),
+        ["v0916-transitive-full-rejected-without-proof"] = new(ReportSchema, V0916TransitiveUnavailable("rejected-full")),
         ["declaration-every-kind"] = new(DeclarationSchema, DeclarationEveryKind()),
         ["declaration-empty"] = new(DeclarationSchema, Declaration(string.Empty)),
         ["declaration-precursor-only"] = new(DeclarationSchema, DeclarationPrecursorOnly()),
@@ -100,6 +103,22 @@ public sealed class PredecessorComparisonSchemaContractTests
         ["rejection-by-external-tool-failure"] = new(
             "rolling-formal-clear",
             [new("/scenarios/2/baseline/issues/0/code", "\"external-tool.process.failed\"")]),
+        ["rejection-by-external-tool-start-failure"] = new(
+            "rolling-formal-clear",
+            [new("/scenarios/2/baseline/issues/0/code", "\"external-tool.process.start-failed\"")]),
+        ["output-side-with-start-failure-warning"] = new(
+            "rolling-formal-clear",
+            [new("/scenarios/0/candidate/issues/0/code", "\"external-tool.process.start-failed\"")]),
+        ["output-side-with-start-failure-info"] = new(
+            "rolling-formal-clear",
+            [new("/scenarios/0/baseline/issues/0",
+                """{ "code": "external-tool.process.start-failed", "severity": "info", "source": "report" }""")]),
+        ["v0916-output-side-with-start-failure-warning"] = new(
+            "v0916-formal-consistent",
+            [new("/routes/0/candidate/issues/0/code", "\"external-tool.process.start-failed\"")]),
+        ["captured-report-with-unknown-reader-version"] = new(
+            "rolling-formal-clear",
+            [new("/scenarios/0/baseline/processes/0/report/readerVersion", "\"future-reader\"")]),
         ["rejection-with-extra-timed-out-process"] = new(
             "rolling-formal-clear",
             [new("/scenarios/2/baseline/processes", "[" + Process("preview", "1", ShaF) + "," + TimedOutProcess() + "]")]),
@@ -160,6 +179,12 @@ public sealed class PredecessorComparisonSchemaContractTests
             "v0916-formal-consistent",
             [new("/routes/1/comparison", "null")]),
         ["v0916-transitive-without-proof"] = new("v0916-formal-consistent", [new("/routes/2/transitive", "null")]),
+        ["v0916-unrunnable-transitive-with-proof"] = new(
+            "v0916-transitive-rejected-without-proof",
+            [new("/routes/0/transitive", TransitiveProof())]),
+        ["v0916-null-candidate-with-transitive-proof"] = new(
+            "v0916-transitive-invalid-without-proof",
+            [new("/routes/0/transitive", TransitiveProof())]),
         ["v0916-transitive-consistent-with-failed-check"] = new(
             "v0916-formal-consistent",
             [new("/routes/2/transitive/candidateTpEqualsBaselineFullPrefix", "false")]),
@@ -218,6 +243,12 @@ public sealed class PredecessorComparisonSchemaContractTests
         ["baseline-rejects-without-issue-codes-declared"] = new(
             "declaration-every-kind",
             [new("/entries/1/expected/baseline/issueCodes", "[]")]),
+        ["declared-rejection-by-process-start-failure"] = new(
+            "declaration-every-kind",
+            [new("/entries/1/expected/baseline/issueCodes", """["external-tool.process.start-failed"]""")]),
+        ["declared-rejection-by-process-failure"] = new(
+            "declaration-every-kind",
+            [new("/entries/1/expected/baseline/issueCodes", """["external-tool.process.failed"]""")]),
         ["rejected-outcome-with-output"] = new(
             "declaration-every-kind",
             [new("/entries/1/expected/baseline/output", Artifact(ShaA))]),
@@ -470,7 +501,7 @@ public sealed class PredecessorComparisonSchemaContractTests
               "stdoutSha256": "{{ShaD}}",
               "stderrSha256": "{{ShaE}}",
               "inputsUnchanged": true,
-              "report": { "size": 128, "sha256": "{{reportSha256}}", "readerVersion": "1x-1", "unknownMembers": ["/Diagnostics"] }
+              "report": { "size": 128, "sha256": "{{reportSha256}}", "readerVersion": "cli-1x-v1", "unknownMembers": ["/Diagnostics"] }
             }
             """;
     }
@@ -847,6 +878,43 @@ public sealed class PredecessorComparisonSchemaContractTests
             """{ "consistent": 0, "inconsistent": 1, "invalid": 0, "notCovered": 0 }""",
             "inconsistent",
             """[{ "code": "PREDECESSOR_UNAPPROVED_DIFFERENCE", "subject": "route-example-exact", "detail": "" }]""");
+    }
+
+
+    private static string TransitiveProof()
+    {
+        return """
+            {
+              "fullRouteId": "route-example-exact",
+              "tpLength": 4,
+              "candidateTpEqualsCandidateFullPrefix": true,
+              "candidateTpEqualsBaselineFullPrefix": true,
+              "candidateFullTailImmutable": true
+            }
+            """;
+    }
+
+    private static string V0916TransitiveUnavailable(string cause)
+    {
+        bool invalid = cause == "invalid-tp";
+        string result = invalid ? "invalid" : "inconsistent";
+        string code = invalid ? "PREDECESSOR_PROCESS_FAILED" : "PREDECESSOR_UNAPPROVED_DIFFERENCE";
+        string candidate = cause == "rejected-tp" ? RejectedSide() : invalid ? "null" : OutputSide(ShaA);
+        string routes = Route("transitive", "tp-prefix-transitive", result, "null", "null", candidate,
+            "null", "null", Quoted(code));
+        if (cause == "rejected-full")
+        {
+            routes += "," + Route("exact", "exact-output", "inconsistent", "null", RejectedSide(),
+                OutputSide(ShaA), "null", "null", Quoted(code));
+        }
+
+        string summary = invalid
+            ? """{ "consistent": 0, "inconsistent": 0, "invalid": 1, "notCovered": 0 }"""
+            : cause == "rejected-full"
+                ? """{ "consistent": 0, "inconsistent": 2, "invalid": 0, "notCovered": 0 }"""
+                : """{ "consistent": 0, "inconsistent": 1, "invalid": 0, "notCovered": 0 }""";
+        return V0916Report("false", "null", routes, summary, result,
+            $$"""[{ "code": "{{code}}", "subject": "route-example-transitive", "detail": "" }]""");
     }
 
     private static string OutputOutcome(string sha256, string precursor = "null")

@@ -100,20 +100,22 @@
     "reportRequired": true,
     "nonzeroExitRequired": true,
     "errorIssueRequired": true,
-    "processFailureIssueCodes": ["external-tool.process.failed"]
+    "processFailureIssueCodes": ["external-tool.process.failed", "external-tool.process.start-failed"]
   },
   "interfaces": {
     "declarationSchema": {
       "path": "docs/contracts/predecessor-comparison-declaration-v1.schema.json",
-      "status": "proposed"
+      "status": "in-effect"
     },
     "reportSchema": {
       "path": "docs/contracts/predecessor-comparison-report-v1.schema.json",
-      "status": "proposed"
+      "status": "in-effect"
     },
     "reportReader": {
-      "status": "pending-reader-record",
-      "reason": "The P-0.5 spike has read the issue severities and report members of successful and rejected 1.x and v0.9.16 runs; the versioned reader rules and the revision of the proposed schemas are admitted by a separate record."
+      "status": "in-effect",
+      "reason": "R35-01/R35-02 implement the P-0.5 reader rules: format only, ADR 0057 public normalizers, optional MapId, unknown optional members recorded by JSON pointer without values or authority, report issue severity and code preserved, and no report invented from stderr. Per-side checks keep their owners and order.",
+      "path": "scripts/predecessor_report_reader.py",
+      "readerVersions": ["cli-1x-v1", "cli-v0916-v1"]
     },
     "declarationDirectory": "docs/contracts/predecessor-comparison-declarations"
   },
@@ -137,7 +139,7 @@
     {"code": "PREDECESSOR_ENVIRONMENT_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "A per-user settings file is present in a formal run or changes during any run, a process refuses its settings without writing a report, or a temporary root exceeds its length bound."},
     {"code": "PREDECESSOR_EXECUTOR_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "Source materialization, SDK resolution, restore, lock-file state, build or executor identity failed."},
     {"code": "PREDECESSOR_INPUT_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "Golden authority, case, artifact size or SHA-256 differs from the mode's input authority, or a staged input changed during a process."},
-    {"code": "PREDECESSOR_PROCESS_FAILED", "modes": ["rolling", "v0916-1x"], "meaning": "A CLI process crashed, timed out, exited without a report, or reported an external-tool process failure such as external-tool.process.failed; never a typed product rejection."},
+    {"code": "PREDECESSOR_PROCESS_FAILED", "modes": ["rolling", "v0916-1x"], "meaning": "A CLI process crashed, timed out, exited without a report, or reported an external-tool process failure such as external-tool.process.failed or external-tool.process.start-failed at any severity; never a typed product rejection or an approvable difference."},
     {"code": "PREDECESSOR_RELEASE_NOTE_MISSING", "modes": ["rolling"], "meaning": "A declaration entry id is absent from the candidate version's CHANGELOG section."},
     {"code": "PREDECESSOR_REPORT_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "A report disagrees with its capture, fails the compiled-authority, sequence or range checks, or carries an error issue on a run that produced output."},
     {"code": "PREDECESSOR_SOURCE_MISMATCH", "modes": ["rolling", "v0916-1x"], "meaning": "The report does not come from the exact candidate source or does not bind the required digests."},

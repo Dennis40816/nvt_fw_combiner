@@ -234,7 +234,7 @@
         "reportRequired": { "const": true },
         "nonzeroExitRequired": { "const": true },
         "errorIssueRequired": { "const": true },
-        "processFailureIssueCodes": { "const": ["external-tool.process.failed"] }
+        "processFailureIssueCodes": { "const": ["external-tool.process.failed", "external-tool.process.start-failed"] }
       }
     },
     "interfaces": {
@@ -248,7 +248,7 @@
           "required": ["path", "status"],
           "properties": {
             "path": { "const": "docs/contracts/predecessor-comparison-declaration-v1.schema.json" },
-            "status": { "enum": ["proposed"] }
+            "status": { "const": "in-effect" }
           }
         },
         "reportSchema": {
@@ -257,16 +257,18 @@
           "required": ["path", "status"],
           "properties": {
             "path": { "const": "docs/contracts/predecessor-comparison-report-v1.schema.json" },
-            "status": { "enum": ["proposed"] }
+            "status": { "const": "in-effect" }
           }
         },
         "reportReader": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["status", "reason"],
+          "required": ["status", "reason", "path", "readerVersions"],
           "properties": {
-            "status": { "enum": ["pending-reader-record"] },
-            "reason": { "type": "string", "minLength": 1 }
+            "status": { "const": "in-effect" },
+            "reason": { "type": "string", "minLength": 1 },
+            "path": { "const": "scripts/predecessor_report_reader.py" },
+            "readerVersions": { "const": ["cli-1x-v1", "cli-v0916-v1"] }
           }
         },
         "declarationDirectory": { "const": "docs/contracts/predecessor-comparison-declarations" }

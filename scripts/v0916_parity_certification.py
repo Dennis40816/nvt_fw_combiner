@@ -1946,6 +1946,37 @@ def _ctrlram_artifact_bindings(
     }
 
 
+def admit_case_inputs(
+    authority: MaterializedCanonicalAuthority,
+    artifacts: Mapping[str, Mapping[str, Any]],
+    bindings: Sequence[tuple[str, str]],
+    *,
+    target_root: Path,
+) -> list[dict[str, Any]]:
+    """Admit ordered case artifacts with the terminal resolver's exact custody rule."""
+
+    if target_root.exists():
+        _fail("PARITY_WRITE_CONFLICT")
+    target_root.mkdir(parents=True)
+    ordered: list[dict[str, Any]] = []
+    canonical_root = PurePosixPath(authority.manifest_relative).parent
+    for order, (artifact_id, slot_id) in enumerate(bindings):
+        item = artifacts.get(artifact_id)
+        if item is None or item.get("role") != "input":
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        relative = (canonical_root / PurePosixPath(item["path"])).as_posix()
+        payload = authority.files.get(relative)
+        if payload is None:
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        if len(payload) != item["size"] or _sha256(payload) != item["sha256"]:
+            _fail("PARITY_AUTHORITY_MISMATCH")
+        destination = target_root / f"{order:02d}-{artifact_id}.bin"
+        with destination.open("xb") as stream:
+            stream.write(payload)
+        ordered.append({"slotId": slot_id, "role": "input", "path": str(destination), "size": len(payload), "sha256": _sha256(payload), "order": order})
+    return ordered
+
+
 def resolve_canonical_route_input(
     plan: Plan,
     authority: MaterializedCanonicalAuthority,
@@ -1989,25 +2020,7 @@ def resolve_canonical_route_input(
     if not bindings:
         _fail("PARITY_FIXTURE_MISSING", routeIds=[route_id])
     target_root = admitted_input_root / hashlib.sha256(f"{execution_role}:{route_id}".encode()).hexdigest()[:16]
-    if target_root.exists():
-        _fail("PARITY_WRITE_CONFLICT")
-    target_root.mkdir(parents=True)
-    ordered: list[dict[str, Any]] = []
-    canonical_root = PurePosixPath(authority.manifest_relative).parent
-    for order, (artifact_id, slot_id) in enumerate(bindings):
-        item = artifacts.get(artifact_id)
-        if item is None or item.get("role") != "input":
-            _fail("PARITY_AUTHORITY_MISMATCH")
-        relative = (canonical_root / PurePosixPath(item["path"])).as_posix()
-        payload = authority.files.get(relative)
-        if payload is None:
-            _fail("PARITY_AUTHORITY_MISMATCH")
-        if len(payload) != item["size"] or _sha256(payload) != item["sha256"]:
-            _fail("PARITY_AUTHORITY_MISMATCH")
-        destination = target_root / f"{order:02d}-{artifact_id}.bin"
-        with destination.open("xb") as stream:
-            stream.write(payload)
-        ordered.append({"slotId": slot_id, "role": "input", "path": str(destination), "size": len(payload), "sha256": _sha256(payload), "order": order})
+    ordered = admit_case_inputs(authority, artifacts, bindings, target_root=target_root)
     cli_selection_token = _cli_selection_token(route)
     if route.workflow_id != "standard-merge" and route.ic_count_variant != "selector-free" and cli_selection_token is None:
         _fail("PARITY_PLAN_INVALID")
@@ -2027,6 +2040,46 @@ def resolve_canonical_route_input(
     if base_recipe is not None:
         request["baseRecipe"] = base_recipe
     return VerifiedCanonicalInputs(route.route_id, execution_role, route.capability_fingerprint, request)
+
+
+def runtime_closure_inventory(
+    runtime_root: Path,
+    *,
+    cli_relative: str,
+) -> CapturedExecutionClosure:
+    """Measure the terminal closure inventory without requiring a pinned expectation."""
+
+    files: dict[str, bytes] = {}
+    total = 0
+    try:
+        for path in sorted(runtime_root.rglob("*"), key=lambda item: item.as_posix()):
+            if not path.is_file():
+                continue
+            if path_is_reparse_point(path):
+                _fail("PARITY_AUTHORITY_MISMATCH")
+            relative = path.relative_to(runtime_root).as_posix()
+            if not _safe_repo_path(relative):
+                _fail("PARITY_AUTHORITY_MISMATCH")
+            payload = path.read_bytes()
+            total += len(payload)
+            if len(files) >= MAX_SNAPSHOT_FILES or total > MAX_SNAPSHOT_BYTES:
+                _fail("PARITY_AUTHORITY_MISMATCH")
+            files[relative] = payload
+    except OSError:
+        _fail("PARITY_AUTHORITY_MISMATCH")
+    inventory = [
+        {"path": relative, "size": len(payload), "sha256": _sha256(payload)}
+        for relative, payload in files.items()
+    ]
+    closure_identity = canonical_json_sha256(inventory)
+    return CapturedExecutionClosure(
+        runtime_root,
+        cli_relative,
+        MappingProxyType(dict(files)),
+        closure_identity,
+        len(files),
+        total,
+    )
 
 
 def validate_verified_source_executor(
@@ -2053,55 +2106,21 @@ def validate_verified_source_executor(
     )
     if not valid:
         _fail("PARITY_AUTHORITY_MISMATCH")
-    runtime_root = cli.parent
-    files: dict[str, bytes] = {}
-    total = 0
-    try:
-        for path in sorted(runtime_root.rglob("*"), key=lambda item: item.as_posix()):
-            if not path.is_file():
-                continue
-            if path_is_reparse_point(path):
-                _fail("PARITY_AUTHORITY_MISMATCH")
-            relative = path.relative_to(runtime_root).as_posix()
-            if not _safe_repo_path(relative):
-                _fail("PARITY_AUTHORITY_MISMATCH")
-            payload = path.read_bytes()
-            total += len(payload)
-            if len(files) >= MAX_SNAPSHOT_FILES or total > MAX_SNAPSHOT_BYTES:
-                _fail("PARITY_AUTHORITY_MISMATCH")
-            files[relative] = payload
-    except OSError:
+    closure = runtime_closure_inventory(cli.parent, cli_relative=cli.relative_to(cli.parent).as_posix())
+    payload = closure.files.get(closure.cli_relative)
+    if payload is None or len(payload) != executor.cli_size or _sha256(payload) != executor.cli_sha256:
         _fail("PARITY_AUTHORITY_MISMATCH")
-    cli_relative = cli.relative_to(runtime_root).as_posix()
-    if (
-        files.get(cli_relative) is None
-        or len(files[cli_relative]) != executor.cli_size
-        or _sha256(files[cli_relative]) != executor.cli_sha256
-    ):
-        _fail("PARITY_AUTHORITY_MISMATCH")
-    inventory = [
-        {"path": relative, "size": len(payload), "sha256": _sha256(payload)}
-        for relative, payload in files.items()
-    ]
-    closure_identity = canonical_json_sha256(inventory)
     if (
         executor.runtime_closure_sha256,
         executor.runtime_file_count,
         executor.runtime_total_size,
     ) != (
-        closure_identity,
-        len(files),
-        total,
+        closure.identity_sha256,
+        closure.file_count,
+        closure.total_size,
     ):
         _fail("PARITY_AUTHORITY_MISMATCH")
-    return CapturedExecutionClosure(
-        runtime_root,
-        cli_relative,
-        MappingProxyType(dict(files)),
-        closure_identity,
-        len(files),
-        total,
-    )
+    return closure
 
 
 def materialize_execution_closure(

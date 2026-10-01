@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nvt.local/contracts/predecessor-comparison-report-v1.schema.json",
-  "title": "NVT FW Combiner predecessor comparison report (proposed)",
-  "$comment": "Proposed interface: the report-reader record revises it before any report of record. The schema holds only relations inside one report; source, coverage, declaration, approval and digest consistency across documents belongs to the comparator's single semantic validator.",
+  "title": "NVT FW Combiner predecessor comparison report (in effect)",
+  "$comment": "In effect under R35-01/R35-02. The schema holds structural relations inside one report; source, coverage, declaration, approval and digest consistency belongs to the single semantic validator. Transitive proof availability depends on the candidate TP output and both outputs of the full route named by the plan: the validator checks that null occurs only when the proof cannot run, and a runnable proof is never missing.",
   "oneOf": [
     { "$ref": "#/$defs/rollingReport" },
     { "$ref": "#/$defs/v0916Report" }
@@ -130,7 +130,7 @@
         }
       }
     },
-    "processFailureIssueCode": { "enum": ["external-tool.process.failed"] },
+    "processFailureIssueCode": { "enum": ["external-tool.process.failed", "external-tool.process.start-failed"] },
     "issue": {
       "type": "object",
       "additionalProperties": false,
@@ -148,7 +148,7 @@
       "properties": {
         "size": { "type": "integer", "minimum": 1 },
         "sha256": { "$ref": "#/$defs/sha256" },
-        "readerVersion": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*$" },
+        "readerVersion": { "enum": ["cli-1x-v1", "cli-v0916-v1"] },
         "unknownMembers": {
           "type": "array",
           "uniqueItems": true,
@@ -753,8 +753,7 @@
             "properties": {
               "dispositionRow": { "const": null },
               "baseline": { "const": null },
-              "comparison": { "const": null },
-              "transitive": { "$ref": "#/$defs/transitiveProof" }
+              "comparison": { "const": null }
             }
           }
         },
@@ -764,6 +763,7 @@
             "properties": {
               "candidate": { "$ref": "#/$defs/outputSide" },
               "transitive": {
+                "$ref": "#/$defs/transitiveProof",
                 "properties": {
                   "candidateTpEqualsCandidateFullPrefix": { "const": true },
                   "candidateTpEqualsBaselineFullPrefix": { "const": true },
@@ -772,6 +772,21 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "proofKind": { "const": "tp-prefix-transitive" },
+              "candidate": {
+                "oneOf": [
+                  { "type": "null" },
+                  { "type": "object", "properties": { "status": { "enum": ["rejected", "invalid"] } }, "required": ["status"] }
+                ]
+              }
+            },
+            "required": ["proofKind", "candidate"]
+          },
+          "then": { "properties": { "transitive": { "const": null } } }
         },
         {
           "if": { "properties": { "proofKind": { "const": "canonical-binding-not-applicable-to-v0916" } }, "required": ["proofKind"] },
