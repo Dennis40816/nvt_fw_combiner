@@ -1053,11 +1053,17 @@ Cutover amendment, 2026-10-01 (board decision 246): the owner changed only the
 `trunk` ruleset (ID 24060410, `refs/heads/*.*.x`, including the retired
 `1.1.x`) in the GitHub settings page, Required approvals 1 -> 0; the commander
 backed up all four live ruleset bodies first and read back only that field
-changed (test area `evidence/1.2.1/R41-ruleset/`). No isolated trial ruleset
-was used: the trial runs on `1.2.x` with one R0 and one R3 pull request.
-`main`, release-branch and tag rulesets keep one general approval. Rollback:
-set Required approvals back to 1. Step 2's script mode stays available for
-future updates. The original status follows. This
+changed among the rule fields (the `updated_at` timestamp also changed); the
+other three rulesets read back identical to their backups (test area
+`evidence/1.2.1/R41-ruleset/`). No isolated trial ruleset was used: the trial
+runs on `1.2.x` with one R0 and one R3 pull request. `main` and release-branch
+rulesets keep one general approval; the tag ruleset (update and deletion
+protection, no approvals) is unchanged. Rollback: set Required approvals back
+to 1. Step 2's script mode stays available for future updates.
+
+Original status (historical): local implementation of decisions 225 W1 and
+233; pending independent exact-head review, required CI, owner approval and
+live trial/cutover. This
 amendment supersedes C1's one-general-approval values only on targets whose
 R41 cutover is complete. Earlier inventory tables and G0 acceptance remain
 historical; neither certifies R41. The new G0 hashes below identify this local
