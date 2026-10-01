@@ -1,6 +1,7 @@
 # BUG-20261001-general-merge-stale-preparation-overwrites-session: a superseded General Merge preparation can overwrite the accepted session, and Build then writes the stale mapping
 
-Status: open; root cause not yet proven (two hypotheses below); a deterministic reproduction is in progress
+Status: test flake fixed on `feature/1.2.1/ctrlram-cancel-reopen` (commit `0930eb181`); the Application freshness gap
+(hypothesis B) stays open for the `1.2.4` General Merge reopening
 Severity: P3 as a test flake. If either hypothesis below can occur on the desktop path, it is a latent P2: General Merge
 would write a mapping the screen no longer shows, without a warning. The released UI hides the General Merge entry
 and each CLI run uses its own session, so no released path is known to reach it; it blocks reopening the Customized
@@ -44,10 +45,19 @@ CtrlRAM Standard/AB inspection, bank switching and firmware-version edits.
 Reachability: the released UI hides the General Merge and General Replace entries
 (`src/NvtFwCombiner.Presentation.Avalonia/WorkflowModeDisplayConverters.cs:16`). The CLI
 (`src/NvtFwCombiner.Cli/MergeCliCommandHandler.cs:132`) prepares once per run.
-Pending: (1) a deterministic reproduction of A and of B (gated file capture; the progress-report-to-mutation
-window), and whether the desktop continuation runs on the UI thread; (2) the fix: a test-only change if A alone
-explains the failure; for B the cross-mode check recommends the Application `AuthoringSessionState` owner (prepare a
-private candidate and adopt it once under the transition lock after checking a lease renewed when a newer request is
-queued), at the latest before the `1.2.4` reopening. A product fix changes Application behavior that decides output
-bytes: R3 firmware-semantic gate (firmware-owner review, byte evidence, write-range audit).
-Owner: Claude Code commander until the fix owner is assigned.
+Reproduction (deterministic tests, test-area `evidence/1.2.1/gm-repro-runs/`, 3 runs each on `6f2e2cfa2`):
+- A confirmed as the CI failure's mechanism: without a UI thread the edit back to `0x4` is swallowed while the `0x5`
+  preparation is applied and Build writes `0x5`; on the dedicated UI-thread test context the edit is queued and the
+  result is `0x4`; the desktop dispatcher keeps the apply and the edit on the UI thread (3/3 UI tests in each run).
+  The desktop path awaits the lifecycle and the Application call in the UI context
+  (`WorkflowInspectionLifecycle.cs:157`, `:171`; `MergePresentationViewModel.General.cs:216`), so A is a test-harness
+  race, not a desktop defect.
+- B confirmed at the Application API: with one shared session, a preparation held after its last progress check
+  replaces a newer accepted snapshot (target `0x5` over `0x4`) even when cancelled after that check (2/2 Application
+  tests in each run). No current caller reaches it: the desktop lifecycle serializes preparations and each CLI run
+  uses its own session.
+Fix: the test runs on `UiThreadTestContext` (test-only; `MergeWorkflowTests` 40/40 in 3 runs). B is fixed in the
+Application `AuthoringSessionState` owner (prepare a private candidate, adopt it once under the transition lock after
+checking a lease renewed when a newer request is queued) before the Customized Merge entry reopens in `1.2.4`; that
+change is an R3 firmware-semantic gate.
+Owner: Claude Code commander (test fix); the `1.2.4` General input owner (hypothesis B).

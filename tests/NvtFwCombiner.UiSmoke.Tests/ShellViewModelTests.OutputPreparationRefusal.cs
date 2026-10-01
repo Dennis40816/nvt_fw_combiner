@@ -32,12 +32,12 @@ public sealed partial class ShellNavigationSystemTests
         var retained = new UiRunResultViewModel("Current result", "retained", "No output", false);
         viewModel.RunSession.PublishRunResult(current.Owner, retained);
 
-        await viewModel.Replace.RequestBuildOutputDeliveryAsync(exactSession: older);
+        Assert.False(await viewModel.Replace.RequestBuildOutputDeliveryAsync(exactSession: older));
 
         Assert.False(viewModel.OutputDelivery.IsOpen);
         Assert.Same(retained, current.Owner.LastRunResult);
         Assert.False(viewModel.Reports.HasReportHistory);
-        await viewModel.Replace.RequestBuildOutputDeliveryAsync(exactSession: newer);
+        Assert.True(await viewModel.Replace.RequestBuildOutputDeliveryAsync(exactSession: newer));
         Assert.True(viewModel.OutputDelivery.IsOpen);
         Assert.Same(retained, current.Owner.LastRunResult);
     }

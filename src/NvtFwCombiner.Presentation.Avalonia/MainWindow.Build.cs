@@ -52,7 +52,7 @@ public sealed partial class MainWindow
             return await viewModel.RequestCtrlRamBuildSettingsAsync();
         }
 
-        await viewModel.RequestBuildOutputDeliveryAsync();
+        _ = await viewModel.RequestBuildOutputDeliveryAsync();
         return true;
     }
 }

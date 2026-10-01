@@ -19,6 +19,8 @@
 /src/NvtFwCombiner.Infrastructure/FlashMaps/** @Dennis40816
 /src/NvtFwCombiner.Infrastructure/Metadata/** @Dennis40816
 /src/NvtFwCombiner.Infrastructure/Capabilities/** @Dennis40816
+/src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs @Dennis40816
+/src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs @Dennis40816
 # contracts (R3)
 /docs/contracts/** @Dennis40816
 # external-tools (R3)
