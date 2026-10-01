@@ -539,85 +539,92 @@ public sealed partial class MergeWorkflowTests
     public async Task GeneralMergePreviewAndBuildUseExplicitMappingRows()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-merge");
-        string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13, 0x14]);
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.ShowMergeCommand.Execute(null);
-        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
-        viewModel.Merge.GeneralMergeOutputLength = "0x10";
-        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
-        mapping.SourceStartAddress = "0x1";
-        mapping.TargetStartAddress = "0x4";
-        mapping.Length = "0x3";
-        List<string> propertyChanges = [];
-        viewModel.Merge.PropertyChanged += (_, args) =>
+        // The view model applies a preparation on the thread that started it. Without a UI thread a
+        // thread-pool continuation can swallow a concurrent mapping edit
+        // (BUG-20261001-general-merge-stale-preparation-overwrites-session).
+        using var uiThread = new UiThreadTestContext();
+        await uiThread.InvokeAsync(async () =>
         {
-            if (!string.IsNullOrWhiteSpace(args.PropertyName))
+            string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13, 0x14]);
+            MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+            viewModel.ShowMergeCommand.Execute(null);
+            viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+            viewModel.Merge.GeneralMergeOutputLength = "0x10";
+            GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+            mapping.SourceStartAddress = "0x1";
+            mapping.TargetStartAddress = "0x4";
+            mapping.Length = "0x3";
+            List<string> propertyChanges = [];
+            viewModel.Merge.PropertyChanged += (_, args) =>
             {
-                propertyChanges.Add(args.PropertyName);
-            }
-        };
-        await viewModel.WorkflowSession.SetSlotFileAsync(
-            mapping.MappingId,
-            source,
-            TestContext.Current.CancellationToken);
-        FileStamp acceptedStamp = Assert.IsType<FileStamp>(mapping.AcceptedFileStamp);
-        Assert.Contains(nameof(MergePresentationViewModel.MergeReadinessStatus), propertyChanges);
-        Assert.Contains("maps 1 source BIN", viewModel.Merge.MergeReadinessStatus, StringComparison.Ordinal);
-        viewModel.Merge.GeneralMergeOutputFillByte = "0x100";
-        Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
-        Assert.False(viewModel.Merge.CanBuildMerge);
-        viewModel.Merge.GeneralMergeOutputFillByte = "0xA5";
-        await viewModel.Merge.Inspection.ActiveTask;
-        Assert.Contains(
-            viewModel.Merge.MergeMemoryRows,
-            row => row.Detail.Contains("0xA5", StringComparison.Ordinal));
-        Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
-        mapping.TargetStartAddress = "0x5";
-        Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
-        mapping.TargetStartAddress = "0x4";
-        await viewModel.Merge.Inspection.ActiveTask;
-        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
-        Assert.True(viewModel.Merge.CanBuildMerge);
-        Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
-        Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
-        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
-        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-        Assert.True(viewModel.Merge.CanBuildMerge);
-        Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
-        string outputPath = workspace.PathFor("general-merge.bin");
-        await File.WriteAllBytesAsync(
-            source,
-            [0x10, 0x11, 0x99, 0x13, 0x14],
-            TestContext.Current.CancellationToken);
-        await viewModel.Merge.BuildMergeAsync(outputPath);
-        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-        Assert.Equal(
-            [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x12, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
-            File.ReadAllBytes(outputPath));
+                if (!string.IsNullOrWhiteSpace(args.PropertyName))
+                {
+                    propertyChanges.Add(args.PropertyName);
+                }
+            };
+            await viewModel.WorkflowSession.SetSlotFileAsync(
+                mapping.MappingId,
+                source,
+                TestContext.Current.CancellationToken);
+            FileStamp acceptedStamp = Assert.IsType<FileStamp>(mapping.AcceptedFileStamp);
+            Assert.Contains(nameof(MergePresentationViewModel.MergeReadinessStatus), propertyChanges);
+            Assert.Contains("maps 1 source BIN", viewModel.Merge.MergeReadinessStatus, StringComparison.Ordinal);
+            viewModel.Merge.GeneralMergeOutputFillByte = "0x100";
+            Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+            Assert.False(viewModel.Merge.CanBuildMerge);
+            viewModel.Merge.GeneralMergeOutputFillByte = "0xA5";
+            await viewModel.Merge.Inspection.ActiveTask;
+            Assert.Contains(
+                viewModel.Merge.MergeMemoryRows,
+                row => row.Detail.Contains("0xA5", StringComparison.Ordinal));
+            Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
+            mapping.TargetStartAddress = "0x5";
+            Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
+            mapping.TargetStartAddress = "0x4";
+            await viewModel.Merge.Inspection.ActiveTask;
+            Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+            Assert.True(viewModel.Merge.CanBuildMerge);
+            Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
+            Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
+            await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
+            Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+            Assert.True(viewModel.Merge.CanBuildMerge);
+            Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
+            string outputPath = workspace.PathFor("general-merge.bin");
+            await File.WriteAllBytesAsync(
+                source,
+                [0x10, 0x11, 0x99, 0x13, 0x14],
+                TestContext.Current.CancellationToken);
+            await viewModel.Merge.BuildMergeAsync(outputPath);
+            Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+            Assert.Equal(
+                [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x12, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
+                File.ReadAllBytes(outputPath));
 
-        await viewModel.WorkflowSession.SetSlotFileAsync(
-            mapping.MappingId,
-            source,
-            TestContext.Current.CancellationToken);
-        Assert.Equal(
-            FileStamp.FromBytes([0x10, 0x11, 0x99, 0x13, 0x14]),
-            mapping.AcceptedFileStamp);
-        await viewModel.Merge.BuildMergeAsync(outputPath);
-        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-        Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
-        Assert.Equal(
-            [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x99, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
-            File.ReadAllBytes(outputPath));
-        using var document = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
-        JsonElement root = document.RootElement;
-        Assert.Equal("nt51950-general-merge-logical-candidate", root.GetProperty("ProfileId").GetString());
-        Assert.Equal("general-merge", root.GetProperty("ExperienceId").GetString());
-        JsonElement initialization = root.GetProperty("ImageInitialization");
-        Assert.Equal(0x10, initialization.GetProperty("Capacity").GetInt64());
-        Assert.Equal(0xA5, initialization.GetProperty("FillByte").GetInt32());
-        JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
-        Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString());
-        Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
+            await viewModel.WorkflowSession.SetSlotFileAsync(
+                mapping.MappingId,
+                source,
+                TestContext.Current.CancellationToken);
+            Assert.Equal(
+                FileStamp.FromBytes([0x10, 0x11, 0x99, 0x13, 0x14]),
+                mapping.AcceptedFileStamp);
+            await viewModel.Merge.BuildMergeAsync(outputPath);
+            Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+            Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
+            Assert.Equal(
+                [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x99, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
+                File.ReadAllBytes(outputPath));
+            using var document = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
+            JsonElement root = document.RootElement;
+            Assert.Equal("nt51950-general-merge-logical-candidate", root.GetProperty("ProfileId").GetString());
+            Assert.Equal("general-merge", root.GetProperty("ExperienceId").GetString());
+            JsonElement initialization = root.GetProperty("ImageInitialization");
+            Assert.Equal(0x10, initialization.GetProperty("Capacity").GetInt64());
+            Assert.Equal(0xA5, initialization.GetProperty("FillByte").GetInt32());
+            JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
+            Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString());
+            Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
+        });
     }
 
     /// <summary>Verifies Standard Merge Build validates the current context without a separate manual Preview.</summary>
