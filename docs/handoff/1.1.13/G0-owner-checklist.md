@@ -376,6 +376,13 @@ Amendment, 2026-10-01 ([board decision 221](../1.2.x.md)): decision 216 is withd
 fuller risk above was reported, the owner removed `-IncludeWorkflowsWrite` from the Git helper
 command; the per-batch rule of the scripts' README applies again.
 
+Amendment, 2026-10-01 ([board decision 222](../1.2.x.md)): while the App installation holds
+`workflows: write`, removing the switch is only a procedural limit, because an agent could pass
+`-IncludeWorkflowsWrite` to the wrapper or run the helper itself. Between authorized batches the
+App's **Workflows** permission is therefore **No access** (A6a step 8 is no longer optional), and
+each workflow-writing batch starts with A6a steps 3 to 6. The owner set it to No access on
+2026-10-01 (confirmed in chat).
+
 - [ ] **owner → owner.** Optional preview, which contacts no GitHub: in your
       script folder run
       `pwsh -NoProfile -File .\New-NfcGitHubApp.ps1 -Owner <owner> -Repo <repo> -AppName nfc-agent-<owner> -DryRun`.

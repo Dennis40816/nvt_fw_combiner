@@ -1327,7 +1327,8 @@ Recorded on the `1.2.x` trunk by the commander (board decision 220); the section
   checked before the key is read, exact `https`/`github.com`/repository path, duplicate keys rejected,
   `store`/`erase` save nothing, fixed error text); DPAPI CurrentUser scope with cleared buffers; the wrapper's
   launch-form and direct-call checks, repository refusal before any token request, `ArgumentList` forwarding
-  and `GH_TOKEN` confined to one child; the README states the wrapper's limits honestly.
+  and `GH_TOKEN` supplied only to the one `gh` child (its own children, such as an alias, an extension or
+  a Git process, inherit it); the README states the wrapper's limits honestly.
 - F-1 (launch identity) and F-5 (test runner) are resolved in this revision; the A6a notes are implemented and
   tested; the content of F-2 to F-4 is not recorded in the repository and could not be checked.
 - Findings, tracked in `BUG-20261001-g0-gh-wrapper-console-codepage` (fix in an eighth version the owner
@@ -1346,7 +1347,10 @@ Recorded on the `1.2.x` trunk by the commander (board decision 220); the section
   - P3 (records, fixed): the README amendment had changed the README hash that A6a step 1 compares; the
     README is back to the reviewed bytes and the note lives in the checklist and on the board.
 - Follow-up the same day: the owner withdrew decision 216 after the restated risk (board decision 221);
-  the Git helper command no longer carries `-IncludeWorkflowsWrite`.
+  the Git helper command no longer carries `-IncludeWorkflowsWrite`. The exact-head review of the landing
+  pull request (fresh Claude Opus 5.5, accept-with-changes, no P0 or P1) found that this alone is a
+  procedural limit while the App holds `workflows: write` (P2); the owner chose to set the App's
+  Workflows permission to No access between batches (board decision 222).
 - Not verifiable by the reviewer: the live App and installation permissions, the repository's Actions and
   environment settings, the installed copy's bytes (checked by the commander), and the content of G0HR's
   findings.
