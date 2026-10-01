@@ -1048,6 +1048,22 @@ Notes:
 
 ### C1a. R41 approval scope trial, apply and rollback (2026-10-01)
 
+Current status (2026-10-01, after the cutover): reviewed and merged into
+`1.2.x` (#509, merge `b83328a64`); W1 is live.
+Cutover amendment, 2026-10-01 (board decision 246): the owner changed only the
+`trunk` ruleset (ID 24060410, `refs/heads/*.*.x`, including the retired
+`1.1.x`) in the GitHub settings page, Required approvals 1 -> 0; the commander
+backed up all four live ruleset bodies first and read back only that field
+changed among the rule fields (the `updated_at` timestamp also changed); the
+other three rulesets read back identical to their backups (test area
+`evidence/1.2.1/R41-ruleset/`). No isolated trial ruleset was used: the trial
+runs on `1.2.x` with one R0 and one R3 pull request. `main` and release-branch
+rulesets keep one general approval; the tag ruleset (update and deletion
+protection, no approvals) is unchanged. Rollback: set Required approvals back
+to 1. Step 2's script mode stays available for future updates.
+
+The status recorded before the cutover, kept as written:
+
 Status: local implementation of decisions 225 W1 and 233; pending independent
 exact-head review, required CI, owner approval and live trial/cutover. This
 amendment supersedes C1's one-general-approval values only on targets whose
