@@ -368,10 +368,18 @@ class SourceExecutorContract(NamedTuple):
 
 
 class PinnedGitReader:
-    """Read-only Git object adapter; worktree bytes are never consulted."""
+    """Read-only Git object adapter; worktree bytes are never consulted.
 
-    def __init__(self, repository_root: Path):
+    The terminal path accepts only regular blobs and trees. `allow_gitlinks`
+    is for the 1.x comparator, whose snapshots carry a submodule: a gitlink
+    has no payload in this repository, so it is set aside by path and commit
+    and is never a file of the snapshot.
+    """
+
+    def __init__(self, repository_root: Path, *, allow_gitlinks: bool = False):
         self.repository_root = repository_root
+        self._allow_gitlinks = allow_gitlinks
+        self._gitlinks: dict[str, str] = {}
         self._entries: dict[str, tuple[str, str, str]] = {}
         self._payloads: dict[str, bytes] = {}
         self._commit: str | None = None
@@ -381,6 +389,7 @@ class PinnedGitReader:
         # not leave a previous capture usable if any later acquisition fails.
         self._entries = {}
         self._payloads = {}
+        self._gitlinks = {}
         self._commit = None
         try:
             if not isinstance(commit, str) or not SHA1_RE.fullmatch(commit):
@@ -418,6 +427,14 @@ class PinnedGitReader:
                 entries[path] = (mode, kind, oid)
             if len(entries) > MAX_SNAPSHOT_FILES:
                 raise ValueError("snapshot inventory exceeds limit")
+            gitlinks: dict[str, str] = {}
+            if self._allow_gitlinks:
+                gitlinks = {
+                    path: oid for path, (mode, kind, oid) in entries.items()
+                    if (mode, kind) == ("160000", "commit")
+                }
+                for path in gitlinks:
+                    del entries[path]
             if any(
                 (mode, kind) not in {("100644", "blob"), ("040000", "tree")}
                 for mode, kind, _ in entries.values()
@@ -474,8 +491,15 @@ class PinnedGitReader:
             _fail("PARITY_AUTHORITY_MISMATCH", "invalid pinned Git snapshot")
         self._entries = entries
         self._payloads = payloads
+        self._gitlinks = gitlinks
         self._commit = commit
         return paths
+
+    @property
+    def gitlinks(self) -> Mapping[str, str]:
+        """Submodule paths and their pinned commits set aside by `allow_gitlinks`."""
+
+        return MappingProxyType(dict(self._gitlinks))
 
     def entry(self, path: str) -> tuple[str, str, str]:
         try:
