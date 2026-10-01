@@ -32,21 +32,22 @@ internal sealed partial class ReplacePresentationViewModel
             return;
         }
 
-        await RequestBuildOutputDeliveryAsync();
+        _ = await RequestBuildOutputDeliveryAsync();
     }
 
-    internal async Task RequestBuildOutputDeliveryAsync(
+    internal async Task<bool> RequestBuildOutputDeliveryAsync(
         CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit = null,
-        ActiveSessionSnapshot? exactSession = null)
+        ActiveSessionSnapshot? exactSession = null,
+        long? preparationGeneration = null)
     {
         CompositionRunContext context = CaptureRunContext(SelectedReplaceMode, build: true);
         if (exactSession is not null && !ReferenceEquals(exactSession, context.AcceptedSession))
         {
-            return;
+            return false;
         }
         ActiveSessionSnapshot session = exactSession ?? context.AcceptedSession ?? throw new InvalidOperationException(
             "Build output confirmation requires one accepted Replace session.");
-        long preparation = _stateBindings.OutputDelivery.BeginPreparation();
+        long preparation = preparationGeneration ?? _stateBindings.OutputDelivery.BeginPreparation();
         CompositionOutputBundleProposal proposal =
             await _compositionServices.OutputNaming.PrepareBundleProposalAsync(
                 session,
@@ -54,7 +55,7 @@ internal sealed partial class ReplacePresentationViewModel
                 exactSession is null ? ctrlRamFirmwareVersionEdit as CtrlRamFirmwareVersionDraftState : null);
         if (!IsAcceptedReplaceSessionCurrent(context) || !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
         {
-            return;
+            return false;
         }
         CloseSelectionForRun();
         _stateBindings.OutputDelivery.Open(new OutputDeliveryRequest(
@@ -75,6 +76,7 @@ internal sealed partial class ReplacePresentationViewModel
                 decision.BundleIntent,
                 exactSession)),
             preserveDeliveryState: exactSession is not null, preparedSuccessor: exactSession is not null);
+        return true;
     }
 
     internal async Task<bool> RequestCtrlRamBuildSettingsAsync()
@@ -84,7 +86,7 @@ internal sealed partial class ReplacePresentationViewModel
             return false;
         }
 
-        await RequestBuildOutputDeliveryAsync();
+        _ = await RequestBuildOutputDeliveryAsync();
         return true;
     }
 
@@ -104,12 +106,15 @@ internal sealed partial class ReplacePresentationViewModel
     internal async Task<bool> RequestCtrlRamBuildOutputDeliveryAsync(
         CtrlRamAuthoringDraftState? edit)
     {
+        long preparation = _stateBindings.OutputDelivery.BeginPreparation();
         if (!IsCtrlRamReplaceModeSelected ||
-            !await IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())
+            !await IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync() ||
+            !_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
         {
             return false;
         }
 
+        CtrlRamAuthoringDraftState? previousDraft = CurrentCtrlRamDraft;
         CtrlRamAuthoringTransitionResult transition =
             _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
                 _ctrlRamReplaceSession,
@@ -124,14 +129,35 @@ internal sealed partial class ReplacePresentationViewModel
 
         CurrentCtrlRamDraft = transition.Session.DraftState as CtrlRamAuthoringDraftState;
         await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
-        if (!CanBuildReplace)
+        if (_stateBindings.OutputDelivery.IsPreparationCurrent(preparation) &&
+            CanBuildReplace &&
+            await RequestBuildOutputDeliveryAsync(edit, transition.Session, preparation))
         {
-            return false;
+            CloseCtrlRamFirmwareVersionModal();
+            return true;
         }
-
-        await RequestBuildOutputDeliveryAsync(edit, transition.Session);
-        CloseCtrlRamFirmwareVersionModal();
-        return true;
+        if (!_stateBindings.OutputDelivery.IsPreparationCurrent(preparation))
+        {
+            // Readiness belongs to the edited compilation. Roll back only while this
+            // cancelled preparation still owns it; never replace a newer authoring session.
+            if (ReferenceEquals(transition.Session, _ctrlRamReplaceSession.CurrentSnapshot))
+            {
+                CtrlRamAuthoringTransitionResult restored =
+                    _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
+                        _ctrlRamReplaceSession,
+                        SelectedIc,
+                        SelectedNumber,
+                        CreateReplaceSlotPaths(),
+                        previousDraft);
+                if (!restored.Succeeded || restored.Session is null)
+                {
+                    _ctrlRamReplaceSession.InvalidateCanonicalPublication();
+                }
+                CurrentCtrlRamDraft = previousDraft;
+                await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
+            }
+        }
+        return false;
     }
 
     private Task PreviewReplaceAsync()
