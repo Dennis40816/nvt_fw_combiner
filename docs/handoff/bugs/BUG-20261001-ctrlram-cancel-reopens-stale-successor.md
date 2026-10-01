@@ -14,8 +14,11 @@ guarded (`:49`, `:55`). The reopened exact-session successor keeps the cancelled
 does not rerun the version transition when a session already exists (`:199-200`), while the visible selection in
 `Views/OutputDeliveryConfirmationModal.axaml:157-176` and `CtrlRamFirmwareVersion.cs:238-243` changes only the
 screen. The AB draft (`CtrlRamFirmwareVersion.cs:154-170`) uses the same path.
-Observed (tests `evidence/1.2.1/R12-02-H/R12H2CtrlRamCancelTests.cs`, test-area relative; 9 of 9 new tests passed
-in each of 3 runs, asserting the current behavior):
+Observed (tests `evidence/1.2.1/R12-02-H/R12H2CtrlRamCancelTests.cs`, test-area relative, asserting the current
+behavior). The commander re-ran both test files (SHA-256 `69aa0aac...`, `1104e56d...`) on a clean checkout of
+`6f2e2cfa2` with .NET SDK 10.0.303: `dotnet test tests/NvtFwCombiner.UiSmoke.Tests --no-build --filter
+"FullyQualifiedName~R12H"`, 9 of 9 passed in each of 3 runs; logs and TRX files in `evidence/1.2.1/R12-02-H/runs/`
+(`source.txt` records the source identity):
 - H2(a) `R12H2aCurrentBehaviorCancelDuringReadinessReopensSuccessor`: the dialog closes on Cancel and reopens when
   readiness completes, still showing the cancelled Edit 2A/0C. Control
   `R12H2aCurrentBehaviorCancelDuringNamingDoesNotReopen`: a Cancel during naming does not reopen.

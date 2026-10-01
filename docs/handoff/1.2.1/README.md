@@ -48,7 +48,8 @@ ticket, a test result or a release gate; each states its own evaluation
 boundary. Sanitization performed on entry: every test-area absolute path was
 rewritten to its test-area-relative form under `evidence/` (for example
 `evidence/1.2.1/R39.md`), and the read-only source worktree was rewritten to
-the repository's `<worktrees>/<name>` convention. No other content was
+the repository's `<worktrees>/<name>` convention, and a final newline was added where
+the test-area file lacked one (R02-01, R04-01, R05-R06-C01, R11, R12-01, R31-01). No other content was
 changed.
 
 R07-01 was written against the earlier private intake of the Python version
