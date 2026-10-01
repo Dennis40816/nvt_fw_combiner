@@ -16,7 +16,11 @@ import stat
 import subprocess
 import tempfile
 import threading
+import sys
 from typing import Any, Callable, ContextManager, Iterator, Mapping, NamedTuple, Protocol, Sequence
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts import predecessor_validation as validation
 from scripts.predecessor_report_reader import ReadReport, ReportReaderError, read_cli_report
@@ -39,9 +43,6 @@ from scripts.v0916_parity_certification import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "docs/contracts/predecessor-comparison-v1.json"
-# LocalExecutionHost owns this timeout. The injected process host must retain
-# bounded execution; tests signal TimeoutExpired immediately, without sleeping.
-PROCESS_TIMEOUT_SECONDS = 1800
 _ENVIRONMENT_LOCK = threading.RLock()
 
 
@@ -63,6 +64,8 @@ class GitHost(Protocol):
     def list_files(self, commit: str) -> list[str]: ...
     def read_file(self, commit: str, path: str) -> bytes: ...
     def git_head(self, root: Path) -> str: ...
+    def git_tag_object(self, ref: str) -> str: ...
+    def git_tag_commit(self, tag_object: str) -> str: ...
     def git_tree(self, root: Path) -> str: ...
     def git_tree_for_path(self, root: Path, path: str) -> str: ...
     def git_dirty_paths(self, root: Path) -> list[str]: ...
@@ -83,6 +86,17 @@ class LocalGitHost:
 
     def read_file(self, commit: str, path: str) -> bytes:
         return self.reader.read_file(commit, path)
+
+    def _git(self, *arguments: str) -> str:
+        return subprocess.check_output(["git", *arguments], cwd=self.repository,
+                                       text=True, stderr=subprocess.PIPE).strip()
+
+    def git_tag_object(self, ref: str) -> str:
+        """Resolve an annotated tag object; a lightweight tag is refused by Git."""
+        return self._git("rev-parse", "--verify", f"{ref}^{{tag}}")
+
+    def git_tag_commit(self, tag_object: str) -> str:
+        return self._git("rev-parse", "--verify", f"{tag_object}^{{commit}}")
 
     def git_head(self, root: Path) -> str:
         return self.host.git_head(root)
@@ -110,7 +124,7 @@ class Executor(NamedTuple):
 
 
 class BaselineExecutorBuilder(Protocol):
-    """Seam for the pending v0.9.16 executor record; no recipe is invented here."""
+    """Seam for the pending v0.9.16 executor; no recipe is invented here."""
 
     def build(self, git: GitHost, runner: ProcessRunner, commit: str, record: Mapping[str, Any]) -> Executor: ...
 
@@ -135,13 +149,21 @@ def admit_execution_contract(
     """
 
     contract = load_json_reject_duplicates(contract_path.read_bytes())
+    _refuse(validation.execution_mode_failures(contract, mode))
     amendment = None
     if mode == "v0916-1x":
         path = amendment_path or ROOT / contract["modes"][mode]["amendment"]
         amendment = load_json_reject_duplicates(path.read_bytes())
+    return admit_loaded_execution_contract(contract, mode=mode, formal=formal, amendment=amendment)
+
+
+def admit_loaded_execution_contract(
+    contract: Mapping[str, Any], *, mode: str, formal: bool, amendment: Mapping[str, Any] | None = None,
+) -> ContractAdmission:
+    """Use the same admission for a pinned snapshot and a loaded local contract."""
+    _refuse(validation.execution_mode_failures(contract, mode))
+    _refuse(validation.formal_interface_failures(contract, formal=formal, amendment=amendment))
     pending = validation.pending_execution_interfaces(contract, amendment)
-    if formal and pending:
-        raise ExecutionError("PREDECESSOR_CONTRACT_PENDING", ", ".join(pending))
     return ContractAdmission(formal, not formal, pending, contract, contract["executor"]["compilerHost"],
                              None if amendment is None else amendment["baselineExecutor"])
 
@@ -255,20 +277,24 @@ class ProcessRunner:
 
     def __init__(
         self, host: ProcessHost, temporary_root: Path, settings_folder: Path, *,
-        formal: bool, environment_policy: Mapping[str, Any] | None = None,
+        admission: ContractAdmission,
         custody: Callable[[Sequence[Path]], ContextManager[None]] = hold_read_only_file_custody,
     ):
         self.host = host
         self.temporary_root = temporary_root.resolve()
         self.settings_folder = settings_folder
-        self.formal = formal
-        self.policy = environment_policy or load_json_reject_duplicates(CONTRACT_PATH.read_bytes())["environment"]
+        self.admission = admission
+        self.policy = admission.contract["environment"]
         self.custody = custody
         self.captures: list[ProcessCapture] = []
         self.finished = False
         self.before = self._settings()
         _refuse(self._environment_failures())
         self.temporary_root.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def formal(self) -> bool:
+        return self.admission.formal
 
     def _settings(self) -> dict[str, str | None]:
         try:
@@ -385,16 +411,27 @@ class ProcessRunner:
 
 def stage_case_inputs(
     authority: MaterializedCanonicalAuthority, artifacts: Mapping[str, Mapping[str, Any]],
-    bindings: Sequence[tuple[str, str]], target_root: Path,
+    bindings: Sequence[tuple[str, str] | Mapping[str, Any]], target_root: Path,
 ) -> list[dict[str, Any]]:
-    """Reuse admission and mark private copies read-only; runner holds custody."""
+    """Reuse admission and carry bindings into read-only captures under custody.
+
+    The validator always compares artifactId. When a binding gives no
+    addressSpaceId (including tuple bindings), only artifactId is compared.
+    """
 
     try:
-        rows = admit_case_inputs(authority, artifacts, bindings, target_root=target_root)
-        for row in rows:
+        captured_bindings = [binding if isinstance(binding, Mapping) else
+                             {"artifactId": binding[0], "slotId": binding[1]} for binding in bindings]
+        rows = admit_case_inputs(authority, artifacts,
+                                [(binding["artifactId"], binding["slotId"]) for binding in captured_bindings],
+                                target_root=target_root)
+        for row, binding in zip(rows, captured_bindings):
+            row["artifactId"] = binding["artifactId"]
+            if "addressSpaceId" in binding:
+                row["addressSpaceId"] = binding["addressSpaceId"]
             Path(row["path"]).chmod(stat.S_IREAD)
         return rows
-    except (ParityError, OSError) as error:
+    except (ParityError, OSError, KeyError, TypeError, IndexError) as error:
         raise ExecutionError("PREDECESSOR_INPUT_INVALID", "case input admission failed") from error
 
 
@@ -408,11 +445,15 @@ def build_1x_executor(
     """Build from one exact detached commit and measure the unpinned identity.
 
     The caller admits the formal/diagnostic contract first. compilerHost is
-    returned by that admission as its actual pending record, never fabricated.
+    returned by that admission with its actual pending status, never fabricated.
     """
 
     recipe = contract["executor"]
+    _refuse(validation.executor_compiler_host_failures(recipe["compilerHost"]))
     try:
+        if tag_object is not None:
+            _refuse(validation.executor_tag_failures(
+                tag_object, git.git_tag_object(tag_object), git.git_tag_commit(tag_object), commit))
         paths = git.list_files(commit)
         locks = {path: git.read_file(commit, path) for path in sorted(paths)
                  if len(PurePosixPath(path).parts) == 3 and PurePosixPath(path).match(recipe["lockFileSet"]["pattern"])}
@@ -460,19 +501,32 @@ def build_1x_executor(
             return Executor({member: identity[member] for member in recipe["recordedIdentity"]}, closure, "1x")
     except ExecutionError:
         raise
-    except (ParityError, OSError, KeyError, TypeError, ValueError) as error:
+    except (ParityError, OSError, subprocess.SubprocessError, KeyError, TypeError, ValueError) as error:
         raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "executor acquisition or identity failed") from error
 
 
 def execute_cli_stage(
     runner: ProcessRunner, executor: Executor, request: Mapping[str, Any],
     authority: MaterializedCanonicalAuthority, artifacts: Mapping[str, Mapping[str, Any]],
-    bindings: Sequence[tuple[str, str]], *, stage: str, execution_role: str = "candidate",
+    bindings: Sequence[tuple[str, str] | Mapping[str, Any]], *, stage: str, execution_role: str = "candidate",
+    precursor: ProcessCapture | None = None,
 ) -> ProcessCapture:
     """Fresh runtime and admitted input copies for one Preview or Build."""
 
     work = Path(tempfile.mkdtemp(prefix="cli-", dir=runner.temporary_root))
     rows = stage_case_inputs(authority, artifacts, bindings, work / "inputs")
+    if precursor is not None:
+        if precursor.output_path is None or precursor.output is None:
+            raise ExecutionError("PREDECESSOR_INPUT_INVALID", "precursor capture is missing")
+        with runner.custody([precursor.output_path]):
+            payload = precursor.output_path.read_bytes()
+            _refuse(validation.scope_capture_failures("precursor", precursor.output, _payload_identity(payload)))
+            base = work / "inputs" / "precursor.bin"
+            base.write_bytes(payload)
+            base.chmod(stat.S_IREAD)
+        rows.insert(0, {"slotId": "replace-base", "artifactId": "replace-base", "role": "input", "path": str(base),
+                        **precursor.output, "order": 0})
+        rows = [{**row, "order": order} for order, row in enumerate(rows)]
     try:
         cli, hashes = materialize_execution_closure(executor.closure, work / "runtime")
     except (ParityError, OSError) as error:
@@ -517,6 +571,11 @@ class ByteComparison(NamedTuple):
     different_byte_count: int
     range_list_sha256: str
 
+    @property
+    def scope_evidence(self) -> Sequence[Mapping[str, int]] | None:
+        """Translate equal bytes to the validator's None evidence in one place."""
+        return self.ranges or None
+
 
 def compare_output_bytes(baseline: bytes, candidate: bytes) -> ByteComparison:
     """Measure every offset, including the longer output's entire extra tail."""
@@ -536,3 +595,13 @@ def compare_output_bytes(baseline: bytes, candidate: bytes) -> ByteComparison:
     assert projection is not None
     return ByteComparison("output-file-offset", _payload_identity(baseline), _payload_identity(candidate), ranges,
                           projection["differentByteCount"], projection["rangeListSha256"])
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Dispatch rolling; B2b can add its mode without changing shared execution."""
+    from scripts.predecessor_rolling import rolling_main
+    return rolling_main(argv)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

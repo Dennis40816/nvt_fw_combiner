@@ -58,6 +58,8 @@ class FakeGitHost:
         self.paths = []
         self.dirty = []
         self.detached = []
+        self.head = "1" * 40
+        self.tags = {"7" * 40: self.head}
 
     def list_files(self, commit):
         return list(self.files)
@@ -66,7 +68,13 @@ class FakeGitHost:
         return self.files[path]
 
     def git_head(self, root):
-        return "1" * 40
+        return self.head
+
+    def git_tag_object(self, ref):
+        return ref if ref in self.tags else "0" * 40
+
+    def git_tag_commit(self, tag_object):
+        return self.tags.get(tag_object, "0" * 40)
 
     def git_tree(self, root):
         return "2" * 40
@@ -94,12 +102,18 @@ class FakeGitHost:
 
 class ComparisonTests(unittest.TestCase):
     def setUp(self):
-        self.scratch = tempfile.TemporaryDirectory(prefix="b", dir=ROOT)
+        self.scratch = tempfile.TemporaryDirectory(prefix="b")
         self.root = Path(self.scratch.name)
         self.settings = self.root / "settings"
         self.settings.mkdir()
         self.contract = parity.load_json_reject_duplicates(CONTRACT.read_bytes())
-        self.runner = comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, formal=False)
+        self.runner = comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, admission=self.admission())
+
+    def admission(self, formal=False):
+        contract = copy.deepcopy(self.contract)
+        if formal:
+            contract["executor"]["compilerHost"]["status"] = "in-effect"
+        return comparison.admit_loaded_execution_contract(contract, mode="rolling", formal=formal)
 
     def tearDown(self):
         # Admission deliberately makes copies read-only, including on Windows.
@@ -136,9 +150,13 @@ class ComparisonTests(unittest.TestCase):
         final = self.capture(raw=build or report())
         return preview, final
 
+    def test_scratch_uses_pinned_temp_outside_repository(self):
+        self.assertEqual(Path(os.environ["TEMP"]).resolve(), self.root.parent.resolve())
+        self.assertFalse(self.root.resolve().is_relative_to(ROOT.resolve()))
+
     def test_long_temporary_root_is_refused_before_process(self):
         with self.assertRaises(comparison.ExecutionError) as found:
-            comparison.ProcessRunner(FakeProcessHost(), self.root / ("x" * 65), self.settings, formal=False)
+            comparison.ProcessRunner(FakeProcessHost(), self.root / ("x" * 65), self.settings, admission=self.admission())
         self.assertEqual("PREDECESSOR_ENVIRONMENT_INVALID", found.exception.code)
 
     def test_process_inputs_and_captures_are_confined_to_fresh_staging(self):
@@ -205,14 +223,14 @@ class ComparisonTests(unittest.TestCase):
                 path = self.settings / name
                 path.write_bytes(b"{}")
                 with self.assertRaises(comparison.ExecutionError) as found:
-                    comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, formal=True)
+                    comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, admission=self.admission(formal=True))
                 self.assertEqual("PREDECESSOR_ENVIRONMENT_INVALID", found.exception.code)
                 path.unlink()
 
     def test_settings_changed_after_process_or_after_run_fail(self):
         for phase in ("process", "run"):
             with self.subTest(phase=phase):
-                runner = comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, formal=True)
+                runner = comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, admission=self.admission(formal=True))
                 path = self.settings / "event-buffer-format.v1.json"
                 if phase == "process":
                     def changed(argv, cwd):
@@ -230,7 +248,7 @@ class ComparisonTests(unittest.TestCase):
 
     def test_diagnostic_settings_unchanged_are_allowed_but_no_report_is_environment_failure(self):
         (self.settings / "toolchain-runtime.v1.json").write_bytes(b"{}")
-        self.runner = comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, formal=False)
+        self.runner = comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, admission=self.admission())
         result = self.capture("preview", exit_code=1, output=None, stderr="AB_FORMAT_CONFIGURATION_INVALID")
         side = comparison.assemble_side_result([result], capacities={"source": 8, "output-image": 8})
         self.assertEqual("invalid", side.side["status"])
@@ -275,6 +293,48 @@ class ComparisonTests(unittest.TestCase):
                 result = comparison.assemble_side_result([capture], capacities={"source": 8, "output-image": 8})
                 self.assertEqual("invalid", result.side["status"])
                 self.assertEqual("PREDECESSOR_PROCESS_FAILED", result.failures[0].code)
+
+    def test_crash_or_timeout_with_written_error_report_is_invalid(self):
+        raw = report(preview=True)
+        raw["Issues"] = [{"Code": "product.rejected", "Severity": "Error"}]
+        variants = [dict(exit_code=code) for code in (-1, 0x80000000, 3762504530, 0xFFFFFFFF)]
+        variants.append(dict(exception=subprocess.TimeoutExpired("synthetic", 1800)))
+        for variant in variants:
+            with self.subTest(variant=variant):
+                preview = self.capture("preview", report(preview=True), output=None)
+                build = self.capture("build", raw, output=None, **variant)
+                self.assertIsNotNone(build.record["report"])
+                result = comparison.assemble_side_result([preview, build], capacities={"source": 8, "output-image": 8})
+                self.assertEqual("invalid", result.side["status"])
+                self.assertEqual("PREDECESSOR_PROCESS_FAILED", result.failures[0].code)
+
+    def test_output_file_requires_committed_boolean_true(self):
+        for committed in (False, "false", "true", 1, None):
+            with self.subTest(committed=committed):
+                raw = report()
+                raw["Output"]["Committed"] = committed
+                captures = self.pair(raw)
+                self.assertIsNotNone(captures[-1].output)
+                result = comparison.assemble_side_result(captures, capacities={"source": 8, "output-image": 8})
+                self.assertEqual("invalid", result.side["status"])
+                self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
+
+    def test_every_successful_build_requires_captured_output_before_continuation(self):
+        for stage in ("precursor-build", "build"):
+            with self.subTest(stage=stage):
+                preview_stage = stage.replace("build", "preview")
+                captures = [self.capture(preview_stage, report(preview=True), output=None),
+                            self.capture(stage, report(preview=True), output=None)]
+                verdict = comparison.validation.side_execution_verdict(
+                    [capture.evidence() for capture in captures], capacities={"source": 8, "output-image": 8}, complete=False)
+                self.assertEqual("invalid", verdict.status)
+                self.assertEqual(stage, verdict.stopped_at)
+                self.assertEqual("PREDECESSOR_PROCESS_FAILED", verdict.failures[0].code)
+                if stage == "precursor-build":
+                    captures.extend(self.pair())
+                    result = comparison.assemble_side_result(captures, capacities={"source": 8, "output-image": 8})
+                    self.assertEqual("invalid", result.side["status"])
+                    self.assertEqual(stage, result.side["stoppedAt"])
 
     def test_output_with_error_issue_is_invalid(self):
         raw = report()
@@ -376,6 +436,12 @@ class ComparisonTests(unittest.TestCase):
                 self.assertIn("compilerHost", admission.pending)
                 self.assertEqual(mode == "v0916-1x", "baselineExecutor" in admission.pending)
 
+    def test_unknown_mode_is_refused_before_amendment_or_process(self):
+        with self.assertRaises(comparison.ExecutionError) as found:
+            comparison.admit_execution_contract(CONTRACT, mode="typo", formal=False)
+        self.assertEqual("PREDECESSOR_CONTRACT_PENDING", found.exception.code)
+        self.assertEqual([], self.runner.host.calls)
+
     def test_every_interface_and_amendment_status_is_read_from_json(self):
         active = copy.deepcopy(self.contract)
         active["executor"]["compilerHost"]["status"] = "in-effect"
@@ -414,6 +480,7 @@ class ComparisonTests(unittest.TestCase):
                 ranges = [{"start": start, "endExclusive": end} for start, end in spans]
                 self.assertEqual("output-file-offset", result.address_space)
                 self.assertEqual(ranges, result.ranges)
+                self.assertEqual(ranges if ranges else None, result.scope_evidence)
                 self.assertEqual(sum(end - start for start, end in spans), result.different_byte_count)
                 self.assertEqual(parity.canonical_json_sha256(ranges), result.range_list_sha256)
                 self.assertEqual({"size": len(left), "sha256": digest(left)}, result.baseline)
@@ -426,7 +493,7 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual([], self.runner.finish()[1])
         path = self.settings / "toolchain-runtime.v1.json"
         path.write_bytes(b"before")
-        runner = comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, formal=False)
+        runner = comparison.ProcessRunner(FakeProcessHost(), self.root, self.settings, admission=self.admission())
         path.write_bytes(b"after")
         self.assertEqual("PREDECESSOR_ENVIRONMENT_INVALID", runner.finish()[1][0].code)
 
@@ -484,6 +551,85 @@ class ComparisonTests(unittest.TestCase):
                     comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
                 self.assertEqual("PREDECESSOR_EXECUTOR_INVALID", found.exception.code)
 
+    def test_executor_refuses_in_effect_compiler_host_until_pinning_is_applied(self):
+        contract = copy.deepcopy(self.contract)
+        contract["executor"]["compilerHost"]["status"] = "in-effect"
+        git = FakeGitHost()
+        host = self.build_host(git)
+        with self.assertRaises(comparison.ExecutionError) as found:
+            comparison.build_1x_executor(git, self.runner, "1" * 40, contract)
+        self.assertEqual("PREDECESSOR_EXECUTOR_INVALID", found.exception.code)
+        self.assertEqual([], host.calls)
+        self.assertEqual([], git.detached)
+
+    def test_executor_tag_object_must_peel_to_built_commit(self):
+        for tag_object, peel in (("7" * 40, "1" * 40), ("7" * 40, "4" * 40), ("8" * 40, "1" * 40)):
+            with self.subTest(tag_object=tag_object, peel=peel):
+                git = FakeGitHost()
+                git.tags["7" * 40] = peel
+                host = self.build_host(git)
+                if peel == "1" * 40 and tag_object == "7" * 40:
+                    result = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract, tag_object=tag_object)
+                    self.assertEqual("7" * 40, result.identity["tagObject"])
+                else:
+                    with self.assertRaises(comparison.ExecutionError) as found:
+                        comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract, tag_object=tag_object)
+                    self.assertEqual("PREDECESSOR_EXECUTOR_INVALID", found.exception.code)
+                    self.assertEqual([], host.calls)
+
+    def test_executor_refuses_wrong_head_and_source_or_lock_drift_after_build(self):
+        for fault in ("head-before", "head-after", "dirty-after", "lock-after"):
+            with self.subTest(fault=fault):
+                git = FakeGitHost()
+                if fault == "head-before":
+                    git.head = "4" * 40
+                def corrupt(argv, cwd):
+                    if argv[1] == "build":
+                        if fault == "head-after":
+                            git.head = "4" * 40
+                        elif fault == "dirty-after":
+                            git.dirty = [" M source"]
+                        elif fault == "lock-after":
+                            (cwd / "src/Cli/packages.lock.json").write_bytes(b"changed")
+                host = self.build_host(git, corrupt)
+                with self.assertRaises(comparison.ExecutionError) as found:
+                    comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
+                self.assertEqual("PREDECESSOR_EXECUTOR_INVALID", found.exception.code)
+                if fault == "head-before":
+                    self.assertEqual([], host.calls)
+                else:
+                    self.assertEqual("build", host.calls[-1][0][1])
+
+    def test_staged_binding_is_checked_against_report_without_optional_artifact_check(self):
+        authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
+        artifacts = {"input": {"role": "input", "path": "input.bin", "size": 8, "sha256": digest(PAYLOAD)}}
+        for address_space in (None, "source"):
+            for wrong in (None, "artifactId", "addressSpaceId"):
+                with self.subTest(address_space=address_space, wrong=wrong):
+                    binding = {"artifactId": "input", "slotId": "dp-input"}
+                    if address_space is not None:
+                        binding["addressSpaceId"] = address_space
+                    work = self.root / f"binding-{address_space}-{wrong}"
+                    work.mkdir()
+                    rows = comparison.stage_case_inputs(authority, artifacts, [binding], work / "inputs")
+                    self.assertEqual("input", rows[0]["artifactId"])
+                    raw = report(preview=True)
+                    if wrong is not None:
+                        raw["Inputs"][0][{"artifactId": "ArtifactId", "addressSpaceId": "AddressSpaceId"}[wrong]] = "wrong"
+                    report_path = work / "report.json"
+                    def cli(argv, cwd):
+                        report_path.write_text(json.dumps(raw), encoding="utf-8")
+                        return subprocess.CompletedProcess(argv, 0, "", "")
+                    self.runner.host = FakeProcessHost(cli)
+                    capture = self.runner.run(stage="preview", argv=["synthetic"], staging_root=work,
+                                              inputs=rows, report_path=report_path)
+                    verdict = comparison.validation.side_execution_verdict([capture.evidence()],
+                        capacities={"source": 8, "wrong": 8, "output-image": 8}, complete=False)
+                    invalid = wrong == "artifactId" or (wrong == "addressSpaceId" and address_space is not None)
+                    self.assertEqual("invalid" if invalid else "ready", verdict.status)
+                    if invalid:
+                        self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
+
     def test_input_admission_and_cli_stage_use_fresh_copies(self):
         authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
         artifacts = {"input": {"role": "input", "path": "input.bin", "size": 8, "sha256": digest(PAYLOAD)}}
@@ -497,7 +643,8 @@ class ComparisonTests(unittest.TestCase):
         self.runner.host = FakeProcessHost(cli)
         request = {"workflowId": "standard-merge", "profileId": "test", "cliSelectionToken": None}
         for _ in range(2):
-            comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts, [("input", "dp-input")], stage="preview")
+            capture = comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts, [("input", "dp-input")], stage="preview")
+            self.assertEqual("input", capture.inputs[0]["artifactId"])
         first, second = self.runner.host.calls
         self.assertNotEqual(first[1], second[1])
         self.assertNotEqual(first[0][first[0].index("--dp") + 1], second[0][second[0].index("--dp") + 1])

@@ -132,6 +132,25 @@ def pending_execution_interfaces(
     return sorted(pending)
 
 
+def execution_mode_failures(contract: Mapping[str, Any], mode: str) -> list[Failure]:
+    return [] if mode in contract["modes"] else [_failure("CONTRACT_PENDING", mode, "unknown comparison mode")]
+
+
+def executor_compiler_host_failures(compiler_host: Mapping[str, Any]) -> list[Failure]:
+    """The current builder cannot apply compiler-host pinning."""
+    return ([_failure("EXECUTOR_INVALID", "compilerHost", "in-effect compiler-host pinning is not implemented by this builder")]
+            if compiler_host.get("status") == "in-effect" else [])
+
+
+def executor_tag_failures(
+    tag_object: str, observed_tag_object: str, peeled_commit: str, commit: str,
+) -> list[Failure]:
+    if (not re.fullmatch(r"[0-9a-f]{40}", tag_object)
+            or observed_tag_object != tag_object or peeled_commit != commit):
+        return [_failure("EXECUTOR_INVALID", tag_object, "annotated tag object does not peel to the built commit")]
+    return []
+
+
 def execution_environment_failures(
     *, temporary_root_length: int, maximum_length: int, formal: bool,
     before: Mapping[str, str | None], after: Mapping[str, str | None] | None = None,
@@ -207,14 +226,14 @@ def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
     if actual_inputs != expected_inputs:
         return [_failure("REPORT_INVALID", subject, "report input identities differ from capture")]
     for reported, captured in zip(evidence.context["orderedInputs"], evidence.inputs):
-        for key in ("addressSpaceId", "artifactId"):
-            if key in captured and reported[key] != captured[key]:
-                return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
+        if (reported["artifactId"] != captured.get("artifactId")
+                or ("addressSpaceId" in captured and reported["addressSpaceId"] != captured["addressSpaceId"])):
+            return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
     reported_output = evidence.context["output"]
     if _identity(reported_output) != _identity(evidence.output):
         return [_failure("REPORT_INVALID", subject, "report output differs from capture")]
     if evidence.output is not None and (
-        not reported_output["committed"] or any(issue["severity"] == "error" for issue in evidence.issues)
+        reported_output["committed"] is not True or any(issue["severity"] == "error" for issue in evidence.issues)
     ):
         return [_failure("REPORT_INVALID", subject, "output is uncommitted or has an error issue")]
     return []
@@ -223,6 +242,7 @@ def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
 def side_execution_verdict(
     processes: Sequence[SideProcessEvidence], *, capacities: Mapping[str, int],
     capacities_by_stage: Mapping[str, Mapping[str, int]] | None = None,
+    complete: bool = True,
 ) -> SideVerdict:
     """Shared side classification; ADR 0057 safety owners remain unchanged.
 
@@ -246,7 +266,8 @@ def side_execution_verdict(
         capture_failures = [item for item in failures if item.code != "PREDECESSOR_REPORT_INVALID"]
         if capture_failures:
             return SideVerdict("invalid", stage, capture_failures)
-        if process["timedOut"] or process["exitCode"] is None or process["exitCode"] < 0:
+        if (process["timedOut"] or process["exitCode"] is None
+                or process["exitCode"] < 0 or process["exitCode"] >= 0x80000000):
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "process crashed or timed out")])
         if failures:
             return SideVerdict("invalid", stage, failures)
@@ -288,9 +309,13 @@ def side_execution_verdict(
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "nonzero exit is not a typed rejection")])
         if any(issue["severity"] == "error" for issue in evidence.issues):
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful process has error issue")])
+        if stage.endswith("build") and evidence.output is None:
+            return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "successful Build has no captured output")])
+    if not complete:
+        return SideVerdict("ready", None, [])
     last = processes[-1]
-    if last.process["stage"] != "build" or last.output is None:
-        return SideVerdict("invalid", last.process["stage"], [_failure("PROCESS_FAILED", "build", "no completed Build output")])
+    if last.process["stage"] != "build":
+        return SideVerdict("invalid", last.process["stage"], [_failure("PROCESS_FAILED", "build", "side did not complete Build")])
     return SideVerdict("output", None, [])
 
 
@@ -694,14 +719,145 @@ def process_failure_issue_failures(subject: str, sides: Iterable[Mapping[str, An
 # ---------------------------------------------------------------------------
 
 
+class RollingTag(NamedTuple):
+    tag: str
+    object_type: str
+    tag_object: str
+    commit: str
+    ancestor: bool
+    published: bool | None
+
+
+def stable_tag_version(tag: str) -> tuple[int, int, int] | None:
+    match = re.fullmatch(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", tag)
+    return None if match is None else tuple(map(int, match.groups()))
+
+
+def formal_interface_failures(
+    contract: Mapping[str, Any], *, formal: bool, amendment: Mapping[str, Any] | None = None,
+) -> list[Failure]:
+    pending = pending_execution_interfaces(contract, amendment)
+    return [_failure("CONTRACT_PENDING", "interfaces", ", ".join(pending))] if formal and pending else []
+
+
+def comparator_source_failures(expected: Mapping[str, str], observed: Mapping[str, str], *, formal: bool) -> list[Failure]:
+    return [_failure("SOURCE_MISMATCH", path, "formal comparator differs from candidate source")
+            for path in sorted(set(expected) | set(observed)) if expected.get(path) != observed.get(path)] if formal else []
+
+
+def rolling_baseline(
+    tags: Sequence[RollingTag], candidate_version: str, *, given_tag: str | None, formal: bool,
+) -> tuple[RollingTag | None, list[Failure]]:
+    """Published status is a host fact; a diagnostic admits its given annotated ancestor."""
+    pattern = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
+    version = pattern.fullmatch("v" + candidate_version)
+    eligible = []
+    if version:
+        candidate = tuple(map(int, version.groups()))
+        eligible = [tag for tag in tags if pattern.fullmatch(tag.tag)
+                    and tuple(map(int, pattern.fullmatch(tag.tag).groups())) < candidate
+                    and tag.object_type == "tag" and tag.ancestor
+                    and re.fullmatch(r"[0-9a-f]{40}", tag.tag_object)
+                    and re.fullmatch(r"[0-9a-f]{40}", tag.commit)]
+    selected = None
+    if formal:
+        if all(tag.published is not None for tag in eligible):
+            published = [tag for tag in eligible if tag.published]
+            if published:
+                selected = max(published, key=lambda tag: tuple(map(int, pattern.fullmatch(tag.tag).groups())))
+        if given_tag is not None and (selected is None or selected.tag != given_tag):
+            selected = None
+    else:
+        matches = [tag for tag in eligible if tag.tag == given_tag]
+        selected = matches[0] if len(matches) == 1 else None
+    return selected, ([] if selected is not None else [
+        _failure("BASELINE_INVALID", given_tag or "baseline", "no admitted previous stable annotated ancestor baseline")])
+
+
+def scope_capture_failures(subject: str, expected: Mapping[str, Any], observed: Mapping[str, Any]) -> list[Failure]:
+    return [] if _identity(expected) == _identity(observed) else [
+        _failure("REPORT_INVALID", subject, "artifact changed after process capture")]
+
+
+def execution_capacities(evidence: SideProcessEvidence) -> dict[str, int]:
+    """Input sizes are captured; output bounds come from bytes or the typed Preview.
+
+    Build is still checked against that same side's Preview before its ranges.
+    Preview has no output artifact, so its compiled target extent is its bound.
+    """
+    capacities = {reported["addressSpaceId"]: captured["size"]
+                  for reported, captured in zip((evidence.context or {}).get("orderedInputs", []), evidence.inputs)}
+    capacities["output-image"] = (evidence.output or {}).get("size", max(
+        (operation["targetRange"]["endExclusive"] for operation in
+         (evidence.projection or {}).get("compiledOperations", []) if operation.get("targetRange") is not None), default=0))
+    return capacities
+
+
+class RollingOutcome(NamedTuple):
+    outcome: str
+    failure_code: str | None
+
+
+def rolling_outcome(
+    baseline: Mapping[str, Any], candidate: Mapping[str, Any], evidence: ScopeEvidence,
+    failures: Sequence[Failure],
+) -> RollingOutcome:
+    """Classify only admitted side verdicts and complete scope measurements."""
+    if failures or "invalid" in (baseline["status"], candidate["status"]):
+        return RollingOutcome("invalid", failures[0].code if failures else "PREDECESSOR_REPORT_INVALID")
+    if baseline["status"] == candidate["status"] == "rejected":
+        return RollingOutcome("both-reject", None)
+    if baseline["status"] == "rejected":
+        return RollingOutcome("baseline-rejects", None)
+    if candidate["status"] == "rejected":
+        return RollingOutcome("candidate-rejects", None)
+    return RollingOutcome("different" if any(evidence.get(scope) is not None for scope in SCOPES) else "equal", None)
+
+
+def declaration_entry_id(kind: str | None, subject: str, declaration: Mapping[str, Any] | None) -> str | None:
+    """Projection of an unambiguous binding; declared_change_failures checks reproduction."""
+    matches = [entry["id"] for entry in (declaration or {}).get("entries", [])
+               if entry["kind"] == kind and subject in entry["routeIds" if kind == "accepted-gap" else "scenarioIds"]]
+    return matches[0] if len(matches) == 1 else None
+
+
+def rolling_coverage(
+    ledger: Mapping[str, Any], baseline_ledger: Mapping[str, Any], policy: Mapping[str, Any],
+    manifest: Mapping[str, Any], declaration: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Canonical projection shared by the builder and report coverage validation."""
+    universe = universe_routes(policy)
+    covered = {row["routeId"] for row in ledger["scenarios"]}
+    debt = set(ledger["debtSet"]["routeIds"])
+    accepted = {row["routeId"] for row in ledger["acceptedGaps"]}
+    pending = set(ledger["pendingAcceptedGaps"]["routeIds"])
+    kinds = {row["routeId"]: row["kind"] for row in manifest["routeEvidence"]}
+    not_covered = []
+    for route_id in sorted(universe - covered):
+        reason = "debt-set" if route_id in debt else "accepted-gap" if route_id in accepted else "pending-gap" if route_id in pending else None
+        if reason is not None:
+            not_covered.append({"routeId": route_id, "reason": reason, "evidenceKind": kinds.get(route_id, "missing")})
+    return {"universe": len(universe), "coveredRoutes": len(covered), "scenarios": len(ledger["scenarios"]),
+            "debtSetInUniverse": len(debt & universe), "acceptedGaps": len(accepted), "pendingAcceptedGaps": len(pending),
+            "notCovered": not_covered,
+            "changesSinceBaseline": [{**row, "declarationEntryId": declaration_entry_id(row["kind"], row["subject"], declaration)}
+                                     for row in coverage_changes(ledger, baseline_ledger)]}
+
+
 def scenario_value_failures(scenario: Mapping[str, Any], evidence: ScopeEvidence | None) -> list[Failure]:
     """Values of one rolling scenario result that a schema cannot compare, against its computed evidence."""
 
     subject = scenario["scenarioId"]
     failures = process_failure_issue_failures(subject, (scenario["baseline"], scenario["candidate"]))
     if scenario["outcome"] == "invalid":
+        if scenario["failureCode"] not in EXECUTION_FAILURE_CODES:
+            failures.append(_failure("REPORT_INVALID", subject, "invalid scenario without a shared execution failure code"))
         return failures
     baseline, candidate = scenario["baseline"], scenario["candidate"]
+    if baseline is None or candidate is None:
+        return failures + [_failure("REPORT_INVALID", subject, "scenario is missing a side")]
+    if rolling_outcome(baseline, candidate, evidence or {}, []).outcome != scenario["outcome"]:
+        failures.append(_failure("REPORT_INVALID", subject, "outcome differs from its sides and computed scopes"))
     failures.extend(scope_evidence_failures(
         subject,
         baseline,
@@ -768,30 +924,14 @@ def rolling_coverage_report_failures(
         declared = active.get(row["scenarioId"])
         if declared is not None and (row["routeId"], row["inputRevision"]) != (declared["routeId"], declared["inputRevision"]):
             failures.append(_failure("REPORT_INVALID", row["scenarioId"], "route or input revision differs from the ledger"))
-    universe = universe_routes(policy)
-    covered = {row["routeId"] for row in ledger["scenarios"]}
-    debt = set(ledger["debtSet"]["routeIds"])
-    accepted = {row["routeId"] for row in ledger["acceptedGaps"]}
-    pending = set(ledger["pendingAcceptedGaps"]["routeIds"])
-    expected_counts = {
-        "universe": len(universe),
-        "coveredRoutes": len(covered),
-        "scenarios": len(active),
-        "debtSetInUniverse": len(debt & universe),
-        "acceptedGaps": len(accepted),
-        "pendingAcceptedGaps": len(pending),
-    }
+    expected = rolling_coverage(ledger, baseline_ledger, policy, manifest, None)
+    expected_counts = {key: expected[key] for key in (
+        "universe", "coveredRoutes", "scenarios", "debtSetInUniverse", "acceptedGaps", "pendingAcceptedGaps")}
     coverage = report["coverage"]
     for key, value in expected_counts.items():
         if coverage[key] != value:
             failures.append(_failure("REPORT_INVALID", f"coverage.{key}", f"reports {coverage[key]}, ledger gives {value}"))
-    kinds = {row["routeId"]: row["kind"] for row in manifest["routeEvidence"]}
-    expected_not_covered = []
-    for route_id in sorted(universe - covered):
-        reason = "debt-set" if route_id in debt else "accepted-gap" if route_id in accepted else "pending-gap" if route_id in pending else None
-        if reason is not None:
-            expected_not_covered.append({"routeId": route_id, "reason": reason, "evidenceKind": kinds.get(route_id, "missing")})
-    if sorted(coverage["notCovered"], key=lambda row: row["routeId"]) != expected_not_covered:
+    if sorted(coverage["notCovered"], key=lambda row: row["routeId"]) != expected["notCovered"]:
         failures.append(_failure("REPORT_INVALID", "coverage.notCovered", "differs from the ledger's routes that no scenario compares"))
     expected_changes = [(row["kind"], row["subject"]) for row in coverage_changes(ledger, baseline_ledger)]
     if sorted((row["kind"], row["subject"]) for row in coverage["changesSinceBaseline"]) != sorted(expected_changes):
@@ -832,6 +972,7 @@ def declaration_failures(
         notes = ""
         failures.append(_failure("RELEASE_NOTE_MISSING", candidate_version, str(error)))
     for entry in declaration["entries"]:
+        failures.extend(declaration_disposition_failures(entry))
         for side in (entry.get("expected") or {}).values():
             for code in sorted(set(side["issueCodes"]) & PROCESS_FAILURE_ISSUE_CODES):
                 failures.append(_failure("PROCESS_FAILED", entry["id"], f"process-failure issue {code} cannot be declared"))
@@ -843,6 +984,49 @@ def declaration_failures(
                 failures.append(_failure("STALE_DECLARATION", entry["id"], f"unknown scenario {scenario_id}"))
         if notes and re.search(rf"(?<![0-9A-Za-z.-]){re.escape(entry['id'])}(?![0-9])", notes) is None:
             failures.append(_failure("RELEASE_NOTE_MISSING", entry["id"], "id absent from the CHANGELOG section"))
+    return failures
+
+
+def declaration_disposition_failures(entry: Mapping[str, Any]) -> list[Failure]:
+    """A declaration cannot approve a rejection or a cause outside the contract's dispositions.
+
+    These admissions accompany reproduction: typed JSON builders supply the
+    fields; the validator remains the only owner of an approval decision.
+    """
+    subject = entry["id"]
+    failures: list[Failure] = []
+    kind = entry["kind"]
+    approval = entry["approval"]
+    if (approval["role"] != "firmware-owner"
+        or re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*) board decision [1-9][0-9]*", approval["boardDecision"]) is None):
+        failures.append(_failure("STALE_DECLARATION", subject, "entry lacks firmware-owner board-decision approval"))
+    issue = entry["knownIssue"]
+    if issue is not None and re.fullmatch(r"BUG-[0-9]{8}-[a-z0-9-]+", issue.get("bugId", "")) is None:
+        failures.append(_failure("STALE_DECLARATION", subject, "known issue lacks a bug identifier"))
+    withdrawal = entry["routeWithdrawal"]
+    if type(withdrawal) is not bool:
+        failures.append(_failure("STALE_DECLARATION", subject, "withdrawal must be an explicit boolean"))
+    if kind == "candidate-rejects" and not ((issue is not None and withdrawal is False) or (issue is None and withdrawal is True)):
+        failures.append(_failure("STALE_DECLARATION", subject, "candidate rejection needs exactly one known issue or withdrawal"))
+    if kind == "both-reject" and (issue is None or entry["routeWithdrawal"]):
+        failures.append(_failure("STALE_DECLARATION", subject, "both rejections need a known issue without withdrawal"))
+    if kind not in {"candidate-rejects", "both-reject"} and (issue is not None or entry["routeWithdrawal"]):
+        failures.append(_failure("STALE_DECLARATION", subject, "disposition is not allowed for this entry kind"))
+    if kind in COVERAGE_ENTRY_KINDS and (entry["expected"] is not None or entry["differences"] is not None):
+        failures.append(_failure("STALE_DECLARATION", subject, "coverage disposition cannot declare artifact outcomes"))
+    if kind not in set(OUTCOME_ENTRY_KINDS.values()) | COVERAGE_ENTRY_KINDS:
+        failures.append(_failure("STALE_DECLARATION", subject, "unknown entry kind"))
+    if not entry["routeIds"] or (kind != "accepted-gap" and not entry["scenarioIds"]) or (kind == "accepted-gap" and entry["scenarioIds"]):
+        failures.append(_failure("STALE_DECLARATION", subject, "entry does not name its subjects"))
+    for scope, difference in (entry["differences"] or {}).items():
+        if difference is None:
+            continue
+        for cause in difference["attribution"]:
+            if (cause["mechanism"] not in {"derived-field", "precursor-carried", "stopped-write-preserved-bytes", "writes-different-bytes"}
+                or cause["causeVerification"] not in {"not-independently-verified", "supported-by-cited-evidence"}
+                or cause["start"] < 0 or cause["start"] >= cause["endExclusive"]
+                or not cause["cause"] or (cause["causeVerification"] == "supported-by-cited-evidence" and not cause["evidence"])):
+                failures.append(_failure("STALE_DECLARATION", subject, f"{scope} attribution lacks an admitted cause and evidence disposition"))
     return failures
 
 
@@ -1318,6 +1502,8 @@ def _v0916_route_failures(
     if disposition.proof_kind == "tp-prefix-transitive":
         row = disposition.row or {}
         return failures + _transitive_route_failures(route, row, evidence, routes.get(row.get("fullRouteId", "")))
+    if any(side is not None and side.get("status") == "invalid" for side in (route["baseline"], route["candidate"])) and route["result"] != "invalid":
+        failures.append(_failure("REPORT_INVALID", subject, "a non-transitive route with an invalid side must be invalid"))
     if route["result"] == "invalid":
         return failures
     if evidence is None:

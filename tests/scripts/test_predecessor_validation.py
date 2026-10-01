@@ -903,6 +903,16 @@ def independent_exact_route(world: dict[str, Any]) -> dict[str, Any]:
 class V0916ModeValidationTests(unittest.TestCase):
     """The v0.9.16 1.x mode on a fresh valid report: each change fails its own rule."""
 
+    def test_nontransitive_invalid_side_requires_invalid_route(self) -> None:
+        for result in ("consistent", "inconsistent"):
+            with self.subTest(result=result):
+                world = v0916_world()
+                route = independent_exact_route(world)
+                route["candidate"] = {**rejected_side(), "status": "invalid"}
+                route.update(result=result, failureCode="PREDECESSOR_PROCESS_FAILED")
+                recount(world)
+                self.assertIn("PREDECESSOR_REPORT_INVALID", codes(v0916_failures(world)))
+
     def test_start_failure_is_not_a_consistent_output_or_approved_rejection(self) -> None:
         for proof_kind, side_name in (("exact-output", "candidate"), ("canonical-binding-not-applicable-to-v0916", "baseline")):
             with self.subTest(proof_kind=proof_kind):
