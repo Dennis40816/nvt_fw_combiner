@@ -29,6 +29,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     private OutputDeliveryRequest? _preparedSuccessorOf;
     private long _preparedSuccessorGeneration;
     private bool _preserveCancelledDeliveryState;
+    private Action? _invalidatePreparation;
     private bool ProposalIsCurrent { get; set; } = true;
 
     internal OutputDeliveryConfirmationViewModel(
@@ -108,9 +109,14 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
 
     public IRelayCommand CancelCommand { get; }
 
-    internal long BeginPreparation()
+    internal long BeginPreparation(Action? invalidate = null)
     {
-        return ++PreparationGeneration;
+        long generation = ++PreparationGeneration;
+        Action? previous = _invalidatePreparation;
+        _invalidatePreparation = null;
+        previous?.Invoke();
+        _invalidatePreparation = invalidate;
+        return generation;
     }
 
     internal long PreparationGeneration { get; private set; }
@@ -124,7 +130,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
     {
         ArgumentNullException.ThrowIfNull(request);
         _preparedSuccessorOf = preparedSuccessor && IsOpen ? _request : null;
-        PreparationGeneration++;
+        _ = BeginPreparation();
         _preparedSuccessorGeneration = PreparationGeneration;
         ProposalIsCurrent = true;
         preserveDeliveryState |= _preserveCancelledDeliveryState &&
@@ -285,7 +291,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel : ObservableOb
 
     private void Cancel()
     {
-        PreparationGeneration++;
+        _ = BeginPreparation();
         _preparedSuccessorOf = null;
         _preserveCancelledDeliveryState |= IsOpen;
         _request?.Cancel?.Invoke();

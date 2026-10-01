@@ -7766,7 +7766,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
             self.assertIn("### .NET CI shard `probe` failures", summary)
             self.assertIn(f"```text\n{failed_identity}\n```", summary)
             for report in (console.getvalue(), summary):
-                self.assertNotIn(sentinel, report)
+                # Decision 243 projects bounded failed ErrorInfo into log/summary.
+                self.assertIn(sentinel, report)
+                self.assertIn("(attempt-1)", report)
+                self.assertIn("(no stack trace in TRX)", report)
 
     def test_ci_dotnet_shard_keeps_its_failure_when_failed_evidence_has_a_reparse_point(
         self,
