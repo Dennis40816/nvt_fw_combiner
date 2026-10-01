@@ -34,7 +34,9 @@
         "src/NvtFwCombiner.Infrastructure/ExternalTools/**",
         "src/NvtFwCombiner.Infrastructure/FlashMaps/**",
         "src/NvtFwCombiner.Infrastructure/Metadata/**",
-        "src/NvtFwCombiner.Infrastructure/Capabilities/**"
+        "src/NvtFwCombiner.Infrastructure/Capabilities/**",
+        "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs",
+        "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs"
       ]
     },
     {
