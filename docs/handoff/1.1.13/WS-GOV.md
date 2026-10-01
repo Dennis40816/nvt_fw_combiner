@@ -1386,9 +1386,10 @@ Recorded by the commander; decision 246.
   (`evidence/1.2.1/R41-ruleset/before-<id>.json`): `trunk` 24060410 (`refs/heads/*.*.x`; checks policy / polytail,
   python-worker / verify, dotnet / build-test, governance / authority), `release branches` 24060414, `Protect main
   release checks` 22009240 (branch rulesets, each with one general approval, code-owner review, stale dismissal and
-  last-push approval) and `Protect stable v* tags` 22009138; no bypass actor.
+  last-push approval) and `Protect stable v* tags` 22009138 (tag update and deletion protection); no bypass actor.
 - Change: the owner set `trunk`'s Required approvals from 1 to 0 in the GitHub settings page. Read-back
-  (`after-24060410.json`) differs from the backup only in `required_approving_review_count` (1 -> 0); code-owner
-  review, stale dismissal, last-push approval, required checks, scope and bypass are unchanged. `main`, release
-  branches and tags keep one general approval.
+  (`after-24060410.json`) differs from the backup in one rule field, `required_approving_review_count` (1 -> 0), and
+  in the ruleset's `updated_at` timestamp; code-owner review, stale dismissal, last-push approval, required checks,
+  scope and bypass are unchanged. `main` and release branches keep one general approval; the tag ruleset (update and
+  deletion protection, no approvals) is unchanged.
 - Trial: one ordinary (R0) pull request and one R3 pull request on `1.2.x`; results are added when they finish.
