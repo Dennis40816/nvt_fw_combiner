@@ -1,6 +1,6 @@
 # BUG-20261001-ctrlram-cancel-reopens-stale-successor: Cancel during the CtrlRAM Build Settings readiness wait reopens the confirmation, and its Build writes the cancelled firmware version
 
-Status: fixed on `feature/1.2.1/ctrlram-cancel-reopen` (R56, PR #507); closes when that branch merges into `1.2.x`
+Status: fixed (R56, #507, merge `de58ebaf3`; released in `v1.2.1`)
 Severity: P2 confirmed (R12-02 F02). The released CtrlRAM Replace workflows (Standard and AB) reach it. The output's
 Backup (or AB B-bank) FirmwareVersion/FirmwareSubVersion bytes differ from what the confirmation shows, without a
 warning. It needs Cancel to land inside the readiness wait and a second Confirm.

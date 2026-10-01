@@ -1,6 +1,6 @@
 # BUG-20261001-support-matrix-loading-query-flake: the support-matrix Loading query test failed once on the 1.2.x push CI
 
-Status: fixed locally on `feature/1.2.1/owner-decisions` (test-only); closes when that branch merges into `1.2.x`
+Status: fixed (#505, merge `2401edad5`, test-only; released in `v1.2.1`)
 Severity: P3
 Found: 2026-10-01, Claude Code commander (Claude Opus 5.5), from the R50 workflow data: push CI run `36799283122`
 on `1.2.x` at `d5770e52e` (the merge of #503), job `dotnet / test (bootstrap)` (`110169758777`). The test failed on
