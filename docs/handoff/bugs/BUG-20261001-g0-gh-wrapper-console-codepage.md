@@ -16,7 +16,12 @@ line 92 is safe only while GitHub returns a well-formed token.
 Expected: the wrapper decodes `gh` output as UTF-8 and forwards it unchanged, the token scrub works on the
 decoded text, and a test covers non-ASCII output with a token after a CJK character; the helper input check uses
 `\z` and the Git response refuses a token with CR or LF.
-Evidence: the review record in `docs/handoff/1.1.13/WS-GOV.md` ("G0 seventh version acceptance (2026-10-01)").
+Also for the eighth version (P3, exact-head review of the G0 landing pull request, by code reading): consider
+refusing the `gh alias` and `gh extension` subcommands in the wrapper. A `gh alias set --shell` alias or an
+extension runs as a child of `gh` with `GH_TOKEN` and can print a transformed token that the exact-string scrub
+(`Invoke-NfcGh.ps1` lines 165, 172-173) does not catch.
+Evidence: the review record in `docs/handoff/1.1.13/WS-GOV.md` ("G0 seventh version acceptance (2026-10-01)") and
+the landing pull request's exact-head review (board decision 222).
 Owner: unassigned; `1.2.1` batch A (decisions 210 and 217). The installed scripts change only when the owner
 installs a reviewed eighth version.
 Resolution: pending.
