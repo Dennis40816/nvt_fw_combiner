@@ -30,6 +30,14 @@ CHANGED = b"y" + PAYLOAD[1:]
 APPROVAL = {"boardDecision": "1.2.2 board decision 251", "role": "firmware-owner", "date": "2026-10-02"}
 
 
+class PublishedInventory:
+    def __init__(self, tags):
+        self.tags = tags
+
+    def complete_published_stable_tags(self):
+        return self.tags
+
+
 def encoded(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
 
@@ -256,9 +264,8 @@ class SyntheticProcesses(FakeProcessHost):
                 slot, path = path.split("=", 1)
             else:
                 slot = {"--dp": "dp-input", "--tp": "tp-input", "--base": "replace-base"}.get(option, option[2:])
-            artifact = ("replace-base" if slot == "replace-base" and Path(path).name == "precursor.bin"
-                        else Path(path).stem.split("-", 1)[1])
-            inputs.append({"AddressSpaceId": slot, "ArtifactId": artifact, **{
+            report_binding = "reference-base" if slot == "replace-base" else slot
+            inputs.append({"AddressSpaceId": report_binding, "ArtifactId": report_binding, **{
                 "Size": Path(path).stat().st_size, "Sha256": rolling.sha256(Path(path).read_bytes())}, "OriginalFileName": None})
         value["Inputs"] = inputs
         span = {"Start": 0, "Length": 160, "EndExclusive": 160}
@@ -338,7 +345,7 @@ class RollingTests(unittest.TestCase):
             report = rolling.run_rolling(git=git, host=host, candidate_commit=CANDIDATE, baseline_tag="v1.2.1",
                                          output_path=output, temporary_root=temporary, settings_folder=self.settings,
                                          formal=formal, materializer=materialize,
-                                         published=type("Published", (), {"is_complete_published": lambda self, tag: True})() if formal else None)
+                                         published=PublishedInventory(["v1.2.0", "v1.2.1"]) if formal else None)
         self.assertEqual(1, len(captures))
         self.assertEqual(parity.canonical_json_bytes(report) + b"\n", output.read_bytes())
         return report, host, git
@@ -552,7 +559,7 @@ class RollingTests(unittest.TestCase):
 
     def test_baseline_rules_and_published_host_seam(self):
         git = RollingFakeGit(self.world)
-        published = type("Published", (), {"is_complete_published": lambda self, tag: tag == "v1.2.1"})()
+        published = PublishedInventory(["v1.2.1"])
         baseline = rolling.resolve_rolling_baseline(git, CANDIDATE, "1.2.2", baseline_tag=None, formal=True, published=published)
         self.assertEqual("v1.2.1", baseline.tag)
         self.assertEqual("v1.2.0", rolling.resolve_rolling_baseline(git, CANDIDATE, "1.2.2", baseline_tag="v1.2.0", formal=False, published=None).tag)
@@ -566,6 +573,67 @@ class RollingTests(unittest.TestCase):
                 with self.assertRaises(execution.ExecutionError) as found:
                     rolling.resolve_rolling_baseline(git, CANDIDATE, "1.2.2", baseline_tag=given, formal=formal, published=host)
                 self.assertEqual("PREDECESSOR_BASELINE_INVALID", found.exception.code)
+
+    def test_formal_highest_published_tag_missing_locally_refuses_without_fallback(self):
+        self.assert_highest_published_refused("missing")
+
+    def test_formal_highest_published_lightweight_tag_refuses_without_fallback(self):
+        self.assert_highest_published_refused("lightweight")
+
+    def test_formal_highest_published_nonancestor_tag_refuses_without_fallback(self):
+        self.assert_highest_published_refused("nonancestor")
+
+    def assert_highest_published_refused(self, fault):
+        git = RollingFakeGit(self.world)
+        if fault == "missing":
+            git.tags = git.tags[:1]
+        elif fault == "lightweight":
+            git.tags[1] = git.tags[1]._replace(object_type="commit")
+        else:
+            git.tags[1] = git.tags[1]._replace(ancestor=False)
+        with self.assertRaises(execution.ExecutionError) as found:
+            rolling.resolve_rolling_baseline(git, CANDIDATE, "1.2.2", baseline_tag=None, formal=True,
+                                             published=PublishedInventory(["v1.2.0", "v1.2.1"]))
+        self.assertEqual("PREDECESSOR_BASELINE_INVALID", found.exception.code)
+
+    def test_formal_published_inventory_uses_numeric_version_order(self):
+        git = RollingFakeGit(self.world)
+        template = git.tags[1]
+        git.tags = [template._replace(tag="v1.2.9"), template._replace(tag="v1.2.10")]
+        baseline = rolling.resolve_rolling_baseline(git, CANDIDATE, "1.2.11", baseline_tag=None, formal=True,
+                                                    published=PublishedInventory(["v1.2.10", "v1.2.12", "v1.2.9"]))
+        self.assertEqual("v1.2.10", baseline.tag)
+
+    def test_formal_published_inventory_unavailable_or_empty_refuses(self):
+        git = RollingFakeGit(self.world)
+        for inventory in (None, [], ["v1.2.2"]):
+            with self.subTest(inventory=inventory), self.assertRaises(execution.ExecutionError) as found:
+                rolling.resolve_rolling_baseline(git, CANDIDATE, "1.2.2", baseline_tag=None, formal=True,
+                                                 published=PublishedInventory(inventory))
+            self.assertEqual("PREDECESSOR_BASELINE_INVALID", found.exception.code)
+        with (patch.object(PublishedInventory, "complete_published_stable_tags", side_effect=OSError("unavailable")),
+              self.assertRaises(execution.ExecutionError) as found):
+            rolling.resolve_rolling_baseline(git, CANDIDATE, "1.2.2", baseline_tag=None, formal=True,
+                                             published=PublishedInventory([]))
+        self.assertEqual("PREDECESSOR_BASELINE_INVALID", found.exception.code)
+
+    def test_existing_output_refuses_before_rolling_cli_run_or_build(self):
+        output = self.root / "existing.json"
+        output.write_bytes(b"preserved")
+        with (patch.object(rolling, "run_rolling", return_value={"gate": {"result": "clear"}}) as run,
+              patch.object(execution, "local_settings_folder", return_value=self.settings) as settings,
+              patch.object(rolling.tempfile, "TemporaryDirectory", wraps=tempfile.TemporaryDirectory) as scratch):
+            code = execution.main(["rolling", "--candidate-commit", CANDIDATE, "--baseline-tag", "v1.2.1",
+                                   "--output", str(output), "--temporary-root", str(self.root), "--diagnostic"])
+        self.assertEqual(1, code)
+        run.assert_not_called()
+        settings.assert_not_called()
+        scratch.assert_not_called()
+        with self.assertRaises(execution.ExecutionError) as found:
+            rolling.run_rolling(git=None, host=None, candidate_commit=CANDIDATE, baseline_tag="v1.2.1",
+                                output_path=output, temporary_root=self.root, settings_folder=self.settings)
+        self.assertEqual("PARITY_WRITE_CONFLICT", found.exception.code)
+        self.assertEqual(b"preserved", output.read_bytes())
 
     def test_local_rolling_tags_use_shared_annotated_object_and_peel_adapter(self):
         git = rolling.LocalRollingGitHost(ROOT)

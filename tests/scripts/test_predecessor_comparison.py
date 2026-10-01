@@ -31,7 +31,7 @@ def digest(payload: bytes) -> str:
 
 def report(*, preview: bool = False) -> dict[str, Any]:
     value = raw_report()
-    value["Inputs"][0]["Sha256"] = digest(PAYLOAD)
+    value["Inputs"][0].update(ArtifactId="source", Sha256=digest(PAYLOAD))
     value["Output"]["Sha256"] = digest(PAYLOAD)
     if preview:
         value.update(Output=None, Mutations=[])
@@ -141,7 +141,7 @@ class ComparisonTests(unittest.TestCase):
 
         self.runner.host = FakeProcessHost(run)
         return self.runner.run(stage=stage, argv=["synthetic"], staging_root=work,
-                               inputs=[{"path": str(input_path), "addressSpaceId": "source", "artifactId": "input",
+                               inputs=[{"path": str(input_path), "expectedReportAddressSpaceId": "source", "expectedReportArtifactId": "source",
                                         "size": 8, "sha256": digest(PAYLOAD)}],
                                report_path=report_path, output_path=output_path, report_version="1x")
 
@@ -600,35 +600,68 @@ class ComparisonTests(unittest.TestCase):
                 else:
                     self.assertEqual("build", host.calls[-1][0][1])
 
-    def test_staged_binding_is_checked_against_report_without_optional_artifact_check(self):
+    def test_report_binding_ids_are_unconditional_and_independent_of_golden_ids(self):
         authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
-        artifacts = {"input": {"role": "input", "path": "input.bin", "size": 8, "sha256": digest(PAYLOAD)}}
-        for address_space in (None, "source"):
-            for wrong in (None, "artifactId", "addressSpaceId"):
-                with self.subTest(address_space=address_space, wrong=wrong):
-                    binding = {"artifactId": "input", "slotId": "dp-input"}
-                    if address_space is not None:
-                        binding["addressSpaceId"] = address_space
-                    work = self.root / f"binding-{address_space}-{wrong}"
-                    work.mkdir()
-                    rows = comparison.stage_case_inputs(authority, artifacts, [binding], work / "inputs")
-                    self.assertEqual("input", rows[0]["artifactId"])
-                    raw = report(preview=True)
-                    if wrong is not None:
-                        raw["Inputs"][0][{"artifactId": "ArtifactId", "addressSpaceId": "AddressSpaceId"}[wrong]] = "wrong"
-                    report_path = work / "report.json"
-                    def cli(argv, cwd):
-                        report_path.write_text(json.dumps(raw), encoding="utf-8")
-                        return subprocess.CompletedProcess(argv, 0, "", "")
-                    self.runner.host = FakeProcessHost(cli)
-                    capture = self.runner.run(stage="preview", argv=["synthetic"], staging_root=work,
-                                              inputs=rows, report_path=report_path)
-                    verdict = comparison.validation.side_execution_verdict([capture.evidence()],
-                        capacities={"source": 8, "wrong": 8, "output-image": 8}, complete=False)
-                    invalid = wrong == "artifactId" or (wrong == "addressSpaceId" and address_space is not None)
-                    self.assertEqual("invalid" if invalid else "ready", verdict.status)
-                    if invalid:
-                        self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
+        artifacts = {"golden-input": {"role": "input", "path": "input.bin", "size": 8, "sha256": digest(PAYLOAD)}}
+        for version in ("v0916", "1x"):
+            for slot, expected in (("dp-input", "dp-input"), ("replace-base", "reference-base"),
+                                   ("replace-ctrlram-nf", "replace-ctrlram-nf")):
+                for wrong in (None, "ArtifactId", "AddressSpaceId", "missing-address", "missing-artifact", "Size", "Sha256"):
+                    with self.subTest(version=version, slot=slot, wrong=wrong):
+                        work = self.root / f"binding-{version}-{slot}-{wrong}"
+                        work.mkdir()
+                        rows = comparison.stage_case_inputs(authority, artifacts, [("golden-input", slot)], work / "inputs")
+                        self.assertNotIn("artifactId", rows[0])
+                        self.assertEqual(expected, rows[0]["expectedReportAddressSpaceId"])
+                        self.assertEqual(expected, rows[0]["expectedReportArtifactId"])
+                        raw = report(preview=True)
+                        raw["Inputs"][0].update(AddressSpaceId=expected, ArtifactId=expected)
+                        raw["Operations"][0]["SourceSpaceId"] = expected
+                        if wrong == "missing-address":
+                            del rows[0]["expectedReportAddressSpaceId"]
+                        elif wrong == "missing-artifact":
+                            del rows[0]["expectedReportArtifactId"]
+                        elif wrong == "Size":
+                            raw["Inputs"][0][wrong] = 7
+                        elif wrong == "Sha256":
+                            raw["Inputs"][0][wrong] = "0" * 64
+                        elif wrong is not None:
+                            raw["Inputs"][0][wrong] = "golden-input"
+                        report_path = work / "report.json"
+                        def cli(argv, cwd):
+                            report_path.write_text(json.dumps(raw), encoding="utf-8")
+                            return subprocess.CompletedProcess(argv, 0, "", "")
+                        self.runner.host = FakeProcessHost(cli)
+                        capture = self.runner.run(stage="preview", argv=["synthetic"], staging_root=work,
+                                                  inputs=rows, report_path=report_path, report_version=version)
+                        verdict = comparison.validation.side_execution_verdict([capture.evidence()],
+                            capacities={expected: 8, "golden-input": 8, "output-image": 8}, complete=False)
+                        self.assertEqual("invalid" if wrong else "ready", verdict.status)
+                        if wrong:
+                            self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
+
+    def test_report_input_order_is_checked_even_when_input_bytes_are_identical(self):
+        authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
+        artifacts = {"golden-input": {"role": "input", "path": "input.bin", "size": 8, "sha256": digest(PAYLOAD)}}
+        work = self.root / "binding-order"
+        work.mkdir()
+        rows = comparison.stage_case_inputs(authority, artifacts,
+                                            [("golden-input", "dp-input"), ("golden-input", "tp-input")], work / "inputs")
+        raw = report(preview=True)
+        raw["Inputs"] = [{**raw["Inputs"][0], "AddressSpaceId": slot, "ArtifactId": slot}
+                         for slot in ("tp-input", "dp-input")]
+        raw["Operations"][0]["SourceSpaceId"] = "dp-input"
+        report_path = work / "report.json"
+        def cli(argv, cwd):
+            report_path.write_text(json.dumps(raw), encoding="utf-8")
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        self.runner.host = FakeProcessHost(cli)
+        capture = self.runner.run(stage="preview", argv=["synthetic"], staging_root=work,
+                                  inputs=rows, report_path=report_path)
+        verdict = comparison.validation.side_execution_verdict([capture.evidence()],
+            capacities={"dp-input": 8, "tp-input": 8, "output-image": 8}, complete=False)
+        self.assertEqual("invalid", verdict.status)
+        self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
 
     def test_input_admission_and_cli_stage_use_fresh_copies(self):
         authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
@@ -638,13 +671,19 @@ class ComparisonTests(unittest.TestCase):
         executor = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
         def cli(argv, cwd):
             target = Path(argv[argv.index("--report") + 1])
-            target.write_text(json.dumps(report(preview=True)), encoding="utf-8")
+            raw = report(preview=True)
+            raw["Inputs"][0].update(AddressSpaceId="dp-input", ArtifactId="dp-input")
+            raw["Operations"][0]["SourceSpaceId"] = "dp-input"
+            target.write_text(json.dumps(raw), encoding="utf-8")
             return subprocess.CompletedProcess(argv, 0, "", "")
         self.runner.host = FakeProcessHost(cli)
         request = {"workflowId": "standard-merge", "profileId": "test", "cliSelectionToken": None}
         for _ in range(2):
             capture = comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts, [("input", "dp-input")], stage="preview")
-            self.assertEqual("input", capture.inputs[0]["artifactId"])
+            self.assertNotIn("artifactId", capture.inputs[0])
+            self.assertEqual("dp-input", capture.inputs[0]["expectedReportArtifactId"])
+            verdict = comparison.validation.side_execution_verdict([capture.evidence()], capacities={"dp-input": 8, "output-image": 8}, complete=False)
+            self.assertEqual("ready", verdict.status)
         first, second = self.runner.host.calls
         self.assertNotEqual(first[1], second[1])
         self.assertNotEqual(first[0][first[0].index("--dp") + 1], second[0][second[0].index("--dp") + 1])

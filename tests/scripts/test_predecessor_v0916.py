@@ -532,6 +532,24 @@ class V0916Tests(unittest.TestCase):
             parity.write_json_exclusive_atomic(output, report)
         self.assertEqual(before, output.read_bytes())
 
+    def test_existing_output_refuses_before_v0916_cli_run_or_build(self):
+        output = self.root / "existing.json"
+        output.write_bytes(b"preserved")
+        with (patch.object(milestone, "run_v0916", return_value={"result": "consistent"}) as run,
+              patch.object(execution, "local_settings_folder", return_value=self.settings) as settings,
+              patch.object(milestone.tempfile, "TemporaryDirectory", wraps=tempfile.TemporaryDirectory) as scratch):
+            code = execution.main(["v0916-1x", "--candidate-commit", CANDIDATE, "--output", str(output),
+                                   "--temporary-root", str(self.root), "--diagnostic"])
+        self.assertEqual(1, code)
+        run.assert_not_called()
+        settings.assert_not_called()
+        scratch.assert_not_called()
+        with self.assertRaises(execution.ExecutionError) as found:
+            milestone.run_v0916(git=None, host=None, baseline_builder=None, candidate_commit=CANDIDATE,
+                                 output_path=output, temporary_root=self.root, settings_folder=self.settings)
+        self.assertEqual("PARITY_WRITE_CONFLICT", found.exception.code)
+        self.assertEqual(b"preserved", output.read_bytes())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -228,8 +228,8 @@ def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
     if actual_inputs != expected_inputs:
         return [_failure("REPORT_INVALID", subject, "report input identities differ from capture")]
     for reported, captured in zip(evidence.context["orderedInputs"], evidence.inputs):
-        if (reported["artifactId"] != captured.get("artifactId")
-                or ("addressSpaceId" in captured and reported["addressSpaceId"] != captured["addressSpaceId"])):
+        if (reported["artifactId"] != captured.get("expectedReportArtifactId")
+                or reported["addressSpaceId"] != captured.get("expectedReportAddressSpaceId")):
             return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
     reported_output = evidence.context["output"]
     if _identity(reported_output) != _identity(evidence.output):
@@ -238,6 +238,23 @@ def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
         reported_output["committed"] is not True or any(issue["severity"] == "error" for issue in evidence.issues)
     ):
         return [_failure("REPORT_INVALID", subject, "output is uncommitted or has an error issue")]
+    return []
+
+
+def report_input_binding(slot_id: str) -> dict[str, str]:
+    """V2 v0.9.16 and 1.x reports use the compiled address-space id for both ids.
+
+    Golden artifact ids only locate materialization bytes. The CLI's base
+    option uses replace-base; its compiled report binding is reference-base.
+    """
+    address_space = "reference-base" if slot_id == "replace-base" else slot_id
+    return {"expectedReportAddressSpaceId": address_space, "expectedReportArtifactId": address_space}
+
+
+def output_destination_failures(*, exists: bool, is_symlink: bool) -> list[Failure]:
+    """Apply the final exclusive writer's conflict predicate before execution."""
+    if exists or is_symlink:
+        return [Failure("PARITY_WRITE_CONFLICT", "output", "output destination already exists")]
     return []
 
 
@@ -749,8 +766,14 @@ def comparator_source_failures(expected: Mapping[str, str], observed: Mapping[st
 
 def rolling_baseline(
     tags: Sequence[RollingTag], candidate_version: str, *, given_tag: str | None, formal: bool,
+    published_tags: Sequence[str] | None = None,
 ) -> tuple[RollingTag | None, list[Failure]]:
-    """Published status is a host fact; a diagnostic admits its given annotated ancestor."""
+    """Select over the complete published inventory, then require that exact local tag.
+
+    The host supplies complete stable release names or None if unavailable.
+    Missing or inadmissible local tags never fall back to an older release.
+    A diagnostic admits only its given annotated ancestor, without publication.
+    """
     pattern = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
     version = pattern.fullmatch("v" + candidate_version)
     eligible = []
@@ -763,10 +786,13 @@ def rolling_baseline(
                     and re.fullmatch(r"[0-9a-f]{40}", tag.commit)]
     selected = None
     if formal:
-        if all(tag.published is not None for tag in eligible):
-            published = [tag for tag in eligible if tag.published]
+        if (version and published_tags and not isinstance(published_tags, (str, bytes))
+                and all(isinstance(tag, str) and stable_tag_version(tag) is not None for tag in published_tags)):
+            published = [tag for tag in published_tags if stable_tag_version(tag) < candidate]
             if published:
-                selected = max(published, key=lambda tag: tuple(map(int, pattern.fullmatch(tag.tag).groups())))
+                highest = max(published, key=stable_tag_version)
+                matches = [tag for tag in eligible if tag.tag == highest]
+                selected = matches[0] if len(matches) == 1 else None
         if given_tag is not None and (selected is None or selected.tag != given_tag):
             selected = None
     else:

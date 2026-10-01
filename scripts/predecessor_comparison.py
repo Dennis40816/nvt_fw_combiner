@@ -80,8 +80,12 @@ class LocalGitHost:
 
     def __init__(self, repository: Path):
         self.repository = repository
-        self.reader = PinnedGitReader(repository)
+        self.reader = self.snapshot_reader()
         self.host = LocalExecutionHost()
+
+    def snapshot_reader(self, commit: str | None = None) -> PinnedGitReader:
+        """Create a fresh capture; gitlinks have no file payload in this repository."""
+        return PinnedGitReader(self.repository, allow_gitlinks=True)
 
     def list_files(self, commit: str) -> list[str]:
         return self.reader.list_files(commit)
@@ -202,6 +206,10 @@ def _stream_bytes(value: str | bytes | None) -> bytes:
 def _refuse(failures: Sequence[validation.Failure]) -> None:
     if failures:
         raise ExecutionError(failures[0].code, failures[0].detail)
+
+
+def require_fresh_output(path: Path) -> None:
+    _refuse(validation.output_destination_failures(exists=path.exists(), is_symlink=path.is_symlink()))
 
 
 @contextmanager
@@ -417,8 +425,8 @@ def stage_case_inputs(
 ) -> list[dict[str, Any]]:
     """Reuse admission and carry bindings into read-only captures under custody.
 
-    The validator always compares artifactId. When a binding gives no
-    addressSpaceId (including tuple bindings), only artifactId is compared.
+    Golden ids are used only by admission. Expected report ids come from the
+    validator and are checked unconditionally along with ordered byte identity.
     """
 
     try:
@@ -427,10 +435,8 @@ def stage_case_inputs(
         rows = admit_case_inputs(authority, artifacts,
                                 [(binding["artifactId"], binding["slotId"]) for binding in captured_bindings],
                                 target_root=target_root)
-        for row, binding in zip(rows, captured_bindings):
-            row["artifactId"] = binding["artifactId"]
-            if "addressSpaceId" in binding:
-                row["addressSpaceId"] = binding["addressSpaceId"]
+        for row in rows:
+            row.update(validation.report_input_binding(row["slotId"]))
             Path(row["path"]).chmod(stat.S_IREAD)
         return rows
     except (ParityError, OSError, KeyError, TypeError, IndexError) as error:
@@ -526,7 +532,7 @@ def execute_cli_stage(
             base = work / "inputs" / "precursor.bin"
             base.write_bytes(payload)
             base.chmod(stat.S_IREAD)
-        rows.insert(0, {"slotId": "replace-base", "artifactId": "replace-base", "role": "input", "path": str(base),
+        rows.insert(0, {"slotId": "replace-base", **validation.report_input_binding("replace-base"), "role": "input", "path": str(base),
                         **precursor.output, "order": 0})
         rows = [{**row, "order": order} for order, row in enumerate(rows)]
     try:

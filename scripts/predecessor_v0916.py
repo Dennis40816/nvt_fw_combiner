@@ -13,7 +13,7 @@ from typing import Any, Callable, Mapping, NamedTuple, Protocol, Sequence
 from scripts import predecessor_comparison as execution
 from scripts import predecessor_validation as validation
 from scripts.v0916_parity_certification import (
-    MaterializedCanonicalAuthority, ParityError, PinnedGitReader, Plan,
+    MaterializedCanonicalAuthority, ParityError, Plan,
     canonical_json_sha256, load_and_validate_pinned_plan, load_json_reject_duplicates,
     materialize_and_validate_canonical_input_authority, resolve_canonical_route_input,
     resolve_case, write_json_exclusive_atomic,
@@ -38,9 +38,6 @@ class V0916GitHost(execution.GitHost, Protocol):
 
 
 class LocalV0916GitHost(execution.LocalGitHost):
-    def snapshot_reader(self, commit: str) -> PinnedGitReader:
-        return PinnedGitReader(self.repository)
-
     def commit_tree(self, commit: str) -> str:
         return self._git("rev-parse", "--verify", f"{commit}^{{tree}}")
 
@@ -277,6 +274,7 @@ def run_v0916(
     materializer: Callable = materialize_and_validate_canonical_input_authority,
     plan_loader: Callable = load_and_validate_pinned_plan,
 ) -> dict[str, Any]:
+    execution.require_fresh_output(output_path)
     execution.admit_execution_contract(mode="v0916-1x", formal=formal)
     try:
         sources = load_v0916_sources(git, candidate_commit, formal=formal)
@@ -336,6 +334,7 @@ def v0916_main(argv: Sequence[str] | None = None) -> int:
     policy.add_argument("--diagnostic", action="store_true")
     args = parser.parse_args(argv)
     try:
+        execution.require_fresh_output(args.output)
         execution.admit_execution_contract(mode="v0916-1x", formal=args.formal)
         if args.formal and args.milestone is None:
             raise execution.ExecutionError("PREDECESSOR_INPUT_INVALID", "formal comparison requires --milestone")

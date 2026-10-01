@@ -16,7 +16,7 @@ from scripts import predecessor_comparison as execution
 from scripts import predecessor_validation as validation
 from scripts.predecessor_comparison import ScenarioExecution, measured_scopes, informational_differences
 from scripts.v0916_parity_certification import (
-    MaterializedCanonicalAuthority, ParityError, PinnedGitReader, canonical_json_sha256,
+    MaterializedCanonicalAuthority, ParityError, canonical_json_sha256,
     load_json_reject_duplicates,
     materialize_and_validate_canonical_input_authority, resolve_case, write_json_exclusive_atomic,
 )
@@ -37,8 +37,11 @@ def sha256(payload: bytes) -> str:
 
 
 class PublishedReleaseHost(Protocol):
-    """The release host supplies complete published status; this module never uses the network."""
-    def is_complete_published(self, tag: str) -> bool: ...
+    """Supply the complete published stable inventory; None means unavailable.
+
+    This module never uses the network. A partial inventory must not be returned.
+    """
+    def complete_published_stable_tags(self) -> Sequence[str] | None: ...
 
 
 class RollingGitHost(execution.GitHost, Protocol):
@@ -49,9 +52,6 @@ class RollingGitHost(execution.GitHost, Protocol):
 
 class LocalRollingGitHost(execution.LocalGitHost):
     """Read local tag facts and compose the existing pinned snapshot reader."""
-
-    def snapshot_reader(self, commit: str) -> PinnedGitReader:
-        return PinnedGitReader(self.repository)
 
     def commit_tree(self, commit: str) -> str:
         return self._git("rev-parse", "--verify", f"{commit}^{{tree}}")
@@ -81,11 +81,11 @@ def resolve_rolling_baseline(
 ) -> validation.RollingTag:
     try:
         tags = list(git.stable_tags(candidate_commit))
-        if formal and published is not None:
-            tags = [tag._replace(published=published.is_complete_published(tag.tag)) for tag in tags]
+        inventory = published.complete_published_stable_tags() if formal and published is not None else None
     except (OSError, subprocess.SubprocessError, ValueError) as error:
         raise execution.ExecutionError("PREDECESSOR_BASELINE_INVALID", "baseline host acquisition failed") from error
-    baseline, failures = validation.rolling_baseline(tags, candidate_version, given_tag=baseline_tag, formal=formal)
+    baseline, failures = validation.rolling_baseline(tags, candidate_version, given_tag=baseline_tag, formal=formal,
+                                                     published_tags=inventory)
     execution._refuse(failures)
     assert baseline is not None
     return baseline
@@ -361,6 +361,7 @@ def run_rolling(
     materializer: Callable = materialize_and_validate_canonical_input_authority,
 ) -> dict[str, Any]:
     """Build both 1.x executors, execute each ledger scenario once per side, and write the gate."""
+    execution.require_fresh_output(output_path)
     # Refuse pending formal execution before acquiring source or settings.
     execution.admit_execution_contract(mode="rolling", formal=formal)
     try:
@@ -408,6 +409,7 @@ def rolling_main(argv: Sequence[str] | None = None) -> int:
     rolling.add_argument("--temporary-root", type=Path, required=True, help="existing root for short, private process paths")
     args = parser.parse_args(argv)
     try:
+        execution.require_fresh_output(args.output)
         execution.admit_execution_contract(mode="rolling", formal=args.formal)
         if not args.formal and args.baseline_tag is None:
             raise execution.ExecutionError("PREDECESSOR_BASELINE_INVALID", "diagnostic requires --baseline-tag")
