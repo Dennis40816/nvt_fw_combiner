@@ -512,8 +512,15 @@ def _compiler_environment(compiler_host: Mapping[str, Any]) -> Iterator[None]:
 
 def _executor_process(runner: ProcessRunner, source: Path, arguments: Sequence[str]) -> ProcessCapture:
     capture = runner.run(stage="build", argv=list(arguments), staging_root=source, inputs=[])
+    process_failures = validation.executor_process_failures(capture.record)
+    if capture.failures or process_failures:
+        print("Executor command failed: " + " ".join(arguments[:3]), file=sys.stderr)
+        for name, payload in (("stdout", capture.stdout), ("stderr", capture.stderr)):
+            print(f"{name} (last 30 lines):", file=sys.stderr)
+            for line in payload.decode("utf-8", errors="replace").splitlines()[-30:]:
+                print(line, file=sys.stderr)
     _refuse(capture.failures)
-    _refuse(validation.executor_process_failures(capture.record))
+    _refuse(process_failures)
     return capture
 
 

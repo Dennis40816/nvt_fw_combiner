@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager, nullcontext, redirect_stderr
 from typing import Any
 from unittest.mock import patch
 
@@ -547,6 +548,48 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(parity.canonical_json_sha256([{"path": "src/Cli/packages.lock.json", "size": len(git.files["src/Cli/packages.lock.json"]), "sha256": digest(git.files["src/Cli/packages.lock.json"])}]), result.identity["lockFileSetSha256"])
         self.assertEqual(self.contract["executor"]["restore"]["arguments"], host.calls[3][0])
         self.assertIn(f"-p:PathMap={git.detached[0][1]}=/_/src", host.calls[4][0])
+
+    def test_failed_executor_build_prints_only_command_and_last_thirty_lines(self):
+        arguments = ["dotnet", "build", "synthetic.csproj", "--no-restore"]
+        stdout = b"\n".join(f"stdout-{index}".encode() for index in range(40)) + b"\xff\n"
+        stderr = b"\n".join(f"stderr-{index}".encode() for index in range(40)) + b"\xff\n"
+        self.runner.host = FakeProcessHost(
+            lambda argv, cwd: subprocess.CompletedProcess(argv, 1, stdout, stderr))
+        printed = io.StringIO()
+        with redirect_stderr(printed), self.assertRaises(comparison.ExecutionError) as found:
+            comparison._executor_process(self.runner, self.root, arguments)
+        self.assertEqual("PREDECESSOR_EXECUTOR_INVALID", found.exception.code)
+        self.assertEqual("Executor command failed: dotnet build synthetic.csproj\n"
+                         "stdout (last 30 lines):\n" + "".join(f"stdout-{index}\n" for index in range(10, 39))
+                         + "stdout-39\ufffd\n"
+                         + "stderr (last 30 lines):\n" + "".join(f"stderr-{index}\n" for index in range(10, 39))
+                         + "stderr-39\ufffd\n",
+                         printed.getvalue())
+        self.assertEqual(digest(stdout), self.runner.captures[-1].record["stdoutSha256"])
+        self.assertEqual(digest(stderr), self.runner.captures[-1].record["stderrSha256"])
+        self.assertNotIn("stdout", self.runner.captures[-1].record)
+        self.assertNotIn("stderr", self.runner.captures[-1].record)
+
+    def test_successful_executor_build_prints_nothing(self):
+        printed = io.StringIO()
+        with redirect_stderr(printed):
+            capture = comparison._executor_process(
+                self.runner, self.root, ["dotnet", "build", "synthetic.csproj"])
+        self.assertEqual(0, capture.record["exitCode"])
+        self.assertEqual("", printed.getvalue())
+
+    def test_executor_capture_failure_prints_output_and_preserves_refusal(self):
+        def change_settings(argv, cwd):
+            (self.settings / "toolchain-runtime.v1.json").write_bytes(b"changed")
+            return subprocess.CompletedProcess(argv, 0, "captured stdout", "captured stderr")
+        self.runner.host = FakeProcessHost(change_settings)
+        printed = io.StringIO()
+        with redirect_stderr(printed), self.assertRaises(comparison.ExecutionError) as found:
+            comparison._executor_process(self.runner, self.root, ["dotnet", "build", "synthetic.csproj"])
+        self.assertEqual("PREDECESSOR_ENVIRONMENT_INVALID", found.exception.code)
+        self.assertEqual("Executor command failed: dotnet build synthetic.csproj\n"
+                         "stdout (last 30 lines):\ncaptured stdout\n"
+                         "stderr (last 30 lines):\ncaptured stderr\n", printed.getvalue())
 
     def test_executor_refuses_dirty_build_paths_changed_locks_sdk_and_build_failure(self):
         for fault in ("dirty", "bin", "tracked-bin", "lock", "sdk", "build"):

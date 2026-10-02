@@ -110,6 +110,23 @@ class PdbProbeTests(unittest.TestCase):
 
 
 class ExecutorContractTests(unittest.TestCase):
+    def test_runtime_framework_build_argument_equals_required_runtime_in_both_directions(self):
+        for name in ("predecessor-comparison-v1", "v0916-baseline-executor-v2"):
+            document = load(name + ".json")
+            host = document["executor"]["compilerHost"] if name.startswith("predecessor") else document["compilerHost"]
+            self.assertIn("-p:RuntimeFrameworkVersion=" + host["requiredRuntime"]["version"], host["extraBuildArguments"])
+            self.assertEqual([], validation.executor_compiler_host_failures(host))
+            for member in ("extraBuildArguments", "requiredRuntime"):
+                with self.subTest(name=name, member=member):
+                    changed = copy.deepcopy(host)
+                    if member == "extraBuildArguments":
+                        changed[member][-1] = "-p:RuntimeFrameworkVersion=10.0.12"
+                    else:
+                        changed[member]["version"] = "10.0.12"
+                    failures = validation.executor_compiler_host_failures(changed)
+                    self.assertEqual("PREDECESSOR_EXECUTOR_INVALID", failures[0].code)
+                    self.assertIn("RuntimeFrameworkVersion must equal requiredRuntime.version", failures[0].detail)
+
     def test_v2_closed_instance_binding_and_shared_host(self):
         record, schema = load("v0916-baseline-executor-v2.json"), load("v0916-baseline-executor-v2.schema.json")
         assert_schema(record, schema, schema)
