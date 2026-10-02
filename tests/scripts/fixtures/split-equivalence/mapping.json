@@ -1,0 +1,14 @@
+{
+  "Check": {
+    "old_class": "Old.One",
+    "new_class": "Old.FirstTests"
+  },
+  "Theory(value: \"a.b\", count: 1)": {
+    "old_class": "Old.One",
+    "new_class": "Old.FirstTests"
+  },
+  "Same": {
+    "old_class": "Old.One",
+    "new_class": "Old.FirstTests"
+  }
+}

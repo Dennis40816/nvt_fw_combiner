@@ -1,0 +1,340 @@
+[
+  {
+    "name": "profile-whole-file-renames",
+    "support_class": "TrustedProfileBundleCatalogFactoryTestSupport",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.cs",
+        "new_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void RootCheck() { Assert.True(true); }\n    private const string Hash =\n        \"abc\";\n    private static readonly int[] Values =\n    {\n        1,\n        2,\n    };\n    private sealed record Result(\n        int Value,\n        string Name);\n\n    // Preserve builder context.\n    private static int Read()\n    {\n        return 1;\n    }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n[Collection(\"Shared\")]\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void RootCheck() { Assert.True(true); }\n}\n",
+        "patch": "--- \n+++ \n@@ -1,0 +2 @@\n+[Collection(\"Shared\")]\n@@ -6,16 +6,0 @@\n-    private const string Hash =\n-        \"abc\";\n-    private static readonly int[] Values =\n-    {\n-        1,\n-        2,\n-    };\n-    private sealed record Result(\n-        int Value,\n-        string Name);\n-\n-    // Preserve builder context.\n-    private static int Read()\n-    {\n-        return 1;\n-    }\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic0.cs",
+        "new_path": "tests/ProfileContract/BundleTopic00Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check0() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 0 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic00Tests\n{\n    [Fact]\n    public void Check0() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 0 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic00Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic1.cs",
+        "new_path": "tests/ProfileContract/BundleTopic01Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check1() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 1 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic01Tests\n{\n    [Fact]\n    public void Check1() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 1 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic01Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic2.cs",
+        "new_path": "tests/ProfileContract/BundleTopic02Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check2() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 2 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic02Tests\n{\n    [Fact]\n    public void Check2() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 2 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic02Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic3.cs",
+        "new_path": "tests/ProfileContract/BundleTopic03Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check3() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 3 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic03Tests\n{\n    [Fact]\n    public void Check3() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 3 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic03Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic4.cs",
+        "new_path": "tests/ProfileContract/BundleTopic04Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check4() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 4 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic04Tests\n{\n    [Fact]\n    public void Check4() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 4 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic04Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic5.cs",
+        "new_path": "tests/ProfileContract/BundleTopic05Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check5() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 5 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic05Tests\n{\n    [Fact]\n    public void Check5() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 5 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic05Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic6.cs",
+        "new_path": "tests/ProfileContract/BundleTopic06Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check6() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 6 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic06Tests\n{\n    [Fact]\n    public void Check6() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 6 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic06Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic7.cs",
+        "new_path": "tests/ProfileContract/BundleTopic07Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check7() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 7 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic07Tests\n{\n    [Fact]\n    public void Check7() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 7 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic07Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic8.cs",
+        "new_path": "tests/ProfileContract/BundleTopic08Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check8() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 8 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic08Tests\n{\n    [Fact]\n    public void Check8() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 8 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic08Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic9.cs",
+        "new_path": "tests/ProfileContract/BundleTopic09Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check9() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 9 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic09Tests\n{\n    [Fact]\n    public void Check9() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 9 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic09Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic10.cs",
+        "new_path": "tests/ProfileContract/BundleTopic10Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check10() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 10 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic10Tests\n{\n    [Fact]\n    public void Check10() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 10 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic10Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic11.cs",
+        "new_path": "tests/ProfileContract/BundleTopic11Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check11() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 11 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic11Tests\n{\n    [Fact]\n    public void Check11() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 11 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic11Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic12.cs",
+        "new_path": "tests/ProfileContract/BundleTopic12Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check12() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 12 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic12Tests\n{\n    [Fact]\n    public void Check12() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 12 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic12Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic13.cs",
+        "new_path": "tests/ProfileContract/BundleTopic13Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check13() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 13 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic13Tests\n{\n    [Fact]\n    public void Check13() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 13 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic13Tests\n"
+      },
+      {
+        "status": "R",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTests.Topic14.cs",
+        "new_path": "tests/ProfileContract/BundleTopic14Tests.cs",
+        "before": "namespace NvtFwCombiner.ProfileContract.Tests;\npublic sealed partial class TrustedProfileBundleCatalogFactoryTests\n{\n    [Fact]\n    public void Check14() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Topic 14 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class BundleTopic14Tests\n{\n    [Fact]\n    public void Check14() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class TrustedProfileBundleCatalogFactoryTests\n+/// <summary>Topic 14 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class BundleTopic14Tests\n"
+      },
+      {
+        "status": "A",
+        "old_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTestSupport.cs",
+        "new_path": "tests/ProfileContract/TrustedProfileBundleCatalogFactoryTestSupport.cs",
+        "before": "",
+        "after": "using System;\nnamespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Shared helpers.</summary>\ninternal static partial class TrustedProfileBundleCatalogFactoryTestSupport\n{\n    internal const string Hash =\n        \"abc\";\n    internal static readonly int[] Values =\n    {\n        1,\n        2,\n    };\n\n    // Preserve builder context.\n    internal static int Read()\n    {\n        return 1;\n    }\n    internal sealed record Result(\n        int Value,\n        string Name);\n}\n",
+        "patch": "--- \n+++ \n@@ -0,0 +1,22 @@\n+using System;\n+namespace NvtFwCombiner.ProfileContract.Tests;\n+/// <summary>Shared helpers.</summary>\n+internal static partial class TrustedProfileBundleCatalogFactoryTestSupport\n+{\n+    internal const string Hash =\n+        \"abc\";\n+    internal static readonly int[] Values =\n+    {\n+        1,\n+        2,\n+    };\n+\n+    // Preserve builder context.\n+    internal static int Read()\n+    {\n+        return 1;\n+    }\n+    internal sealed record Result(\n+        int Value,\n+        string Name);\n+}\n"
+      },
+      {
+        "status": "A",
+        "old_path": "tests/ProfileContract/SharedCollection.cs",
+        "new_path": "tests/ProfileContract/SharedCollection.cs",
+        "before": "",
+        "after": "namespace NvtFwCombiner.ProfileContract.Tests;\n/// <summary>Serial split.</summary>\n[CollectionDefinition(\"Shared\")]\npublic sealed class SharedCollection\n{\n}\n",
+        "patch": "--- \n+++ \n@@ -0,0 +1,6 @@\n+namespace NvtFwCombiner.ProfileContract.Tests;\n+/// <summary>Serial split.</summary>\n+[CollectionDefinition(\"Shared\")]\n+public sealed class SharedCollection\n+{\n+}\n"
+      },
+      {
+        "status": "A",
+        "old_path": "tests/ProfileContract/GlobalUsings.cs",
+        "new_path": "tests/ProfileContract/GlobalUsings.cs",
+        "before": "",
+        "after": "global using static NvtFwCombiner.ProfileContract.Tests.TrustedProfileBundleCatalogFactoryTestSupport;\n",
+        "patch": "--- \n+++ \n@@ -0,0 +1 @@\n+global using static NvtFwCombiner.ProfileContract.Tests.TrustedProfileBundleCatalogFactoryTestSupport;\n"
+      }
+    ],
+    "counts": {
+      "rename": 15,
+      "class_declaration": 30,
+      "summary": 15,
+      "using": 2,
+      "support_accessibility": 0,
+      "helper_move": 12,
+      "collection_attribute": 16,
+      "collection_definition": 6,
+      "blank": 0,
+      "support_member_move": 14,
+      "support_type_move": 6,
+      "support_file_skeleton": 5,
+      "emptied_partial_removed": 0
+    }
+  },
+  {
+    "name": "application-existing-topic-names",
+    "support_class": "VersionManagementExperienceTestSupport",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/VersionManagementExperienceTests.cs",
+        "new_path": "tests/Application/VersionManagement/VersionManagementExperienceTests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void RootCheck() { Assert.True(true); }\n    private const string Hash =\n        \"abc\";\n    private static readonly int Value = 1;\n    private sealed class MemoryStore(int value) : IStore\n    {\n        public int Read() => value;\n    }\n    private sealed class Repository\n    {\n        public bool Healthy => true;\n    }\n\n    // Preserve builder context.\n    private static int Read()\n    {\n        return 1;\n    }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n[Collection(\"Shared\")]\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void RootCheck() { Assert.True(true); }\n}\n",
+        "patch": "--- \n+++ \n@@ -1,0 +2 @@\n+[Collection(\"Shared\")]\n@@ -6,17 +6,0 @@\n-    private const string Hash =\n-        \"abc\";\n-    private static readonly int Value = 1;\n-    private sealed class MemoryStore(int value) : IStore\n-    {\n-        public int Read() => value;\n-    }\n-    private sealed class Repository\n-    {\n-        public bool Healthy => true;\n-    }\n-\n-    // Preserve builder context.\n-    private static int Read()\n-    {\n-        return 1;\n-    }\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic00Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic00Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check0() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 0 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic00Tests\n{\n    [Fact]\n    public void Check0() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 0 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic00Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic01Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic01Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check1() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 1 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic01Tests\n{\n    [Fact]\n    public void Check1() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 1 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic01Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic02Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic02Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check2() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 2 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic02Tests\n{\n    [Fact]\n    public void Check2() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 2 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic02Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic03Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic03Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check3() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 3 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic03Tests\n{\n    [Fact]\n    public void Check3() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 3 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic03Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic04Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic04Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check4() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 4 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic04Tests\n{\n    [Fact]\n    public void Check4() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 4 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic04Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic05Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic05Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check5() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 5 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic05Tests\n{\n    [Fact]\n    public void Check5() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 5 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic05Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic06Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic06Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check6() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 6 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic06Tests\n{\n    [Fact]\n    public void Check6() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 6 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic06Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic07Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic07Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check7() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 7 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic07Tests\n{\n    [Fact]\n    public void Check7() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 7 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic07Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic08Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic08Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check8() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 8 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic08Tests\n{\n    [Fact]\n    public void Check8() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 8 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic08Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic09Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic09Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check9() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 9 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic09Tests\n{\n    [Fact]\n    public void Check9() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 9 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic09Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic10Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic10Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check10() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 10 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic10Tests\n{\n    [Fact]\n    public void Check10() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 10 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic10Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic11Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic11Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check11() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 11 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic11Tests\n{\n    [Fact]\n    public void Check11() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 11 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic11Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic12Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic12Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check12() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 12 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic12Tests\n{\n    [Fact]\n    public void Check12() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 12 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic12Tests\n"
+      },
+      {
+        "status": "M",
+        "old_path": "tests/Application/VersionManagement/ExperienceTopic13Tests.cs",
+        "new_path": "tests/Application/VersionManagement/ExperienceTopic13Tests.cs",
+        "before": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\npublic sealed partial class VersionManagementExperienceTests\n{\n    [Fact]\n    public void Check13() { Assert.Equal(1, Read()); }\n}\n",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Topic 13 checks.</summary>\n[Collection(\"Shared\")]\npublic sealed partial class ExperienceTopic13Tests\n{\n    [Fact]\n    public void Check13() { Assert.Equal(1, Read()); }\n}\n",
+        "patch": "--- \n+++ \n@@ -2 +2,3 @@\n-public sealed partial class VersionManagementExperienceTests\n+/// <summary>Topic 13 checks.</summary>\n+[Collection(\"Shared\")]\n+public sealed partial class ExperienceTopic13Tests\n"
+      },
+      {
+        "status": "A",
+        "old_path": "tests/Application/VersionManagement/VersionManagementExperienceTestSupport.cs",
+        "new_path": "tests/Application/VersionManagement/VersionManagementExperienceTestSupport.cs",
+        "before": "",
+        "after": "using System;\nnamespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Shared helpers.</summary>\ninternal static partial class VersionManagementExperienceTestSupport\n{\n    internal const string Hash =\n        \"abc\";\n    internal static readonly int Value = 1;\n\n    // Preserve builder context.\n    internal static int Read()\n    {\n        return 1;\n    }\n}\ninternal sealed class MemoryStore(int value) : IStore\n{\n    public int Read() => value;\n}\ninternal sealed class Repository\n{\n    public bool Healthy => true;\n}\n",
+        "patch": "--- \n+++ \n@@ -0,0 +1,23 @@\n+using System;\n+namespace NvtFwCombiner.Application.Tests.VersionManagement;\n+/// <summary>Shared helpers.</summary>\n+internal static partial class VersionManagementExperienceTestSupport\n+{\n+    internal const string Hash =\n+        \"abc\";\n+    internal static readonly int Value = 1;\n+\n+    // Preserve builder context.\n+    internal static int Read()\n+    {\n+        return 1;\n+    }\n+}\n+internal sealed class MemoryStore(int value) : IStore\n+{\n+    public int Read() => value;\n+}\n+internal sealed class Repository\n+{\n+    public bool Healthy => true;\n+}\n"
+      },
+      {
+        "status": "A",
+        "old_path": "tests/Application/VersionManagement/SharedCollection.cs",
+        "new_path": "tests/Application/VersionManagement/SharedCollection.cs",
+        "before": "",
+        "after": "namespace NvtFwCombiner.Application.Tests.VersionManagement;\n/// <summary>Serial split.</summary>\n[CollectionDefinition(\"Shared\")]\npublic sealed class SharedCollection\n{\n}\n",
+        "patch": "--- \n+++ \n@@ -0,0 +1,6 @@\n+namespace NvtFwCombiner.Application.Tests.VersionManagement;\n+/// <summary>Serial split.</summary>\n+[CollectionDefinition(\"Shared\")]\n+public sealed class SharedCollection\n+{\n+}\n"
+      },
+      {
+        "status": "A",
+        "old_path": "tests/Application/VersionManagement/GlobalUsings.cs",
+        "new_path": "tests/Application/VersionManagement/GlobalUsings.cs",
+        "before": "",
+        "after": "global using static NvtFwCombiner.Application.Tests.VersionManagement.VersionManagementExperienceTestSupport;\n",
+        "patch": "--- \n+++ \n@@ -0,0 +1 @@\n+global using static NvtFwCombiner.Application.Tests.VersionManagement.VersionManagementExperienceTestSupport;\n"
+      }
+    ],
+    "counts": {
+      "rename": 0,
+      "class_declaration": 28,
+      "summary": 14,
+      "using": 2,
+      "support_accessibility": 0,
+      "helper_move": 12,
+      "collection_attribute": 15,
+      "collection_definition": 6,
+      "blank": 0,
+      "support_member_move": 6,
+      "support_type_move": 16,
+      "support_file_skeleton": 5,
+      "emptied_partial_removed": 0
+    }
+  }
+]

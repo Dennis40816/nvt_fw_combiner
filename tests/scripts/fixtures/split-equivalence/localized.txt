@@ -1,0 +1,5 @@
+可用的測試如下：
+    Old.FirstTests.Check
+    Old.FirstTests.Theory(value: "a.b", count: 1)
+    Old.FirstTests.Same
+    Old.SecondTests.Same

@@ -1,0 +1,4 @@
+The following Tests are available:
+    Old.FirstTests.Check
+    Old.FirstTests.Same
+    Old.SecondTests.Same

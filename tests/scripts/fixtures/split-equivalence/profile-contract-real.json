@@ -1,0 +1,24 @@
+{
+  "base": "7a5e05124985a39e51c67fd27e60901893ab4168",
+  "head": "dcb66470ea7d7dfd3f869d5d2702a2ba509be2bc",
+  "project": "tests/NvtFwCombiner.ProfileContract.Tests",
+  "support_class": "TrustedProfileBundleCatalogFactoryTestSupport",
+  "changed_paths": 18,
+  "changed_lines": 1745,
+  "counts": {
+    "rename": 12,
+    "class_declaration": 24,
+    "summary": 12,
+    "using": 13,
+    "support_accessibility": 0,
+    "helper_move": 1606,
+    "collection_attribute": 13,
+    "collection_definition": 6,
+    "blank": 26,
+    "support_member_move": 20,
+    "support_type_move": 14,
+    "support_file_skeleton": 5,
+    "emptied_partial_removed": 6
+  },
+  "unclassified": []
+}
