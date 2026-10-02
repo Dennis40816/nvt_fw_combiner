@@ -54,6 +54,7 @@
     "materialization": "fresh-detached-git-worktree",
     "cleanTreeRequired": true,
     "forbiddenPreRestorePathSegments": ["bin", "obj"],
+    "restorePackageFolder": ".packages",
     "sdkSource": "global.json",
     "restore": {
       "workingDirectory": ".",

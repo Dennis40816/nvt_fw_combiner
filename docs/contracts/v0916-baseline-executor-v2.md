@@ -35,7 +35,12 @@ is reproduced with the property: 431 files, 88367164 bytes, SHA-256
 
 After restore and again after build, exactly the seven declared locks must
 have changed to their raw size/SHA-256 pins. Other tracked bytes, unchanged
-locks and unauthorized new files are rejected. The Windows NuGet bytes use
+locks and unauthorized new files are rejected. The restored packages are the
+one exception: the tag's `NuGet.config` names the top-level folder `.packages`
+as the package folder and Git ignores it. The folder must be absent before
+restore, and its files are not compared; the pinned lock bytes carry each
+package's version and content hash. A folder of that name anywhere else is an
+unauthorized new file. The Windows NuGet bytes use
 CRLF with no final newline; hashing never normalizes them. The complete
 embedded unified diff alone is LF-normalized, 5937 bytes with SHA-256
 `3b5d1b832174de820e53ba1aa71e7dd3b62f8e0680611d5fed123cc3474c3988`.
