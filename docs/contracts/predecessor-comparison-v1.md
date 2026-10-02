@@ -17,6 +17,7 @@ their own:
 | `predecessor-comparison-scenarios-v1.json` and its schema | the rolling coverage ledger: scenarios, decision 12's debt set, accepted and pending gaps, retired scenarios |
 | `predecessor-comparison-declaration-v1.schema.json` | one declaration per release under `predecessor-comparison-declarations/` (in effect, R35-02) |
 | `predecessor-comparison-report-v1.schema.json` | the comparator's payload-free report of either mode (in effect, R35-02) |
+| `predecessor-published-release-inventory-v1.schema.json` | the commander's complete offline published stable release inventory for rolling mode |
 
 The contract, the amendment and every report state `certification: none` and
 `terminal: false`; the ledger and the declarations are inputs and make no
@@ -29,7 +30,7 @@ comparator keep their own authority unchanged.
 
 | | Rolling | v0.9.16 1.x |
 | --- | --- | --- |
-| Purpose | release gate for every 1.x release | consistency check at the 1.1.13 final candidate, the 1.2.0 release approval and before RO-1 is decided (board decision 64) |
+| Purpose | release gate for every 1.x release | consistency check at the 1.1.13 final candidate, at the deferred 1.2.0 release-approval milestone executed before the 1.2.2 release, and before RO-1 is decided (board decision 64) |
 | Baseline | previous published stable release, rebuilt from its annotated tag | the plan's v0.9.16 tag, built with the amendment's baseline executor |
 | Input authority | active canonical Golden and capability policy at the candidate commit, through the ledger | the plan's `canonicalInputAuthority`: policy and manifest read only at its `repositoryCommit` |
 | Compared set | the ledger's scenarios | the plan's 37 routes with canonical input; its 27 `currentlyMissingRouteIds` are reported `not-covered` |
@@ -118,10 +119,33 @@ pending gaps until the owner's 1.1.13 approval.
 The rolling baseline is the previous published stable release: the highest
 annotated `vX.Y.Z` tag below the candidate `VERSION` that has a complete,
 published GitHub Release. Its peeled commit must be an ancestor of the
-candidate commit. The release workflow confirms through GitHub that the
-Release is published and that no higher published stable release lies in
-between; a local run records the tag it was given. The declaration names the
-same tag and tag object.
+candidate commit. Before R-5, the commander supplies the file through
+`rolling --published-release-inventory FILE`, validated against
+`predecessor-published-release-inventory-v1.schema.json`. The comparator only
+reads duplicate-rejecting JSON; it never calls `gh` or accepts a token.
+The declaration names the same tag and tag object.
+
+The commander's GitHub App inventory producer must read every release page
+before filtering stable releases, state root `complete: true` and `pagesRead`,
+and verify each row's completeness before stating `complete: true`. It must
+not substitute a default result limit for complete enumeration or hide a newer
+stable release whose checks are incomplete. Credentials are removed before
+the wrapper ends and never enter the comparator process. Offline completeness
+is a producer statement with provenance; SHA-256 cannot prove that no page was
+omitted. Release-owner review checks the pagination and completeness evidence.
+
+The validator refuses a wrong repository, duplicate id or tag, a non-`vX.Y.Z`
+tag, missing publication time, draft or prerelease, `complete` other than true,
+and publication later than `collectedAtUtc`. Missing or invalid inventory in a
+formal run is `PREDECESSOR_BASELINE_INVALID`. Selection starts from the highest
+published stable version below the candidate, then requires that exact local
+annotated ancestor tag; a missing or invalid tag never falls back to an older
+release. A diagnostic run records the given tag without asserting publication.
+
+Rolling reports carry `publishedInventory: {rawSha256, factsSha256}`, which may
+be null only in diagnostic runs. `rawSha256` binds the complete file bytes;
+`factsSha256` is the JCS SHA-256 of `{repository, releases}`, with the complete
+release rows sorted by numeric version, excluding collection time and pagination.
 
 ### Inputs
 
@@ -208,9 +232,7 @@ under a separate, exact and reviewed transfer contract; there is no automatic
 fallback to any reduced comparison (board decision 58). Until the release
 workflow runs the comparison, the gate is procedural (board decision 61).
 
-The report does not bind a workflow run, attempt or artifact: two runs on the
-same source give the same `deterministicSha256`, which is what makes a report
-reproducible. The release-workflow integration (WS-GOV batch R-5) binds that
+Runs with identical source, admitted executors, inputs, disposition documents, published-release facts, settings facts and semantic results must reproduce deterministicSha256. The digest does not identify the complete serialized report or a workflow run. The release-workflow integration (WS-GOV batch R-5) binds that
 digest into its run-scoped evidence envelope together with the run, attempt
 and artifact identities. Until then the report alone cannot tell evidence of
 another run on the same source apart, and this format makes no claim to reject
@@ -240,6 +262,8 @@ absent before and after, no pending gap, no failure, no `invalid` scenario and
 a declaration entry for every scenario that is not `equal`.
 
 ## v0.9.16 1.x mode
+
+For candidate version 1.2.2, the report of record uses milestone "1.2.0-release-approval", the deferred milestone of 1.1.12 board decision 201 and 1.2.x board decision 250. The report must be formal and consistent before 1.2.2 is released; all existing plan and amendment obligations remain mandatory.
 
 The mode is a historical consumer of the ADR 0057 plan, as ADR 0057 permits.
 It materializes the plan's canonical input authority with the ADR 0057
@@ -519,8 +543,41 @@ JSON-derived digests use the RFC 8785 JCS rules of the ADR 0057 parity
 contract and its existing implementation (`canonical_json_sha256`).
 `rangeListSha256` is the JCS SHA-256 of the complete list of differing ranges
 in ascending order. Ledger, declaration, amendment and contract identities are
-SHA-256 values of the raw file bytes. `deterministicSha256` is the JCS SHA-256
-of the report without that member; timings are never part of the report.
+SHA-256 values of the raw file bytes.
+
+deterministicSha256 is the RFC 8785 SHA-256 of the report after removing only the members listed below. All other members, values and array order are retained. Excluded members remain required and validated run evidence; exclusion does not relax any execution or report check.
+
+The exact excluded JSON pointer patterns (`*` selects each array member) are
+also declared by `comparison.deterministicDigestExcludedPaths` in
+`predecessor-comparison-v1.json`:
+
+- `/deterministicSha256`
+- `/environment/temporaryRootLength`
+- `/scenarios/*/baseline/processes/*/stdoutSha256`
+- `/scenarios/*/baseline/processes/*/stderrSha256`
+- `/scenarios/*/baseline/processes/*/report/size`
+- `/scenarios/*/baseline/processes/*/report/sha256`
+- `/scenarios/*/candidate/processes/*/stdoutSha256`
+- `/scenarios/*/candidate/processes/*/stderrSha256`
+- `/scenarios/*/candidate/processes/*/report/size`
+- `/scenarios/*/candidate/processes/*/report/sha256`
+- `/routes/*/baseline/processes/*/stdoutSha256`
+- `/routes/*/baseline/processes/*/stderrSha256`
+- `/routes/*/baseline/processes/*/report/size`
+- `/routes/*/baseline/processes/*/report/sha256`
+- `/routes/*/candidate/processes/*/stdoutSha256`
+- `/routes/*/candidate/processes/*/stderrSha256`
+- `/routes/*/candidate/processes/*/report/size`
+- `/routes/*/candidate/processes/*/report/sha256`
+- `/gate/failures/*/detail`
+- `/failures/*/detail`
+- `/publishedInventory/rawSha256`
+
+Null sides and null process reports remain null. Report presence, reader version,
+unknown members, stage, exit code, timeout, input custody, issues, settings
+hashes, executor identity, output and precursor hashes, ranges, informational
+values, inventory facts, gate and result are retained. No general removal by
+member name is permitted.
 
 ## Interface status
 

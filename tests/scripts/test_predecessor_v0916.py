@@ -242,11 +242,13 @@ class V0916Tests(unittest.TestCase):
                 path.chmod(0o600)
         self.scratch.cleanup()
 
-    def run_world(self, mutations=None, *, git=None, formal=False, build=None):
+    def run_world(self, mutations=None, *, git=None, formal=False, build=None,
+                  host_factory=V0916Processes, temporary_name=None):
         git = git or V0916FakeGit(self.world)
-        host = V0916Processes(git, mutations)
+        host = host_factory(git, mutations)
         builder = build or BaselineBuilder()
         self.counter += 1
+        temporary = self.root / (temporary_name or f"run-{self.counter}")
         materialized = []
 
         def materialize(plan, *, git_reader, destination):
@@ -274,14 +276,14 @@ class V0916Tests(unittest.TestCase):
 
         def sources(*args, **kwargs):
             value = original(*args, **kwargs)
-            return value._replace(contract=contract_for_fake_processes(value.contract, self.root / f"run-{self.counter}"),
+            return value._replace(contract=contract_for_fake_processes(value.contract, temporary),
                                   authority=value.authority._replace(comparator_sha256="c" * 64))
 
         with (patch.object(milestone, "load_v0916_sources", side_effect=sources),
               patch.object(milestone, "execute_v0916_side", wraps=milestone.execute_v0916_side) as execute):
             report = milestone.run_v0916(git=git, host=host, baseline_builder=builder, candidate_commit=CANDIDATE,
                                           output_path=self.root / f"report-{self.counter}.json",
-                                          temporary_root=self.root / f"run-{self.counter}", settings_folder=self.settings,
+                                          temporary_root=temporary, settings_folder=self.settings,
                                           formal=formal, materializer=materialize, plan_loader=load_plan)
         self.executed = [(call.args[4].route_id, call.kwargs["side"]) for call in execute.call_args_list]
         self.assertEqual(1, len(materialized))
@@ -639,13 +641,49 @@ class V0916Tests(unittest.TestCase):
 
     def test_report_digest_and_exclusive_atomic_output(self):
         report, _, _, _ = self.run_world()
-        self.assertEqual(parity.canonical_json_sha256({key: value for key, value in report.items() if key != "deterministicSha256"}),
+        self.assertEqual(validation.deterministic_report_sha256(report),
                          report["deterministicSha256"])
         output = self.root / "report-1.json"
         before = output.read_bytes()
         with self.assertRaises(parity.ParityError):
             parity.write_json_exclusive_atomic(output, report)
         self.assertEqual(before, output.read_bytes())
+
+    def test_repeated_milestone_process_runs_reproduce_digest_with_different_capture_evidence(self):
+        class VaryingProcesses(V0916Processes):
+            run_number = 0
+
+            def __init__(self, *args):
+                super().__init__(*args)
+                type(self).run_number += 1
+                self.run_number = type(self).run_number
+
+            def respond(self, argv, cwd):
+                result = super().respond(argv, cwd)
+                if "--report" in argv:
+                    path = Path(argv[argv.index("--report") + 1])
+                    value = json.loads(path.read_bytes())
+                    value.update(RunId=f"00000000-0000-0000-0000-{self.run_number:012d}",
+                                 StartedAtUtc=f"2026-10-0{self.run_number}T00:00:00Z",
+                                 CompletedAtUtc=f"2026-10-0{self.run_number}T00:00:01Z")
+                    value["Inputs"][0]["OriginalFileName"] = str(cwd / "input.bin")
+                    path.write_bytes(encoded(value))
+                    return subprocess.CompletedProcess(argv, result.returncode, f"stdout {cwd}", f"stderr {path}")
+                return result
+
+        reports = [self.run_world(host_factory=VaryingProcesses, temporary_name=name)[0]
+                   for name in ("short", "longer-temporary-directory")]
+        first, second = reports
+        self.assertEqual("consistent", first["result"])
+        self.assertEqual("consistent", second["result"])
+        self.assertNotEqual(parity.canonical_json_sha256(first), parity.canonical_json_sha256(second))
+        self.assertNotEqual(first["environment"]["temporaryRootLength"], second["environment"]["temporaryRootLength"])
+        for side in ("baseline", "candidate"):
+            left, right = (r["routes"][0][side]["processes"][0] for r in reports)
+            for field in ("stdoutSha256", "stderrSha256", "report"):
+                self.assertNotEqual(left[field], right[field])
+            self.assertNotEqual(left["report"]["size"], right["report"]["size"])
+        self.assertEqual(first["deterministicSha256"], second["deterministicSha256"])
 
     def test_existing_output_refuses_before_v0916_cli_run_or_build(self):
         output = self.root / "existing.json"

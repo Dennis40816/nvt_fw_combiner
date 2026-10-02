@@ -123,9 +123,7 @@ The candidate output `1536d344…` is a historical observation, not formal
 evidence: the 1.1.12 local comparison recorded it for the intermediate source
 `badc545b0`, where the candidate admits the base as a Display-OSD envelope and
 writes the registered-Combiner output of the NT51951 2-IC route (the plan's
-NT51951 row names the same identity). The 1.1.13 milestone run must reproduce
-it on the exact candidate, and the firmware owner confirms the value, or a
-different one, at that run. The row is counted apart from equal and
+NT51951 row names the same identity). The deferred milestone run before the 1.2.2 release must reproduce it on the exact candidate; a different value requires a new firmware-owner decision. The row is counted apart from equal and
 different, says nothing about other NT51950 inputs or bindings, and is
 revisited at the 2.0.0 terminal rebinding. The rolling mode compares the same
 scenario normally.

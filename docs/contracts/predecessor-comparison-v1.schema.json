@@ -51,13 +51,14 @@
             "baseline": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["kind", "tagPattern", "annotatedTagRequired", "peeledCommitAncestorOfCandidate", "publishedReleaseVerifiedBy"],
+              "required": ["kind", "tagPattern", "annotatedTagRequired", "peeledCommitAncestorOfCandidate", "publishedReleaseVerifiedBy", "inventorySchema"],
               "properties": {
                 "kind": { "const": "previous-published-stable-release" },
                 "tagPattern": { "const": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
                 "annotatedTagRequired": { "const": true },
                 "peeledCommitAncestorOfCandidate": { "const": true },
-                "publishedReleaseVerifiedBy": { "const": "release-workflow" }
+                "publishedReleaseVerifiedBy": { "const": "commander-github-app-inventory" },
+                "inventorySchema": { "const": "docs/contracts/predecessor-published-release-inventory-v1.schema.json" }
               }
             },
             "inputAuthority": {
@@ -281,13 +282,14 @@
     "comparison": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outputAddressSpace", "rangeNotation", "sizeMismatch", "reportedRangeLimit", "rangeListDigest", "precursorBaseCompared"],
+      "required": ["outputAddressSpace", "rangeNotation", "sizeMismatch", "reportedRangeLimit", "rangeListDigest", "deterministicDigestExcludedPaths", "precursorBaseCompared"],
       "properties": {
         "outputAddressSpace": { "const": "output-file-offset" },
         "rangeNotation": { "const": "half-open" },
         "sizeMismatch": { "const": "bytes-beyond-the-shorter-output-differ" },
         "reportedRangeLimit": { "const": 32 },
         "rangeListDigest": { "const": "jcs-sha256" },
+        "deterministicDigestExcludedPaths": { "const": ["/deterministicSha256", "/environment/temporaryRootLength", "/scenarios/*/baseline/processes/*/stdoutSha256", "/scenarios/*/baseline/processes/*/stderrSha256", "/scenarios/*/baseline/processes/*/report/size", "/scenarios/*/baseline/processes/*/report/sha256", "/scenarios/*/candidate/processes/*/stdoutSha256", "/scenarios/*/candidate/processes/*/stderrSha256", "/scenarios/*/candidate/processes/*/report/size", "/scenarios/*/candidate/processes/*/report/sha256", "/routes/*/baseline/processes/*/stdoutSha256", "/routes/*/baseline/processes/*/stderrSha256", "/routes/*/baseline/processes/*/report/size", "/routes/*/baseline/processes/*/report/sha256", "/routes/*/candidate/processes/*/stdoutSha256", "/routes/*/candidate/processes/*/stderrSha256", "/routes/*/candidate/processes/*/report/size", "/routes/*/candidate/processes/*/report/sha256", "/gate/failures/*/detail", "/failures/*/detail", "/publishedInventory/rawSha256"] },
         "precursorBaseCompared": { "const": true }
       }
     },

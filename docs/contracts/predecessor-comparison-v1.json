@@ -11,7 +11,8 @@
         "tagPattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
         "annotatedTagRequired": true,
         "peeledCommitAncestorOfCandidate": true,
-        "publishedReleaseVerifiedBy": "release-workflow"
+        "publishedReleaseVerifiedBy": "commander-github-app-inventory",
+        "inventorySchema": "docs/contracts/predecessor-published-release-inventory-v1.schema.json"
       },
       "inputAuthority": {
         "kind": "active-canonical-golden-at-candidate-commit",
@@ -126,6 +127,29 @@
     "sizeMismatch": "bytes-beyond-the-shorter-output-differ",
     "reportedRangeLimit": 32,
     "rangeListDigest": "jcs-sha256",
+    "deterministicDigestExcludedPaths": [
+      "/deterministicSha256",
+      "/environment/temporaryRootLength",
+      "/scenarios/*/baseline/processes/*/stdoutSha256",
+      "/scenarios/*/baseline/processes/*/stderrSha256",
+      "/scenarios/*/baseline/processes/*/report/size",
+      "/scenarios/*/baseline/processes/*/report/sha256",
+      "/scenarios/*/candidate/processes/*/stdoutSha256",
+      "/scenarios/*/candidate/processes/*/stderrSha256",
+      "/scenarios/*/candidate/processes/*/report/size",
+      "/scenarios/*/candidate/processes/*/report/sha256",
+      "/routes/*/baseline/processes/*/stdoutSha256",
+      "/routes/*/baseline/processes/*/stderrSha256",
+      "/routes/*/baseline/processes/*/report/size",
+      "/routes/*/baseline/processes/*/report/sha256",
+      "/routes/*/candidate/processes/*/stdoutSha256",
+      "/routes/*/candidate/processes/*/stderrSha256",
+      "/routes/*/candidate/processes/*/report/size",
+      "/routes/*/candidate/processes/*/report/sha256",
+      "/gate/failures/*/detail",
+      "/failures/*/detail",
+      "/publishedInventory/rawSha256"
+    ],
     "precursorBaseCompared": true
   },
   "declarationEntryKinds": ["accepted-gap", "baseline-rejects", "both-reject", "byte-difference", "candidate-rejects", "input-revision", "scenario-retired"],
