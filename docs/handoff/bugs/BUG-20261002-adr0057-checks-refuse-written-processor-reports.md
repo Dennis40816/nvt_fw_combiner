@@ -59,3 +59,12 @@ output difference ranges against the Preview's allowed write ranges. Ten tests i
 The three NT51950 AB Merge scenarios stay `invalid` for another cause, recorded as
 `BUG-20261002-predecessor-work-space-processor-lists-no-output-difference`. Items 5 and 6 are not decided and not
 changed; in the v0.9.16 mode run `v0916-4` they leave 2 of 37 covered routes `invalid` and 35 `consistent`.
+
+Independent-review follow-up (2026-10-02, base `a3fb247bd`): `_written_command` coerced argument members to
+strings and admitted reserved device, response-file (`@`) and environment-expansion (`%`) tokens. The local
+correction requires a list of strings and refuses those tokens under `written_commands` only. Two new
+regression tests first failed on the base behavior and now pass, with ADR 0057 default acceptance/refusal
+characterization and staged-report refusals. Disposition: `extend-owner` in `_written_command`, called by the
+versioned report reader; no second command validator is added. The per-side contract now names both the shared
+ADR 0057 functions and the comparator's staged-command/write-audit functions in `predecessor_validation.py`.
+This uncommitted R3 follow-up still needs independent review and firmware-owner/release-owner integration gates.

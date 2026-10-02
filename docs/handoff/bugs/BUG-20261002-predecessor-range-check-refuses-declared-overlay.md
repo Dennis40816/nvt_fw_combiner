@@ -19,3 +19,12 @@ Resolution: fixed for the comparator in `8d2ae66d9`: `validate_semantic_report_r
 (default off, terminal behavior unchanged); with it only an operation that declares `ReplaceExisting` may overlap
 an earlier target of its address space. Two tests in `tests/scripts/test_predecessor_comparison.py`. The terminal
 default still refuses the overlay; that is part of `BUG-20261002-adr0057-checks-refuse-written-processor-reports`.
+
+Independent-review follow-up (2026-10-02, base `a3fb247bd`): the opt-in treated list position as "earlier"
+without checking `sequence`, and admitted `ReplaceExisting` with no earlier overlapping target, unlike
+`CompositionOperation.GetProfileOverlapError`. The local correction requires strictly increasing integer
+sequences and an earlier overlapping target in the same address space. Two new regression tests first failed
+on the base behavior and now pass, including default-path acceptance of non-overlapping targets and refusal
+of overlapping targets. Disposition: `extend-owner` in `validate_semantic_report_ranges`; the terminal default
+and product firmware execution are unchanged. This uncommitted R3 follow-up still needs independent review
+and firmware-owner/release-owner integration gates.

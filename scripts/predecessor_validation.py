@@ -151,7 +151,7 @@ def execution_mode_failures(contract: Mapping[str, Any], mode: str) -> list[Fail
 
 
 def executor_compiler_host_failures(compiler_host: Mapping[str, Any]) -> list[Failure]:
-    """Admit the complete closed decision-79 settings, never status alone."""
+    """Admit the closed compiler-host settings, including the pending decision-79 extension, never status alone."""
     if compiler_host.get("status") != "in-effect":
         return []
     required = compiler_host.get("requiredRuntime")

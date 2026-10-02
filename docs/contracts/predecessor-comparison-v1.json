@@ -115,9 +115,9 @@
     "customSettingsRuns": "diagnostic-only"
   },
   "perSideSafety": {
-    "owner": "scripts/v0916_parity_certification.py",
+    "owner": ["scripts/v0916_parity_certification.py", "scripts/predecessor_validation.py"],
     "authorityProducer": "typed-preview-of-the-same-executor-and-staged-inputs",
-    "checks": ["validate_report_sequence", "validate_report_projection_against_compiled_authority", "validate_semantic_report_ranges"],
+    "checks": ["validate_report_sequence", "validate_report_projection_against_compiled_authority", "validate_semantic_report_ranges", "_executed_command_failures", "_processor_write_audit_failures"],
     "readerMayRelaxChecks": false,
     "writtenReportRules": {
       "boardDecision": "1.2.x board decision 261",
