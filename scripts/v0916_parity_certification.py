@@ -3345,12 +3345,12 @@ def _non_overlapping(ranges: Sequence[tuple[int, int]]) -> bool:
     return all(left[1] <= right[0] for left, right in zip(ordered, ordered[1:]))
 
 
-def _overlaps_earlier_target(
+def _invalid_declared_overlap(
     operation: Mapping[str, Any], target: tuple[int, int], earlier: Sequence[tuple[int, int]],
 ) -> bool:
-    """Only an operation that declares `ReplaceExisting` may write over an earlier target of its address space."""
-    return (operation.get("overlapPolicy") != "ReplaceExisting"
-            and any(target[0] < row[1] and row[0] < target[1] for row in earlier))
+    """`ReplaceExisting` requires an earlier target in its address space; other policies must not overlap."""
+    overlaps = any(target[0] < row[1] and row[0] < target[1] for row in earlier)
+    return overlaps != (operation.get("overlapPolicy") == "ReplaceExisting")
 
 
 def validate_semantic_report_ranges(
@@ -3363,7 +3363,8 @@ def validate_semantic_report_ranges(
     By default (the terminal path, unchanged) no two operation targets may intersect. A written
     report overlays ranges on purpose: an operation whose overlap policy is `ReplaceExisting`
     writes over an earlier target. With `declared_overlap`, targets are compared inside their own
-    address space, in operation order, and only such an operation may overlap an earlier target.
+    address space, in strictly increasing integer sequence order, and such an operation must
+    overlap an earlier target; no other operation may do so.
 
     `declared_work_ranges` names the address spaces without a measured capacity and the ranges
     the authority declared in each; a range in such a space must lie inside one of them.
@@ -3378,11 +3379,17 @@ def validate_semantic_report_ranges(
         target_ranges: list[tuple[int, int]] = []
         targets_by_space: dict[str, list[tuple[int, int]]] = {}
         by_id: dict[str, tuple[Mapping[str, Any], tuple[int, int]]] = {}
+        previous_sequence: int | None = None
         for operation in operations:
+            if declared_overlap:
+                sequence = operation.get("sequence")
+                if type(sequence) is not int or (previous_sequence is not None and sequence <= previous_sequence):
+                    _fail("PARITY_REPORT_RANGE_INVALID")
+                previous_sequence = sequence
             target = _range(operation["targetRange"], expected_space=operation["targetSpaceId"], capacities=capacities, declared=declared_work_ranges)
             target_ranges.append(target)
             earlier = targets_by_space.setdefault(operation["targetSpaceId"], [])
-            if declared_overlap and _overlaps_earlier_target(operation, target, earlier):
+            if declared_overlap and _invalid_declared_overlap(operation, target, earlier):
                 _fail("PARITY_REPORT_RANGE_INVALID")
             earlier.append(target)
             source = operation.get("sourceRange")
@@ -3463,19 +3470,26 @@ def _written_command(sequence: int, command: Mapping[str, Any]) -> dict[str, Any
     The executable lies below a directory named `external-tools` and is identified from that
     component; every absolute argument lies in the working directory or below it; no path steps
     back with `..`. An argument that is not an absolute path is a plain token: one that could
-    name a file elsewhere (a path separator, a drive colon, `.` or `..`) is refused. Whether the
+    name a file elsewhere (a path separator, a drive colon, `.` or `..`, a reserved device name,
+    a leading `@` or any `%`) is refused. Arguments must be a list of strings. Whether the
     executable is a tool the caller staged is the caller's check.
     """
     executable = Path(command["ExecutablePath"])
     working = Path(command["WorkingDirectory"])
-    arguments = [str(value) for value in command["Arguments"]]
+    arguments = command["Arguments"]
+    if not isinstance(arguments, list) or any(not isinstance(value, str) for value in arguments):
+        _fail("PARITY_PROVENANCE_INVALID")
     argument_paths = [Path(value) for value in arguments if Path(value).is_absolute()]
     tokens = [value for value in arguments if not Path(value).is_absolute()]
     parents = executable.parts[:-1]
     if (not arguments or not executable.is_absolute() or not working.is_absolute() or "external-tools" not in parents
             or any(".." in path.parts for path in (executable, working, *argument_paths))
             or any(not path.is_relative_to(working) for path in argument_paths)
-            or any(value in (".", "..") or any(mark in value for mark in ("/", "\\", ":")) for value in tokens)):
+            or any(value in (".", "..") or value.startswith("@") or "%" in value
+                   or any(mark in value for mark in ("/", "\\", ":"))
+                   or re.fullmatch(r"CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9¹²³]|LPT[1-9¹²³]",
+                                   value.split(".", 1)[0].rstrip(" "), re.IGNORECASE)
+                   for value in tokens)):
         _fail("PARITY_PROVENANCE_INVALID")
     index = len(parents) - 1 - parents[::-1].index("external-tools")
     package_root = Path(*executable.parts[:index])

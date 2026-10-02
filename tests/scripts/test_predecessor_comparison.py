@@ -396,14 +396,14 @@ class ComparisonTests(unittest.TestCase):
                 self.assertEqual("invalid", result.side["status"])
                 self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
 
-    def test_safety_owners_are_called_unchanged_in_contract_order(self):
+    def test_shared_safety_owners_are_called_unchanged_in_contract_order(self):
         calls = []
         def invoke(name, owner):
             def wrapped(*args, **kwargs):
                 calls.append(name)
                 return owner(*args, **kwargs)
             return wrapped
-        names = self.contract["perSideSafety"]["checks"]
+        names = self.contract["perSideSafety"]["checks"][:3]
         from scripts import predecessor_validation as validation
         with patch.object(validation, names[0], invoke(names[0], parity.validate_report_sequence)), \
              patch.object(validation, names[1], invoke(names[1], parity.validate_report_projection_against_compiled_authority)), \
@@ -569,6 +569,51 @@ class ComparisonTests(unittest.TestCase):
         parity.validate_semantic_report_ranges(spaces, capacities, declared_overlap=True)
         with self.assertRaises(parity.ParityError):
             parity.validate_semantic_report_ranges(spaces, capacities)
+
+    def test_declared_overlap_requires_strictly_increasing_integer_sequences(self):
+        capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}
+        for sequences in ((200, 100), (100, 100), (True, 200), (100, "200"), (100, None)):
+            with self.subTest(sequences=sequences):
+                raw = merge_report(committed=False, overlay=True)
+                for operation, sequence in zip(raw["Operations"], sequences):
+                    operation["Sequence"] = sequence
+                projection = comparison.read_cli_report(raw, report_version="1x").projection
+                with self.assertRaises(parity.ParityError) as found:
+                    parity.validate_semantic_report_ranges(projection, capacities, declared_overlap=True)
+                self.assertEqual("PARITY_REPORT_RANGE_INVALID", found.exception.code)
+                # The default still refuses every target overlap, independently of sequence.
+                with self.assertRaises(parity.ParityError):
+                    parity.validate_semantic_report_ranges(projection, capacities)
+                plain = comparison.read_cli_report(merge_report(committed=False), report_version="1x").projection
+                for operation, sequence in zip(plain["compiledOperations"], sequences):
+                    operation["sequence"] = sequence
+                parity.validate_semantic_report_ranges(plain, capacities)
+
+        raw = merge_report(committed=False, overlay=True)
+        raw["Operations"][0]["Sequence"], raw["Operations"][1]["Sequence"] = 200, 100
+        self.assert_refused(self.merge_side([self.merge_capture("preview", raw)]),
+                            "preview", "PARITY_REPORT_RANGE_INVALID")
+
+    def test_declared_replace_existing_requires_an_earlier_target_in_its_space(self):
+        capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8, "work": 8}
+        for first, other_space in ((True, False), (False, False), (False, True)):
+            with self.subTest(first=first, other_space=other_space):
+                projection = comparison.read_cli_report(merge_report(committed=False), report_version="1x").projection
+                operation = projection["compiledOperations"][0 if first else 1]
+                operation["overlapPolicy"] = "ReplaceExisting"
+                if other_space:
+                    operation.update(targetSpaceId="work", targetRange={**operation["targetRange"], "addressSpace": "work"})
+                    mutation = projection["compiledMutations"][1]
+                    mutation.update(targetSpaceId="work", targetRange={**mutation["targetRange"], "addressSpace": "work"})
+                with self.assertRaises(parity.ParityError) as found:
+                    parity.validate_semantic_report_ranges(projection, capacities, declared_overlap=True)
+                self.assertEqual("PARITY_REPORT_RANGE_INVALID", found.exception.code)
+                parity.validate_semantic_report_ranges(projection, capacities)
+
+        raw = merge_report(committed=False)
+        raw["Operations"][1]["OverlapPolicy"] = "ReplaceExisting"
+        self.assert_refused(self.merge_side([self.merge_capture("preview", raw)]),
+                            "preview", "PARITY_REPORT_RANGE_INVALID")
 
     def test_described_output_without_a_file_needs_committed_false(self):
         capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}
@@ -1186,6 +1231,61 @@ class ComparisonTests(unittest.TestCase):
             with self.subTest(change=change.__name__):
                 _, result = self.processor_side(change)
                 self.assert_refused(result, "preview", "executed command worked outside the process temporary directory")
+
+    def test_written_command_arguments_require_a_list_of_strings_only_when_opted_in(self):
+        raw = written_1x_processor_report(
+            committed=False, tool=self.root / "external-tools" / "tool.exe", working=self.root / "work",
+            base_sha256="a" * 64, replacement_sha256="b" * 64, output_sha256="c" * 64)["Operations"][1]
+        raw["ExecutedCommands"] = raw["ExecutedCommands"][-1:]
+        for arguments in ("abc", 7, None, [7], [None], ("CRC8",)):
+            with self.subTest(arguments=arguments):
+                raw["ExecutedCommands"][0]["Arguments"] = arguments
+                with self.assertRaises(parity.ParityError) as found:
+                    parity.normalize_raw_operation(raw, written_commands=True)
+                self.assertEqual("PARITY_PROVENANCE_INVALID", found.exception.code)
+                if arguments is None or arguments == 7:
+                    with self.assertRaises(TypeError):
+                        parity.normalize_raw_operation(raw)
+                else:
+                    parity.normalize_raw_operation(raw)
+                if isinstance(arguments, tuple):
+                    # JSON serializes a tuple as an array, so only the direct API can see this shape.
+                    continue
+
+                def change(report, staging, temporary, working):
+                    report["Operations"][1]["ExecutedCommands"][2]["Arguments"] = arguments
+
+                _, result = self.processor_side(change, stages=("preview",))
+                self.assert_refused(result, "preview", "written report format invalid")
+
+    def test_written_command_refuses_device_response_and_environment_tokens_only_when_opted_in(self):
+        raw = written_1x_processor_report(
+            committed=False, tool=self.root / "external-tools" / "tool.exe", working=self.root / "work",
+            base_sha256="a" * 64, replacement_sha256="b" * 64, output_sha256="c" * 64)["Operations"][1]
+        raw["ExecutedCommands"] = raw["ExecutedCommands"][-1:]
+        devices = ("NUL", "CON", "PRN", "AUX", "CONIN$", "CONOUT$",
+                   *(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "123456789¹²³"))
+        refused = [token for device in devices for token in (device, device.lower() + ".bin")]
+        refused += ["@rsp", "@", "%USERPROFILE%", "prefix%variable%suffix"]
+        for token in refused:
+            with self.subTest(token=token):
+                raw["ExecutedCommands"][0]["Arguments"] = [token]
+                with self.assertRaises(parity.ParityError) as found:
+                    parity.normalize_raw_operation(raw, written_commands=True)
+                self.assertEqual("PARITY_PROVENANCE_INVALID", found.exception.code)
+                parity.normalize_raw_operation(raw)
+        for token in ("CRC8", "COM0", "COM10", "LPT0", "LPT10", "CONSOLE", "NULish.bin", "name@value"):
+            with self.subTest(ordinary=token):
+                raw["ExecutedCommands"][0]["Arguments"] = [token]
+                self.assertEqual(parity.normalize_raw_operation(raw),
+                                 parity.normalize_raw_operation(raw, written_commands=True))
+        for token in ("NUL", "con.bin", "COM1", "@rsp", "%USERPROFILE%"):
+            with self.subTest(report_token=token):
+                def change(report, staging, temporary, working):
+                    report["Operations"][1]["ExecutedCommands"][2]["Arguments"] = [token]
+
+                _, result = self.processor_side(change, stages=("preview",))
+                self.assert_refused(result, "preview", "written report format invalid")
 
     def test_build_commands_are_compared_with_the_preview_in_order(self):
         def reorder(raw, staging, temporary, working):

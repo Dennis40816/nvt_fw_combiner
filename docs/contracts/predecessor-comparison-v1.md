@@ -335,6 +335,9 @@ same host's `x64` architecture. Restore/build alone receive
 `DOTNET_ROLL_FORWARD=Disable`; build appends `-p:UseSharedCompilation=false`
 and `-nodeReuse:false` and `-p:RuntimeFrameworkVersion=10.0.11` once; the
 `RuntimeFrameworkVersion` value must equal `compilerHost.requiredRuntime.version`.
+The `-p:RuntimeFrameworkVersion=10.0.11` argument is an extension of decision
+79 that waits for the release owner's decision. `compilerHost.boardDecisions`
+records the decision-79 compiler-host pinning; it does not authorize this extension.
 Every path restores the previous environment.
 Missing runtime or a wrong architecture refuses with
 `PREDECESSOR_EXECUTOR_INVALID`, without installing or selecting another host.
@@ -373,10 +376,12 @@ This R3 activation requires the firmware owner and the release owner's
 exact-head approval of the last push, with byte/Golden, write-range and
 release-policy evidence. R35-09 rehearses actual builds before formal reports.
 
-The 1.x identity is measured; the v0.9.16 v2 identity is pinned in its contract. From 1.1.14 on, the rebuilt
-rolling baseline identity is also compared with the candidate identity that
-the baseline release's own report recorded; a mismatch is reported, and
-becomes a failure once local and hosted builds are shown to match.
+The 1.x identity is measured; the v0.9.16 v2 identity is pinned in its contract.
+**Not implemented yet:** comparing the rebuilt rolling baseline identity with
+the candidate identity recorded in the baseline release's own report, reporting
+a mismatch, and making it a failure once local and hosted builds are shown to
+match. No delivery item in the [1.2.2 handoff](../handoff/1.2.2/README.md)
+explicitly owns this follow-up.
 
 | Contract `recordedIdentity` | Report `executor` member | Value |
 | --- | --- | --- |
@@ -456,8 +461,11 @@ present and `PREDECESSOR_PROCESS_FAILED` otherwise.
 ### Per-side execution safety
 
 Each side must pass per-side execution safety before its result counts. The
-owners are the ADR 0057 functions in `scripts/v0916_parity_certification.py`,
-reused without a second implementation:
+owners of the shared sequence, compiled-authority and range checks are the ADR
+0057 functions in `scripts/v0916_parity_certification.py`, reused without a
+second implementation. The comparator's staged-command identity check
+(`_executed_command_failures`, item 4) and processor write-range audit
+(`_processor_write_audit_failures`, item 5) live in `scripts/predecessor_validation.py`:
 
 1. **Independent compiled authority.** A typed Preview of the same executor
    with the same staged inputs and arguments produces the compiled operations
@@ -479,10 +487,11 @@ reused without a second implementation:
    range is half-open, inside its address space's capacity and contained in
    its operation, and that a processor's read ranges and its write ranges do
    not overlap among themselves. Operation targets are compared inside their
-   own address space, in operation order: a target may overlap an earlier
+   own address space, in strictly increasing integer `sequence` order: a target may overlap an earlier
    target only when its operation declares the `ReplaceExisting` overlap
    policy, as a map does when it copies the DP container and writes the TP
-   over part of it. Any other overlap is refused. The comparator asks for
+   over part of it. `ReplaceExisting` with no earlier overlapping target in
+   that address space is refused, as is any other overlap. The comparator asks for
    this rule with the function's `declared_overlap` option; the ADR 0057
    terminal path keeps its default, which refuses every overlap.
 
@@ -508,9 +517,11 @@ reused without a second implementation:
    is not trusted. Its working directory must lie below the temporary
    directory the comparator created for the process. Its file arguments
    (the absolute paths among its arguments) must lie in the working directory
-   or below it, and no path may step back with `..`. Any other argument is a
+   or below it, and no path may step back with `..`. `Arguments` must be a list
+   of strings. Any other argument is a
    plain token: one that could name a file elsewhere (a path separator, a
-   drive colon, `.` or `..`) is refused. A repeated command is
+   drive colon, `.` or `..`, a reserved device name with or without an
+   extension in any case, a leading `@`, or any `%`) is refused. A repeated command is
    kept, and the Build's commands are compared with the Preview's in the
    order they appear. A processor operation without an executed command is
    still refused.
@@ -525,6 +536,15 @@ reused without a second implementation:
    that changed bytes in another address space, whose changes the output
    differences cannot show. The comparator computes no byte difference of its
    own for this audit.
+
+   **Current refusal is stricter than decision 261:** the audit holds every
+   `OutputDifferences` row to processor write ranges, including a non-processor
+   row such as `DeclaredReplacement`. It does not filter rows by their producer.
+   The product's `CompositionRunService.CreateOutputDifferences` returns an
+   empty list for every Merge and whenever output and reference lengths differ.
+   The open work-space-processor evidence question therefore extends beyond
+   NT51950, and these refusals remain until the firmware owner decides it
+   ([bug record](../handoff/bugs/BUG-20261002-predecessor-work-space-processor-lists-no-output-difference.md)).
 
 A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's

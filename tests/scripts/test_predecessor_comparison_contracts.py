@@ -164,17 +164,24 @@ class PredecessorComparisonContractTests(unittest.TestCase):
 
     def test_per_side_safety_names_the_shared_owners(self) -> None:
         safety = self.contract["perSideSafety"]
-        self.assertEqual("scripts/v0916_parity_certification.py", safety["owner"])
+        owners = {"scripts/v0916_parity_certification.py": MODULE,
+                  "scripts/predecessor_validation.py": validation}
+        self.assertEqual(list(owners), safety["owner"])
         self.assertIn("validate_report_projection_against_compiled_authority", safety["checks"])
         for name in safety["checks"]:
             with self.subTest(check=name):
-                self.assertTrue(callable(getattr(MODULE, name, None)))
+                owner = validation if name in ("_executed_command_failures", "_processor_write_audit_failures") else MODULE
+                self.assertTrue(callable(getattr(owner, name, None)))
+        self.assertIn("_executed_command_failures", safety["checks"])
+        self.assertIn("_processor_write_audit_failures", safety["checks"])
         self.assertFalse(safety["readerMayRelaxChecks"])
         rules = safety["writtenReportRules"]
         self.assertEqual(sorted(validation.WORK_ADDRESS_SPACES), rules["workAddressSpaces"])
         self.assertEqual(validation.OUTPUT_ADDRESS_SPACE, rules["processorWriteAudit"]["addressSpace"])
         self.assertIs(False, rules["processorWriteAudit"]["contentPreviewsRead"])
         schema = load_json(CONTRACTS / "predecessor-comparison-v1.schema.json")
+        for member in ("owner", "checks"):
+            self.assertEqual(safety[member], schema["properties"]["perSideSafety"]["properties"][member]["const"])
         self.assertEqual(rules, schema["properties"]["perSideSafety"]["properties"]["writtenReportRules"]["const"])
         for name in ("declarationSchema", "reportSchema", "reportReader"):
             self.assertEqual("in-effect", self.contract["interfaces"][name]["status"])

@@ -13,6 +13,14 @@ difference at all: `OutputDifferences` is empty in Preview and Build, on `v0.9.1
 candidate. Decision 261 audits the ranges listed under the output differences, so the audit has nothing to read, and
 the comparator refuses the report with `processor changed bytes without a listed output difference`
 (`PREDECESSOR_REPORT_INVALID`). A CtrlRAM Replace report lists its processor's changed ranges and passes the audit.
+Scope clarification from the independent review of `a3fb247bd` (2026-10-02):
+`CompositionRunService.CreateOutputDifferences` in
+`src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferences.cs` returns an empty list for
+every Merge and whenever output and reference lengths differ. The evidence gap is therefore not limited to
+the observed NT51950 routes. Also, `_processor_write_audit_failures` confines every listed output difference
+to processor write ranges, including non-processor rows such as `DeclaredReplacement`; it does not filter by
+producer. This is stricter than decision 261. Both current refusals are retained; this clarification does not
+decide how to admit missing work-space evidence or non-processor differences.
 Expected: every external processor's writes are held to the write ranges the Preview allows, per
 `docs/contracts/predecessor-comparison-v1.md` ("Per-side execution safety", item 5). For a processor that writes a
 work address space the contract names no source for that audit, so the rule needs a decision; the refusal was kept.
