@@ -320,7 +320,11 @@ in a fresh detached Git worktree. The 1.x recipe is the locked restore and
 Release build of `predecessor-comparison-v1.json` (with
 `ContinuousIntegrationBuild` and `PathMap`). A pre-existing `bin` or `obj`
 path, a dirty tree, a restore that rewrites a lock file, or a failed build is
-`PREDECESSOR_EXECUTOR_INVALID`. The CLI apphost hash alone never identifies an
+`PREDECESSOR_EXECUTOR_INVALID`. The source's own `NuGet.config` puts the
+restored packages in the top-level folder `.packages` of the worktree, which
+Git ignores (`executor.restorePackageFolder`). That folder must be absent
+before restore; its files are restore products, identified by the lock bytes,
+and are not source files of the v0.9.16 source comparison below. The CLI apphost hash alone never identifies an
 executor; the runtime-closure digest does.
 
 Compiler-host pinning and [baseline executor v2](v0916-baseline-executor-v2.md)

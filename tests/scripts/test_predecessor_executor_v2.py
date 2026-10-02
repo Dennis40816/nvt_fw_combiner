@@ -269,6 +269,14 @@ class BaselineBuilderTests(unittest.TestCase):
             if argv == ["dotnet", "--info"]:
                 return subprocess.CompletedProcess(argv, 0, HOST_INFO.replace("x64", "arm64") if fault == "architecture" else HOST_INFO, "")
             if argv[1] == "restore":
+                # A real restore fills the package folder that the source's NuGet.config names.
+                package = cwd / ".packages" / "synthetic" / "1.0.0" / "synthetic.nupkg"
+                package.parent.mkdir(parents=True, exist_ok=True)
+                package.write_bytes(b"restored package")
+                if fault == "nested-package-folder":
+                    nested = cwd / "src" / ".packages" / "unauthorized.nupkg"
+                    nested.parent.mkdir(parents=True)
+                    nested.write_bytes(b"not the restore's package folder")
                 for path, payload in git.rewritten.items():
                     (cwd / path).write_bytes(payload)
                 if fault == "restore-lock":
@@ -324,7 +332,8 @@ class BaselineBuilderTests(unittest.TestCase):
 
     def test_baseline_refuses_source_sdk_lock_process_and_identity_drift(self):
         cases = ("tag", "commit", "tree", "dirty", "bin", "obj", "blob-pin", "sdk", "runtime", "architecture",
-                 "restore", "build", "restore-lock", "eighth-change", "new-file", "ignored-new-file", "build-lock", "assembly", "cli",
+                 "restore", "build", "restore-lock", "eighth-change", "new-file", "ignored-new-file", "nested-package-folder",
+                 "package-folder-before-restore", "build-lock", "assembly", "cli",
                  "closure", "pdb-other", "pdb-missing", "pdb-mixed", "empty-graph")
         for fault in cases:
             with self.subTest(fault=fault):
@@ -342,6 +351,8 @@ class BaselineBuilderTests(unittest.TestCase):
                     git.paths = ["src/project/" + fault + "/pre-existing"]
                 elif fault == "blob-pin":
                     record["externalTools"][0]["sha256"] = "0" * 64
+                elif fault == "package-folder-before-restore":
+                    git.files[".packages/synthetic/0.9.0/earlier.nupkg"] = b"present before restore"
                 with self.assertRaises(execution.ExecutionError) as found:
                     execution.V0916BaselineExecutorBuilder().build(git, runner, commit, record)
                 self.assertEqual("PREDECESSOR_BASELINE_INVALID" if fault in ("tag", "commit") else "PREDECESSOR_EXECUTOR_INVALID", found.exception.code)

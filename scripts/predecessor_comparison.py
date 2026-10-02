@@ -494,10 +494,15 @@ def _lock_snapshot(root: Path, expected: Mapping[str, bytes]) -> dict[str, bytes
     return {path: (root / path).read_bytes() if (root / path).exists() else None for path in expected}
 
 
-def _source_inventory(root: Path, build_segments: Sequence[str]) -> dict[str, Any]:
-    """Include ignored source files too; only bin/obj products are excluded."""
+def _source_inventory(root: Path, build_segments: Sequence[str], package_folder: str) -> dict[str, Any]:
+    """Include ignored source files too; only bin/obj products and the restore's package folder are excluded.
+
+    The source's own `NuGet.config` puts the restored packages in a top-level folder of the worktree. They
+    are restore products, identified by the lock bytes the caller pins, not source files.
+    """
     return {path.relative_to(root).as_posix(): _file_identity(path) for path in root.rglob("*")
-            if path.is_file() and not set(path.relative_to(root).parts) & set(build_segments)}
+            if path.is_file() and not set(path.relative_to(root).parts) & set(build_segments)
+            and path.relative_to(root).parts[0] != package_folder}
 
 
 @contextmanager
@@ -663,6 +668,8 @@ def _build_executor(
                 build_paths=[*git.git_ignored_build_paths(source), *build_paths], tracked_paths=paths,
                 forbidden_segments=recipe["forbiddenPreRestorePathSegments"],
             ))
+            if (source / recipe["restorePackageFolder"]).exists():
+                raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "package folder exists before restore")
             # Require the SDK source in this Git snapshot. dotnet --version
             # resolves it inside the clean worktree. Only lock files have the
             # contract's stricter blob-byte check (checkout EOLs may differ).
@@ -670,7 +677,8 @@ def _build_executor(
             _refuse(validation.executor_lock_failures(locks, _lock_snapshot(source, locks), commit))
             original_files = None
             if baseline is not None:
-                original_files = _source_inventory(source, recipe["forbiddenPreRestorePathSegments"])
+                original_files = _source_inventory(source, recipe["forbiddenPreRestorePathSegments"],
+                                                   recipe["restorePackageFolder"])
                 _require_artifacts(source, [baseline["toolchain"]["globalJson"], *baseline["externalTools"]])
                 if git.git_tree(source) != baseline["source"]["sourceTree"]:
                     raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "baseline source tree differs")
@@ -698,7 +706,8 @@ def _build_executor(
                         _lock_snapshot(source, {path: payload for path, payload in locks.items() if path not in rewrites}), commit))
                     # Raw snapshot catches changes even when Git's EOL filter
                     # hides them; porcelain catches new unauthorized files.
-                    current_files = _source_inventory(source, recipe["forbiddenPreRestorePathSegments"])
+                    current_files = _source_inventory(source, recipe["forbiddenPreRestorePathSegments"],
+                                                      recipe["restorePackageFolder"])
                     changed = {path for path in original_files.keys() | current_files.keys()
                                if current_files.get(path) != original_files.get(path)}
                     if changed != rewrites:
