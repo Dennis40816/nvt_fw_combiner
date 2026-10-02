@@ -64,8 +64,23 @@
       "arguments": ["dotnet", "build", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--configuration", "Release", "--runtime", "win-x64", "--self-contained", "true", "--no-restore", "-m:1", "-p:ContinuousIntegrationBuild=true", "-p:PathMap={sourceRoot}=/_/src"]
     },
     "compilerHost": {
-      "status": "pending-executor-record",
-      "boardDecisions": ["1.1.12 board decision 79"]
+      "status": "in-effect",
+      "boardDecisions": ["1.1.12 board decision 79"],
+      "requiredRuntime": {
+        "framework": "Microsoft.NETCore.App",
+        "version": "10.0.11",
+        "architecture": "x64"
+      },
+      "environmentVariables": {
+        "DOTNET_ROLL_FORWARD": "Disable"
+      },
+      "extraBuildArguments": ["-p:UseSharedCompilation=false", "-nodeReuse:false"],
+      "missingRuntimePolicy": "refuse",
+      "verification": {
+        "kind": "embedded-portable-pdb",
+        "scope": "first-party-cli-project-graph",
+        "runtimeVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"
+      }
     },
     "cliAssembly": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe",
     "runtimeClosureRoot": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
@@ -80,7 +95,7 @@
     },
     "identityPinnedInAdvance": false,
     "authorityTrees": ["external-tools", "profiles", "src", "tools/crc-worker"],
-    "recordedIdentity": ["authorityTrees", "cliSha256", "commit", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
+    "recordedIdentity": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
   },
   "environment": {
     "perProcessTemporaryDirectories": true,

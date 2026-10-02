@@ -161,13 +161,7 @@
         "restore": { "$ref": "#/$defs/command" },
         "build": { "$ref": "#/$defs/command" },
         "compilerHost": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["status", "boardDecisions"],
-          "properties": {
-            "status": { "enum": ["pending-executor-record"] },
-            "boardDecisions": { "const": ["1.1.12 board decision 79"] }
-          }
+          "$ref": "#/$defs/compilerHost"
         },
         "cliAssembly": { "type": "string", "pattern": "^src/NvtFwCombiner\\.Cli/bin/Release/[a-z0-9.]+/win-x64/NvtFwCombiner\\.Cli\\.exe$" },
         "runtimeClosureRoot": { "type": "string", "pattern": "^src/NvtFwCombiner\\.Cli/bin/Release/[a-z0-9.]+/win-x64$" },
@@ -188,7 +182,7 @@
         "identityPinnedInAdvance": { "const": false },
         "authorityTrees": { "const": ["external-tools", "profiles", "src", "tools/crc-worker"] },
         "recordedIdentity": {
-          "const": ["authorityTrees", "cliSha256", "commit", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
+          "const": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
         }
       }
     },
@@ -333,6 +327,114 @@
           "items": { "type": "string", "minLength": 1 }
         }
       }
+    },
+    "compilerHost": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "boardDecisions"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending-executor-record"
+              ]
+            },
+            "boardDecisions": {
+              "const": [
+                "1.1.12 board decision 79"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "boardDecisions",
+            "requiredRuntime",
+            "environmentVariables",
+            "extraBuildArguments",
+            "missingRuntimePolicy",
+            "verification"
+          ],
+          "properties": {
+            "status": {
+              "const": "in-effect"
+            },
+            "boardDecisions": {
+              "const": [
+                "1.1.12 board decision 79"
+              ]
+            },
+            "requiredRuntime": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "framework",
+                "version",
+                "architecture"
+              ],
+              "properties": {
+                "framework": {
+                  "const": "Microsoft.NETCore.App"
+                },
+                "version": {
+                  "const": "10.0.11"
+                },
+                "architecture": {
+                  "const": "x64"
+                }
+              }
+            },
+            "environmentVariables": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "DOTNET_ROLL_FORWARD"
+              ],
+              "properties": {
+                "DOTNET_ROLL_FORWARD": {
+                  "const": "Disable"
+                }
+              }
+            },
+            "extraBuildArguments": {
+              "const": [
+                "-p:UseSharedCompilation=false",
+                "-nodeReuse:false"
+              ]
+            },
+            "missingRuntimePolicy": {
+              "const": "refuse"
+            },
+            "verification": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "scope",
+                "runtimeVersion"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "embedded-portable-pdb"
+                },
+                "scope": {
+                  "const": "first-party-cli-project-graph"
+                },
+                "runtimeVersion": {
+                  "const": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

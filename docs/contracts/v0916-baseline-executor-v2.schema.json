@@ -1,0 +1,430 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/v0916-baseline-executor-v2.schema.json",
+  "title": "Exact-tag v0.9.16 baseline executor v2 for predecessor comparison",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "source",
+    "toolchain",
+    "lockFiles",
+    "externalTools",
+    "restore",
+    "build",
+    "cliAssembly",
+    "runtimeClosure",
+    "certification",
+    "terminal",
+    "materialization",
+    "platform",
+    "compilerHost",
+    "managedAssemblies",
+    "lockFileRewrites",
+    "lockFileDiff",
+    "v1Relation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "2.0"
+    },
+    "kind": {
+      "const": "exact-tag-source-built-cli"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tag",
+        "tagObject",
+        "peeledCommit",
+        "sourceTree",
+        "cleanTreeRequired"
+      ],
+      "properties": {
+        "tag": {
+          "const": "v0.9.16"
+        },
+        "tagObject": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "peeledCommit": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "sourceTree": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "cleanTreeRequired": {
+          "const": true
+        }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resolvedSdkVersion",
+        "globalJson"
+      ],
+      "properties": {
+        "resolvedSdkVersion": {
+          "const": "10.0.303"
+        },
+        "globalJson": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    },
+    "lockFiles": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "externalTools": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "restore": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/command"
+        },
+        {
+          "properties": {
+            "arguments": {
+              "const": [
+                "dotnet",
+                "restore",
+                "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+                "--force-evaluate",
+                "--runtime",
+                "win-x64"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "build": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/command"
+        },
+        {
+          "properties": {
+            "arguments": {
+              "const": [
+                "dotnet",
+                "build",
+                "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+                "--configuration",
+                "Release",
+                "--runtime",
+                "win-x64",
+                "--self-contained",
+                "true",
+                "--no-restore",
+                "-p:ContinuousIntegrationBuild=true",
+                "-p:PathMap={sourceRoot}=/_/src"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "cliAssembly": {
+      "$ref": "#/$defs/artifact"
+    },
+    "runtimeClosure": {
+      "$ref": "#/$defs/runtimeClosure"
+    },
+    "certification": {
+      "const": "none"
+    },
+    "terminal": {
+      "const": false
+    },
+    "materialization": {
+      "const": "fresh-detached-git-worktree"
+    },
+    "platform": {
+      "const": "windows-x64"
+    },
+    "compilerHost": {
+      "$ref": "#/$defs/compilerHost"
+    },
+    "managedAssemblies": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "lockFileRewrites": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "size",
+          "sha256",
+          "explanationClasses"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "explanationClasses": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "add-empty-win-x64-target",
+                "windows-nuget-serialization",
+                "refresh-first-party-project-ranges"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "lockFileDiff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "text",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "format": {
+          "const": "unified-diff-lf"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "v1Relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract",
+        "relation",
+        "differingFiles"
+      ],
+      "properties": {
+        "contract": {
+          "$ref": "#/$defs/artifact"
+        },
+        "relation": {
+          "const": "identical-runtime-closure"
+        },
+        "differingFiles": {
+          "const": []
+        }
+      }
+    }
+  },
+  "$defs": {
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "size",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workingDirectory",
+        "arguments"
+      ],
+      "properties": {
+        "workingDirectory": {
+          "const": "."
+        },
+        "arguments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "runtimeClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root",
+        "fileCount",
+        "totalSize",
+        "sha256"
+      ],
+      "properties": {
+        "root": {
+          "const": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64"
+        },
+        "fileCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "totalSize": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "compilerHost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "boardDecisions",
+        "requiredRuntime",
+        "environmentVariables",
+        "extraBuildArguments",
+        "missingRuntimePolicy",
+        "verification"
+      ],
+      "properties": {
+        "status": {
+          "const": "in-effect"
+        },
+        "boardDecisions": {
+          "const": [
+            "1.1.12 board decision 79"
+          ]
+        },
+        "requiredRuntime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "framework",
+            "version",
+            "architecture"
+          ],
+          "properties": {
+            "framework": {
+              "const": "Microsoft.NETCore.App"
+            },
+            "version": {
+              "const": "10.0.11"
+            },
+            "architecture": {
+              "const": "x64"
+            }
+          }
+        },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DOTNET_ROLL_FORWARD"
+          ],
+          "properties": {
+            "DOTNET_ROLL_FORWARD": {
+              "const": "Disable"
+            }
+          }
+        },
+        "extraBuildArguments": {
+          "const": [
+            "-p:UseSharedCompilation=false",
+            "-nodeReuse:false"
+          ]
+        },
+        "missingRuntimePolicy": {
+          "const": "refuse"
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "scope",
+            "runtimeVersion"
+          ],
+          "properties": {
+            "kind": {
+              "const": "embedded-portable-pdb"
+            },
+            "scope": {
+              "const": "first-party-cli-project-graph"
+            },
+            "runtimeVersion": {
+              "const": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"
+            }
+          }
+        }
+      }
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z]:|/|.*(?:^|/)\\.\\.(?:/|$)|.*\\\\).+$"
+    }
+  }
+}

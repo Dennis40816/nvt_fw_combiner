@@ -142,9 +142,113 @@ def execution_mode_failures(contract: Mapping[str, Any], mode: str) -> list[Fail
 
 
 def executor_compiler_host_failures(compiler_host: Mapping[str, Any]) -> list[Failure]:
-    """The current builder cannot apply compiler-host pinning."""
-    return ([_failure("EXECUTOR_INVALID", "compilerHost", "in-effect compiler-host pinning is not implemented by this builder")]
-            if compiler_host.get("status") == "in-effect" else [])
+    """Admit the complete closed decision-79 settings, never status alone."""
+    if compiler_host.get("status") != "in-effect":
+        return []
+    expected = {
+        "status": "in-effect", "boardDecisions": ["1.1.12 board decision 79"],
+        "requiredRuntime": {"framework": "Microsoft.NETCore.App", "version": "10.0.11", "architecture": "x64"},
+        "environmentVariables": {"DOTNET_ROLL_FORWARD": "Disable"},
+        "extraBuildArguments": ["-p:UseSharedCompilation=false", "-nodeReuse:false"],
+        "missingRuntimePolicy": "refuse",
+        "verification": {"kind": "embedded-portable-pdb", "scope": "first-party-cli-project-graph",
+                         "runtimeVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"},
+    }
+    return ([] if dict(compiler_host) == expected else
+            [_failure("EXECUTOR_INVALID", "compilerHost", "incomplete or unsupported compiler-host settings")])
+
+
+BASELINE_EXECUTOR_V2_PATH = "docs/contracts/v0916-baseline-executor-v2.json"
+
+
+def baseline_executor_binding_failures(baseline: Mapping[str, Any], raw: bytes | None = None) -> list[Failure]:
+    """Check the amendment's closed activation and, when supplied, raw bytes."""
+    if baseline.get("status") != "in-effect":
+        return []
+    binding = baseline.get("contract")
+    valid = (set(baseline) == {"status", "boardDecisions", "contract"}
+             and baseline.get("boardDecisions") == ["1.1.12 board decision 63", "1.1.12 board decision 79"]
+             and isinstance(binding, Mapping) and set(binding) == {"path", "size", "sha256"}
+             and binding.get("path") == BASELINE_EXECUTOR_V2_PATH
+             and type(binding.get("size")) is int and binding["size"] > 0
+             and isinstance(binding.get("sha256"), str) and re.fullmatch(r"[0-9a-f]{64}", binding["sha256"]))
+    if not valid:
+        return [_failure("SOURCE_MISMATCH", "baselineExecutor", "incomplete baseline executor contract binding")]
+    if raw is not None and (len(raw), hashlib.sha256(raw).hexdigest()) != (binding["size"], binding["sha256"]):
+        return [_failure("SOURCE_MISMATCH", binding["path"], "baseline executor contract bytes differ from binding")]
+    return []
+
+
+def v0916_executor_contract_failures(record: Mapping[str, Any]) -> list[Failure]:
+    """Closed v2 structure and cross-member rules, before materialization."""
+    def closed(value: Any, keys: set[str]) -> bool:
+        return isinstance(value, Mapping) and set(value) == keys
+
+    def path_valid(value: Any) -> bool:
+        return (isinstance(value, str) and bool(value) and not any(char in value for char in "\\:")
+                and all(part not in ("", ".", "..") for part in value.split("/")))
+
+    def artifact(value: Any, extra: set[str] = frozenset()) -> bool:
+        return (closed(value, {"path", "size", "sha256"} | extra) and path_valid(value["path"])
+                and type(value["size"]) is int and value["size"] > 0
+                and isinstance(value["sha256"], str) and bool(re.fullmatch(r"[0-9a-f]{64}", value["sha256"])))
+
+    try:
+        keys = {"schemaVersion", "kind", "certification", "terminal", "materialization", "platform", "source",
+                "toolchain", "lockFiles", "externalTools", "restore", "build", "compilerHost", "lockFileRewrites",
+                "lockFileDiff", "managedAssemblies", "cliAssembly", "runtimeClosure", "v1Relation"}
+        valid = (set(record) == keys and record["schemaVersion"] == "2.0"
+                 and record["kind"] == "exact-tag-source-built-cli" and record["certification"] == "none"
+                 and record["terminal"] is False and record["materialization"] == "fresh-detached-git-worktree"
+                 and record["platform"] == "windows-x64" and record["source"]["cleanTreeRequired"] is True
+                 and closed(record["source"], {"tag", "tagObject", "peeledCommit", "sourceTree", "cleanTreeRequired"})
+                 and all(isinstance(record["source"][key], str) and re.fullmatch(r"[0-9a-f]{40}", record["source"][key])
+                         for key in ("tagObject", "peeledCommit", "sourceTree"))
+                 and closed(record["toolchain"], {"resolvedSdkVersion", "globalJson"})
+                 and artifact(record["toolchain"]["globalJson"]) and record["toolchain"]["globalJson"]["path"] == "global.json"
+                 and record["source"]["tag"] == "v0.9.16" and record["toolchain"]["resolvedSdkVersion"] == "10.0.303"
+                 and record["compilerHost"]["status"] == "in-effect"
+                 and not executor_compiler_host_failures(record["compilerHost"]))
+        for member in ("lockFiles", "externalTools", "lockFileRewrites", "managedAssemblies"):
+            items = record[member]
+            extra = {"explanationClasses"} if member == "lockFileRewrites" else set()
+            valid = (valid and isinstance(items, list) and len(items) == 7
+                     and all(artifact(row, extra) for row in items) and len({row["path"] for row in items}) == 7)
+        for row in record["lockFileRewrites"]:
+            explanations = row["explanationClasses"]
+            valid = valid and isinstance(explanations, list) and len(explanations) in (2, 3)
+            valid = valid and set(explanations) in (
+                {"add-empty-win-x64-target", "windows-nuget-serialization"},
+                {"add-empty-win-x64-target", "windows-nuget-serialization", "refresh-first-party-project-ranges"})
+            valid = valid and len(set(explanations)) == len(explanations)
+        project = "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj"
+        commands = {"restore": ["dotnet", "restore", project, "--force-evaluate", "--runtime", "win-x64"],
+                    "build": ["dotnet", "build", project, "--configuration", "Release", "--runtime", "win-x64",
+                              "--self-contained", "true", "--no-restore", "-p:ContinuousIntegrationBuild=true",
+                              "-p:PathMap={sourceRoot}=/_/src"]}
+        valid = valid and all(record[action] == {"workingDirectory": ".", "arguments": arguments}
+                              for action, arguments in commands.items())
+        valid = valid and {row["path"] for row in record["lockFiles"]} == {row["path"] for row in record["lockFileRewrites"]}
+        diff = record["lockFileDiff"]
+        valid = valid and closed(diff, {"format", "text", "size", "sha256"}) and type(diff["size"]) is int and diff["size"] > 0
+        diff_bytes = diff["text"].encode("utf-8")
+        valid = valid and diff["format"] == "unified-diff-lf" and b"\r" not in diff_bytes
+        valid = valid and (len(diff_bytes), hashlib.sha256(diff_bytes).hexdigest()) == (diff["size"], diff["sha256"])
+        relation = record["v1Relation"]
+        valid = (valid and closed(relation, {"contract", "relation", "differingFiles"}) and artifact(relation["contract"])
+                 and relation["contract"]["path"] == "docs/contracts/v0916-baseline-executor-v1.json"
+                 and relation["relation"] == "identical-runtime-closure" and relation["differingFiles"] == [])
+        closure = record["runtimeClosure"]
+        root = "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64"
+        valid = (valid and closed(closure, {"root", "fileCount", "totalSize", "sha256"}) and closure["root"] == root
+                 and all(type(closure[key]) is int and closure[key] > 0 for key in ("fileCount", "totalSize"))
+                 and isinstance(closure["sha256"], str) and bool(re.fullmatch(r"[0-9a-f]{64}", closure["sha256"]))
+                 and artifact(record["cliAssembly"]) and record["cliAssembly"]["path"] == root + "/NvtFwCombiner.Cli.exe"
+                 and closure["totalSize"] >= record["cliAssembly"]["size"])
+        valid = valid and all(row["path"].endswith(".dll") and "/" not in row["path"] for row in record["managedAssemblies"])
+        return [] if valid else [_failure("EXECUTOR_INVALID", "baselineExecutor", "invalid v2 executor contract")]
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return [_failure("EXECUTOR_INVALID", "baselineExecutor", "incomplete v2 executor contract")]
 
 
 def executor_tag_failures(

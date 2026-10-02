@@ -59,14 +59,74 @@
       "items": { "$ref": "#/$defs/notApplicable" }
     },
     "baselineExecutor": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["status", "boardDecisions", "contract"],
-      "properties": {
-        "status": { "enum": ["pending-executor-record"] },
-        "boardDecisions": { "const": ["1.1.12 board decision 63", "1.1.12 board decision 79"] },
-        "contract": { "type": "null" }
-      }
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "boardDecisions",
+            "contract"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending-executor-record"
+              ]
+            },
+            "boardDecisions": {
+              "const": [
+                "1.1.12 board decision 63",
+                "1.1.12 board decision 79"
+              ]
+            },
+            "contract": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "boardDecisions",
+            "contract"
+          ],
+          "properties": {
+            "status": {
+              "const": "in-effect"
+            },
+            "boardDecisions": {
+              "const": [
+                "1.1.12 board decision 63",
+                "1.1.12 board decision 79"
+              ]
+            },
+            "contract": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "size",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "const": "docs/contracts/v0916-baseline-executor-v2.json"
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "sha256": {
+                  "$ref": "#/$defs/sha256"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "$defs": {

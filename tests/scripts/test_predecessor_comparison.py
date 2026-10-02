@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 from scripts import predecessor_comparison as comparison
 from scripts import v0916_parity_certification as parity
-from tests.scripts.predecessor_test_support import contract_for_fake_processes
+from tests.scripts.predecessor_test_support import (contract_for_fake_processes, write_synthetic_cli_graph, RUNTIME_LIST, HOST_INFO, compiler_identity)
 from tests.scripts.test_predecessor_report_reader import raw_report
 
 
@@ -444,17 +444,14 @@ class ComparisonTests(unittest.TestCase):
                 result = comparison.assemble_side_result(captures, capacities={"source": 8, "output-image": 8})
                 self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
 
-    def test_pending_interfaces_refuse_formal_and_allow_diagnostic(self):
+    def test_active_interfaces_admit_formal_and_diagnostic(self):
         for mode in ("rolling", "v0916-1x"):
-            with self.subTest(mode=mode):
-                with self.assertRaises(comparison.ExecutionError) as found:
-                    comparison.admit_execution_contract(CONTRACT, amendment_path=AMENDMENT, mode=mode, formal=True)
-                self.assertEqual("PREDECESSOR_CONTRACT_PENDING", found.exception.code)
-                admission = comparison.admit_execution_contract(CONTRACT, amendment_path=AMENDMENT, mode=mode, formal=False)
-                self.assertFalse(admission.formal)
-                self.assertTrue(admission.diagnostic)
-                self.assertIn("compilerHost", admission.pending)
-                self.assertEqual(mode == "v0916-1x", "baselineExecutor" in admission.pending)
+            for formal in (False, True):
+                with self.subTest(mode=mode, formal=formal):
+                    admission = comparison.admit_execution_contract(CONTRACT, amendment_path=AMENDMENT, mode=mode, formal=formal)
+                    self.assertEqual(formal, admission.formal)
+                    self.assertEqual(not formal, admission.diagnostic)
+                    self.assertEqual([], admission.pending)
 
     def test_unknown_mode_is_refused_before_amendment_or_process(self):
         with self.assertRaises(comparison.ExecutionError) as found:
@@ -521,11 +518,15 @@ class ComparisonTests(unittest.TestCase):
         def build(argv, cwd):
             if argv == ["dotnet", "--version"]:
                 return subprocess.CompletedProcess(argv, 0, "10.0.100\n", "")
+            if argv == ["dotnet", "--list-runtimes"]:
+                return subprocess.CompletedProcess(argv, 0, RUNTIME_LIST, "")
+            if argv == ["dotnet", "--info"]:
+                return subprocess.CompletedProcess(argv, 0, HOST_INFO, "")
             if argv[1] == "build":
                 closure = cwd / self.contract["executor"]["runtimeClosureRoot"]
                 closure.mkdir(parents=True)
                 (closure / "NvtFwCombiner.Cli.exe").write_bytes(b"synthetic apphost")
-                (closure / "NvtFwCombiner.Cli.dll").write_bytes(b"synthetic dll")
+                write_synthetic_cli_graph(closure)
             if corrupt is not None:
                 corrupt(argv, cwd)
             return subprocess.CompletedProcess(argv, 0, "", "")
@@ -544,8 +545,8 @@ class ComparisonTests(unittest.TestCase):
         measured = parity.runtime_closure_inventory(result.closure.root, cli_relative=result.closure.cli_relative)
         self.assertEqual(measured.identity_sha256, result.identity["runtimeClosureSha256"])
         self.assertEqual(parity.canonical_json_sha256([{"path": "src/Cli/packages.lock.json", "size": len(git.files["src/Cli/packages.lock.json"]), "sha256": digest(git.files["src/Cli/packages.lock.json"])}]), result.identity["lockFileSetSha256"])
-        self.assertEqual(self.contract["executor"]["restore"]["arguments"], host.calls[1][0])
-        self.assertIn(f"-p:PathMap={git.detached[0][1]}=/_/src", host.calls[2][0])
+        self.assertEqual(self.contract["executor"]["restore"]["arguments"], host.calls[3][0])
+        self.assertIn(f"-p:PathMap={git.detached[0][1]}=/_/src", host.calls[4][0])
 
     def test_executor_refuses_dirty_build_paths_changed_locks_sdk_and_build_failure(self):
         for fault in ("dirty", "bin", "tracked-bin", "lock", "sdk", "build"):
@@ -571,9 +572,9 @@ class ComparisonTests(unittest.TestCase):
                     comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
                 self.assertEqual("PREDECESSOR_EXECUTOR_INVALID", found.exception.code)
 
-    def test_executor_refuses_in_effect_compiler_host_until_pinning_is_applied(self):
+    def test_executor_refuses_incomplete_in_effect_compiler_host(self):
         contract = copy.deepcopy(self.contract)
-        contract["executor"]["compilerHost"]["status"] = "in-effect"
+        contract["executor"]["compilerHost"].pop("requiredRuntime")
         git = FakeGitHost()
         host = self.build_host(git)
         with self.assertRaises(comparison.ExecutionError) as found:

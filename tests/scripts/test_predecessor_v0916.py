@@ -15,7 +15,7 @@ from scripts import predecessor_comparison as execution
 from scripts import predecessor_v0916 as milestone
 from scripts import predecessor_validation as validation
 from scripts import v0916_parity_certification as parity
-from tests.scripts.predecessor_test_support import contract_for_fake_processes
+from tests.scripts.predecessor_test_support import contract_for_fake_processes, compiler_identity
 from tests.scripts.test_predecessor_rolling import (
     BASELINE, CANDIDATE, TAG_OBJECT, FIXTURES, PAYLOAD, CHANGED, ROOT,
     RollingFakeGit, SyntheticProcesses, SyntheticReader, encoded, identity, synthetic_world,
@@ -93,7 +93,7 @@ def v0916_world():
                      "expectedBaseline": {"precursorOutput": identity(PAYLOAD), "rejectingStage": "preview",
                                           "issueCodes": ["synthetic.product-rejection"]},
                      "expectedCandidate": {"precursorOutput": identity(CHANGED), "output": identity(PAYLOAD)}}],
-                 "baselineExecutor": {"status": "pending-executor-record", "contract": None}}
+                 "baselineExecutor": json.loads((ROOT / milestone.AMENDMENT).read_bytes())["baselineExecutor"]}
     seed.update(policy=policy, case=case, manifest=manifest, plan=plan, amendment=amendment)
     return seed
 
@@ -113,6 +113,14 @@ class V0916FakeGit(RollingFakeGit):
         self.tags = [validation.RollingTag("v0.9.16", "tag", TAG_OBJECT, BASELINE, True, None)]
         self.commits[CANDIDATE].update({path: b"{}" for path in milestone.APPLIED_CONTRACTS
                                         if path not in (milestone.CONTRACT, milestone.PLAN)})
+        baseline = json.loads((ROOT / "docs/contracts/v0916-baseline-executor-v1.json").read_bytes())
+        baseline["source"].update(tagObject=TAG_OBJECT, peeledCommit=BASELINE, sourceTree="5" * 40)
+        v2 = json.loads((ROOT / milestone.BASELINE_EXECUTOR).read_bytes())
+        v2["source"] = baseline["source"]
+        v2["v1Relation"]["contract"].update(identity(encoded(baseline)))
+        self.commits[CANDIDATE]["docs/contracts/v0916-baseline-executor-v1.json"] = encoded(baseline)
+        self.commits[CANDIDATE][milestone.BASELINE_EXECUTOR] = encoded(v2)
+        world["amendment"]["baselineExecutor"]["contract"].update(identity(encoded(v2)))
         self.commits[CANDIDATE][milestone.AMENDMENT] = encoded(world["amendment"])
         for path in milestone.IMPLEMENTATION:
             self.commits[CANDIDATE][path] = (ROOT / path).read_bytes()
@@ -146,7 +154,7 @@ class BaselineBuilder:
         # The injected fake supplies no v2 recipe or pinned executor value.
         identity_row = {"commit": commit, "tree": git.commit_tree(commit), "tagObject": TAG_OBJECT,
                         "cliSha256": identity(b"baseline")["sha256"], "runtimeClosureSha256": "a" * 64,
-                        "resolvedSdkVersion": "10.0.100", "lockFileSetSha256": "b" * 64,
+                        "resolvedSdkVersion": "10.0.303", "lockFileSetSha256": "b" * 64, "compilerHost": compiler_identity(7),
                         "authorityTrees": {path: "3" * 40 for path in ("external-tools", "profiles", "src", "tools/crc-worker")}}
         root = runner.temporary_root / "fake-baseline"
         root.mkdir()
@@ -284,7 +292,7 @@ class V0916Tests(unittest.TestCase):
             report = milestone.run_v0916(git=git, host=host, baseline_builder=builder, candidate_commit=CANDIDATE,
                                           output_path=self.root / f"report-{self.counter}.json",
                                           temporary_root=temporary, settings_folder=self.settings,
-                                          formal=formal, materializer=materialize, plan_loader=load_plan)
+                                          formal=formal, milestone="1.2.0-release-approval" if formal else None, materializer=materialize, plan_loader=load_plan)
         self.executed = [(call.args[4].route_id, call.kwargs["side"]) for call in execute.call_args_list]
         self.assertEqual(1, len(materialized))
         self.assertEqual(parity.canonical_json_bytes(report) + b"\n", (self.root / f"report-{self.counter}.json").read_bytes())
@@ -297,7 +305,7 @@ class V0916Tests(unittest.TestCase):
         self.assertEqual("none", report["certification"])
         self.assertFalse(report["terminal"])
         self.assertTrue(all(len(row["planCapabilityFingerprint"]) == 64 for row in report["routes"]))
-        self.assertEqual([(BASELINE, self.world["amendment"]["baselineExecutor"])], baseline.calls)
+        self.assertEqual([(BASELINE, json.loads(git.commits[CANDIDATE][milestone.BASELINE_EXECUTOR]))], baseline.calls)
         self.assertEqual([CANDIDATE], [commit for commit, _ in git.detached])
         for side in ("baseline", "candidate"):
             for name in ("exact", "plan-correction", "amendment-correction", "full", "tp", "not-applicable"):
@@ -357,7 +365,12 @@ class V0916Tests(unittest.TestCase):
         self.assertFalse((self.root / "report-1.json").exists())
 
     def test_pending_formal_refuses_before_any_host(self):
-        with self.assertRaises(execution.ExecutionError) as found:
+        contract = json.loads((ROOT / milestone.CONTRACT).read_bytes())
+        contract["executor"]["compilerHost"] = {"status": "pending-executor-record", "boardDecisions": ["1.1.12 board decision 79"]}
+        with (patch.object(execution, "admit_execution_contract", side_effect=lambda **kw:
+                           execution.admit_loaded_execution_contract(contract, mode="v0916-1x", formal=True,
+                                                                      amendment=self.world["amendment"])),
+              self.assertRaises(execution.ExecutionError) as found):
             milestone.run_v0916(git=None, host=None, baseline_builder=None, candidate_commit=CANDIDATE,
                                 output_path=Path("unused.json"), temporary_root=Path(os.environ["TEMP"]),
                                 settings_folder=Path("unused-settings"), formal=True)
@@ -606,11 +619,13 @@ class V0916Tests(unittest.TestCase):
                                              "--temporary-root", str(self.root), "--diagnostic"])
                 self.assertEqual(expected, actual)
                 self.assertFalse(run.call_args.kwargs["formal"])
-        with patch.object(milestone, "run_v0916") as run:
+        with (patch.object(milestone, "run_v0916", return_value={"result": "consistent"}) as run,
+              patch.object(execution, "local_settings_folder", return_value=self.settings)):
             actual = execution.main(["v0916-1x", "--candidate-commit", CANDIDATE, "--output", str(self.root / "formal.json"),
                                      "--temporary-root", str(self.root), "--formal", "--milestone", "1.2.0-release-approval"])
-        self.assertEqual(1, actual)
-        run.assert_not_called()
+        self.assertEqual(0, actual)
+        self.assertTrue(run.call_args.kwargs["formal"])
+        self.assertIsInstance(run.call_args.kwargs["baseline_builder"], execution.V0916BaselineExecutorBuilder)
 
     def test_missing_injected_baseline_and_wrong_executor_identity_refuse(self):
         git = V0916FakeGit(self.world)

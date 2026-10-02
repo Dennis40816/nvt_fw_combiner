@@ -318,9 +318,11 @@ class V0916Parity1xAmendmentTests(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "status": "pending-executor-record",
+                "status": "in-effect",
                 "boardDecisions": ["1.1.12 board decision 63", "1.1.12 board decision 79"],
-                "contract": None,
+                "contract": {"path": "docs/contracts/v0916-baseline-executor-v2.json",
+                             "size": len((CONTRACTS / "v0916-baseline-executor-v2.json").read_bytes()),
+                             "sha256": hashlib.sha256((CONTRACTS / "v0916-baseline-executor-v2.json").read_bytes()).hexdigest()},
             },
             self.amendment["baselineExecutor"],
         )

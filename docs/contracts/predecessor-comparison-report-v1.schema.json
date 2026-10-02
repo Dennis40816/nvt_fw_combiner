@@ -60,7 +60,7 @@
     "executorIdentity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["authorityTrees", "cliSha256", "commit", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"],
+      "required": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"],
       "properties": {
         "authorityTrees": {
           "type": "object",
@@ -79,7 +79,10 @@
         "resolvedSdkVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
         "runtimeClosureSha256": { "$ref": "#/$defs/sha256" },
         "tagObject": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/gitSha" }] },
-        "tree": { "$ref": "#/$defs/gitSha" }
+        "tree": { "$ref": "#/$defs/gitSha" },
+        "compilerHost": {
+          "$ref": "#/$defs/compilerHostIdentity"
+        }
       }
     },
     "taggedExecutorIdentity": {
@@ -953,6 +956,29 @@
           }
         }
       ]
+    },
+    "compilerHostIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtimeVersion",
+        "compilerVersion",
+        "verifiedAssemblyCount"
+      ],
+      "properties": {
+        "runtimeVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compilerVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifiedAssemblyCount": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
     }
   }
 }
