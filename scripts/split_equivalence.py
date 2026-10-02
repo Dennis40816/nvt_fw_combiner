@@ -5,6 +5,10 @@ method identities; topics need explicit identities because discovery has no
 source paths. E3 is deliberately a conservative C# subset, not a C# parser.
 Unsupported syntax remains unclassified. Counts are signed changed lines,
 except rename, which counts path pairs. This tool does not establish E7.
+Collection attributes may be added once per new split class with a changed
+declaration and on the unchanged source class's own root file, identified by renamed files'
+paired old declarations. All additions must share one collection so the split
+classes, including the residual class, retain the pilot's serialization.
 
 The blank separator kind is an addition to the plan's E3 list, justified by
 the pilot's seven separators; blanks inside multiline literals never qualify.
@@ -340,6 +344,8 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
         raise ValueError("multiple support classes; specify --support-class")
     collection_names = {line.text for file in files for line in file.lines
                         if line.side == "+" and collection(line.text)}
+    class_collections: Counter[str] = Counter()
+    collection_candidates: dict[tuple[int, int], tuple[str, bool]] = {}
     summaries: Counter[str] = Counter()
     for index, file in enumerate(files):
         csharp = file.old_path.endswith(".cs") and file.new_path.endswith(".cs")
@@ -353,6 +359,12 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
         has_tests = any(re.search(r"\[(?:\w+\.)*(?:Fact|Theory)(?:Attribute)?\b", line) for line in before_code)
         removed_collection = any(line.side == "-" and collection(line.text) for line in file.lines)
         added_classes = {line.number for line in file.lines if line.side == "+" and class_name(line.text)}
+        for number, declaration in enumerate(after_code):
+            if target := class_name(declaration):
+                previous = number - 1
+                while previous >= 0 and collection(file.after[previous]):
+                    class_collections[target[1]] += 1
+                    previous -= 1
         for offset, line in enumerate(file.lines):
             key = index, offset
             if line.side not in {"+", "-"} or not csharp or line.text.endswith("\r"):
@@ -367,9 +379,10 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
             elif is_definition:
                 marked[key] = "collection_definition"
             elif collection(line.text):
+                target = class_name(after_code[line.number]) if line.number < len(after_code) else None
                 if (line.side == "+" and not removed_collection and len(collection_names) == 1
-                        and line.number + 1 in added_classes):
-                    marked[key] = "collection_attribute"
+                        and target):
+                    collection_candidates[key] = target[1], line.number + 1 in added_classes
             elif (new_class := class_name(line.text)) and line.side == "+":
                 partners = [(position, item) for position, item in enumerate(file.lines)
                             if item.side == "-" and class_name(item.text)
@@ -402,6 +415,20 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
                                 and (index, position) not in marked):
                             marked[index, offset] = marked[index, position] = "support_accessibility"
                             break
+    source_classes = {(PurePosixPath(file.old_path).parent, target[1])
+                      for index, file in enumerate(files) if file.status == "R"
+                      for offset, line in enumerate(file.lines)
+                      if line.side == "-" and marked.get((index, offset)) == "class_declaration"
+                      and (target := class_name(line.text))}
+    for key, (name, changed_declaration) in collection_candidates.items():
+        file = files[key[0]]
+        path = PurePosixPath(file.new_path)
+        source = ((path.parent, name) in source_classes and file.status == "M"
+                  and file.old_path == file.new_path and path.name == name + ".cs"
+                  and code_lines(file.before).count(file.after[file.lines[key[1]].number]) == 1
+                  and sum(class_name(line) is not None for line in code_lines(file.after)) == 1)
+        if class_collections[name] == 1 and (changed_declaration or source):
+            marked[key] = "collection_attribute"
     # Match whole removed helpers to whole added helpers; consume each occurrence once.
     removed: list[tuple[int, tuple[str, ...], tuple[int, ...]]] = []
     added: list[tuple[int, tuple[str, ...], tuple[int, ...]]] = []

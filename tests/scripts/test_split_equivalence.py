@@ -308,14 +308,14 @@ def test_e3_cli_returns_difference_as_one(monkeypatch, capsys):
     assert report["counts"] == case["counts"]
 
 
-def test_real_pilot_range_pins_the_unchanged_declaration_collection_rejection(monkeypatch, capsys):
+def test_real_pilot_range_accepts_the_source_class_collection_and_pins_counts(monkeypatch, capsys):
     # Process environment only: never edit Git config or create another worktree.
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     expected = json.loads(text("pilot.json"))
     assert split.main(["e3", "--base", expected["base"], "--head", expected["head"],
                        "--project", expected["project"], "--support-class",
-                       "RepositoryBoundaryTestSupport"]) == 1
+                       "RepositoryBoundaryTestSupport"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert report["changed_paths"] == 75
     assert report["base"] == expected["base"]
@@ -325,8 +325,8 @@ def test_real_pilot_range_pins_the_unchanged_declaration_collection_rejection(mo
     assert report["support_class"] == "RepositoryBoundaryTestSupport"
     assert report["counts"] == expected["counts"]
     assert report["unclassified"] == expected["unclassified"]
-    assert not report["passed"]
-    assert sum(count for kind, count in report["counts"].items() if kind != "rename") == 306
+    assert report["passed"]
+    assert sum(count for kind, count in report["counts"].items() if kind != "rename") == 307
     assert sum(count for kind, count in report["counts"].items() if kind != "rename") + len(
         report["unclassified"]) == 307
 
@@ -503,6 +503,57 @@ def test_split_classes_must_share_one_collection():
     assert not report["passed"]
     assert report["counts"]["collection_attribute"] == 0
     assert report["counts"]["class_declaration"] == 4
+    assert len(report["unclassified"]) == 2
+
+
+@pytest.fixture
+def renamed_split_file():
+    before = "public sealed partial class Old\n{\n}\n"
+    file = changed_file(before, '[Collection("A")]\n' + before.replace("Old", "New"),
+                        "tests/Project/Old.Topic.cs")
+    return split.FileDiff("R", file.old_path, "tests/Project/New.Topic.cs",
+                          file.before, file.after, file.lines)
+
+
+@pytest.mark.parametrize("name,path,attributes,passed,classified,unclassified", [
+    ("Old", "tests/Project/Old.cs", '[Collection("A")]\n', True, 2, 0),
+    ("Unrelated", "tests/Project/Unrelated.cs", '[Collection("A")]\n', False, 1, 1),
+    ("Old", "tests/Project/Old.cs", '[Collection("B")]\n', False, 0, 2),
+    ("Old", "tests/Project/Old.cs", '[Collection("A")]\n' * 2, False, 1, 2),
+    ("Old", "tests/Project/Old.Topic.cs", '[Collection("A")]\n', False, 1, 1),
+    ("Old", "tests/OtherProject/Old.cs", '[Collection("A")]\n', False, 1, 1),
+    ("Old", "tests/Project/Old.cs", '[Collection("A", Other = 1)]\n', False, 1, 1),
+], ids=["source", "unrelated", "different-collection", "duplicate", "partial-file",
+        "other-project", "named-argument"])
+def test_source_collection_requires_the_unchanged_root_and_one_shared_attribute(
+        renamed_split_file, name, path, attributes, passed, classified, unclassified):
+    body = f"public sealed partial class {name}\n{{\n}}\n"
+    file = changed_file(body, attributes + body, path)
+    report = split.e3((renamed_split_file, file))
+    assert report["passed"] == passed
+    assert report["counts"]["collection_attribute"] == classified
+    assert len(report["unclassified"]) == unclassified
+    assert all(collection["text"].startswith("[Collection(") for collection in report["unclassified"])
+
+
+@pytest.mark.parametrize("after", ['', '[Collection("A")]\n'])
+def test_source_collection_removal_or_replacement_is_unclassified(renamed_split_file, after):
+    body = "public sealed partial class Old\n{\n}\n"
+    file = changed_file('[Collection("B")]\n' + body, after + body, "tests/Project/Old.cs")
+    report = split.e3((renamed_split_file, file))
+    assert not report["passed"]
+    assert report["counts"]["collection_attribute"] == 1
+    assert len(report["unclassified"]) == 1 + bool(after)
+
+
+@pytest.mark.parametrize("partial_path", ["tests/Project/Old.Other.cs", "tests/Project/Sub/Old.Other.cs"])
+def test_source_collection_cannot_be_added_on_two_partial_declarations(renamed_split_file, partial_path):
+    body = "public sealed partial class Old\n{\n}\n"
+    files = tuple(changed_file(body, '[Collection("A")]\n' + body, path)
+                  for path in ("tests/Project/Old.cs", partial_path))
+    report = split.e3((renamed_split_file, *files))
+    assert not report["passed"]
+    assert report["counts"]["collection_attribute"] == 1
     assert len(report["unclassified"]) == 2
 
 

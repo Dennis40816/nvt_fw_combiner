@@ -9,16 +9,9 @@
     "using": 1,
     "support_accessibility": 58,
     "helper_move": 72,
-    "collection_attribute": 9,
+    "collection_attribute": 10,
     "collection_definition": 6,
     "blank": 7
   },
-  "unclassified": [
-    {
-      "file": "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.cs",
-      "side": "+",
-      "line": 4,
-      "text": "[Collection(nameof(RepositoryBoundarySerialGroup))]"
-    }
-  ]
+  "unclassified": []
 }
