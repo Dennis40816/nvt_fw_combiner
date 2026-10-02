@@ -1,0 +1,5 @@
+The following Tests are available:
+    Old.One.Check
+    Old.One.Theory(value: "a.b", count: 1)
+    Old.One.Same
+    Old.Two.Same

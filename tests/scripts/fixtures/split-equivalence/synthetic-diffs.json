@@ -1,0 +1,689 @@
+[
+  {
+    "name": "rename",
+    "files": [
+      {
+        "status": "R",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Other.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "patch": ""
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 1,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": []
+  },
+  {
+    "name": "class_summary_collection",
+    "files": [
+      {
+        "status": "R",
+        "old_path": "Old.Topic.cs",
+        "new_path": "New.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "namespace Example;\n\n/// <summary>New topic checks.</summary>\n[Collection(nameof(Serial))]\npublic sealed partial class New\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/New.Topic.cs\n@@ -3 +3,3 @@\n-public sealed partial class Old\n+/// <summary>New topic checks.</summary>\n+[Collection(nameof(Serial))]\n+public sealed partial class New\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 1,
+      "class_declaration": 2,
+      "summary": 1,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 1,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": []
+  },
+  {
+    "name": "using",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "using System;\nnamespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "global using static Example.Support;\nnamespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -1 +1 @@\n-using System;\n+global using static Example.Support;\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 2,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": []
+  },
+  {
+    "name": "blank",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old\n\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -3,0 +4 @@\n+\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 1
+    },
+    "unclassified": []
+  },
+  {
+    "name": "support_accessibility",
+    "files": [
+      {
+        "status": "R",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Support.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n    private static int Helper()\n    {\n        return 1;\n    }\n}\n",
+        "after": "namespace Example;\n\ninternal static partial class Support\n{\n    internal static int Helper()\n    {\n        return 1;\n    }\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Support.cs\n@@ -3 +3 @@\n-public sealed partial class Old\n+internal static partial class Support\n@@ -5 +5 @@\n-    private static int Helper()\n+    internal static int Helper()\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 1,
+      "class_declaration": 2,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 2,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": []
+  },
+  {
+    "name": "helper_move",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n    private static int Helper()\n    {\n        return 1;\n    }\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -5,4 +4,0 @@\n-    private static int Helper()\n-    {\n-        return 1;\n-    }\n"
+      },
+      {
+        "status": "M",
+        "old_path": "Support.cs",
+        "new_path": "Support.cs",
+        "before": "namespace Example;\n\ninternal static partial class Support\n{\n}\n",
+        "after": "namespace Example;\n\ninternal static partial class Support\n{\n    internal static int Helper()\n    {\n        return 1;\n    }\n}\n",
+        "patch": "--- a/Support.cs\n+++ b/Support.cs\n@@ -4,0 +5,4 @@\n+    internal static int Helper()\n+    {\n+        return 1;\n+    }\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 8,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": []
+  },
+  {
+    "name": "helper_field_move",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n    private static readonly string Root = \"root\";\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -5 +4,0 @@\n-    private static readonly string Root = \"root\";\n"
+      },
+      {
+        "status": "M",
+        "old_path": "Support.cs",
+        "new_path": "Support.cs",
+        "before": "namespace Example;\n\ninternal static partial class Support\n{\n}\n",
+        "after": "namespace Example;\n\ninternal static partial class Support\n{\n    internal static readonly string Root = \"root\";\n}\n",
+        "patch": "--- a/Support.cs\n+++ b/Support.cs\n@@ -4,0 +5 @@\n+    internal static readonly string Root = \"root\";\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 2,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": []
+  },
+  {
+    "name": "collection_definition",
+    "files": [
+      {
+        "status": "A",
+        "old_path": "Serial.cs",
+        "new_path": "Serial.cs",
+        "before": "",
+        "after": "namespace Example;\n\n/// <summary>Keep serial scheduling.</summary>\n[CollectionDefinition(nameof(Serial))]\npublic sealed class Serial\n{\n}\n",
+        "patch": "--- a/Serial.cs\n+++ b/Serial.cs\n@@ -0,0 +1,7 @@\n+namespace Example;\n+\n+/// <summary>Keep serial scheduling.</summary>\n+[CollectionDefinition(nameof(Serial))]\n+public sealed class Serial\n+{\n+}\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 6,
+      "blank": 1
+    },
+    "unclassified": []
+  },
+  {
+    "name": "collection_definition_removal",
+    "files": [
+      {
+        "status": "D",
+        "old_path": "Serial.cs",
+        "new_path": "Serial.cs",
+        "before": "namespace Example;\n\n/// <summary>Keep serial scheduling.</summary>\n[CollectionDefinition(nameof(Serial))]\npublic sealed class Serial\n{\n}\n",
+        "after": "",
+        "patch": "--- a/Serial.cs\n+++ b/Serial.cs\n@@ -1,7 +0,0 @@\n-namespace Example;\n-\n-/// <summary>Keep serial scheduling.</summary>\n-[CollectionDefinition(nameof(Serial))]\n-public sealed class Serial\n-{\n-}\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 6,
+      "blank": 1
+    },
+    "unclassified": []
+  },
+  {
+    "name": "collection_attribute_removal",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\n[Collection(\"Serial\")]\npublic sealed partial class Old\n{\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -3 +2,0 @@\n-[Collection(\"Serial\")]\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 1,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": []
+  },
+  {
+    "name": "using_alias",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "using Alias = global::Example.Thing;\nnamespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -0,0 +1 @@\n+using Alias = global::Example.Thing;\n"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 1,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": []
+  },
+  {
+    "name": "changed_assertion",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n    public void Check()\n    {\n        Assert.True(value);\n    }\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old\n{\n    public void Check()\n    {\n        Assert.False(value);\n    }\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -7 +7 @@\n-        Assert.True(value);\n+        Assert.False(value);\n"
+      }
+    ],
+    "passed": false,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 7,
+        "text": "        Assert.True(value);"
+      },
+      {
+        "file": "Old.Topic.cs",
+        "side": "+",
+        "line": 7,
+        "text": "        Assert.False(value);"
+      }
+    ]
+  },
+  {
+    "name": "changed_test_name",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n    public void Check()\n    {\n        Assert.True(value);\n    }\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old\n{\n    public void Renamed()\n    {\n        Assert.True(value);\n    }\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -5 +5 @@\n-    public void Check()\n+    public void Renamed()\n"
+      }
+    ],
+    "passed": false,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 5,
+        "text": "    public void Check()"
+      },
+      {
+        "file": "Old.Topic.cs",
+        "side": "+",
+        "line": 5,
+        "text": "    public void Renamed()"
+      }
+    ]
+  },
+  {
+    "name": "changed_string_literal",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n    private static string Path = \"before\";\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old\n{\n    private static string Path = \"after\";\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -5 +5 @@\n-    private static string Path = \"before\";\n+    private static string Path = \"after\";\n"
+      }
+    ],
+    "passed": false,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 5,
+        "text": "    private static string Path = \"before\";"
+      },
+      {
+        "file": "Old.Topic.cs",
+        "side": "+",
+        "line": 5,
+        "text": "    private static string Path = \"after\";"
+      }
+    ]
+  },
+  {
+    "name": "changed_helper_body_while_moving",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n    private static int Helper()\n    {\n        return 1;\n    }\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -5,4 +4,0 @@\n-    private static int Helper()\n-    {\n-        return 1;\n-    }\n"
+      },
+      {
+        "status": "M",
+        "old_path": "Support.cs",
+        "new_path": "Support.cs",
+        "before": "namespace Example;\n\ninternal static partial class Support\n{\n}\n",
+        "after": "namespace Example;\n\ninternal static partial class Support\n{\n    internal static int Helper()\n    {\n        return 2;\n    }\n}\n",
+        "patch": "--- a/Support.cs\n+++ b/Support.cs\n@@ -4,0 +5,4 @@\n+    internal static int Helper()\n+    {\n+        return 2;\n+    }\n"
+      }
+    ],
+    "passed": false,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 5,
+        "text": "    private static int Helper()"
+      },
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 6,
+        "text": "    {"
+      },
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 7,
+        "text": "        return 1;"
+      },
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 8,
+        "text": "    }"
+      },
+      {
+        "file": "Support.cs",
+        "side": "+",
+        "line": 5,
+        "text": "    internal static int Helper()"
+      },
+      {
+        "file": "Support.cs",
+        "side": "+",
+        "line": 6,
+        "text": "    {"
+      },
+      {
+        "file": "Support.cs",
+        "side": "+",
+        "line": 7,
+        "text": "        return 2;"
+      },
+      {
+        "file": "Support.cs",
+        "side": "+",
+        "line": 8,
+        "text": "    }"
+      }
+    ]
+  },
+  {
+    "name": "changed_class_base_type",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "namespace Example;\n\npublic sealed partial class Old : IDisposable\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -3 +3 @@\n-public sealed partial class Old\n+public sealed partial class Old : IDisposable\n"
+      }
+    ],
+    "passed": false,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 3,
+        "text": "public sealed partial class Old"
+      },
+      {
+        "file": "Old.Topic.cs",
+        "side": "+",
+        "line": 3,
+        "text": "public sealed partial class Old : IDisposable"
+      }
+    ]
+  },
+  {
+    "name": "executable_after_using",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "using System; Assert.True(false);\nnamespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -0,0 +1 @@\n+using System; Assert.True(false);\n"
+      }
+    ],
+    "passed": false,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "+",
+        "line": 1,
+        "text": "using System; Assert.True(false);"
+      }
+    ]
+  },
+  {
+    "name": "support_signature_changed",
+    "files": [
+      {
+        "status": "R",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Support.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n    private static int Helper()\n    {\n        return 1;\n    }\n}\n",
+        "after": "namespace Example;\n\ninternal static partial class Support\n{\n    internal static int Different()\n    {\n        return 1;\n    }\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Support.cs\n@@ -3 +3 @@\n-public sealed partial class Old\n+internal static partial class Support\n@@ -5 +5 @@\n-    private static int Helper()\n+    internal static int Different()\n"
+      }
+    ],
+    "passed": false,
+    "counts": {
+      "rename": 1,
+      "class_declaration": 2,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 5,
+        "text": "    private static int Helper()"
+      },
+      {
+        "file": "Support.cs",
+        "side": "+",
+        "line": 5,
+        "text": "    internal static int Different()"
+      }
+    ]
+  },
+  {
+    "name": "summary_on_existing_class",
+    "files": [
+      {
+        "status": "M",
+        "old_path": "Old.Topic.cs",
+        "new_path": "Old.Topic.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "namespace Example;\n\n/// <summary>Extra.</summary>\npublic sealed partial class Old\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -2,0 +3 @@\n+/// <summary>Extra.</summary>\n"
+      }
+    ],
+    "passed": false,
+    "counts": {
+      "rename": 0,
+      "class_declaration": 0,
+      "summary": 0,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "+",
+        "line": 3,
+        "text": "/// <summary>Extra.</summary>"
+      }
+    ]
+  },
+  {
+    "name": "two_summaries_per_new_class",
+    "files": [
+      {
+        "status": "R",
+        "old_path": "Old.Topic.cs",
+        "new_path": "New.One.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "namespace Example;\n\n/// <summary>Extra.</summary>\npublic sealed partial class New\n{\n}\n",
+        "patch": "--- a/Old.Topic.cs\n+++ b/New.One.cs\n@@ -3 +3,2 @@\n-public sealed partial class Old\n+/// <summary>Extra.</summary>\n+public sealed partial class New\n"
+      },
+      {
+        "status": "R",
+        "old_path": "Old.Two.cs",
+        "new_path": "New.Two.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "namespace Example;\n\n/// <summary>Extra.</summary>\npublic sealed partial class New\n{\n}\n",
+        "patch": "--- a/Old.Two.cs\n+++ b/New.Two.cs\n@@ -3 +3,2 @@\n-public sealed partial class Old\n+/// <summary>Extra.</summary>\n+public sealed partial class New\n"
+      }
+    ],
+    "passed": false,
+    "counts": {
+      "rename": 2,
+      "class_declaration": 4,
+      "summary": 1,
+      "using": 0,
+      "support_accessibility": 0,
+      "helper_move": 0,
+      "collection_attribute": 0,
+      "collection_definition": 0,
+      "blank": 0
+    },
+    "unclassified": [
+      {
+        "file": "New.Two.cs",
+        "side": "+",
+        "line": 3,
+        "text": "/// <summary>Extra.</summary>"
+      }
+    ]
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "Check": "New.FirstTests",
+  "Theory(value: \"a.b\", count: 1)": "FirstTests",
+  "Same": "FirstTests"
+}
