@@ -14,7 +14,7 @@ from scripts import predecessor_comparison as execution
 from scripts import predecessor_validation as validation
 from scripts.v0916_parity_certification import (
     MaterializedCanonicalAuthority, ParityError, Plan,
-    canonical_json_sha256, load_and_validate_pinned_plan, load_json_reject_duplicates,
+    load_and_validate_pinned_plan, load_json_reject_duplicates,
     materialize_and_validate_canonical_input_authority, resolve_canonical_route_input,
     resolve_case, write_json_exclusive_atomic,
 )
@@ -259,7 +259,7 @@ def build_v0916_report(
     execution._refuse(validation.v0916_report_failures(payload, dispositions, evidence, authority=authority, plan=sources.plan))
     payload["failures"] = [{"code": item.code, "subject": item.subject, "detail": item.detail}
                            for item in sorted(set(failures))]
-    payload["deterministicSha256"] = canonical_json_sha256(payload)
+    payload["deterministicSha256"] = validation.deterministic_report_sha256(payload)
     return payload
 
 

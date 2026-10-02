@@ -24,25 +24,14 @@ A formal run is refused with `PREDECESSOR_CONTRACT_PENDING` until R35-06 is in e
 
 ## Open items found in review
 
-The first two items are carried to the contract change that goes with R35-06, because they need a change under
-`docs/contracts/`:
+1. **Resolved: reproducible `deterministicSha256`.** This executor-contract batch retains and validates run capture evidence while both builders and validators share the contract's exact digest projection, covered by repeated synthetic runs with different ids, timestamps, paths and inventory collection times.
+2. **Resolved: the `1.2.2` milestone wording.** This batch states that candidate version `1.2.2` executes the deferred `1.2.0-release-approval` milestone under decisions 201 and 250, retaining the existing enum.
+3. **The CLI still needs the baseline builder.** Part 2 must supply R35-06's v0.9.16 baseline executor builder to the CLI; until then every `v0916-1x` CLI run ends `PREDECESSOR_CONTRACT_PENDING`.
 
-1. **`deterministicSha256` does not reproduce between real runs.** Each process entry of a report carries the size
-   and SHA-256 of the written CLI report (which holds a run id and two timestamps), stdout and stderr hashes that
-   cover temporary paths, and the temporary root length. The builder fixtures reproduce only because the synthetic
-   CLI is constant. Decide after the rehearsal shows which members vary: keep those capture identities in separate
-   run evidence, or exclude a named set from the digest; then test repeated runs with different ids, timestamps and
-   paths.
-2. **No milestone value for the `1.2.2` report of the v0.9.16 1.x mode.** The report schema's milestone values are
-   `1.1.13-final-candidate`, `1.2.0-release-approval` and `before-ro-1-decision`, and the contract still describes
-   the mode as a milestone check. Decision 250 makes the deferred milestone comparison block `1.2.2`: either state
-   that the `1.2.2` run is the deferred `1.2.0-release-approval` milestone (decisions 201 and 250), or add a value.
-3. **The CLI still has no supplier for release inventory or the baseline builder.** The rolling report of record
-   (R36-02) needs a release-host adapter that supplies the published stable release inventory to
-   `run_rolling(published=...)`. The CLI passes none, so once R35-06 is in effect `rolling --formal` ends
-   `PREDECESSOR_BASELINE_INVALID` (today it is refused earlier with `PREDECESSOR_CONTRACT_PENDING`). The rehearsal and the v0.9.16 report (R35-09, R36-03) need the CLI to pass
-   the baseline executor builder of R35-06; until then every `v0916-1x` CLI run ends
-   `PREDECESSOR_CONTRACT_PENDING`.
+The rolling inventory supplier is the commander's complete file passed through
+`--published-release-inventory FILE`; this batch supplies its schema, validation
+and report digests without adding a GitHub caller. `compilerHost` and
+`baselineExecutor` remain pending for part 2.
 
 To check at the rehearsal, because every test so far uses synthetic CLI reports:
 

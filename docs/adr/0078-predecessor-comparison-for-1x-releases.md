@@ -70,7 +70,11 @@ decision are in the 1.1.13 WS-PARITY handoff.
    difference or a baseline rejection is acceptable only when an exact plan or
    [1.x amendment](../contracts/v0916-parity-1x-amendment-v1.md) row is
    reproduced exactly; no declaration is read. The result is `consistent`,
-   `inconsistent` or `invalid`, never `pass`.
+   `inconsistent` or `invalid`, never `pass`. The 1.2.0 release-approval milestone
+   was deferred by [1.1.12 board decision 201](../handoff/1.1.12.md) and must run
+   formally and consistently before the 1.2.2 release under
+   [1.2.x board decision 250](../handoff/1.2.x.md); candidate version 1.2.2
+   retains milestone `1.2.0-release-approval`.
 4. **Coverage ledger.** A committed
    [ledger](../contracts/predecessor-comparison-v1.md#universe-and-coverage-ledger)
    declares every rolling scenario with its pinned inputs, CLI selection and

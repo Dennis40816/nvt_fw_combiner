@@ -16,6 +16,7 @@ public sealed class PredecessorComparisonSchemaContractTests
 {
     private const string ReportSchema = "predecessor-comparison-report-v1.schema.json";
     private const string DeclarationSchema = "predecessor-comparison-declaration-v1.schema.json";
+    private const string InventorySchema = "predecessor-published-release-inventory-v1.schema.json";
     private const string Remove = "<remove>";
 
     private static readonly EvaluationOptions EvaluationOptions = new()
@@ -37,6 +38,9 @@ public sealed class PredecessorComparisonSchemaContractTests
     private static readonly Dictionary<string, Example> Examples = new(StringComparer.Ordinal)
     {
         ["rolling-formal-clear"] = new(ReportSchema, RollingFormalClear()),
+        ["published-inventory"] = new(InventorySchema, PublishedInventory()),
+        ["published-inventory-offset"] = new(InventorySchema, PublishedInventory().Replace(
+            "2026-10-01T00:00:00Z", "2026-10-01T02:00:00+02:00", StringComparison.Ordinal)),
         ["rolling-diagnostic-clear-with-settings"] = new(ReportSchema, RollingDiagnosticClear()),
         ["rolling-blocked"] = new(ReportSchema, RollingBlocked()),
         ["v0916-formal-consistent"] = new(ReportSchema, V0916FormalConsistent()),
@@ -53,6 +57,24 @@ public sealed class PredecessorComparisonSchemaContractTests
 
     private static readonly Dictionary<string, Contradiction> Contradictions = new(StringComparer.Ordinal)
     {
+        ["formal-inventory-missing"] = new("rolling-formal-clear", [new("/publishedInventory", Remove)]),
+        ["formal-inventory-null"] = new("rolling-formal-clear", [new("/publishedInventory", "null")]),
+        ["inventory-raw-hash-missing"] = new("rolling-formal-clear", [new("/publishedInventory/rawSha256", Remove)]),
+        ["inventory-facts-hash-invalid"] = new("rolling-formal-clear", [new("/publishedInventory/factsSha256", "\"invalid\"")]),
+        ["inventory-root-open"] = new("published-inventory", [new("/extra", "true", true)]),
+        ["inventory-row-open"] = new("published-inventory", [new("/releases/0/extra", "true", true)]),
+        ["inventory-wrong-repository"] = new("published-inventory", [new("/repository", "\"other/repository\"")]),
+        ["inventory-incomplete"] = new("published-inventory", [new("/complete", "false")]),
+        ["inventory-row-incomplete"] = new("published-inventory", [new("/releases/0/complete", "false")]),
+        ["inventory-pages-invalid"] = new("published-inventory", [new("/pagesRead", "0")]),
+        ["inventory-id-invalid"] = new("published-inventory", [new("/releases/0/id", "0")]),
+        ["inventory-draft"] = new("published-inventory", [new("/releases/0/draft", "true")]),
+        ["inventory-prerelease"] = new("published-inventory", [new("/releases/0/prerelease", "true")]),
+        ["inventory-tag-unstable"] = new("published-inventory", [new("/releases/0/tag", "\"v1.2.1-rc1\"")]),
+        ["inventory-publication-missing"] = new("published-inventory", [new("/releases/0/publishedAtUtc", Remove)]),
+        ["inventory-publication-invalid"] = new("published-inventory", [new("/releases/0/publishedAtUtc", "\"2026-02-30T00:00:00Z\"")]),
+        ["inventory-collection-invalid"] = new("published-inventory", [new("/collectedAtUtc", "\"not-a-date\"")]),
+        ["inventory-offset-invalid"] = new("published-inventory", [new("/releases/0/publishedAtUtc", "\"2026-10-01T00:00:00+00:60\"")]),
         ["rolling-formal-clear-without-declaration"] = new("rolling-formal-clear", [new("/declarationSha256", "null")]),
         ["rolling-formal-with-settings-present-before"] = new(
             "rolling-formal-clear",
@@ -300,6 +322,7 @@ public sealed class PredecessorComparisonSchemaContractTests
         "predecessor-comparison-scenarios-v1.schema.json",
         DeclarationSchema,
         ReportSchema,
+        InventorySchema,
     ];
 
     /// <summary>Committed predecessor-comparison documents and their exact schemas.</summary>
@@ -344,6 +367,60 @@ public sealed class PredecessorComparisonSchemaContractTests
         JsonNode document = JsonNode.Parse(File.ReadAllText(path))!;
 
         Assert.True(IsValid(ReportSchema, document), $"{fixtureName} must satisfy {ReportSchema}.");
+    }
+
+    /// <summary>Run capture identities may vary while their required schema constraints remain enforced.</summary>
+    /// <param name="fixtureName">The builder report shape of either comparison mode.</param>
+    /// <param name="temporaryRootLength">Schema-admissible length for this synthetic run.</param>
+    /// <param name="captureHash">A run-specific CLI report and stream identity.</param>
+    [Theory]
+    [InlineData("rolling-declared.json", 32, 'a')]
+    [InlineData("rolling-declared.json", 54, 'b')]
+    [InlineData("v0916-consistent.json", 32, 'a')]
+    [InlineData("v0916-consistent.json", 54, 'b')]
+    public void RepeatedRunCaptureShapesSatisfyReportSchema(string fixtureName, int temporaryRootLength, char captureHash)
+    {
+        string path = RepositoryPaths.FromRepositoryRoot(
+            "tests", "scripts", "fixtures", "predecessor-comparison", fixtureName);
+        JsonNode document = JsonNode.Parse(File.ReadAllText(path))!;
+        document["environment"]!["temporaryRootLength"] = temporaryRootLength;
+        bool rolling = document["mode"]!.GetValue<string>() == "rolling";
+        if (rolling)
+        {
+            document["publishedInventory"] = JsonNode.Parse($$"""
+                { "rawSha256": "{{new string(captureHash, 64)}}", "factsSha256": "{{ShaC}}" }
+                """);
+        }
+
+        foreach (JsonNode? scenario in document[rolling ? "scenarios" : "routes"]!.AsArray())
+        {
+            foreach (string side in new[] { "baseline", "candidate" })
+            {
+                if (scenario![side] is null)
+                {
+                    continue;
+                }
+
+                foreach (JsonNode? process in scenario![side]!["processes"]!.AsArray())
+                {
+                    process!["stdoutSha256"] = new string(captureHash, 64);
+                    process["stderrSha256"] = new string(captureHash, 64);
+                    process["report"]!["size"] = temporaryRootLength + 1000;
+                    process["report"]!["sha256"] = new string(captureHash, 64);
+                }
+            }
+        }
+
+        Assert.True(IsValid(ReportSchema, document));
+    }
+
+    /// <summary>Diagnostic rolling reports can omit publication verification by recording null.</summary>
+    [Fact]
+    public void DiagnosticInventoryMayBeNull()
+    {
+        JsonNode document = JsonNode.Parse(RollingDiagnosticClear())!;
+        document["publishedInventory"] = null;
+        Assert.True(IsValid(ReportSchema, document));
     }
 
     /// <summary>Internally consistent reports and declarations of both modes.</summary>
@@ -682,11 +759,28 @@ public sealed class PredecessorComparisonSchemaContractTests
               "baseline": { "kind": "previous-release", "tag": "v1.1.12", "executor": {{Executor(TagObject)}} },
               "ledgerSha256": "{{ShaC}}",
               "declarationSha256": {{declarationSha256}},
+              "publishedInventory": { "rawSha256": "{{ShaA}}", "factsSha256": "{{ShaB}}" },
               "environment": {{environment}},
               "scenarios": [{{scenarios}}],
               "coverage": {{coverage}},
               "gate": {{gate}},
               "deterministicSha256": "{{ShaD}}"
+            }
+            """;
+    }
+
+    private static string PublishedInventory()
+    {
+        return """
+            {
+              "schemaVersion": "1.0",
+              "kind": "predecessor-published-release-inventory",
+              "repository": "Dennis40816/nvt_fw_combiner",
+              "collectedAtUtc": "2026-10-02T00:00:00Z",
+              "complete": true,
+              "pagesRead": 2,
+              "releases": [{ "id": 1, "tag": "v1.2.1", "publishedAtUtc": "2026-10-01T00:00:00Z",
+                             "draft": false, "prerelease": false, "complete": true }]
             }
             """;
     }

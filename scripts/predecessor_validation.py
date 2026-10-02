@@ -18,6 +18,9 @@ with the contract's codes and never raises for a finding.
 from __future__ import annotations
 
 import re
+import copy
+import hashlib
+from datetime import datetime
 from typing import Any, Iterable, Mapping, NamedTuple, Sequence
 
 try:
@@ -768,6 +771,100 @@ def stable_tag_version(tag: str) -> tuple[int, int, int] | None:
     return None if match is None else tuple(map(int, match.groups()))
 
 
+def published_inventory_failures(inventory: Any) -> list[Failure]:
+    """Validate the producer's complete offline inventory, without acquiring releases."""
+    def invalid(detail: str) -> list[Failure]:
+        return [_failure("BASELINE_INVALID", "publishedInventory", detail)]
+
+    def utc_time(value: Any) -> tuple[int, str]:
+        match = None if not isinstance(value, str) else re.fullmatch(
+            r"([0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-9]{2})(?:\.([0-9]+))?"
+            r"([Zz]|[+-](?:0[0-9]|1[0-9]|2[0-3]):[0-5][0-9])", value
+        )
+        if match is None:
+            raise ValueError("publication and collection times must be RFC 3339 date-time strings")
+        # Compare the fraction exactly: datetime otherwise truncates it to microseconds.
+        local = datetime.fromisoformat(match[1].upper())
+        offset = match[3]
+        offset_seconds = 0 if offset.upper() == "Z" else (
+            (int(offset[1:3]) * 60 + int(offset[4:6])) * 60 * (1 if offset[0] == "+" else -1))
+        seconds = local.toordinal() * 86400 + local.hour * 3600 + local.minute * 60 + local.second - offset_seconds
+        return seconds, (match[2] or "").rstrip("0")
+
+    root_members = {"schemaVersion", "kind", "repository", "collectedAtUtc", "complete", "pagesRead", "releases"}
+    row_members = {"id", "tag", "publishedAtUtc", "draft", "prerelease", "complete"}
+    if not isinstance(inventory, dict) or set(inventory) != root_members:
+        return invalid("inventory has missing or unknown members")
+    if (inventory["schemaVersion"] != "1.0" or inventory["kind"] != "predecessor-published-release-inventory"
+            or inventory["repository"] != "Dennis40816/nvt_fw_combiner" or inventory["complete"] is not True
+            or type(inventory["pagesRead"]) is not int or inventory["pagesRead"] < 1
+            or not isinstance(inventory["releases"], list)):
+        return invalid("inventory identity, completeness or pagination is invalid")
+    ids, tags = set(), set()
+    try:
+        collected = utc_time(inventory["collectedAtUtc"])
+        for row in inventory["releases"]:
+            if not isinstance(row, dict) or set(row) != row_members:
+                return invalid("release has missing or unknown members")
+            if (type(row["id"]) is not int or row["id"] < 1 or not isinstance(row["tag"], str)
+                    or stable_tag_version(row["tag"]) is None or row["draft"] is not False
+                    or row["prerelease"] is not False or row["complete"] is not True):
+                return invalid("release is not a complete published stable release")
+            if row["id"] in ids or row["tag"] in tags:
+                return invalid("duplicate release id or tag")
+            if utc_time(row["publishedAtUtc"]) > collected:
+                return invalid("release publication is later than inventory collection")
+            ids.add(row["id"])
+            tags.add(row["tag"])
+    except (TypeError, ValueError):
+        return invalid("publication or collection time is invalid")
+    return []
+
+
+def published_inventory_identity(payload: bytes, inventory: Mapping[str, Any]) -> dict[str, str]:
+    """Bind file bytes and numerically ordered publication facts independently."""
+    return {"rawSha256": hashlib.sha256(payload).hexdigest(),
+            "factsSha256": canonical_json_sha256({"repository": inventory["repository"],
+                "releases": sorted(inventory["releases"], key=lambda row: stable_tag_version(row["tag"]))})}
+
+
+def deterministic_digest_projection(report: Mapping[str, Any]) -> dict[str, Any]:
+    """Remove only the contract's named run-specific members; preserve nulls and order."""
+    value = copy.deepcopy(dict(report))
+    value.pop("deterministicSha256", None)
+    if "environment" in value:
+        value["environment"].pop("temporaryRootLength", None)
+    for collection in ("scenarios", "routes"):
+        for row in value.get(collection, []):
+            for name in ("baseline", "candidate"):
+                side = row.get(name)
+                if side is None:
+                    continue
+                for process in side.get("processes", []):
+                    process.pop("stdoutSha256", None)
+                    process.pop("stderrSha256", None)
+                    if process.get("report") is not None:
+                        process["report"].pop("size", None)
+                        process["report"].pop("sha256", None)
+    for failures in (value.get("gate", {}).get("failures", []), value.get("failures", [])):
+        for failure in failures:
+            failure.pop("detail", None)
+    if value.get("publishedInventory") is not None:
+        value["publishedInventory"].pop("rawSha256", None)
+    return value
+
+
+def deterministic_report_sha256(report: Mapping[str, Any]) -> str:
+    return canonical_json_sha256(deterministic_digest_projection(report))
+
+
+def deterministic_digest_failures(report: Mapping[str, Any]) -> list[Failure]:
+    """Builders validate before adding the digest; completed reports verify it here."""
+    if "deterministicSha256" in report and report["deterministicSha256"] != deterministic_report_sha256(report):
+        return [_failure("REPORT_INVALID", "deterministicSha256", "digest differs from the named projection")]
+    return []
+
+
 def formal_interface_failures(
     contract: Mapping[str, Any], *, formal: bool, amendment: Mapping[str, Any] | None = None,
 ) -> list[Failure]:
@@ -1205,6 +1302,7 @@ class SourceAuthority(NamedTuple):
     ledger_sha256: str | None = None
     declaration_sha256: str | None = None
     amendment_sha256: str | None = None
+    published_inventory: Mapping[str, str] | None = None
 
 
 def source_binding_failures(report: Mapping[str, Any], authority: SourceAuthority) -> list[Failure]:
@@ -1229,6 +1327,10 @@ def source_binding_failures(report: Mapping[str, Any], authority: SourceAuthorit
         failures.append(_failure("SOURCE_MISMATCH", "contracts", "report binds other contract identities"))
     if report["mode"] == "rolling":
         bound = (("ledgerSha256", authority.ledger_sha256), ("declarationSha256", authority.declaration_sha256))
+        if report.get("publishedInventory") != authority.published_inventory:
+            failures.append(_failure("SOURCE_MISMATCH", "publishedInventory", "report binds another inventory"))
+        if report["formal"] and report.get("publishedInventory") is None:
+            failures.append(_failure("BASELINE_INVALID", "publishedInventory", "formal run requires publication inventory"))
     else:
         bound = (("amendmentSha256", authority.amendment_sha256),)
     for member, expected in bound:
@@ -1292,6 +1394,7 @@ def rolling_report_failures(
         )
     )
     failures.extend(source_binding_failures(report, authority))
+    failures.extend(deterministic_digest_failures(report))
     return failures
 
 
@@ -1724,6 +1827,7 @@ def v0916_report_failures(
     """A v0.9.16 1.x report covers each plan route once with its proof, row, evidence, summary and result."""
 
     failures = v0916_milestone_failures(formal=report.get("formal", False), milestone=report.get("milestone"))
+    failures.extend(deterministic_digest_failures(report))
     if authority is not None:
         failures.extend(source_binding_failures(report, authority))
     if plan is not None and report["planBinding"] != v0916_plan_binding(plan):
