@@ -107,12 +107,14 @@ public sealed class GeneralReplaceDiagnosticPreviewTests
                 "The exact Parent omits POSTBUILD.",
                 CapabilityReadinessNextAction.ReviewCompilation),
             []);
-        GeneralReplaceDiagnosticPreviewSummary diagnostic =
-            GeneralReplaceDiagnosticPreviewProjector.Project(
-                20,
-                CreateAdmission(),
-                readiness,
-                requiredStageId: null);
+        var diagnostic = new GeneralReplaceDiagnosticPreviewSummary(
+            RequiredStageId: null,
+            readiness.Build.PrimaryBlocker!,
+            [
+                new PlanOnlyCoverageSegment(new ByteRange(0, 10), PlanOnlyCoverageDisposition.Kept, null),
+                new PlanOnlyCoverageSegment(new ByteRange(10, 2), PlanOnlyCoverageDisposition.Changed, "write"),
+                new PlanOnlyCoverageSegment(new ByteRange(12, 8), PlanOnlyCoverageDisposition.Kept, null),
+            ]);
         var report = new CompositionRunReport(
             "diagnostic-preview",
             "general-replace",

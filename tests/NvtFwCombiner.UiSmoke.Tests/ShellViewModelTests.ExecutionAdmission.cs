@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Bootstrap;
@@ -24,25 +25,42 @@ public sealed partial class BuildOutcomeTests
         using var workspace = TempWorkspace.Create("nfc-ui-admission-refusal");
         CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         AcceptedCompositionExecutionRequest request =
-            await PrepareAdmissionRequestAsync(host, workspace, build, withReadiness: true);
-        Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
+            await PrepareAdmissionRequestAsync(host, workspace, build);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+        viewModel.Merge.GeneralMergeOutputLength = "0x40000";
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+        mapping.SourceStartAddress = "0x0";
+        mapping.TargetStartAddress = "0x3E020";
+        mapping.Length = "0x2";
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            mapping.MappingId, workspace.PathFor("replacement.bin"), TestContext.Current.CancellationToken);
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.BuildMergeCommand.CanExecute(null));
+        Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
         string previousJson = ReportJsonSamples.Succeeded(runId: "previous-run");
         viewModel.Reports.LoadReportJson(previousJson, "previous.json");
         ReportReviewViewModel previousReport = viewModel.Reports.LoadedReport;
         ReportHistoryEntryViewModel[] previousHistory = [.. viewModel.Reports.ReportHistoryEntries];
         bool previousToast = viewModel.Reports.HasReportToast;
         int reportLoads = 0;
+        int executionCalls = 0;
 
-        _ = await viewModel.RunSession.RunCompositionAsync(
-            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
+        UiRunResultViewModel? result = await viewModel.RunSession.RunCompositionAsync(
+            viewModel.Merge.CaptureRunContext(ExperienceIds.GeneralMerge, build),
             build,
-            (progress, cancellationToken) => host.CompositionExecution.ExecuteAsync(
-                request,
-                progress,
-                cancellationToken),
+            (progress, cancellationToken) =>
+            {
+                executionCalls++;
+                return host.CompositionExecution.ExecuteAsync(request, progress, cancellationToken);
+            },
             (_, _) => reportLoads++);
 
+        Assert.Equal(1, executionCalls);
+        Assert.NotNull(result);
+        Assert.Same(result, viewModel.RunSession.LastRunResult);
         Assert.Equal(0, reportLoads);
         Assert.False(viewModel.Reports.IsReportModalOpen);
         Assert.Equal(previousToast, viewModel.Reports.HasReportToast);
@@ -64,12 +82,20 @@ public sealed partial class BuildOutcomeTests
     {
         using var workspace = TempWorkspace.Create("nfc-ui-admission-invariant");
         CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
-        AcceptedCompositionExecutionRequest request =
-            await PrepareAdmissionRequestAsync(host, workspace, build: true, withReadiness: false);
+        JsonElement fixture = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace", "nt51927-3chip-self-20260705");
+        Dictionary<string, string> paths = fixture.GetProperty("artifacts").EnumerateArray()
+            .ToDictionary(artifact => artifact.GetProperty("slotId").GetString()!, CanonicalGoldenTestData.ArtifactPath);
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => File.ReadAllBytes(pair.Value));
+        CtrlRamAuthoringSessionPreparation prepared = host.CtrlRamAuthoring.PrepareSession(
+            new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51927", "3", paths, bytes);
+        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
+        var request = new AcceptedCompositionExecutionRequest(
+            prepared.AcceptedSession!, paths, build: true, outputPath: workspace.PathFor("output.bin"), actionReadiness: null);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         _ = await viewModel.RunSession.RunCompositionAsync(
-            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode),
+            viewModel.Replace.CaptureRunContext(ExperienceIds.CtrlRamReplace),
             build: true,
             (progress, cancellationToken) => host.CompositionExecution.ExecuteAsync(
                 request,
@@ -77,9 +103,9 @@ public sealed partial class BuildOutcomeTests
                 cancellationToken),
             (action, message) => viewModel.Reports.LoadRunErrorReport(
                 action,
-                "nt51926-general-replace",
-                "NT51926",
-                "single",
+                prepared.AcceptedSession!.ExactCapability!.CompiledComposition.V2Details.ProfileId,
+                "NT51927",
+                "3",
                 message,
                 new Dictionary<string, string>()));
 
@@ -95,17 +121,14 @@ public sealed partial class BuildOutcomeTests
     private static async Task<AcceptedCompositionExecutionRequest> PrepareAdmissionRequestAsync(
         CompositionHostServices host,
         TempWorkspace workspace,
-        bool build,
-        bool withReadiness)
+        bool build)
     {
-        byte[] baseBytes = FirmwareByteTestData.CreatePattern(0x40000, 0x51);
-        string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
         var draft = new GeneralMappingDraftState(
         [
             new GeneralMappingDraftRow(
                 "admission-map",
-                ExplicitMappingOperationKind.ReplaceRange,
+                ExplicitMappingOperationKind.CopyRange,
                 GeneralMappingSource.File(replacementPath),
                 new ByteRange(0, 2),
                 CompositionAddressSpaceIds.OutputImage,
@@ -114,22 +137,17 @@ public sealed partial class BuildOutcomeTests
                 alignment: 1,
                 "UI execution admission fixture."),
         ]);
-        GeneralAuthoringSessionPreparation prepared = await host.GeneralAuthoring.PrepareReplaceSessionAsync(
-            new AuthoringSessionState(ExperienceIds.GeneralReplace),
+        GeneralAuthoringSessionPreparation prepared = await host.GeneralAuthoring.PrepareMergeSessionAsync(
+            new AuthoringSessionState(ExperienceIds.GeneralMerge),
             "NT51926",
-            "single",
-            basePath,
-            draft,
+            new GeneralMergeDraftState(new GeneralMergeOutputInitializer(0x40000), draft),
             TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded);
         return new AcceptedCompositionExecutionRequest(
             prepared.AcceptedSession!,
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                [CompositionSlotIds.ReplaceBase] = basePath,
-            },
+            new Dictionary<string, string>(StringComparer.Ordinal),
             build,
             outputPath: build ? workspace.PathFor("output.bin") : null,
-            actionReadiness: withReadiness ? prepared.Readiness : null);
+            actionReadiness: prepared.Readiness);
     }
 }

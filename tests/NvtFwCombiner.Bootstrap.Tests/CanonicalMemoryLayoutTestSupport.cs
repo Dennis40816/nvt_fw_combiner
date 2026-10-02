@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.TestSupport;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.MemoryLayout;
@@ -7,23 +8,23 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 internal static class CanonicalMemoryLayoutTestSupport
 {
-    internal static async Task<(MemoryLayoutSnapshot Layout, string ReplacementAddressSpace)> PrepareGeneralReplaceAsync()
+    internal static (MemoryLayoutSnapshot Layout, string[] ReplacementAddressSpaces) PrepareCtrlRamReplace()
     {
-        using var workspace = TempWorkspace.Create("nfc-general-memory-layout");
-        string reference = workspace.Write("reference.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
-        string replacement = workspace.Write("replacement.bin", [0x31, 0x42]);
-        GeneralAuthoringSessionPreparation prepared = await BootstrapTestHost.Services.GeneralAuthoring
-            .PrepareReplaceSessionAsync(
-                new AuthoringSessionState(ExperienceIds.GeneralReplace),
-                "NT51926", "single", reference,
-                GeneralTestDraftFactory.CreateReplaceDraft([
-                    GeneralTestDraftFactory.ReplaceFile("mapping-1", replacement, "0x3E020", "0x2"),
-                ]), TestContext.Current.CancellationToken);
+        JsonElement fixture = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace", "nt51927-3chip-self-20260705");
+        Dictionary<string, string> paths = fixture.GetProperty("artifacts").EnumerateArray()
+            .ToDictionary(artifact => artifact.GetProperty("slotId").GetString()!, CanonicalGoldenTestData.ArtifactPath);
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => File.ReadAllBytes(pair.Value));
+        CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
+            new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51927", "3", paths, bytes);
         Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
         ActiveSessionSnapshot accepted = prepared.AcceptedSession!;
         return (MemoryLayoutProjector.Project(accepted.ExactCapability!, accepted, accepted.ExactCapability!.CompiledComposition),
-            accepted.ExactCapability.CompiledComposition.Plan.OrderedOperations.Single(operation =>
+            accepted.ExactCapability.CompiledComposition.Plan.OrderedOperations.Where(operation =>
                 operation.SourceSpaceId is not null &&
-                operation.SourceSpaceId != accepted.ExactCapability.CompiledComposition.Plan.OutputInitialization.ReferenceSpaceId).SourceSpaceId!);
+                operation.SourceSpaceId != accepted.ExactCapability.CompiledComposition.Plan.OutputInitialization.ReferenceSpaceId)
+                .Select(static operation => operation.SourceSpaceId!)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray());
     }
 }

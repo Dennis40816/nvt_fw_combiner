@@ -160,40 +160,43 @@ public sealed partial class ShellNavigationSystemTests
             static row => row.WorkflowId == ExperienceIds.DpReplace);
     }
 
-    /// <summary>Opening Settings preserves selected Replace files, mappings, inspection identity and readiness.</summary>
+    /// <summary>Opening Settings preserves two selected General Merge files, mappings, inspection identity and readiness.</summary>
     [Fact]
-    public void SettingsModalPreservesReplaceAuthoringState()
+    public void SettingsModalPreservesGeneralMergeFileIdentitiesAndReadiness()
     {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-settings-replace-isolation");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-settings-general-merge-isolation");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.Replace.SelectedReplaceMode = ExperienceIds.GeneralReplace;
-        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+        viewModel.Merge.GeneralMergeOutputLength = "0x200";
+        GeneralMergeMappingViewModel baseMapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+        baseMapping.Length = "0x2";
+        viewModel.Merge.AddGeneralMergeMappingCommand.Execute(null);
+        GeneralMergeMappingViewModel mapping = viewModel.Merge.GeneralMergeMappings[1];
         mapping.TargetStartAddress = "0x120";
         mapping.Length = "0x2";
         string basePath = workspace.Write("base.bin", [0x10, 0x11]);
         string mappingPath = workspace.Write("mapping.bin", [0x20, 0x21]);
-        viewModel.SetSlotFile("replace-base", basePath);
+        viewModel.SetSlotFile(baseMapping.MappingId, basePath);
         viewModel.SetSlotFile(mapping.MappingId, mappingPath);
-        string readiness = viewModel.Replace.ReplaceReadinessStatus;
+        string readiness = viewModel.Merge.MergeReadinessStatus;
         FileStamp? acceptedStamp = mapping.AcceptedFileStamp;
 
         viewModel.OpenSettingsCommand.Execute(null);
         viewModel.CloseSettingsCommand.Execute(null);
 
-        Assert.True(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.IsMergeVisible);
         Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
         Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
-        Assert.Equal(ExperienceIds.GeneralReplace, viewModel.Replace.SelectedReplaceMode);
-        Assert.Equal(basePath, viewModel.Replace.ReplaceBaseSlot.FilePath);
+        Assert.Equal(ExperienceIds.GeneralMerge, viewModel.Merge.SelectedMergeMode);
+        Assert.Equal(basePath, baseMapping.FilePath);
         Assert.Equal(mappingPath, mapping.FilePath);
         Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
         Assert.Equal("0x120", mapping.TargetStartAddress);
         Assert.Equal("0x2", mapping.Length);
-        Assert.Equal(readiness, viewModel.Replace.ReplaceReadinessStatus);
+        Assert.Equal(readiness, viewModel.Merge.MergeReadinessStatus);
     }
 
     /// <summary>Opening Settings preserves selected Merge inputs, mappings and readiness.</summary>

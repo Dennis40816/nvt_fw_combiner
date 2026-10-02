@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
@@ -26,7 +27,7 @@ public sealed class AcceptedExecutionAdmissionTests
         CompositionHostServices host = await CreateLoadedHostAsync();
         var destinations = new ObservedDestinations(onPrepare: null);
         CompositionExecutionExperience execution = CreateExecution(host, destinations);
-        AcceptedGeneralReplace accepted = await PrepareGeneralReplaceAsync(host, workspace);
+        AcceptedGeneralRun accepted = await PrepareGeneralSessionAsync(host, workspace);
         Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
         string outputPath = workspace.PathFor("must-not-exist.bin");
 
@@ -39,7 +40,7 @@ public sealed class AcceptedExecutionAdmissionTests
 
         CompositionIssue issue = Assert.Single(refusal.Issues);
         Assert.Equal(CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale, issue.Code);
-        Assert.Equal(ExperienceIds.GeneralReplace, issue.OperationId);
+        Assert.Equal(ExperienceIds.GeneralMerge, issue.OperationId);
         Assert.Contains("catalog was reloaded", issue.Message, StringComparison.Ordinal);
         Assert.Equal(0, destinations.Calls);
         Assert.False(File.Exists(outputPath));
@@ -57,7 +58,7 @@ public sealed class AcceptedExecutionAdmissionTests
         var destinations = new ObservedDestinations(
             onPrepare: () => Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded));
         CompositionExecutionExperience execution = CreateExecution(host, destinations);
-        AcceptedGeneralReplace accepted = await PrepareGeneralReplaceAsync(host, workspace);
+        AcceptedGeneralRun accepted = await PrepareGeneralSessionAsync(host, workspace);
         string outputPath = workspace.PathFor("admitted.bin");
 
         CompositionRunResult result = await execution.ExecuteAsync(
@@ -68,7 +69,7 @@ public sealed class AcceptedExecutionAdmissionTests
         Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(outputPath, result.CommittedOutputId);
         byte[] committed = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
-        Assert.Equal(accepted.BaseLength, committed.Length);
+        Assert.Equal(accepted.OutputLength, committed.Length);
         Assert.Equal(Replacement, committed.AsSpan(TargetStart, Replacement.Length).ToArray());
         Assert.Equal(1, destinations.Calls);
 
@@ -93,13 +94,21 @@ public sealed class AcceptedExecutionAdmissionTests
         CompositionHostServices host = await CreateLoadedHostAsync();
         var destinations = new ObservedDestinations(onPrepare: null);
         CompositionExecutionExperience execution = CreateExecution(host, destinations);
-        AcceptedGeneralReplace accepted = await PrepareGeneralReplaceAsync(host, workspace);
+        JsonElement fixture = CanonicalGoldenTestData.LoadDirectEvidenceCase(
+            "ctrlram-replace", "nt51927-3chip-self-20260705");
+        Dictionary<string, string> paths = fixture.GetProperty("artifacts").EnumerateArray()
+            .ToDictionary(artifact => artifact.GetProperty("slotId").GetString()!, CanonicalGoldenTestData.ArtifactPath);
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => File.ReadAllBytes(pair.Value));
+        CtrlRamAuthoringSessionPreparation prepared = host.CtrlRamAuthoring.PrepareSession(
+            new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51927", "3", paths, bytes);
+        Assert.True(prepared.Succeeded, CompositionExecutionTestSupport.FormatIssues(prepared.Issues));
         Assert.True(host.Catalog.Reload(TestContext.Current.CancellationToken).Succeeded);
         string outputPath = workspace.PathFor("must-not-exist.bin");
 
         InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(
             () => execution.ExecuteAsync(
-                    accepted.CreateBuildRequest(outputPath, withReadiness: false),
+                    new AcceptedCompositionExecutionRequest(
+                        prepared.AcceptedSession!, paths, build: true, outputPath: outputPath, actionReadiness: null),
                     new CompositionRunProgressFeed(),
                     TestContext.Current.CancellationToken)
                 .AsTask());
@@ -135,18 +144,16 @@ public sealed class AcceptedExecutionAdmissionTests
             (AbMergeAuthoringExperience)host.AbMergeAuthoring);
     }
 
-    private static async Task<AcceptedGeneralReplace> PrepareGeneralReplaceAsync(
+    private static async Task<AcceptedGeneralRun> PrepareGeneralSessionAsync(
         CompositionHostServices host,
         TempWorkspace workspace)
     {
-        byte[] baseBytes = BootstrapTestData.CreatePattern(0x40000, 0x51);
-        string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("replacement.bin", Replacement);
         var draft = new GeneralMappingDraftState(
         [
             new GeneralMappingDraftRow(
                 "admission-map",
-                ExplicitMappingOperationKind.ReplaceRange,
+                ExplicitMappingOperationKind.CopyRange,
                 GeneralMappingSource.File(replacementPath),
                 new ByteRange(0, Replacement.Length),
                 CompositionAddressSpaceIds.OutputImage,
@@ -155,39 +162,35 @@ public sealed class AcceptedExecutionAdmissionTests
                 alignment: 1,
                 "Execution admission boundary fixture."),
         ]);
-        GeneralAuthoringSessionPreparation prepared = await host.GeneralAuthoring.PrepareReplaceSessionAsync(
-            new AuthoringSessionState(ExperienceIds.GeneralReplace),
+        const int outputLength = 0x40000;
+        GeneralAuthoringSessionPreparation prepared = await host.GeneralAuthoring.PrepareMergeSessionAsync(
+            new AuthoringSessionState(ExperienceIds.GeneralMerge),
             "NT51926",
-            "single",
-            basePath,
-            draft,
+            new GeneralMergeDraftState(new GeneralMergeOutputInitializer(outputLength), draft),
             TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded, CompositionExecutionTestSupport.FormatIssues(prepared.Issues));
         Assert.True(prepared.Readiness!.Build.IsAvailable);
-        return new AcceptedGeneralReplace(
+        return new AcceptedGeneralRun(
             prepared.AcceptedSession!,
             prepared.Readiness,
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                [CompositionSlotIds.ReplaceBase] = basePath,
-            },
-            baseBytes.Length);
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            outputLength);
     }
 
-    private sealed record AcceptedGeneralReplace(
+    private sealed record AcceptedGeneralRun(
         ActiveSessionSnapshot Session,
         CapabilityActionReadinessSnapshot Readiness,
         IReadOnlyDictionary<string, string> SlotPaths,
-        int BaseLength)
+        int OutputLength)
     {
-        internal AcceptedCompositionExecutionRequest CreateBuildRequest(string outputPath, bool withReadiness = true)
+        internal AcceptedCompositionExecutionRequest CreateBuildRequest(string outputPath)
         {
             return new AcceptedCompositionExecutionRequest(
                 Session,
                 SlotPaths,
                 build: true,
                 outputPath: outputPath,
-                actionReadiness: withReadiness ? Readiness : null);
+                actionReadiness: Readiness);
         }
     }
 

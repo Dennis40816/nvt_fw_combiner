@@ -9,7 +9,10 @@ public sealed partial class CompositionRunRequestV2Tests
     [Fact]
     public void DynamicGeneralReplaceDefinitionRequiresTypedNumberChoice()
     {
-        CompiledComposition composition = CreateRuntimeReferenceCandidate();
+        CompiledComposition composition = CreateRuntimeReferenceCandidate(
+            modeId: ExperienceIds.GeneralReplace,
+            experienceId: ExperienceIds.GeneralReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.Auxiliary);
         RuntimeReferenceReplaceV2CompilationContext context =
             Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
                 composition.V2Details.Provenance.Context);

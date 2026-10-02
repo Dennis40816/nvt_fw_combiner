@@ -11,9 +11,9 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunRequestV2Tests
 {
-    /// <summary>A typed General Replace choice cannot bind a differently shaped compiler result.</summary>
+    /// <summary>A typed CtrlRAM Replace choice cannot bind a differently shaped compiler result.</summary>
     [Fact]
-    public void DynamicGeneralReplaceCompilationRejectsRouteSelectorModeDrift()
+    public void RuntimeReferenceCompilationRejectsRouteSelectorModeDrift()
     {
         CompiledComposition composition = CreateRuntimeReferenceCandidate();
         var choice = new CapabilityNumberChoice(
@@ -49,7 +49,7 @@ public sealed partial class CompositionRunRequestV2Tests
                         "source-a",
                         "source-artifact",
                         "patch.bin",
-                        CompiledInputArtifactClass.Auxiliary),
+                        CompiledInputArtifactClass.CtrlRamReplacement),
                 ],
                 "runtime-reference.bin",
                 icNumberSelection: new IcNumberSelection(
@@ -313,7 +313,7 @@ public sealed partial class CompositionRunRequestV2Tests
                     "source-a",
                     "source-artifact",
                     "patch.bin",
-                    CompiledInputArtifactClass.Auxiliary),
+                    CompiledInputArtifactClass.CtrlRamReplacement),
             ],
             "runtime-reference.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
@@ -348,7 +348,7 @@ public sealed partial class CompositionRunRequestV2Tests
                     "source-a",
                     "source-artifact",
                     "patch.bin",
-                    CompiledInputArtifactClass.Auxiliary),
+                    CompiledInputArtifactClass.CtrlRamReplacement),
             ],
             "runtime-reference.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
@@ -361,7 +361,11 @@ public sealed partial class CompositionRunRequestV2Tests
     [Fact]
     public void RuntimeReferenceCandidateHasStableCompilationFingerprint()
     {
-        CompiledComposition candidate = CreateRuntimeReferenceCandidate();
+        // Historical synthetic fingerprint vector; it does not prepare or execute a retired workflow.
+        CompiledComposition candidate = CreateRuntimeReferenceCandidate(
+            modeId: ExperienceIds.GeneralReplace,
+            experienceId: ExperienceIds.GeneralReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.Auxiliary);
         Assert.Equal(
             "2033ebd60caa4c4c058088533be283b044da14f463b2012ea3a998b3a10dbe3b",
             candidate.CompilationFingerprint);
@@ -389,6 +393,8 @@ public sealed partial class CompositionRunRequestV2Tests
         string referenceBindingId,
         string sourceBindingId)
     {
+        ArgumentNullException.ThrowIfNull(referenceBindingId);
+        ArgumentNullException.ThrowIfNull(sourceBindingId);
         _ = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
             "runtime-reference-mismatched-binding",
             CreateRuntimeReferenceCandidate(),
@@ -404,7 +410,7 @@ public sealed partial class CompositionRunRequestV2Tests
                     sourceBindingId,
                     "source-artifact",
                     "patch.bin",
-                    CompiledInputArtifactClass.Auxiliary),
+                    CompiledInputArtifactClass.CtrlRamReplacement),
             ],
             "runtime-reference.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
@@ -413,9 +419,9 @@ public sealed partial class CompositionRunRequestV2Tests
     private static CompiledComposition CreateRuntimeReferenceCandidate(
         bool allowsConditionalProcessor = false,
         bool includeProcessorView = false,
-        string modeId = ExperienceIds.GeneralReplace,
-        string experienceId = ExperienceIds.GeneralReplace,
-        CompiledInputArtifactClass sourceArtifactClass = CompiledInputArtifactClass.Auxiliary,
+        string modeId = ExperienceIds.CtrlRamReplace,
+        string experienceId = ExperienceIds.CtrlRamReplace,
+        CompiledInputArtifactClass sourceArtifactClass = CompiledInputArtifactClass.CtrlRamReplacement,
         FirmwareRegionOwner rootOwner = FirmwareRegionOwner.System,
         FirmwareRegionKind rootKind = FirmwareRegionKind.Image,
         string? processorId = null,

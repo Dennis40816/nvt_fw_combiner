@@ -190,34 +190,38 @@ public sealed partial class ShellNavigationSystemTests
         Assert.False(viewModel.Replace.CanBuildReplace);
     }
 
-    /// <summary>Settings bypasses navigation clearing and preserves Replace files and mapping context.</summary>
+    /// <summary>Settings bypasses navigation clearing and preserves General Merge files and mapping context.</summary>
     [Fact]
-    public void SettingsModalPreservesReplaceFilesAndAuthoringContext()
+    public void SettingsModalPreservesGeneralMergeFilesAndAuthoringContext()
     {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-replace");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-general-merge");
         string inputPath = workspace.Write("input.bin", [0x20, 0x21]);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        OpenReplace(viewModel, ExperienceIds.GeneralReplace);
-        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        viewModel.ShowMergeCommand.Execute(null);
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+        viewModel.Merge.GeneralMergeOutputLength = "0x20";
+        GeneralMergeMappingViewModel baseMapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+        baseMapping.Length = "0x2";
+        viewModel.Merge.AddGeneralMergeMappingCommand.Execute(null);
+        GeneralMergeMappingViewModel mapping = viewModel.Merge.GeneralMergeMappings[1];
         mapping.TargetStartAddress = "0x10";
         mapping.Length = "0x2";
-        viewModel.SetSlotFile("replace-base", inputPath);
+        viewModel.SetSlotFile(baseMapping.MappingId, inputPath);
         viewModel.SetSlotFile(mapping.MappingId, inputPath);
 
         viewModel.OpenSettingsCommand.Execute(null);
 
         Assert.False(viewModel.Navigation.IsNavigationClearConfirmationOpen);
-        Assert.True(viewModel.IsReplaceVisible);
+        Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsSettingsModalOpen);
-        Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFile);
+        Assert.True(baseMapping.HasFile);
         Assert.True(mapping.HasFile);
         Assert.Equal("0x10", mapping.TargetStartAddress);
         Assert.Equal("0x2", mapping.Length);
         Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
-        Assert.Equal(ExperienceIds.GeneralReplace, viewModel.Replace.SelectedReplaceMode);
+        Assert.Equal(ExperienceIds.GeneralMerge, viewModel.Merge.SelectedMergeMode);
     }
 
     /// <summary>Merge mode binding writes stay on Replace and keep its selected Base firmware.</summary>

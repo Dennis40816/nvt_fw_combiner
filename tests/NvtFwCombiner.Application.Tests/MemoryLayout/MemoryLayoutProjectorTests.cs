@@ -643,29 +643,6 @@ public sealed partial class MemoryLayoutProjectorTests
             derivedPublications: []);
     }
 
-    private static ActiveSessionSnapshot CreateSessionWithDraft(
-        ProjectionFixture fixture,
-        AuthoringDraftState draftState,
-        params AuthoringSlotState[] slots)
-    {
-        return new ActiveSessionSnapshot(
-            fixture.Route.WorkflowId,
-            Token,
-            new AuthoringRevision(3),
-            fixture.Route.RouteId,
-            fixture.Capability.CapabilityFingerprint,
-            executionAdmitted: true,
-            fixture.Route.IcId,
-            fixture.Route.IcCountVariant,
-            fixture.Route.MapVariant,
-            [fixture.Route.IcId],
-            [fixture.Route.IcCountVariant],
-            slots,
-            draftState,
-            fixture.Capability.CapabilityFingerprint,
-            derivedPublications: []);
-    }
-
     private static AuthoringSlotState Slot(
         string slotId,
         AuthoringSlotLifecycle lifecycle,

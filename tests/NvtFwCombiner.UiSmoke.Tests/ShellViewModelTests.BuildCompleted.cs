@@ -74,7 +74,7 @@ public sealed partial class BuildOutcomeTests
     public async Task CompletedBuildProjectionOpensOutputConfirmation()
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = CreateHistoricalReplaceInspectionResult();
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
@@ -275,7 +275,7 @@ public sealed partial class BuildOutcomeTests
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        OpenReplace(viewModel, ExperienceIds.GeneralReplace);
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
         Assert.False(viewModel.IsLatestOutputActionVisible);
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
@@ -307,6 +307,7 @@ public sealed partial class BuildOutcomeTests
     [InlineData("hex-save")]
     public async Task EveryBlockingSurfaceSuppressesAndRestoresTheCompositionActionRail(string surface)
     {
+        ArgumentNullException.ThrowIfNull(surface);
         using StandardMergeGoldenManifest? golden = surface == "ctrlram-version"
             ? StandardMergeGoldenManifest.Load()
             : null;
@@ -320,7 +321,7 @@ public sealed partial class BuildOutcomeTests
             : PresentationTestHost.CreateViewModel();
         if (surface != "ctrlram-version")
         {
-            OpenReplace(viewModel, ExperienceIds.GeneralReplace);
+            OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         }
 
         Assert.True(viewModel.IsCompositionActionRailVisible);

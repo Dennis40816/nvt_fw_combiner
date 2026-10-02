@@ -11,7 +11,7 @@ public sealed class CompositionRunExecutionMetricsTests
 {
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 0, 0, 0, TimeSpan.Zero);
 
-    /// <summary>Verifies automatic synthetic General Replace Build preserves the approved two-run result with one run and one input pass.</summary>
+    /// <summary>Verifies automatic synthetic reference-clone Build preserves the approved two-run result with one run and one input pass.</summary>
     [Theory]
     [InlineData(0x40000)]
     [InlineData(0x80000)]
@@ -31,7 +31,7 @@ public sealed class CompositionRunExecutionMetricsTests
             baselineReader,
             baselineClock,
             baselineWriter);
-        CompositionRunRequest request = CreateGeneralReplaceRequest(outputLength);
+        CompositionRunRequest request = CreateReferenceCloneRequest(outputLength);
 
         CompositionRunResult baseline = await PreviewThenBuildAsync(baselineService, request);
 
@@ -55,7 +55,7 @@ public sealed class CompositionRunExecutionMetricsTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(
-            CreateExpectedGeneralReplaceOutput(referenceBytes, replacementBytes),
+            CreateExpectedReferenceCloneOutput(referenceBytes, replacementBytes),
             result.OutputBytes.ToArray());
         AssertRunParity(baseline, result);
         Assert.Equal(2, baselineClock.RunCount);
@@ -84,7 +84,7 @@ public sealed class CompositionRunExecutionMetricsTests
 
         CompositionRunResult result = await service
             .PreviewOrBuildAsync(
-                CreateGeneralReplaceRequest(outputLength),
+                CreateReferenceCloneRequest(outputLength),
                 build: false,
                 CancellationToken.None);
 
@@ -110,7 +110,7 @@ public sealed class CompositionRunExecutionMetricsTests
 
         CompositionRunResult result = await service
             .PreviewOrBuildAsync(
-                CreateGeneralReplaceRequest(outputLength),
+                CreateReferenceCloneRequest(outputLength),
                 build: true,
                 CancellationToken.None);
 
@@ -246,7 +246,7 @@ public sealed class CompositionRunExecutionMetricsTests
     }
 
     // These synthetic sizes characterize orchestration; they do not advertise production General routes.
-    private static CompositionRunRequest CreateGeneralReplaceRequest(int outputLength)
+    private static CompositionRunRequest CreateReferenceCloneRequest(int outputLength)
     {
         var plan = new CompositionPlan(
             ImageInitialization.Reference(
@@ -265,9 +265,9 @@ public sealed class CompositionRunExecutionMetricsTests
         CompiledComposition composition = CompiledCompositionTestFactory.Create(
             plan,
             new TestCompiledCompositionIdentity(
-                "synthetic-performance-general-replace", "1.0.0", "NT-SYNTHETIC",
-                ExperienceIds.GeneralReplace, ExperienceIds.GeneralReplace, CompositionKind.Replace),
-            "synthetic-performance-general-replace.bin", IcNumberInputMode.SingleSelector, [],
+                "synthetic-performance-reference-clone", "1.0.0", "NT-SYNTHETIC",
+                ExperienceIds.CtrlRamReplace, ExperienceIds.CtrlRamReplace, CompositionKind.Replace),
+            "synthetic-performance-reference-clone.bin", IcNumberInputMode.SingleSelector, [],
             inputLengthRequirement: new CompiledExactBytesInputLengthRequirement(outputLength));
         return CreateRequest(composition,
             [
@@ -374,7 +374,7 @@ public sealed class CompositionRunExecutionMetricsTests
             resolvedCapability: resolvedCapability);
     }
 
-    private static byte[] CreateExpectedGeneralReplaceOutput(byte[] referenceBytes, byte[] replacementBytes)
+    private static byte[] CreateExpectedReferenceCloneOutput(byte[] referenceBytes, byte[] replacementBytes)
     {
         byte[] expected = [.. referenceBytes];
         replacementBytes.AsSpan(8, 16).CopyTo(expected.AsSpan(32, 16));

@@ -192,7 +192,7 @@ public sealed class CompositionExecutionBundleDeliveryTests
             new(
                 "virtual",
                 "virtual-slot",
-                VirtualArtifactLocator.CreateGeneralReplacePatch("generated"),
+                "nvt-memory://general-replace-patch/generated",
                 stamp,
                 accepted),
         ];

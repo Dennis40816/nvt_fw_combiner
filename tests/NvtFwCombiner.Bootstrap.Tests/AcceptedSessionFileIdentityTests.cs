@@ -230,14 +230,14 @@ public sealed partial class AcceptedSessionFileIdentityTests
         Assert.DoesNotContain(paths[CompositionAddressSpaceIds.TpAInput], exception.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>General Replace ignores a client path alias after the session accepted canonical inputs.</summary>
+    /// <summary>General Merge ignores a client path alias after the session accepted canonical inputs.</summary>
     [Fact]
-    public async Task GeneralReplaceAcceptedSessionIgnoresSwappedClientPath()
+    public async Task GeneralMergeAcceptedSessionIgnoresSwappedClientPath()
     {
         ReloadCatalog();
-        using var workspace = TempWorkspace.Create("nfc-general-replace-accepted-path");
-        Dictionary<string, string> paths = CreateGeneralReplaceInputs(workspace);
-        GeneralAuthoringSessionPreparation prepared = await AcceptGeneralReplaceSessionAsync(paths);
+        using var workspace = TempWorkspace.Create("nfc-general-merge-accepted-path");
+        Dictionary<string, string> paths = CreateGeneralMergeInputs(workspace);
+        GeneralAuthoringSessionPreparation prepared = await AcceptGeneralMergeSessionAsync(paths);
         ActiveSessionSnapshot accepted = prepared.AcceptedSession!;
         Dictionary<string, string> swapped = new(paths, StringComparer.Ordinal)
         {
@@ -258,14 +258,14 @@ public sealed partial class AcceptedSessionFileIdentityTests
         Assert.Equal(expected.OutputSha256, actual.OutputSha256);
     }
 
-    /// <summary>General Replace executes the immutable inspected bytes without reopening a changed path.</summary>
+    /// <summary>General Merge executes the immutable inspected bytes without reopening a changed path.</summary>
     [Fact]
-    public async Task GeneralReplaceAcceptedSessionUsesInspectedBytesAfterPathMutation()
+    public async Task GeneralMergeAcceptedSessionUsesInspectedBytesAfterPathMutation()
     {
         ReloadCatalog();
-        using var workspace = TempWorkspace.Create("nfc-general-replace-accepted-content");
-        Dictionary<string, string> paths = CreateGeneralReplaceInputs(workspace);
-        GeneralAuthoringSessionPreparation prepared = await AcceptGeneralReplaceSessionAsync(paths);
+        using var workspace = TempWorkspace.Create("nfc-general-merge-accepted-content");
+        Dictionary<string, string> paths = CreateGeneralMergeInputs(workspace);
+        GeneralAuthoringSessionPreparation prepared = await AcceptGeneralMergeSessionAsync(paths);
         ActiveSessionSnapshot accepted = prepared.AcceptedSession!;
         MutateFirstByte(paths["mapping-1"]);
 
@@ -328,18 +328,20 @@ public sealed partial class AcceptedSessionFileIdentityTests
             FixedInspectionKind.AbMerge);
     }
 
-    private async Task<GeneralAuthoringSessionPreparation> AcceptGeneralReplaceSessionAsync(
+    private async Task<GeneralAuthoringSessionPreparation> AcceptGeneralMergeSessionAsync(
         Dictionary<string, string> paths)
     {
         GeneralAuthoringSessionPreparation prepared = await _host.Services.GeneralAuthoring
-            .PrepareReplaceSessionAsync(
-                new AuthoringSessionState(ExperienceIds.GeneralReplace),
+            .PrepareMergeSessionAsync(
+                new AuthoringSessionState(ExperienceIds.GeneralMerge),
                 "NT51926",
-                "single",
-                paths[CompositionSlotIds.ReplaceBase],
-                GeneralTestDraftFactory.CreateReplaceDraft([
-                    GeneralTestDraftFactory.ReplaceFile("mapping-1", paths["mapping-1"], "0x3E020", "0x2"),
-                ]),
+                new GeneralMergeDraftState(new GeneralMergeOutputInitializer(0x40000),
+                    new GeneralMappingDraftState([
+                        new GeneralMappingDraftRow("mapping-1", ExplicitMappingOperationKind.CopyRange,
+                            GeneralMappingSource.File(paths["mapping-1"]), new ByteRange(0, 2),
+                            CompositionAddressSpaceIds.OutputImage, new ByteRange(0x3E020, 2),
+                            OverlapPolicy.Reject, 1, "Accepted source identity fixture."),
+                    ])),
                 TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
         Assert.NotNull(prepared.AcceptedSession);
@@ -445,12 +447,10 @@ public sealed partial class AcceptedSessionFileIdentityTests
         };
     }
 
-    private static Dictionary<string, string> CreateGeneralReplaceInputs(TempWorkspace workspace)
+    private static Dictionary<string, string> CreateGeneralMergeInputs(TempWorkspace workspace)
     {
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [CompositionSlotIds.ReplaceBase] = workspace.Write(
-                "base.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"))),
             ["mapping-1"] = workspace.Write(
                 "replacement.bin", CreatePattern(2, 0x81)),
         };

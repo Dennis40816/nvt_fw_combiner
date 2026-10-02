@@ -140,9 +140,10 @@ public sealed partial class FirmwareInspectionSlotTests
     [Theory]
     [InlineData("settings-over-ab")]
     [InlineData("system-information-over-ctrlram")]
-    [InlineData("report-over-general-replace")]
+    [InlineData("report-over-general-merge")]
     public async Task PairwiseNavigationOverlayPreservesActiveWorkflowDraft(string scenario)
     {
+        ArgumentNullException.ThrowIfNull(scenario);
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, _) => []);
         string signature;
 
@@ -179,9 +180,10 @@ public sealed partial class FirmwareInspectionSlotTests
                 Assert.False(viewModel.MessageCenter.IsOpen);
                 break;
 
-            case "report-over-general-replace":
-                OpenReplace(viewModel, ExperienceIds.GeneralReplace);
-                GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+            case "report-over-general-merge":
+                viewModel.ShowMergeCommand.Execute(null);
+                viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+                GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
                 mapping.TargetStartAddress = "0x22000";
                 mapping.Length = "0x01000";
                 signature = ActiveWorkflowDraftSignature(viewModel);

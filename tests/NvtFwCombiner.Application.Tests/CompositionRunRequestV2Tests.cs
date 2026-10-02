@@ -406,8 +406,8 @@ public sealed partial class CompositionRunRequestV2Tests
             runtimeExecutable: true,
             compositionKind: CompositionKind.Replace,
             icNumberInputMode: IcNumberInputMode.SingleSelector,
-            modeId: "general-replace",
-            experienceId: "general-replace",
+            modeId: "ctrlram-replace",
+            experienceId: "ctrlram-replace",
             inputContract: new CompiledInputContract(
                 [
                     CompiledInputSlotTestFactory.Create(

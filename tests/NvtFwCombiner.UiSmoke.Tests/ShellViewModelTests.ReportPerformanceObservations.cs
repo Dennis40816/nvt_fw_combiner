@@ -9,9 +9,9 @@ public sealed partial class UiPerformanceObservationTests
 {
     /// <summary>Compares the live typed projection with the retained persisted-JSON reopen path.</summary>
     [Fact]
-    public async Task LiveTypedReportProjectionEmitsJsonRoundTripSavings()
+    public void LiveTypedReportProjectionEmitsJsonRoundTripSavings()
     {
-        CompositionRunResult source = await CreateGeneralReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult source = CreateHistoricalReplaceInspectionResult();
         CompositionRunReport report = CreateLargeDifferenceReport(
             source.Report,
             count: 10_000,
@@ -76,9 +76,9 @@ public sealed partial class UiPerformanceObservationTests
 
     /// <summary>Emits non-gating Node B/C observations for the bounded 10,000-range Hex Diff path.</summary>
     [Fact]
-    public async Task ReportHexDiffEmitsColdWarmProjectionAndRangeSelectionObservations()
+    public void ReportHexDiffEmitsColdWarmProjectionAndRangeSelectionObservations()
     {
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = CreateHistoricalReplaceInspectionResult();
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(

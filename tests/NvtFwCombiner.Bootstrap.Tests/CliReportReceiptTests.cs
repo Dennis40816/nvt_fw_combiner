@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>CLI regressions proving that a requested report never hides a committed Build receipt.</summary>
 public sealed class CliReportReceiptTests
 {
-    /// <summary>Every CLI route that can commit one composition output.</summary>
+    /// <summary>Every live CLI route that can commit one composition output; General Replace leaves in step 2.</summary>
     public static TheoryData<string> BuildCommands =>
     [
         "standard-merge",
@@ -23,6 +23,7 @@ public sealed class CliReportReceiptTests
     [MemberData(nameof(BuildCommands))]
     public async Task CommittedBuildWritesReportAfterReceipt(string command)
     {
+        ArgumentNullException.ThrowIfNull(command);
         using var workspace = TempWorkspace.Create("nfc-cli-report-receipt");
         string outputPath = workspace.PathFor("committed.bin");
         string reportPath = workspace.PathFor("committed-report.json");
@@ -50,6 +51,7 @@ public sealed class CliReportReceiptTests
     [MemberData(nameof(BuildCommands))]
     public async Task CommittedBuildReceiptSurvivesReportWriteFailure(string command)
     {
+        ArgumentNullException.ThrowIfNull(command);
         using var workspace = TempWorkspace.Create("nfc-cli-report-receipt-io");
         string outputPath = workspace.PathFor("committed.bin");
         string blockingFile = workspace.Write("not-a-directory", [0x42]);
@@ -73,6 +75,7 @@ public sealed class CliReportReceiptTests
     [MemberData(nameof(BuildCommands))]
     public async Task CommittedBuildReceiptSurvivesCancellationBeforeReport(string command)
     {
+        ArgumentNullException.ThrowIfNull(command);
         using var workspace = TempWorkspace.Create("nfc-cli-report-receipt-cancel");
         string outputPath = workspace.PathFor("committed.bin");
         string reportPath = workspace.PathFor("canceled-report.json");
@@ -138,6 +141,8 @@ public sealed class CliReportReceiptTests
         string command,
         string automaticFileName)
     {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(automaticFileName);
         using var workspace = TempWorkspace.Create("nfc-cli-report-receipt-alias");
         string bundleParent = workspace.PathFor("bundles");
         _ = Directory.CreateDirectory(bundleParent);
