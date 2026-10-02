@@ -3333,18 +3333,25 @@ def build_independent_report_validation(*, route_id: str, capability_fingerprint
 def _range(
     value: Mapping[str, Any], *, expected_space: str, capacities: Mapping[str, int],
     declared: Mapping[str, Sequence[tuple[int, int]]] | None = None,
+    unexecuted: bool = False,
 ) -> tuple[int, int]:
     """A half-open range inside its address space's capacity.
 
     `declared` is the 1.x comparator's opt-in for an address space without a measured capacity:
     the range must lie inside one range the authority declared in that space.
+    `unexecuted` keeps intrinsic format checks but applies no capacity or work-space authority.
     """
     work = declared is not None and expected_space not in capacities and expected_space in declared
-    if not isinstance(value, dict) or value.get("addressSpace") != expected_space or (expected_space not in capacities and not work):
+    if (not isinstance(value, dict) or value.get("addressSpace") != expected_space
+            or (not unexecuted and expected_space not in capacities and not work)):
         _fail("PARITY_REPORT_RANGE_INVALID")
     start, end = value.get("start"), value.get("endExclusive")
     if not isinstance(start, int) or isinstance(start, bool) or not isinstance(end, int) or isinstance(end, bool) or start < 0 or end <= start or end > 2**63 - 1:
         _fail("PARITY_REPORT_RANGE_INVALID")
+    if unexecuted:
+        if not isinstance(expected_space, str) or not expected_space:
+            _fail("PARITY_REPORT_RANGE_INVALID")
+        return start, end
     if work:
         if not any(_contained((start, end), row) for row in declared[expected_space]):
             _fail("PARITY_REPORT_RANGE_INVALID")
@@ -3386,6 +3393,7 @@ def validate_semantic_report_ranges(
     projection: Mapping[str, Any], capacities: Mapping[str, int], *, declared_overlap: bool = False,
     declared_work_ranges: Mapping[str, Sequence[tuple[int, int]]] | None = None,
     audited_processor_writes: bool = False,
+    skipped_rejection: bool = False,
 ) -> None:
     """Check every report range; the keyword options are the 1.x comparator's opt-ins.
 
@@ -3404,6 +3412,11 @@ def validate_semantic_report_ranges(
     A written mutation row of an external processor is its whole operation target. With
     `audited_processor_writes` the caller audits the processor's changed ranges against the
     allowed write ranges itself, and the row is held to its operation target only.
+
+    Decision 272's `skipped_rejection` is opt-in only after the caller proves all five
+    no-write rejection conditions. Unexecuted rows carry no range or overlap authority;
+    their known operation kinds, skipped status, strictly increasing sequences and intrinsic
+    named half-open range format remain checked.
     """
     try:
         operations = projection["compiledOperations"]
@@ -3412,12 +3425,32 @@ def validate_semantic_report_ranges(
         targets_by_space: dict[str, list[tuple[int, int]]] = {}
         by_id: dict[str, tuple[Mapping[str, Any], tuple[int, int]]] = {}
         previous_sequence: int | None = None
+        if skipped_rejection and mutations:
+            _fail("PARITY_REPORT_RANGE_INVALID")
         for operation in operations:
-            if declared_overlap:
+            if declared_overlap or skipped_rejection:
                 sequence = operation.get("sequence")
                 if type(sequence) is not int or (previous_sequence is not None and sequence <= previous_sequence):
                     _fail("PARITY_REPORT_RANGE_INVALID")
                 previous_sequence = sequence
+            if skipped_rejection:
+                if (operation.get("kind") not in {
+                    "CopyRange", "ReplaceRange", "FillRange", "PatchScalar", "RunExternalProcessor", "TransformScalar",
+                } or operation.get("status") != "skipped" or operation.get("executedCommands") != []):
+                    _fail("PARITY_REPORT_RANGE_INVALID")
+                _range(operation["targetRange"], expected_space=operation["targetSpaceId"],
+                       capacities=capacities, unexecuted=True)
+                source = operation.get("sourceRange")
+                if (source is None) != (operation.get("sourceSpaceId") is None):
+                    _fail("PARITY_REPORT_RANGE_INVALID")
+                if source is not None:
+                    _range(source, expected_space=operation["sourceSpaceId"], capacities=capacities, unexecuted=True)
+                processor = operation.get("processor")
+                if processor:
+                    for field in ("allowedReadRanges", "allowedWriteRanges"):
+                        for row in processor[field]:
+                            _range(row, expected_space=operation["targetSpaceId"], capacities=capacities, unexecuted=True)
+                continue
             target = _range(operation["targetRange"], expected_space=operation["targetSpaceId"], capacities=capacities, declared=declared_work_ranges)
             target_ranges.append(target)
             earlier = targets_by_space.setdefault(operation["targetSpaceId"], [])
