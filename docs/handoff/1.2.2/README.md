@@ -46,6 +46,10 @@ To check at the rehearsal, because every test so far uses synthetic CLI reports:
 
 ## Rehearsal findings
 
+Current state: rolling mode `rolling-1003a`, candidate `9f806f182` plus the local version commit: 39 of 39 scenarios `equal`.
+v0.9.16 mode `v0916-5`: 35 routes `consistent`, 2 `invalid`, 27 not covered; these are recorded run results, not a rerun of this patch.
+The invalid routes are NT51950 CtrlRAM cascade full flash (all-`Skipped` baseline refused for unknown range spaces, fixed locally here under decision 272) and NT51950 AB Merge 512k (baseline copies a whole bank `[262144,524288)` out of `ab-combiner-work` after the processor; decision 271 allows only three write ranges of 4 bytes each; an owner decision is pending, and nothing is relaxed).
+
 Found by running the comparator against real builds (baseline tag `v1.2.1`, candidate the executor-contract branch),
 each fixed on that branch before the next run:
 

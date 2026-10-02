@@ -458,6 +458,18 @@ For a rejection with compiled operations, there are three cases:
   No output file means absent `Output` or `Committed: false`, with no captured file.
 - A report mixing `Skipped` rows with rows that ran is `invalid`.
 
+The commander's reading of decision 272, presented for firmware-owner approval
+with this pull request, is that a row that did not run is evidence of neither a
+read nor a write. Only a report meeting all five conditions above is exempt from
+capacity, work-space admission and semantic range/overlap checks for those rows,
+including the processor write-range audit. Schema and identity checks (including
+intrinsic named half-open range format), known
+operation kinds, `Skipped` status, strictly increasing integer sequence numbers,
+the five conditions themselves and every process check (exit code, stderr and
+staged inputs) remain required. A report missing any condition receives no
+exemption and retains the existing range validation. This reading applies only
+to the predecessor comparator's opt-in; the ADR 0057 default path is unchanged.
+
 The comparator opts into the shared projection check's `skipped_rejection`
 only after proving these conditions. A skipped processor may describe its
 declared ranges without an executed command; this supplies no execution authority.

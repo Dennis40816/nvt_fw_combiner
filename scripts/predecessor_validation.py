@@ -579,8 +579,14 @@ def side_execution_verdict(
                 and not projection["compiledMutations"] and not evidence.context["executedCommands"]
                 and not any(row["executedCommands"] for row in projection["compiledOperations"])
                 and not evidence.context["outputDifferenceRanges"] and evidence.output is None
+                and (evidence.context["output"] is None or evidence.context["output"]["committed"] is False)
             )
             if has_skipped and not skipped_rejection:
+                # A missing condition grants no range exemption, even for unexecuted rows.
+                declared = _declared_work_ranges(authority, v0916_executor=v0916_executor)
+                validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities),
+                                                declared_overlap=True, declared_work_ranges=declared,
+                                                audited_processor_writes=True)
                 return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Skipped operations do not satisfy no-write typed rejection conditions")])
             validate_report_sequence(
                 authority_operations=authority["compiledOperations"],
@@ -591,9 +597,10 @@ def side_execution_verdict(
             declared = _declared_work_ranges(authority, v0916_executor=v0916_executor)
             validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities),
                                             declared_overlap=True, declared_work_ranges=declared,
-                                            audited_processor_writes=True)
-            audit = _processor_write_audit_failures(stage, projection, evidence.context, authority,
-                                                   declared_work_ranges=declared)
+                                            audited_processor_writes=True, skipped_rejection=skipped_rejection)
+            audit = ([] if skipped_rejection else
+                     _processor_write_audit_failures(stage, projection, evidence.context, authority,
+                                                    declared_work_ranges=declared))
         except (ParityError, KeyError, TypeError, ValueError) as error:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, str(error))])
         if audit:
