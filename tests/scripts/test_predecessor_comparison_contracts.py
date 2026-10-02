@@ -5,7 +5,7 @@ report schema, the active capability policy and canonical Golden manifest with
 their case manifests, the ADR 0057 plan, and the plan's pinned policy and
 manifest from Git objects. They never read firmware payloads.
 
-Schema validity, including every conditional relation of the proposed report
+Schema validity, including every conditional relation of the in-effect report
 and declaration schemas, is tested with the repository's Draft 2020-12 engine
 in PredecessorComparisonSchemaContractTests (.NET). This module checks the
 facts a schema cannot hold: the ledger against the governed sources it
@@ -25,6 +25,7 @@ import unittest
 from typing import Any
 
 from scripts import predecessor_validation as validation
+from scripts import predecessor_report_reader as reader
 from tests.scripts.v0916_parity_test_support import MODULE, ROOT
 
 CONTRACTS = ROOT / "docs" / "contracts"
@@ -169,11 +170,31 @@ class PredecessorComparisonContractTests(unittest.TestCase):
             with self.subTest(check=name):
                 self.assertTrue(callable(getattr(MODULE, name, None)))
         self.assertFalse(safety["readerMayRelaxChecks"])
-        self.assertEqual("pending-reader-record", self.contract["interfaces"]["reportReader"]["status"])
+        for name in ("declarationSchema", "reportSchema", "reportReader"):
+            self.assertEqual("in-effect", self.contract["interfaces"][name]["status"])
+        self.assertEqual(sorted(reader.READER_VERSIONS.values()), self.contract["interfaces"]["reportReader"]["readerVersions"])
+        self.assertEqual(sorted(reader.READER_VERSIONS.values()), self.report_schema["$defs"]["capturedReport"]["properties"]["readerVersion"]["enum"])
         self.assertEqual(
             self.contract["typedRejection"]["processFailureIssueCodes"],
             self.report_schema["$defs"]["processFailureIssueCode"]["enum"],
         )
+        self.assertEqual(sorted(validation.PROCESS_FAILURE_ISSUE_CODES), self.contract["typedRejection"]["processFailureIssueCodes"])
+        declaration_schema = load_json(CONTRACTS / "predecessor-comparison-declaration-v1.schema.json")
+        self.assertEqual(self.contract["typedRejection"]["processFailureIssueCodes"], declaration_schema["$defs"]["processFailureIssueCode"]["enum"])
+
+    def test_reader_activation_leaves_formal_execution_records_pending(self) -> None:
+        self.assertEqual("pending-executor-record", self.contract["executor"]["compilerHost"]["status"])
+        amendment = load_json(CONTRACTS / "v0916-parity-1x-amendment-v1.json")
+        self.assertEqual("pending-executor-record", amendment["baselineExecutor"]["status"])
+        pending = next(row for row in self.contract["failureCodes"] if row["code"] == "PREDECESSOR_CONTRACT_PENDING")
+        self.assertIn("compiler-host pinning", pending["meaning"])
+        self.assertIn("v0.9.16 baseline executor", pending["meaning"])
+
+    def test_additive_terminal_entry_points_are_available(self) -> None:
+        for name in ("admit_case_inputs", "runtime_closure_inventory", "resolve_case", "cli_arguments", "input_option",
+                     "normalize_raw_operation", "normalize_raw_mutation"):
+            with self.subTest(entry_point=name):
+                self.assertTrue(callable(getattr(MODULE, name, None)))
 
     def test_a_report_cannot_widen_its_own_allowed_ranges(self) -> None:
         def operation(target_end: int, write_end: int) -> dict[str, Any]:

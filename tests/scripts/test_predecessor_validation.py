@@ -313,6 +313,26 @@ def entry_for(world: dict[str, Any], name: str) -> dict[str, Any]:
 class RollingValidationTests(unittest.TestCase):
     """Each rolling rule on a fresh valid world: the valid world passes, one change fails its rule."""
 
+    def test_process_start_failure_cannot_be_approved_as_a_rejection(self) -> None:
+        world = rolling_world()
+        self.assertEqual([], rolling_failures(world))
+        row = scenario(world, "rejects")
+        row["baseline"]["issues"][0]["code"] = "external-tool.process.start-failed"
+        entry_for(world, "rejects")["expected"]["baseline"] = validation.declared_side(row["baseline"])
+        self.assertIn("PREDECESSOR_PROCESS_FAILED", codes(rolling_failures(world)))
+        self.assertEqual("blocked", validation.rolling_gate(rolling_failures(world))["result"])
+
+    def test_process_failures_at_any_severity_block_output_sides(self) -> None:
+        for code in validation.PROCESS_FAILURE_ISSUE_CODES:
+            for severity in ("error", "warning", "info", "unspecified"):
+                with self.subTest(code=code, severity=severity):
+                    world = rolling_world()
+                    self.assertEqual([], rolling_failures(world))
+                    scenario(world, "equal")["candidate"]["issues"] = [
+                        {"code": code, "severity": severity, "source": "report"}
+                    ]
+                    self.assertIn("PREDECESSOR_PROCESS_FAILED", codes(rolling_failures(world)))
+
     def assert_each_mutation_fails(self, cases: dict[str, tuple[Callable[[dict[str, Any]], None], str, str]]) -> None:
         for label, (mutate, code, fragment) in cases.items():
             with self.subTest(case=label):
@@ -882,6 +902,38 @@ def independent_exact_route(world: dict[str, Any]) -> dict[str, Any]:
 
 class V0916ModeValidationTests(unittest.TestCase):
     """The v0.9.16 1.x mode on a fresh valid report: each change fails its own rule."""
+
+    def test_start_failure_is_not_a_consistent_output_or_approved_rejection(self) -> None:
+        for proof_kind, side_name in (("exact-output", "candidate"), ("canonical-binding-not-applicable-to-v0916", "baseline")):
+            with self.subTest(proof_kind=proof_kind):
+                world = v0916_world()
+                self.assertEqual([], v0916_failures(world))
+                route_of(world, proof_kind)[side_name]["issues"][0]["code"] = "external-tool.process.start-failed"
+                self.assertIn("PREDECESSOR_PROCESS_FAILED", codes(v0916_failures(world)))
+
+    def test_invalid_side_faithfully_reports_its_process_failure(self) -> None:
+        """The guard is for sides offered as product results; an invalid side reporting its failure stays valid."""
+
+        for code in sorted(validation.PROCESS_FAILURE_ISSUE_CODES):
+            with self.subTest(code=code):
+                world = v0916_world()
+                route = independent_exact_route(world)
+                failed = {**rejected_side(), "status": "invalid",
+                          "issues": [{"code": code, "severity": "error", "source": "report"}]}
+                route.update(candidate=failed, result="invalid", failureCode="PREDECESSOR_PROCESS_FAILED")
+                world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({})
+                recount(world)
+                self.assertEqual([], v0916_failures(world))
+
+    def test_runnable_transitive_proof_cannot_be_missing_even_on_invalid_route(self) -> None:
+        world = v0916_world()
+        self.assertEqual([], v0916_failures(world))
+        route = route_of(world, "tp-prefix-transitive")
+        route.update(result="invalid", failureCode="PREDECESSOR_REPORT_INVALID", transitive=None)
+        world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({})
+        found = v0916_failures(world)
+        self.assertIn("PREDECESSOR_REPORT_INVALID", codes(found))
+        self.assertTrue(any(failure.detail == "transitive evidence is missing" for failure in found))
 
     def test_amendment_binds_the_plan(self) -> None:
         self.assertEqual([], validation.amendment_binding_failures(Sources.amendment, Sources.plan))

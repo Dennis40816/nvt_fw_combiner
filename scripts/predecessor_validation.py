@@ -54,6 +54,7 @@ OUTCOME_ENTRY_KINDS = {
 COVERAGE_ENTRY_KINDS = frozenset({"accepted-gap", "input-revision", "scenario-retired"})
 # Stages before a Standard Merge precursor exists; a side stopped at one has none.
 PRECURSOR_STAGES = frozenset({"precursor-preview", "precursor-build"})
+PROCESS_FAILURE_ISSUE_CODES = frozenset({"external-tool.process.failed", "external-tool.process.start-failed"})
 # The codes of the shared execution failures (contract section "Shared
 # execution"; the report schema's scenarioFailureCode): an executor, the
 # environment, a staged input, a process, or a report or per-side safety check.
@@ -472,6 +473,21 @@ def declared_side(side: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def process_failure_issue_failures(subject: str, sides: Iterable[Mapping[str, Any] | None]) -> list[Failure]:
+    """A process-failure issue at any severity is never an approvable product result.
+
+    An `invalid` side is the faithful report of such a failure and is not repeated here.
+    """
+
+    codes = {
+        issue["code"]
+        for side in sides if side is not None and side.get("status") != "invalid"
+        for issue in side.get("issues", ())
+        if issue["code"] in PROCESS_FAILURE_ISSUE_CODES
+    }
+    return [_failure("PROCESS_FAILED", subject, f"process-failure issue {code}") for code in sorted(codes)]
+
+
 # ---------------------------------------------------------------------------
 # Rolling report
 # ---------------------------------------------------------------------------
@@ -481,16 +497,17 @@ def scenario_value_failures(scenario: Mapping[str, Any], evidence: ScopeEvidence
     """Values of one rolling scenario result that a schema cannot compare, against its computed evidence."""
 
     subject = scenario["scenarioId"]
+    failures = process_failure_issue_failures(subject, (scenario["baseline"], scenario["candidate"]))
     if scenario["outcome"] == "invalid":
-        return []
+        return failures
     baseline, candidate = scenario["baseline"], scenario["candidate"]
-    failures = scope_evidence_failures(
+    failures.extend(scope_evidence_failures(
         subject,
         baseline,
         candidate,
         {"output": scenario["comparison"], "precursor": scenario["precursorComparison"]},
         evidence,
-    )
+    ))
     differs = any((evidence or {}).get(scope) is not None for scope in SCOPES)
     if scenario["outcome"] == "equal" and differs:
         failures.append(_failure("REPORT_INVALID", subject, "an equal outcome with differing bytes"))
@@ -614,6 +631,9 @@ def declaration_failures(
         notes = ""
         failures.append(_failure("RELEASE_NOTE_MISSING", candidate_version, str(error)))
     for entry in declaration["entries"]:
+        for side in (entry.get("expected") or {}).values():
+            for code in sorted(set(side["issueCodes"]) & PROCESS_FAILURE_ISSUE_CODES):
+                failures.append(_failure("PROCESS_FAILED", entry["id"], f"process-failure issue {code} cannot be declared"))
         match = ENTRY_ID.fullmatch(entry["id"])
         if match is None or match["version"] != candidate_version:
             failures.append(_failure("STALE_DECLARATION", entry["id"], "entry id does not name this version"))
@@ -1056,8 +1076,6 @@ def _transitive_route_failures(
         if computed is not None:
             failures.append(_failure("REPORT_INVALID", subject, "transitive evidence for a proof that could not run"))
         return failures
-    if route["result"] == "invalid":
-        return failures
     if evidence is not None:
         failures.extend(
             scope_evidence_failures(
@@ -1089,7 +1107,7 @@ def _v0916_route_failures(
     routes: Mapping[str, Mapping[str, Any]],
 ) -> list[Failure]:
     subject = route["planRouteId"]
-    failures: list[Failure] = []
+    failures = process_failure_issue_failures(subject, (route["baseline"], route["candidate"]))
     if route["result"] == "not-covered":
         return failures
     # A route is invalid when a side fails for a reason that is not a product
