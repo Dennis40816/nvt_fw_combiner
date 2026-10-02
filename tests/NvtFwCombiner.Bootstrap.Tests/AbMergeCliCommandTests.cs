@@ -22,7 +22,7 @@ public sealed partial class AbMergeCliCommandTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains(
-            "ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>]",
+            "ab-merge preview --profile <id|ic> (--dp-ab <path> [--dp-mode normal] | --dp-mode dummy --acknowledge-non-tp-ff) --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>]",
             result.Output,
             StringComparison.Ordinal);
         Assert.DoesNotContain("--overwrite", result.Output, StringComparison.Ordinal);

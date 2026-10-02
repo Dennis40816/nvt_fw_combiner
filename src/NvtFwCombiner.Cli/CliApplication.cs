@@ -94,6 +94,8 @@ public static partial class CliApplication
 
             return args[0] switch
             {
+                "workflows" => await RunWorkflowsAsync(
+                    services.Capabilities, services.CtrlRamAuthoring, args[1..], output, error).ConfigureAwait(false),
                 "profiles" => await RunProfilesAsync(
                     services.Capabilities, args[1..], output, error).ConfigureAwait(false),
                 ExperienceIds.StandardMerge => await RunStandardMergeAsync(

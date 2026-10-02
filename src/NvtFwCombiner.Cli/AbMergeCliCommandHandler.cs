@@ -7,7 +7,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Cli;
 
 /// <summary>Focused CLI adapter for the owner-approved AB Merge pilot.</summary>
-internal static class AbMergeCliCommandHandler
+internal static partial class AbMergeCliCommandHandler
 {
     private const int Success = 0;
     private const int CompositionFailed = 1;
@@ -44,16 +44,22 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        string[] valueOptions = ["--profile", "--dp-ab", "--tp-a", "--tp-b", "--ab-topology", "--output", "--report", CliBundleOptions.ParentOption, CliBundleOptions.NameOption];
+        string[] valueOptions = ["--profile", "--dp-ab", "--tp-a", "--tp-b", "--ab-topology", DpModeOption, "--output", "--report", CliBundleOptions.ParentOption, CliBundleOptions.NameOption];
         if (!CliOptionParser.TryParse(
                 args[1..],
                 valueOptions,
                 [],
-                [IncludeAFlashCodeOption],
+                [IncludeAFlashCodeOption, DummyAcknowledgementOption],
                 error,
                 out ParsedCliOptions options))
         {
             return UsageError;
+        }
+
+        int modeExit = ParseDpMode(options, error, out AbMergeDpMode dpMode);
+        if (modeExit != Success)
+        {
+            return modeExit;
         }
 
         if (!CliBundleOptions.TryValidateCombination(action, options.Values, error))
@@ -107,7 +113,9 @@ internal static class AbMergeCliCommandHandler
             return SoftwareError;
         }
 
-        if (!TryCreateSlotPaths(profile.RequiredInputAddressSpaceIds, options, error, out IReadOnlyDictionary<string, string> slotPaths))
+        IReadOnlyDictionary<string, string> slotPaths = new Dictionary<string, string>();
+        if (dpMode == AbMergeDpMode.Normal &&
+            !TryCreateSlotPaths(profile.RequiredInputAddressSpaceIds, options, error, out slotPaths))
         {
             return UsageError;
         }
@@ -123,6 +131,18 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
+        if (dpMode == AbMergeDpMode.Dummy)
+        {
+            (int selectionExit, IReadOnlyDictionary<string, string> dummySlotPaths) =
+                await CreateDummySlotPathsAsync(services.AbMergeAuthoring, profile.IcId, options, error).ConfigureAwait(false);
+            if (selectionExit != Success)
+            {
+                return selectionExit;
+            }
+
+            slotPaths = dummySlotPaths;
+        }
+
         IReadOnlyList<CompiledAuthoringSelectedInput> inputs;
         try
         {
@@ -132,7 +152,8 @@ internal static class AbMergeCliCommandHandler
                     options.Values.GetValueOrDefault("--ab-topology"),
                     [.. slotPaths.Keys],
                     new Dictionary<string, FileStamp>(StringComparer.Ordinal),
-                    new AuthoringRevision(1));
+                    new AuthoringRevision(1),
+                    dpMode: dpMode);
             if (exactSelection.Issues.Count != 0)
             {
                 await CliCompositionRunSupport.PrintIssuesAsync(
@@ -165,7 +186,7 @@ internal static class AbMergeCliCommandHandler
                 session,
                 profile.IcId,
                 options.Values.GetValueOrDefault("--ab-topology"),
-                inputs, AbMergeDpMode.Normal, cancellationToken).ConfigureAwait(false);
+                inputs, dpMode, cancellationToken).ConfigureAwait(false);
         if (prepared.Succeeded &&
             StringComparer.OrdinalIgnoreCase.Equals(profileSelector.Trim(), profile.ProfileId) &&
             !StringComparer.Ordinal.Equals(profile.ProfileId,
@@ -443,12 +464,5 @@ internal static class AbMergeCliCommandHandler
                 : $" [{issue.OperationId}]";
             await error.WriteLineAsync($"  {issue.Code}{operation}: {issue.Message}").ConfigureAwait(false);
         }
-    }
-
-    private static async Task WriteUsageAsync(TextWriter output)
-    {
-        await output.WriteLineAsync("Usage:").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ab-merge preview --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path>] [--report <path>]").ConfigureAwait(false);
-        await output.WriteLineAsync("  nvt_fw_combiner ab-merge build --profile <id|ic> --dp-ab <path> --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>] [--output <path> | --bundle-parent <existing-directory> [--bundle-name <plain-folder-name>] [--include-a-flashcode]] [--report <path>]").ConfigureAwait(false);
     }
 }

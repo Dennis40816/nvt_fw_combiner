@@ -13,7 +13,7 @@
   "entries": [
     {
       "id": "firmware",
-      "description": "Profiles, every fixture and Golden file, reference code, the CRC worker, the Golden tests and the firmware-semantic source owners confirmed by the firmware owner (board decision 111).",
+      "description": "Profiles, every fixture and Golden file, reference code, the CRC worker, the Golden tests, the firmware-semantic source owners confirmed by the firmware owner (board decision 111) and the command-line handlers that forward output-deciding choices (board decision 245).",
       "floor": "R3",
       "roles": ["firmware-owner"],
       "patterns": [
@@ -36,7 +36,12 @@
         "src/NvtFwCombiner.Infrastructure/Metadata/**",
         "src/NvtFwCombiner.Infrastructure/Capabilities/**",
         "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs",
-        "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs"
+        "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs",
+        "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs",
+        "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.Dummy.cs",
+        "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs",
+        "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs",
+        "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.Choices.cs"
       ]
     },
     {

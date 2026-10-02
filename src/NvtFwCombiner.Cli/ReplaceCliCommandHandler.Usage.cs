@@ -10,8 +10,9 @@ internal static partial class ReplaceCliCommandHandler
         switch (command)
         {
             case ExperienceIds.CtrlRamReplace:
-                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <ic> --ic-num <value> --base <path> --ctrlram <slot-id=path> [--ctrlram <slot-id=path> ...] [--report <path>]").ConfigureAwait(false);
-                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace build --profile <ic> --ic-num <value> --base <path> --ctrlram <slot-id=path> [--ctrlram <slot-id=path> ...] [--output <path> | --bundle-parent <existing-directory> [--bundle-name <plain-folder-name>]] [--report <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace preview --profile <ic> --ic-num <value> --base <path> --ctrlram <slot-id=path> [--ctrlram <slot-id=path> ...] [--bank <a|b|both>] [--report <path>]").ConfigureAwait(false);
+                await output.WriteLineAsync("  nvt_fw_combiner ctrlram-replace build --profile <ic> --ic-num <value> --base <path> --ctrlram <slot-id=path> [--ctrlram <slot-id=path> ...] [--output <path> | --bundle-parent <existing-directory> [--bundle-name <plain-folder-name>]] [--bank <a|b|both>] [firmware-version options] [--report <path>]").ConfigureAwait(false);
+                await CliApplication.WriteCtrlRamChoiceOptionsUsageAsync(output).ConfigureAwait(false);
                 break;
             case ExperienceIds.GeneralReplace:
                 await output.WriteLineAsync("  nvt_fw_combiner general-replace preview --profile <ic> --ic-num <value> --base <path> --mapping <target-start+length=path> [--mapping <target-start+length=path> ...] [--report <path>]").ConfigureAwait(false);

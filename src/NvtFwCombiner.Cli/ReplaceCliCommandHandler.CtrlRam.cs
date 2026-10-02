@@ -16,6 +16,19 @@ internal static partial class ReplaceCliCommandHandler
         TextWriter error,
         CancellationToken cancellationToken)
     {
+        if (action == "preview" && CtrlRamChoiceOptions.Any(option =>
+                option != "--bank" && options.Values.ContainsKey(option)))
+        {
+            await error.WriteLineAsync("error: firmware-version options are available only for ctrlram-replace build")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
+        if (!TryParseCtrlRamChoices(options, error, out CtrlRamCliChoices choices))
+        {
+            return UsageError;
+        }
+
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||
             !RequireOption(options, "--base", error, out string? basePath))
         {
@@ -28,6 +41,14 @@ internal static partial class ReplaceCliCommandHandler
                 out IReadOnlyList<CtrlRamSlotArgument>? ctrlRamArguments))
         {
             return UsageError;
+        }
+
+        if (!services.Capabilities.IsReplaceWorkflowAvailable(icId, ExperienceIds.CtrlRamReplace))
+        {
+            await error.WriteLineAsync(
+                $"error: {CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported}: {icId} {ExperienceIds.CtrlRamReplace} Replace is Not available.")
+                .ConfigureAwait(false);
+            return CompositionFailed;
         }
 
         string resolvedBasePath = Path.GetFullPath(basePath);
@@ -121,6 +142,15 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         ActiveSessionSnapshot acceptedSession = prepared.AcceptedSession!;
+        CtrlRamAuthoringTransitionResult selected = ApplyCtrlRamChoices(
+            services.CtrlRamAuthoring, session, icId, icNumber, slotPaths, acceptedSession, choices);
+        if (!selected.Succeeded)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, selected.Issues).ConfigureAwait(false);
+            return CompositionFailed;
+        }
+
+        acceptedSession = selected.Session!;
         CapabilityActionReadinessSnapshot? readiness =
             await services.CtrlRamAuthoring.GetActionReadinessAsync(
                     icId,

@@ -53,6 +53,7 @@ internal static partial class ReplaceCliCommandHandler
         {
             case ExperienceIds.CtrlRamReplace:
                 valueOptions.Add("--ctrlram");
+                valueOptions.AddRange(CtrlRamChoiceOptions);
                 repeatableValueOptions.Add("--ctrlram");
                 break;
             case ExperienceIds.GeneralReplace:
@@ -95,7 +96,7 @@ internal static partial class ReplaceCliCommandHandler
             return await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false);
         }
 
-        if (!services.Capabilities.IsReplaceWorkflowAvailable(
+        if (command == ExperienceIds.GeneralReplace && !services.Capabilities.IsReplaceWorkflowAvailable(
                 icId,
                 command))
         {
