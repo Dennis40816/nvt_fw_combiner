@@ -6,7 +6,7 @@ Status: P/A executed; C-F planned at `6f87c66fd` (2026-10-02); O25 decided (260)
 Measured 2026-10-02; no split or execution evidence produced.
 Source commit: `d38f4e7c379bce1a908ad1b31d3b2356c58591d4` on `feature/1.2.11/r33-05-candidates`.
 Purpose: record the next R33-05 batches under O25 and retain the O24 coverage choice.
-T2a from PR #519 is present; decision 260 applies its mechanical-split procedure to the two plans below.
+T2a from PR #519 is present; decision 260 applies its mechanical-split procedure to the six plans below (P, A and C to F).
 Authority: [ADR 0079, item 7](../../adr/0079-test-architecture.md#7-class-size-naming-and-mechanical-splits),
 [pilot](../1.1.13/PLAN-test-pilot-split.md), [inventory](../1.1.14/1.2.x-inventory.md) (R33-05/O24/O25).
 [ADR 0080, item 17](../../adr/0080-governance-reset.md#size-and-agent-instructions) remains the size authority:
@@ -625,10 +625,10 @@ No fixture or DisableParallelization argument is added.
 | `tests/scripts/test_verify_orchestration.py:6574,6625` | Synthetic old FQN for shape test; no reader/selector |
 | `docs/handoff/1.1.12/WS-PERF.md:131` | Historical filename glob; not a live selector; retain |
 | `docs/handoff/1.2.1/R13-01.md:344` | Historical class timing; retain |
-| `docs/governance/change-records/DP-ENVELOPE-1110-C-01.json:47` | E19 historical mutablePaths; retain |
-| `docs/governance/change-records/DP-ENVELOPE-1110-FOUNDATION-01.json:42` | E19 historical mutablePaths; retain |
-| `docs/governance/change-records/FULL-IMAGE-METADATA-CORE-110-01.json:22` | E5 historical mutablePaths; retain |
-| `docs/governance/change-records/STARTUP-CATALOG-1112-01.json:23-24` | E1/E2 historical mutablePaths; retain |
+| `docs/governance/change-records/DP-ENVELOPE-1110-C-01.json:47` | E19 historical mutablePaths; no synchronization needed |
+| `docs/governance/change-records/DP-ENVELOPE-1110-FOUNDATION-01.json:42` | E19 historical mutablePaths; no synchronization needed |
+| `docs/governance/change-records/FULL-IMAGE-METADATA-CORE-110-01.json:22` | E5 historical mutablePaths; no synchronization needed |
+| `docs/governance/change-records/STARTUP-CATALOG-1112-01.json:23-24` | E1/E2 historical mutablePaths; no synchronization needed |
 
 The synthetic FQN is `NvtFwCombiner.Infrastructure.Tests.Bundles.ProfileBundleSchemaValidatorTests.`
 `ValidateEntriesRejectsMissingOrNullCompositionProfileShape`. The test constructs its own TRX text and
@@ -733,7 +733,7 @@ Original attributes are `none` at every F0-F11 declaration line. No fixture/Disa
 | --- | --- |
 | `docs/handoff/1.2.4/R54-retirement-plan.md:54` | F0:61,398 citations; keep path/class and cited lines |
 | `docs/handoff/1.2.1/R13-01.md:348,409` | Historical class timing/hotspot; retain |
-| `docs/governance/change-records/DP-ENVELOPE-1110-FOUNDATION-01.json:39` | F10 historical mutablePaths; retain |
+| `docs/governance/change-records/DP-ENVELOPE-1110-FOUNDATION-01.json:39` | F10 historical mutablePaths; no synchronization needed |
 
 F0 extraction starts at :561, after both citations; preserve its prefix and put collection membership
 in the new partial. No testdata, contract, bug-record, script/verify partition or test-source pin found.

@@ -3,8 +3,8 @@
 Status: Final evaluation and owner-decision record; 2026-10-02; board decision 269.
 Item: R61. R58 belongs to the Support Matrix hover fix (decision 253).
 R62 is the automatic-check item, scheduled in 1.2.4 after R54 step 4 removes both NT51926 definitions.
-Source recounted for this revision: `05271cb1de75f23faf45a3bf1ec84bd8b53c8fc9`,
-branch `feature/1.2.5/bundle-coupling-evaluation`. No implementation is authorized here.
+Source recounted for this revision: the trunk at `7e321c6b4` (the same profiles, policy and Golden data as the
+branch `feature/1.2.5/bundle-coupling-evaluation` it was written on). No implementation is authorized here.
 
 Decision 267 requests this inventory and a proposed prevention rule; decision 266 already chooses removal of
 Customized Replace from the NT51926 shared definitions, with evidence for the eight surviving CtrlRAM products.
@@ -761,7 +761,8 @@ Removing P13 edits firmware evidence and removes that parity oracle unless retar
 P13's staged-source processor versus P15's runtime mappings and narrowed postbuild.
 Retargeting would reduce comparison independence; it is not evidence-equivalent by declaration.
 The dated record's P13 link at `docs/governance/v0.9.9-legacy-retirement-evidence.md:257` would break.
-Present all of this, with the oracle/test and dated-link dispositions, at R54 step 4's R3 firmware-owner approval.
+Present all of this, with the oracle/test and dated-link dispositions, at R54 step 4's R3 firmware-owner approval;
+by decision 269 the owner may revise answer ii at that approval.
 The re-registration count remains eight once. See case 3 and D09/C34 for the verified chain.
 
 ### 5.3 Answer iii: tidy on the next change
@@ -786,7 +787,8 @@ A later separate landing repeats reviews; it cannot use the batched increment.
 | Unselected proactive split of 19 multi-profile bundles | 83 / 249 / 83 | 82 / 246 / 82 | 74 / 222 / 74 | 67 / 201 / 67 |
 
 D's actual survivor re-registration work is **15 / 45 / 15**; 16 includes General Replace before withdrawal.
-Q1's rule/check and Q3's next-change policy add **0 / 0 / 0** immediate re-registrations on their own.
+The rule and check of answer i and the next-change policy of answer iii add **0 / 0 / 0** immediate
+re-registrations on their own.
 The split row is a package-only envelope; family rewrites can propagate beyond it. Saved Customized Merge rules
 can also require re-saving (section 4.2). These scenarios describe analysis, not selected implementation scope.
 
