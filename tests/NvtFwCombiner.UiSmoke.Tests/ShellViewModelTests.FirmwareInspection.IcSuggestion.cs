@@ -70,7 +70,6 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
         string originalNumber = viewModel.WorkflowSession.SelectedNumber;
-        string originalOutputName = viewModel.Merge.MergeOutputFileName;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
@@ -82,7 +81,7 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal("NT51929", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal(originalNumber, viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal(ExperienceIds.AbMerge, viewModel.Merge.SelectedMergeMode);
-        Assert.Equal(originalOutputName, viewModel.Merge.MergeOutputFileName);
+        Assert.False(viewModel.Merge.CanBuildMerge);
         Assert.Equal(
             inputPath,
             viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput).FilePath);

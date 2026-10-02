@@ -6,7 +6,9 @@ using Avalonia.Input;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.MemoryLayout;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -52,6 +54,14 @@ public sealed class CtrlRamOverviewCompletionTests
             }
             Assert.Equal(WorkflowInspectionAttemptState.Succeeded, shell.Replace.Inspection.State);
             Assert.True(shell.Replace.CanBuildReplace);
+            if (ic == "NT51951")
+            {
+                ActiveSessionSnapshot session = Assert.IsType<ActiveSessionSnapshot>(
+                    shell.Replace.CaptureRunContext(ExperienceIds.CtrlRamReplace, build: true).AcceptedSession);
+                string outputFileName = (await services.Composition.OutputNaming.PrepareBundleProposalAsync(
+                    session, TestContext.Current.CancellationToken)).OutputPreparation.OutputName.FileName;
+                Assert.Equal("nt51951-ctrlram-replace.bin", outputFileName);
+            }
             Assert.False(shell.Replace.HasMemoryLayoutDisplayError);
             CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-overview");
             Assert.Contains(shell.Replace.CtrlRamOverview, section => section.ContentRole == MemoryContentRole.Tp);

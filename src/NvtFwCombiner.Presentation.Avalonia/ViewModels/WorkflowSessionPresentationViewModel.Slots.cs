@@ -131,10 +131,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             }
         }
 
-        if (clearsActivePage)
-        {
-            NotifySlotFileOutputNames();
-        }
         ResetRunResults(page == ShellPage.Merge ? WorkflowInspectionOwner.Merge : WorkflowInspectionOwner.Replace, allModes: true);
         _stateBindings.RefreshCommandState();
     }
@@ -193,7 +189,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             }
         }
 
-        NotifySlotFileOutputNames();
         ResetRunResults(context.Owner, context.Mode);
         _stateBindings.RefreshCommandState();
         Task refresh = context.IsMerge
@@ -261,7 +256,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
         slot.FilePath = path;
         slot.SetFirmwareFacts([]);
         slot.ClearInputInspection();
-        NotifySlotFileOutputNames();
 
         if (slot.SlotId == _replace.ReplaceBaseSlot.SlotId && context.IsCtrlRamReplace)
         {
@@ -283,12 +277,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
         _stateBindings.RefreshCommandState();
         return slot;
-    }
-
-    private void NotifySlotFileOutputNames()
-    {
-        _merge.NotifyOutputFileNamesChanged();
-        _replace.NotifyOutputFileNamesChanged();
     }
 
     private static void ClearFirmwareSlot(FirmwareSlotViewModel slot)

@@ -326,7 +326,6 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(HasObservedMemoryChanges));
         NotifyCoverageGroupingChanged();
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
     }
 
     private void NotifyCoverageGroupingChanged()

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
@@ -248,7 +249,8 @@ public sealed partial class FirmwareInspectionSlotTests
             fact.IsUnknown);
         Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira Index");
         Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP Version" or "Common FW Version" or "PID");
-        Assert.Equal("nt51951-ctrlram-replace.bin", viewModel.Replace.ReplaceOutputFileName);
+        Assert.False(viewModel.Replace.CanBuildReplace);
+        Assert.Null(viewModel.Replace.CaptureRunContext(ExperienceIds.CtrlRamReplace).AcceptedSession);
 
         viewModel.SelectedLanguage = "Traditional Chinese";
 
@@ -287,15 +289,15 @@ public sealed partial class FirmwareInspectionSlotTests
             fact.Label == "Jira Index" &&
             fact.Value == "AUTO_PRJ-597" &&
             !fact.IsWarning);
+        await viewModel.Merge.RequestBuildOutputDeliveryAsync();
         Assert.Matches(
             "^NT51926_FlashCode_D0100T0100_[0-9]{8}\\.bin$",
-            viewModel.Merge.MergeOutputFileName);
+            viewModel.OutputDelivery.CanonicalOutputFileName);
 
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        Assert.Equal(
-            "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            viewModel.Merge.MergeOutputFileName);
-        Assert.DoesNotContain("NT51926", viewModel.Merge.MergeOutputFileName, StringComparison.Ordinal);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.False(Assert.IsType<ActiveSessionSnapshot>(
+            viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge).AcceptedSession).HasCurrentInputInspection);
         JsonElement nt51950 = golden.CaseByIc("51950");
         string nt51950DpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("dp-input"));
         string nt51950TpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("tp-input"));
@@ -314,9 +316,10 @@ public sealed partial class FirmwareInspectionSlotTests
             fact.Label == "Jira Index" &&
             fact.Value == "AUTO_PRJ-576" &&
             !fact.IsWarning);
+        await viewModel.Merge.RequestBuildOutputDeliveryAsync();
         Assert.Matches(
             "^NT51950_FlashCode_DCC00T0400_[0-9]{8}\\.bin$",
-            viewModel.Merge.MergeOutputFileName);
+            viewModel.OutputDelivery.CanonicalOutputFileName);
     }
 
     /// <summary>DP-only Standard Merge explains that canonical DP metadata is waiting for TP.</summary>
@@ -358,9 +361,9 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "Jira Index" && fact.Value == "AUTO_PRJ-576");
     }
 
-    /// <summary>Output naming publishes unknown at selection start, latest completion, and no stale result.</summary>
+    /// <summary>Incomplete inspection stays unaccepted and publishes only the latest slot facts.</summary>
     [Fact]
-    public async Task OutputFileNamePublishesInspectionSnapshotLifecycle()
+    public async Task IncompleteInspectionPublishesOnlyLatestSlotFacts()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-snapshot");
         string dpPath = workspace.Write("dp.bin", [0x01]);
@@ -401,19 +404,7 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
-        const string expectedTemplate = "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin";
-        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
-        var notifications = new List<string>();
-        viewModel.Merge.PropertyChanged += (_, args) =>
-        {
-            if (string.Equals(
-                    args.PropertyName,
-                    nameof(MergePresentationViewModel.StandardMergeOutputFileName),
-                    StringComparison.Ordinal))
-            {
-                notifications.Add(viewModel.Merge.StandardMergeOutputFileName);
-            }
-        };
+        Assert.False(viewModel.Merge.CanBuildMerge);
 
         initialVersion = "0202";
         blockInitialReselection = true;
@@ -422,15 +413,12 @@ public sealed partial class FirmwareInspectionSlotTests
             dpPath,
             TestContext.Current.CancellationToken);
         Assert.True(reselectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-        Assert.Contains(expectedTemplate, notifications);
-        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
+        Assert.False(viewModel.Merge.CanBuildMerge);
 
         releaseReselection.Set();
         await reselection;
-        Assert.Contains(expectedTemplate, notifications);
-        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
+        Assert.False(viewModel.Merge.CanBuildMerge);
 
-        notifications.Clear();
         Task stale = viewModel.WorkflowSession.SetSlotFileAsync(
             "merge-dp",
             stalePath,
@@ -440,7 +428,7 @@ public sealed partial class FirmwareInspectionSlotTests
             "merge-dp",
             currentPath,
             TestContext.Current.CancellationToken);
-        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
+        Assert.False(viewModel.Merge.CanBuildMerge);
         try
         {
             Assert.False(current.IsCompleted);
@@ -451,7 +439,7 @@ public sealed partial class FirmwareInspectionSlotTests
         }
         await Task.WhenAll(stale, current);
 
-        Assert.Equal(expectedTemplate, viewModel.Merge.StandardMergeOutputFileName);
+        Assert.False(viewModel.Merge.CanBuildMerge);
         FirmwareSlotViewModel currentSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(currentSlot.FirmwareFacts, fact => fact.Value == "D04-04");
         Assert.DoesNotContain(currentSlot.FirmwareFacts, fact => fact.Value == "D03-03");
@@ -514,9 +502,9 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal(["merge-dp"], inspectedSlotIds);
     }
 
-    /// <summary>An unstable refresh removes the prior same-path output-name projection.</summary>
+    /// <summary>An unstable refresh blocks Build and removes the prior same-path accepted inspection.</summary>
     [Fact]
-    public async Task OutputFileNameRefreshDoesNotRetainRejectedProjection()
+    public async Task UnstableRefreshDoesNotRetainAcceptedInspection()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-output-name-rejected-refresh");
         byte[] bytes = new byte[0x40000];
@@ -541,18 +529,18 @@ public sealed partial class FirmwareInspectionSlotTests
         ]);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
-        Assert.Equal(
-            "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            viewModel.Merge.StandardMergeOutputFileName);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.False(Assert.IsType<ActiveSessionSnapshot>(
+            viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge).AcceptedSession).HasCurrentInputInspection);
         Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
 
         mutateDuringRefresh = true;
         await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync(
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(
-            "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
-            viewModel.Merge.StandardMergeOutputFileName);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.False(Assert.IsType<ActiveSessionSnapshot>(
+            viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge).AcceptedSession).HasCurrentInputInspection);
         Assert.Equal("DP BIN needs attention", viewModel.Merge.MergeMemoryRangeLabel);
         Assert.Equal(
             FirmwareSlotSemanticState.Error,

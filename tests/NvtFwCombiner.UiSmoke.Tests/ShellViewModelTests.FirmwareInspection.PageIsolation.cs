@@ -21,7 +21,7 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = "2";
         MemoryMapRowViewModel retainedMemoryRow = viewModel.Replace.ReplaceMemoryRows.First();
-        string retainedOutputName = viewModel.Replace.ReplaceOutputFileName;
+        CompositionRunContext retainedContext = viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode);
 
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.Replace.ReplaceBaseSlot.FilePath = @"C:\hidden-replace.bin";
@@ -33,7 +33,8 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal(@"C:\hidden-replace.bin", viewModel.Replace.ReplaceBaseSlot.FilePath);
         Assert.Equal("Replace", Assert.Single(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts).Value);
         Assert.Contains(retainedMemoryRow, viewModel.Replace.ReplaceMemoryRows);
-        Assert.Equal(retainedOutputName, viewModel.Replace.ReplaceOutputFileName);
+        Assert.Same(retainedContext.AcceptedSession,
+            viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode).AcceptedSession);
 
         viewModel.ShowReplaceCommand.Execute(null);
 
@@ -52,7 +53,7 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
         MemoryMapRowViewModel retainedMemoryRow = viewModel.Merge.MergeMemoryRows.First();
-        string retainedOutputName = viewModel.Merge.MergeOutputFileName;
+        CompositionRunContext retainedContext = viewModel.Merge.CaptureRunContext(viewModel.Merge.SelectedMergeMode);
 
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.Merge.MergeDpSlot.FilePath = @"C:\hidden-merge.bin";
@@ -63,7 +64,8 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal(@"C:\hidden-merge.bin", viewModel.Merge.MergeDpSlot.FilePath);
         Assert.Equal("Merge", Assert.Single(viewModel.Merge.MergeDpSlot.FirmwareFacts).Value);
         Assert.Contains(retainedMemoryRow, viewModel.Merge.MergeMemoryRows);
-        Assert.Equal(retainedOutputName, viewModel.Merge.MergeOutputFileName);
+        Assert.Same(retainedContext.AcceptedSession,
+            viewModel.Merge.CaptureRunContext(viewModel.Merge.SelectedMergeMode).AcceptedSession);
 
         viewModel.ShowMergeCommand.Execute(null);
 
@@ -465,7 +467,7 @@ public sealed partial class FirmwareInspectionSlotTests
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
-        string replaceOutputBefore = viewModel.Replace.ReplaceOutputFileName;
+        CompositionRunContext replaceContextBefore = viewModel.Replace.CaptureRunContext(ExperienceIds.CtrlRamReplace);
         string replaceReadinessBefore = viewModel.Replace.ReplaceReadinessStatus;
         WorkflowInspectionLifecycle replaceInspection = viewModel.Replace.Inspection;
         WorkflowInspectionAttemptState replaceInspectionBefore = replaceInspection.State;
@@ -478,7 +480,8 @@ public sealed partial class FirmwareInspectionSlotTests
         void AssertReplaceStateUnchanged()
         {
             Assert.Equal(replaceSlotsBefore, ReplaceSlotPaths(viewModel));
-            Assert.Equal(replaceOutputBefore, viewModel.Replace.ReplaceOutputFileName);
+            Assert.Same(replaceContextBefore.AcceptedSession,
+                viewModel.Replace.CaptureRunContext(ExperienceIds.CtrlRamReplace).AcceptedSession);
             Assert.Equal(replaceReadinessBefore, viewModel.Replace.ReplaceReadinessStatus);
             Assert.Equal(replaceInspectionBefore, replaceInspection.State);
         }
@@ -565,7 +568,8 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Null(AbTpSlot(viewModel, CompositionAddressSpaceIds.TpBInput).FilePath);
         Assert.Equal(mergeInspectionBeforeNavigation, mergeInspection.State);
         Assert.NotEqual(replaceReadinessBefore, viewModel.Merge.MergeReadinessStatus);
-        Assert.NotEqual(replaceOutputBefore, viewModel.Merge.MergeOutputFileName);
+        Assert.NotSame(replaceContextBefore.AuthoringSession,
+            viewModel.Merge.CaptureRunContext(ExperienceIds.AbMerge).AuthoringSession);
         AssertReplaceStateUnchanged();
     }
 
@@ -586,7 +590,7 @@ public sealed partial class FirmwareInspectionSlotTests
             viewModel.Merge.SelectedMergeMode,
             viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge),
             viewModel.Merge.MergeDpSlot.FilePath ?? string.Empty,
-            viewModel.Merge.StandardMergeOutputFileName);
+            viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge).AcceptedSession?.CompilationFingerprint ?? string.Empty);
     }
 
     private static string AbMergeDraftSignature(MainWindowViewModel viewModel)
@@ -596,7 +600,7 @@ public sealed partial class FirmwareInspectionSlotTests
             viewModel.Merge.SelectedMergeMode,
             viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge),
             viewModel.Merge.UseSameTpForAbMerge,
-            viewModel.Merge.AbMergeOutputFileName);
+            viewModel.Merge.CaptureRunContext(ExperienceIds.AbMerge).AcceptedSession?.CompilationFingerprint ?? string.Empty);
     }
 
     private static string GeneralMergeDraftSignature(MainWindowViewModel viewModel)
@@ -621,7 +625,7 @@ public sealed partial class FirmwareInspectionSlotTests
             viewModel.Replace.SelectedReplaceMode,
             viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace),
             viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace),
-            viewModel.Replace.ReplaceOutputFileName);
+            viewModel.Replace.CaptureRunContext(ExperienceIds.CtrlRamReplace).AcceptedSession?.CompilationFingerprint ?? string.Empty);
     }
 
     private static string GeneralReplaceDraftSignature(MainWindowViewModel viewModel)

@@ -139,46 +139,6 @@ internal sealed partial class ReplacePresentationViewModel
         set => SetSelectedReplaceMode(value);
     }
 
-    public string ReplaceOutputFileName => HasSelectedIc
-        ? ResolveAcceptedOutputFileName(
-            SelectedReplaceMode switch
-            {
-                CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
-                GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
-                _ => null,
-            },
-            $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode}.bin")
-        : string.Empty;
-
-    public string CreateCtrlRamReplaceOutputFileName(CtrlRamFirmwareVersionDraftState? edit)
-    {
-        CtrlRamAuthoringTransitionResult transition =
-            _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
-                _ctrlRamReplaceSession,
-                SelectedIc,
-                SelectedNumber,
-                CreateReplaceSlotPaths(),
-                edit);
-        ActiveSessionSnapshot acceptedSession = transition.Succeeded
-            ? transition.Session!
-            : throw new InvalidOperationException(
-                string.Join("; ", transition.Issues.Select(static issue => issue.Message)));
-
-        return ResolveAcceptedOutputFileName(
-            acceptedSession,
-            $"{SelectedIc.ToLowerInvariant()}-ctrlram-replace.bin");
-    }
-
-    private string ResolveAcceptedOutputFileName(
-        ActiveSessionSnapshot? session,
-        string fallback)
-    {
-        return session?.HasCurrentInputInspection == true
-            ? _compositionServices.OutputNaming.ResolveAcceptedOutput(session).OutputName.FileName
-            : session?.ExactCapability?.CompiledComposition.V2Details
-                .OutputNamingRequirement.FileNameTemplate ?? fallback;
-    }
-
     public bool IsCtrlRamReplaceModeSelected => IsSelectedReplaceModeSupported &&
         string.Equals(SelectedReplaceMode, CtrlRamReplaceMode, StringComparison.Ordinal);
 
@@ -422,11 +382,6 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionCurrentValue));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionMetadataDetail));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionValidationDetail));
-    }
-
-    internal void NotifyOutputFileNamesChanged()
-    {
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
     }
 
     internal void RefreshCommandState()

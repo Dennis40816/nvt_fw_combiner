@@ -291,8 +291,6 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(1, mergeChanges.Count(propertyName =>
             propertyName == nameof(MergePresentationViewModel.IsNormalMergeModeSelected)));
         Assert.Equal(1, mergeChanges.Count(propertyName =>
-            propertyName == nameof(MergePresentationViewModel.MergeOutputFileName)));
-        Assert.Equal(1, mergeChanges.Count(propertyName =>
             propertyName == nameof(MergePresentationViewModel.MergeMemorySummary)));
     }
 

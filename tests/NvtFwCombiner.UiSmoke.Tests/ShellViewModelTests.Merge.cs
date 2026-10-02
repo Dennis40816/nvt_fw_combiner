@@ -424,7 +424,8 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal("等待來源對應", pendingMapping.AfterSource);
         Assert.Contains("來源 BIN", pendingMapping.Detail, StringComparison.Ordinal);
         Assert.Equal("等待來源對應", Assert.Single(viewModel.Merge.MergeCoverageSegments).SourceLabel);
-        Assert.Equal("nt51950-general-merge.bin", viewModel.Merge.MergeOutputFileName);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.Null(viewModel.Merge.CaptureRunContext(ExperienceIds.GeneralMerge).AcceptedSession);
         _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
 
         viewModel.Merge.AddGeneralMergeMappingCommand.Execute(null);
@@ -590,6 +591,8 @@ public sealed partial class MergeWorkflowTests
             Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
             Assert.True(viewModel.Merge.CanBuildMerge);
             Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
+            await viewModel.Merge.RequestBuildOutputDeliveryAsync();
+            Assert.Equal("nt51950-general-merge.bin", viewModel.OutputDelivery.CanonicalOutputFileName);
             string outputPath = workspace.PathFor("general-merge.bin");
             await File.WriteAllBytesAsync(
                 source,

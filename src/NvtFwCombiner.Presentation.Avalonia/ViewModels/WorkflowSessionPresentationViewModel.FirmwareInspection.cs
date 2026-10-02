@@ -358,7 +358,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
                                     Text.FirmwareInspectionFailedTitle, availabilityIssue: Application.MemoryLayout.MemoryInputAvailabilityIssue.InspectionFailed);
                             }
                         }
-                        NotifySlotFileOutputNames();
                         _stateBindings.RefreshCommandState();
                     }
                 }
@@ -556,7 +555,6 @@ internal sealed partial class WorkflowSessionPresentationViewModel
             slot.ClearCurrentInspectionProjection();
         }
 
-        NotifySlotFileOutputNames();
         if (context.IsMerge &&
             (slots.ContainsKey(CompositionSlotIds.MergeDp) ||
                 (context.IsAbMerge &&

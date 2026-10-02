@@ -246,8 +246,6 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(1, mergeChanges.Count(propertyName =>
             propertyName == nameof(MergePresentationViewModel.IsNormalMergeModeSelected)));
         Assert.Equal(1, mergeChanges.Count(propertyName =>
-            propertyName == nameof(MergePresentationViewModel.MergeOutputFileName)));
-        Assert.Equal(1, mergeChanges.Count(propertyName =>
             propertyName == nameof(MergePresentationViewModel.MergeMemorySummary)));
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceModeChoices), replaceChanges);
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.SelectedReplaceMode), replaceChanges);
@@ -264,8 +262,6 @@ public sealed partial class ShellNavigationSystemTests
             propertyName == nameof(ReplacePresentationViewModel.SelectedReplaceMode)));
         Assert.Equal(1, replaceChanges.Count(propertyName =>
             propertyName == nameof(ReplacePresentationViewModel.IsStructuredReplaceModeSelected)));
-        Assert.Equal(1, replaceChanges.Count(propertyName =>
-            propertyName == nameof(ReplacePresentationViewModel.ReplaceOutputFileName)));
         Assert.Equal(1, replaceChanges.Count(propertyName =>
             propertyName == nameof(ReplacePresentationViewModel.ReplaceMemorySummary)));
         Assert.Equal(0, sentinel.ArmedCallCounts[ReplaceAuthoringPortIndex(withdrawnMode)]);

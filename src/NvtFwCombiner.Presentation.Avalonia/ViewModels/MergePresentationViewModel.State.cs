@@ -142,46 +142,6 @@ internal sealed partial class MergePresentationViewModel
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputFillByte { get; set; } = string.Empty;
 
-    public string StandardMergeOutputFileName => HasSelectedIc
-        ? ResolveAcceptedOutputFileName(
-            _standardMergeSession.CurrentSnapshot,
-            _compositionServices.Capabilities.GetStandardMergeProfileSummaries().FirstOrDefault(profile =>
-                StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
-                .DefaultOutputFileName ?? "nvt-fw-combiner-standard-merge.bin")
-        : string.Empty;
-
-    public string GeneralMergeOutputFileName => HasSelectedIc
-        ? ResolveAcceptedOutputFileName(
-            _generalMergeSession.CurrentSnapshot,
-            GeneralMergeAuthoringUseCase.GetDefaultOutputFileName(SelectedIc))
-        : string.Empty;
-
-    public string AbMergeOutputFileName => HasSelectedIc
-        ? ResolveAcceptedOutputFileName(
-            _abMergeSession.CurrentSnapshot,
-            _compositionServices.Capabilities
-                .GetAbMergeProfileSummaries()
-                .FirstOrDefault(profile => StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
-                .DefaultOutputFileName ?? "nvt-fw-combiner-ab-output.bin")
-        : string.Empty;
-
-    public string MergeOutputFileName => SelectedMergeMode switch
-    {
-        GeneralMergeMode => GeneralMergeOutputFileName,
-        AbCodeMergeMode => AbMergeOutputFileName,
-        _ => StandardMergeOutputFileName,
-    };
-
-    private string ResolveAcceptedOutputFileName(
-        ActiveSessionSnapshot? session,
-        string fallback)
-    {
-        return session?.HasCurrentInputInspection == true
-            ? _compositionServices.OutputNaming.ResolveAcceptedOutput(session).OutputName.FileName
-            : session?.ExactCapability?.CompiledComposition.V2Details
-                .OutputNamingRequirement.FileNameTemplate ?? fallback;
-    }
-
     public string MergeMemorySummary => Text.GetMergeMemorySummary(
         SelectedMergeMode,
         IsStandardMergeSupported,
@@ -416,10 +376,6 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
         OnPropertyChanged(nameof(MergePreview));
-        OnPropertyChanged(nameof(StandardMergeOutputFileName));
-        OnPropertyChanged(nameof(GeneralMergeOutputFileName));
-        OnPropertyChanged(nameof(MergeOutputFileName));
-        OnPropertyChanged(nameof(AbMergeOutputFileName));
         OnPropertyChanged(nameof(MergeReadinessStatus));
         PublishMergeMemoryContext();
         OnPropertyChanged(nameof(CanBuildMerge));
@@ -479,13 +435,6 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(PrimaryBuildBlocker));
         OnPropertyChanged(nameof(BuildAvailability));
         OnPropertyChanged(nameof(MergeReadinessStatus));
-    }
-
-    internal void NotifyOutputFileNamesChanged()
-    {
-        OnPropertyChanged(nameof(StandardMergeOutputFileName));
-        OnPropertyChanged(nameof(GeneralMergeOutputFileName));
-        OnPropertyChanged(nameof(MergeOutputFileName));
     }
 
     private void ApplyGeneralMergeOutputInitializer(

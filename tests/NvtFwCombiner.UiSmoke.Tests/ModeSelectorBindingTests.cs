@@ -177,7 +177,6 @@ public sealed class ModeSelectorBindingTests
             nameof(MergePresentationViewModel.SelectedMergeMode),
             nameof(MergePresentationViewModel.Inspection),
             nameof(MergePresentationViewModel.IsAbCodeMergeModeSelected),
-            nameof(MergePresentationViewModel.MergeOutputFileName),
             nameof(MergePresentationViewModel.MergeMemorySummary),
             nameof(MergePresentationViewModel.StandardMergeSupportSummary));
         AssertHiddenReplaceContextWasNotPublished(replaceChanges);
@@ -220,7 +219,6 @@ public sealed class ModeSelectorBindingTests
             nameof(ReplacePresentationViewModel.SelectedReplaceMode),
             nameof(ReplacePresentationViewModel.Inspection),
             nameof(ReplacePresentationViewModel.IsGeneralReplaceModeSelected),
-            nameof(ReplacePresentationViewModel.ReplaceOutputFileName),
             nameof(ReplacePresentationViewModel.ReplaceMemorySummary),
             nameof(ReplacePresentationViewModel.SelectedReplaceWorkflowReadiness),
             nameof(ReplacePresentationViewModel.SelectedReplaceModeEvidenceLabel));
@@ -245,7 +243,6 @@ public sealed class ModeSelectorBindingTests
             nameof(ReplacePresentationViewModel.SelectedReplaceMode),
             nameof(ReplacePresentationViewModel.Inspection),
             nameof(ReplacePresentationViewModel.IsCtrlRamReplaceModeSelected),
-            nameof(ReplacePresentationViewModel.ReplaceOutputFileName),
             nameof(ReplacePresentationViewModel.ReplaceMemorySummary));
         AssertHiddenMergeContextWasNotPublished(mergeChanges);
         Assert.DoesNotContain(nameof(WorkflowSessionPresentationViewModel.IcChoices), workflowChanges);
@@ -472,7 +469,6 @@ public sealed class ModeSelectorBindingTests
         Assert.DoesNotContain(nameof(MergePresentationViewModel.SelectedMergeMode), changes);
         Assert.DoesNotContain(nameof(MergePresentationViewModel.Inspection), changes);
         Assert.DoesNotContain(nameof(MergePresentationViewModel.IsAbCodeMergeModeSelected), changes);
-        Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeOutputFileName), changes);
         Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeMemorySummary), changes);
     }
 
@@ -500,7 +496,6 @@ public sealed class ModeSelectorBindingTests
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.SelectedReplaceMode), changes);
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.Inspection), changes);
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.IsGeneralReplaceModeSelected), changes);
-        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceOutputFileName), changes);
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceMemorySummary), changes);
     }
 }

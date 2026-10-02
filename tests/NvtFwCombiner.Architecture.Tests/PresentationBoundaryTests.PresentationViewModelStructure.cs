@@ -131,6 +131,10 @@ public sealed partial class PresentationBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
         string replaceState = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
+        string mergeExecution = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
+        string replaceExecution = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
         string mergeOwner = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.cs");
         string replaceOwner = ReadText(
@@ -178,8 +182,14 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("_compositionServices.Capabilities.GetIcFamilySummary", deviceContext, StringComparison.Ordinal);
         Assert.Contains("private FirmwareSlotViewModel? SelectSlotFile", slots, StringComparison.Ordinal);
         Assert.Contains("public void RemoveGeneralMappingRow", slots, StringComparison.Ordinal);
-        Assert.Contains("_compositionServices.OutputNaming.ResolveAcceptedOutput", mergeState, StringComparison.Ordinal);
-        Assert.Contains("_compositionServices.OutputNaming.ResolveAcceptedOutput", replaceState, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.OutputNaming.PrepareBundleProposalAsync", mergeExecution, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.OutputNaming.PrepareBundleProposalAsync", replaceExecution, StringComparison.Ordinal);
+        Assert.Contains("new OutputDeliveryRequest(\n            proposal,", mergeExecution.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Contains("new OutputDeliveryRequest(\n            proposal,", replaceExecution.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveAcceptedOutputFileName", mergeState, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveAcceptedOutputFileName", replaceState, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutputNamingRequirement.FileNameTemplate", mergeState, StringComparison.Ordinal);
+        Assert.DoesNotContain("OutputNamingRequirement.FileNameTemplate", replaceState, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(mergeState, "WorkflowInspectionSet InspectionLifecycles"));
         Assert.Equal(1, CountOccurrences(replaceState, "WorkflowInspectionSet InspectionLifecycles"));
         Assert.Contains(

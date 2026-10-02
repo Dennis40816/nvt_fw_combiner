@@ -391,14 +391,13 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(
             ShellTextResources.For(ShellLanguage.English).NotAvailableLabel,
             viewModel.Merge.MergeReadinessStatus);
-        Assert.Equal(string.Empty, viewModel.Merge.StandardMergeOutputFileName);
-        Assert.Equal(string.Empty, viewModel.Merge.GeneralMergeOutputFileName);
-        Assert.Equal(string.Empty, viewModel.Merge.AbMergeOutputFileName);
-        Assert.Equal(string.Empty, viewModel.Merge.MergeOutputFileName);
         _ = viewModel.Merge.PrimaryBuildBlocker;
         Assert.False(viewModel.Merge.IsStandardMergeSupported);
         Assert.False(viewModel.Merge.IsAbMergeSupported);
         Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.Null(viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge).AcceptedSession);
+        Assert.Null(viewModel.Merge.CaptureRunContext(ExperienceIds.AbMerge).AcceptedSession);
+        Assert.Null(viewModel.Merge.CaptureRunContext(ExperienceIds.GeneralMerge).AcceptedSession);
 
         Assert.Empty(viewModel.Replace.ReplaceModeChoices);
         Assert.Null(viewModel.Replace.SelectedReplaceWorkflowReadiness);
@@ -407,17 +406,18 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(
             ShellTextResources.For(ShellLanguage.English).NotAvailableLabel,
             viewModel.Replace.ReplaceReadinessStatus);
-        Assert.Equal(string.Empty, viewModel.Replace.ReplaceOutputFileName);
         _ = viewModel.Replace.PrimaryBuildBlocker;
         Assert.False(viewModel.Replace.IsSelectedReplaceModeGoldenVerified);
         Assert.False(viewModel.Replace.IsSelectedReplaceModeEvidenceGated);
         Assert.False(viewModel.Replace.IsSelectedReplaceModeUnavailable);
         Assert.False(viewModel.Replace.CanBuildReplace);
+        Assert.Null(viewModel.Replace.CaptureRunContext(ExperienceIds.CtrlRamReplace).AcceptedSession);
 
         viewModel.WorkflowSession.RefreshContextState(WorkflowInspectionOwner.Merge);
         viewModel.WorkflowSession.RefreshContextState(WorkflowInspectionOwner.Replace);
         viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
-        Assert.Equal(string.Empty, viewModel.Merge.MergeOutputFileName);
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.Null(viewModel.Merge.CaptureRunContext(ExperienceIds.GeneralMerge).AcceptedSession);
         viewModel.SelectedLanguage = "Traditional Chinese";
         Assert.Equal(
             ShellTextResources.For(ShellLanguage.ChineseTraditional).NotAvailableLabel,

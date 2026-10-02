@@ -3,6 +3,7 @@ using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -111,7 +112,10 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
             return candidate;
         }, cancellationToken);
         Assert.True(viewModel.Merge.CanBuildMerge);
-        string acceptedCanonicalName = viewModel.Merge.MergeOutputFileName;
+        ActiveSessionSnapshot session = Assert.IsType<ActiveSessionSnapshot>(
+            viewModel.Merge.CaptureRunContext(ExperienceIds.AbMerge, build: true).AcceptedSession);
+        string acceptedCanonicalName = (await services.Composition.OutputNaming.PrepareBundleProposalAsync(
+            session, cancellationToken)).OutputPreparation.OutputName.FileName;
         Assert.StartsWith("NT51929_FlashCode_A_", acceptedCanonicalName, StringComparison.Ordinal);
         Assert.EndsWith(".bin", acceptedCanonicalName, StringComparison.Ordinal);
         int acceptedBatchCount = inspectionBatchCount;
