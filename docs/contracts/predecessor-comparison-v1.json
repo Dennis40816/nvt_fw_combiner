@@ -74,7 +74,7 @@
       "environmentVariables": {
         "DOTNET_ROLL_FORWARD": "Disable"
       },
-      "extraBuildArguments": ["-p:UseSharedCompilation=false", "-nodeReuse:false"],
+      "extraBuildArguments": ["-p:UseSharedCompilation=false", "-nodeReuse:false", "-p:RuntimeFrameworkVersion=10.0.11"],
       "missingRuntimePolicy": "refuse",
       "verification": {
         "kind": "embedded-portable-pdb",

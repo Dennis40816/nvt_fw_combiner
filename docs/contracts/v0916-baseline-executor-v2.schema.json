@@ -393,7 +393,8 @@
         "extraBuildArguments": {
           "const": [
             "-p:UseSharedCompilation=false",
-            "-nodeReuse:false"
+            "-nodeReuse:false",
+            "-p:RuntimeFrameworkVersion=10.0.11"
           ]
         },
         "missingRuntimePolicy": {

@@ -329,9 +329,31 @@ executor preflights the selected dotnet installation with `--list-runtimes`
 for framework `Microsoft.NETCore.App` exactly `10.0.11` and `--info` for the
 same host's `x64` architecture. Restore/build alone receive
 `DOTNET_ROLL_FORWARD=Disable`; build appends `-p:UseSharedCompilation=false`
-and `-nodeReuse:false` once. Every path restores the previous environment.
+and `-nodeReuse:false` and `-p:RuntimeFrameworkVersion=10.0.11` once; the
+`RuntimeFrameworkVersion` value must equal `compilerHost.requiredRuntime.version`.
+Every path restores the previous environment.
 Missing runtime or a wrong architecture refuses with
 `PREDECESSOR_EXECUTOR_INVALID`, without installing or selecting another host.
+
+Since 1.1.13, the 1.x build runs the framework-dependent prebuilt profile
+catalog generator, which requests runtime `10.0.0` and cannot start while
+roll-forward is disabled. Fixing the runtime framework version to the pinned
+patch lets it run on `10.0.11`. The self-contained CLI already takes runtime
+`10.0.11` from the SDK, so its closure is unchanged; the v0.9.16 closure pin
+is reproduced with the property: 431 files, 88367164 bytes, SHA-256
+`18da112302672766db191872d6b7973ca05effa257293b09161904545eb2c3b0`.
+
+The comparator enables Git's `core.longpaths` for its own Git commands through
+Git's environment protocol (`GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_n`,
+`GIT_CONFIG_VALUE_n`) and restores the environment afterwards. The Golden
+tree has paths of about 200 characters, so a worktree under a temporary root
+passes the Windows limit of 260; no configuration file is changed, and
+identities come from Git objects.
+
+For a failed executor process or capture, stderr names the command's first
+three arguments and shows the last 30 lines of each captured stdout/stderr
+stream, decoded as UTF-8 with replacement; these diagnostics never enter the
+report, and the existing refusal is preserved.
 
 `scripts/predecessor_pdb_probe.py` reads every managed assembly declared by the
 built CLI `.deps.json` project graph in the measured closure. It parses PE

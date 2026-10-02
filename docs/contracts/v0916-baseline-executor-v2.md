@@ -20,8 +20,18 @@ original CLI dependency locks and seven external-tool pins. It restores with
 `--force-evaluate --runtime win-x64`; the base build keeps v1's arguments.
 The shared compiler-host adapter preflights the selected dotnet installation's
 exact runtime and architecture, applies `DOTNET_ROLL_FORWARD=Disable` only
-to restore/build, appends the two extra build arguments once, and restores
-the environment on success and failure. No `-m:1` is added to v0.9.16.
+to restore/build, appends `-p:UseSharedCompilation=false`, `-nodeReuse:false`
+and `-p:RuntimeFrameworkVersion=10.0.11` once, and restores the environment on
+success and failure. The `RuntimeFrameworkVersion` value must equal
+`compilerHost.requiredRuntime.version`. No `-m:1` is added to v0.9.16.
+
+Since 1.1.13, the 1.x build runs the framework-dependent prebuilt profile
+catalog generator, which requests runtime `10.0.0` and cannot start while
+roll-forward is disabled. Fixing the runtime framework version to the pinned
+patch lets it run on `10.0.11`. The self-contained CLI already takes runtime
+`10.0.11` from the SDK, so its closure is unchanged; the v0.9.16 closure pin
+is reproduced with the property: 431 files, 88367164 bytes, SHA-256
+`18da112302672766db191872d6b7973ca05effa257293b09161904545eb2c3b0`.
 
 After restore and again after build, exactly the seven declared locks must
 have changed to their raw size/SHA-256 pins. Other tracked bytes, unchanged

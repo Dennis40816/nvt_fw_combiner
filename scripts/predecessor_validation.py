@@ -145,11 +145,18 @@ def executor_compiler_host_failures(compiler_host: Mapping[str, Any]) -> list[Fa
     """Admit the complete closed decision-79 settings, never status alone."""
     if compiler_host.get("status") != "in-effect":
         return []
+    required = compiler_host.get("requiredRuntime")
+    arguments = compiler_host.get("extraBuildArguments")
+    if (isinstance(required, Mapping) and isinstance(arguments, list)
+            and [argument for argument in arguments if isinstance(argument, str)
+                 and argument.startswith("-p:RuntimeFrameworkVersion=")]
+            != ["-p:RuntimeFrameworkVersion=" + str(required.get("version"))]):
+        return [_failure("EXECUTOR_INVALID", "compilerHost", "RuntimeFrameworkVersion must equal requiredRuntime.version")]
     expected = {
         "status": "in-effect", "boardDecisions": ["1.1.12 board decision 79"],
         "requiredRuntime": {"framework": "Microsoft.NETCore.App", "version": "10.0.11", "architecture": "x64"},
         "environmentVariables": {"DOTNET_ROLL_FORWARD": "Disable"},
-        "extraBuildArguments": ["-p:UseSharedCompilation=false", "-nodeReuse:false"],
+        "extraBuildArguments": ["-p:UseSharedCompilation=false", "-nodeReuse:false", "-p:RuntimeFrameworkVersion=10.0.11"],
         "missingRuntimePolicy": "refuse",
         "verification": {"kind": "embedded-portable-pdb", "scope": "first-party-cli-project-graph",
                          "runtimeVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"},
