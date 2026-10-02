@@ -3462,16 +3462,20 @@ def _written_command(sequence: int, command: Mapping[str, Any]) -> dict[str, Any
 
     The executable lies below a directory named `external-tools` and is identified from that
     component; every absolute argument lies in the working directory or below it; no path steps
-    back with `..`. Whether the executable is a tool the caller staged is the caller's check.
+    back with `..`. An argument that is not an absolute path is a plain token: one that could
+    name a file elsewhere (a path separator, a drive colon, `.` or `..`) is refused. Whether the
+    executable is a tool the caller staged is the caller's check.
     """
     executable = Path(command["ExecutablePath"])
     working = Path(command["WorkingDirectory"])
     arguments = [str(value) for value in command["Arguments"]]
     argument_paths = [Path(value) for value in arguments if Path(value).is_absolute()]
+    tokens = [value for value in arguments if not Path(value).is_absolute()]
     parents = executable.parts[:-1]
     if (not arguments or not executable.is_absolute() or not working.is_absolute() or "external-tools" not in parents
             or any(".." in path.parts for path in (executable, working, *argument_paths))
-            or any(not path.is_relative_to(working) for path in argument_paths)):
+            or any(not path.is_relative_to(working) for path in argument_paths)
+            or any(value in (".", "..") or any(mark in value for mark in ("/", "\\", ":")) for value in tokens)):
         _fail("PARITY_PROVENANCE_INVALID")
     index = len(parents) - 1 - parents[::-1].index("external-tools")
     package_root = Path(*executable.parts[:index])
