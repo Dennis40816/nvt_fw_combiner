@@ -20,18 +20,18 @@ decisions are 249 to 251 on the [1.2.x board](../1.2.x.md). The contract is
 | R58 | Support Matrix hover flicker (decision 253) | pull request #518 |
 | R36-02, R36-03 | the two reports of record (decisions 249 and 250) | not started |
 
-A formal run is refused with `PREDECESSOR_CONTRACT_PENDING` until R35-06 is in effect.
+R35-06 activates both executor interfaces with complete compiler-host settings and the amendment's raw v2 binding. R35-09 remains the commander's actual-build rehearsal before reports of record.
 
 ## Open items found in review
 
 1. **Resolved: reproducible `deterministicSha256`.** This executor-contract batch retains and validates run capture evidence while both builders and validators share the contract's exact digest projection, covered by repeated synthetic runs with different ids, timestamps, paths and inventory collection times.
 2. **Resolved: the `1.2.2` milestone wording.** This batch states that candidate version `1.2.2` executes the deferred `1.2.0-release-approval` milestone under decisions 201 and 250, retaining the existing enum.
-3. **The CLI still needs the baseline builder.** Part 2 must supply R35-06's v0.9.16 baseline executor builder to the CLI; until then every `v0916-1x` CLI run ends `PREDECESSOR_CONTRACT_PENDING`.
+3. **Resolved: the CLI supplies the baseline builder.** Part 2 wires `V0916BaselineExecutorBuilder`, loads v2 through the candidate snapshot's amendment binding and verifies its recipe and compiler host.
 
 The rolling inventory supplier is the commander's complete file passed through
 `--published-release-inventory FILE`; this batch supplies its schema, validation
 and report digests without adding a GitHub caller. `compilerHost` and
-`baselineExecutor` remain pending for part 2.
+`baselineExecutor` are in effect in part 2.
 
 To check at the rehearsal, because every test so far uses synthetic CLI reports:
 

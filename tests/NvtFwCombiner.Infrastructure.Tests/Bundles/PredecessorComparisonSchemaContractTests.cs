@@ -57,6 +57,10 @@ public sealed class PredecessorComparisonSchemaContractTests
 
     private static readonly Dictionary<string, Contradiction> Contradictions = new(StringComparer.Ordinal)
     {
+        ["executor-host-missing"] = new("rolling-formal-clear", [new("/candidate/executor/compilerHost", Remove)]),
+        ["executor-host-open"] = new("rolling-formal-clear", [new("/candidate/executor/compilerHost/unexpected", "true", AddsMember: true)]),
+        ["executor-host-empty-count"] = new("rolling-formal-clear", [new("/candidate/executor/compilerHost/verifiedAssemblyCount", "0")]),
+        ["executor-host-missing-version"] = new("v0916-formal-consistent", [new("/baseline/executor/compilerHost/runtimeVersion", Remove)]),
         ["formal-inventory-missing"] = new("rolling-formal-clear", [new("/publishedInventory", Remove)]),
         ["formal-inventory-null"] = new("rolling-formal-clear", [new("/publishedInventory", "null")]),
         ["inventory-raw-hash-missing"] = new("rolling-formal-clear", [new("/publishedInventory/rawSha256", Remove)]),
@@ -570,6 +574,11 @@ public sealed class PredecessorComparisonSchemaContractTests
               },
               "cliSha256": "{{ShaA}}",
               "commit": "{{new string('5', 40)}}",
+              "compilerHost": {
+                "runtimeVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32",
+                "compilerVersion": "5.6.0-2.26377.103+e730f1db756d11c93f246830ba7b94ee6fcf4b94",
+                "verifiedAssemblyCount": 7
+              },
               "lockFileSetSha256": "{{ShaB}}",
               "resolvedSdkVersion": "10.0.303",
               "runtimeClosureSha256": "{{ShaC}}",

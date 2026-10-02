@@ -160,7 +160,7 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         self.assertEqual(candidate["runtimeClosure"]["root"], executor["runtimeClosureRoot"])
         self.assertEqual(sorted(candidate["source"]["authorityTrees"]), executor["authorityTrees"])
         self.assertTrue(all(item["path"].endswith("/packages.lock.json") for item in candidate["lockFiles"]))
-        self.assertEqual("pending-executor-record", executor["compilerHost"]["status"])
+        self.assertEqual("in-effect", executor["compilerHost"]["status"])
 
     def test_per_side_safety_names_the_shared_owners(self) -> None:
         safety = self.contract["perSideSafety"]
@@ -182,10 +182,10 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         declaration_schema = load_json(CONTRACTS / "predecessor-comparison-declaration-v1.schema.json")
         self.assertEqual(self.contract["typedRejection"]["processFailureIssueCodes"], declaration_schema["$defs"]["processFailureIssueCode"]["enum"])
 
-    def test_reader_activation_leaves_formal_execution_records_pending(self) -> None:
-        self.assertEqual("pending-executor-record", self.contract["executor"]["compilerHost"]["status"])
+    def test_all_execution_interfaces_are_in_effect(self) -> None:
+        self.assertEqual("in-effect", self.contract["executor"]["compilerHost"]["status"])
         amendment = load_json(CONTRACTS / "v0916-parity-1x-amendment-v1.json")
-        self.assertEqual("pending-executor-record", amendment["baselineExecutor"]["status"])
+        self.assertEqual("in-effect", amendment["baselineExecutor"]["status"])
         pending = next(row for row in self.contract["failureCodes"] if row["code"] == "PREDECESSOR_CONTRACT_PENDING")
         self.assertIn("compiler-host pinning", pending["meaning"])
         self.assertIn("v0.9.16 baseline executor", pending["meaning"])

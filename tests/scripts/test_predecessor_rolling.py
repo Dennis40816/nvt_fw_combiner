@@ -19,7 +19,7 @@ from scripts import predecessor_comparison as execution
 from scripts import predecessor_rolling as rolling
 from scripts import predecessor_validation as validation
 from scripts import v0916_parity_certification as parity
-from tests.scripts.predecessor_test_support import contract_for_fake_processes, published_inventory
+from tests.scripts.predecessor_test_support import contract_for_fake_processes, published_inventory, write_synthetic_cli_graph, RUNTIME_LIST, HOST_INFO
 from tests.scripts.test_predecessor_comparison import FakeGitHost, FakeProcessHost
 from tests.scripts.test_predecessor_report_reader import raw_report
 from scripts.render_release_notes import REQUIRED_FEATURE_FIELDS
@@ -187,7 +187,7 @@ class RollingFakeGit(FakeGitHost):
                  rolling.LEDGER: encoded(world["ledger"]), rolling.POLICY: encoded(world["policy"]), rolling.PLAN: encoded(world["plan"]),
                  "testdata/golden/canonical/manifest.json": encoded(world["manifest"]),
                  "testdata/golden/canonical/case.json": encoded(world["case"])}
-        for path in ("scripts/predecessor_comparison.py", "scripts/predecessor_rolling.py",
+        for path in ("scripts/predecessor_comparison.py", "scripts/predecessor_rolling.py", "scripts/predecessor_pdb_probe.py",
                      "scripts/predecessor_validation.py", "scripts/predecessor_report_reader.py",
                      "scripts/v0916_parity_certification.py", "scripts/render_release_notes.py",
                      "scripts/canonical_golden_validation.py"):
@@ -242,11 +242,16 @@ class SyntheticProcesses(FakeProcessHost):
     def respond(self, argv, cwd):
         if argv[:2] == ["dotnet", "--version"]:
             return subprocess.CompletedProcess(argv, 0, "10.0.100\n", "")
+        if argv == ["dotnet", "--list-runtimes"]:
+            return subprocess.CompletedProcess(argv, 0, RUNTIME_LIST, "")
+        if argv == ["dotnet", "--info"]:
+            return subprocess.CompletedProcess(argv, 0, HOST_INFO, "")
         if argv[:2] == ["dotnet", "build"]:
             contract = json.loads(self.git.commits[CANDIDATE][rolling.CONTRACT])
             target = cwd / contract["executor"]["cliAssembly"]
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(b"candidate" if self.git.git_head(cwd) == CANDIDATE else b"baseline")
+            write_synthetic_cli_graph(target.parent)
         if argv[0] == "dotnet":
             return subprocess.CompletedProcess(argv, 0, "", "")
         side = Path(argv[0]).read_bytes().decode()
@@ -554,7 +559,7 @@ class RollingTests(unittest.TestCase):
                 self.assertIn("PREDECESSOR_STALE_DECLARATION", {item["code"] for item in report["gate"]["failures"]})
 
     def test_formal_comparator_modules_must_match_candidate_source(self):
-        for path in ("scripts/predecessor_comparison.py", "scripts/predecessor_rolling.py",
+        for path in ("scripts/predecessor_comparison.py", "scripts/predecessor_rolling.py", "scripts/predecessor_pdb_probe.py",
                      "scripts/predecessor_validation.py", "scripts/predecessor_report_reader.py",
                      "scripts/v0916_parity_certification.py", "scripts/render_release_notes.py",
                      "scripts/canonical_golden_validation.py"):
@@ -676,7 +681,7 @@ class RollingTests(unittest.TestCase):
             self.assertIn("PREDECESSOR_BASELINE_INVALID", errors.getvalue())
             run.assert_not_called()
 
-    def test_inventory_cli_supplies_the_file_and_retains_pending_compiler_host(self):
+    def test_inventory_cli_supplies_the_file_for_both_active_modes(self):
         supplied = self.inventory_file()
         argv = ["rolling", "--candidate-commit", CANDIDATE, "--baseline-tag", "v1.2.1",
                 "--output", str(self.root / "cli.json"), "--temporary-root", str(self.root),
@@ -685,10 +690,10 @@ class RollingTests(unittest.TestCase):
               patch.object(execution, "local_settings_folder", return_value=self.settings)):
             self.assertEqual(0, execution.main([*argv, "--diagnostic"]))
         self.assertEqual(supplied.report_identity(), run.call_args.kwargs["published"].report_identity())
-        with patch.object(rolling, "run_rolling") as run, redirect_stderr(io.StringIO()) as errors:
-            self.assertEqual(1, execution.main([*argv, "--formal"]))
-        self.assertIn("PREDECESSOR_CONTRACT_PENDING", errors.getvalue())
-        run.assert_not_called()
+        with (patch.object(rolling, "run_rolling", return_value={"gate": {"result": "clear"}}) as run,
+              patch.object(execution, "local_settings_folder", return_value=self.settings)):
+            self.assertEqual(0, execution.main([*argv, "--formal"]))
+        self.assertTrue(run.call_args.kwargs["formal"])
 
     def test_repeated_process_runs_preserve_semantic_digest_and_capture_distinct_evidence(self):
         class VaryingProcesses(SyntheticProcesses):
@@ -861,12 +866,16 @@ class RollingTests(unittest.TestCase):
 
     def test_formal_pending_refuses_before_hosts_and_cli_returns_nonzero(self):
         git = RollingFakeGit(self.world)
+        contract = json.loads(git.commits[CANDIDATE][rolling.CONTRACT])
+        contract["executor"]["compilerHost"] = {"status": "pending-executor-record", "boardDecisions": ["1.1.12 board decision 79"]}
+        git.commits[CANDIDATE][rolling.CONTRACT] = encoded(contract)
         with self.assertRaises(execution.ExecutionError) as found:
             self.run_world(formal=True, git=git)
         self.assertEqual("PREDECESSOR_CONTRACT_PENDING", found.exception.code)
         self.assertEqual([], git.detached)
-        self.assertEqual(1, execution.main(["rolling", "--candidate-commit", CANDIDATE, "--output", str(self.root / "formal.json"),
-                                           "--temporary-root", str(self.root), "--formal"]))
+        with patch.object(execution, "admit_execution_contract", side_effect=execution.ExecutionError("PREDECESSOR_CONTRACT_PENDING", "compilerHost")):
+            self.assertEqual(1, execution.main(["rolling", "--candidate-commit", CANDIDATE, "--output", str(self.root / "formal.json"),
+                                               "--temporary-root", str(self.root), "--formal"]))
 
     def test_settings_file_in_formal_run_refuses_when_interfaces_are_admitted(self):
         (self.settings / "event-buffer-format.v1.json").write_bytes(b"{}")

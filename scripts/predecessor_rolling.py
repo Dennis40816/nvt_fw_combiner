@@ -238,6 +238,7 @@ def load_rolling_sources(
         return load_json_reject_duplicates(raw(path))
 
     implementation = ("scripts/predecessor_comparison.py", "scripts/predecessor_rolling.py",
+                      "scripts/predecessor_pdb_probe.py",
                       "scripts/predecessor_validation.py", "scripts/predecessor_report_reader.py",
                       "scripts/v0916_parity_certification.py", "scripts/render_release_notes.py",
                       "scripts/canonical_golden_validation.py")

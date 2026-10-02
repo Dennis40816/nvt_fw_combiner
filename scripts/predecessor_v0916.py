@@ -23,13 +23,17 @@ from scripts.v0916_parity_certification import (
 CONTRACT = "docs/contracts/predecessor-comparison-v1.json"
 PLAN = "docs/contracts/v0916-parity-certification-v1.json"
 AMENDMENT = "docs/contracts/v0916-parity-1x-amendment-v1.json"
+BASELINE_EXECUTOR = validation.BASELINE_EXECUTOR_V2_PATH
 APPLIED_CONTRACTS = (CONTRACT, CONTRACT.replace(".json", ".schema.json"),
                      "docs/contracts/predecessor-comparison-report-v1.schema.json",
                      PLAN, PLAN.replace(".json", ".schema.json"),
-                     AMENDMENT, AMENDMENT.replace(".json", ".schema.json"))
+                     AMENDMENT, AMENDMENT.replace(".json", ".schema.json"), BASELINE_EXECUTOR,
+                     BASELINE_EXECUTOR.replace(".json", ".schema.json"),
+                     "docs/contracts/v0916-baseline-executor-v1.json")
 IMPLEMENTATION = ("scripts/predecessor_comparison.py", "scripts/predecessor_v0916.py",
                   "scripts/predecessor_validation.py", "scripts/predecessor_report_reader.py",
-                  "scripts/v0916_parity_certification.py", "scripts/canonical_golden_validation.py")
+                  "scripts/v0916_parity_certification.py", "scripts/canonical_golden_validation.py",
+                  "scripts/predecessor_pdb_probe.py")
 
 
 class V0916GitHost(execution.GitHost, Protocol):
@@ -49,6 +53,7 @@ class V0916Sources(NamedTuple):
     amendment: Mapping[str, Any]
     authority: validation.SourceAuthority
     input_reader: Any
+    baseline_executor: Mapping[str, Any] | None = None
 
 
 def load_v0916_sources(git: V0916GitHost, candidate_commit: str, *, formal: bool) -> V0916Sources:
@@ -63,6 +68,8 @@ def load_v0916_sources(git: V0916GitHost, candidate_commit: str, *, formal: bool
     # Remove the excluded member before any plan loader, materializer or builder.
     plan = {key: value for key, value in plan.items() if key != "candidateAuthority"}
     contract = load_json_reject_duplicates(raw(CONTRACT))
+    baseline_executor = execution.load_bound_v0916_executor(
+        amendment["baselineExecutor"], raw, contract["executor"]["compilerHost"])
     if formal:
         execution._refuse(validation.comparator_source_failures(
             {path: execution._sha256(raw(path)) for path in IMPLEMENTATION},
@@ -71,12 +78,15 @@ def load_v0916_sources(git: V0916GitHost, candidate_commit: str, *, formal: bool
     execution._refuse(validation.executor_tag_failures(
         baseline["tagObject"], git.git_tag_object(baseline["tag"]),
         git.git_tag_commit(baseline["tagObject"]), baseline["peeledCommit"]))
+    if baseline_executor is not None and (baseline_executor["source"]["tagObject"], baseline_executor["source"]["peeledCommit"]) != (
+        baseline["tagObject"], baseline["peeledCommit"]):
+        raise execution.ExecutionError("PREDECESSOR_BASELINE_INVALID", "v2 source differs from the plan baseline")
     authority = validation.SourceAuthority(
         candidate_commit, git.commit_tree(candidate_commit), baseline["tag"], baseline["tagObject"],
         baseline["peeledCommit"], execution._sha256(Path(execution.__file__).read_bytes()),
         {path: execution._sha256(raw(path)) for path in APPLIED_CONTRACTS}, amendment_sha256=execution._sha256(raw(AMENDMENT)))
     return V0916Sources(raw("VERSION").decode("utf-8").strip(), contract, plan, amendment, authority,
-                        git.snapshot_reader(plan["canonicalInputAuthority"]["repositoryCommit"]))
+                        git.snapshot_reader(plan["canonicalInputAuthority"]["repositoryCommit"]), baseline_executor)
 
 
 def materialize_v0916_inputs(
@@ -277,13 +287,13 @@ def run_v0916(
         sources = load_v0916_sources(git, candidate_commit, formal=formal)
         admission = execution.admit_loaded_execution_contract(sources.contract, mode="v0916-1x", formal=formal,
                                                               amendment=sources.amendment)
-        if baseline_builder is None:
+        if baseline_builder is None or sources.baseline_executor is None:
             raise execution.ExecutionError("PREDECESSOR_CONTRACT_PENDING", "v0.9.16 baseline builder must be supplied")
         runner = execution.ProcessRunner(host, temporary_root, settings_folder, admission=admission)
         try:
             authority, plan, _, dispositions = materialize_v0916_inputs(
                 sources, runner.temporary_root / "canonical", materializer=materializer, plan_loader=plan_loader)
-            baseline = baseline_builder.build(git, runner, sources.authority.baseline_commit, sources.amendment["baselineExecutor"])
+            baseline = baseline_builder.build(git, runner, sources.authority.baseline_commit, sources.baseline_executor)
             candidate = execution.build_1x_executor(git, runner, candidate_commit, sources.contract)
             executions = {}
             for disposition in dispositions:
@@ -337,7 +347,7 @@ def v0916_main(argv: Sequence[str] | None = None) -> int:
         execution.admit_execution_contract(mode="v0916-1x", formal=args.formal)
         with tempfile.TemporaryDirectory(prefix="v0916-", dir=args.temporary_root) as temporary:
             report = run_v0916(git=LocalV0916GitHost(execution.ROOT), host=execution.LocalExecutionHost(),
-                                baseline_builder=None, candidate_commit=args.candidate_commit, output_path=args.output,
+                                baseline_builder=execution.V0916BaselineExecutorBuilder(), candidate_commit=args.candidate_commit, output_path=args.output,
                                 temporary_root=Path(temporary), settings_folder=execution.local_settings_folder(),
                                 formal=args.formal, milestone=args.milestone)
         return 0 if report["result"] == "consistent" else 1

@@ -210,7 +210,7 @@ substitute for the precursor's own identities and ranges.
 Every entry carries the owner's approval as firmware owner: the board
 decision, which is the authority, the role `firmware-owner` and the date. The
 declaration cites the decision exactly; this citation is the approval form of
-a release declaration (board decision 64). It does not replace the owner's exact-head firmware-owner approval that an
+a release declaration (board decision 64). It does not replace the owner's exact-head firmware-owner and release-owner approval that an
 R3 pull request needs, such as a change to the 1.x amendment (ADR 0080 item 7). The release decision stays with the owner as release owner.
 A newly rejected input ships only as a known non-blocking issue approved for
 that release; a declared issue never overrides a P0 or P1 bug, a required
@@ -323,17 +323,31 @@ path, a dirty tree, a restore that rewrites a lock file, or a failed build is
 `PREDECESSOR_EXECUTOR_INVALID`. The CLI apphost hash alone never identifies an
 executor; the runtime-closure digest does.
 
-The compiler host is pinned by board decision 79: the P-0.5 spike showed that
-the embedded PDBs record whichever runtime patch hosts the compiler, and that
-pinning the host to runtime 10.0.11 reproduces the pinned v0.9.16 closure bit
-for bit; the 1.x identity comparison uses the same pinning. The exact pinning,
-together with the second v0.9.16 executor contract, is admitted by its own R3
-pull request with the owner's exact-head approval of its last push naming the
-`firmware-owner` role, with byte and Golden evidence and the exact write-range
-audit (ADR 0080 items 4 and 7); until it is, `compilerHost` is
-`pending-executor-record` and no formal run is possible.
+Compiler-host pinning and [baseline executor v2](v0916-baseline-executor-v2.md)
+are in effect together under decisions 63 and 79. Every comparator-built
+executor preflights the selected dotnet installation with `--list-runtimes`
+for framework `Microsoft.NETCore.App` exactly `10.0.11` and `--info` for the
+same host's `x64` architecture. Restore/build alone receive
+`DOTNET_ROLL_FORWARD=Disable`; build appends `-p:UseSharedCompilation=false`
+and `-nodeReuse:false` once. Every path restores the previous environment.
+Missing runtime or a wrong architecture refuses with
+`PREDECESSOR_EXECUTOR_INVALID`, without installing or selecting another host.
 
-The identity is recorded, not pinned in advance. From 1.1.14 on, the rebuilt
+`scripts/predecessor_pdb_probe.py` reads every managed assembly declared by the
+built CLI `.deps.json` project graph in the measured closure. It parses PE
+entry type 17, inflates `MPDB` raw deflate and reads portable metadata streams
+`#Pdb`, `#~`, `#GUID` and `#Blob`. CustomDebugInformation kind
+`B5FEEC05-8CD0-4A83-96DA-466284BB4BD8` supplies null-terminated UTF-8 options.
+`runtime-version` must equal the pinned servicing version; `compiler-version`
+is the compiler identity, while `version` is the options format version.
+Empty graphs, missing or ambiguous PDB/options, corrupt metadata and mixed
+or unpinned hosts refuse the executor. The probe starts no process.
+
+This R3 activation requires the firmware owner and the release owner's
+exact-head approval of the last push, with byte/Golden, write-range and
+release-policy evidence. R35-09 rehearses actual builds before formal reports.
+
+The 1.x identity is measured; the v0.9.16 v2 identity is pinned in its contract. From 1.1.14 on, the rebuilt
 rolling baseline identity is also compared with the candidate identity that
 the baseline release's own report recorded; a mismatch is reported, and
 becomes a failure once local and hosted builds are shown to match.
@@ -343,6 +357,7 @@ becomes a failure once local and hosted builds are shown to match.
 | `authorityTrees` | `authorityTrees` | the Git tree ids of `external-tools`, `profiles`, `src` and `tools/crc-worker` at the commit |
 | `cliSha256` | `cliSha256` | SHA-256 of the built `cliAssembly` |
 | `commit` | `commit` | the built commit (the peeled commit of a tag) |
+| `compilerHost` | `compilerHost` | verified `runtimeVersion`, `compilerVersion` and positive `verifiedAssemblyCount` |
 | `lockFileSetSha256` | `lockFileSetSha256` | the lock-file set digest below |
 | `resolvedSdkVersion` | `resolvedSdkVersion` | the SDK version `global.json` resolves in the worktree |
 | `runtimeClosureSha256` | `runtimeClosureSha256` | the ADR 0057 closure digest: JCS SHA-256 of `{path, size, sha256}` for every file under `runtimeClosureRoot`, by relative path |
@@ -352,9 +367,7 @@ becomes a failure once local and hosted builds are shown to match.
 `lockFileSetSha256` is the JCS SHA-256 of the array of `{path, size, sha256}`
 objects, one for every Git-tracked file matching `src/*/packages.lock.json`
 at the built commit, taken from the Git blob bytes (so checkout line endings
-cannot change it), sorted by path in ascending ordinal order. A restore that
-leaves any of these files different from its blob is
-`PREDECESSOR_EXECUTOR_INVALID`.
+cannot change it), sorted by path in ascending ordinal order. For 1.x any lock change is `PREDECESSOR_EXECUTOR_INVALID`. For v0.9.16 exactly the seven v2 rewrites are required after restore and build; all other locks stay equal to their blobs. The digest still uses all eight original Git-blob locks, never post-restore bytes.
 
 ### Inputs, processes and environment
 
@@ -421,7 +434,7 @@ A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's
 format into the normalized projection these functions read. It may not relax,
 skip or reorder these checks. The reader and the report and declaration
-schemas are in effect; the two executor interfaces are still pending
+schemas and both executor interfaces are in effect
 ([Interface status](#interface-status)).
 
 #### Report reader v1
@@ -586,8 +599,8 @@ member name is permitted.
 | declaration schema | in effect (R35-02) | — |
 | report schema | in effect (R35-02) | — |
 | report reader | in effect (R35-01) | — |
-| compiler-host pinning | `pending-executor-record` (board decision 79) | no formal run |
-| v0.9.16 baseline executor | `pending-executor-record` in the amendment (board decisions 63 and 79) | no formal v0.9.16 1.x run |
+| compiler-host pinning | in effect (board decision 79) | runtime preflight and embedded PDB verification |
+| v0.9.16 baseline executor | in effect through the amendment binding to v2 (board decisions 63 and 79) | exact source, recipe, lock rewrites and closure pins |
 
 A formal run requested while any of these is not in effect fails with
 `PREDECESSOR_CONTRACT_PENDING`.

@@ -13,6 +13,7 @@ import ctypes
 import hashlib
 import json
 import os
+import re
 from pathlib import Path, PurePosixPath
 import stat
 import subprocess
@@ -25,6 +26,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts import predecessor_validation as validation
+from scripts.predecessor_pdb_probe import PdbProbeError, probe_compilation_options
 from scripts.predecessor_report_reader import ReadReport, ReportReaderError, read_cli_report
 from scripts.v0916_parity_certification import (
     CapturedExecutionClosure,
@@ -130,7 +132,7 @@ class Executor(NamedTuple):
 
 
 class BaselineExecutorBuilder(Protocol):
-    """Seam for the pending v0.9.16 executor; no recipe is invented here."""
+    """Build the v0.9.16 executor from its admitted candidate-snapshot contract."""
 
     def build(self, git: GitHost, runner: ProcessRunner, commit: str, record: Mapping[str, Any]) -> Executor: ...
 
@@ -148,11 +150,7 @@ def admit_execution_contract(
     contract_path: Path = CONTRACT_PATH, *, amendment_path: Path | None = None,
     mode: str, formal: bool,
 ) -> ContractAdmission:
-    """Load interface statuses, refusing formal execution until in effect.
-
-    Rolling never reads the amendment. v0916-1x reads only its baselineExecutor
-    status here; applying amendment rows belongs to B2.
-    """
+    """Admit local settings and binding before source or settings acquisition."""
 
     contract = load_json_reject_duplicates(contract_path.read_bytes())
     _refuse(validation.execution_mode_failures(contract, mode))
@@ -160,6 +158,11 @@ def admit_execution_contract(
     if mode == "v0916-1x":
         path = amendment_path or ROOT / contract["modes"][mode]["amendment"]
         amendment = load_json_reject_duplicates(path.read_bytes())
+        _refuse(validation.formal_interface_failures(contract, formal=formal, amendment=amendment))
+        baseline = amendment["baselineExecutor"]
+        _refuse(validation.baseline_executor_binding_failures(baseline))
+        if baseline.get("status") == "in-effect":
+            load_bound_v0916_executor(baseline, lambda path: (ROOT / path).read_bytes(), contract["executor"]["compilerHost"])
     return admit_loaded_execution_contract(contract, mode=mode, formal=formal, amendment=amendment)
 
 
@@ -169,6 +172,9 @@ def admit_loaded_execution_contract(
     """Use the same admission for a pinned snapshot and a loaded local contract."""
     _refuse(validation.execution_mode_failures(contract, mode))
     _refuse(validation.formal_interface_failures(contract, formal=formal, amendment=amendment))
+    _refuse(validation.executor_compiler_host_failures(contract["executor"]["compilerHost"]))
+    if amendment is not None:
+        _refuse(validation.baseline_executor_binding_failures(amendment["baselineExecutor"]))
     pending = validation.pending_execution_interfaces(contract, amendment)
     return ContractAdmission(formal, not formal, pending, contract, contract["executor"]["compilerHost"],
                              None if amendment is None else amendment["baselineExecutor"])
@@ -448,16 +454,141 @@ def _lock_snapshot(root: Path, expected: Mapping[str, bytes]) -> dict[str, bytes
     return {path: (root / path).read_bytes() if (root / path).exists() else None for path in expected}
 
 
+def _source_inventory(root: Path, build_segments: Sequence[str]) -> dict[str, Any]:
+    """Include ignored source files too; only bin/obj products are excluded."""
+    return {path.relative_to(root).as_posix(): _file_identity(path) for path in root.rglob("*")
+            if path.is_file() and not set(path.relative_to(root).parts) & set(build_segments)}
+
+
+@contextmanager
+def _compiler_environment(compiler_host: Mapping[str, Any]) -> Iterator[None]:
+    """Only restore/build inherit the pin; every exceptional path restores it."""
+    variables = compiler_host.get("environmentVariables", {})
+    with _ENVIRONMENT_LOCK:
+        previous = {name: os.environ.get(name) for name in variables}
+        try:
+            os.environ.update(variables)
+            yield
+        finally:
+            for name, value in previous.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+
+
+def _executor_process(runner: ProcessRunner, source: Path, arguments: Sequence[str]) -> ProcessCapture:
+    capture = runner.run(stage="build", argv=list(arguments), staging_root=source, inputs=[])
+    _refuse(capture.failures)
+    _refuse(validation.executor_process_failures(capture.record))
+    return capture
+
+
+def _compiler_preflight(runner: ProcessRunner, source: Path, compiler_host: Mapping[str, Any]) -> None:
+    if compiler_host.get("status") != "in-effect":
+        return
+    required = compiler_host["requiredRuntime"]
+    runtimes = _executor_process(runner, source, ["dotnet", "--list-runtimes"]).stdout.decode("utf-8")
+    # --list-runtimes lists the selected installation's runtimes but does not
+    # report architecture. Query the same dotnet host's Host section for that.
+    info = _executor_process(runner, source, ["dotnet", "--info"]).stdout.decode("utf-8")
+    host = re.search(r"(?m)^Host:\s*\r?\n((?:[ \t]+[^\n]*\n?)+)", info)
+    architectures = [] if host is None else re.findall(r"(?m)^\s+Architecture:\s*(\S+)\s*$", host[1])
+    installed = any(re.fullmatch(re.escape(required["framework"]) + r"\s+" + re.escape(required["version"]) + r"\s+\[[^\r\n]+\]", row.strip())
+                    for row in runtimes.splitlines())
+    if not installed or architectures != [required["architecture"]]:
+        raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "required compiler-host runtime or architecture is not installed")
+
+
+def _compiler_identity(closure: CapturedExecutionClosure, compiler_host: Mapping[str, Any]) -> dict[str, Any]:
+    """The CLI deps graph declares project assemblies; filenames do not."""
+    deps_path = str(PurePosixPath(closure.cli_relative).with_suffix(".deps.json"))
+    deps = load_json_reject_duplicates(closure.files[deps_path])
+    target = deps["targets"][deps["runtimeTarget"]["name"]]
+    projects = [name for name, value in deps["libraries"].items() if value["type"] == "project"]
+    assemblies = []
+    for project in projects:
+        paths = [path for path in target[project].get("runtime", {}) if path.endswith(".dll")]
+        if not paths:
+            raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "CLI project has no measured managed assembly")
+        assemblies.extend(paths)
+    if not assemblies or len(set(assemblies)) != len(assemblies):
+        raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "empty or ambiguous first-party CLI project graph")
+    options = [probe_compilation_options(closure.files[path]) for path in assemblies]
+    runtime_versions = {value.runtime_version for value in options}
+    compiler_versions = {value.compiler_version for value in options}
+    if runtime_versions != {compiler_host["verification"]["runtimeVersion"]} or len(compiler_versions) != 1:
+        raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "mixed or unpinned compiler host in embedded PDBs")
+    return {"runtimeVersion": options[0].runtime_version, "compilerVersion": options[0].compiler_version,
+            "verifiedAssemblyCount": len(assemblies)}
+
+
+def _require_artifacts(root: Path, artifacts: Sequence[Mapping[str, Any]]) -> None:
+    for row in artifacts:
+        if _file_identity(root / row["path"]) != {key: row[key] for key in ("size", "sha256")}:
+            raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "artifact pin differs: " + row["path"])
+
+
+def load_bound_v0916_executor(
+    baseline: Mapping[str, Any], read_raw: Callable[[str], bytes], compiler_host: Mapping[str, Any],
+) -> Mapping[str, Any] | None:
+    """Load only through the binding, using the caller's exact Git snapshot."""
+    _refuse(validation.baseline_executor_binding_failures(baseline))
+    if baseline.get("status") != "in-effect":
+        return None
+    try:
+        raw = read_raw(baseline["contract"]["path"])
+        _refuse(validation.baseline_executor_binding_failures(baseline, raw))
+        record = load_json_reject_duplicates(raw)
+        _refuse(validation.v0916_executor_contract_failures(record))
+        if record["compilerHost"] != compiler_host:
+            raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "executor compiler-host contracts differ")
+        binding = record["v1Relation"]["contract"]
+        previous_raw = read_raw(binding["path"])
+        if _payload_identity(previous_raw) != {key: binding[key] for key in ("size", "sha256")}:
+            raise ExecutionError("PREDECESSOR_SOURCE_MISMATCH", "v1 relation raw contract binding differs")
+        previous = load_json_reject_duplicates(previous_raw)
+        if any(record[member] != previous[member] for member in
+               ("source", "toolchain", "lockFiles", "externalTools", "build", "cliAssembly", "runtimeClosure")):
+            raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "v2 relation does not preserve v1 pins")
+        return record
+    except ExecutionError:
+        raise
+    except (ParityError, OSError, KeyError, TypeError, ValueError) as error:
+        raise ExecutionError("PREDECESSOR_SOURCE_MISMATCH", "bound baseline executor contract cannot be loaded") from error
+
+
 def build_1x_executor(
     git: GitHost, runner: ProcessRunner, commit: str, contract: Mapping[str, Any], *, tag_object: str | None = None,
 ) -> Executor:
-    """Build from one exact detached commit and measure the unpinned identity.
+    """Build one exact commit with unchanged locks and the admitted host pin."""
+    return _build_executor(git, runner, commit, contract["executor"], tag_object=tag_object)
 
-    The caller admits the formal/diagnostic contract first. compilerHost is
-    returned by that admission with its actual pending status, never fabricated.
-    """
 
-    recipe = contract["executor"]
+class V0916BaselineExecutorBuilder:
+    """Reproduce the complete v2 recipe; v1's terminal consumer is unchanged."""
+
+    def build(self, git: GitHost, runner: ProcessRunner, commit: str, record: Mapping[str, Any]) -> Executor:
+        _refuse(validation.v0916_executor_contract_failures(record))
+        source = record["source"]
+        if commit != source["peeledCommit"]:
+            raise ExecutionError("PREDECESSOR_BASELINE_INVALID", "v2 does not name the plan baseline commit")
+        try:
+            if (git.git_tag_object(source["tag"]), git.git_tag_commit(source["tagObject"])) != (source["tagObject"], commit):
+                raise ExecutionError("PREDECESSOR_BASELINE_INVALID", "v2 does not name the annotated baseline tag")
+        except subprocess.SubprocessError as error:
+            raise ExecutionError("PREDECESSOR_BASELINE_INVALID", "baseline tag cannot be resolved") from error
+        recipe = {**runner.admission.contract["executor"], "restore": record["restore"], "build": record["build"],
+                  "compilerHost": record["compilerHost"], "cliAssembly": record["cliAssembly"]["path"],
+                  "runtimeClosureRoot": record["runtimeClosure"]["root"]}
+        return _build_executor(git, runner, commit, recipe, tag_object=source["tagObject"], baseline=record)
+
+
+def _build_executor(
+    git: GitHost, runner: ProcessRunner, commit: str, recipe: Mapping[str, Any], *,
+    tag_object: str | None = None, baseline: Mapping[str, Any] | None = None,
+) -> Executor:
+    """One materializer/process/closure path, with two explicit lock policies."""
     _refuse(validation.executor_compiler_host_failures(recipe["compilerHost"]))
     try:
         if tag_object is not None:
@@ -467,6 +598,10 @@ def build_1x_executor(
         locks = {path: git.read_file(commit, path) for path in sorted(paths)
                  if len(PurePosixPath(path).parts) == 3 and PurePosixPath(path).match(recipe["lockFileSet"]["pattern"])}
         lock_inventory = [{"path": path, **_payload_identity(payload)} for path, payload in locks.items()]
+        if baseline is not None:
+            for row in [baseline["toolchain"]["globalJson"], *baseline["lockFiles"], *baseline["externalTools"]]:
+                if _payload_identity(git.read_file(commit, row["path"])) != {key: row[key] for key in ("size", "sha256")}:
+                    raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "source Git blob pin differs: " + row["path"])
         # Reserve a unique parent while leaving the actual worktree destination
         # absent, as the existing worktree owner requires.
         parent = Path(tempfile.mkdtemp(prefix="executor-", dir=runner.temporary_root))
@@ -483,34 +618,74 @@ def build_1x_executor(
             # contract's stricter blob-byte check (checkout EOLs may differ).
             git.read_file(commit, recipe["sdkSource"])
             _refuse(validation.executor_lock_failures(locks, _lock_snapshot(source, locks), commit))
-            sdk_capture = runner.run(stage="build", argv=["dotnet", "--version"], staging_root=source, inputs=[])
-            _refuse(sdk_capture.failures)
-            _refuse(validation.executor_process_failures(sdk_capture.record))
+            original_files = None
+            if baseline is not None:
+                original_files = _source_inventory(source, recipe["forbiddenPreRestorePathSegments"])
+                _require_artifacts(source, [baseline["toolchain"]["globalJson"], *baseline["externalTools"]])
+                if git.git_tree(source) != baseline["source"]["sourceTree"]:
+                    raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "baseline source tree differs")
+            sdk_capture = _executor_process(runner, source, ["dotnet", "--version"])
             sdk = sdk_capture.stdout.decode("utf-8").strip()
             _refuse(validation.executor_sdk_failures(sdk))
+            if baseline is not None and sdk != baseline["toolchain"]["resolvedSdkVersion"]:
+                raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "baseline SDK pin differs")
+            _compiler_preflight(runner, source, recipe["compilerHost"])
             for action in ("restore", "build"):
                 arguments = [value.replace("{sourceRoot}", str(source)) for value in recipe[action]["arguments"]]
-                capture = runner.run(stage="build", argv=arguments, staging_root=source / recipe[action]["workingDirectory"], inputs=[])
-                _refuse(capture.failures)
-                _refuse(validation.executor_process_failures(capture.record))
-                _refuse(validation.executor_lock_failures(locks, _lock_snapshot(source, locks), commit))
+                if action == "build":
+                    extras = recipe["compilerHost"].get("extraBuildArguments", [])
+                    arguments = [value for value in arguments if value not in extras] + list(extras)
+                with _compiler_environment(recipe["compilerHost"]):
+                    _executor_process(runner, source / recipe[action]["workingDirectory"], arguments)
+                dirty = git.git_dirty_paths(source)
+                if baseline is None:
+                    _refuse(validation.executor_lock_failures(locks, _lock_snapshot(source, locks), commit))
+                else:
+                    rewrites = {row["path"] for row in baseline["lockFileRewrites"]}
+                    _require_artifacts(source, baseline["lockFileRewrites"])
+                    _refuse(validation.executor_lock_failures(
+                        {path: payload for path, payload in locks.items() if path not in rewrites},
+                        _lock_snapshot(source, {path: payload for path, payload in locks.items() if path not in rewrites}), commit))
+                    # Raw snapshot catches changes even when Git's EOL filter
+                    # hides them; porcelain catches new unauthorized files.
+                    current_files = _source_inventory(source, recipe["forbiddenPreRestorePathSegments"])
+                    changed = {path for path in original_files.keys() | current_files.keys()
+                               if current_files.get(path) != original_files.get(path)}
+                    if changed != rewrites:
+                        raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "source file delta differs from seven lock rewrites")
+                    if sorted(row.strip() for row in dirty) != sorted("M " + path for path in rewrites):
+                        raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "unauthorized source changes after " + action)
+                    dirty = []
+                    _require_artifacts(source, [baseline["toolchain"]["globalJson"], *baseline["externalTools"]])
+                    if git.git_tree(source) != baseline["source"]["sourceTree"]:
+                        raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "baseline tree changed after " + action)
                 _refuse(validation.executor_source_failures(
-                    commit=commit, observed_commit=git.git_head(source), dirty_paths=git.git_dirty_paths(source),
+                    commit=commit, observed_commit=git.git_head(source), dirty_paths=dirty,
                     build_paths=[], tracked_paths=[], forbidden_segments=recipe["forbiddenPreRestorePathSegments"],
                 ))
             runtime_root = source / recipe["runtimeClosureRoot"]
             cli_relative = (source / recipe["cliAssembly"]).relative_to(runtime_root).as_posix()
             closure = runtime_closure_inventory(runtime_root, cli_relative=cli_relative)
+            compiler_identity = _compiler_identity(closure, recipe["compilerHost"])
+            if baseline is not None:
+                _require_artifacts(source, [baseline["cliAssembly"]])
+                _require_artifacts(runtime_root, baseline["managedAssemblies"])
+                expected = baseline["runtimeClosure"]
+                if (closure.file_count, closure.total_size, closure.identity_sha256) != (expected["fileCount"], expected["totalSize"], expected["sha256"]):
+                    raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "baseline runtime closure pin differs")
+                if compiler_identity["verifiedAssemblyCount"] != len(baseline["managedAssemblies"]):
+                    raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "baseline first-party project graph differs")
             identity = {
                 "authorityTrees": {path: git.git_tree_for_path(source, path) for path in recipe["authorityTrees"]},
                 "cliSha256": _sha256(closure.files[cli_relative]), "commit": git.git_head(source),
                 "lockFileSetSha256": canonical_json_sha256(lock_inventory), "resolvedSdkVersion": sdk,
                 "runtimeClosureSha256": closure.identity_sha256, "tagObject": tag_object, "tree": git.git_tree(source),
+                "compilerHost": compiler_identity,
             }
-            return Executor({member: identity[member] for member in recipe["recordedIdentity"]}, closure, "1x")
+            return Executor({member: identity[member] for member in recipe["recordedIdentity"]}, closure, "v0916" if baseline else "1x")
     except ExecutionError:
         raise
-    except (ParityError, OSError, subprocess.SubprocessError, KeyError, TypeError, ValueError) as error:
+    except (ParityError, PdbProbeError, OSError, subprocess.SubprocessError, KeyError, TypeError, ValueError) as error:
         raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "executor acquisition or identity failed") from error
 
 
