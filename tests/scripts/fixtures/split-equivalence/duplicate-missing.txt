@@ -1,4 +1,4 @@
 The following Tests are available:
-    New.FirstTests.Check
-    New.FirstTests.Theory(value: "a.b", count: 1)
-    New.FirstTests.Same
+    Old.FirstTests.Check
+    Old.FirstTests.Theory(value: "a.b", count: 1)
+    Old.FirstTests.Same

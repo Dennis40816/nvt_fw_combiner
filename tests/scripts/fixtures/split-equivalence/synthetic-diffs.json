@@ -63,19 +63,26 @@
         "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -1 +1 @@\n-using System;\n+global using static Example.Support;\n"
       }
     ],
-    "passed": true,
+    "passed": false,
     "counts": {
       "rename": 0,
       "class_declaration": 0,
       "summary": 0,
-      "using": 2,
+      "using": 1,
       "support_accessibility": 0,
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
       "blank": 0
     },
-    "unclassified": []
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 1,
+        "text": "using System;"
+      }
+    ]
   },
   {
     "name": "blank",
@@ -235,7 +242,7 @@
         "patch": "--- a/Serial.cs\n+++ b/Serial.cs\n@@ -1,7 +0,0 @@\n-namespace Example;\n-\n-/// <summary>Keep serial scheduling.</summary>\n-[CollectionDefinition(nameof(Serial))]\n-public sealed class Serial\n-{\n-}\n"
       }
     ],
-    "passed": true,
+    "passed": false,
     "counts": {
       "rename": 0,
       "class_declaration": 0,
@@ -244,10 +251,47 @@
       "support_accessibility": 0,
       "helper_move": 0,
       "collection_attribute": 0,
-      "collection_definition": 6,
+      "collection_definition": 0,
       "blank": 1
     },
-    "unclassified": []
+    "unclassified": [
+      {
+        "file": "Serial.cs",
+        "side": "-",
+        "line": 1,
+        "text": "namespace Example;"
+      },
+      {
+        "file": "Serial.cs",
+        "side": "-",
+        "line": 3,
+        "text": "/// <summary>Keep serial scheduling.</summary>"
+      },
+      {
+        "file": "Serial.cs",
+        "side": "-",
+        "line": 4,
+        "text": "[CollectionDefinition(nameof(Serial))]"
+      },
+      {
+        "file": "Serial.cs",
+        "side": "-",
+        "line": 5,
+        "text": "public sealed class Serial"
+      },
+      {
+        "file": "Serial.cs",
+        "side": "-",
+        "line": 6,
+        "text": "{"
+      },
+      {
+        "file": "Serial.cs",
+        "side": "-",
+        "line": 7,
+        "text": "}"
+      }
+    ]
   },
   {
     "name": "collection_attribute_removal",
@@ -261,7 +305,7 @@
         "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -3 +2,0 @@\n-[Collection(\"Serial\")]\n"
       }
     ],
-    "passed": true,
+    "passed": false,
     "counts": {
       "rename": 0,
       "class_declaration": 0,
@@ -269,11 +313,18 @@
       "using": 0,
       "support_accessibility": 0,
       "helper_move": 0,
-      "collection_attribute": 1,
+      "collection_attribute": 0,
       "collection_definition": 0,
       "blank": 0
     },
-    "unclassified": []
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "-",
+        "line": 3,
+        "text": "[Collection(\"Serial\")]"
+      }
+    ]
   },
   {
     "name": "using_alias",
@@ -287,19 +338,26 @@
         "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -0,0 +1 @@\n+using Alias = global::Example.Thing;\n"
       }
     ],
-    "passed": true,
+    "passed": false,
     "counts": {
       "rename": 0,
       "class_declaration": 0,
       "summary": 0,
-      "using": 1,
+      "using": 0,
       "support_accessibility": 0,
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
       "blank": 0
     },
-    "unclassified": []
+    "unclassified": [
+      {
+        "file": "Old.Topic.cs",
+        "side": "+",
+        "line": 1,
+        "text": "using Alias = global::Example.Thing;"
+      }
+    ]
   },
   {
     "name": "changed_assertion",

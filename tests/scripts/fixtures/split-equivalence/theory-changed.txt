@@ -1,5 +1,5 @@
 The following Tests are available:
-    New.FirstTests.Check
-    New.FirstTests.Theory(value: "a.b", count: 2)
-    New.FirstTests.Same
-    New.SecondTests.Same
+    Old.FirstTests.Check
+    Old.FirstTests.Theory(value: "a.b", count: 2)
+    Old.FirstTests.Same
+    Old.SecondTests.Same

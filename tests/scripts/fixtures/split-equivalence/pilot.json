@@ -1,6 +1,6 @@
 {
-  "base": "092641516",
-  "head": "c169d87b9",
+  "base": "0926415167f2586fe284fe9298687292b7832333",
+  "head": "c169d87b94a16a29d5b4bc0a3ae99353ba9ff219",
   "project": "tests/NvtFwCombiner.Architecture.Tests",
   "counts": {
     "rename": 72,
@@ -9,8 +9,16 @@
     "using": 1,
     "support_accessibility": 58,
     "helper_move": 72,
-    "collection_attribute": 10,
+    "collection_attribute": 9,
     "collection_definition": 6,
     "blank": 7
-  }
+  },
+  "unclassified": [
+    {
+      "file": "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.cs",
+      "side": "+",
+      "line": 4,
+      "text": "[Collection(nameof(RepositoryBoundarySerialGroup))]"
+    }
+  ]
 }

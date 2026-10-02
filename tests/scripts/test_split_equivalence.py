@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import difflib
 import os
 import subprocess
 import sys
@@ -46,29 +47,36 @@ def test_same_method_in_distinct_classes_is_a_multiset():
     assert split.e1(text("before.txt"), text("duplicate-missing.txt"))["missing"] == ["Same"]
 
 
-def test_mapping_checks_each_occurrence_and_accepts_qualified_classes():
+def test_mapping_refuses_ambiguous_old_classes_and_accepts_qualified_pairs():
     mapping = json.loads(text("mapping.json"))
-    report = split.e1(text("before.txt"), text("equal.txt"), mapping)
-    assert report["moved-to-unexpected-class"] == [
-        {"identity": "Same", "actual": "New.SecondTests", "expected": "FirstTests"}]
-    assert not report["passed"]
+    with pytest.raises(ValueError, match="multiple old classes"):
+        split.e1(text("before.txt"), text("equal.txt"), mapping)
     before = "Old.One.Check\nOld.One.Theory(value: 1)"
-    after = "New.FirstTests.Check\nNew.FirstTests.Theory(value: 1)"
-    assert split.e1(before, after, {"Check": "New.FirstTests", "Theory(value: 1)": "FirstTests"})["passed"]
+    after = "Old.FirstTests.Check\nOld.FirstTests.Theory(value: 1)"
+    mapping = {method: {"old_class": "Old.One", "new_class": "Old.FirstTests"}
+               for method in ("Check", "Theory(value: 1)")}
+    report = split.e1(before, after, mapping)
+    assert report["passed"]
+    assert (report["before_count"], report["after_count"]) == (2, 2)
 
 
 def test_topic_mapping_requires_explicit_method_identities():
-    mapping = {"A.Topic.cs": {"class": "FirstTests", "identities": ["Check", "Theory(value: 1)"]}}
-    assert split.e1("Old.A.Check\nOld.A.Theory(value: 1)",
-                    "New.FirstTests.Check\nNew.FirstTests.Theory(value: 1)", mapping)["passed"]
+    mapping = {"A.Topic.cs": {"old_class": "Old.A", "new_class": "Old.FirstTests",
+                               "identities": ["Check", "Theory(value: 1)"]}}
+    report = split.e1("Old.A.Check\nOld.A.Theory(value: 1)",
+                      "Old.FirstTests.Check\nOld.FirstTests.Theory(value: 1)", mapping)
+    assert report["passed"]
+    assert (report["before_count"], report["after_count"]) == (2, 2)
 
 
 def test_added_case_with_a_baseline_mapping_is_a_difference():
-    report = split.e1("Old.C.Check", "New.C.Check\nNew.C.Extra", {"Check": "C"})
+    report = split.e1("Old.C.Check", "Old.New.Check\nOld.New.Extra",
+                      {"Check": {"old_class": "Old.C", "new_class": "Old.New"}})
     assert not report["passed"]
     assert report["added"] == ["Extra"]
     assert report["moved-to-unexpected-class"] == [
-        {"identity": "Extra", "actual": "New.C", "expected": None}]
+        {"identity": "Extra", "actual": "Old.New", "expected": None}]
+    assert (report["before_count"], report["after_count"]) == (1, 2)
 
 
 @pytest.mark.parametrize("mapping", [[], {"Check": "FirstTests"}, {"UnknownTopic": "FirstTests"},
@@ -121,12 +129,16 @@ def test_helpers_require_exact_whitespace_and_occurrence_pairing():
     duplicate = split.FileDiff(old.status, "Other.cs", "Other.cs", old.before, old.after, old.lines)
     report = split.e3((old, duplicate, new), "Support")
     assert not report["passed"]
+    assert report["counts"]["helper_move"] == 8
     assert {line["file"] for line in report["unclassified"]} == {"Other.cs"}
 
 
 def test_wrong_support_class_does_not_allow_accessibility_or_moves():
     case = next(case for case in CASES if case["name"] == "support_accessibility")
-    assert not split.e3(load_case(case), "OtherSupport")["passed"]
+    report = split.e3(load_case(case), "OtherSupport")
+    assert not report["passed"]
+    assert report["counts"]["support_accessibility"] == 0
+    assert report["counts"]["class_declaration"] == 0
 
 
 def test_nul_name_list_preserves_unusual_paths():
@@ -150,7 +162,9 @@ def test_malformed_hunks_are_input_errors(patch):
 def test_mode_and_end_of_file_changes_fail_e3():
     for patch in ("old mode 100644\nnew mode 100755\n", "\\ No newline at end of file\n"):
         file = split.FileDiff("M", "A.cs", "A.cs", (), (), split.patch_lines(patch))
-        assert not split.e3((file,))["passed"]
+        report = split.e3((file,))
+        assert not report["passed"]
+        assert not any(report["counts"].values())
 
 
 @pytest.mark.parametrize("wrapper", ['    private static string Text = @"\n{body}\n";',
@@ -176,18 +190,22 @@ def test_git_seam_disables_external_transforms_uses_literal_paths_and_timeout(mo
         calls.append((arguments, options))
         if "rev-parse" in arguments:
             return subprocess.CompletedProcess(arguments, 0, b"a" * 40 + b"\n", b"")
+        if "merge-base" in arguments:
+            return subprocess.CompletedProcess(arguments, 0, b"a" * 40 + b"\n", b"")
         if "ls-tree" in arguments:
             return subprocess.CompletedProcess(arguments, 0, "a space/新\0".encode(), b"")
         return subprocess.CompletedProcess(arguments, 0, b"", b"")
     monkeypatch.setattr(subprocess, "run", run)
-    assert split.read_diff(Git(ROOT), "base", "head", "a space/新") == ()
+    with pytest.raises(ValueError, match="no changed path"):
+        split.read_diff(Git(ROOT), "base", "head", "a space/新")
     for arguments, options in calls:
         assert isinstance(arguments, list)
         assert arguments[:2] == ["git", "--literal-pathspecs"]
         assert options["timeout"] > 0
         assert not options.get("shell", False)
     arguments = calls[-1][0]
-    assert all(option in arguments for option in ("-z", "--find-renames", "--no-ext-diff", "--no-textconv"))
+    assert all(option in arguments for option in ("-z", "--find-renames", "--no-ext-diff", "--no-textconv",
+                                                  "--ignore-submodules=none"))
     assert arguments[-2:] == ["--", "a space/新"]
 
 
@@ -198,17 +216,23 @@ def test_unknown_or_non_relative_project_is_input_error(project):
             return value
         def run(self, *args):
             return b""
+        def merge_base(self, first, second):
+            return first
     with pytest.raises(ValueError):
         split.read_diff(EmptyGit(), "a", "b", project)
 
 
 def test_helper_moves_infer_support_but_do_not_accept_non_csharp_targets():
     files = load_case(next(case for case in CASES if case["name"] == "helper_move"))
-    assert split.e3(files)["passed"]
+    report = split.e3(files)
+    assert report["passed"]
+    assert report["counts"]["helper_move"] == 8
     old, target = files
     non_source = split.FileDiff(target.status, "Support.txt", "Support.txt", target.before,
                                 target.after, target.lines)
-    assert not split.e3((old, non_source))["passed"]
+    report = split.e3((old, non_source))
+    assert not report["passed"]
+    assert report["counts"]["helper_move"] == 0
 
 
 def test_summary_cannot_claim_a_class_in_an_unchanged_baseline_file_is_new():
@@ -216,6 +240,8 @@ def test_summary_cannot_claim_a_class_in_an_unchanged_baseline_file_is_new():
     class BaselineGit(Git):
         def commit(self, value):
             return value
+        def merge_base(self, first, second):
+            return first
         def run(self, *arguments):
             if arguments[0] == "ls-tree":
                 return b"old.cs\0unchanged.cs\0" if "-r" in arguments else b"project\0"
@@ -253,6 +279,8 @@ def test_e1_cli_exit_codes_and_json(capsys):
                            "--after", str(FIXTURES / after)]) == code
         report = json.loads(capsys.readouterr().out)
         assert report["passed"] == (code == 0)
+        if code != 2:
+            assert (report["before_count"], report["after_count"]) == (4, 4 if code == 0 else 3)
     assert split.main(["e1"]) == 2
     assert "error" in json.loads(capsys.readouterr().out)
 
@@ -273,23 +301,34 @@ def test_e1_cli_rejects_duplicate_json_keys_and_null_mapping(capsys):
 def test_e3_cli_returns_difference_as_one(monkeypatch, capsys):
     case = next(case for case in CASES if case["name"] == "changed_assertion")
     monkeypatch.setattr(split, "read_diff", lambda *args: load_case(case))
+    monkeypatch.setattr(Git, "commit", lambda self, value: "a" * 40)
     assert split.main(["e3", "--base", "a", "--head", "b", "--project", "tests"]) == 1
-    assert json.loads(capsys.readouterr().out)["unclassified"] == case["unclassified"]
+    report = json.loads(capsys.readouterr().out)
+    assert report["unclassified"] == case["unclassified"]
+    assert report["counts"] == case["counts"]
 
 
-def test_real_pilot_range_through_git_seam(monkeypatch, capsys):
+def test_real_pilot_range_pins_the_unchanged_declaration_collection_rejection(monkeypatch, capsys):
     # Process environment only: never edit Git config or create another worktree.
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     expected = json.loads(text("pilot.json"))
     assert split.main(["e3", "--base", expected["base"], "--head", expected["head"],
                        "--project", expected["project"], "--support-class",
-                       "RepositoryBoundaryTestSupport"]) == 0
+                       "RepositoryBoundaryTestSupport"]) == 1
     report = json.loads(capsys.readouterr().out)
     assert report["changed_paths"] == 75
+    assert report["base"] == expected["base"]
+    assert report["head"] == expected["head"]
+    assert len(report["base"]) == len(report["head"]) == 40
+    assert report["project"] == expected["project"]
+    assert report["support_class"] == "RepositoryBoundaryTestSupport"
     assert report["counts"] == expected["counts"]
-    assert report["unclassified"] == []
-    assert sum(count for kind, count in report["counts"].items() if kind != "rename") == 307
+    assert report["unclassified"] == expected["unclassified"]
+    assert not report["passed"]
+    assert sum(count for kind, count in report["counts"].items() if kind != "rename") == 306
+    assert sum(count for kind, count in report["counts"].items() if kind != "rename") + len(
+        report["unclassified"]) == 307
 
 
 def test_direct_script_invocation_works_without_pythonpath():
@@ -300,4 +339,264 @@ def test_direct_script_invocation_works_without_pythonpath():
                              "--after", str(FIXTURES / "equal.txt")], cwd=ROOT,
                             env=environment, capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["passed"]
+    report = json.loads(result.stdout)
+    assert report["passed"]
+    assert (report["before_count"], report["after_count"]) == (4, 4)
+
+
+def changed_file(before: str, after: str, path: str = "Tests.cs") -> split.FileDiff:
+    patch = "\n".join(difflib.unified_diff(before.removesuffix("\n").split("\n"),
+                                          after.removesuffix("\n").split("\n"), n=0, lineterm=""))
+    return split.FileDiff("M", path, path, split.source_lines(before),
+                          split.source_lines(after), split.patch_lines(patch))
+
+
+@pytest.mark.parametrize("prefix,suffix", [('"""', '"""'), ('@"', '"'),
+    ('$@"', '"'), ('@$"', '"'), ('$"""', '"""'), ('$$"""', '"""')])
+@pytest.mark.parametrize("before,after", [("", "\n"), ("\n", ""),
+    ("\n", "\r\n"), ("\n", "    \n")])
+def test_blank_changes_inside_multiline_literals_are_not_mechanical(prefix, suffix, before, after):
+    def source(value):
+        return f'public sealed partial class Tests\n{{\n    [Fact]\n    public void M()\n    {{\n        var s = {prefix}\n{value}text\n{suffix};\n    }}\n}}\n'
+    file = changed_file(source(before), source(after))
+    report = split.e3((file,))
+    assert not report["passed"]
+    assert report["counts"]["blank"] == 0
+    assert len(report["unclassified"]) == len(file.lines)
+
+
+@pytest.mark.parametrize("size", [2, 3])
+def test_support_declaration_swaps_cannot_swap_member_bodies(size):
+    declarations = [f"    private static int M{number}()" for number in range(size)]
+    def source(order, modifier):
+        return "internal static partial class Support\n{\n" + "".join(
+            declarations[number].replace("private", modifier) + f"\n    {{\n        return {body};\n    }}\n"
+            for body, number in enumerate(order)) + "}\n"
+    file = changed_file(source(list(range(size)), "private"),
+                        source(list(range(1, size)) + [0], "internal"), "Support.cs")
+    report = split.e3((file,), "Support")
+    assert not report["passed"]
+    assert report["counts"]["support_accessibility"] == 0
+    assert len(report["unclassified"]) == size * 2
+
+
+@pytest.mark.parametrize("old,new", [("Old.cs", "Old.cs.txt"), ("Old.txt", "Old.cs")])
+def test_rename_requires_csharp_on_both_sides(old, new):
+    source = split.source_lines("public sealed partial class Old\n{\n}\n")
+    report = split.e3((split.FileDiff("R", old, new, source, source, ()),))
+    assert not report["passed"]
+    assert report["counts"]["rename"] == 0
+    assert len(report["unclassified"]) == 1
+
+
+@pytest.mark.parametrize("first", ["A.Outer+Inner.M", "custom display name"])
+def test_e1_never_discards_an_unparseable_first_test(first, capsys):
+    with tempfile.TemporaryDirectory(prefix="split-equivalence-") as directory:
+        before, after = Path(directory) / "before.txt", Path(directory) / "after.txt"
+        before.write_text(first + "\nA.B.K\n", encoding="utf-8")
+        after.write_text("A.B.K\n", encoding="utf-8")
+        assert split.main(["e1", "--before", str(before), "--after", str(after)]) == 2
+    assert "invalid discovery line" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_e1_reports_only_explicit_unindented_headers():
+    report = split.e1("Tests:\n    A.Old.M\n", "可用的測試：\n    A.New.M\n")
+    assert report["passed"]
+    assert (report["before_count"], report["after_count"]) == (1, 1)
+    assert report["skipped_headers"] == {"before": ["Tests:"], "after": ["可用的測試："]}
+    with pytest.raises(ValueError):
+        split.discovery("    Custom:\nA.B.K\n")
+
+
+@pytest.mark.parametrize("declaration", ["internal static partial class Support",
+    "internal sealed partial class New", "public static partial class New",
+    "public sealed class New"])
+def test_test_class_declaration_cannot_change_modifiers(declaration):
+    before = "public sealed partial class Old\n{\n    [Fact]\n    public void M() {}\n}\n"
+    file = changed_file(before, before.replace("public sealed partial class Old", declaration))
+    report = split.e3((file,), "Support")
+    assert not report["passed"]
+    assert report["counts"]["class_declaration"] == 0
+    assert len(report["unclassified"]) == 2
+
+
+@pytest.mark.parametrize("prefix", ['@$"', '$"""', '$$"""'])
+def test_interpolated_literals_mask_code_like_content(prefix):
+    suffix = '"' if prefix == '@$"' else '"""'
+    before = f'internal static partial class Support\n{{\n    static string Text = {prefix}\nusing System;\n{suffix};\n}}\n'
+    file = changed_file(before, before.replace("using System;", "using Other;"), "Support.cs")
+    report = split.e3((file,), "Support")
+    assert not report["passed"]
+    assert report["counts"]["using"] == 0
+    assert len(report["unclassified"]) == 2
+
+
+@pytest.mark.parametrize("directive", ["using Assert = N.NoOpAssert;",
+    "global using Assert = N.NoOpAssert;", "using static N.Evil;",
+    "global using static N.Evil;"])
+def test_added_aliases_and_unapproved_static_usings_are_unclassified(directive):
+    file = changed_file("namespace N;\n", directive + "\nnamespace N;\n")
+    report = split.e3((file,), "Support")
+    assert not report["passed"]
+    assert report["counts"]["using"] == 0
+    assert len(report["unclassified"]) == 1
+
+
+@pytest.mark.parametrize("directive", ["using System;", "global using System;",
+    "global using static N.Support;"])
+def test_only_added_plain_namespaces_or_the_explicit_support_static_using_pass(directive):
+    file = changed_file("namespace N;\n", directive + "\nnamespace N;\n")
+    report = split.e3((file,), "Support")
+    assert report["passed"]
+    assert report["counts"]["using"] == 1
+    assert sum(report["counts"].values()) == 1
+    assert report["unclassified"] == []
+
+
+def test_static_using_cannot_infer_support_or_match_a_different_qualified_class():
+    file = changed_file("namespace N;\n", "global using static N.Support;\nnamespace N;\n")
+    for support in (None, "Other.Support"):
+        report = split.e3((file,), support)
+        assert not report["passed"]
+        assert report["counts"]["using"] == 0
+        assert len(report["unclassified"]) == 1
+
+
+@pytest.mark.parametrize("directive", ["using System;", "global using System;",
+    "global using static N.Support;"])
+def test_removed_usings_are_unclassified(directive):
+    file = changed_file(directive + "\nnamespace N;\n", "namespace N;\n")
+    report = split.e3((file,), "Support")
+    assert not report["passed"]
+    assert report["counts"]["using"] == 0
+    assert len(report["unclassified"]) == 1
+
+
+@pytest.mark.parametrize("before,after", [('[Collection("A")]\n', '[Collection("B")]\n'),
+    ('[Collection("A")]\n', ''), ('', '[Collection("A")]\n')])
+def test_collection_on_an_unsplit_class_cannot_change(before, after):
+    body = "public sealed partial class Tests\n{\n}\n"
+    file = changed_file(before + body, after + body)
+    report = split.e3((file,))
+    assert not report["passed"]
+    assert report["counts"]["collection_attribute"] == 0
+    assert len(report["unclassified"]) == len(file.lines)
+
+
+@pytest.mark.parametrize("argument,interface", [('"A", DisableParallelization = true', ''),
+    ('"A", DisableParallelization = false', ''), ('"A", Other = 1', ''),
+    ('"A"', ' : ICollectionFixture<Fixture>')])
+def test_collection_definitions_cannot_introduce_options_or_interfaces(argument, interface):
+    source = f'[CollectionDefinition({argument})]\npublic sealed class Serial{interface}\n{{\n}}\n'
+    file = changed_file("", source, "Definition.cs")
+    file = split.FileDiff("A", file.old_path, file.new_path, (), file.after, file.lines)
+    report = split.e3((file,))
+    assert not report["passed"]
+    assert report["counts"]["collection_definition"] == 0
+
+
+def test_split_classes_must_share_one_collection():
+    before = "public sealed partial class Old\n{\n}\n"
+    files = tuple(changed_file(before, f'[Collection("{name}")]\n' + before.replace("Old", name),
+                               name + ".cs") for name in ("A", "B"))
+    report = split.e3(files)
+    assert not report["passed"]
+    assert report["counts"]["collection_attribute"] == 0
+    assert report["counts"]["class_declaration"] == 4
+    assert len(report["unclassified"]) == 2
+
+
+@pytest.mark.parametrize("attribute", ['[Theory]', '[Fact(Skip = "reason")]',
+    '[Fact]\n    [Trait("Category", "Other")]'])
+def test_test_attribute_changes_are_unclassified(attribute):
+    before = "public sealed partial class Tests\n{\n    [Fact]\n    public void M() {}\n}\n"
+    file = changed_file(before, before.replace("[Fact]", attribute))
+    report = split.e3((file,))
+    assert not report["passed"]
+    assert not any(report["counts"].values())
+    assert len(report["unclassified"]) == len(file.lines)
+
+
+def test_visibility_outside_support_and_line_endings_are_unclassified():
+    before = "public sealed partial class Tests\n{\n    private static int M() => 1;\n}\n"
+    for after in (before.replace("private", "internal"), before.replace("\n", "\r\n")):
+        file = changed_file(before, after)
+        report = split.e3((file,), "Support")
+        assert not report["passed"]
+        assert not any(report["counts"].values())
+        assert len(report["unclassified"]) == len(file.lines)
+
+
+@pytest.mark.parametrize("patch", ["Binary files a/A.cs and b/A.cs differ\n",
+    "old mode 100644\nnew mode 100755\n", "\\ No newline at end of file\n"])
+def test_binary_mode_and_final_newline_changes_have_no_classification(patch):
+    file = split.FileDiff("M", "A.cs", "A.cs", (), (), split.patch_lines(patch))
+    report = split.e3((file,))
+    assert not report["passed"]
+    assert not any(report["counts"].values())
+    assert len(report["unclassified"]) == len(file.lines)
+
+
+@pytest.mark.parametrize("project", ["tests/NvtFwCombiner.Architecture.Tests", "scripts/split_equivalence.py"])
+def test_real_git_empty_project_diff_is_input_error(project, capsys):
+    assert split.main(["e3", "--base", "HEAD", "--head", "HEAD", "--project", project]) == 2
+    assert "no changed path" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_empty_diff_is_not_mechanical_evidence():
+    with pytest.raises(ValueError, match="no changed path"):
+        split.e3(())
+
+
+def test_real_git_nonancestor_base_is_input_error(capsys):
+    pilot = json.loads(text("pilot.json"))
+    assert split.main(["e3", "--base", pilot["head"], "--head", pilot["base"],
+                       "--project", pilot["project"]]) == 2
+    assert "ancestor" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_e1_namespace_root_changes_are_differences():
+    with pytest.raises(ValueError, match="invalid mapping"):
+        split.e1("ProjA.Tests.Old.M", "ProjB.Tests.New.M", {"M": "New"})
+    mapping = {"M": {"old_class": "ProjA.Tests.Old", "new_class": "ProjB.Tests.New"}}
+    report = split.e1("ProjA.Tests.Old.M", "ProjB.Tests.New.M", mapping)
+    assert not report["passed"]
+    assert (report["before_count"], report["after_count"]) == (1, 1)
+    assert report["namespace_root_differences"] == [("ProjB", "M")]
+
+
+def test_e1_mapping_checks_both_fully_qualified_classes():
+    mapping = {"M": {"old_class": "N.Old", "new_class": "N.New"}}
+    report = split.e1("N.Other.M", "N.New.M", mapping)
+    assert not report["passed"]
+    assert (report["before_count"], report["after_count"]) == (1, 1)
+    assert report["moved-from-unexpected-class"] == [
+        {"identity": "M", "actual": "N.Other", "expected": "N.Old"}]
+
+
+def test_e1_without_header_preserves_counts_and_checks_namespace_roots():
+    report = split.e1("N.Old.M\nN.Old.Theory(value: 1)", "N.New.M\nN.New.Theory(value: 1)")
+    assert report["passed"]
+    assert (report["before_count"], report["after_count"]) == (2, 2)
+    assert report["skipped_headers"] == {"before": [], "after": []}
+    report = split.e1("ProjA.Tests.Old.M", "ProjB.Tests.New.M")
+    assert not report["passed"]
+    assert (report["before_count"], report["after_count"]) == (1, 1)
+    assert report["namespace_root_differences"] == [("ProjB", "M")]
+
+
+@pytest.mark.parametrize("mapping", [{"M": {"old_class": "Old", "new_class": "N.New"}},
+    {"M": {"old_class": "N.Old", "new_class": "New"}},
+    {"topic": {"old_class": "N.Old", "new_class": "N.New", "identities": ["M", "M"]}}])
+def test_e1_mapping_requires_qualified_classes_and_unique_identities(mapping):
+    with pytest.raises(ValueError):
+        split.e1("N.Old.M", "N.New.M", mapping)
+
+
+def test_e1_mapping_reports_an_unexpected_new_class():
+    report = split.e1("N.Old.M", "N.Other.M", {"M": {"old_class": "N.Old", "new_class": "N.New"}})
+    assert not report["passed"]
+    assert (report["before_count"], report["after_count"]) == (1, 1)
+    assert report["moved-from-unexpected-class"] == []
+    assert report["moved-to-unexpected-class"] == [
+        {"identity": "M", "actual": "N.Other", "expected": "N.New"}]

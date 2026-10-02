@@ -5,6 +5,16 @@ method identities; topics need explicit identities because discovery has no
 source paths. E3 is deliberately a conservative C# subset, not a C# parser.
 Unsupported syntax remains unclassified. Counts are signed changed lines,
 except rename, which counts path pairs. This tool does not establish E7.
+
+The blank separator kind is an addition to the plan's E3 list, justified by
+the pilot's seven separators; blanks inside multiline literals never qualify.
+Known conservative rejections requiring a human decision: comments before moved
+helpers, array fields with initializer blocks, private const, nested types,
+brand-new support files, merging identical helpers, multiline summaries, adding
+partial, and files without a final newline. E1 rejects raw multiline dotnet test
+--list-tests preambles, Outer+Inner names, generic methods, and mappings for the
+same method identity in two old classes. Mappings name fully qualified old_class
+and new_class, either per identity or per topic with an identities list.
 """
 
 from __future__ import annotations
@@ -29,59 +39,76 @@ class Identity:
     method: str
 
 
-def discovery(text: str) -> tuple[Identity, ...]:
-    """Accept one optional, language-independent header and fully qualified cases."""
+def discovery_input(text: str) -> tuple[tuple[Identity, ...], tuple[str, ...]]:
+    """Only explicit, unindented colon-terminated preambles are headers."""
     result: list[Identity] = []
-    header = False
+    headers: list[str] = []
     for line in text.splitlines():
-        value = line.strip().removeprefix("\ufeff")
+        line = line.removeprefix("\ufeff")
+        value = line.strip()
         if not value:
             continue
         match = re.fullmatch(r"([\w]+(?:\.[\w]+)*)\.([\w]+(?:\(.*\))?)", value)
         if match:
             result.append(Identity(*match.groups()))
-        elif not result and not header:
-            header = True
+        elif not result and line == line.lstrip() and value.endswith((":", "：")):
+            headers.append(line)
         else:
             raise ValueError(f"invalid discovery line: {line!r}")
     if not result:
         raise ValueError("discovery contains no fully qualified tests")
-    return tuple(result)
+    return tuple(result), tuple(headers)
 
 
-def method_mapping(value: object, identities: set[str]) -> dict[str, str]:
-    """Expand {identity: class} or {topic: {class: ..., identities: [...]}}."""
+def discovery(text: str) -> tuple[Identity, ...]:
+    return discovery_input(text)[0]
+
+
+def method_mapping(value: object, identities: set[str]) -> dict[str, tuple[str, str]]:
+    """Expand explicit old/new fully qualified class pairs, optionally by topic."""
     if not isinstance(value, dict):
         raise ValueError("mapping must be a JSON object")
-    result: dict[str, str] = {}
+    result: dict[str, tuple[str, str]] = {}
     for key, target in value.items():
         methods = [key]
-        if isinstance(target, dict) and set(target) == {"class", "identities"}:
-            methods, target = target["identities"], target["class"]
+        if isinstance(target, dict) and set(target) == {"old_class", "new_class", "identities"}:
+            methods = target["identities"]
+            target = {name: target[name] for name in ("old_class", "new_class")}
         if (not isinstance(methods, list) or not methods
-                or not isinstance(target, str)
-                or not re.fullmatch(r"\w+(?:\.\w+)*", target)):
+                or not isinstance(target, dict) or set(target) != {"old_class", "new_class"}
+                or any(not isinstance(name, str) or not re.fullmatch(r"\w+(?:\.\w+)+", name)
+                       for name in target.values())):
             raise ValueError(f"invalid mapping entry: {key!r}")
         for method in methods:
             if not isinstance(method, str) or method not in identities or method in result:
                 raise ValueError(f"unknown or repeated mapping identity: {method!r}")
-            result[method] = target
+            result[method] = (target["old_class"], target["new_class"])
     if result.keys() != identities:
         raise ValueError(f"mapping lacks identities: {sorted(identities - result.keys())}")
     return result
 
 
 def e1(before: str, after: str, mapping: object | None = None) -> dict[str, object]:
-    old, new = discovery(before), discovery(after)
+    (old, old_headers), (new, new_headers) = discovery_input(before), discovery_input(after)
     left, right = Counter(item.method for item in old), Counter(item.method for item in new)
     expected = method_mapping(mapping, set(left)) if mapping is not None else {}
-    unexpected = [{"identity": item.method, "actual": item.class_name,
-                   "expected": expected.get(item.method)} for item in new if expected
-                  and expected.get(item.method) not in (item.class_name, item.class_name.rsplit(".", 1)[-1])]
+    if expected and any(len({item.class_name for item in old if item.method == method}) > 1 for method in left):
+        raise ValueError("mapping identity occurs in multiple old classes")
+    def unexpected(items: tuple[Identity, ...], side: int) -> list[dict[str, object]]:
+        return [{"identity": item.method, "actual": item.class_name,
+                 "expected": expected[item.method][side] if item.method in expected else None}
+                for item in items if expected and (item.method not in expected
+                                                   or expected[item.method][side] != item.class_name)]
+    wrong_old, wrong_new = unexpected(old, 0), unexpected(new, 1)
+    def roots(items: tuple[Identity, ...]) -> Counter[tuple[str, str]]:
+        return Counter((item.class_name.split(".")[0], item.method) for item in items)
+    root_changes = sorted((roots(new) - roots(old)).elements())
     missing, added = sorted((left - right).elements()), sorted((right - left).elements())
-    return {"passed": not (missing or added or unexpected), "before_count": len(old),
+    return {"passed": not (missing or added or wrong_old or wrong_new or root_changes), "before_count": len(old),
             "after_count": len(new), "missing": missing, "added": added,
-            "moved-to-unexpected-class": unexpected}
+            "moved-from-unexpected-class": wrong_old, "moved-to-unexpected-class": wrong_new,
+            "namespace_root_differences": root_changes,
+            "skipped_headers": {"before": list(old_headers), "after": list(new_headers)}}
 
 
 @dataclass(frozen=True)
@@ -165,14 +192,18 @@ def name_list(data: bytes) -> tuple[tuple[str, str, str], ...]:
 
 def read_diff(git: Git, base: str, head: str, project: str) -> tuple[FileDiff, ...]:
     base, head = git.commit(base), git.commit(head)
+    if git.merge_base(base, head) != base:
+        raise ValueError("base must be an ancestor of head")
     path = PurePosixPath(project.replace("\\", "/"))
     if not project or path.is_absolute() or ".." in path.parts or ":" in project:
         raise ValueError("project must be a repository-relative path")
     if not (git.run("ls-tree", "-z", "--name-only", base, "--", str(path))
             or git.run("ls-tree", "-z", "--name-only", head, "--", str(path))):
         raise ValueError("project does not exist at either revision")
-    options = ("--find-renames", "-l0", "--no-ext-diff", "--no-textconv", "--no-color")
+    options = ("--find-renames", "-l0", "--no-ext-diff", "--no-textconv", "--no-color", "--ignore-submodules=none")
     names = name_list(git.run("diff", *options, "--name-status", "-z", base, head, "--", str(path)))
+    if not names:
+        raise ValueError("no changed path in project")
     result: list[FileDiff] = []
     for status, old_path, new_path in names:
         patch = git.run("diff", *options, "-U0", base, head, "--",
@@ -210,15 +241,18 @@ def class_name(line: str) -> tuple[str, str] | None:
     return match.groups() if match else None
 
 
-def using(line: str) -> bool:
-    return re.fullmatch(r"(?:global )?using (?:static |\w+ = )?(?:global::)?\w+(?:\.\w+)*;\r?", line) is not None
+def using(line: str, support_class: str | None = None) -> bool:
+    if re.fullmatch(r"(?:global )?using (?:global::)?\w+(?:\.\w+)*;", line):
+        return True
+    match = re.fullmatch(r"global using static (?:global::)?(\w+(?:\.\w+)*);", line)
+    return bool(match and support_class and (match[1] == support_class or
+                                             match[1].rsplit(".", 1)[-1] == support_class))
 
 
 def collection(line: str, definition: bool = False) -> bool:
     name = "CollectionDefinition" if definition else "Collection"
     argument = r'(?:nameof\(\w+(?:\.\w+)*\)|"[\w .-]+")'
-    option = r"(?:, DisableParallelization = (?:true|false))?" if definition else ""
-    return re.fullmatch(r"\[" + name + r"\(" + argument + option + r"\)\]\r?", line) is not None
+    return re.fullmatch(r"\[" + name + r"\(" + argument + r"\)\]\r?", line) is not None
 
 
 def definition(lines: tuple[str, ...]) -> bool:
@@ -232,14 +266,25 @@ def definition(lines: tuple[str, ...]) -> bool:
             and content[2:] == ["{", "}"])
 
 
-def code_lines(lines: tuple[str, ...]) -> tuple[str, ...]:
-    """Mask literal/comment contents without shifting line numbers; retain XML summaries."""
-    pattern = (r'(?P<raw>"{3,})[\s\S]*?(?P=raw)|@"(?:""|[^"])*"|'
-               r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|'
+def masked_source(lines: tuple[str, ...]) -> tuple[tuple[str, ...], frozenset[int]]:
+    """Mask literals/comments and track covered lines, including empty ones."""
+    pattern = (r'\$*(?P<raw>"{3,})[\s\S]*?(?P=raw)|(?:\$?@|@\$)"(?:""|[^"])*"|'
+               r'\$?"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|'
                r'/\*[\s\S]*?\*/|(?P<summary>///[^\n]*)|//[^\n]*')
-    clean = re.sub(pattern, lambda match: match[0] if match["summary"] is not None
-                   else re.sub(r"[^\n]", " ", match[0]), "\n".join(lines))
-    return tuple(clean.split("\n"))
+    text = "\n".join(lines)
+    covered: set[int] = set()
+    def mask(match: re.Match[str]) -> str:
+        if match["summary"] is not None:
+            return match[0]
+        first = text.count("\n", 0, match.start()) + 1
+        covered.update(range(first, first + match[0].count("\n") + 1))
+        return re.sub(r"[^\n]", " ", match[0])
+    clean = re.sub(pattern, mask, text)
+    return tuple(clean.split("\n")), frozenset(covered)
+
+
+def code_lines(lines: tuple[str, ...]) -> tuple[str, ...]:
+    return masked_source(lines)[0]
 
 
 def members(lines: tuple[str, ...], include_annotated: bool = False) -> tuple[tuple[int, int], ...]:
@@ -279,6 +324,8 @@ def members(lines: tuple[str, ...], include_annotated: bool = False) -> tuple[tu
 
 
 def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str, object]:
+    if not files:
+        raise ValueError("no changed path in project")
     kinds = ("rename", "class_declaration", "summary", "using", "support_accessibility",
              "helper_move", "collection_attribute", "collection_definition", "blank")
     counts = dict.fromkeys(kinds, 0)
@@ -291,29 +338,38 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
         support_names &= {support_class}
     if len(support_names) > 1:
         raise ValueError("multiple support classes; specify --support-class")
+    collection_names = {line.text for file in files for line in file.lines
+                        if line.side == "+" and collection(line.text)}
     summaries: Counter[str] = Counter()
     for index, file in enumerate(files):
-        if file.status == "R":
+        csharp = file.old_path.endswith(".cs") and file.new_path.endswith(".cs")
+        if file.status == "R" and csharp:
             counts["rename"] += 1
-        before_code, after_code = code_lines(file.before), code_lines(file.after)
+        (before_code, before_mask), (after_code, after_mask) = masked_source(file.before), masked_source(file.after)
         is_support = (sum(class_name(line) is not None for line in after_code) == 1
                       and any(class_name(line) == ("internal static partial class", name)
                               for line in after_code for name in support_names))
-        is_definition = file.status in {"A", "D"} and definition(file.after or file.before)
+        is_definition = file.status == "A" and definition(file.after)
+        has_tests = any(re.search(r"\[(?:\w+\.)*(?:Fact|Theory)(?:Attribute)?\b", line) for line in before_code)
+        removed_collection = any(line.side == "-" and collection(line.text) for line in file.lines)
+        added_classes = {line.number for line in file.lines if line.side == "+" and class_name(line.text)}
         for offset, line in enumerate(file.lines):
             key = index, offset
-            if line.side not in {"+", "-"} or not file.new_path.endswith(".cs"):
+            if line.side not in {"+", "-"} or not csharp or line.text.endswith("\r"):
                 continue
             if not line.text.strip():
-                marked[key] = "blank"
+                if line.number not in (before_mask if line.side == "-" else after_mask):
+                    marked[key] = "blank"
             elif not (before_code if line.side == "-" else after_code)[line.number - 1].strip():
                 continue
-            elif using(line.text):
+            elif line.side == "+" and using(line.text, support_class):
                 marked[key] = "using"
             elif is_definition:
                 marked[key] = "collection_definition"
             elif collection(line.text):
-                marked[key] = "collection_attribute"
+                if (line.side == "+" and not removed_collection and len(collection_names) == 1
+                        and line.number + 1 in added_classes):
+                    marked[key] = "collection_attribute"
             elif (new_class := class_name(line.text)) and line.side == "+":
                 partners = [(position, item) for position, item in enumerate(file.lines)
                             if item.side == "-" and class_name(item.text)
@@ -322,8 +378,8 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
                 if len(partners) == 1:
                     position, item = partners[0]
                     old_class = class_name(item.text)
-                    if old_class and (new_class[0] == old_class[0] or
-                                      (is_support and new_class[1] in support_names)):
+                    if old_class and not item.text.endswith("\r") and (new_class[0] == old_class[0] or
+                            (is_support and new_class[1] in support_names and not has_tests)):
                         marked[key] = marked[index, position] = "class_declaration"
             elif line.side == "+" and re.fullmatch(r"/// <summary>.+</summary>\r?", line.text):
                 following = list(file.after[line.number:line.number + 2])
@@ -334,13 +390,15 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
                     summaries[target[1]] += 1
                     marked[key] = "summary"
         if is_support:
-            old_starts = {start for start, _ in members(file.before, True)}
-            new_starts = {start for start, _ in members(file.after, True)}
+            old_starts = dict(members(file.before, True))
+            new_starts = dict(members(file.after, True))
             for offset, line in enumerate(file.lines):
                 if line.side == "+" and line.number in new_starts and re.match(r"    internal static \S", line.text):
                     for position, old in enumerate(file.lines):
                         if (old.side == "-" and old.number in old_starts and re.match(r"    private static \S", old.text)
                                 and old.text.replace("private", "internal", 1) == line.text
+                                and (line.text, *file.before[old.number:old_starts[old.number]])
+                                == file.after[line.number - 1:new_starts[line.number]]
                                 and (index, position) not in marked):
                             marked[index, offset] = marked[index, position] = "support_accessibility"
                             break
@@ -348,6 +406,8 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
     removed: list[tuple[int, tuple[str, ...], tuple[int, ...]]] = []
     added: list[tuple[int, tuple[str, ...], tuple[int, ...]]] = []
     for index, file in enumerate(files):
+        if not (file.old_path.endswith(".cs") and file.new_path.endswith(".cs")):
+            continue
         for side, source, output in (("-", file.before, removed), ("+", file.after, added)):
             if not (file.old_path if side == "-" else file.new_path).endswith(".cs"):
                 continue
@@ -376,6 +436,9 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
                 break
     unclassified: list[dict[str, object]] = []
     for index, file in enumerate(files):
+        if file.status == "R" and not (file.old_path.endswith(".cs") and file.new_path.endswith(".cs")):
+            unclassified.append({"file": file.new_path, "side": "!", "line": 0,
+                                 "text": f"non-C# rename: {file.old_path} -> {file.new_path}"})
         for offset, line in enumerate(file.lines):
             if kind := marked.get((index, offset)):
                 counts[kind] += 1
@@ -413,7 +476,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                         args.after.read_text(encoding="utf-8-sig"), mapping)
         else:
             git = Git(Path(__file__).resolve().parents[1])
-            report = e3(read_diff(git, args.base, args.head, args.project), args.support_class)
+            base, head = git.commit(args.base), git.commit(args.head)
+            report = e3(read_diff(git, base, head, args.project), args.support_class)
+            report.update(base=base, head=head, project=args.project, support_class=args.support_class)
         print(json.dumps(report, ensure_ascii=True, indent=2))
         return 0 if report["passed"] else 1
     except (ValueError, OSError, UnicodeError, AuthorityError) as error:
