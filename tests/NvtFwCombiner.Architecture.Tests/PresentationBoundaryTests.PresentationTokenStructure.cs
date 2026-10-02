@@ -55,23 +55,17 @@ public sealed partial class PresentationBoundaryTests
     public void InputCardsUseApplicationTypedRolesAndLabelKeys()
     {
         string presentationSource = ReadPresentationSources();
-        string requirements = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Requirements.cs");
-        string dynamicText = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs");
-
-        Assert.Contains("input.RoleKind == CompiledInputRole.DpAb", requirements, StringComparison.Ordinal);
-        Assert.Contains("MemoryLayoutProjector.GetArtifactKind(addressSpaceId)", requirements, StringComparison.Ordinal);
-        Assert.Contains("ShellTextResources.GetRequiredInputLabel", requirements, StringComparison.Ordinal);
-        Assert.DoesNotContain("addressSpaceId switch", requirements, StringComparison.Ordinal);
-        Assert.Contains("GetAbSlotTitle(CompiledInputRole role, string rawRole)", dynamicText, StringComparison.Ordinal);
-        Assert.Contains("input.RoleKind", dynamicText, StringComparison.Ordinal);
-        Assert.Contains("MemoryArtifactKind.Dp => \"DP\"", dynamicText, StringComparison.Ordinal);
-        Assert.Contains("MemoryArtifactKind.Tp => \"TP\"", dynamicText, StringComparison.Ordinal);
-        Assert.Contains("MemoryArtifactKind.Ldc => \"LDC\"", dynamicText, StringComparison.Ordinal);
-        foreach (string roleLiteral in new[] { "\"dp-ab\"", "\"tp-a\"", "\"tp-b\"" })
+        string[] roleIds = ["dp-ab", "reference-base", "tp-a", "tp-b"];
+        string[] inputSpaceIds = ["dp-input", "tp-input", "ldc-input", "dp-ab-input", "tp-a-input", "tp-b-input"];
+        string literalArmPattern = $"\"(?:{string.Join('|', roleIds.Concat(inputSpaceIds))})\"\\s*=>";
+        string directory = Path.Combine(Root.FullName, "src", "NvtFwCombiner.Presentation.Avalonia");
+        foreach (string sourcePath in Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories))
         {
-            Assert.DoesNotContain(roleLiteral, presentationSource, StringComparison.Ordinal);
+            Assert.DoesNotMatch(literalArmPattern, File.ReadAllText(sourcePath));
+        }
+        foreach (string roleId in roleIds)
+        {
+            Assert.DoesNotContain($"\"{roleId}\"", presentationSource, StringComparison.OrdinalIgnoreCase);
         }
     }
 

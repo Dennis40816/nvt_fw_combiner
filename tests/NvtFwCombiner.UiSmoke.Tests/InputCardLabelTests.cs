@@ -26,6 +26,30 @@ public sealed class InputCardLabelTests
         Assert.Equal(compiled, text.GetAbSlotDescription(input with { RequiredEndExclusive = 0x37000 }));
     }
 
+    /// <summary>Unrecognized and non-AB roles retain their raw identity in both AB text failures.</summary>
+    [Theory]
+    [InlineData(false, "reference-base", null)]
+    [InlineData(false, "reference-base", 0x37000L)]
+    [InlineData(false, "", null)]
+    [InlineData(false, "", 0x37000L)]
+    [InlineData(true, "reference-base", null)]
+    [InlineData(true, "reference-base", 0x37000L)]
+    [InlineData(true, "", null)]
+    [InlineData(true, "", 0x37000L)]
+    public void NonAbRolesFailWithTheirRawIdentity(bool chinese, string role, long? requiredEndExclusive)
+    {
+        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        var input = new CompiledAuthoringInputBinding("slot", "space", role, requiredEndExclusive);
+
+        InvalidOperationException titleFailure = Assert.Throws<InvalidOperationException>(() =>
+            ShellTextResources.GetAbSlotTitle(input.RoleKind, input.Role));
+        InvalidOperationException descriptionFailure = Assert.Throws<InvalidOperationException>(() =>
+            text.GetAbSlotDescription(input));
+
+        Assert.Contains($"'{role}'", titleFailure.Message, StringComparison.Ordinal);
+        Assert.Contains($"'{role}'", descriptionFailure.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Required-list labels remain compact and unknown or unrelated identities retain the exact raw id.</summary>
     [Theory]
     [InlineData("dp-input", "DP")]
@@ -35,6 +59,13 @@ public sealed class InputCardLabelTests
     [InlineData("DP-INPUT", "DP-INPUT")]
     [InlineData("reference-base", "reference-base")]
     [InlineData("dp-ab-input", "dp-ab-input")]
+    [InlineData("tp-a-input", "tp-a-input")]
+    [InlineData("tp-b-input", "tp-b-input")]
+    [InlineData("tp-b-work", "tp-b-work")]
+    [InlineData("dp-replacement", "dp-replacement")]
+    [InlineData("initial-code-replacement", "initial-code-replacement")]
+    [InlineData("ldc-replacement", "ldc-replacement")]
+    [InlineData("output-image", "output-image")]
     public void RequiredInputLabelsPreserveCompactTextAndRawFallback(string id, string expected)
     {
         Assert.Equal(expected, ShellTextResources.GetRequiredInputLabel(MemoryLayoutProjector.GetArtifactKind(id), id));

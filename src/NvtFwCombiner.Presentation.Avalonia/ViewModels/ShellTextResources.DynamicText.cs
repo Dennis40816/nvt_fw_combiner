@@ -217,8 +217,7 @@ internal sealed partial class ShellTextResources
             CompiledInputRole.DpAb => "DP_AB BIN",
             CompiledInputRole.TpA => "TPA BIN",
             CompiledInputRole.TpB => "TPB BIN",
-            CompiledInputRole.Unknown or CompiledInputRole.ReferenceBase => throw new InvalidOperationException($"Unknown AB input role '{rawRole}'."),
-            _ => throw new InvalidOperationException($"Unknown AB input role '{rawRole}'."),
+            CompiledInputRole.Unknown or CompiledInputRole.ReferenceBase or _ => throw new InvalidOperationException($"Unknown AB input role '{rawRole}'."),
         };
     }
 
@@ -247,8 +246,7 @@ internal sealed partial class ShellTextResources
             MemoryArtifactKind.Tp => "TP",
             MemoryArtifactKind.Ldc => "LDC",
             MemoryArtifactKind.Other or MemoryArtifactKind.DpReplacement or MemoryArtifactKind.LdcReplacement or
-                MemoryArtifactKind.Reference or MemoryArtifactKind.DpAb or MemoryArtifactKind.TpA or MemoryArtifactKind.TpB or MemoryArtifactKind.TpBWork => addressSpaceId,
-            _ => addressSpaceId,
+                MemoryArtifactKind.Reference or MemoryArtifactKind.DpAb or MemoryArtifactKind.TpA or MemoryArtifactKind.TpB or MemoryArtifactKind.TpBWork or _ => addressSpaceId,
         };
     }
 

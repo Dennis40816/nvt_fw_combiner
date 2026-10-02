@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.InputInspection;
 
-/// <summary>Known compiled input roles; unknown declarations retain their original identity.</summary>
+/// <summary>The roles the observation owner distinguishes; every other role is <see cref="CompiledInputRole.Unknown"/>.</summary>
 public enum CompiledInputRole
 {
     /// <summary>No recognized compiled role.</summary>
@@ -111,7 +111,7 @@ public sealed class CompiledInputArtifactObservationResult
 }
 
 /// <summary>Application-owned observation policy selected only by compiled role and naming contracts.</summary>
-public static class CompiledInputArtifactObservationService
+internal static class CompiledInputArtifactObservationService
 {
     private const string DpRole = "dp-ab";
     private const string ReferenceBaseRole = "reference-base";
@@ -119,7 +119,7 @@ public static class CompiledInputArtifactObservationService
     private const string TpBRole = "tp-b";
 
     /// <summary>Projects the exact compiled role id; unrecognized ids remain unknown without normalization.</summary>
-    public static CompiledInputRole GetRole(string? role)
+    internal static CompiledInputRole GetRole(string? role)
     {
         return role switch
         {
