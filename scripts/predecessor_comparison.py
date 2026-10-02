@@ -121,8 +121,11 @@ class LocalGitHost:
     def git_ignored_build_paths(self, root: Path) -> list[str]:
         return self.host.git_ignored_build_paths(root)
 
-    def detached_worktree(self, commit: str, temporary_root: Path, name: str) -> ContextManager[Path]:
-        return detached_git_worktree(self.repository, commit, temporary_root, name)
+    @contextmanager
+    def detached_worktree(self, commit: str, temporary_root: Path, name: str) -> Iterator[Path]:
+        """A detached worktree whose long Golden paths Git can create, inspect and remove."""
+        with _git_long_paths(), detached_git_worktree(self.repository, commit, temporary_root, name) as root:
+            yield root
 
 
 class Executor(NamedTuple):
@@ -232,6 +235,36 @@ def _temporary_environment(directory: Path) -> Iterator[None]:
         try:
             for name in previous:
                 os.environ[name] = str(directory)
+            yield
+        finally:
+            for name, value in previous.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+
+
+@contextmanager
+def _git_long_paths() -> Iterator[None]:
+    """Enable `core.longpaths` for the Git commands of this process and its children, then restore.
+
+    The Golden tree has paths of about 200 characters, so a worktree under a temporary root passes the
+    Windows limit of 260. Only Git touches those files: the build reads `src`, and every identity comes
+    from Git objects. The setting is passed through Git's own environment protocol; no configuration
+    file of the repository or the user is changed.
+    """
+
+    names = ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")
+    with _ENVIRONMENT_LOCK:
+        try:
+            index = int(os.environ.get(names[0], "0"))
+        except ValueError:
+            index = 0
+        index = max(index, 0)
+        changed = {names[0]: str(index + 1), f"{names[1]}{index}": "core.longpaths", f"{names[2]}{index}": "true"}
+        previous = {name: os.environ.get(name) for name in changed}
+        try:
+            os.environ.update(changed)
             yield
         finally:
             for name, value in previous.items():
