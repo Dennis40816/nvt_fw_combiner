@@ -397,6 +397,13 @@ Every process receives its own read-only staged copy of its inputs, hashed
 before and after; the repository Golden file is never a process input, and
 firmware inputs and outputs never enter Git or an uploaded artifact.
 
+A report is compared with its staged inputs by position. A CtrlRAM Replace CLI
+sorts its bindings by slot id (ordinal) whatever the order of its arguments,
+so its report lists `reference-base` first and the replacements by name. The
+comparator therefore stages, passes and expects CtrlRAM Replace inputs in that
+order, also when the reviewed binding names them in another one. Merge inputs
+keep the binding order.
+
 Each CLI process gets fresh comparator-owned temporary directories under a
 temporary root of at most 64 characters, and a working directory inside its
 staging root. The legacy Combiner fails when an argument path reaches 260

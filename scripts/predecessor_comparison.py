@@ -775,7 +775,7 @@ def execute_cli_stage(
             base.chmod(stat.S_IREAD)
         rows.insert(0, {"slotId": "replace-base", **validation.report_input_binding("replace-base"), "role": "input", "path": str(base),
                         **precursor.output, "order": 0})
-        rows = [{**row, "order": order} for order, row in enumerate(rows)]
+    rows = validation.report_ordered_inputs(request["workflowId"], rows)
     try:
         cli, hashes = materialize_execution_closure(executor.closure, work / "runtime")
         hashes.update(stage_external_tools(executor.external_tools, work,

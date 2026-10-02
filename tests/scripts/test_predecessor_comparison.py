@@ -902,6 +902,69 @@ class ComparisonTests(unittest.TestCase):
             comparison.stage_case_inputs(authority, bad, [("input", "dp-input")], self.root / "bad")
         self.assertEqual("PREDECESSOR_INPUT_INVALID", found.exception.code)
 
+    def test_ctrlram_inputs_are_staged_and_expected_in_the_cli_report_order(self):
+        """Real shape: the CLI sorts its Replace bindings by slot id; a reviewed binding names normal, vn, diff."""
+        payloads = {"base": b"B" * 16, "normal": b"N" * 12, "vn": b"V" * 4, "diff": b"D" * 8}
+        authority = parity.MaterializedCanonicalAuthority(
+            self.root, "0" * 64, "golden/manifest.json", {f"golden/{name}.bin": payload for name, payload in payloads.items()})
+        artifacts = {name: {"role": "input", "path": f"{name}.bin", "size": len(payload), "sha256": digest(payload)}
+                     for name, payload in payloads.items()}
+        bindings = [("base", "replace-base"), ("normal", "replace-ctrlram-normal"), ("vn", "replace-ctrlram-vn"),
+                    ("diff", "replace-ctrlram-diff")]
+        reported = [("reference-base", "base"), ("replace-ctrlram-diff", "diff"), ("replace-ctrlram-normal", "normal"),
+                    ("replace-ctrlram-vn", "vn")]
+        git = FakeGitHost()
+        self.build_host(git)
+        executor = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
+        request = {"workflowId": "ctrlram-replace", "profileId": "test", "cliSelectionToken": "cascade"}
+
+        def span(start, end):
+            return {"Start": start, "Length": end - start, "EndExclusive": end}
+
+        def written(order):
+            raw = report(preview=True)
+            raw.update(ModeId="ctrlram-replace", ExperienceId="ctrlram-replace", CompositionKind="Replace",
+                       Output={"FileName": "output.bin", "Size": 16, "Sha256": "b" * 64, "Committed": False},
+                       Inputs=[{"AddressSpaceId": space, "ArtifactId": space, "Size": len(payloads[name]),
+                                "Sha256": digest(payloads[name]), "OriginalFileName": None} for space, name in order],
+                       Operations=[], Mutations=[])
+            for sequence, (space, start, end) in enumerate((("replace-ctrlram-normal", 0, 6), ("replace-ctrlram-vn", 6, 10),
+                                                            ("replace-ctrlram-diff", 10, 16))):
+                operation = copy.deepcopy(report()["Operations"][0])
+                operation.update(OperationId=f"replace-{sequence}", Sequence=100 + sequence, Kind="ReplaceRange",
+                                 SourceSpaceId=space, SourceRange=span(0, end - start), TargetRange=span(start, end))
+                raw["Operations"].append(operation)
+                raw["Mutations"].append({"OperationId": operation["OperationId"], "Kind": "ReplaceRange",
+                                         "TargetSpaceId": "output-image", "TargetRange": span(start, end),
+                                         "ChangedByteCount": 0, "BeforeSha256": "1" * 64, "AfterSha256": "1" * 64,
+                                         "Reason": "synthetic"})
+            return raw
+
+        for order, expected in ((reported, "ready"), ([reported[0], reported[2], reported[3], reported[1]], "invalid")):
+            with self.subTest(expected=expected):
+                def cli(argv, cwd):
+                    Path(argv[argv.index("--report") + 1]).write_text(json.dumps(written(order)), encoding="utf-8")
+                    return subprocess.CompletedProcess(argv, 0, "", "")
+
+                self.runner.host = FakeProcessHost(cli)
+                capture = comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts, bindings, stage="preview")
+                argv = self.runner.host.calls[0][0]
+                self.assertEqual(["replace-ctrlram-diff", "replace-ctrlram-normal", "replace-ctrlram-vn"],
+                                 [value.split("=")[0] for value in argv if value.startswith("replace-ctrlram-")])
+                self.assertEqual(["replace-base", "replace-ctrlram-diff", "replace-ctrlram-normal", "replace-ctrlram-vn"],
+                                 [row["slotId"] for row in capture.inputs])
+                self.assertEqual([0, 1, 2, 3], [row["order"] for row in capture.inputs])
+                self.assertEqual([16, 8, 12, 4], [row["size"] for row in capture.inputs])
+                evidence = capture.evidence()
+                verdict = comparison.validation.side_execution_verdict(
+                    [evidence], capacities=comparison.validation.execution_capacities(evidence), complete=False)
+                self.assertEqual(expected, verdict.status)
+                if expected == "invalid":
+                    self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
+        merge = [{"slotId": slot, "order": 9} for slot in ("tp-input", "dp-input")]
+        self.assertEqual([("tp-input", 0), ("dp-input", 1)],
+                         [(row["slotId"], row["order"]) for row in comparison.validation.report_ordered_inputs("standard-merge", merge)])
+
     def cli_stage_with_tools(self, tools, cli, custody=None):
         authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
         artifacts = {"input": {"role": "input", "path": "input.bin", "size": 8, "sha256": digest(PAYLOAD)}}
