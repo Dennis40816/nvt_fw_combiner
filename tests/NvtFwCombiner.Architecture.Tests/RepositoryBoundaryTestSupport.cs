@@ -196,30 +196,6 @@ internal static partial class RepositoryBoundaryTestSupport
         return count;
     }
 
-    internal static string[] ReadMarkdownBullets(string relativePath, string heading)
-    {
-        string[] lines = ReadLines(relativePath);
-        int start = Array.FindIndex(lines, line => string.Equals(line.Trim(), heading, StringComparison.Ordinal));
-        if (start < 0)
-        {
-            throw new InvalidOperationException($"Could not find heading '{heading}' in {relativePath}.");
-        }
-
-        int end = Array.FindIndex(lines, start + 1, line => line.StartsWith("## ", StringComparison.Ordinal));
-        if (end < 0)
-        {
-            end = lines.Length;
-        }
-
-        return
-        [
-            .. lines[(start + 1)..end]
-            .Select(line => line.Trim())
-            .Where(line => line.StartsWith("- ", StringComparison.Ordinal))
-            .Select(line => line[2..])
-        ];
-    }
-
     internal static string[] ReadPlanningResourceRows(string title)
     {
         string resources = ReadShellTextResourcesPartials();

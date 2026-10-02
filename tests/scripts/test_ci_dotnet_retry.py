@@ -1061,7 +1061,7 @@ class CiDotnetRetryTests(unittest.TestCase):
         )
 
     def test_aggregate_recomputes_and_reports_flaky_list(self):
-        with self.shard("recover") as (root, _, _, _, manifest, error):
+        with self.shard("recover") as (root, project, _, _, manifest, error):
             self.assertIsNone(error)
             fixture = fixtures.VerifyOrchestrationTests()
             downloads = root / "downloads"
@@ -1071,8 +1071,13 @@ class CiDotnetRetryTests(unittest.TestCase):
             artifact = fixture.ci_artifact_root(downloads, "core")
             shutil.copytree(root / "upload", artifact)
             console = io.StringIO()
+            summary_path = root / "aggregate-summary.md"
             with (
                 redirect_stdout(console),
+                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}),
+                patch.object(
+                    MODULE, "report_ci_flaky_tests", wraps=MODULE.report_ci_flaky_tests
+                ) as report,
                 patch.object(MODULE, "verify_coverage") as coverage,
             ):
                 MODULE.finalize_ci_dotnet_evidence(downloads)
@@ -1082,7 +1087,21 @@ class CiDotnetRetryTests(unittest.TestCase):
             self.assertIn("GoldenRegression 3/3", console.getvalue())
             self.assertIn("attempt-1 failure for Probe.Tests.Case1", console.getvalue())
             self.assertIn("at Probe.Tests.Run()", console.getvalue())
-            self.assertIn("aggregate", (root / "summary.md").read_text())
+            expected_flaky = [
+                {
+                    "project": project.relative_path,
+                    "fullyQualifiedName": "Probe.Tests.Case1",
+                }
+            ]
+            report.assert_called_once()
+            self.assertEqual(expected_flaky, report.call_args[0][1])
+            summary = summary_path.read_text(encoding="utf-8")
+            for item in expected_flaky:
+                identity = item["fullyQualifiedName"]
+                self.assertIn(f"{item['project']}: {identity}", summary)
+                self.assertIn(f"{item['project']} {identity} (attempt-1)", summary)
+                self.assertIn(f"attempt-1 failure for {identity}", summary)
+            self.assertIn("at Probe.Tests.Run()", summary)
             # Details use the separate notice quota; original Flaky test warning
             # annotations remain visible to the release zero-flaky evidence gate.
             self.assertIn("::notice title=Failed test::", console.getvalue())
