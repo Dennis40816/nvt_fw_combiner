@@ -502,6 +502,39 @@ Open: the T1 design review result (commander); the owner's acceptance of the
 ADR text; the U0 go.
 Next: stop until the review result.
 
+### 2026-10-02 T2a implemented, reviewed and submitted
+State: pull request #519 (`feature/1.2.11/t2a-boundary-split`, head `c169d87b9`, base `092641516`), delivered
+early under board decision 256 on the 1.2.x board; the item (R33-01) keeps its place in `1.2.11`.
+Admission, recorded after the commit instead of before it: authority board decisions 73 and 74 and ADR 0079 rules
+S1 to S10; paths `tests/NvtFwCombiner.Architecture.Tests/**` only; narrow test Architecture.Tests; implemented by
+Codex `gpt-6.1-sol`, built and run by the commander, reviewed by Claude Opus 5.5 at the exact head (accept, no P0 or
+P1).
+Evidence at `c169d87b9` against `092641516`:
+- E1: 277 discovered cases on both sides; identities identical once the class name is removed.
+- E2: 277 passed, 0 failed, 0 skipped on both sides.
+- E3: 75 changed paths, all in the test project; only the line kinds the plan allows.
+- E4: three canaries, each exactly one failure in the expected moved test.
+- E5: three interleaved runs per side on a machine that was also running other builds: wall-clock median 15.9 s
+  before and 16.3 s after; sum of test durations 13.3 s before and 14.1 s after. No speed change, as expected.
+- E7: one serial collection attribute per class; no `DisableParallelization`, fixture or lifetime change.
+Classes after the split (files, cases): Application 19, 33; BootstrapCli 3, 25; CanonicalCatalog 15, 45;
+HostInfrastructure 6, 28; PackageTrust 2, 25; Presentation 11, 34; Profile 6, 23; RepositoryDocument 1, 1;
+Retirement 7, 19; the remainder 10, 34; `ProjectDependencyTests` untouched, 10.
+Differences from the plan, all accepted by the review:
+- the mapping was recomputed at the branch point: 82 files, not the 78 measured for the plan. The remainder holds
+  10 files, not six: `LocalStateIsolation` and `PrebuiltProfileCatalog` were added later and, by the plan's rule
+  for late files, stay in the remainder;
+- one commit instead of the two the plan names (support class, then moves); E1 to E7 are defined from the base to
+  the head, so the evidence is unaffected;
+- `AssertStartupStageOrder` moved to the support class although the plan does not list it: two classes use it
+  (rule S3);
+- a few separator blank lines stayed where helpers were removed; they go when those files next change;
+- `docs/governance/v0.10.5-preload-baseline-and-ticket-ledger.md` and 19 closed change records still name old
+  file paths in code spans. A moved test pins that document's text, so it cannot change in T2a; the document owner
+  decides later.
+Open: E6 (the pull request's CI). T2b (de-serialization) is not started and stays in `1.2.11`.
+Next: after #519 merges, R33-03 (name cleanup) and T2b can be scheduled.
+
 ## Owner decisions in risk order
 
 Decided on 2026-09-26, each as the independent review recommended (board
