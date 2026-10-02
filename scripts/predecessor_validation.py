@@ -391,6 +391,18 @@ def report_input_binding(
     return {"expectedReportAddressSpaceId": address_space, "expectedReportArtifactId": address_space}
 
 
+def report_ordered_inputs(workflow_id: str, rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Staged inputs in the order the CLI's report lists them, numbered from 0.
+
+    A CtrlRAM Replace CLI sorts its bindings by slot id (ordinal) whatever the order of its
+    arguments, so its report lists `reference-base` first and the replacements by name. A reviewed
+    binding may name them in another order; the capture is compared with the report by position,
+    so the staging follows the CLI. A Merge report keeps the binding order.
+    """
+    ordered = sorted(rows, key=lambda row: row["slotId"]) if workflow_id == "ctrlram-replace" else list(rows)
+    return [{**row, "order": order} for order, row in enumerate(ordered)]
+
+
 def v0916_milestone_failures(*, formal: bool, milestone: str | None) -> list[Failure]:
     """A formal v0.9.16 comparison must identify its milestone."""
     return ([_failure("INPUT_INVALID", "milestone", "formal comparison requires a milestone")]
