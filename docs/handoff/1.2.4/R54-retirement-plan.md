@@ -261,7 +261,7 @@ The proof of A is a separate feasibility check, started on 2026-10-02 and not fi
 The split of `TrustedProfileBundleCatalogFactoryTests` (`docs/handoff/1.2.11/R33-05-candidates.md`) lands before
 this retirement: the test files Table 1 lists under that class then carry their new class names.
 
-**2. What should the command line show when it checks an old rule file?**
+**2. What should the command line show when it checks an old rule file?** Answered: A (decision 264).
 
 The entries are `saved-rule validate|mappings` (`src/NvtFwCombiner.Cli/SavedRuleCliCommandHandler.cs:27`)
 and a composition command's `--rule`; Presentation loads no Saved Rule file.
@@ -275,6 +275,7 @@ Both choices leave the file unchanged and refuse execution. A follows the minima
 B adds bounded read-only inspection in step 3, without a new Presentation viewer or rule conversion.
 
 **3. Should `general-merge --rule <old Replace rule>` say retired, or keep today's parent mismatch?**
+Answered: A (decision 264).
 
 `src/NvtFwCombiner.Cli/MergeCliCommandHandler.SavedRules.cs:28` calls Merge admission; exact-parent mismatch is
 reported at `src/NvtFwCombiner.Infrastructure/Composition/SavedCompositionRuleV2Admission.cs:70-75` for valid v2 rules.
@@ -283,7 +284,7 @@ reported at `src/NvtFwCombiner.Infrastructure/Composition/SavedCompositionRuleV2
 - **B — Keep today's message:** the command keeps reporting that the rule does not belong to Customized Merge,
   with exit code 1, and does not mention the retirement.
 
-Resolve this before step 3. Neither choice retires General Merge or converts the old rule into a Merge rule.
+Neither choice retires General Merge or converts the old rule into a Merge rule.
 
 ## 7. Limits
 

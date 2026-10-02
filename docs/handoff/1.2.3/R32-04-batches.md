@@ -2,8 +2,8 @@
 
 Status: 2026-10-02; decision 258 approved Batch 1 (implemented with this document); decision 263 approved
 Batches 2 and 3, which are not implemented yet; Batch 4 waits for the owner at its merge.
-Batches 2 to 4 wait for the owner. The Batch 2 rewrite exists as a proposal on the branch
-`feature/1.2.3/r32-04-batch-2` and does not merge before the owner approves it.
+The Batch 2 rewrite exists on the branch `feature/1.2.3/r32-04-batch-2`; it and the Batch 3 deletions merge
+after their review.
 
 Authority: [board decision 258](../1.2.x.md), [R32-04 and O22](../1.1.14/1.2.x-inventory.md),
 and the [disposition tables, four questions, and limits](R32-04-disposition.md).

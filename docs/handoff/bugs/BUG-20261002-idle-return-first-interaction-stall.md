@@ -1,6 +1,6 @@
 # BUG-20261002-idle-return-first-interaction-stall: the application seems to stall briefly after a long idle period
 
-Status: open; reported; not reproduced so far on a development build (two measurements)
+Status: open; reported; not reproduced so far on a development build (a forced-trim probe and a 75-minute run)
 Severity: P3 until measured (a brief stall; no effect on firmware output)
 Found: 2026-10-02, the owner, in chat: "若閒置很久 回去操控好像會卡住一下，這是否屬實?". The owner asked whether this is
 real. The build (installed package or development build), the idle time, whether the display slept, what the owner
@@ -47,9 +47,10 @@ on a machine that was also running builds; evidence in the test area under `evid
 - After emptying the process's working set (from about 257 MB to under 10 MB; this causes soft faults only, the best
   case): the first pointer move takes 1 to 2 ms with about 5,000 to 8,000 page faults for a sweep of 24 moves; the
   tree walk takes 150 to 235 ms. No measurable delay in these two probes; neither measures what is painted.
-- So in these probes trimming alone, while the pages are still in memory, shows no delay.
+- So in these probes trimming alone, while the pages are still in memory, adds no delay a person would notice.
 - A real idle run: the window stayed minimized for 75 minutes (15:29 to 16:44) while the machine kept working
-  and the display stayed on. Windows did not trim the process (working set 114.7 MB before the restore).
+  and the display stayed on. The process was not trimmed: its working set was 76.3 MB when it was minimized and
+  114.7 MB before the restore (private bytes 215.2 and 211.5 MB).
   Restoring the window and the first round trip took 53.8 ms; the first pointer move 0.27 ms; the first tree
   walk 227 ms against 140 and 154 ms for the next two, inside the baseline's range. No stall was reproduced.
 - Still open, none measured yet: the display or the machine asleep (cause 2), memory pressure that forces hard
