@@ -786,6 +786,8 @@ class Git:
     def changes(self, base: str, head: str) -> tuple[Change, ...]:
         # Copies from unchanged sources count too (ADR 0080 item 4: both sides of a copy), so
         # every base file is a copy candidate and the exhaustive search is never cut short.
+        # A submodule's recorded commit is a changed path too: neither diff.ignoreSubmodules nor
+        # an "ignore" entry in the head's .gitmodules may hide it.
         output, warnings = self.run_with_warnings(
             "diff",
             "--name-status",
@@ -794,6 +796,7 @@ class Git:
             "--find-copies-harder",
             f"-l{COPY_DETECTION_LIMIT}",
             "--no-ext-diff",
+            "--ignore-submodules=none",
             base,
             head,
             "--",

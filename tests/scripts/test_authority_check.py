@@ -850,6 +850,27 @@ class GitRunTests(unittest.TestCase):
         self.assertIn("required roles are not declared: ['firmware-owner']", summary)
         self.assertIn("paths: profiles/built-in/p.json", summary)
 
+    def test_changed_submodule_commit_is_reported_whatever_the_submodule_settings(self) -> None:
+        # A head that sets "ignore = all" in .gitmodules, or a runner with
+        # diff.ignoreSubmodules=all, must not hide the submodule's new commit from the check.
+        path = "third-party/vendored"
+        self.git("update-index", "--add", "--cacheinfo", f"160000,{'1' * 40},{path}")
+        self.git("commit", "-q", "-m", "submodule")
+        base = self.git("rev-parse", "HEAD")
+        self.write(
+            ".gitmodules",
+            f'[submodule "vendored"]\n\tpath = {path}\n\turl = ./vendored\n\tignore = all\n'.encode(),
+        )
+        self.git("add", ".gitmodules")
+        self.git("update-index", "--cacheinfo", f"160000,{'2' * 40},{path}")
+        self.git("commit", "-q", "-m", "move the submodule and ignore it")
+        head = self.git("rev-parse", "HEAD")
+        for setting in ("none", "all"):
+            with self.subTest(setting=setting):
+                self.git("config", "diff.ignoreSubmodules", setting)
+                changes = check.Git(self.repo).changes(base, head)
+                self.assertIn((path,), [item.paths for item in changes if item.status == "M"])
+
     def test_degraded_copy_detection_fails_closed(self) -> None:
         for index in range(3):
             self.write(f"src/NvtFwCombiner.Cli/New{index}.cs", f"class New{index} {{}}\n".encode())
