@@ -161,7 +161,7 @@ class BaselineBuilder:
         (root / "cli.exe").write_bytes(b"baseline")
         closure = parity.runtime_closure_inventory(root, cli_relative="cli.exe")
         identity_row["runtimeClosureSha256"] = closure.identity_sha256
-        return execution.Executor(identity_row, closure, "v0916")
+        return execution.Executor(identity_row, closure, "v0916", {})
 
 
 class V0916Processes(SyntheticProcesses):

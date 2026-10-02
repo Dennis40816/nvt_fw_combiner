@@ -95,6 +95,13 @@
     },
     "identityPinnedInAdvance": false,
     "authorityTrees": ["external-tools", "profiles", "src", "tools/crc-worker"],
+    "externalToolStaging": {
+      "tree": "external-tools",
+      "bytes": "git-blob-at-executor-commit",
+      "destination": "beside-staged-runtime-closure",
+      "custody": "execution-closure",
+      "directoryAlwaysCreated": true
+    },
     "recordedIdentity": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
   },
   "environment": {

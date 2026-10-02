@@ -404,6 +404,18 @@ characters, which the CLI's temporary layers reach from a root of about 111
 characters (`BUG-20260926-legacy-combiner-long-path`); a longer root is
 refused before any process with `PREDECESSOR_ENVIRONMENT_INVALID`.
 
+A 1.x or v0.9.16 CLI finds its external tools by looking for a directory named
+`external-tools` in its base directory and then in each parent; per-user
+settings take no part. Each CLI process therefore gets, beside its staged
+runtime closure, a read-only copy of the `external-tools` tree of its
+executor's commit, taken from the Git blobs
+(`executor.externalToolStaging`). The copy is held under the same custody as
+the runtime closure and is hashed before and after the process; a change is
+`PREDECESSOR_EXECUTOR_INVALID`. The directory is created even when the commit
+has no tool file, so the search never reaches a directory outside the staging
+root. The closure digest and the `authorityTrees` identity are unchanged: the
+tree is already identified by its Git tree id.
+
 A side is a **typed product rejection** only when a Preview or Build process
 exits with a nonzero code and a written report that carries at least one
 `error` issue, and no issue code of the report is a process failure listed in
