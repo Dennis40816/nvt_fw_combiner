@@ -298,6 +298,7 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.False(viewModel.Merge.CanBuildMerge);
         Assert.False(Assert.IsType<ActiveSessionSnapshot>(
             viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge).AcceptedSession).HasCurrentInputInspection);
+        Assert.Equal("NT51950", viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
         JsonElement nt51950 = golden.CaseByIc("51950");
         string nt51950DpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("dp-input"));
         string nt51950TpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("tp-input"));
@@ -405,6 +406,8 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
         Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.True(viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge)
+            .AcceptedSession?.HasCurrentInputInspection is not true);
 
         initialVersion = "0202";
         blockInitialReselection = true;
@@ -414,10 +417,14 @@ public sealed partial class FirmwareInspectionSlotTests
             TestContext.Current.CancellationToken);
         Assert.True(reselectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
         Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.True(viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge)
+            .AcceptedSession?.HasCurrentInputInspection is not true);
 
         releaseReselection.Set();
         await reselection;
         Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.True(viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge)
+            .AcceptedSession?.HasCurrentInputInspection is not true);
 
         Task stale = viewModel.WorkflowSession.SetSlotFileAsync(
             "merge-dp",
@@ -429,6 +436,8 @@ public sealed partial class FirmwareInspectionSlotTests
             currentPath,
             TestContext.Current.CancellationToken);
         Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.True(viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge)
+            .AcceptedSession?.HasCurrentInputInspection is not true);
         try
         {
             Assert.False(current.IsCompleted);
@@ -440,6 +449,8 @@ public sealed partial class FirmwareInspectionSlotTests
         await Task.WhenAll(stale, current);
 
         Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.True(viewModel.Merge.CaptureRunContext(ExperienceIds.StandardMerge)
+            .AcceptedSession?.HasCurrentInputInspection is not true);
         FirmwareSlotViewModel currentSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(currentSlot.FirmwareFacts, fact => fact.Value == "D04-04");
         Assert.DoesNotContain(currentSlot.FirmwareFacts, fact => fact.Value == "D03-03");

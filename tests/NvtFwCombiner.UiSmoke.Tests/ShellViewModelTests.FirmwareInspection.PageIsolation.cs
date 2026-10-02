@@ -35,6 +35,8 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Contains(retainedMemoryRow, viewModel.Replace.ReplaceMemoryRows);
         Assert.Same(retainedContext.AcceptedSession,
             viewModel.Replace.CaptureRunContext(viewModel.Replace.SelectedReplaceMode).AcceptedSession);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace));
+        Assert.Equal("2", viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace));
 
         viewModel.ShowReplaceCommand.Execute(null);
 
@@ -66,6 +68,10 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Contains(retainedMemoryRow, viewModel.Merge.MergeMemoryRows);
         Assert.Same(retainedContext.AcceptedSession,
             viewModel.Merge.CaptureRunContext(viewModel.Merge.SelectedMergeMode).AcceptedSession);
+        Assert.Equal("NT51950", viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
+        Assert.Equal(
+            IcNumberSelectionTokens.Cascade,
+            viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Merge));
 
         viewModel.ShowMergeCommand.Execute(null);
 
@@ -482,6 +488,10 @@ public sealed partial class FirmwareInspectionSlotTests
             Assert.Equal(replaceSlotsBefore, ReplaceSlotPaths(viewModel));
             Assert.Same(replaceContextBefore.AcceptedSession,
                 viewModel.Replace.CaptureRunContext(ExperienceIds.CtrlRamReplace).AcceptedSession);
+            Assert.Equal("NT51926", viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Replace));
+            Assert.Equal(
+                IcNumberSelectionTokens.SingleChip,
+                viewModel.WorkflowSession.GetWorkflowPageNumber(WorkflowInspectionOwner.Replace));
             Assert.Equal(replaceReadinessBefore, viewModel.Replace.ReplaceReadinessStatus);
             Assert.Equal(replaceInspectionBefore, replaceInspection.State);
         }

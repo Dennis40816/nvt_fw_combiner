@@ -186,10 +186,26 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("_compositionServices.OutputNaming.PrepareBundleProposalAsync", replaceExecution, StringComparison.Ordinal);
         Assert.Contains("new OutputDeliveryRequest(\n            proposal,", mergeExecution.ReplaceLineEndings("\n"), StringComparison.Ordinal);
         Assert.Contains("new OutputDeliveryRequest(\n            proposal,", replaceExecution.ReplaceLineEndings("\n"), StringComparison.Ordinal);
-        Assert.DoesNotContain("ResolveAcceptedOutputFileName", mergeState, StringComparison.Ordinal);
-        Assert.DoesNotContain("ResolveAcceptedOutputFileName", replaceState, StringComparison.Ordinal);
-        Assert.DoesNotContain("OutputNamingRequirement.FileNameTemplate", mergeState, StringComparison.Ordinal);
-        Assert.DoesNotContain("OutputNamingRequirement.FileNameTemplate", replaceState, StringComparison.Ordinal);
+        string viewModelsRoot = Path.Combine(
+            Root.FullName,
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels");
+        string[] viewModelNames = ["MergePresentationViewModel", "ReplacePresentationViewModel"];
+        foreach (string viewModelName in viewModelNames)
+        {
+            foreach (string path in Directory.EnumerateFiles(viewModelsRoot, $"{viewModelName}*.cs", SearchOption.AllDirectories))
+            {
+                string source = File.ReadAllText(path);
+                Assert.DoesNotContain(".FileNameTemplate", source, StringComparison.Ordinal);
+                if (string.Equals(Path.GetFileName(path), $"{viewModelName}.Execution.cs", StringComparison.Ordinal))
+                {
+                    Assert.Equal(1, CountOccurrences(source, "OutputNaming."));
+                }
+                else
+                {
+                    Assert.DoesNotContain("OutputNaming.", source, StringComparison.Ordinal);
+                }
+            }
+        }
         Assert.Equal(1, CountOccurrences(mergeState, "WorkflowInspectionSet InspectionLifecycles"));
         Assert.Equal(1, CountOccurrences(replaceState, "WorkflowInspectionSet InspectionLifecycles"));
         Assert.Contains(

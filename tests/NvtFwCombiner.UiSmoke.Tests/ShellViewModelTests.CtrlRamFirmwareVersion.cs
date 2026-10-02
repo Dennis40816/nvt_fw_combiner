@@ -290,10 +290,9 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.NotNull(edit);
         Assert.Equal((byte)0x2A, Assert.IsType<CtrlRamFirmwareVersionDraftState>(edit).FirmwareVersion);
         Assert.Equal((byte)0x0C, Assert.IsType<CtrlRamFirmwareVersionDraftState>(edit).FirmwareSubVersion);
+        Assert.True(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
         Assert.True(await viewModel.Replace.RequestCtrlRamBuildOutputDeliveryAsync(edit));
         Assert.Equal("nt51926-ctrlram-replace.bin", viewModel.OutputDelivery.CanonicalOutputFileName);
-
-        viewModel.Replace.CloseCtrlRamFirmwareVersionModal();
         Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
     }
 
