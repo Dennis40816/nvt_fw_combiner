@@ -4,25 +4,48 @@
 
 Status: Proposal for owner decision O22; not approved or implemented.
 Date: 2026-10-02. Source read: `092641516`.
-Purpose: Give the owner a bounded, test-by-test KEEP / MOVE / DELETE-PROPOSED decision list. This document changes no test, code, accepted decision, CI selection, or permission.
+Purpose: Give the owner a bounded, test-by-test KEEP / MOVE / DELETE-PROPOSED decision list. This document changes no
+test, code, accepted decision, CI selection, or permission.
 
-The acceptance boundary is R32-04 and O22 in `docs/handoff/1.1.14/1.2.x-inventory.md:348,552`: protected facts stay; only pure frozen wording may be deleted, with owner confirmation. Decision 71 (`docs/handoff/1.1.12.md:534`) and `docs/adr/0079-test-architecture.md:378` require individual disposition. A topic test's document remains a semantic input until its assertion is actually migrated or removed.
+The acceptance boundary is R32-04 and O22 in `docs/handoff/1.1.14/1.2.x-inventory.md:348,552`: protected facts stay;
+only pure frozen wording may be deleted, with owner confirmation. Decision 71 (`docs/handoff/1.1.12.md:534`) and
+`docs/adr/0079-test-architecture.md:378` require individual disposition. A topic test's document remains a semantic
+input until its assertion is actually migrated or removed.
 
 ## 2. Method
 
-1. Pin the source checkout at `092641516`; search both requested test directories for Markdown paths, `ReadAllText`, `ReadLines`, `read_text`, and `read_bytes`.
-2. Include assertions on repository Markdown content, generated Markdown summaries (file-backed or rendered in memory), projections, byte integrity, and canonical skill frontmatter acceptance/rejection. Follow helpers and fixtures; exclude metadata-only YAML/JSON checks and inline Markdown parser inputs. List named exclusions in Limits; keep two reviewed path-only methods as explicitly marked non-document assertions. Count methods once; split wording from protected checks and mark uncertain purposes unconfirmed.
-3. KEEP: the assertion protects a fact that code, a contract, or a decision depends on, and the document owns that fact; retain mapped semantic verification.
-4. MOVE: the assertion protects document structure, such as a link, heading, section, or existing path; preserve it in the structure lane of `scripts/verify.py` / `validate_repository`.
-5. DELETE-PROPOSED: only prose wording is frozen, with no identified code, contract, or decision dependency; deletion requires the owner's confirmation; doubt defaults to KEEP.
+1. Pin the source checkout at `092641516`; search both requested test directories for Markdown paths, `ReadAllText`,
+   `ReadLines`, `read_text`, and `read_bytes`.
+2. Include assertions on repository Markdown content, generated Markdown summaries (file-backed or rendered in
+   memory), projections, byte integrity, and canonical skill frontmatter acceptance/rejection. Follow helpers and
+   fixtures; exclude metadata-only YAML/JSON checks and inline Markdown parser inputs. List named exclusions in
+   Limits; keep two reviewed path-only methods as explicitly marked non-document assertions. Count methods once; split
+   wording from protected checks and mark uncertain purposes unconfirmed.
+3. KEEP: the assertion protects a fact that code, a contract, or a decision depends on, and the document owns that
+   fact; retain mapped semantic verification.
+4. MOVE: the assertion protects document structure, such as a link, heading, section, or existing path; preserve it in
+   the structure lane of `scripts/verify.py` / `validate_repository`.
+5. DELETE-PROPOSED: only prose wording is frozen, with no identified code, contract, or decision dependency; deletion
+   requires the owner's confirmation; doubt defaults to KEEP.
 
 ## 3. Disposition tables
 
-Each Architecture row is identified by topic filename and method, independent of class names. Its evidence uses the topic filename relative to the Architecture directory below; at the pinned source, prepend `RepositoryBoundaryTests.` to resolve the physical file. Other evidence paths are repository-relative. Line numbers refer to the source read; counts group assertions or cases, not expanded runner invocations.
+Each Architecture row is identified by topic filename and method, independent of class names. Its evidence uses the
+topic filename relative to the Architecture directory below; at the pinned source, prepend `RepositoryBoundaryTests.`
+to resolve the physical file. Pull request #519 later moved most of these files to feature classes (for example
+`RepositoryDocumentTests.` and `HostInfrastructureBoundaryTests.`) and renamed `TestSupport.cs` to
+`RepositoryBoundaryTestSupport.cs`; the topic and method names are unchanged. Other evidence paths are
+repository-relative. Line numbers refer to the source read; counts group assertions or cases, not expanded runner
+invocations.
 
-A disposition applies to the named assertion group, not unrelated assertions in the same method. Mixed methods retain their protected assertions. Additional Roadmap and StartupDiagnostics rows isolate wording subgroups; no whole method is proposed for deletion.
+A disposition applies to the named assertion group, not unrelated assertions in the same method. Mixed methods retain
+their protected assertions. Additional Roadmap and StartupDiagnostics rows isolate wording subgroups; no whole method
+is proposed for deletion.
 
-Generated Markdown summaries, skill projections, and explicit document-byte integrity checks are included conservatively. Their KEEP rows protect executable output or integrity contracts, rather than author prose; O22 must not erase those behavioral gates. MOVE preserves the complete check before any prose skip, and does not move firmware or permission semantics into a generic link checker.
+Generated Markdown summaries, skill projections, and explicit document-byte integrity checks are included
+conservatively. Their KEEP rows protect executable output or integrity contracts, rather than author prose; O22 must
+not erase those behavioral gates. MOVE preserves the complete check before any prose skip, and does not move firmware
+or permission semantics into a generic link checker.
 
 ### Architecture project
 
@@ -52,7 +75,9 @@ Directory: `tests/NvtFwCombiner.Architecture.Tests/`. Eight topic files, 16 meth
 
 ### Repository script tests
 
-Directory: `tests/scripts/`. Fourteen files, 54 inventoried methods: 52 with Markdown assertions and two reviewed methods with no document assertion. Twenty-one test files contain literal Markdown paths; seven non-qualifying hits are explained in Limits.
+Directory: `tests/scripts/`. Fourteen files, 54 inventoried methods: 52 with Markdown assertions and two reviewed
+methods with no document assertion. Twenty-one test files contain literal Markdown paths; seven non-qualifying hits
+are explained in Limits.
 
 | File | Test method | Document read | Assertion, grouped | Protected fact | Proposal | Reason | Evidence path:line |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -113,7 +138,10 @@ Directory: `tests/scripts/`. Fourteen files, 54 inventoried methods: 52 with Mar
 
 ## 4. Totals and least-certain dispositions
 
-Method totals count each method once. Mixed methods with protected groups count as KEEP; their wording subgroups are counted separately below. Unconfirmed rows, the two no-document-assertion rows, and the existing structure-lane duplicate count as KEEP: their tests stay where they are. Parameterized cases and loop iterations are not additional methods.
+Method totals count each method once. Mixed methods with protected groups count as KEEP; their wording subgroups are
+counted separately below. Unconfirmed rows, the two no-document-assertion rows, and the existing structure-lane
+duplicate count as KEEP: their tests stay where they are. Parameterized cases and loop iterations are not additional
+methods.
 
 | Project | Methods classified | KEEP | MOVE | DELETE-PROPOSED |
 | --- | ---: | ---: | ---: | ---: |
@@ -121,7 +149,10 @@ Method totals count each method once. Mixed methods with protected groups count 
 | scripts | 54 | 54 | 0 | 0 |
 | Total | 70 | 68 | 2 | 0 |
 
-Table-group totals: Architecture **19 groups: 14 KEEP, 2 MOVE, 3 DELETE-PROPOSED**; scripts **54 entries: 54 KEEP, 0 MOVE, 0 DELETE-PROPOSED**, including the two no-document-assertion entries. The three deletion subgroups cover three milestone-title checks, five demo-plan bullet checks, and three changelog-heading checks; no whole method or protected fact is proposed for deletion. The original 53-script-method inventory grows by one generated-summary method.
+Table-group totals: Architecture **19 groups: 14 KEEP, 2 MOVE, 3 DELETE-PROPOSED**; scripts **54 entries: 54 KEEP, 0
+MOVE, 0 DELETE-PROPOSED**, including the two no-document-assertion entries. The three deletion subgroups cover three
+milestone-title checks, five demo-plan bullet checks, and three changelog-heading checks; no whole method or protected
+fact is proposed for deletion. The original 53-script-method inventory grows by one generated-summary method.
 
 The five least-certain decisions, in priority order:
 
@@ -135,21 +166,73 @@ The five least-certain decisions, in priority order:
 
 ## 5. Decisions for the owner (O22)
 
-1. **Approve tests one by one, or in named batches?** Options: one by one; named batches with every method, subgroup, and protected check listed. Recommendation: named batches. Each named check still gets an explicit disposition; a batch gives no blanket permission to remove document tests.
-2. **Move the document checks into the always-run structure checks in 1.2.3, or approve the list now and move them in 1.2.11?** Options: migrate the two MOVE groups (the text-file line ceiling and roadmap allocation structure) in 1.2.3; approve this list now and migrate them in 1.2.11. Recommendation: migrate in 1.2.3. R32-04 includes structure-lane migration (`docs/handoff/1.1.14/1.2.x-inventory.md:348`), O22 requires classification and migration together (`docs/handoff/1.1.14/1.2.x-inventory.md:552`), and R32-04 is allocated to 1.2.3 (`docs/handoff/1.1.14/1.2.x-allocation.md:186,190`). The 1.2.11 option changes that allocation. Preserve current checks/mappings until the migration is verified; no prose skipping is authorized here.
-3. **May we delete three checks that only pin one changelog heading's exact words? Everything else in that test stays.** In `V0105PreloadBaselineAndLifecycleLedgerStayFrozen`, they require `#### Message Center, report, and System Information readability` exactly once and reject `#### Message Center report and System Information readability` and `#### Message Center and report readability`. Options: delete only these three checks; keep them. Recommendation: delete only these three checks. The exactly-once check also prevents duplication of this particular heading; deleting it removes that specific guard. Keep every other assertion in the test.
-4. **Two checks pin a label word and three review headings; keep them for now (recommended), or allow a rewrite that checks the duty instead?** The methods are `test_aggregate_recomputes_and_reports_flaky_list` (the word `aggregate`) and `test_code_review_uses_three_lenses_without_forced_subagents` (the headings `Spec correctness`, `Runtime, safety, and architecture`, `Tests and evidence`). Options: keep both as written for now; allow a rewrite that verifies the reporting/review duties instead. Recommendation: keep both for now. Any rewrite must preserve flaky evidence, all three review duties, and the delegation condition.
+1. **Approve tests one by one, or in named batches?** Options: one by one; named batches with every method, subgroup,
+   and protected check listed. Recommendation: named batches. Each named check still gets an explicit disposition; a
+   batch gives no blanket permission to remove document tests.
+2. **Move the document checks into the always-run structure checks in 1.2.3, or approve the list now and move them in
+   1.2.11?** Options: migrate the two MOVE groups (the text-file line ceiling and roadmap allocation structure) in
+   1.2.3; approve this list now and migrate them in 1.2.11. Recommendation: migrate in 1.2.3. R32-04 includes
+   structure-lane migration (`docs/handoff/1.1.14/1.2.x-inventory.md:348`), O22 requires classification and migration
+   together (`docs/handoff/1.1.14/1.2.x-inventory.md:552`), and R32-04 is allocated to 1.2.3
+   (`docs/handoff/1.1.14/1.2.x-allocation.md:186,190`). The 1.2.11 option changes that allocation. Preserve current
+   checks/mappings until the migration is verified; no prose skipping is authorized here.
+3. **May we delete three checks that only pin one changelog heading's exact words? Everything else in that test
+   stays.** In `V0105PreloadBaselineAndLifecycleLedgerStayFrozen`, they require `#### Message Center, report, and
+   System Information readability` exactly once and reject `#### Message Center report and System Information
+   readability` and `#### Message Center and report readability`. Options: delete only these three checks; keep them.
+   Recommendation: delete only these three checks. The exactly-once check also prevents duplication of this particular
+   heading; deleting it removes that specific guard. Keep every other assertion in the test.
+4. **Two checks pin a label word and three review headings; keep them for now (recommended), or allow a rewrite that
+   checks the duty instead?** The methods are `test_aggregate_recomputes_and_reports_flaky_list` (the word
+   `aggregate`) and `test_code_review_uses_three_lenses_without_forced_subagents` (the headings `Spec correctness`,
+   `Runtime, safety, and architecture`, `Tests and evidence`). Options: keep both as written for now; allow a rewrite
+   that verifies the reporting/review duties instead. Recommendation: keep both for now. Any rewrite must preserve
+   flaky evidence, all three review duties, and the delegation condition.
 
 ## 6. Limits
 
-- This is static inspection of the pinned source, not a fresh test result, runtime-reader census, migration implementation, or owner approval. No build, verifier, test, network operation, commit, or push was run.
-- Search established eight Architecture topic files plus the non-test Markdown helpers in `TestSupport.cs:199,269`, and 21 script test files with literal Markdown paths. Helper/fixture tracing supplies the additional indirect reads in the table.
-- Seven script hits do not directly assert Markdown text: `test_authority_policy.py` classifies document paths and inspects non-Markdown consumer source; `test_ci_structure_contract.py` checks tracked file inventory; `test_frozen_evidence_pins.py` checks JSON/Git objects; `test_governance_topology.py` checks topology/entry outcomes; `test_prebuilt_profile_catalog_build.py` uses an ignore pattern; `test_predecessor_rolling.py` supplies in-memory changelog input; `test_release_promotion_policy.py` uses release notes as hashed assets rather than asserting their prose. Their protected behavioral gates remain outside any deletion proposal.
-- Inline Markdown used only as parser/classifier input is excluded, including release-note parser mutation cases, retirement-exception classifier probes, and distribution-report identity helper probes. Generated Markdown output is included even when rendered in memory, including `test_summary_names_the_heads_own_checker`. Markdown byte-drift tests are retained explicitly because their integrity facts could otherwise be mistaken for wording freezes.
-- Skill fixture tests targeting only `agents/openai.yaml` are excluded: `test_rejects_missing_openai_metadata`, `test_rejects_invocation_policy_mismatch`, `test_rejects_default_prompt_for_another_skill`, `test_rejects_default_prompt_matching_only_a_skill_prefix`, `test_rejects_short_description_outside_codex_bounds`, `test_rejects_short_description_whose_raw_length_exceeds_bound`, `test_rejects_short_description_whose_trimmed_length_is_below_bound`, `test_rejects_malformed_openai_yaml_before_field_validation`, `test_rejects_unknown_interface_metadata_field`, `test_rejects_unknown_policy_metadata_field` (`tests/scripts/test_skill_inventory_validation.py:124-263`). Their synthetic `SKILL.md` is shared setup; assertions target YAML presence, fields, invocation policy, or errors, not Markdown content. Their permission/metadata gates stay intact.
-- In that file, `test_manifest_routes_exactly_nineteen_active_skills` and `test_only_polling_are_explicit` assert JSON manifest data; `test_removed_meta_skills_are_not_repository_routes` asserts manifest membership and absent paths (`:279,285,331`). They do not assert Markdown text and remain excluded. The two listed fixture methods establish canonical Markdown/frontmatter acceptance and rejection; other mixed methods retain their non-Markdown assertions.
-- The 150-method cap was not reached: 70 methods were inventoried; none were omitted because of that cap. Counts are static method counts, not collected test cases. Class renames in another change may alter filenames/lines; method names and the source SHA identify this proposal's basis.
-- Four rows remain unconfirmed: the ADR sentence, aggregate label, implementation phase labels, and review-lens headings. All are KEEP. Three wording subgroups need owner confirmation; none is an accepted deletion.
-- The changelog-title dependency search was limited to the requested tests and their relevant release-note/validation readers. It found one exact-title assertion and generic feature-title parsing; it cannot prove absence of consumers outside that scope.
-- A MOVE must retain coverage and failure behavior in an always-run structure owner before old assertions/mappings are removed. Local-link validation at `scripts/validate_repository.py:578` does not establish heading, anchor, allocation, or line-ceiling coverage. Inventory consistency is already covered by the full-text comparison in `validate_skills` (`:765-771`), invoked by the structure validator (`:1929`); it is not a missing migration gate.
-- This proposal preserves firmware facts, authority/permission rules, release rules, and contracts. It neither promotes support nor closes missing human or Golden evidence.
+- This is static inspection of the pinned source, not a fresh test result, runtime-reader census, migration
+  implementation, or owner approval. No build, verifier, test, network operation, commit, or push was run.
+- Search established eight Architecture topic files plus the non-test Markdown helpers in `TestSupport.cs:199,269`,
+  and 21 script test files with literal Markdown paths. Helper/fixture tracing supplies the additional indirect reads
+  in the table.
+- Seven script hits do not directly assert Markdown text: `test_authority_policy.py` classifies document paths and
+  inspects non-Markdown consumer source; `test_ci_structure_contract.py` checks tracked file inventory;
+  `test_frozen_evidence_pins.py` checks JSON/Git objects; `test_governance_topology.py` checks topology/entry
+  outcomes; `test_prebuilt_profile_catalog_build.py` uses an ignore pattern; `test_predecessor_rolling.py` supplies
+  in-memory changelog input; `test_release_promotion_policy.py` uses release notes as hashed assets rather than
+  asserting their prose. Their protected behavioral gates remain outside any deletion proposal.
+- Inline Markdown used only as parser/classifier input is excluded, including release-note parser mutation cases,
+  retirement-exception classifier probes, and distribution-report identity helper probes. Generated Markdown output is
+  included even when rendered in memory, including `test_summary_names_the_heads_own_checker`. Markdown byte-drift
+  tests are retained explicitly because their integrity facts could otherwise be mistaken for wording freezes.
+- Skill fixture tests targeting only `agents/openai.yaml` are excluded: `test_rejects_missing_openai_metadata`,
+  `test_rejects_invocation_policy_mismatch`, `test_rejects_default_prompt_for_another_skill`,
+  `test_rejects_default_prompt_matching_only_a_skill_prefix`, `test_rejects_short_description_outside_codex_bounds`,
+  `test_rejects_short_description_whose_raw_length_exceeds_bound`,
+  `test_rejects_short_description_whose_trimmed_length_is_below_bound`,
+  `test_rejects_malformed_openai_yaml_before_field_validation`, `test_rejects_unknown_interface_metadata_field`,
+  `test_rejects_unknown_policy_metadata_field` (`tests/scripts/test_skill_inventory_validation.py:124-263`). Their
+  synthetic `SKILL.md` is shared setup; assertions target YAML presence, fields, invocation policy, or errors, not
+  Markdown content. Their permission/metadata gates stay intact.
+- In that file, `test_manifest_routes_exactly_nineteen_active_skills` and `test_only_polling_are_explicit` assert JSON
+  manifest data; `test_removed_meta_skills_are_not_repository_routes` asserts manifest membership and absent paths
+  (`:279,285,331`). They do not assert Markdown text and remain excluded. The two listed fixture methods establish
+  canonical Markdown/frontmatter acceptance and rejection; other mixed methods retain their non-Markdown assertions.
+- The 150-method cap was not reached: 70 methods were inventoried; none were omitted because of that cap. Counts are
+  static method counts, not collected test cases. Class renames in another change may alter filenames/lines; method
+  names and the source SHA identify this proposal's basis.
+- Four rows remain unconfirmed: the ADR sentence, aggregate label, implementation phase labels, and review-lens
+  headings. All are KEEP. Question 4 asks about the aggregate label and the review-lens headings; the other two stay
+  KEEP without a question. Three wording subgroups are DELETE-PROPOSED: question 3 asks about the changelog heading;
+  the milestone-title and demo-plan subgroups are named in the batch list that question 1 approves. None is an
+  accepted deletion.
+- The changelog-title dependency search was limited to the requested tests and their relevant release-note/validation
+  readers. It found one exact-title assertion and generic feature-title parsing; it cannot prove absence of consumers
+  outside that scope.
+- A MOVE must retain coverage and failure behavior in an always-run structure owner before old assertions/mappings are
+  removed. Local-link validation at `scripts/validate_repository.py:578` does not establish heading, anchor,
+  allocation, or line-ceiling coverage. Inventory consistency is already covered by the full-text comparison in
+  `validate_skills` (`:765-771`), invoked by the structure validator (`:1929`); it is not a missing migration gate.
+- This proposal preserves firmware facts, authority/permission rules, release rules, and contracts. It neither
+  promotes support nor closes missing human or Golden evidence.

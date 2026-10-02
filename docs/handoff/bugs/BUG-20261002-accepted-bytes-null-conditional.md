@@ -34,6 +34,6 @@ Fix: write the null branch as `(ReadOnlyMemory<byte>?)null`.
   `1.2.4` together with the change that lets General inspection run without captured bytes (R02-03), with a test
   for an inspection that has no bytes; fixing them alone changes no reachable behavior and has no test that can
   fail first.
-Prevention: the Codex dispatch rules now name this expression as a build-time trap; a search for
-`? null` followed by `new ReadOnlyMemory` under `src/` finds exactly these three places at `092641516`.
+Prevention: the commander's prompts for C# work now name this expression. A multiline search under `src/` for
+`? null` followed on the next line by `: new ReadOnlyMemory` finds exactly these three places at `092641516`.
 Owner: the `1.2.4` General input owner.
