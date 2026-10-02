@@ -150,7 +150,7 @@ Shared-definition consequences (step 4, firmware-owner decision before implement
 
 - The DP precedent is `docs/governance/change-records/DP-REPLACE-RETIREMENT-DATA-110-01.json`, `terminalContract`.
   It deleted five independent bundles, preserving all 24 surviving bundles and all 79 route fingerprints.
-  Decision 230 says "as for DP Replace"; preserving survivor definitions is therefore the recommended starting point.
+  Decision 230 says "as for DP Replace"; preserving survivor definitions is therefore the starting point to examine first.
 - Removing the General Replace region set at
   `profiles/built-in/nt51926-ctrlram-replace-candidate/families/nt51926-ctrlram-replace.json:523-546`
   and map at `:698-715` changes the family hash carried by five surviving CtrlRAM profiles, for example
@@ -256,6 +256,9 @@ Three questions remain; this inventory chooses neither firmware option.
 
 Decision 230's "as for DP Replace" and the DP terminalContract support A if its acceptance is proven.
 Failure to prove A does not select B automatically; the firmware owner must decide before step 4.
+The proof of A is a separate feasibility check, started on 2026-10-02 and not finished at this record.
+The split of `TrustedProfileBundleCatalogFactoryTests` (`docs/handoff/1.2.11/R33-05-candidates.md`) lands before
+this retirement: the test files Table 1 lists under that class then carry their new class names.
 
 **2. What should the command line show when it checks an old rule file?**
 

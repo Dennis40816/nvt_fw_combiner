@@ -70,11 +70,12 @@ S7 excludes a whole class while any file is locked, including classes below thes
 | L1 | `feature/1.2.4/bounded-identity-inspection` | `tests/NvtFwCombiner.Application.Tests/Authoring/GeneralSelectedFileContentTests.cs`; `tests/NvtFwCombiner.Application.Tests/Authoring/GeneralSelectedFileSessionLifecycleTests.cs`; `tests/NvtFwCombiner.Infrastructure.Tests/Files/FileContentSnapshotInspectorTests.cs` and branch-added `FileContentSnapshotInspectorTests.BoundedIdentity.cs` (recheck all `FileContentSnapshotInspectorTests*.cs`); `tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.FileIdentity.cs` |
 | L2 | `feature/1.2.4/general-preparation-freshness` | `tests/NvtFwCombiner.Application.Tests/Authoring/GeneralPreparationFreshnessTests.cs` (branch-added; absent from this measured checkout) |
 | L3 | `feature/1.2.6/launcher-entry-typed-reason` | All three current `ManagedLauncherEntryCoordinatorTests` files (`.cs`, `.HealthDeadline.cs`, `.Support.cs`), plus branch-added `.ReviewDiagnostics.cs` and `.TypedDiagnostics.cs`; hold the whole class |
-| L4 (released: merged as `05f1be1ed`) | `feature/1.2.11/t2b-deserialize` (PR #522) | Table 2: `CanonicalCatalogBoundaryTests.CanonicalAdmission.cs`, `HostInfrastructureBoundaryTests.FirstInstallationProgress.cs`, `PresentationBoundaryTests.Localization.cs`, `RepositoryBoundaryTests.cs`; hold all four classes |
-| L5 (released: merged as `10ac919c3`) | `feature/1.2.11/r33-03-rename-batch-1` | One of thirteen renames belongs to Table 2: `LegacyCombinerPostbuildProcessorTestSupport.cs` becomes `LegacyCombinerPostbuildProcessorTests.TestSupport.cs`; hold `LegacyCombinerPostbuildProcessorTests`. The other twelve have no Table 1/2 overlap. |
+| L4 (merged as `05f1be1ed`; no longer held) | `feature/1.2.11/t2b-deserialize` (PR #522) | Table 2: `CanonicalCatalogBoundaryTests.CanonicalAdmission.cs`, `HostInfrastructureBoundaryTests.FirstInstallationProgress.cs`, `PresentationBoundaryTests.Localization.cs`, `RepositoryBoundaryTests.cs`; hold all four classes |
+| L5 (merged as `10ac919c3`; no longer held) | `feature/1.2.11/r33-03-rename-batch-1` | One of thirteen renames belongs to Table 2: `LegacyCombinerPostbuildProcessorTestSupport.cs` becomes `LegacyCombinerPostbuildProcessorTests.TestSupport.cs`; hold `LegacyCombinerPostbuildProcessorTests`. The other twelve have no Table 1/2 overlap. |
 
 The other L1 classes are below 1,500 lines here. Neither planned split intersects these locks.
-L4 and L5 merged after this measurement: their classes are free to schedule again, and the four Architecture
+L4 and L5 merged after this measurement: the "hold" in their rows and the L4/L5 marks in Table 2 describe the
+state at measurement; their classes are free to schedule again, and the four Architecture
 classes are one line shorter on the trunk than the figures in the tables (measure again before planning them).
 The R54 retirement (`docs/handoff/1.2.4/R54-retirement-plan.md`) also changes
 `TrustedProfileBundleCatalogFactoryTests.ReplaceLowering.cs` and `.RuntimeReferenceReplace.cs`; the split of

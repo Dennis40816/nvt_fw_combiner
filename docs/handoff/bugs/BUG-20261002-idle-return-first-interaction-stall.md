@@ -1,4 +1,4 @@
-# BUG-20261002-idle-return-first-interaction-stall: the application seems to stall briefly when used again after a long idle period
+# BUG-20261002-idle-return-first-interaction-stall: the application seems to stall briefly after a long idle period
 
 Status: open; reported; first measurements done, a real idle run is pending
 Severity: P3 until measured (a brief stall; no effect on firmware output)
@@ -46,8 +46,8 @@ on a machine that was also running builds; evidence in the test area under `evid
   (it makes the UI thread touch every element) takes 127 to 283 ms.
 - After emptying the process's working set (from about 257 MB to under 10 MB; this causes soft faults only, the best
   case): the first pointer move takes 1 to 2 ms with about 5,000 to 8,000 page faults for a sweep of 24 moves; the
-  tree walk takes 150 to 235 ms. No noticeable stall.
-- So trimming alone, while the pages are still in memory, does not explain a stall that a person notices. A real
+  tree walk takes 150 to 235 ms. No measurable delay in these two probes; neither measures what is painted.
+- So in these probes trimming alone, while the pages are still in memory, adds no delay a person would notice. A real
   idle run (window minimized for 75 minutes, then restored and measured without artificial trimming) is running;
   hard faults from the page file, the display waking up (cause 2) and a heavy first action (cause 4) are still open.
 Existing records: none for this symptom. R52 (native first-readable latency of the Memory Layout card, `1.2.12`),
