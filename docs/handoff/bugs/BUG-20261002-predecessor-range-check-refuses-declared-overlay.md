@@ -3,7 +3,7 @@
 Status: fixed
 Severity: P2
 Found: 2026-10-02, Claude Code (Opus 5.5), in the R35-09 real-execution rehearsal against `v1.2.1`, at
-`feature/1.2.2/executor-contract`@`2b277c0b6`
+`feature/1.2.2/executor-contract`@`000518df7`
 Where: `scripts/v0916_parity_certification.py`, `validate_semantic_report_ranges`
 Observed: the check refused any two intersecting operation targets, whatever their address space or overlap policy.
 The NT51950 and NT51951 Standard Merge maps copy the DP container and write the TP over part of it with
@@ -15,7 +15,7 @@ a later operation that declares `ReplaceExisting`.
 Evidence: rehearsal run `rolling-7` in the test area (`evidence\1.2.2\p2c\rehearsal`); in `rolling-8` both
 scenarios are `equal`.
 Owner: Claude Code, `feature/1.2.2/executor-contract`
-Resolution: fixed for the comparator in `a574021fe`: `validate_semantic_report_ranges` takes `declared_overlap`
+Resolution: fixed for the comparator in `8d2ae66d9`: `validate_semantic_report_ranges` takes `declared_overlap`
 (default off, terminal behavior unchanged); with it only an operation that declares `ReplaceExisting` may overlap
 an earlier target of its address space. Two tests in `tests/scripts/test_predecessor_comparison.py`. The terminal
 default still refuses the overlay; that is part of `BUG-20261002-adr0057-checks-refuse-written-processor-reports`.
