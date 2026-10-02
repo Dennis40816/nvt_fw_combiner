@@ -698,7 +698,6 @@ internal static class TrustedProfileBundleCatalogFactoryTestSupport
             reason: "Synthetic runtime General Replace mapping");
     }
 
-
     internal static void AssertEquivalentRuntimeExecutionSemantics(
         CompiledComposition expected,
         CompiledComposition actual)

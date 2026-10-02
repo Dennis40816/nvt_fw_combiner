@@ -8,7 +8,6 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 [Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
 public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
-
     /// <summary>Verifies every trusted hash survives and the profile retains its exact normalized family instance.</summary>
     [Fact]
     public void CreatePreservesTrustedHashesAndBindsTheExactNormalizedFamily()

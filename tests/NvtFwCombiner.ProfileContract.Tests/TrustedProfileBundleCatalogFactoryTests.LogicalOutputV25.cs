@@ -8,7 +8,6 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
-
     /// <summary>Verifies logical General Merge lowers through the existing plan and engine without a physical map claim.</summary>
     [Fact]
     public void LogicalOutputLoweringCompilesAndExecutesThroughTheSharedEngine()
