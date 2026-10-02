@@ -11,6 +11,14 @@ def class_name(line: str) -> tuple[str, str] | None:
     return match.groups() if match else None
 
 
+def support_source(path: str, lines: tuple[str, ...], names: set[str]) -> bool:
+    return any(PurePosixPath(path).name == name + ".cs" or
+               re.fullmatch(re.escape(name) + r"\.\w+\.cs", PurePosixPath(path).name)
+               for name in names) and sum(
+                   bool((target := class_name(line)) and target[0].startswith("internal static") and target[1] in names)
+                   for line in code_lines(lines)) == 1
+
+
 def collection(line: str, definition: bool = False) -> bool:
     name = "CollectionDefinition" if definition else "Collection"
     argument = r'(?:nameof\(\w+(?:\.\w+)*\)|"[\w .-]+")'

@@ -14,7 +14,7 @@ from scripts.authority_check import AuthorityError, Git
 
 
 def read_named_pair(*, mutation=False, new_path="New.Topic.cs", declaration="New", extra="",
-                    ambiguous=False, metadata="", context=None):
+                    ambiguous=False, metadata="", context=None, dependencies=None):
     body = "namespace N;\npublic sealed partial class Old\n{\n    [Fact]\n    public void Check() => Assert.Equal(1, Read());\n"
     before = body + "    private static int Read() => 1;\n}\n"
     after = body.replace("class Old", "class " + declaration) + "}\n" + extra
@@ -24,6 +24,7 @@ def read_named_pair(*, mutation=False, new_path="New.Topic.cs", declaration="New
     sources = {"Old.Topic.cs": before, new_path: after, "Support.cs": support}
     names = [("D", "Old.Topic.cs"), ("A", new_path), ("A", "Support.cs")]
     sources.update(context or {})
+    sources.update(dependencies or {})
     if ambiguous:
         sources["Another.Topic.cs"] = after.replace("class New", "class Another")
         names.append(("A", "Another.Topic.cs"))
@@ -41,6 +42,9 @@ def read_named_pair(*, mutation=False, new_path="New.Topic.cs", declaration="New
             return ids[path], sources[path].encode()
 
         def run(self, *arguments):
+            if arguments[0] == "grep":
+                assert arguments[-3:] == ("head", "--", "src")
+                return "".join("head:" + path + "\n" for path in (dependencies or {})).encode()
             if arguments[0] == "ls-tree":
                 paths = (["Old.Topic.cs"] if "base" in arguments else [path for status, path in names if status == "A"])
                 paths += list(context or {})
@@ -211,8 +215,9 @@ def test_moved_helper_with_a_same_named_head_member_is_unclassified(remaining, l
             files.append(changed_file(source, source + "\n", path))
     report = split.e3(files, "Support")
     assert not report["passed"]
-    assert any(item.get("reason") == f"same-named member remains in {path}: overload resolution may change"
-               for item in report["unclassified"])
+    assert any(item["name"] == "Read" and item["file"] == path
+               for item in report["collisions"])
+    assert any(item.get("collision_ids") for item in report["unclassified"])
     assert report["counts"]["helper_move"] == 0
 
 
@@ -235,7 +240,7 @@ def test_moving_the_wider_overload_also_rejects_a_remaining_narrower_overload():
     report = split.e3((changed_file(before, after, "Old.cs"), support), "Support")
     assert not report["passed"]
     assert any("same-named member remains in Old.cs" in item.get("reason", "")
-               for item in report["unclassified"])
+               for item in report["collisions"])
 
 
 def test_git_finds_remaining_members_in_a_partial_with_an_unrelated_filename():
@@ -243,7 +248,7 @@ def test_git_finds_remaining_members_in_a_partial_with_an_unrelated_filename():
     report = split.e3(read_named_pair(context={"OddName.cs": source}), "Support")
     assert not report["passed"]
     assert any("same-named member remains in OddName.cs" in item.get("reason", "")
-               for item in report["unclassified"])
+               for item in report["collisions"])
 
 
 def test_extra_binding_context_does_not_relax_the_existing_collection_rejection():
@@ -264,7 +269,7 @@ def test_an_existing_other_class_inside_the_support_file_is_not_exempt():
     report = split.e3((old, support), "Support")
     assert not report["passed"]
     assert any("same-named member remains in Support.cs" in item.get("reason", "")
-               for item in report["unclassified"])
+               for item in report["collisions"])
 
 
 @pytest.mark.parametrize("origin,passed", [("Old", True), ("Unrelated", False)])

@@ -6,10 +6,12 @@ source paths. E3 is deliberately a conservative C# subset, not a C# parser.
 Unsupported syntax remains unclassified. Counts are signed changed lines,
 except rename, which counts path pairs. This tool establishes neither E2 nor
 E4 to E7. Unchanged lines are not examined for equivalence: a constructor in an
-unchanged root partial that topic classes no longer share is invisible. Paths
-outside --project are not examined. Plain added/removed using directives and
-helper moves get no name-binding check beyond rejecting moved members whose
-simple name remains declared outside the support class in touched/split files.
+unchanged root partial that topic classes no longer share is invisible. Changed
+paths outside --project are not examined; tracked dependency type declarations
+may supply non-delegate proof. Plain added/removed using directives and helper
+moves/conversions get no name-binding check beyond the conservative same-name
+guard. Types use lookup rules (a)-(d); other moves keep the proven nested
+method/non-invocable exception. Both revisions supply type lookup evidence.
 E1 without --mapping does not check the declared new class.
 New support files classify constants and readonly fields as support_member_move;
 established support files retain the legacy helper_move kind for single-line
@@ -43,20 +45,24 @@ from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 
 try:
+    from scripts.split_equivalence_bindings import BindingGuard, captured_collections
+    from scripts.split_equivalence_context import base_context, head_context
     from scripts.split_equivalence_conversion import partial_conversion
     from scripts.authority_check import AuthorityError, Git, strict_json
-    from scripts.split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, pair_moves
+    from scripts.split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, members, pair_moves
     from scripts.split_equivalence_paths import named_split_pairs
     from scripts.split_equivalence_source import (
-        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, declared_names, has_test_attributes,
+        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, has_test_attributes, support_source,
     )
 except ModuleNotFoundError:  # Direct invocation from scripts/.
+    from split_equivalence_bindings import BindingGuard, captured_collections
+    from split_equivalence_context import base_context, head_context
     from split_equivalence_conversion import partial_conversion
     from authority_check import AuthorityError, Git, strict_json
-    from split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, pair_moves
+    from split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, members, pair_moves
     from split_equivalence_paths import named_split_pairs
     from split_equivalence_source import (
-        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, declared_names, has_test_attributes,
+        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, has_test_attributes, support_source,
     )
 
 
@@ -160,6 +166,8 @@ class FileDiff:
     head_sources: tuple[tuple[str, tuple[str, ...]], ...] = ()
     base_sources: tuple[tuple[str, tuple[str, ...]], ...] = ()
     binding_sources: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    type_facts: tuple[tuple[str, str], ...] = ()
+    project_sources: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 def source_lines(text: str) -> tuple[str, ...]:
@@ -266,46 +274,17 @@ def read_diff(git: Git, base: str, head: str, project: str) -> tuple[FileDiff, .
                                     lines=patch_lines(patch) + metadata)
         consumed.add(new_index)
     result = [file for index, file in enumerate(result) if index not in consumed]
-    if any(class_name(line.text) or line.text.startswith("/// <summary>")
-           for file in result for line in file.lines):
-        baseline: set[str] = set()
-        base_sources: list[tuple[str, tuple[str, ...]]] = []
-        paths = git.run("ls-tree", "-r", "-z", "--name-only", base, "--", str(path)).decode("utf-8").split("\0")
-        for name in paths:
-            if not name.endswith(".cs"):
-                continue
-            blob = git.blob(base, name)
-            if blob is None:
-                raise ValueError("missing baseline class source")
-            source = source_lines(blob[1].decode("utf-8"))
-            base_sources.append((name, source))
-            for line in code_lines(source):
-                match = re.match(r"\s*(?:(?:public|internal|private|protected|sealed|static|abstract|partial|unsafe)\s+)*class\s+(\w+)", line)
-                if match:
-                    baseline.add(match[1])
-        result = [replace(file, existing_classes=frozenset(baseline), base_sources=tuple(base_sources)) for file in result]
+    baseline, base_sources = base_context(git, base, path, source_lines)
+    result = [replace(file, existing_classes=baseline, base_sources=base_sources) for file in result]
     roots = {target[1] for file in result for line in code_lines(file.before)
              if (target := class_name(line))}
     roots.update(match[1].rsplit(".", 1)[-1] for file in result for line in file.lines
                  if (match := re.fullmatch(r"global using static (?:global::)?([\w.]+);", line.text)))
-    binding_roots = roots | {target[1] for file in result for line in code_lines(file.after)
-                             if (target := class_name(line))}
     changed = {file.new_path for file in result}
-    context: list[tuple[str, tuple[str, ...]]] = []
-    binding_context: list[tuple[str, tuple[str, ...]]] = []
-    if binding_roots:
-        for name in git.run("ls-tree", "-r", "-z", "--name-only", head, "--", str(path)).decode("utf-8").split("\0"):
-            if name not in changed and name.endswith(".cs"):
-                blob = git.blob(head, name)
-                if blob is None:
-                    raise ValueError("missing head class source")
-                source = source_lines(blob[1].decode("utf-8"))
-                if PurePosixPath(name).name.split(".")[0] in roots:
-                    context.append((name, source))
-                if any(re.search(r"\bclass\s+" + re.escape(root) + r"\b", line)
-                       for root in binding_roots for line in code_lines(source)):
-                    binding_context.append((name, source))
-    result = [replace(file, head_sources=tuple(context), binding_sources=tuple(binding_context)) for file in result]
+    context, binding_context, project_sources, facts = head_context(git, head, path, changed, roots,
+        ((file.new_path, file.after) for file in result if file.status != "D"))
+    result = [replace(file, head_sources=context, binding_sources=binding_context,
+                      project_sources=project_sources, type_facts=facts) for file in result]
     return tuple(result)
 
 
@@ -325,21 +304,6 @@ def definition(lines: tuple[str, ...]) -> bool:
     return (len(content) == 4 and collection(content[0], True)
             and re.fullmatch(r"public sealed class \w+", content[1]) is not None
             and content[2:] == ["{", "}"])
-
-
-def members(lines: tuple[str, ...], include_annotated: bool = False,
-            containers: frozenset[str] = frozenset()) -> tuple[tuple[int, int], ...]:
-    return tuple((m.start, m.end) for m in member_spans(lines, code_lines(lines), include_annotated, containers)
-                 if m.kind == "helper_move" or (m.kind == "support_member_move"
-                                                and " static readonly " in lines[m.start - 1]))
-
-
-def support_source(path: str, lines: tuple[str, ...], names: set[str]) -> bool:
-    return any(PurePosixPath(path).name == name + ".cs" or
-               re.fullmatch(re.escape(name) + r"\.\w+\.cs", PurePosixPath(path).name)
-               for name in names) and sum(
-                   bool((target := class_name(line)) and target[0].startswith("internal static") and target[1] in names)
-                   for line in code_lines(lines)) == 1
 
 
 def skeleton(lines: tuple[str, ...], names: set[str], source_partial: bool = False) -> set[int]:
@@ -402,7 +366,7 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
     summaries: Counter[str] = Counter()
     moved: list[dict[str, str]] = []
     unrelated_moves: list[dict[str, str]] = []
-    reasons: dict[tuple[int, int], str] = {}
+    reasons: dict[tuple[int, int], list[int]] = {}
     for index, file in enumerate(files):
         csharp = file.old_path.endswith(".cs") and file.new_path.endswith(".cs")
         directory_move = PurePosixPath(file.old_path).parent != PurePosixPath(file.new_path).parent
@@ -525,6 +489,10 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
                        if line.side == "+" and collection(line.text, True)
                        and marked.get((index, offset)) == "collection_definition"}
     original_collections = {item for key in source_classes for item in original_memberships.get(key, [])}
+    captures = captured_collections(base_sources, source_identities, new_collections)
+    collection_failures.extend(captures)
+    if captures:
+        marked = {key: kind for key, kind in marked.items() if kind != "collection_definition"}
     if source_classes:
         values = {key: class_memberships.get(key, []) for key in sorted(split_classes)}
         if not single_source or len({tuple(value) for value in values.values()}) != 1 or any(
@@ -548,10 +516,13 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
     added: list[Candidate] = []
     conversion_sources = dict(source for file in files for source in file.binding_sources)
     conversion_sources.update(head_sources)
+    conversions = {}
     for index, file in enumerate(files):
         if index in blocked or not (file.old_path.endswith(".cs") and file.new_path.endswith(".cs")):
             continue
         converted = partial_conversion(file, support_class, source_identities or allowed_origins, conversion_sources)
+        if converted:
+            conversions[index] = converted
         marked.update(((index, offset), kind) for offset, kind in converted.items())
         for side, source, output in (("-", file.before, removed), ("+", file.after, added)):
             if side == "+" and not support_source(file.new_path, file.after, support_names):
@@ -582,22 +553,33 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
     pairs = pair_moves(removed, added)
     moved_types = {new.member.name for old, new in pairs if old.member.kind == "support_type_move"
                    and namespace(files[old.file].before) == namespace(files[new.file].after)}
+    moved_types.update(member.name for index in conversions for member in member_spans(
+        files[index].before, code_lines(files[index].before), True) if member.kind == "support_type_move")
     binding_sources = dict(source for file in files for source in file.binding_sources)
     binding_sources.update(head_sources)
-    remaining_names = {path: declared_names(code_lines(lines), frozenset(support_names | moved_types)
-                                            if support_source(path, lines, support_names) else frozenset())
-                       for path, lines in binding_sources.items() if path.endswith(".cs")}
+    destinations = {(files[new.file].new_path, new.member.start) for old, new in pairs}
+    guard = BindingGuard(binding_sources, support_names, moved_types, destinations,
+                         (fact for file in files for fact in file.type_facts),
+                         (source for file in files for source in file.project_sources),
+                         {files[index].new_path for index in conversions}, files=files,
+                         roots=source_identities or allowed_origins)
+    for index, converted in conversions.items():
+        collisions = [reason for member in member_spans(files[index].before, code_lines(files[index].before), True)
+                      for reason in guard.check(member, files[index].before)]
+        if collisions:
+            for offset in converted:
+                marked.pop((index, offset), None)
+                reasons[index, offset] = list(dict.fromkeys(collisions))
     for old, new in pairs:
         if (namespace(files[old.file].before) is None
                 or namespace(files[old.file].before) != namespace(files[new.file].after)):
             continue
-        collisions = sorted(path for path, names in remaining_names.items() if old.member.name in names)
+        collisions = guard.check(old.member, files[old.file].before)
         if collisions:
-            reason = f"same-named member remains in {collisions[0]}: overload resolution may change"
             for candidate in (old, new):
                 for offset in candidate.positions:
                     marked.pop((candidate.file, offset), None)
-                    reasons[candidate.file, offset] = reason
+                    reasons[candidate.file, offset] = collisions
             continue
         kind = old.member.kind
         # Preserve the pre-existing single-line field kind in established support files.
@@ -646,9 +628,11 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
             else:
                 unclassified.append({"file": file.old_path if line.side == "-" else file.new_path,
                                      "side": line.side, "line": line.number, "text": line.text,
-                                     **({"reason": reasons[index, offset]} if (index, offset) in reasons else {})})
+                                     **({"reason": "same-named member collision; see collisions",
+                                         "collision_ids": reasons[index, offset]} if (index, offset) in reasons else {})})
     return {"passed": not (unclassified or collection_failures or unrelated_moves), "changed_paths": len(files), "counts": counts,
             "unclassified": unclassified, "collection_consistency": collection_failures, "moves": moved,
+            "collisions": list(guard.collisions.values()),
             "moves_from_unrelated_classes": unrelated_moves}
 
 

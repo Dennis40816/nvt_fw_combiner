@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import difflib
-import os
 import tempfile
 from dataclasses import replace
 from pathlib import Path

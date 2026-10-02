@@ -6,6 +6,11 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+try:
+    from scripts.split_equivalence_source import code_lines
+except ModuleNotFoundError:
+    from split_equivalence_source import code_lines
+
 
 @dataclass(frozen=True)
 class Member:
@@ -91,6 +96,13 @@ class Candidate:
     positions: tuple[int, ...]
     prefix: tuple[str, ...] = ()
     prefix_positions: tuple[int, ...] = ()
+
+
+def members(lines: tuple[str, ...], include_annotated: bool = False,
+            containers: frozenset[str] = frozenset()) -> tuple[tuple[int, int], ...]:
+    return tuple((m.start, m.end) for m in member_spans(lines, code_lines(lines), include_annotated, containers)
+                 if m.kind == "helper_move" or (m.kind == "support_member_move"
+                                                and " static readonly " in lines[m.start - 1]))
 
 
 def canonical_body(lines: tuple[str, ...], member: Member, removed: bool) -> tuple[str, ...] | None:

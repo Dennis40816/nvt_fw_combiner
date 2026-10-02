@@ -138,11 +138,18 @@ def test_conversion_requires_same_existing_path_source_partial_and_explicit_supp
     assert report["counts"].get("support_partial_conversion", 0) == 0
 
 
-def test_real_second_split_classifies_conversions_and_retains_the_state_collision(monkeypatch, capsys):
+def test_real_second_split_accepts_unrelated_nested_type_names_with_pinned_counts(monkeypatch, capsys):
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     expected = json.loads(text("version-management-real.json"))
     require_split_commits(expected)
+    guards = []
+    original = split.BindingGuard
+    def capture_guard(*args, **kwargs):
+        guard = original(*args, **kwargs)
+        guards.append(guard)
+        return guard
+    monkeypatch.setattr(split, "BindingGuard", capture_guard)
     assert split.main(["e3", "--base", expected["base"], "--head", expected["head"],
                        "--project", expected["project"], "--support-class", expected["support_class"]]) == expected["exit_code"]
     report = json.loads(capsys.readouterr().out)
@@ -151,4 +158,18 @@ def test_real_second_split_classifies_conversions_and_retains_the_state_collisio
     classified = sum(value for kind, value in report["counts"].items() if kind != "rename")
     assert classified + len(report["unclassified"]) == expected["changed_lines"]
     assert report["unclassified"] == expected["unclassified"]
+    assert report["passed"] == (expected["exit_code"] == 0)
+    assert report["collisions"] == expected["collisions"]
+    assert all(item["name"] != "State" for item in report["collisions"])
+    assert any(item["name"] == "State" and item["kind"] == "helper_move" for item in report["moves"])
     assert report["collection_consistency"] == report["moves_from_unrelated_classes"] == []
+    guard, = guards
+    for expected_declaration in expected["nonblocking_declarations"]:
+        matches = [(path, item, lines) for path, item, lines in guard.entries
+                   if (path, item.name, item.declaring_type, item.line) == (
+                       expected_declaration["file"], expected_declaration["name"],
+                       expected_declaration["declaring_type"], expected_declaration["line"])]
+        (path, item, lines), = matches
+        assert item.nested and item.kind == "type"
+        assert expected_declaration["rule"] == "c"
+        assert guard.lookup.rule(path, item, lines) is None
