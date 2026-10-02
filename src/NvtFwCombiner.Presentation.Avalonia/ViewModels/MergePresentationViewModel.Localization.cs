@@ -38,7 +38,7 @@ internal sealed partial class MergePresentationViewModel
             if (AbMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
             {
                 slot.ApplyDisplayText(
-                    ShellTextResources.GetAbSlotTitle(input.Role),
+                    ShellTextResources.GetAbSlotTitle(input.RoleKind, input.Role),
                     Text.GetAbSlotDescription(input),
                     Text.RequiredLabel,
                     Text.OptionalLabel,

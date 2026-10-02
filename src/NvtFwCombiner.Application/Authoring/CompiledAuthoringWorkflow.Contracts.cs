@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
@@ -65,7 +66,11 @@ public sealed record CompiledAuthoringInputBinding(
     string AddressSpaceId,
     string Role = "",
     long? RequiredEndExclusive = null,
-    IReadOnlyList<long>? ExpectedOuterLengths = null);
+    IReadOnlyList<long>? ExpectedOuterLengths = null)
+{
+    /// <summary>Application-owned typed role; <see cref="Role"/> retains an unrecognized declaration.</summary>
+    public CompiledInputRole RoleKind => CompiledInputArtifactObservationService.GetRole(Role);
+}
 
 /// <summary>Application-owned picker projection for one authoring revision.</summary>
 public sealed record CompiledAuthoringSelectionSnapshot(

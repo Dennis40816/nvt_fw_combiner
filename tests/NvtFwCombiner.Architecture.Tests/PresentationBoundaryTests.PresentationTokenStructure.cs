@@ -50,6 +50,31 @@ public sealed partial class PresentationBoundaryTests
         }
     }
 
+    /// <summary>Input cards consume Application-owned role and artifact keys without duplicating identity tables.</summary>
+    [Fact]
+    public void InputCardsUseApplicationTypedRolesAndLabelKeys()
+    {
+        string presentationSource = ReadPresentationSources();
+        string requirements = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Requirements.cs");
+        string dynamicText = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs");
+
+        Assert.Contains("input.RoleKind == CompiledInputRole.DpAb", requirements, StringComparison.Ordinal);
+        Assert.Contains("MemoryLayoutProjector.GetArtifactKind(addressSpaceId)", requirements, StringComparison.Ordinal);
+        Assert.Contains("ShellTextResources.GetRequiredInputLabel", requirements, StringComparison.Ordinal);
+        Assert.DoesNotContain("addressSpaceId switch", requirements, StringComparison.Ordinal);
+        Assert.Contains("GetAbSlotTitle(CompiledInputRole role, string rawRole)", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("input.RoleKind", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("MemoryArtifactKind.Dp => \"DP\"", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("MemoryArtifactKind.Tp => \"TP\"", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("MemoryArtifactKind.Ldc => \"LDC\"", dynamicText, StringComparison.Ordinal);
+        foreach (string roleLiteral in new[] { "\"dp-ab\"", "\"tp-a\"", "\"tp-b\"" })
+        {
+            Assert.DoesNotContain(roleLiteral, presentationSource, StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>Verifies Presentation receives workbench slot ids through Bootstrap instead of duplicating strings.</summary>
     [Fact]
     public void PresentationUsesBootstrapSlotIds()

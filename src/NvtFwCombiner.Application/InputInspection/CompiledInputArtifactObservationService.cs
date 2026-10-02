@@ -4,6 +4,25 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.InputInspection;
 
+/// <summary>Known compiled input roles; unknown declarations retain their original identity.</summary>
+public enum CompiledInputRole
+{
+    /// <summary>No recognized compiled role.</summary>
+    Unknown,
+
+    /// <summary>Complete two-bank DP container.</summary>
+    DpAb,
+
+    /// <summary>Immutable reference base image.</summary>
+    ReferenceBase,
+
+    /// <summary>TP payload for bank A.</summary>
+    TpA,
+
+    /// <summary>TP payload for bank B.</summary>
+    TpB,
+}
+
 /// <summary>Closed version facts decoded from one compiled input role.</summary>
 public enum CompiledInputVersionKind
 {
@@ -92,12 +111,25 @@ public sealed class CompiledInputArtifactObservationResult
 }
 
 /// <summary>Application-owned observation policy selected only by compiled role and naming contracts.</summary>
-internal static class CompiledInputArtifactObservationService
+public static class CompiledInputArtifactObservationService
 {
     private const string DpRole = "dp-ab";
     private const string ReferenceBaseRole = "reference-base";
     private const string TpARole = "tp-a";
     private const string TpBRole = "tp-b";
+
+    /// <summary>Projects the exact compiled role id; unrecognized ids remain unknown without normalization.</summary>
+    public static CompiledInputRole GetRole(string? role)
+    {
+        return role switch
+        {
+            DpRole => CompiledInputRole.DpAb,
+            ReferenceBaseRole => CompiledInputRole.ReferenceBase,
+            TpARole => CompiledInputRole.TpA,
+            TpBRole => CompiledInputRole.TpB,
+            _ => CompiledInputRole.Unknown,
+        };
+    }
 
     internal static CompiledInputArtifactObservationResult Observe(
         CompiledComposition composition,

@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -176,14 +178,14 @@ internal sealed partial class MergePresentationViewModel
             {
                 slot = new FirmwareSlotViewModel(
                     input.SlotId,
-                    ShellTextResources.GetAbSlotTitle(input.Role),
+                    ShellTextResources.GetAbSlotTitle(input.RoleKind, input.Role),
                     Text.GetAbSlotDescription(input),
-                    input.Role == "dp-ab" ? FirmwareSlotKind.Dp : FirmwareSlotKind.Tp);
+                    input.RoleKind == CompiledInputRole.DpAb ? FirmwareSlotKind.Dp : FirmwareSlotKind.Tp);
                 _abMergeSlotsByAddressSpace.Add(input.AddressSpaceId, slot);
             }
 
             slot.ApplyDisplayText(
-                ShellTextResources.GetAbSlotTitle(input.Role),
+                ShellTextResources.GetAbSlotTitle(input.RoleKind, input.Role),
                 Text.GetAbSlotDescription(input),
                 Text.RequiredLabel,
                 Text.OptionalLabel,
@@ -229,13 +231,11 @@ internal sealed partial class MergePresentationViewModel
 
     private static string AddressSpaceLabel(string addressSpaceId)
     {
-        return addressSpaceId switch
-        {
-            CompositionAddressSpaceIds.DpInput => "DP",
-            CompositionAddressSpaceIds.TpInput => "TP",
-            CompositionAddressSpaceIds.LdcInput => "LDC",
-            _ => addressSpaceId,
-        };
+        MemoryArtifactKind artifactKind =
+            MemoryLayoutProjector.GetArtifactKind(addressSpaceId);
+        return ShellTextResources.GetRequiredInputLabel(
+            artifactKind,
+            addressSpaceId);
     }
 
     private bool CanRunStandardMerge()

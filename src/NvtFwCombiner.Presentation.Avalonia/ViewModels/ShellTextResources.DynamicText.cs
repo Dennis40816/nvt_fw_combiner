@@ -210,44 +210,45 @@ internal sealed partial class ShellTextResources
                 $"Family：{family.FamilyId}\n可沿用範圍：{family.Scope}\nFamily 關係本身不會擴張可執行的 firmware range。");
     }
 
-    public static string GetAbSlotTitle(string role)
+    public static string GetAbSlotTitle(CompiledInputRole role, string rawRole)
     {
         return role switch
         {
-            "dp-ab" => "DP_AB BIN",
-            "tp-a" => "TPA BIN",
-            "tp-b" => "TPB BIN",
-            _ => throw new InvalidOperationException($"Unknown AB input role '{role}'."),
+            CompiledInputRole.DpAb => "DP_AB BIN",
+            CompiledInputRole.TpA => "TPA BIN",
+            CompiledInputRole.TpB => "TPB BIN",
+            CompiledInputRole.Unknown or CompiledInputRole.ReferenceBase => throw new InvalidOperationException($"Unknown AB input role '{rawRole}'."),
+            _ => throw new InvalidOperationException($"Unknown AB input role '{rawRole}'."),
         };
     }
 
     public string GetAbSlotDescription(CompiledAuthoringInputBinding input)
     {
         ArgumentNullException.ThrowIfNull(input);
-        if (input.RequiredEndExclusive is null)
+        string? size = input.RequiredEndExclusive is { } length ? FormatInputLength(length) : null;
+        string description = (input.RoleKind, size is null) switch
         {
-            string role = input.Role switch
-            {
-                "dp-ab" => SelectLanguage("Complete two-bank DP container.", "完整雙 bank DP container。"),
-                "tp-a" => SelectLanguage("Touch payload for bank A.", "Bank A 的 Touch payload。"),
-                "tp-b" => SelectLanguage("Touch payload for bank B.", "Bank B 的 Touch payload。"),
-                _ => throw new InvalidOperationException($"Unknown AB input role '{input.Role}'."),
-            };
-            return role + SelectLanguage(" Size requirements are available after format detection.", " 偵測格式後顯示尺寸需求。");
-        }
-        string size = FormatInputLength(input.RequiredEndExclusive.Value);
-        return input.Role switch
-        {
-            "dp-ab" => SelectLanguage(
-                $"Complete two-bank DP container. Required prefix: {size}.",
-                $"完整雙 bank DP container；必要 prefix：{size}。"),
-            "tp-a" => SelectLanguage(
-                $"Touch payload for bank A. Required prefix: {size}.",
-                $"Bank A 的 Touch payload；必要 prefix：{size}。"),
-            "tp-b" => SelectLanguage(
-                $"Touch payload for bank B; relocation uses the compiled plan. Required prefix: {size}.",
-                $"Bank B 的 Touch payload；relocation 由 compiled plan 定義。必要 prefix：{size}。"),
+            (CompiledInputRole.DpAb, true) => SelectLanguage("Complete two-bank DP container.", "完整雙 bank DP container。"),
+            (CompiledInputRole.TpA, true) => SelectLanguage("Touch payload for bank A.", "Bank A 的 Touch payload。"),
+            (CompiledInputRole.TpB, true) => SelectLanguage("Touch payload for bank B.", "Bank B 的 Touch payload。"),
+            (CompiledInputRole.DpAb, false) => SelectLanguage($"Complete two-bank DP container. Required prefix: {size}.", $"完整雙 bank DP container；必要 prefix：{size}。"),
+            (CompiledInputRole.TpA, false) => SelectLanguage($"Touch payload for bank A. Required prefix: {size}.", $"Bank A 的 Touch payload；必要 prefix：{size}。"),
+            (CompiledInputRole.TpB, false) => SelectLanguage($"Touch payload for bank B; relocation uses the compiled plan. Required prefix: {size}.", $"Bank B 的 Touch payload；relocation 由 compiled plan 定義。必要 prefix：{size}。"),
             _ => throw new InvalidOperationException($"Unknown AB input role '{input.Role}'."),
+        };
+        return size is null ? description + SelectLanguage(" Size requirements are available after format detection.", " 偵測格式後顯示尺寸需求。") : description;
+    }
+
+    public static string GetRequiredInputLabel(MemoryArtifactKind artifactKind, string addressSpaceId)
+    {
+        return artifactKind switch
+        {
+            MemoryArtifactKind.Dp => "DP",
+            MemoryArtifactKind.Tp => "TP",
+            MemoryArtifactKind.Ldc => "LDC",
+            MemoryArtifactKind.Other or MemoryArtifactKind.DpReplacement or MemoryArtifactKind.LdcReplacement or
+                MemoryArtifactKind.Reference or MemoryArtifactKind.DpAb or MemoryArtifactKind.TpA or MemoryArtifactKind.TpB or MemoryArtifactKind.TpBWork => addressSpaceId,
+            _ => addressSpaceId,
         };
     }
 
