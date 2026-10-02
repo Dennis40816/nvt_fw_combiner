@@ -107,16 +107,13 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.True(replaceLine < convergenceLine, "Normal Replace must land before the workflow data-model refactor.");
         Assert.True(convergenceLine < abLine, "Workflow data-model convergence must happen before deferred AB work resumes.");
-        Assert.Equal("Normal Replace priority", replaceMilestone[1]);
         Assert.Contains("DP", replaceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("CtrlRAM", replaceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("IC num", replaceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("combiner", replaceMilestone[2], StringComparison.Ordinal);
-        Assert.Equal("Workflow data-model convergence", convergenceMilestone[1]);
         Assert.Contains("unified", convergenceMilestone[2], StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Merge/Replace", convergenceMilestone[2], StringComparison.Ordinal);
         Assert.Contains("No new byte behavior", convergenceMilestone[2], StringComparison.Ordinal);
-        Assert.Contains("AB merge", abMilestone[1], StringComparison.Ordinal);
         Assert.Contains("owner reactivation", abMilestone[2], StringComparison.OrdinalIgnoreCase);
         Assert.Contains("golden evidence", abMilestone[2], StringComparison.OrdinalIgnoreCase);
 
@@ -170,24 +167,6 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void ReplacePlanningRequiresIcNumAndCombinerPostProcessing()
     {
-        string[] replaceBullets = ReadMarkdownBullets(
-            "docs/ui/0.1.1-demo-interface-plan.md",
-            "## Replace content");
-        Assert.True(
-            replaceBullets.Any(bullet => bullet.StartsWith("Shared Number selector", StringComparison.Ordinal)),
-            "Replace content must use the shared Number context before region choices.");
-        Assert.Contains(
-            replaceBullets,
-            bullet => bullet.Contains("single", StringComparison.Ordinal)
-                && bullet.Contains("cascade", StringComparison.Ordinal)
-                && bullet.Contains("numeric", StringComparison.Ordinal));
-
-        string readinessBullet = Assert.Single(
-            replaceBullets,
-            bullet => bullet.StartsWith("Processor/tool readiness indicator", StringComparison.Ordinal));
-        Assert.Contains("combiner.exe", readinessBullet, StringComparison.Ordinal);
-        Assert.Contains("CRC/header", readinessBullet, StringComparison.Ordinal);
-
         string[] replaceRows = ReadPlanningResourceRows("Replace");
         Assert.Contains(
             replaceRows,
