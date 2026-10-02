@@ -446,7 +446,7 @@ present and `PREDECESSOR_PROCESS_FAILED` otherwise.
 
 Each side must pass per-side execution safety before its result counts. The
 owners are the ADR 0057 functions in `scripts/v0916_parity_certification.py`,
-reused unchanged:
+reused without a second implementation:
 
 1. **Independent compiled authority.** A typed Preview of the same executor
    with the same staged inputs and arguments produces the compiled operations
@@ -462,8 +462,15 @@ reused unchanged:
    gives each row the sequence its own report declares for that operation
    before the order check; a row that names an undeclared operation fails it.
 2. **Report ranges.** `validate_semantic_report_ranges` checks that every
-   range is half-open, inside its address space's capacity, non-overlapping
-   and contained in its operation.
+   range is half-open, inside its address space's capacity and contained in
+   its operation, and that a processor's read ranges and its write ranges do
+   not overlap among themselves. Operation targets are compared inside their
+   own address space, in operation order: a target may overlap an earlier
+   target only when its operation declares the `ReplaceExisting` overlap
+   policy, as a map does when it copies the DP container and writes the TP
+   over part of it. Any other overlap is refused. The comparator asks for
+   this rule with the function's `declared_overlap` option; the ADR 0057
+   terminal path keeps its default, which refuses every overlap.
 3. **Capture.** The report agrees with the captured inputs and output, and a
    side that produced an output carries no `error` issue. A Preview, or a run
    that stops before it writes, describes the output it would write with
