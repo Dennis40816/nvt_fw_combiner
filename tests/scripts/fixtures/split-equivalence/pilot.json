@@ -14,7 +14,8 @@
     "blank": 7,
     "support_member_move": 0,
     "support_type_move": 0,
-    "support_file_skeleton": 0
+    "support_file_skeleton": 0,
+    "emptied_partial_removed": 0
   },
   "unclassified": []
 }

@@ -34,10 +34,12 @@ from pathlib import Path, PurePosixPath
 
 try:
     from scripts.authority_check import AuthorityError, Git, strict_json
-    from scripts.split_equivalence_moves import Candidate, canonical_body, member_spans, pair_moves
+    from scripts.split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, pair_moves
+    from scripts.split_equivalence_paths import named_split_pairs
 except ModuleNotFoundError:  # Direct invocation from scripts/.
     from authority_check import AuthorityError, Git, strict_json
-    from split_equivalence_moves import Candidate, canonical_body, member_spans, pair_moves
+    from split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, pair_moves
+    from split_equivalence_paths import named_split_pairs
 
 
 @dataclass(frozen=True)
@@ -228,6 +230,21 @@ def read_diff(git: Git, base: str, head: str, project: str) -> tuple[FileDiff, .
         result.append(FileDiff(status, old_path, new_path,
                                source_lines(before[1].decode("utf-8")) if before else (),
                                source_lines(after[1].decode("utf-8")) if after else (), patch_lines(patch)))
+    pairs = named_split_pairs([(file.status, file.old_path if file.status == "D" else file.new_path,
+                                code_lines(file.before if file.status == "D" else file.after)) for file in result])
+    consumed: set[int] = set()
+    for old_index, new_index in pairs:
+        old, new = result[old_index], result[new_index]
+        before, after = git.blob(base, old.old_path), git.blob(head, new.new_path)
+        if before is None or after is None:
+            raise ValueError("missing named split source blob")
+        # Compare the two blobs directly; do not relax rename detection for other paths.
+        patch = git.run("diff", *options, "-U0", before[0], after[0]).decode("utf-8")
+        metadata = tuple(line for file in (old, new) for line in file.lines if line.side == "!")
+        result[old_index] = replace(old, status="R", new_path=new.new_path, after=new.after,
+                                    lines=patch_lines(patch) + metadata)
+        consumed.add(new_index)
+    result = [file for index, file in enumerate(result) if index not in consumed]
     if any(class_name(line.text) or line.text.startswith("/// <summary>")
            for file in result for line in file.lines):
         baseline: set[str] = set()
@@ -331,17 +348,18 @@ def support_source(path: str, lines: tuple[str, ...], names: set[str]) -> bool:
                    for line in code_lines(lines)) == 1
 
 
-def skeleton(lines: tuple[str, ...], names: set[str]) -> set[int]:
+def skeleton(lines: tuple[str, ...], names: set[str], source_partial: bool = False) -> set[int]:
     clean = code_lines(lines)
     declarations = [i for i, line in enumerate(clean) if (target := class_name(line))
-                    and target[0].startswith("internal static") and target[1] in names]
+                    and (target[0] == "public sealed partial class" if source_partial else
+                         target[0].startswith("internal static")) and target[1] in names]
     if len(declarations) != 1 or namespace(lines) is None:
         return set()
     start = declarations[0]
     if start + 1 >= len(lines) or lines[start + 1] != "{":
         return set()
     allowed = {start + 1, start + 2}
-    if start and re.fullmatch(r"/// <summary>.+</summary>", lines[start - 1]):
+    if not source_partial and start and re.fullmatch(r"/// <summary>.+</summary>", lines[start - 1]):
         allowed.add(start)
     depth = 0
     closed = False
@@ -352,7 +370,7 @@ def skeleton(lines: tuple[str, ...], names: set[str]) -> set[int]:
             allowed.add(i + 1)
             closed = True
         depth += line.count("{") - line.count("}")
-    return allowed
+    return allowed if not source_partial or (closed and depth == 0) else set()
 
 
 def memberships(sources: dict[str, tuple[str, ...]]) -> dict[tuple[PurePosixPath, str], list[str]]:
@@ -375,7 +393,7 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
         raise ValueError("no changed path in project")
     kinds = ("rename", "class_declaration", "summary", "using", "support_accessibility",
              "helper_move", "collection_attribute", "collection_definition", "blank",
-             "support_member_move", "support_type_move", "support_file_skeleton")
+             "support_member_move", "support_type_move", "support_file_skeleton", "emptied_partial_removed")
     counts = dict.fromkeys(kinds, 0)
     marked: dict[tuple[int, int], str] = {}
     old_classes = {value[1] for file in files for line in code_lines(file.before) if (value := class_name(line))}
@@ -433,7 +451,8 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
                     marked[key] = "blank"
             elif not (before_code if line.side == "-" else after_code)[line.number - 1].strip():
                 continue
-            elif (line.side == "+" and using(line.text, support_identity)
+            elif (using(line.text, support_identity)
+                  and file.status != "D"
                   and (not (is_support and file.status == "A") or line.number in support_skeleton)):
                 marked[key] = "using"
             elif line.side == "+" and line.number in support_skeleton:
@@ -529,10 +548,10 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
             if side == "+" and not support_source(file.new_path, file.after, support_names):
                 continue
             for member in member_spans(source, code_lines(source), containers=frozenset(support_names)):
-                positions = tuple(offset for offset, line in enumerate(file.lines)
-                                  if line.side == side and member.start <= line.number <= member.end)
-                if len(positions) != member.end - member.start + 1 or any(
-                        marked.get((index, p)) not in {None, "blank"} for p in positions):
+                changed = {line.number: offset for offset, line in enumerate(file.lines) if line.side == side}
+                available = {offset for offset in changed.values() if marked.get((index, offset)) in {None, "blank"}}
+                positions = member_positions(source, member, changed, available)
+                if positions is None:
                     continue
                 body = canonical_body(source, member, side == "-")
                 if body is None:
@@ -570,6 +589,21 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
                     marked[candidate.file, offset] = kind
         moved.append({"kind": kind, "name": old.member.name,
                       "old_file": files[old.file].old_path, "new_file": files[new.file].new_path})
+    move_kinds = {"helper_move", "support_member_move", "support_type_move"}
+    for index, file in enumerate(files):
+        if file.status != "D" or index in blocked or not single_source:
+            continue
+        directory, name = next(iter(source_classes))
+        if PurePosixPath(file.old_path).parent != directory or (namespace(file.before), name) not in source_identities:
+            continue
+        allowed = skeleton(file.before, {name}, source_partial=True)
+        if (allowed and any(marked.get((index, offset)) in move_kinds for offset in range(len(file.lines)))
+                and all(line.side == "-" and not line.text.endswith("\r") and
+                        (line.number in allowed or marked.get((index, offset)) in move_kinds | {"blank"})
+                        for offset, line in enumerate(file.lines))):
+            for offset, line in enumerate(file.lines):
+                if line.number in allowed:
+                    marked[index, offset] = "emptied_partial_removed"
     unclassified: list[dict[str, object]] = []
     for index, file in enumerate(files):
         if file.status == "R" and not (file.old_path.endswith(".cs") and file.new_path.endswith(".cs")):

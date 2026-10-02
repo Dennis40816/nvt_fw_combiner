@@ -168,7 +168,8 @@
       "blank": 0,
       "support_member_move": 14,
       "support_type_move": 6,
-      "support_file_skeleton": 5
+      "support_file_skeleton": 5,
+      "emptied_partial_removed": 0
     }
   },
   {
@@ -332,7 +333,8 @@
       "blank": 0,
       "support_member_move": 6,
       "support_type_move": 16,
-      "support_file_skeleton": 5
+      "support_file_skeleton": 5,
+      "emptied_partial_removed": 0
     }
   }
 ]

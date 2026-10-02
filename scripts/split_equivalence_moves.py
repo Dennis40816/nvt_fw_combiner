@@ -110,11 +110,47 @@ def canonical_body(lines: tuple[str, ...], member: Member, removed: bool) -> tup
 def pair_moves(removed: Sequence[Candidate], added: Sequence[Candidate]) -> tuple[tuple[Candidate, Candidate], ...]:
     available = list(added)
     pairs: list[tuple[Candidate, Candidate]] = []
+    used: set[tuple[int, int]] = set()
     for old in removed:
         for index, new in enumerate(available):
             if (old.file != new.file and old.member.kind == new.member.kind
-                    and old.body == new.body):
+                    and old.body == new.body and not any((candidate.file, position) in used
+                        for candidate in (old, new) for position in candidate.positions)):
                 pairs.append((old, new))
                 available.pop(index)
+                used.update((candidate.file, position) for candidate in (old, new) for position in candidate.positions)
                 break
     return tuple(pairs)
+
+
+def member_positions(source: tuple[str, ...], member: Member, changed: dict[int, int],
+                     available: set[int]) -> tuple[int, ...] | None:
+    """Reanchor identical lines only when the complete preserved stream is equal.
+
+    Git can keep a moved member's closing brace and delete an earlier identical
+    brace. Exchange their attribution, never their text. The declaration must
+    itself change, and full canonical member comparison still decides a move.
+    """
+    if member.start not in changed or changed[member.start] not in available:
+        return None
+    positions = {number: changed[number] for number in range(member.start, member.end + 1) if number in changed}
+    if any(offset not in available for offset in positions.values()):
+        return None
+    deleted = set(changed)
+    kept = tuple(line for number, line in enumerate(source, 1) if number not in deleted)
+    for missing in range(member.start, member.end + 1):
+        if missing in positions:
+            continue
+        alternatives = sorted((number for number, offset in changed.items()
+                               if not member.start <= number <= member.end and offset in available
+                               and number in deleted and source[number - 1] == source[missing - 1]),
+                              key=lambda number: abs(number - missing))
+        for number in alternatives:
+            replacement = (deleted - {number}) | {missing}
+            if tuple(line for i, line in enumerate(source, 1) if i not in replacement) == kept:
+                positions[missing] = changed[number]
+                deleted = replacement
+                break
+        else:
+            return None
+    return tuple(positions[number] for number in range(member.start, member.end + 1))

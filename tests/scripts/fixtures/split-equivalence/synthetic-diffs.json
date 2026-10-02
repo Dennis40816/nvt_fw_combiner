@@ -24,7 +24,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": []
   },
@@ -61,7 +62,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": []
   },
@@ -80,12 +82,12 @@
         }
       }
     ],
-    "passed": false,
+    "passed": true,
     "counts": {
       "rename": 0,
       "class_declaration": 0,
       "summary": 0,
-      "using": 1,
+      "using": 2,
       "support_accessibility": 0,
       "helper_move": 0,
       "collection_attribute": 0,
@@ -93,16 +95,10 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
-    "unclassified": [
-      {
-        "file": "Old.Topic.cs",
-        "side": "-",
-        "line": 1,
-        "text": "using System;"
-      }
-    ]
+    "unclassified": []
   },
   {
     "name": "blank",
@@ -129,7 +125,8 @@
       "blank": 1,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": []
   },
@@ -158,7 +155,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": []
   },
@@ -195,7 +193,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": []
   },
@@ -232,7 +231,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": []
   },
@@ -261,7 +261,8 @@
       "blank": 1,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": []
   },
@@ -290,7 +291,8 @@
       "blank": 1,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -356,7 +358,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -392,7 +395,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -428,7 +432,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -470,7 +475,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -512,7 +518,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -562,7 +569,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -640,7 +648,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -682,7 +691,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -718,7 +728,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -760,7 +771,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
@@ -804,7 +816,8 @@
       "blank": 0,
       "support_member_move": 0,
       "support_type_move": 0,
-      "support_file_skeleton": 0
+      "support_file_skeleton": 0,
+      "emptied_partial_removed": 0
     },
     "unclassified": [
       {
