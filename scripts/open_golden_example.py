@@ -25,6 +25,10 @@ CROSS_CASE_EXAMPLES = {
 }
 
 
+class AliasCaseError(ValueError):
+    """An evidence alias cannot be opened as a firmware example."""
+
+
 def cases() -> dict[str, dict]:
     found = {}
     for path in GOLDEN.glob("**/provenance/case.json"):
@@ -71,6 +75,12 @@ def number(case: dict) -> str:
 
 
 def launch_args(case: dict) -> list[str]:
+    if "artifacts" not in case and "alias" in case:
+        source_id = case["alias"]["sourceCaseId"]
+        raise AliasCaseError(
+            f"{case['caseId']}: alias of {source_id}; "
+            f"open source case '{source_id}' instead"
+        )
     workflow = case["workflow"]
     args = ["--workflow", workflow, "--ic", case["ic"], "--ic-num", number(case)]
     if workflow == "standard-merge":
@@ -148,6 +158,9 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
+    except AliasCaseError as error:
+        print(f"error: {error}", file=sys.stderr)
+        sys.exit(2)
     except (OSError, ValueError, KeyError) as error:
         print(f"error: {error}", file=sys.stderr)
         sys.exit(1)
