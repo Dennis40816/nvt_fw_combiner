@@ -311,6 +311,41 @@ public sealed class PredecessorComparisonSchemaContractTests
         return data;
     }
 
+    /// <summary>Payload-free synthetic reports produced by the rolling builder.</summary>
+    public static TheoryData<string> RollingFixtureNames =>
+    [
+        "rolling-equal.json",
+        "rolling-declared.json",
+        "rolling-undeclared.json",
+    ];
+
+    /// <summary>Each rolling report the comparator's builder writes satisfies the report schema.</summary>
+    /// <param name="fixtureName">Fixture file under <c>tests/scripts/fixtures/predecessor-comparison</c>.</param>
+    [Theory]
+    [MemberData(nameof(RollingFixtureNames))]
+    public void RollingBuilderFixtureSatisfiesDraft202012Schema(string fixtureName)
+    {
+        string path = RepositoryPaths.FromRepositoryRoot(
+            "tests", "scripts", "fixtures", "predecessor-comparison", fixtureName);
+        JsonNode document = JsonNode.Parse(File.ReadAllText(path))!;
+
+        Assert.True(IsValid(ReportSchema, document), $"{fixtureName} must satisfy {ReportSchema}.");
+    }
+
+    /// <summary>Each synthetic milestone report written by the builder satisfies the report schema.</summary>
+    /// <param name="fixtureName">Fixture file under <c>tests/scripts/fixtures/predecessor-comparison</c>.</param>
+    [Theory]
+    [InlineData("v0916-consistent.json")]
+    [InlineData("v0916-inconsistent.json")]
+    public void V0916BuilderFixtureSatisfiesDraft202012Schema(string fixtureName)
+    {
+        string path = RepositoryPaths.FromRepositoryRoot(
+            "tests", "scripts", "fixtures", "predecessor-comparison", fixtureName);
+        JsonNode document = JsonNode.Parse(File.ReadAllText(path))!;
+
+        Assert.True(IsValid(ReportSchema, document), $"{fixtureName} must satisfy {ReportSchema}.");
+    }
+
     /// <summary>Internally consistent reports and declarations of both modes.</summary>
     public static TheoryData<string> ExampleNames()
     {

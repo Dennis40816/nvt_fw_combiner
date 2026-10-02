@@ -26,7 +26,11 @@ try:
         ParityError,
         canonical_json_sha256,
         cli_selection_token,
+        compare_approved_semantic_correction_payloads,
         compare_transitive_payloads,
+        validate_report_sequence,
+        validate_report_projection_against_compiled_authority,
+        validate_semantic_report_ranges,
     )
 except ModuleNotFoundError as error:
     if error.name != "scripts":
@@ -38,7 +42,11 @@ except ModuleNotFoundError as error:
         ParityError,
         canonical_json_sha256,
         cli_selection_token,
+        compare_approved_semantic_correction_payloads,
         compare_transitive_payloads,
+        validate_report_sequence,
+        validate_report_projection_against_compiled_authority,
+        validate_semantic_report_ranges,
     )
 
 
@@ -91,6 +99,259 @@ class Failure(NamedTuple):
 
 def _failure(code: str, subject: str, detail: str) -> Failure:
     return Failure(f"PREDECESSOR_{code}", subject, detail)
+
+
+class SideProcessEvidence(NamedTuple):
+    """Measured process and reader projection; no file or process access."""
+
+    process: Mapping[str, Any]
+    projection: Mapping[str, Any] | None
+    context: Mapping[str, Any] | None
+    issues: Sequence[Mapping[str, str]]
+    inputs: Sequence[Mapping[str, Any]]
+    output: Mapping[str, Any] | None
+    failures: Sequence[Failure]
+    settings_present: bool
+
+
+class SideVerdict(NamedTuple):
+    status: str
+    stopped_at: str | None
+    failures: list[Failure]
+
+
+def pending_execution_interfaces(
+    contract: Mapping[str, Any], amendment: Mapping[str, Any] | None = None,
+) -> list[str]:
+    """Only statuses explicitly in effect admit a formal execution."""
+
+    pending = [name for name, value in contract["interfaces"].items()
+               if isinstance(value, Mapping) and value.get("status") != "in-effect"]
+    if contract["executor"]["compilerHost"].get("status") != "in-effect":
+        pending.append("compilerHost")
+    if amendment is not None and amendment["baselineExecutor"].get("status") != "in-effect":
+        pending.append("baselineExecutor")
+    return sorted(pending)
+
+
+def execution_mode_failures(contract: Mapping[str, Any], mode: str) -> list[Failure]:
+    return [] if mode in contract["modes"] else [_failure("CONTRACT_PENDING", mode, "unknown comparison mode")]
+
+
+def executor_compiler_host_failures(compiler_host: Mapping[str, Any]) -> list[Failure]:
+    """The current builder cannot apply compiler-host pinning."""
+    return ([_failure("EXECUTOR_INVALID", "compilerHost", "in-effect compiler-host pinning is not implemented by this builder")]
+            if compiler_host.get("status") == "in-effect" else [])
+
+
+def executor_tag_failures(
+    tag_object: str, observed_tag_object: str, peeled_commit: str, commit: str,
+) -> list[Failure]:
+    if (not re.fullmatch(r"[0-9a-f]{40}", tag_object)
+            or observed_tag_object != tag_object or peeled_commit != commit):
+        return [_failure("EXECUTOR_INVALID", tag_object, "annotated tag object does not peel to the built commit")]
+    return []
+
+
+def execution_environment_failures(
+    *, temporary_root_length: int, maximum_length: int, formal: bool,
+    before: Mapping[str, str | None], after: Mapping[str, str | None] | None = None,
+    subject: str = "environment",
+) -> list[Failure]:
+    failures: list[Failure] = []
+    if not 0 < temporary_root_length <= maximum_length:
+        failures.append(_failure("ENVIRONMENT_INVALID", subject, "temporary root exceeds its length bound"))
+    if formal and any(value is not None for value in (after if after is not None else before).values()):
+        failures.append(_failure("ENVIRONMENT_INVALID", subject, "per-user settings present in a formal run"))
+    if after is not None and dict(before) != dict(after):
+        failures.append(_failure("ENVIRONMENT_INVALID", subject, "per-user settings changed"))
+    return failures
+
+
+def input_capture_failures(
+    expected: Sequence[Mapping[str, Any]], before: Sequence[Mapping[str, Any] | None],
+    after: Sequence[Mapping[str, Any] | None], subject: str,
+) -> list[Failure]:
+    identities = [_identity(item) for item in expected]
+    if identities != list(before) or list(before) != list(after):
+        return [_failure("INPUT_INVALID", subject, "staged input differs from admission or changed during process")]
+    return []
+
+
+def executor_source_failures(
+    *, commit: str, observed_commit: str, dirty_paths: Sequence[str],
+    build_paths: Sequence[str], tracked_paths: Sequence[str], forbidden_segments: Sequence[str],
+) -> list[Failure]:
+    failures: list[Failure] = []
+    if not re.fullmatch(r"[0-9a-f]{40}", commit) or observed_commit != commit:
+        failures.append(_failure("EXECUTOR_INVALID", commit, "worktree is not the exact commit"))
+    if dirty_paths:
+        failures.append(_failure("EXECUTOR_INVALID", commit, "worktree is dirty"))
+    if build_paths or any(set(path.split("/")) & set(forbidden_segments) for path in tracked_paths):
+        failures.append(_failure("EXECUTOR_INVALID", commit, "pre-existing bin or obj path"))
+    return failures
+
+
+def executor_lock_failures(
+    expected: Mapping[str, bytes], observed: Mapping[str, bytes | None], subject: str,
+) -> list[Failure]:
+    if dict(expected) != dict(observed):
+        return [_failure("EXECUTOR_INVALID", subject, "lock file differs from its Git blob")]
+    return []
+
+
+def executor_process_failures(process: Mapping[str, Any]) -> list[Failure]:
+    if process["timedOut"] or process["exitCode"] != 0:
+        return [_failure("EXECUTOR_INVALID", process["stage"], "SDK resolution, restore or build failed")]
+    return []
+
+
+def executor_sdk_failures(version: str) -> list[Failure]:
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+        return [_failure("EXECUTOR_INVALID", "sdk", "SDK resolution did not return a version")]
+    return []
+
+
+def executor_closure_failures(expected: Mapping[str, str], observed: Mapping[str, str | None]) -> list[Failure]:
+    if dict(expected) != dict(observed):
+        return [_failure("EXECUTOR_INVALID", "closure", "execution closure changed or disappeared")]
+    return []
+
+
+def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
+    assert evidence.context is not None
+    subject = evidence.process["stage"]
+    expected_inputs = [
+        {"size": item["size"], "sha256": item["sha256"]} for item in evidence.inputs
+    ]
+    actual_inputs = [_identity(item) for item in evidence.context["orderedInputs"]]
+    if actual_inputs != expected_inputs:
+        return [_failure("REPORT_INVALID", subject, "report input identities differ from capture")]
+    for reported, captured in zip(evidence.context["orderedInputs"], evidence.inputs):
+        if (reported["artifactId"] != captured.get("expectedReportArtifactId")
+                or reported["addressSpaceId"] != captured.get("expectedReportAddressSpaceId")):
+            return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
+    reported_output = evidence.context["output"]
+    if _identity(reported_output) != _identity(evidence.output):
+        return [_failure("REPORT_INVALID", subject, "report output differs from capture")]
+    if evidence.output is not None and (
+        reported_output["committed"] is not True or any(issue["severity"] == "error" for issue in evidence.issues)
+    ):
+        return [_failure("REPORT_INVALID", subject, "output is uncommitted or has an error issue")]
+    return []
+
+
+def report_input_binding(
+    slot_id: str, *, request: Mapping[str, Any] | None = None, execution_role: str | None = None,
+) -> dict[str, str]:
+    """V2 v0.9.16 and 1.x reports use the compiled address-space id for both ids.
+
+    Golden artifact ids only locate materialization bytes. The CLI's base
+    option uses replace-base; its compiled report binding is reference-base.
+    """
+    address_space = "reference-base" if slot_id == "replace-base" else slot_id
+    # The historical plan authorizes only the baseline report alias. Golden
+    # materialization and CLI slots keep the resolver's original identities.
+    if request is not None and execution_role == "baseline-exact":
+        alias = next((row for row in request.get("inputIdentityAliases", ())
+                      if row["routeId"] == request["routeId"]
+                      and row["capabilityFingerprint"] == request["capabilityFingerprint"]), None)
+        if alias is not None and slot_id == alias["candidateInputSlotId"]:
+            address_space = alias["baselineInputSlotId"]
+    return {"expectedReportAddressSpaceId": address_space, "expectedReportArtifactId": address_space}
+
+
+def v0916_milestone_failures(*, formal: bool, milestone: str | None) -> list[Failure]:
+    """A formal v0.9.16 comparison must identify its milestone."""
+    return ([_failure("INPUT_INVALID", "milestone", "formal comparison requires a milestone")]
+            if formal and milestone is None else [])
+
+
+def output_destination_failures(*, exists: bool, is_symlink: bool) -> list[Failure]:
+    """Apply the final exclusive writer's conflict predicate before execution."""
+    if exists or is_symlink:
+        return [Failure("PARITY_WRITE_CONFLICT", "output", "output destination already exists")]
+    return []
+
+
+def side_execution_verdict(
+    processes: Sequence[SideProcessEvidence], *, capacities: Mapping[str, int],
+    capacities_by_stage: Mapping[str, Mapping[str, int]] | None = None,
+    complete: bool = True,
+) -> SideVerdict:
+    """Shared side classification; ADR 0057 safety owners remain unchanged.
+
+    A rejected Preview supplies its own (possibly empty) compiled authority.
+    Build, including a rejected Build, uses only this side's preceding Preview.
+    Sequence, projection and ranges run in contract order, then capture checks.
+    """
+
+    if not processes:
+        return SideVerdict("invalid", None, [_failure("PROCESS_FAILED", "side", "no processes captured")])
+    stages = [item.process["stage"] for item in processes]
+    expected_stages = (["precursor-preview", "precursor-build"] if stages[0].startswith("precursor-") else [])
+    expected_stages += ["preview", "build"]
+    if stages != expected_stages[:len(stages)]:
+        return SideVerdict("invalid", stages[-1], [_failure("REPORT_INVALID", "side", "invalid Preview/Build process order")])
+    authority: Mapping[str, Any] | None = None
+    for index, evidence in enumerate(processes):
+        process = evidence.process
+        stage = process["stage"]
+        failures = list(evidence.failures)
+        capture_failures = [item for item in failures if item.code != "PREDECESSOR_REPORT_INVALID"]
+        if capture_failures:
+            return SideVerdict("invalid", stage, capture_failures)
+        if (process["timedOut"] or process["exitCode"] is None
+                or process["exitCode"] < 0 or process["exitCode"] >= 0x80000000):
+            return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "process crashed or timed out")])
+        if failures:
+            return SideVerdict("invalid", stage, failures)
+        if process["report"] is None:
+            code = "ENVIRONMENT_INVALID" if evidence.settings_present else "PROCESS_FAILED"
+            return SideVerdict("invalid", stage, [_failure(code, stage, "process wrote no report")])
+        if any(issue["code"] in PROCESS_FAILURE_ISSUE_CODES for issue in evidence.issues):
+            return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "report contains process-failure issue")])
+        if evidence.projection is None or evidence.context is None:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "report could not be read")])
+        projection = evidence.projection
+        if stage.endswith("preview"):
+            authority = projection
+        if authority is None:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "no same-side Preview authority")])
+        try:
+            validate_report_sequence(
+                authority_operations=authority["compiledOperations"],
+                observed_operations=projection["compiledOperations"],
+                observed_mutations=projection["compiledMutations"],
+            )
+            validate_report_projection_against_compiled_authority(projection, authority)
+            validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities))
+        except (ParityError, KeyError, TypeError, ValueError) as error:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, str(error))])
+        if stage.endswith("build") and (
+            projection["compilationFingerprint"] is None
+            or projection["compilationFingerprint"] != authority["compilationFingerprint"]
+        ):
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Build fingerprint absent or differs from Preview")])
+        failures = _side_capture_failures(evidence)
+        if failures:
+            return SideVerdict("invalid", stage, failures)
+        if process["exitCode"] != 0:
+            if evidence.output is None and any(issue["severity"] == "error" for issue in evidence.issues):
+                if index != len(processes) - 1:
+                    return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "execution continued after rejection")])
+                return SideVerdict("rejected", stage, [])
+            return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "nonzero exit is not a typed rejection")])
+        if any(issue["severity"] == "error" for issue in evidence.issues):
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful process has error issue")])
+        if stage.endswith("build") and evidence.output is None:
+            return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "successful Build has no captured output")])
+    if not complete:
+        return SideVerdict("ready", None, [])
+    last = processes[-1]
+    if last.process["stage"] != "build":
+        return SideVerdict("invalid", last.process["stage"], [_failure("PROCESS_FAILED", "build", "side did not complete Build")])
+    return SideVerdict("output", None, [])
 
 
 class _RouteKey(NamedTuple):
@@ -493,14 +754,154 @@ def process_failure_issue_failures(subject: str, sides: Iterable[Mapping[str, An
 # ---------------------------------------------------------------------------
 
 
+class RollingTag(NamedTuple):
+    tag: str
+    object_type: str
+    tag_object: str
+    commit: str
+    ancestor: bool
+    published: bool | None
+
+
+def stable_tag_version(tag: str) -> tuple[int, int, int] | None:
+    match = re.fullmatch(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", tag)
+    return None if match is None else tuple(map(int, match.groups()))
+
+
+def formal_interface_failures(
+    contract: Mapping[str, Any], *, formal: bool, amendment: Mapping[str, Any] | None = None,
+) -> list[Failure]:
+    pending = pending_execution_interfaces(contract, amendment)
+    return [_failure("CONTRACT_PENDING", "interfaces", ", ".join(pending))] if formal and pending else []
+
+
+def comparator_source_failures(expected: Mapping[str, str], observed: Mapping[str, str], *, formal: bool) -> list[Failure]:
+    return [_failure("SOURCE_MISMATCH", path, "formal comparator differs from candidate source")
+            for path in sorted(set(expected) | set(observed)) if expected.get(path) != observed.get(path)] if formal else []
+
+
+def rolling_baseline(
+    tags: Sequence[RollingTag], candidate_version: str, *, given_tag: str | None, formal: bool,
+    published_tags: Sequence[str] | None = None,
+) -> tuple[RollingTag | None, list[Failure]]:
+    """Select over the complete published inventory, then require that exact local tag.
+
+    The host supplies complete stable release names or None if unavailable.
+    Missing or inadmissible local tags never fall back to an older release.
+    A diagnostic admits only its given annotated ancestor, without publication.
+    """
+    pattern = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
+    version = pattern.fullmatch("v" + candidate_version)
+    eligible = []
+    if version:
+        candidate = tuple(map(int, version.groups()))
+        eligible = [tag for tag in tags if pattern.fullmatch(tag.tag)
+                    and tuple(map(int, pattern.fullmatch(tag.tag).groups())) < candidate
+                    and tag.object_type == "tag" and tag.ancestor
+                    and re.fullmatch(r"[0-9a-f]{40}", tag.tag_object)
+                    and re.fullmatch(r"[0-9a-f]{40}", tag.commit)]
+    selected = None
+    if formal:
+        if (version and published_tags and not isinstance(published_tags, (str, bytes))
+                and all(isinstance(tag, str) and stable_tag_version(tag) is not None for tag in published_tags)):
+            published = [tag for tag in published_tags if stable_tag_version(tag) < candidate]
+            if published:
+                highest = max(published, key=stable_tag_version)
+                matches = [tag for tag in eligible if tag.tag == highest]
+                selected = matches[0] if len(matches) == 1 else None
+        if given_tag is not None and (selected is None or selected.tag != given_tag):
+            selected = None
+    else:
+        matches = [tag for tag in eligible if tag.tag == given_tag]
+        selected = matches[0] if len(matches) == 1 else None
+    return selected, ([] if selected is not None else [
+        _failure("BASELINE_INVALID", given_tag or "baseline", "no admitted previous stable annotated ancestor baseline")])
+
+
+def scope_capture_failures(subject: str, expected: Mapping[str, Any], observed: Mapping[str, Any]) -> list[Failure]:
+    return [] if _identity(expected) == _identity(observed) else [
+        _failure("REPORT_INVALID", subject, "artifact changed after process capture")]
+
+
+def execution_capacities(evidence: SideProcessEvidence) -> dict[str, int]:
+    """Input sizes are captured; output bounds come from bytes or the typed Preview.
+
+    Build is still checked against that same side's Preview before its ranges.
+    Preview has no output artifact, so its compiled target extent is its bound.
+    """
+    capacities = {reported["addressSpaceId"]: captured["size"]
+                  for reported, captured in zip((evidence.context or {}).get("orderedInputs", []), evidence.inputs)}
+    capacities["output-image"] = (evidence.output or {}).get("size", max(
+        (operation["targetRange"]["endExclusive"] for operation in
+         (evidence.projection or {}).get("compiledOperations", []) if operation.get("targetRange") is not None), default=0))
+    return capacities
+
+
+class RollingOutcome(NamedTuple):
+    outcome: str
+    failure_code: str | None
+
+
+def rolling_outcome(
+    baseline: Mapping[str, Any], candidate: Mapping[str, Any], evidence: ScopeEvidence,
+    failures: Sequence[Failure],
+) -> RollingOutcome:
+    """Classify only admitted side verdicts and complete scope measurements."""
+    if failures or "invalid" in (baseline["status"], candidate["status"]):
+        return RollingOutcome("invalid", failures[0].code if failures else "PREDECESSOR_REPORT_INVALID")
+    if baseline["status"] == candidate["status"] == "rejected":
+        return RollingOutcome("both-reject", None)
+    if baseline["status"] == "rejected":
+        return RollingOutcome("baseline-rejects", None)
+    if candidate["status"] == "rejected":
+        return RollingOutcome("candidate-rejects", None)
+    return RollingOutcome("different" if any(evidence.get(scope) is not None for scope in SCOPES) else "equal", None)
+
+
+def declaration_entry_id(kind: str | None, subject: str, declaration: Mapping[str, Any] | None) -> str | None:
+    """Projection of an unambiguous binding; declared_change_failures checks reproduction."""
+    matches = [entry["id"] for entry in (declaration or {}).get("entries", [])
+               if entry["kind"] == kind and subject in entry["routeIds" if kind == "accepted-gap" else "scenarioIds"]]
+    return matches[0] if len(matches) == 1 else None
+
+
+def rolling_coverage(
+    ledger: Mapping[str, Any], baseline_ledger: Mapping[str, Any], policy: Mapping[str, Any],
+    manifest: Mapping[str, Any], declaration: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Canonical projection shared by the builder and report coverage validation."""
+    universe = universe_routes(policy)
+    covered = {row["routeId"] for row in ledger["scenarios"]}
+    debt = set(ledger["debtSet"]["routeIds"])
+    accepted = {row["routeId"] for row in ledger["acceptedGaps"]}
+    pending = set(ledger["pendingAcceptedGaps"]["routeIds"])
+    kinds = {row["routeId"]: row["kind"] for row in manifest["routeEvidence"]}
+    not_covered = []
+    for route_id in sorted(universe - covered):
+        reason = "debt-set" if route_id in debt else "accepted-gap" if route_id in accepted else "pending-gap" if route_id in pending else None
+        if reason is not None:
+            not_covered.append({"routeId": route_id, "reason": reason, "evidenceKind": kinds.get(route_id, "missing")})
+    return {"universe": len(universe), "coveredRoutes": len(covered), "scenarios": len(ledger["scenarios"]),
+            "debtSetInUniverse": len(debt & universe), "acceptedGaps": len(accepted), "pendingAcceptedGaps": len(pending),
+            "notCovered": not_covered,
+            "changesSinceBaseline": [{**row, "declarationEntryId": declaration_entry_id(row["kind"], row["subject"], declaration)}
+                                     for row in coverage_changes(ledger, baseline_ledger)]}
+
+
 def scenario_value_failures(scenario: Mapping[str, Any], evidence: ScopeEvidence | None) -> list[Failure]:
     """Values of one rolling scenario result that a schema cannot compare, against its computed evidence."""
 
     subject = scenario["scenarioId"]
     failures = process_failure_issue_failures(subject, (scenario["baseline"], scenario["candidate"]))
     if scenario["outcome"] == "invalid":
+        if scenario["failureCode"] not in EXECUTION_FAILURE_CODES:
+            failures.append(_failure("REPORT_INVALID", subject, "invalid scenario without a shared execution failure code"))
         return failures
     baseline, candidate = scenario["baseline"], scenario["candidate"]
+    if baseline is None or candidate is None:
+        return failures + [_failure("REPORT_INVALID", subject, "scenario is missing a side")]
+    if rolling_outcome(baseline, candidate, evidence or {}, []).outcome != scenario["outcome"]:
+        failures.append(_failure("REPORT_INVALID", subject, "outcome differs from its sides and computed scopes"))
     failures.extend(scope_evidence_failures(
         subject,
         baseline,
@@ -567,30 +968,14 @@ def rolling_coverage_report_failures(
         declared = active.get(row["scenarioId"])
         if declared is not None and (row["routeId"], row["inputRevision"]) != (declared["routeId"], declared["inputRevision"]):
             failures.append(_failure("REPORT_INVALID", row["scenarioId"], "route or input revision differs from the ledger"))
-    universe = universe_routes(policy)
-    covered = {row["routeId"] for row in ledger["scenarios"]}
-    debt = set(ledger["debtSet"]["routeIds"])
-    accepted = {row["routeId"] for row in ledger["acceptedGaps"]}
-    pending = set(ledger["pendingAcceptedGaps"]["routeIds"])
-    expected_counts = {
-        "universe": len(universe),
-        "coveredRoutes": len(covered),
-        "scenarios": len(active),
-        "debtSetInUniverse": len(debt & universe),
-        "acceptedGaps": len(accepted),
-        "pendingAcceptedGaps": len(pending),
-    }
+    expected = rolling_coverage(ledger, baseline_ledger, policy, manifest, None)
+    expected_counts = {key: expected[key] for key in (
+        "universe", "coveredRoutes", "scenarios", "debtSetInUniverse", "acceptedGaps", "pendingAcceptedGaps")}
     coverage = report["coverage"]
     for key, value in expected_counts.items():
         if coverage[key] != value:
             failures.append(_failure("REPORT_INVALID", f"coverage.{key}", f"reports {coverage[key]}, ledger gives {value}"))
-    kinds = {row["routeId"]: row["kind"] for row in manifest["routeEvidence"]}
-    expected_not_covered = []
-    for route_id in sorted(universe - covered):
-        reason = "debt-set" if route_id in debt else "accepted-gap" if route_id in accepted else "pending-gap" if route_id in pending else None
-        if reason is not None:
-            expected_not_covered.append({"routeId": route_id, "reason": reason, "evidenceKind": kinds.get(route_id, "missing")})
-    if sorted(coverage["notCovered"], key=lambda row: row["routeId"]) != expected_not_covered:
+    if sorted(coverage["notCovered"], key=lambda row: row["routeId"]) != expected["notCovered"]:
         failures.append(_failure("REPORT_INVALID", "coverage.notCovered", "differs from the ledger's routes that no scenario compares"))
     expected_changes = [(row["kind"], row["subject"]) for row in coverage_changes(ledger, baseline_ledger)]
     if sorted((row["kind"], row["subject"]) for row in coverage["changesSinceBaseline"]) != sorted(expected_changes):
@@ -631,6 +1016,7 @@ def declaration_failures(
         notes = ""
         failures.append(_failure("RELEASE_NOTE_MISSING", candidate_version, str(error)))
     for entry in declaration["entries"]:
+        failures.extend(declaration_disposition_failures(entry))
         for side in (entry.get("expected") or {}).values():
             for code in sorted(set(side["issueCodes"]) & PROCESS_FAILURE_ISSUE_CODES):
                 failures.append(_failure("PROCESS_FAILED", entry["id"], f"process-failure issue {code} cannot be declared"))
@@ -642,6 +1028,49 @@ def declaration_failures(
                 failures.append(_failure("STALE_DECLARATION", entry["id"], f"unknown scenario {scenario_id}"))
         if notes and re.search(rf"(?<![0-9A-Za-z.-]){re.escape(entry['id'])}(?![0-9])", notes) is None:
             failures.append(_failure("RELEASE_NOTE_MISSING", entry["id"], "id absent from the CHANGELOG section"))
+    return failures
+
+
+def declaration_disposition_failures(entry: Mapping[str, Any]) -> list[Failure]:
+    """A declaration cannot approve a rejection or a cause outside the contract's dispositions.
+
+    These admissions accompany reproduction: typed JSON builders supply the
+    fields; the validator remains the only owner of an approval decision.
+    """
+    subject = entry["id"]
+    failures: list[Failure] = []
+    kind = entry["kind"]
+    approval = entry["approval"]
+    if (approval["role"] != "firmware-owner"
+        or re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*) board decision [1-9][0-9]*", approval["boardDecision"]) is None):
+        failures.append(_failure("STALE_DECLARATION", subject, "entry lacks firmware-owner board-decision approval"))
+    issue = entry["knownIssue"]
+    if issue is not None and re.fullmatch(r"BUG-[0-9]{8}-[a-z0-9-]+", issue.get("bugId", "")) is None:
+        failures.append(_failure("STALE_DECLARATION", subject, "known issue lacks a bug identifier"))
+    withdrawal = entry["routeWithdrawal"]
+    if type(withdrawal) is not bool:
+        failures.append(_failure("STALE_DECLARATION", subject, "withdrawal must be an explicit boolean"))
+    if kind == "candidate-rejects" and not ((issue is not None and withdrawal is False) or (issue is None and withdrawal is True)):
+        failures.append(_failure("STALE_DECLARATION", subject, "candidate rejection needs exactly one known issue or withdrawal"))
+    if kind == "both-reject" and (issue is None or entry["routeWithdrawal"]):
+        failures.append(_failure("STALE_DECLARATION", subject, "both rejections need a known issue without withdrawal"))
+    if kind not in {"candidate-rejects", "both-reject"} and (issue is not None or entry["routeWithdrawal"]):
+        failures.append(_failure("STALE_DECLARATION", subject, "disposition is not allowed for this entry kind"))
+    if kind in COVERAGE_ENTRY_KINDS and (entry["expected"] is not None or entry["differences"] is not None):
+        failures.append(_failure("STALE_DECLARATION", subject, "coverage disposition cannot declare artifact outcomes"))
+    if kind not in set(OUTCOME_ENTRY_KINDS.values()) | COVERAGE_ENTRY_KINDS:
+        failures.append(_failure("STALE_DECLARATION", subject, "unknown entry kind"))
+    if not entry["routeIds"] or (kind != "accepted-gap" and not entry["scenarioIds"]) or (kind == "accepted-gap" and entry["scenarioIds"]):
+        failures.append(_failure("STALE_DECLARATION", subject, "entry does not name its subjects"))
+    for scope, difference in (entry["differences"] or {}).items():
+        if difference is None:
+            continue
+        for cause in difference["attribution"]:
+            if (cause["mechanism"] not in {"derived-field", "precursor-carried", "stopped-write-preserved-bytes", "writes-different-bytes"}
+                or cause["causeVerification"] not in {"not-independently-verified", "supported-by-cited-evidence"}
+                or cause["start"] < 0 or cause["start"] >= cause["endExclusive"]
+                or not cause["cause"] or (cause["causeVerification"] == "supported-by-cited-evidence" and not cause["evidence"])):
+                failures.append(_failure("STALE_DECLARATION", subject, f"{scope} attribution lacks an admitted cause and evidence disposition"))
     return failures
 
 
@@ -925,6 +1354,11 @@ def amendment_binding_failures(amendment: Mapping[str, Any], plan: Mapping[str, 
     ]
 
 
+def v0916_policy_capture_failures(plan: Mapping[str, Any], raw_sha256: str) -> list[Failure]:
+    return [] if plan["policyBinding"]["sha256"] == raw_sha256 else [
+        _failure("INPUT_INVALID", "policy", "policy differs from the plan's pinned authority")]
+
+
 def v0916_route_dispositions(
     plan: Mapping[str, Any], amendment: Mapping[str, Any], pinned_policy: Mapping[str, Any]
 ) -> tuple[list[RouteDisposition], list[Failure]]:
@@ -984,6 +1418,7 @@ class TransitiveEvidence(NamedTuple):
     tp_length: int
     checks: Mapping[str, bool] | None
     failure_code: str | None
+    failure_checks: Mapping[str, bool] | None = None
 
 
 def transitive_evidence(
@@ -994,7 +1429,12 @@ def transitive_evidence(
     try:
         result = compare_transitive_payloads(baseline_full, candidate_full, candidate_tp, candidate_base, tp_length)
     except ParityError as error:
-        return TransitiveEvidence(tp_length, None, error.code)
+        checks = None
+        if error.code in {"PARITY_TP_PREFIX_MISMATCH", "PARITY_TAIL_MUTATED"}:
+            checks = dict(zip(TRANSITIVE_CHECKS, (candidate_tp == candidate_full[:tp_length],
+                                                candidate_tp == baseline_full[:tp_length],
+                                                candidate_full[tp_length:] == candidate_base[tp_length:]), strict=True))
+        return TransitiveEvidence(tp_length, None, error.code, checks)
     return TransitiveEvidence(tp_length, {check: result[check] for check in TRANSITIVE_CHECKS}, None)
 
 
@@ -1010,6 +1450,8 @@ def _transitive_checks_agree(reported: Mapping[str, Any], evidence: TransitiveEv
     values = tuple(reported.get(check) for check in TRANSITIVE_CHECKS)
     if evidence.checks is not None:
         return values == tuple(evidence.checks[check] for check in TRANSITIVE_CHECKS)
+    if evidence.failure_checks is not None:
+        return values == tuple(evidence.failure_checks[check] for check in TRANSITIVE_CHECKS)
     if evidence.failure_code == "PARITY_TAIL_MUTATED":
         return values == (True, True, False)
     if evidence.failure_code == "PARITY_TP_PREFIX_MISMATCH":
@@ -1026,6 +1468,69 @@ class V0916RouteEvidence(NamedTuple):
 
     scopes: ScopeEvidence
     transitive: TransitiveEvidence | None = None
+    correction_reproduced: bool | None = None
+    binding: Mapping[str, Any] | None = None
+
+
+def approved_correction_evidence(before: bytes, after: bytes, row: Mapping[str, Any]) -> bool:
+    """Apply the unchanged ADR 0057 correction primitive to this exact row."""
+    try:
+        compare_approved_semantic_correction_payloads(before, after, row)
+    except ParityError:
+        return False
+    return True
+
+
+def transitive_projection(row: Mapping[str, Any], computed: TransitiveEvidence) -> dict[str, Any]:
+    """Project the primitive's pass or first failure into the report checks."""
+    checks = computed.checks or computed.failure_checks
+    if checks is None:
+        # Invalid lengths admit no byte relation as a passing proof.
+        checks = dict.fromkeys(TRANSITIVE_CHECKS, False)
+    return {"fullRouteId": row["fullRouteId"], "tpLength": computed.tp_length, **checks}
+
+
+class V0916RouteVerdict(NamedTuple):
+    result: str
+    failure_code: str | None
+    failures: list[Failure]
+
+
+def v0916_route_verdict(
+    route: Mapping[str, Any], disposition: RouteDisposition, evidence: V0916RouteEvidence | None,
+    routes: Mapping[str, Mapping[str, Any]], execution_failures: Sequence[Failure] = (),
+) -> V0916RouteVerdict:
+    """Classify an acquired route with the same rules that validate its report."""
+    subject = disposition.route_id
+    if disposition.proof_kind == "not-covered":
+        return V0916RouteVerdict("not-covered", None, [])
+    failures = [Failure(item.code, subject, item.detail) for item in execution_failures]
+    if failures:
+        return V0916RouteVerdict("invalid", failures[0].code, failures)
+    sides = [route["baseline"], route["candidate"]]
+    full = routes.get((disposition.row or {}).get("fullRouteId", ""))
+    if disposition.proof_kind == "tp-prefix-transitive":
+        if _transitive_blocker(route, full) == "invalid":
+            code = (full or {}).get("failureCode") or "PREDECESSOR_REPORT_INVALID"
+            return V0916RouteVerdict("invalid", code, [Failure(code, subject, "transitive dependency failed")])
+    if any(side is not None and side["status"] == "invalid" for side in sides):
+        return V0916RouteVerdict("invalid", "PREDECESSOR_REPORT_INVALID",
+                                 [_failure("REPORT_INVALID", subject, "route has an invalid side")])
+    tentative = {**route, "result": "consistent", "failureCode": None}
+    failures = _v0916_route_failures(tentative, disposition, evidence, routes)
+    if disposition.proof_kind == "exact-output-with-approved-semantic-correction" and (
+        evidence is None or evidence.correction_reproduced is not True
+    ):
+        failures.append(_failure("AMENDMENT_MISMATCH", subject, "outputs do not reproduce the exact correction row"))
+    if disposition.proof_kind == "tp-prefix-transitive" and _transitive_blocker(route, full) is not None:
+        failures = [_failure("UNAPPROVED_DIFFERENCE", subject, "a typed rejection prevents the transitive proof")]
+    if failures:
+        mismatch = disposition.proof_kind in {"exact-output-with-approved-semantic-correction", "canonical-binding-not-applicable-to-v0916"}
+        # Value mismatches are product inconsistency; acquisition/safety was
+        # already classified above through the shared execution verdict.
+        code = "PREDECESSOR_AMENDMENT_MISMATCH" if mismatch else "PREDECESSOR_UNAPPROVED_DIFFERENCE"
+        return V0916RouteVerdict("inconsistent", code, [Failure(code, subject, "route does not reproduce its proof")])
+    return V0916RouteVerdict("consistent", None, [])
 
 
 def _transitive_blocker(route: Mapping[str, Any], full_route: Mapping[str, Any] | None) -> str | None:
@@ -1043,6 +1548,9 @@ def _transitive_blocker(route: Mapping[str, Any], full_route: Mapping[str, Any] 
     if any(side is None or side["status"] == "invalid" for side in sides):
         return "invalid"
     return "rejected"
+
+
+transitive_blocker = _transitive_blocker
 
 
 def _transitive_route_failures(
@@ -1109,7 +1617,13 @@ def _v0916_route_failures(
     subject = route["planRouteId"]
     failures = process_failure_issue_failures(subject, (route["baseline"], route["candidate"]))
     if route["result"] == "not-covered":
+        if disposition.proof_kind != "not-covered" or any(route[member] is not None for member in (
+            "baseline", "candidate", "comparison", "dispositionRow", "transitive", "failureCode"
+        )) or evidence is not None:
+            failures.append(_failure("REPORT_INVALID", subject, "not-covered route was executed or counted as compared"))
         return failures
+    if disposition.proof_kind == "not-covered":
+        return failures + [_failure("REPORT_INVALID", subject, "not-covered route counted as compared")]
     # A route is invalid when a side fails for a reason that is not a product
     # result, with the codes of the shared execution failures (contract).
     if route["result"] == "invalid" and route["failureCode"] not in EXECUTION_FAILURE_CODES:
@@ -1117,10 +1631,16 @@ def _v0916_route_failures(
     if disposition.proof_kind == "tp-prefix-transitive":
         row = disposition.row or {}
         return failures + _transitive_route_failures(route, row, evidence, routes.get(row.get("fullRouteId", "")))
+    if any(side is not None and side.get("status") == "invalid" for side in (route["baseline"], route["candidate"])) and route["result"] != "invalid":
+        failures.append(_failure("REPORT_INVALID", subject, "a non-transitive route with an invalid side must be invalid"))
     if route["result"] == "invalid":
         return failures
+    if disposition.proof_kind == "canonical-binding-not-applicable-to-v0916" and route["result"] == "consistent" and (
+        evidence is None or evidence.binding is None
+    ):
+        failures.append(_failure("AMENDMENT_MISMATCH", subject, "canonical binding evidence is missing"))
     if evidence is None:
-        return [_failure("REPORT_INVALID", subject, "computed evidence for a run route is missing")]
+        return failures + [_failure("REPORT_INVALID", subject, "computed evidence for a run route is missing")]
     # A v0.9.16 route reports only its output comparison; its consistency is its
     # proof kind's (a precursor enters only through a not-applicable row).
     failures.extend(
@@ -1135,6 +1655,10 @@ def _v0916_route_failures(
         failures.append(_failure("REPORT_INVALID", subject, "an exact-output route is missing a report side"))
     if disposition.proof_kind == "exact-output" and route["result"] == "consistent" and output_differs:
         failures.append(_failure("UNAPPROVED_DIFFERENCE", subject, "a consistent exact-output route with differing bytes"))
+    if disposition.proof_kind == "exact-output" and route["result"] == "consistent" and (
+        baseline_output is None or candidate_output is None
+    ):
+        failures.append(_failure("UNAPPROVED_DIFFERENCE", subject, "an exact-output route without both outputs"))
     if (
         disposition.proof_kind == "exact-output"
         and not output_differs
@@ -1144,10 +1668,12 @@ def _v0916_route_failures(
     ):
         failures.append(_failure("REPORT_INVALID", subject, "an exact-output route with equal outputs must be consistent"))
     if disposition.proof_kind == "exact-output-with-approved-semantic-correction" and route["result"] == "consistent":
+        if evidence.correction_reproduced is False:
+            failures.append(_failure("AMENDMENT_MISMATCH", subject, "correction primitive did not reproduce its row"))
         row = disposition.row or {}
         observed = {
-            "baselineOutput": _identity(route["baseline"]["output"]),
-            "candidateOutput": _identity(route["candidate"]["output"]),
+            "baselineOutput": _identity(baseline_output),
+            "candidateOutput": _identity(candidate_output),
             "differentRanges": None if not output_differs else [dict(item) for item in evidence.scopes["output"]],
         }
         observed["differentByteCount"] = None if route["comparison"] is None else route["comparison"]["differentByteCount"]
@@ -1157,6 +1683,10 @@ def _v0916_route_failures(
     if disposition.proof_kind == "canonical-binding-not-applicable-to-v0916" and route["result"] == "consistent":
         row = disposition.row or {}
         baseline, candidate = route["baseline"], route["candidate"]
+        if baseline is None or candidate is None or baseline["status"] != "rejected" or candidate["status"] != "output":
+            return failures + [_failure("AMENDMENT_MISMATCH", subject, "not-applicable row requires a baseline rejection and candidate output")]
+        if evidence.binding is not None and evidence.binding != row["binding"]:
+            failures.append(_failure("AMENDMENT_MISMATCH", subject, "canonical binding does not reproduce the approved row"))
         observed_rows = {
             "precursor": (_identity(baseline["precursor"]), _identity(candidate["precursor"])),
             "stage": baseline["stoppedAt"],
@@ -1189,10 +1719,15 @@ def v0916_report_failures(
     report: Mapping[str, Any],
     dispositions: Sequence[RouteDisposition],
     evidence: Mapping[str, V0916RouteEvidence | None],
+    *, authority: SourceAuthority | None = None, plan: Mapping[str, Any] | None = None,
 ) -> list[Failure]:
     """A v0.9.16 1.x report covers each plan route once with its proof, row, evidence, summary and result."""
 
-    failures: list[Failure] = []
+    failures = v0916_milestone_failures(formal=report.get("formal", False), milestone=report.get("milestone"))
+    if authority is not None:
+        failures.extend(source_binding_failures(report, authority))
+    if plan is not None and report["planBinding"] != v0916_plan_binding(plan):
+        failures.append(_failure("SOURCE_MISMATCH", "planBinding", "report binds another plan"))
     expected = {row.route_id: row for row in dispositions}
     reported = [route["planRouteId"] for route in report["routes"]]
     for route_id in _duplicates(reported):
@@ -1231,4 +1766,19 @@ def v0916_report_failures(
         failures.append(_failure("REPORT_INVALID", "summary", "summary differs from the route results"))
     if report["result"] != v0916_result(values):
         failures.append(_failure("REPORT_INVALID", "result", "result differs from the route results"))
+    if report["result"] == "consistent" and not any(value != "not-covered" for value in values):
+        failures.append(_failure("REPORT_INVALID", "result", "a consistent result requires at least one compared route"))
     return failures
+
+
+def v0916_plan_binding(plan: Mapping[str, Any]) -> dict[str, str]:
+    """Bind only the historical authority; candidateAuthority is never consumed."""
+    return {"path": "docs/contracts/v0916-parity-certification-v1.json",
+            "withoutCandidateAuthorityJcsSha256": canonical_json_sha256(
+                {key: value for key, value in plan.items() if key != "candidateAuthority"}),
+            "canonicalInputAuthorityJcsSha256": canonical_json_sha256(plan["canonicalInputAuthority"])}
+
+
+def v0916_summary(route_results: Sequence[str]) -> dict[str, int]:
+    return {"consistent": route_results.count("consistent"), "inconsistent": route_results.count("inconsistent"),
+            "invalid": route_results.count("invalid"), "notCovered": route_results.count("not-covered")}

@@ -60,6 +60,37 @@ class PinnedGitReaderGitlinkTests(unittest.TestCase):
         self.assertEqual(["docs/note.txt"], reader.list_files(self.plain))
         self.assertEqual({}, dict(reader.gitlinks))
 
+    def test_opt_in_still_refuses_symlink_and_executable_entries(self) -> None:
+        blob = git(self.root, "rev-parse", f"{self.plain}:docs/note.txt")
+        for mode in ("120000", "100755"):
+            with self.subTest(mode=mode):
+                git(self.root, "update-index", "--add", "--cacheinfo", f"{mode},{blob},unsupported")
+                git(self.root, "commit", "--quiet", "-m", mode)
+                commit = git(self.root, "rev-parse", "HEAD")
+                reader = parity.PinnedGitReader(self.root, allow_gitlinks=True)
+                with self.assertRaises(parity.ParityError) as raised:
+                    reader.list_files(commit)
+                self.assertEqual("PARITY_AUTHORITY_MISMATCH", raised.exception.code)
+                self.assertEqual({}, dict(reader.gitlinks))
+
+    def test_real_comparator_git_hosts_list_and_read_files_with_a_gitlink(self) -> None:
+        from scripts.predecessor_comparison import LocalGitHost
+        from scripts.predecessor_rolling import LocalRollingGitHost
+        from scripts.predecessor_v0916 import LocalV0916GitHost
+
+        for host_type in (LocalGitHost, LocalRollingGitHost, LocalV0916GitHost):
+            with self.subTest(host=host_type.__name__):
+                host = host_type(self.root)
+                readers = [host]
+                if hasattr(host, "snapshot_reader"):
+                    readers.append(host.snapshot_reader(self.with_gitlink))
+                for reader in readers:
+                    self.assertEqual(["docs/note.txt"], reader.list_files(self.with_gitlink))
+                    self.assertEqual(b"synthetic\n", reader.read_file(self.with_gitlink, "docs/note.txt"))
+                    with self.assertRaises(parity.ParityError) as raised:
+                        reader.read_file(self.with_gitlink, GITLINK_PATH)
+                    self.assertEqual("PARITY_AUTHORITY_MISMATCH", raised.exception.code)
+
 
 if __name__ == "__main__":
     unittest.main()

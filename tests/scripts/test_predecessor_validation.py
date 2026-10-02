@@ -858,7 +858,7 @@ def v0916_world() -> dict[str, Any]:
                 },
                 dispositionRow={"source": row.row_source, "member": row.row_member, "routeId": row.route_id},
             )
-            evidence[row.route_id] = validation.V0916RouteEvidence({"precursor": None})
+            evidence[row.route_id] = validation.V0916RouteEvidence({"precursor": None}, binding=dict(row.row["binding"]))
         routes.append(route)
     report = {
         "routes": routes,
@@ -902,6 +902,84 @@ def independent_exact_route(world: dict[str, Any]) -> dict[str, Any]:
 
 class V0916ModeValidationTests(unittest.TestCase):
     """The v0.9.16 1.x mode on a fresh valid report: each change fails its own rule."""
+
+    def test_consistent_correction_with_missing_baseline_returns_failure(self) -> None:
+        world = v0916_world()
+        self.assertEqual([], v0916_failures(world))
+        route = route_of(world, "exact-output-with-approved-semantic-correction")
+        route["baseline"] = None
+        failures = v0916_failures(world)
+        self.assertIn("PREDECESSOR_AMENDMENT_MISMATCH", codes(failures))
+        self.assertTrue(any(item.subject == route["planRouteId"] and
+                            item.detail == "baselineOutput does not reproduce the approved row" for item in failures))
+
+    def test_formal_v0916_report_requires_milestone(self) -> None:
+        world = v0916_world()
+        world["report"].update(formal=True, milestone="1.2.0-release-approval")
+        self.assertEqual([], v0916_failures(world))
+        world["report"]["milestone"] = None
+        self.assertIn("PREDECESSOR_INPUT_INVALID", codes(v0916_failures(world)))
+
+    def test_consistent_exact_output_with_typed_rejection_is_unapproved(self) -> None:
+        world = v0916_world()
+        self.assertEqual([], v0916_failures(world))
+        route = independent_exact_route(world)
+        route["candidate"] = rejected_side()
+        world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({})
+        self.assertEqual({"PREDECESSOR_UNAPPROVED_DIFFERENCE"}, codes(v0916_failures(world)))
+
+    def test_not_applicable_requires_canonical_binding_evidence(self) -> None:
+        for missing in ("binding", "evidence"):
+            with self.subTest(missing=missing):
+                world = v0916_world()
+                route = route_of(world, "canonical-binding-not-applicable-to-v0916")
+                disposition = next(item for item in world["dispositions"] if item.route_id == route["planRouteId"])
+                evidence = world["evidence"][disposition.route_id]
+                self.assertEqual([], v0916_failures(world))
+                world["evidence"][disposition.route_id] = evidence._replace(binding=None) if missing == "binding" else None
+                self.assertIn("PREDECESSOR_AMENDMENT_MISMATCH", codes(v0916_failures(world)))
+                verdict = validation.v0916_route_verdict(
+                    route, disposition, world["evidence"][disposition.route_id],
+                    {item["planRouteId"]: item for item in world["report"]["routes"]},
+                )
+                self.assertEqual("inconsistent", verdict.result)
+                self.assertEqual("PREDECESSOR_AMENDMENT_MISMATCH", verdict.failure_code)
+                if missing == "binding":
+                    route.update(result=verdict.result, failureCode=verdict.failure_code)
+                    recount(world)
+                    self.assertEqual([], v0916_failures(world))
+
+    def test_consistent_report_requires_a_compared_route_when_plan_is_all_unbound(self) -> None:
+        plan, amendment = copy.deepcopy(Sources.plan), copy.deepcopy(Sources.amendment)
+        selected = validation.plan_selected_routes(plan, Sources.pinned_policy)
+        plan["canonicalInputAuthority"]["currentlyMissingRouteIds"] = [item["routeId"] for item in selected]
+        plan["transitiveRoutes"] = []
+        plan["approvedSemanticCorrections"] = []
+        amendment["approvedSemanticCorrections"] = []
+        amendment["baselineNotApplicable"] = []
+        dispositions, failures = validation.v0916_route_dispositions(plan, amendment, Sources.pinned_policy)
+        self.assertEqual([], failures)
+        self.assertTrue(dispositions)
+        self.assertTrue(all(item.proof_kind == "not-covered" for item in dispositions))
+        routes = [{"planRouteId": item.route_id, "planCapabilityFingerprint": item.capability_fingerprint,
+                   "proofKind": item.proof_kind, "result": "not-covered", "dispositionRow": None,
+                   "baseline": None, "candidate": None, "comparison": None, "transitive": None,
+                   "failureCode": None} for item in dispositions]
+        report = {"routes": routes, "summary": validation.v0916_summary(["not-covered"] * len(routes)),
+                  "result": "consistent", "planBinding": validation.v0916_plan_binding(plan)}
+        found = validation.v0916_report_failures(report, dispositions, {}, plan=plan)
+        self.assertEqual({"PREDECESSOR_REPORT_INVALID"}, codes(found))
+        self.assertTrue(any(item.subject == "result" and "compared route" in item.detail for item in found))
+
+    def test_nontransitive_invalid_side_requires_invalid_route(self) -> None:
+        for result in ("consistent", "inconsistent"):
+            with self.subTest(result=result):
+                world = v0916_world()
+                route = independent_exact_route(world)
+                route["candidate"] = {**rejected_side(), "status": "invalid"}
+                route.update(result=result, failureCode="PREDECESSOR_PROCESS_FAILED")
+                recount(world)
+                self.assertIn("PREDECESSOR_REPORT_INVALID", codes(v0916_failures(world)))
 
     def test_start_failure_is_not_a_consistent_output_or_approved_rejection(self) -> None:
         for proof_kind, side_name in (("exact-output", "candidate"), ("canonical-binding-not-applicable-to-v0916", "baseline")):
