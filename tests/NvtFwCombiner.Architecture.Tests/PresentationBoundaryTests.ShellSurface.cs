@@ -1,0 +1,413 @@
+namespace NvtFwCombiner.Architecture.Tests;
+
+public sealed partial class PresentationBoundaryTests
+{
+    /// <summary>Verifies the shell follows the owner-approved clean home and independent page direction.</summary>
+    [Fact]
+    public void ShellUsesCleanHomeAndIndependentWorkflowPages()
+    {
+        string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
+        string shellStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml");
+        string buttonStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml");
+        string controlStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml");
+        string visualStyles = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowVisualStyles.axaml");
+        string themeTokens = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Styles/ThemeTokens.axaml");
+        string sharedTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
+        string reportTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml");
+        string reportChangeTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml");
+        string reportInputTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportInputTemplates.axaml");
+        string reportOperationTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportOperationTemplates.axaml");
+        string reportCodeBlockView = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/ReportCodeBlockView.axaml");
+        string reportCodeBlockViewCode = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/ReportCodeBlockView.axaml.cs");
+        string reportHistoryTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml");
+        string reportAuditTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml");
+        string reportPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml");
+        string pageTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
+        string workflowTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml");
+        string shellPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml");
+        string workflowContextSetupModal = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/WorkflowContextSetupModal.axaml");
+        string firmwareSlotCard = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml");
+        string firmwareSlotCardCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/FirmwareSlotCard.axaml.cs");
+        string generalMappingRow = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/GeneralMappingRow.axaml");
+        string generalMappingRowCode = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/GeneralMappingRow.axaml.cs");
+        string dropZoneDragState = ReadText("src/NvtFwCombiner.Presentation.Avalonia/DropZoneDragState.cs");
+        string replaceSelectionModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReplaceSelectionModal.axaml");
+        string reportModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReportModal.axaml");
+        string messageCenterModal = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/MessageCenterModal.axaml");
+        string shellSurface = string.Join(
+            Environment.NewLine,
+            shell,
+            pageTemplates,
+            reportPanels,
+            reportAuditTemplates,
+            shellPanels,
+            workflowTemplates,
+            sharedTemplates,
+            firmwareSlotCard,
+            generalMappingRow,
+            workflowContextSetupModal,
+            replaceSelectionModal,
+            messageCenterModal,
+            reportModal);
+
+        Assert.Contains("IsHomeVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("IsMergeVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("IsReplaceVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("IsHexEditorVisible", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("BeginDpReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("BeginCtrlRamReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("BeginGeneralReplaceFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("ShowHexEditorCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("BeginNormalMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("BeginAbMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("BeginGeneralMergeFromHomeCommand", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Standard Merge\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Customized Merge\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Customized Replace\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"Normal Merge\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"General Merge\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"General Replace\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("WindowState=\"Maximized\"", shell, StringComparison.Ordinal);
+        Assert.Contains("RowDefinitions=\"Auto,Auto,Auto,*,Auto\"", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "<ScrollViewer Grid.Row=\"3\" Classes=\"contentScrollSurface\" VerticalScrollBarVisibility=\"Visible\">",
+            shell,
+            StringComparison.Ordinal);
+        Assert.Contains("<Grid Margin=\"28,24,28,132\"", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "x:Name=\"CompositionBuildActionRail\"\n        Grid.Row=\"3\"",
+            shell.ReplaceLineEndings("\n"),
+            StringComparison.Ordinal);
+        Assert.Contains("DeviceContextTitle", workflowContextSetupModal, StringComparison.Ordinal);
+        Assert.DoesNotContain("DeviceContextTitle", shellPanels, StringComparison.Ordinal);
+        Assert.Contains("IsDeviceContextVisible", shell, StringComparison.Ordinal);
+        Assert.Contains("NavigationTrail", shellPanels, StringComparison.Ordinal);
+        Assert.Contains("GoBackCommand", shellPanels, StringComparison.Ordinal);
+        Assert.Contains("IcChoices", shellPanels, StringComparison.Ordinal);
+        Assert.Contains("SelectedIc", shellPanels, StringComparison.Ordinal);
+        Assert.Contains("NumberSelectionChoices", shellPanels, StringComparison.Ordinal);
+        Assert.Contains("SelectedNumber", shellPanels, StringComparison.Ordinal);
+        Assert.Contains("ToggleButton", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"nav\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"command\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction iconButton\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"breadcrumb\"", shellPanels, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction primary\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"semanticAction action\"", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("MainWindowStyles.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowButtonStyles.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowVisualStyles.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowSharedTemplates.axaml", shell, StringComparison.Ordinal);
+        string[] deferredReportResources =
+        [
+            "MainWindowReportTemplates.axaml",
+            "MainWindowReportChangeTemplates.axaml",
+            "MainWindowReportInputTemplates.axaml",
+            "MainWindowReportOperationTemplates.axaml",
+            "MainWindowReportHistoryTemplates.axaml",
+            "MainWindowReportAuditTemplates.axaml",
+            "MainWindowReportPanels.axaml",
+        ];
+        foreach (string resourceName in deferredReportResources)
+        {
+            Assert.DoesNotContain(resourceName, shell, StringComparison.Ordinal);
+            Assert.Contains(resourceName, reportModal, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("MainWindowPageTemplates.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowWorkflowTemplates.axaml", shell, StringComparison.Ordinal);
+        Assert.Contains("MainWindowShellPanels.axaml", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("FooterStatusPanelTemplate", shellPanels, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selector=\"Button.segmentDisabled", buttonStyles, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selector=\"Border.successSurface", controlStyles, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selector=\"TextBlock.technicalHeader", controlStyles, StringComparison.Ordinal);
+        Assert.DoesNotContain("Selector=\"Border.footerStatus", controlStyles, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource HomePageTemplate}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:SettingsModal", shell, StringComparison.Ordinal);
+        Assert.Contains("DataTemplate x:Key=\"HomePageTemplate\"", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("DataTemplate x:Key=\"SettingsPageTemplate\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("DataTemplate x:Key=\"HexEditorPageTemplate\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("<views:HexEditorPanel", pageTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexEditorPanel", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"MinHeight\" Value=\"44\" />", shellStyles, StringComparison.Ordinal);
+        Assert.Contains(
+            "<Setter Property=\"CornerRadius\" Value=\"{DynamicResource NfcPillCornerRadius}\" />",
+            shellStyles,
+            StringComparison.Ordinal);
+        Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.OutputLayoutTitle}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsEnabled=\"False\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("SaveReportButton_OnClick", reportModal, StringComparison.Ordinal);
+        Assert.Contains("BuildMergeButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding MessageCenter.OpenCommand}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "Command=\"{Binding MessageCenter.OpenSystemInformationCommand}\"",
+            shell,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("IsChecked=\"{Binding MessageCenter", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Reports.IsReportModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Replace.IsReplaceSelectionModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.TargetsLabel}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding ShowReplaceSelectionCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("ReplaceOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("MergeOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoveragePlainSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageLogicalItemTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains(
+            "ItemsSource=\"{Binding ReplaceCoverageSegments}\"",
+            workflowTemplates,
+            StringComparison.Ordinal);
+        Assert.Contains("<views:MemoryCoverageBar", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding CtrlRamOverview}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ShowLegend=\"True\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReplaceMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("MergeMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageTooltipTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding CompactDetail}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("DataTemplate x:Key=\"FirmwareSlotInformationFactTemplate\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("<views:FirmwareSlotCard", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("<views:FirmwareSlotCard", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("SlotDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("BrowseSlotButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("SlotDrop_OnDrop", firmwareSlotCard, StringComparison.Ordinal);
+        Assert.Contains("SlotDragOver_OnDragOver", firmwareSlotCard, StringComparison.Ordinal);
+        Assert.Contains("BrowseButton_OnClick", firmwareSlotCard, StringComparison.Ordinal);
+        Assert.Contains("await viewModel.WorkflowSession.SetSlotFileAsync", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("viewModel.SetSlotFile(", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("DropZoneDragState.ApplyFileDropEffect", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("DropZoneDragState.GetSingleLocalFile", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("GetSingleLocalFile", dropZoneDragState, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirstOrDefault", dropZoneDragState, StringComparison.Ordinal);
+        Assert.Contains("DragActiveClass", dropZoneDragState, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(workflowTemplates, "<views:GeneralMappingRow"));
+        Assert.DoesNotContain("<views:GeneralMappingRow", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("BrowseGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralMappingDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("RemoveGeneralMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("MappingDrop_OnDrop", generalMappingRow, StringComparison.Ordinal);
+        Assert.Contains("BrowseButton_OnClick", generalMappingRow, StringComparison.Ordinal);
+        Assert.Contains("RemoveButton_OnClick", generalMappingRow, StringComparison.Ordinal);
+        Assert.Contains("await viewModel.WorkflowSession.SetSlotFileAsync", generalMappingRowCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("viewModel.SetSlotFile(", generalMappingRowCode, StringComparison.Ordinal);
+        Assert.Contains("RemoveGeneralMappingRow", generalMappingRowCode, StringComparison.Ordinal);
+        Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralReplaceMappingTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Workbench wiring pending", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralReplaceRuleBoundsTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralReplaceRuleLengthTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.ExplicitMappingsTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReplaceBaseSlot", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("DataContext=\"{Binding CoverageDetails}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("<views:MemoryCoverageBar", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("ShowLegend=\"True\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "ItemTemplate=\"{StaticResource MemoryCoveragePlainSegmentListTemplate}\" ItemsSource=\"{Binding VisibleRows}\"",
+            sharedTemplates,
+            StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding MergeSlots}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceMemoryRows}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ItemsSource=\"{Binding MergeMemoryRows}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command=\"{Binding PreviewReplaceCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding Merge.CanBuildMerge}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("MergeBuildActionTip", shellSurface, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceBuildActionTip", shellSurface, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.GeneralMergeMappingTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding GeneralMergeMappings}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralMergeMappingRow", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralReplaceMappingRow", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralMergeMappingDrop_OnDrop", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("BrowseGeneralMergeMappingButton_OnClick", shell, StringComparison.Ordinal);
+        Assert.Contains("DataType=\"{x:Type vm:GeneralMergeMappingViewModel}\"", generalMappingRow, StringComparison.Ordinal);
+        Assert.Contains("DataType=\"{x:Type vm:GeneralReplaceMappingViewModel}\"", generalMappingRow, StringComparison.Ordinal);
+        Assert.DoesNotContain("Button.reportAction", buttonStyles, StringComparison.Ordinal);
+        Assert.Contains("Border.workflowCard", visualStyles, StringComparison.Ordinal);
+        Assert.Contains("<views:RunReportsTable x:Name=\"RunReportsList\" Grid.Row=\"1\" DataContext=\"{Binding Reports}\"", messageCenterModal, StringComparison.Ordinal);
+        string runReportsTable = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/RunReportsTable.axaml");
+        Assert.Contains("ItemsSource=\"{Binding RunReportEntries}\"", runReportsTable, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsReportHistoryEmpty}\"", runReportsTable, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportActionLabel", messageCenterModal, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportActionStatus", messageCenterModal, StringComparison.Ordinal);
+        Assert.Contains("<Grid.KeyBindings>", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("<Window.KeyBindings>", shell, StringComparison.Ordinal);
+        Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding Reports.ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding Reports.ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("OpenReportHistoryAutomationName", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"breadcrumb reportBackLink\"", reportPanels, StringComparison.Ordinal);
+        int reportHeaderIndex = reportPanels.IndexOf("Text=\"{Binding LoadedReport.Title}\"", StringComparison.Ordinal);
+        bool hasAuditDetailsTemplate = reportAuditTemplates.Contains("ReportAuditDetailsPanelTemplate", StringComparison.Ordinal);
+        int backActionIndex = reportPanels.IndexOf("Classes=\"breadcrumb reportBackLink\"", StringComparison.Ordinal);
+        Assert.True(
+            backActionIndex >= 0 && reportHeaderIndex > backActionIndex && hasAuditDetailsTemplate,
+            "Report detail should return through one breadcrumb before the report title.");
+        Assert.DoesNotContain("ReportHistoryActionLabel", shell, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportModalHeaderTemplate}\"", reportModal, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportHistoryPanelTemplate}\"", reportModal, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportSummaryPanelTemplate}\"", reportModal, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OutcomeTitle", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.ByteDifferenceTitle", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OutputDifferenceSummaryPage.Items", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.ChangeReviewTitle}\"", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource ReportAuditDetailsPanelTemplate}\"", reportModal, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.EvidenceTitle}\"", reportAuditTemplates, StringComparison.Ordinal);
+        foreach (string countBinding in new[]
+        {
+            "LoadedReport.InputCount",
+            "LoadedReport.OperationCount",
+            "LoadedReport.MutationCount",
+            "LoadedReport.OutputDifferenceCount",
+            "LoadedReport.IssueCount",
+            "LoadedReport.PostbuildInvocationCount",
+        })
+        {
+            Assert.Contains(countBinding, reportAuditTemplates, StringComparison.Ordinal);
+        }
+        Assert.Contains("Classes=\"subtlePanel\" Margin=\"16,14,16,0\"", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("ColumnSpacing=\"{DynamicResource NfcSpace12}\"", reportPanels, StringComparison.Ordinal);
+        Assert.Contains("ReportLineBadgeTemplate", reportTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportDifferenceSummaryRowTemplate", reportPanels, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportDifferenceSummaryChipTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Choose IC and Number inside", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("HomeReplaceStatus", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("HomeMergeStatus", shell, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeTableTitle}\"", reportOperationTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding RangeRows}\"", reportOperationTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportCodeBlockView", reportOperationTemplates, StringComparison.Ordinal);
+        Assert.Contains("behaviors:ReportCopyAction.Text=\"{Binding Text, ElementName=Root}\"", reportCodeBlockView, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetTextAsync", reportCodeBlockViewCode, StringComparison.Ordinal);
+        Assert.Contains("SetTextAsync", ReadText("src/NvtFwCombiner.Presentation.Avalonia/Behaviors/ReportCopyAction.cs"), StringComparison.Ordinal);
+        Assert.Contains("behaviors:ReportCopyAction.Text=\"{Binding LoadedReportJson, Mode=OneWay}\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("TextBox.readOnlyRaw", controlStyles, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"readOnlyRaw\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("MaxHeight=\"320\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("Where to look first", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Evidence map", shell, StringComparison.Ordinal);
+        Assert.Contains("<TabControl", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabInputs}\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabChanges}\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabOperations}\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabPostbuild}\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabIssues}\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("Header=\"{Binding Text.ReportTabRaw}\"", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportHexDiffViewportRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.Contains("HexViewportControl", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportHexDiffRangeRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportOutputDifferenceRowTemplate", reportChangeTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.HexDiff.HasDifferenceWorkspace", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportInputGroupTemplate", reportInputTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportOperationFlowNodeTemplate", reportOperationTemplates, StringComparison.Ordinal);
+        Assert.Contains("ReportHistoryEntryTemplate", reportHistoryTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.OperationFlowPage.Items", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.StepOperationPage.Items", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.Contains("LoadedReport.PostbuildInvocationPage.Items", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("LoadedReport.CommandOperations", reportAuditTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("ColumnDefinitions=\"24,*\"", shell, StringComparison.Ordinal);
+        Assert.Contains("FontFamily=\"{DynamicResource NfcUiFontFamily}\"", shell, StringComparison.Ordinal);
+        Assert.Contains(
+            "<FontFamily x:Key=\"NfcUiFontFamily\">fonts:Inter#Inter, Microsoft JhengHei UI, Noto Sans CJK TC, Noto Sans TC, Segoe UI</FontFamily>",
+            themeTokens,
+            StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace2\">2</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace4\">4</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace8\">8</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace12\">12</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcSpace16\">16</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize10\">10</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize11\">11</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize12\">12</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize13\">13</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.Contains("<x:Double x:Key=\"NfcFontSize14\">14</x:Double>", themeTokens, StringComparison.Ordinal);
+        Assert.DoesNotContain("Background=\"#0F172A\" CornerRadius=\"8\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Merge / Replace workspace", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("ColumnDefinitions=\"220,*\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Diagnostics.", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("SavedRulesAndReports", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("Policy display only", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("0x0000 - 0xFFFF", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("AB disabled", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("LOADED REPORT", shell, StringComparison.Ordinal);
+
+        string viewModel = ReadViewModelPartials();
+        string workflowContext = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
+        string mergeViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
+        string mergeMemory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs");
+        string mergeState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
+        string replaceMemory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs");
+        string replaceState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
+        string reportViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
+        string settingsViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.cs");
+        string navigationViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellNavigationViewModel.cs");
+        Assert.Contains("LoadReportJson", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("ReportReviewViewModel", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("CanOpenReport", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("ReportToastText", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains("ShellToastAccessibleLabel", reportViewModel, StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.LiveSetting=\"Polite\"",
+            shellPanels,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.Name=\"{Binding ShellToastAccessibleLabel}\"",
+            shellPanels,
+            StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", workflowContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("public partial IReadOnlyList<string> NumberChoices", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetMemoryDisplay", mergeMemory, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetStandardMergeMemoryDisplay", mergeMemory, StringComparison.Ordinal);
+        Assert.Contains("GetSelectedReplaceMemoryDisplay", replaceMemory, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetMemoryDisplay", replaceMemory, StringComparison.Ordinal);
+        Assert.DoesNotContain("UiCompositionRunner.GetReplaceMemoryDisplay", replaceMemory, StringComparison.Ordinal);
+        Assert.Contains("ReplaceModeChoices", replaceState, StringComparison.Ordinal);
+        Assert.Contains("GeneralReplaceMappings", replaceState, StringComparison.Ordinal);
+        Assert.Contains("ReplaceBaseSlot", replaceState, StringComparison.Ordinal);
+        Assert.Contains("IsStructuredReplaceModeSelected", replaceState, StringComparison.Ordinal);
+        Assert.Contains("PreviewMergeCommand", mergeState, StringComparison.Ordinal);
+        Assert.Contains("BuildMergeCommand", mergeState, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution", mergeViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionExecutionAdapter", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("OverviewRows", settingsViewModel, StringComparison.Ordinal);
+        Assert.Contains("CapabilityRows", settingsViewModel, StringComparison.Ordinal);
+        Assert.Contains("NavigationPath", navigationViewModel, StringComparison.Ordinal);
+
+        string flashMapCatalog = ReadFlashMapCatalogPartials();
+        Assert.Contains("NF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("Normal CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("DIFF CtrlRAM", flashMapCatalog, StringComparison.Ordinal);
+        Assert.Contains("NT51917", flashMapCatalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("CtrlRamRegionCatalog", shell, StringComparison.Ordinal);
+    }
+}
