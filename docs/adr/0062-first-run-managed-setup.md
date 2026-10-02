@@ -88,12 +88,29 @@ It returns one of these terminal intents:
 `ManagedLauncherEntryResult` retains `Outcome`, `ManagedRoot`,
 `AdmissionElapsed`, and `TotalElapsed`, and adds typed `Reason`
 (`ManagedLauncherEntryReason`) and `Stage` (`ManagedLauncherEntryStage`).
-The entry coordinator sets both at every terminal result; callers consume them
-without reconstructing facts. Legacy externally constructed results may leave
-them `NotSpecified`. Existing cancellation and receipt/success precedence
-remain unchanged: `CallerCancelled` labels the cancellation-driven
-`AdmissionCleanup` branches returning termination uncertainty; malformed
-receipts use `InvalidReceipt`, and accepted READY/rollback uses `Success`.
+This contract follows board decision 231, item C01-2. The entry coordinator
+sets both at every terminal result; callers consume them without reconstructing
+facts. Health `HealthDeadlineExceeded`, established `PermissionDenied` and
+`Unavailable`, `AdmissionTimeout`, `CompletionTimeout`, and `CallerCancelled`
+remain distinct. Optional `UpstreamExitCode`, `BootstrapExitIssue`,
+`BootstrapStartIssue`, `PayloadIssue`, and `StateLoadIssue` preserve the existing
+typed facts used for the terminal decision, including malformed receipt fields.
+Legacy externally constructed results may leave reason/stage `NotSpecified`
+and upstream members null.
+
+Entry keeps its own enums because the first-installation launch types describe
+only post-promotion failures, not payload/state/root decisions, Setup, successful
+entry, separate health/admission/completion timeouts, or reserved admission
+cleanup. Shared steps use `BootstrapStart`, `LauncherAdmission`, and
+`ApplicationReady`. For malformed or termination-uncertain process receipts,
+the reason prioritizes caller cancellation, then the stage's operation timeout,
+then the receipt reason; upstream members retain the receipt facts. Accepted
+READY/rollback uses `Success`. Ordinary caller cancellation still propagates as
+`OperationCanceledException`; outcomes, receipt validation, cleanup order and
+durable state are unchanged. At `ApplicationReady`, an unrelated cancellation
+caught after the independent admission deadline expired uses `Unavailable`,
+not a completion timeout. During payload/state/root observation, a reached
+health deadline takes diagnostic precedence when both local deadlines expire.
 
 `Missing state + existing unexplained root` and `existing state + missing root`
 are never treated as uninstalled. The Launcher never scans other directories,

@@ -110,11 +110,13 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
 
         internal int LoadCount { get; private set; }
         internal int LeaseCount { get; private set; }
+        internal Action? LoadAction { get; set; }
 
         public ValueTask<VersionManagerStateLoadResult> LoadAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             LoadCount++;
+            LoadAction?.Invoke();
             return ValueTask.FromResult(_result);
         }
 
@@ -138,6 +140,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         : IManagedInstallationRootProbe
     {
         internal int ObserveCount { get; private set; }
+        internal Action? ObserveAction { get; set; }
 
         public ValueTask<ManagedInstallationRootObservation> ObserveAsync(
             string managedRoot,
@@ -145,6 +148,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             ObserveCount++;
+            ObserveAction?.Invoke();
             return ValueTask.FromResult(new ManagedInstallationRootObservation(status));
         }
     }

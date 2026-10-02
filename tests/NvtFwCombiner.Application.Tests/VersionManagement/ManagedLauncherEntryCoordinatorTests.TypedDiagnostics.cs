@@ -57,25 +57,25 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
     [InlineData("start-unavailable", ManagedLauncherEntryOutcome.HealthUnavailable,
         ManagedLauncherEntryReason.Unavailable, ManagedLauncherEntryStage.BootstrapStart)]
     [InlineData("admission-invalid-receipt", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.InvalidReceipt, ManagedLauncherEntryStage.BootstrapAdmission)]
+        ManagedLauncherEntryReason.InvalidReceipt, ManagedLauncherEntryStage.LauncherAdmission)]
     [InlineData("admission-unconfirmed", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.TerminationUnconfirmed, ManagedLauncherEntryStage.BootstrapAdmission)]
+        ManagedLauncherEntryReason.TerminationUnconfirmed, ManagedLauncherEntryStage.LauncherAdmission)]
     [InlineData("admission-busy", ManagedLauncherEntryOutcome.Busy,
-        ManagedLauncherEntryReason.Busy, ManagedLauncherEntryStage.BootstrapAdmission)]
+        ManagedLauncherEntryReason.Busy, ManagedLauncherEntryStage.LauncherAdmission)]
     [InlineData("admission-recovery", ManagedLauncherEntryOutcome.RecoveryRequired,
-        ManagedLauncherEntryReason.RecoveryRequired, ManagedLauncherEntryStage.BootstrapAdmission)]
+        ManagedLauncherEntryReason.RecoveryRequired, ManagedLauncherEntryStage.LauncherAdmission)]
     [InlineData("admission-failed", ManagedLauncherEntryOutcome.LaunchFailed,
-        ManagedLauncherEntryReason.LaunchFailed, ManagedLauncherEntryStage.BootstrapAdmission)]
+        ManagedLauncherEntryReason.LaunchFailed, ManagedLauncherEntryStage.LauncherAdmission)]
     [InlineData("admission-unavailable", ManagedLauncherEntryOutcome.HealthUnavailable,
-        ManagedLauncherEntryReason.Unavailable, ManagedLauncherEntryStage.BootstrapAdmission)]
+        ManagedLauncherEntryReason.Unavailable, ManagedLauncherEntryStage.LauncherAdmission)]
     [InlineData("cleanup-exhausted", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
         ManagedLauncherEntryReason.AdmissionTimeout, ManagedLauncherEntryStage.AdmissionCleanup)]
     [InlineData("cleanup-timeout", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
         ManagedLauncherEntryReason.AdmissionTimeout, ManagedLauncherEntryStage.AdmissionCleanup)]
     [InlineData("cleanup-invalid-receipt", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.InvalidReceipt, ManagedLauncherEntryStage.AdmissionCleanup)]
+        ManagedLauncherEntryReason.AdmissionTimeout, ManagedLauncherEntryStage.AdmissionCleanup)]
     [InlineData("cleanup-unconfirmed", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.TerminationUnconfirmed, ManagedLauncherEntryStage.AdmissionCleanup)]
+        ManagedLauncherEntryReason.AdmissionTimeout, ManagedLauncherEntryStage.AdmissionCleanup)]
     [InlineData("cleanup-confirmed", ManagedLauncherEntryOutcome.HealthUnavailable,
         ManagedLauncherEntryReason.AdmissionTimeout, ManagedLauncherEntryStage.AdmissionCleanup)]
     [InlineData("caller-cancelled-cleanup-exhausted", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
@@ -85,29 +85,31 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
     [InlineData("caller-cancelled-cleanup-unconfirmed", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
         ManagedLauncherEntryReason.CallerCancelled, ManagedLauncherEntryStage.AdmissionCleanup)]
     [InlineData("caller-cancelled-invalid-cleanup", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.InvalidReceipt, ManagedLauncherEntryStage.AdmissionCleanup)]
+        ManagedLauncherEntryReason.CallerCancelled, ManagedLauncherEntryStage.AdmissionCleanup)]
     [InlineData("completion-timeout", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.CompletionTimeout, ManagedLauncherEntryStage.BootstrapCompletion)]
+        ManagedLauncherEntryReason.CompletionTimeout, ManagedLauncherEntryStage.ApplicationReady)]
     [InlineData("completion-invalid-receipt", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.InvalidReceipt, ManagedLauncherEntryStage.BootstrapCompletion)]
+        ManagedLauncherEntryReason.InvalidReceipt, ManagedLauncherEntryStage.ApplicationReady)]
     [InlineData("completion-unconfirmed", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.TerminationUnconfirmed, ManagedLauncherEntryStage.BootstrapCompletion)]
+        ManagedLauncherEntryReason.TerminationUnconfirmed, ManagedLauncherEntryStage.ApplicationReady)]
     [InlineData("completion-late", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.CompletionTimeout, ManagedLauncherEntryStage.BootstrapCompletion)]
+        ManagedLauncherEntryReason.CompletionTimeout, ManagedLauncherEntryStage.ApplicationReady)]
+    [InlineData("completion-unavailable-late", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
+        ManagedLauncherEntryReason.CompletionTimeout, ManagedLauncherEntryStage.ApplicationReady)]
     [InlineData("completion-ready", ManagedLauncherEntryOutcome.LaunchInstalled,
-        ManagedLauncherEntryReason.Success, ManagedLauncherEntryStage.BootstrapCompletion)]
+        ManagedLauncherEntryReason.Success, ManagedLauncherEntryStage.ApplicationReady)]
     [InlineData("completion-rollback", ManagedLauncherEntryOutcome.LaunchInstalled,
-        ManagedLauncherEntryReason.Success, ManagedLauncherEntryStage.BootstrapCompletion)]
+        ManagedLauncherEntryReason.Success, ManagedLauncherEntryStage.ApplicationReady)]
     [InlineData("completion-failed", ManagedLauncherEntryOutcome.LaunchFailed,
-        ManagedLauncherEntryReason.LaunchFailed, ManagedLauncherEntryStage.BootstrapCompletion)]
+        ManagedLauncherEntryReason.LaunchFailed, ManagedLauncherEntryStage.ApplicationReady)]
     [InlineData("completion-unavailable", ManagedLauncherEntryOutcome.HealthUnavailable,
-        ManagedLauncherEntryReason.Unavailable, ManagedLauncherEntryStage.BootstrapCompletion)]
+        ManagedLauncherEntryReason.Unavailable, ManagedLauncherEntryStage.ApplicationReady)]
     [InlineData("admission-timeout-health", ManagedLauncherEntryOutcome.HealthUnavailable,
-        ManagedLauncherEntryReason.AdmissionTimeout, ManagedLauncherEntryStage.PayloadAdmission)]
+        ManagedLauncherEntryReason.HealthDeadlineExceeded, ManagedLauncherEntryStage.PayloadAdmission)]
     [InlineData("admission-timeout-start", ManagedLauncherEntryOutcome.HealthUnavailable,
         ManagedLauncherEntryReason.AdmissionTimeout, ManagedLauncherEntryStage.BootstrapStart)]
     [InlineData("admission-timeout-wait", ManagedLauncherEntryOutcome.TerminationUnconfirmed,
-        ManagedLauncherEntryReason.AdmissionTimeout, ManagedLauncherEntryStage.BootstrapAdmission)]
+        ManagedLauncherEntryReason.AdmissionTimeout, ManagedLauncherEntryStage.LauncherAdmission)]
     public async Task EveryTerminalPathSpecifiesReasonAndStage(
         string scenario,
         ManagedLauncherEntryOutcome expectedOutcome,
@@ -290,6 +292,12 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             case "completion-late":
                 handoff.CompletionAction = () => time.Advance(TimeSpan.FromSeconds(1));
                 break;
+            case "completion-unavailable-late":
+                handoff = new(ImmutableBootstrapCompletionOutcome.Unavailable)
+                {
+                    CompletionAction = () => time.Advance(TimeSpan.FromSeconds(1)),
+                };
+                break;
             case "completion-ready":
                 break;
             case "completion-rollback":
@@ -333,6 +341,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             handoff,
             admissionDeadline: TimeSpan.FromSeconds(1),
             completionDeadline: TimeSpan.FromSeconds(1),
+            healthObservationDeadline: TimeSpan.FromMilliseconds(250),
             timeProvider: time,
             payloadSource: payload);
 
@@ -344,6 +353,21 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         Assert.Equal(expectedReason, result.Reason);
         Assert.Equal(expectedStage, result.Stage);
         Assert.Equal(0, state.LeaseCount);
+        if (scenario is "payload-invalid" or "payload-changed" or "payload-unavailable")
+        {
+            Assert.Equal(payload.AdmissionIssue, result.PayloadIssue);
+            Assert.Null(result.StateLoadIssue);
+        }
+        if (scenario is "state-invalid" or "state-root-mismatch" or "state-unavailable")
+        {
+            Assert.Equal(scenario switch
+            {
+                "state-invalid" => VersionManagerStateLoadIssue.Invalid,
+                "state-root-mismatch" => VersionManagerStateLoadIssue.ManagedRootMismatch,
+                _ => VersionManagerStateLoadIssue.Unavailable,
+            }, result.StateLoadIssue);
+            Assert.Equal(ManagedDistributionPayloadIssue.None, result.PayloadIssue);
+        }
     }
 
     /// <summary>The existing four-argument constructor and deconstruction remain source compatible.</summary>
@@ -364,5 +388,10 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         Assert.Equal(TimeSpan.FromMilliseconds(20), total);
         Assert.Equal(ManagedLauncherEntryReason.NotSpecified, result.Reason);
         Assert.Equal(ManagedLauncherEntryStage.NotSpecified, result.Stage);
+        Assert.Null(result.UpstreamExitCode);
+        Assert.Null(result.BootstrapExitIssue);
+        Assert.Null(result.BootstrapStartIssue);
+        Assert.Null(result.PayloadIssue);
+        Assert.Null(result.StateLoadIssue);
     }
 }

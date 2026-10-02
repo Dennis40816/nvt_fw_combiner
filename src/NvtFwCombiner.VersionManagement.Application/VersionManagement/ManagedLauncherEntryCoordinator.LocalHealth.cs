@@ -28,7 +28,7 @@ public sealed partial class ManagedLauncherEntryCoordinator
                 payload.Issue == ManagedDistributionPayloadIssue.Unavailable
                     ? ManagedLauncherEntryReason.Unavailable
                     : ManagedLauncherEntryReason.PayloadInvalid,
-                ManagedLauncherEntryStage.PayloadAdmission);
+                PayloadIssue: payload.Issue);
         }
         if (payload.LauncherVersion != _runningLauncherVersion)
         {
@@ -37,7 +37,7 @@ public sealed partial class ManagedLauncherEntryCoordinator
                 ManagedRoot: null,
                 Bootstrap: null,
                 ManagedLauncherEntryReason.PayloadInvalid,
-                ManagedLauncherEntryStage.PayloadAdmission);
+                PayloadIssue: payload.Issue);
         }
         ManagedImmutableBootstrapIdentity bootstrap = payload.Bootstrap!;
 
@@ -70,7 +70,8 @@ public sealed partial class ManagedLauncherEntryCoordinator
                 _defaultManagedRoot,
                 bootstrap,
                 RootReason(root.Status),
-                ManagedLauncherEntryStage.RootObservation);
+                PayloadIssue: payload.Issue,
+                StateLoadIssue: loaded.Issue);
         }
         if (!loaded.IsSuccess)
         {
@@ -85,7 +86,8 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     VersionManagerStateLoadIssue.ManagedRootMismatch
                     ? ManagedLauncherEntryReason.RecoveryRequired
                     : ManagedLauncherEntryReason.Unavailable,
-                ManagedLauncherEntryStage.StateLoad);
+                PayloadIssue: payload.Issue,
+                StateLoadIssue: loaded.Issue);
         }
 
         VersionManagerState state = loaded.State!;
@@ -96,7 +98,8 @@ public sealed partial class ManagedLauncherEntryCoordinator
                 ManagedRoot: null,
                 Bootstrap: bootstrap,
                 ManagedLauncherEntryReason.RecoveryRequired,
-                ManagedLauncherEntryStage.StateLoad);
+                PayloadIssue: payload.Issue,
+                StateLoadIssue: loaded.Issue);
         }
         string rootIdentity = ManagedRootPathIdentity.Normalize(state.ManagedRootIdentity);
         stages.Stage = ManagedLauncherEntryStage.RootObservation;
@@ -109,8 +112,9 @@ public sealed partial class ManagedLauncherEntryCoordinator
                 Outcome: null,
                 rootIdentity,
                 bootstrap,
-                ManagedLauncherEntryReason.Success,
-                ManagedLauncherEntryStage.RootObservation)
+                Reason: null,
+                PayloadIssue: payload.Issue,
+                StateLoadIssue: loaded.Issue)
             : new(
                 installedRoot.Status is ManagedInstallationRootStatus.Absent or
                     ManagedInstallationRootStatus.Residue or
@@ -122,7 +126,8 @@ public sealed partial class ManagedLauncherEntryCoordinator
                 installedRoot.Status == ManagedInstallationRootStatus.Absent
                     ? ManagedLauncherEntryReason.RecoveryRequired
                     : RootReason(installedRoot.Status),
-                ManagedLauncherEntryStage.RootObservation);
+                PayloadIssue: payload.Issue,
+                StateLoadIssue: loaded.Issue);
     }
 
     private static async ValueTask<T> AwaitIsolatedReadOnlyObservationAsync<T>(
@@ -159,8 +164,9 @@ public sealed partial class ManagedLauncherEntryCoordinator
         ManagedLauncherEntryOutcome? Outcome,
         string? ManagedRoot,
         ManagedImmutableBootstrapIdentity? Bootstrap,
-        ManagedLauncherEntryReason Reason,
-        ManagedLauncherEntryStage Stage);
+        ManagedLauncherEntryReason? Reason,
+        ManagedDistributionPayloadIssue? PayloadIssue = null,
+        VersionManagerStateLoadIssue? StateLoadIssue = null);
 
     private static ManagedLauncherEntryReason RootReason(ManagedInstallationRootStatus status)
     {

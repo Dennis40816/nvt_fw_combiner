@@ -445,6 +445,21 @@ public sealed record ManagedLauncherEntryResult(
 
     /// <summary>Gets the step that made the terminal decision; legacy external results may omit it.</summary>
     public ManagedLauncherEntryStage Stage { get; init; } = ManagedLauncherEntryStage.NotSpecified;
+
+    /// <summary>Gets the unmodified exit code of the receipt used for this decision, if available.</summary>
+    public int? UpstreamExitCode { get; init; }
+
+    /// <summary>Gets the unmodified typed admission or completion issue, including malformed receipts.</summary>
+    public ImmutableBootstrapExitIssue? BootstrapExitIssue { get; init; }
+
+    /// <summary>Gets the unmodified typed issue when process creation made the terminal decision.</summary>
+    public ImmutableBootstrapStartIssue? BootstrapStartIssue { get; init; }
+
+    /// <summary>Gets the unmodified payload issue when local health made the terminal decision.</summary>
+    public ManagedDistributionPayloadIssue? PayloadIssue { get; init; }
+
+    /// <summary>Gets the unmodified state-load issue when local health made the terminal decision.</summary>
+    public VersionManagerStateLoadIssue? StateLoadIssue { get; init; }
 }
 
 /// <summary>Single Application owner for Launcher-to-Setup-or-Bootstrap routing.</summary>
@@ -529,6 +544,7 @@ public sealed partial class ManagedLauncherEntryCoordinator
             deadline.Token);
         var stages = new EntryStageTracker();
         bool bootstrapReceiptAcquired = false;
+        bool healthDeadlineExceeded = false;
         string? observedManagedRoot = null;
         try
         {
@@ -559,6 +575,13 @@ public sealed partial class ManagedLauncherEntryCoordinator
                         ManagedLauncherEntryReason.HealthDeadlineExceeded,
                         stages.Stage);
                 }
+                catch (OperationCanceledException)
+                {
+                    // Elapsed time also covers a due health timer whose callback has not run yet.
+                    healthDeadlineExceeded = healthDeadline.IsCancellationRequested ||
+                        _timeProvider.GetElapsedTime(started) >= _healthObservationDeadline;
+                    throw;
+                }
             }
 
             if (localHealth.Outcome is { } localOutcome)
@@ -567,8 +590,12 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     localOutcome,
                     localHealth.ManagedRoot,
                     started,
-                    localHealth.Reason,
-                    localHealth.Stage);
+                    localHealth.Reason!.Value,
+                    stages.Stage) with
+                {
+                    PayloadIssue = localHealth.PayloadIssue,
+                    StateLoadIssue = localHealth.StateLoadIssue,
+                };
             }
             string rootIdentity = localHealth.ManagedRoot!;
             observedManagedRoot = rootIdentity;
@@ -586,8 +613,14 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
                     started,
-                    ManagedLauncherEntryReason.InvalidReceipt,
-                    stages.Stage);
+                    InterruptedReceiptReason(
+                        ManagedLauncherEntryReason.InvalidReceipt,
+                        deadline.IsCancellationRequested ||
+                            _timeProvider.GetElapsedTime(started) >= _admissionOperationCutoff,
+                        ManagedLauncherEntryReason.AdmissionTimeout,
+                        cancellationToken),
+                    stages.Stage) with
+                { BootstrapStartIssue = handoff.Issue };
             }
             if (!handoff.IsStarted)
             {
@@ -622,7 +655,8 @@ public sealed partial class ManagedLauncherEntryCoordinator
                         ImmutableBootstrapStartIssue.None => ManagedLauncherEntryReason.Unavailable,
                         _ => ManagedLauncherEntryReason.Unavailable,
                     },
-                    stages.Stage);
+                    stages.Stage) with
+                { BootstrapStartIssue = handoff.Issue };
             }
             IImmutableBootstrapLaunch admittedLaunch = launch!;
 
@@ -630,7 +664,7 @@ public sealed partial class ManagedLauncherEntryCoordinator
             {
                 deadline.Cancel();
             }
-            stages.Stage = ManagedLauncherEntryStage.BootstrapAdmission;
+            stages.Stage = ManagedLauncherEntryStage.LauncherAdmission;
             ImmutableBootstrapAdmissionResult admission = await admittedLaunch
                 .WaitForAdmissionAsync(
                     Budget(
@@ -643,8 +677,17 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
                     started,
-                    ManagedLauncherEntryReason.InvalidReceipt,
-                    stages.Stage);
+                    InterruptedReceiptReason(
+                        ManagedLauncherEntryReason.InvalidReceipt,
+                        deadline.IsCancellationRequested ||
+                            _timeProvider.GetElapsedTime(started) >= _admissionOperationCutoff,
+                        ManagedLauncherEntryReason.AdmissionTimeout,
+                        cancellationToken),
+                    stages.Stage) with
+                {
+                    UpstreamExitCode = admission.ExitCode,
+                    BootstrapExitIssue = admission.ExitIssue,
+                };
             }
             if (admission.Outcome == ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed)
             {
@@ -652,17 +695,23 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
                     started,
-                    ManagedLauncherEntryReason.TerminationUnconfirmed,
-                    stages.Stage);
+                    InterruptedReceiptReason(
+                        ManagedLauncherEntryReason.TerminationUnconfirmed,
+                        deadline.IsCancellationRequested ||
+                            _timeProvider.GetElapsedTime(started) >= _admissionOperationCutoff,
+                        ManagedLauncherEntryReason.AdmissionTimeout,
+                        cancellationToken),
+                    stages.Stage) with
+                {
+                    UpstreamExitCode = admission.ExitCode,
+                    BootstrapExitIssue = admission.ExitIssue,
+                };
             }
             if (admission.Outcome == ImmutableBootstrapAdmissionOutcome.Admitted &&
                 (cancellationToken.IsCancellationRequested ||
                     _timeProvider.GetElapsedTime(started) >= _admissionOperationCutoff))
             {
                 stages.Stage = ManagedLauncherEntryStage.AdmissionCleanup;
-                ManagedLauncherEntryReason cleanupInterruptionReason = cancellationToken.IsCancellationRequested
-                    ? ManagedLauncherEntryReason.CallerCancelled
-                    : ManagedLauncherEntryReason.AdmissionTimeout;
                 deadline.Cancel();
                 TimeSpan cleanupRemaining = Remaining(
                     _admissionOperationCutoff + DefaultCleanupObservationBudget,
@@ -673,7 +722,11 @@ public sealed partial class ManagedLauncherEntryCoordinator
                         ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                         rootIdentity,
                         started,
-                        cleanupInterruptionReason,
+                        InterruptedReceiptReason(
+                            ManagedLauncherEntryReason.TerminationUnconfirmed,
+                            timedOut: true,
+                            ManagedLauncherEntryReason.AdmissionTimeout,
+                            cancellationToken),
                         stages.Stage);
                 }
                 using var cleanupDeadline = new CancellationTokenSource(
@@ -693,7 +746,11 @@ public sealed partial class ManagedLauncherEntryCoordinator
                         ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                         rootIdentity,
                         started,
-                        cleanupInterruptionReason,
+                        InterruptedReceiptReason(
+                            ManagedLauncherEntryReason.TerminationUnconfirmed,
+                            timedOut: true,
+                            ManagedLauncherEntryReason.AdmissionTimeout,
+                            cancellationToken),
                         stages.Stage);
                 }
                 if (!cleanup.HasValidShape)
@@ -702,8 +759,16 @@ public sealed partial class ManagedLauncherEntryCoordinator
                         ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                         rootIdentity,
                         started,
-                        ManagedLauncherEntryReason.InvalidReceipt,
-                        stages.Stage);
+                        InterruptedReceiptReason(
+                            ManagedLauncherEntryReason.InvalidReceipt,
+                            timedOut: true,
+                            ManagedLauncherEntryReason.AdmissionTimeout,
+                            cancellationToken),
+                        stages.Stage) with
+                    {
+                        UpstreamExitCode = cleanup.ExitCode,
+                        BootstrapExitIssue = cleanup.ExitIssue,
+                    };
                 }
                 if (cleanup.Outcome == ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed)
                 {
@@ -711,10 +776,16 @@ public sealed partial class ManagedLauncherEntryCoordinator
                         ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                         rootIdentity,
                         started,
-                        cleanupInterruptionReason == ManagedLauncherEntryReason.CallerCancelled
-                            ? cleanupInterruptionReason
-                            : ManagedLauncherEntryReason.TerminationUnconfirmed,
-                        stages.Stage);
+                        InterruptedReceiptReason(
+                            ManagedLauncherEntryReason.TerminationUnconfirmed,
+                            timedOut: true,
+                            ManagedLauncherEntryReason.AdmissionTimeout,
+                            cancellationToken),
+                        stages.Stage) with
+                    {
+                        UpstreamExitCode = cleanup.ExitCode,
+                        BootstrapExitIssue = cleanup.ExitIssue,
+                    };
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 return Result(
@@ -722,7 +793,11 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     rootIdentity,
                     started,
                     ManagedLauncherEntryReason.AdmissionTimeout,
-                    stages.Stage);
+                    stages.Stage) with
+                {
+                    UpstreamExitCode = cleanup.ExitCode,
+                    BootstrapExitIssue = cleanup.ExitIssue,
+                };
             }
             if (admission.Outcome != ImmutableBootstrapAdmissionOutcome.Admitted)
             {
@@ -746,21 +821,29 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     },
                     rootIdentity,
                     started,
-                    admission.Outcome switch
-                    {
-                        ImmutableBootstrapAdmissionOutcome.Busy => ManagedLauncherEntryReason.Busy,
-                        ImmutableBootstrapAdmissionOutcome.RecoveryRequired => ManagedLauncherEntryReason.RecoveryRequired,
-                        ImmutableBootstrapAdmissionOutcome.LaunchFailed => ManagedLauncherEntryReason.LaunchFailed,
-                        ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed =>
-                            ManagedLauncherEntryReason.TerminationUnconfirmed,
-                        ImmutableBootstrapAdmissionOutcome.HealthUnavailable or
-                        ImmutableBootstrapAdmissionOutcome.Admitted => ManagedLauncherEntryReason.Unavailable,
-                        _ => ManagedLauncherEntryReason.Unavailable,
-                    },
-                    stages.Stage);
+                    admission.ExitCode is null &&
+                        (deadline.IsCancellationRequested ||
+                            _timeProvider.GetElapsedTime(started) >= _admissionOperationCutoff)
+                        ? ManagedLauncherEntryReason.AdmissionTimeout
+                        : admission.Outcome switch
+                        {
+                            ImmutableBootstrapAdmissionOutcome.Busy => ManagedLauncherEntryReason.Busy,
+                            ImmutableBootstrapAdmissionOutcome.RecoveryRequired => ManagedLauncherEntryReason.RecoveryRequired,
+                            ImmutableBootstrapAdmissionOutcome.LaunchFailed => ManagedLauncherEntryReason.LaunchFailed,
+                            ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed =>
+                                ManagedLauncherEntryReason.TerminationUnconfirmed,
+                            ImmutableBootstrapAdmissionOutcome.HealthUnavailable or
+                            ImmutableBootstrapAdmissionOutcome.Admitted => ManagedLauncherEntryReason.Unavailable,
+                            _ => ManagedLauncherEntryReason.Unavailable,
+                        },
+                    stages.Stage) with
+                {
+                    UpstreamExitCode = admission.ExitCode,
+                    BootstrapExitIssue = admission.ExitIssue,
+                };
             }
 
-            stages.Stage = ManagedLauncherEntryStage.BootstrapCompletion;
+            stages.Stage = ManagedLauncherEntryStage.ApplicationReady;
             TimeSpan admissionElapsed = _timeProvider.GetElapsedTime(started);
             long completionStarted = _timeProvider.GetTimestamp();
             using var completionDeadline = new CancellationTokenSource(
@@ -790,7 +873,7 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     _timeProvider.GetElapsedTime(started))
                 {
                     Reason = ManagedLauncherEntryReason.CompletionTimeout,
-                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                    Stage = stages.Stage,
                 };
             }
             if (!completion.HasValidShape)
@@ -801,8 +884,15 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     admissionElapsed,
                     _timeProvider.GetElapsedTime(started))
                 {
-                    Reason = ManagedLauncherEntryReason.InvalidReceipt,
-                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                    Reason = InterruptedReceiptReason(
+                        ManagedLauncherEntryReason.InvalidReceipt,
+                        completionDeadline.IsCancellationRequested ||
+                            _timeProvider.GetElapsedTime(completionStarted) >= _completionOperationCutoff,
+                        ManagedLauncherEntryReason.CompletionTimeout,
+                        cancellationToken),
+                    Stage = stages.Stage,
+                    UpstreamExitCode = completion.ExitCode,
+                    BootstrapExitIssue = completion.ExitIssue,
                 };
             }
             if (completion.Outcome == ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed)
@@ -813,8 +903,15 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     admissionElapsed,
                     _timeProvider.GetElapsedTime(started))
                 {
-                    Reason = ManagedLauncherEntryReason.TerminationUnconfirmed,
-                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                    Reason = InterruptedReceiptReason(
+                        ManagedLauncherEntryReason.TerminationUnconfirmed,
+                        completionDeadline.IsCancellationRequested ||
+                            _timeProvider.GetElapsedTime(completionStarted) >= _completionOperationCutoff,
+                        ManagedLauncherEntryReason.CompletionTimeout,
+                        cancellationToken),
+                    Stage = stages.Stage,
+                    UpstreamExitCode = completion.ExitCode,
+                    BootstrapExitIssue = completion.ExitIssue,
                 };
             }
             if (_timeProvider.GetElapsedTime(completionStarted) >= _completionOperationCutoff)
@@ -826,7 +923,9 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     _timeProvider.GetElapsedTime(started))
                 {
                     Reason = ManagedLauncherEntryReason.CompletionTimeout,
-                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                    Stage = stages.Stage,
+                    UpstreamExitCode = completion.ExitCode,
+                    BootstrapExitIssue = completion.ExitIssue,
                 };
             }
             if (completion.Outcome is
@@ -840,7 +939,9 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     _timeProvider.GetElapsedTime(started))
                 {
                     Reason = ManagedLauncherEntryReason.Success,
-                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                    Stage = stages.Stage,
+                    UpstreamExitCode = completion.ExitCode,
+                    BootstrapExitIssue = completion.ExitIssue,
                 };
             }
             cancellationToken.ThrowIfCancellationRequested();
@@ -867,7 +968,9 @@ public sealed partial class ManagedLauncherEntryCoordinator
                 Reason = completion.Outcome == ImmutableBootstrapCompletionOutcome.Failed
                     ? ManagedLauncherEntryReason.LaunchFailed
                     : ManagedLauncherEntryReason.Unavailable,
-                Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                Stage = stages.Stage,
+                UpstreamExitCode = completion.ExitCode,
+                BootstrapExitIssue = completion.ExitIssue,
             };
         }
         catch (OperationCanceledException) when (
@@ -879,9 +982,26 @@ public sealed partial class ManagedLauncherEntryCoordinator
                     : ManagedLauncherEntryOutcome.HealthUnavailable,
                 observedManagedRoot,
                 started,
-                ManagedLauncherEntryReason.AdmissionTimeout,
+                stages.Stage is ManagedLauncherEntryStage.PayloadAdmission or
+                    ManagedLauncherEntryStage.StateLoad or ManagedLauncherEntryStage.RootObservation &&
+                    healthDeadlineExceeded
+                    ? ManagedLauncherEntryReason.HealthDeadlineExceeded
+                    : stages.Stage == ManagedLauncherEntryStage.ApplicationReady
+                        ? ManagedLauncherEntryReason.Unavailable
+                        : ManagedLauncherEntryReason.AdmissionTimeout,
                 stages.Stage);
         }
+    }
+
+    private static ManagedLauncherEntryReason InterruptedReceiptReason(
+        ManagedLauncherEntryReason receiptReason,
+        bool timedOut,
+        ManagedLauncherEntryReason timeoutReason,
+        CancellationToken cancellationToken)
+    {
+        return cancellationToken.IsCancellationRequested
+            ? ManagedLauncherEntryReason.CallerCancelled
+            : timedOut ? timeoutReason : receiptReason;
     }
 
     private ManagedLauncherEntryResult Result(

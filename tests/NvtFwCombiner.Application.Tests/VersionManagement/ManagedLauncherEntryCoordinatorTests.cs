@@ -291,6 +291,9 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedLauncherEntryOutcome.TerminationUnconfirmed, result.Outcome);
+        Assert.Equal(ManagedLauncherEntryReason.InvalidReceipt, result.Reason);
+        Assert.Equal(ManagedLauncherEntryStage.BootstrapStart, result.Stage);
+        Assert.Equal(ImmutableBootstrapStartIssue.Busy, result.BootstrapStartIssue);
         Assert.True(handoff.Launch.Disposed);
     }
 
@@ -312,6 +315,9 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedLauncherEntryOutcome.TerminationUnconfirmed, result.Outcome);
+        Assert.Equal(ManagedLauncherEntryReason.InvalidReceipt, result.Reason);
+        Assert.Equal(ManagedLauncherEntryStage.BootstrapStart, result.Stage);
+        Assert.Equal(ImmutableBootstrapStartIssue.None, result.BootstrapStartIssue);
         Assert.False(handoff.Launch.Disposed);
     }
 

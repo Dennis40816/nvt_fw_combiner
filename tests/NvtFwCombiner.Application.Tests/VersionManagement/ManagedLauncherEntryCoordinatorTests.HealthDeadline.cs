@@ -292,7 +292,7 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
 
         Assert.Equal(ManagedLauncherEntryOutcome.LaunchInstalled, result.Outcome);
         Assert.Equal(ManagedLauncherEntryReason.Success, result.Reason);
-        Assert.Equal(ManagedLauncherEntryStage.BootstrapCompletion, result.Stage);
+        Assert.Equal(ManagedLauncherEntryStage.ApplicationReady, result.Stage);
         Assert.False(handoff.AdmissionCancelled);
     }
 
