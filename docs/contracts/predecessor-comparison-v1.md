@@ -508,7 +508,9 @@ reused without a second implementation:
    is not trusted. Its working directory must lie below the temporary
    directory the comparator created for the process. Its file arguments
    (the absolute paths among its arguments) must lie in the working directory
-   or below it, and no path may step back with `..`. A repeated command is
+   or below it, and no path may step back with `..`. Any other argument is a
+   plain token: one that could name a file elsewhere (a path separator, a
+   drive colon, `.` or `..`) is refused. A repeated command is
    kept, and the Build's commands are compared with the Preview's in the
    order they appear. A processor operation without an executed command is
    still refused.

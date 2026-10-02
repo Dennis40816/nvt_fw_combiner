@@ -1154,7 +1154,20 @@ class ComparisonTests(unittest.TestCase):
         def no_commands(raw, staging, temporary, working):
             raw["Operations"][1]["ExecutedCommands"] = []
 
-        for change in (argument_outside, argument_steps_back, no_arguments, no_commands):
+        def relative_argument_steps_back(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][2]["Arguments"][1] = os.path.join("..", "other.bin")
+
+        def relative_argument_with_a_folder(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][2]["Arguments"][1] = "output/synthetic_fw.bin"
+
+        def drive_relative_argument(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][2]["Arguments"][1] = "C:synthetic_fw.bin"
+
+        def parent_token(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][2]["Arguments"][1] = ".."
+
+        for change in (argument_outside, argument_steps_back, no_arguments, no_commands, relative_argument_steps_back,
+                       relative_argument_with_a_folder, drive_relative_argument, parent_token):
             with self.subTest(change=change.__name__):
                 _, result = self.processor_side(change)
                 self.assert_refused(result, "preview", "written report format invalid")
