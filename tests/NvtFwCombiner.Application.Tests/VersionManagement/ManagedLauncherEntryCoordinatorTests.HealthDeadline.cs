@@ -34,6 +34,8 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         ManagedLauncherEntryResult result = await running.WaitAsync(
             TestContext.Current.CancellationToken);
         Assert.Equal(ManagedLauncherEntryOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(ManagedLauncherEntryReason.HealthDeadlineExceeded, result.Reason);
+        Assert.Equal(ManagedLauncherEntryStage.PayloadAdmission, result.Stage);
         Assert.Equal(0, state.LoadCount);
         Assert.Equal(0, roots.ObserveCount);
         Assert.Equal(0, handoff.StartCount);
@@ -76,6 +78,8 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         ManagedLauncherEntryResult result = await running.WaitAsync(
             TestContext.Current.CancellationToken);
         Assert.Equal(ManagedLauncherEntryOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(ManagedLauncherEntryReason.HealthDeadlineExceeded, result.Reason);
+        Assert.Equal(ManagedLauncherEntryStage.StateLoad, result.Stage);
         Assert.Equal(0, roots.ObserveCount);
         Assert.Equal(0, handoff.StartCount);
 
@@ -116,6 +120,8 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         ManagedLauncherEntryResult result = await running.WaitAsync(
             TestContext.Current.CancellationToken);
         Assert.Equal(ManagedLauncherEntryOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(ManagedLauncherEntryReason.HealthDeadlineExceeded, result.Reason);
+        Assert.Equal(ManagedLauncherEntryStage.RootObservation, result.Stage);
         Assert.Equal(0, handoff.StartCount);
 
         roots.Complete(ManagedInstallationRootStatus.Present);
@@ -153,6 +159,8 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         ManagedLauncherEntryResult result = await running.WaitAsync(
             TestContext.Current.CancellationToken);
         Assert.Equal(ManagedLauncherEntryOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(ManagedLauncherEntryReason.HealthDeadlineExceeded, result.Reason);
+        Assert.Equal(ManagedLauncherEntryStage.StateLoad, result.Stage);
         Assert.False(state.Pending.IsCompleted);
         Assert.Equal(0, roots.ObserveCount);
         Assert.Equal(0, handoff.StartCount);
@@ -188,6 +196,8 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         ManagedLauncherEntryResult result = await running.WaitAsync(
             TestContext.Current.CancellationToken);
         Assert.Equal(ManagedLauncherEntryOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(ManagedLauncherEntryReason.HealthDeadlineExceeded, result.Reason);
+        Assert.Equal(ManagedLauncherEntryStage.RootObservation, result.Stage);
         Assert.False(roots.Pending.IsCompleted);
         Assert.Equal(0, handoff.StartCount);
 
@@ -218,6 +228,8 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         stopwatch.Stop();
 
         Assert.Equal(ManagedLauncherEntryOutcome.HealthUnavailable, result.Outcome);
+        Assert.Equal(ManagedLauncherEntryReason.HealthDeadlineExceeded, result.Reason);
+        Assert.Equal(ManagedLauncherEntryStage.RootObservation, result.Stage);
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(2), stopwatch.Elapsed.ToString());
         Assert.False(roots.Pending.IsCompleted);
         Assert.Equal(0, handoff.StartCount);
@@ -279,6 +291,8 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(ManagedLauncherEntryOutcome.LaunchInstalled, result.Outcome);
+        Assert.Equal(ManagedLauncherEntryReason.Success, result.Reason);
+        Assert.Equal(ManagedLauncherEntryStage.BootstrapCompletion, result.Stage);
         Assert.False(handoff.AdmissionCancelled);
     }
 

@@ -85,6 +85,16 @@ It returns one of these terminal intents:
 | Another writer owns the state path | `Busy` |
 | Malformed, unreadable, moved, partial, foreign, mismatched, or unverifiable facts | `RecoveryRequired` or `HealthUnavailable` |
 
+`ManagedLauncherEntryResult` retains `Outcome`, `ManagedRoot`,
+`AdmissionElapsed`, and `TotalElapsed`, and adds typed `Reason`
+(`ManagedLauncherEntryReason`) and `Stage` (`ManagedLauncherEntryStage`).
+The entry coordinator sets both at every terminal result; callers consume them
+without reconstructing facts. Legacy externally constructed results may leave
+them `NotSpecified`. Existing cancellation and receipt/success precedence
+remain unchanged: `CallerCancelled` labels the cancellation-driven
+`AdmissionCleanup` branches returning termination uncertainty; malformed
+receipts use `InvalidReceipt`, and accepted READY/rollback uses `Success`.
+
 `Missing state + existing unexplained root` and `existing state + missing root`
 are never treated as uninstalled. The Launcher never scans other directories,
 infers a root from a folder name, selects a version, or silently rebinds a

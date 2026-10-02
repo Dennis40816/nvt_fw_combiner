@@ -188,8 +188,10 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         internal string? LastRoot { get; private set; }
         internal ManagedImmutableBootstrapIdentity? LastIdentity { get; private set; }
         internal Action? AdmissionAction { get; set; }
+        internal Func<CancellationToken, ImmutableBootstrapAdmissionResult>? AdmissionResultFactory { get; set; }
         internal int CompletionWaitCount { get; private set; }
         internal Action? CompletionAction { get; set; }
+        internal Func<CancellationToken, ImmutableBootstrapCompletionResult>? CompletionResultFactory { get; set; }
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =
             "Ownership transfers into the returned launch receipt and the coordinator disposes it.")]
@@ -213,7 +215,9 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
                         {
                             CompletionWaitCount++;
                             CompletionAction?.Invoke();
-                        }),
+                        },
+                        AdmissionResultFactory,
+                        CompletionResultFactory),
                     ImmutableBootstrapStartIssue.None)
                 : new ImmutableBootstrapStartResult(null, _startIssue));
         }
@@ -223,7 +227,9 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         ImmutableBootstrapAdmissionOutcome admission,
         ImmutableBootstrapCompletionOutcome outcome,
         Action? admissionWaited,
-        Action completionWaited)
+        Action completionWaited,
+        Func<CancellationToken, ImmutableBootstrapAdmissionResult>? admissionResultFactory,
+        Func<CancellationToken, ImmutableBootstrapCompletionResult>? completionResultFactory)
         : IImmutableBootstrapLaunch
     {
         public ValueTask<ImmutableBootstrapAdmissionResult> WaitForAdmissionAsync(
@@ -232,7 +238,9 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             admissionWaited?.Invoke();
-            return ValueTask.FromResult(AdmissionResult(admission));
+            return ValueTask.FromResult(admissionResultFactory is null
+                ? AdmissionResult(admission)
+                : admissionResultFactory(cancellationToken));
         }
 
         public ValueTask<ImmutableBootstrapCompletionResult> WaitForCompletionAsync(
@@ -241,7 +249,9 @@ public sealed partial class ManagedLauncherEntryCoordinatorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             completionWaited();
-            return ValueTask.FromResult(CompletionResult(outcome));
+            return ValueTask.FromResult(completionResultFactory is null
+                ? CompletionResult(outcome)
+                : completionResultFactory(cancellationToken));
         }
 
         public void Dispose()

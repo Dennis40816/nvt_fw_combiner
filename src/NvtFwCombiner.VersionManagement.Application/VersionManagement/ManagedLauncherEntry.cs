@@ -438,10 +438,17 @@ public sealed record ManagedLauncherEntryResult(
     ManagedLauncherEntryOutcome Outcome,
     string? ManagedRoot,
     TimeSpan AdmissionElapsed,
-    TimeSpan TotalElapsed);
+    TimeSpan TotalElapsed)
+{
+    /// <summary>Gets the coordinator's terminal reason; legacy external results may omit it.</summary>
+    public ManagedLauncherEntryReason Reason { get; init; } = ManagedLauncherEntryReason.NotSpecified;
+
+    /// <summary>Gets the step that made the terminal decision; legacy external results may omit it.</summary>
+    public ManagedLauncherEntryStage Stage { get; init; } = ManagedLauncherEntryStage.NotSpecified;
+}
 
 /// <summary>Single Application owner for Launcher-to-Setup-or-Bootstrap routing.</summary>
-public sealed class ManagedLauncherEntryCoordinator
+public sealed partial class ManagedLauncherEntryCoordinator
 {
     /// <summary>Accepted P95 target for local-only healthy-installation classification.</summary>
     public static readonly TimeSpan HealthyRoutingP95Target = TimeSpan.FromMilliseconds(100);
@@ -520,6 +527,7 @@ public sealed class ManagedLauncherEntryCoordinator
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             deadline.Token);
+        var stages = new EntryStageTracker();
         bool bootstrapReceiptAcquired = false;
         string? observedManagedRoot = null;
         try
@@ -536,7 +544,7 @@ public sealed class ManagedLauncherEntryCoordinator
                 try
                 {
                     localHealth = await AwaitIsolatedReadOnlyObservationAsync(
-                        ObserveLocalHealthAsync,
+                        token => ObserveLocalHealthAsync(stages, token),
                         healthLinked.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (
@@ -547,17 +555,25 @@ public sealed class ManagedLauncherEntryCoordinator
                     return Result(
                         ManagedLauncherEntryOutcome.HealthUnavailable,
                         managedRoot: null,
-                        started);
+                        started,
+                        ManagedLauncherEntryReason.HealthDeadlineExceeded,
+                        stages.Stage);
                 }
             }
 
             if (localHealth.Outcome is { } localOutcome)
             {
-                return Result(localOutcome, localHealth.ManagedRoot, started);
+                return Result(
+                    localOutcome,
+                    localHealth.ManagedRoot,
+                    started,
+                    localHealth.Reason,
+                    localHealth.Stage);
             }
             string rootIdentity = localHealth.ManagedRoot!;
             observedManagedRoot = rootIdentity;
 
+            stages.Stage = ManagedLauncherEntryStage.BootstrapStart;
             ImmutableBootstrapStartResult handoff = await _handoff.StartAsync(
                 rootIdentity,
                 localHealth.Bootstrap!,
@@ -569,7 +585,9 @@ public sealed class ManagedLauncherEntryCoordinator
                 return Result(
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
-                    started);
+                    started,
+                    ManagedLauncherEntryReason.InvalidReceipt,
+                    stages.Stage);
             }
             if (!handoff.IsStarted)
             {
@@ -594,7 +612,17 @@ public sealed class ManagedLauncherEntryCoordinator
                             "Bootstrap start returned an invalid result."),
                     },
                     rootIdentity,
-                    started);
+                    started,
+                    handoff.Issue switch
+                    {
+                        ImmutableBootstrapStartIssue.Busy => ManagedLauncherEntryReason.Busy,
+                        ImmutableBootstrapStartIssue.Damaged => ManagedLauncherEntryReason.RecoveryRequired,
+                        ImmutableBootstrapStartIssue.StartFailed => ManagedLauncherEntryReason.StartFailed,
+                        ImmutableBootstrapStartIssue.Unavailable or
+                        ImmutableBootstrapStartIssue.None => ManagedLauncherEntryReason.Unavailable,
+                        _ => ManagedLauncherEntryReason.Unavailable,
+                    },
+                    stages.Stage);
             }
             IImmutableBootstrapLaunch admittedLaunch = launch!;
 
@@ -602,6 +630,7 @@ public sealed class ManagedLauncherEntryCoordinator
             {
                 deadline.Cancel();
             }
+            stages.Stage = ManagedLauncherEntryStage.BootstrapAdmission;
             ImmutableBootstrapAdmissionResult admission = await admittedLaunch
                 .WaitForAdmissionAsync(
                     Budget(
@@ -613,19 +642,27 @@ public sealed class ManagedLauncherEntryCoordinator
                 return Result(
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
-                    started);
+                    started,
+                    ManagedLauncherEntryReason.InvalidReceipt,
+                    stages.Stage);
             }
             if (admission.Outcome == ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed)
             {
                 return Result(
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
-                    started);
+                    started,
+                    ManagedLauncherEntryReason.TerminationUnconfirmed,
+                    stages.Stage);
             }
             if (admission.Outcome == ImmutableBootstrapAdmissionOutcome.Admitted &&
                 (cancellationToken.IsCancellationRequested ||
                     _timeProvider.GetElapsedTime(started) >= _admissionOperationCutoff))
             {
+                stages.Stage = ManagedLauncherEntryStage.AdmissionCleanup;
+                ManagedLauncherEntryReason cleanupInterruptionReason = cancellationToken.IsCancellationRequested
+                    ? ManagedLauncherEntryReason.CallerCancelled
+                    : ManagedLauncherEntryReason.AdmissionTimeout;
                 deadline.Cancel();
                 TimeSpan cleanupRemaining = Remaining(
                     _admissionOperationCutoff + DefaultCleanupObservationBudget,
@@ -635,7 +672,9 @@ public sealed class ManagedLauncherEntryCoordinator
                     return Result(
                         ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                         rootIdentity,
-                        started);
+                        started,
+                        cleanupInterruptionReason,
+                        stages.Stage);
                 }
                 using var cleanupDeadline = new CancellationTokenSource(
                     cleanupRemaining,
@@ -653,27 +692,37 @@ public sealed class ManagedLauncherEntryCoordinator
                     return Result(
                         ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                         rootIdentity,
-                        started);
+                        started,
+                        cleanupInterruptionReason,
+                        stages.Stage);
                 }
                 if (!cleanup.HasValidShape)
                 {
                     return Result(
                         ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                         rootIdentity,
-                        started);
+                        started,
+                        ManagedLauncherEntryReason.InvalidReceipt,
+                        stages.Stage);
                 }
                 if (cleanup.Outcome == ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed)
                 {
                     return Result(
                         ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                         rootIdentity,
-                        started);
+                        started,
+                        cleanupInterruptionReason == ManagedLauncherEntryReason.CallerCancelled
+                            ? cleanupInterruptionReason
+                            : ManagedLauncherEntryReason.TerminationUnconfirmed,
+                        stages.Stage);
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 return Result(
                     ManagedLauncherEntryOutcome.HealthUnavailable,
                     rootIdentity,
-                    started);
+                    started,
+                    ManagedLauncherEntryReason.AdmissionTimeout,
+                    stages.Stage);
             }
             if (admission.Outcome != ImmutableBootstrapAdmissionOutcome.Admitted)
             {
@@ -696,9 +745,22 @@ public sealed class ManagedLauncherEntryCoordinator
                             "Bootstrap admission returned an undefined outcome."),
                     },
                     rootIdentity,
-                    started);
+                    started,
+                    admission.Outcome switch
+                    {
+                        ImmutableBootstrapAdmissionOutcome.Busy => ManagedLauncherEntryReason.Busy,
+                        ImmutableBootstrapAdmissionOutcome.RecoveryRequired => ManagedLauncherEntryReason.RecoveryRequired,
+                        ImmutableBootstrapAdmissionOutcome.LaunchFailed => ManagedLauncherEntryReason.LaunchFailed,
+                        ImmutableBootstrapAdmissionOutcome.TerminationUnconfirmed =>
+                            ManagedLauncherEntryReason.TerminationUnconfirmed,
+                        ImmutableBootstrapAdmissionOutcome.HealthUnavailable or
+                        ImmutableBootstrapAdmissionOutcome.Admitted => ManagedLauncherEntryReason.Unavailable,
+                        _ => ManagedLauncherEntryReason.Unavailable,
+                    },
+                    stages.Stage);
             }
 
+            stages.Stage = ManagedLauncherEntryStage.BootstrapCompletion;
             TimeSpan admissionElapsed = _timeProvider.GetElapsedTime(started);
             long completionStarted = _timeProvider.GetTimestamp();
             using var completionDeadline = new CancellationTokenSource(
@@ -725,7 +787,11 @@ public sealed class ManagedLauncherEntryCoordinator
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
                     admissionElapsed,
-                    _timeProvider.GetElapsedTime(started));
+                    _timeProvider.GetElapsedTime(started))
+                {
+                    Reason = ManagedLauncherEntryReason.CompletionTimeout,
+                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                };
             }
             if (!completion.HasValidShape)
             {
@@ -733,7 +799,11 @@ public sealed class ManagedLauncherEntryCoordinator
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
                     admissionElapsed,
-                    _timeProvider.GetElapsedTime(started));
+                    _timeProvider.GetElapsedTime(started))
+                {
+                    Reason = ManagedLauncherEntryReason.InvalidReceipt,
+                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                };
             }
             if (completion.Outcome == ImmutableBootstrapCompletionOutcome.TerminationUnconfirmed)
             {
@@ -741,7 +811,11 @@ public sealed class ManagedLauncherEntryCoordinator
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
                     admissionElapsed,
-                    _timeProvider.GetElapsedTime(started));
+                    _timeProvider.GetElapsedTime(started))
+                {
+                    Reason = ManagedLauncherEntryReason.TerminationUnconfirmed,
+                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                };
             }
             if (_timeProvider.GetElapsedTime(completionStarted) >= _completionOperationCutoff)
             {
@@ -749,7 +823,11 @@ public sealed class ManagedLauncherEntryCoordinator
                     ManagedLauncherEntryOutcome.TerminationUnconfirmed,
                     rootIdentity,
                     admissionElapsed,
-                    _timeProvider.GetElapsedTime(started));
+                    _timeProvider.GetElapsedTime(started))
+                {
+                    Reason = ManagedLauncherEntryReason.CompletionTimeout,
+                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                };
             }
             if (completion.Outcome is
                 ImmutableBootstrapCompletionOutcome.Ready or
@@ -759,7 +837,11 @@ public sealed class ManagedLauncherEntryCoordinator
                     ManagedLauncherEntryOutcome.LaunchInstalled,
                     rootIdentity,
                     admissionElapsed,
-                    _timeProvider.GetElapsedTime(started));
+                    _timeProvider.GetElapsedTime(started))
+                {
+                    Reason = ManagedLauncherEntryReason.Success,
+                    Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+                };
             }
             cancellationToken.ThrowIfCancellationRequested();
             ManagedLauncherEntryOutcome outcome = completion.Outcome switch
@@ -780,7 +862,13 @@ public sealed class ManagedLauncherEntryCoordinator
                 outcome,
                 rootIdentity,
                 admissionElapsed,
-                _timeProvider.GetElapsedTime(started));
+                _timeProvider.GetElapsedTime(started))
+            {
+                Reason = completion.Outcome == ImmutableBootstrapCompletionOutcome.Failed
+                    ? ManagedLauncherEntryReason.LaunchFailed
+                    : ManagedLauncherEntryReason.Unavailable,
+                Stage = ManagedLauncherEntryStage.BootstrapCompletion,
+            };
         }
         catch (OperationCanceledException) when (
             deadline.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
@@ -790,144 +878,25 @@ public sealed class ManagedLauncherEntryCoordinator
                     ? ManagedLauncherEntryOutcome.TerminationUnconfirmed
                     : ManagedLauncherEntryOutcome.HealthUnavailable,
                 observedManagedRoot,
-                started);
+                started,
+                ManagedLauncherEntryReason.AdmissionTimeout,
+                stages.Stage);
         }
     }
-
-    private async ValueTask<LocalHealthObservation> ObserveLocalHealthAsync(
-        CancellationToken cancellationToken)
-    {
-        ManagedDistributionPayloadEntryAdmissionResult payload = await _payloadSource
-            .AdmitEntryAsync(cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!payload.IsSuccess)
-        {
-            return new(
-                payload.Issue switch
-                {
-                    ManagedDistributionPayloadIssue.Unavailable =>
-                        ManagedLauncherEntryOutcome.PayloadUnavailable,
-                    ManagedDistributionPayloadIssue.Invalid or ManagedDistributionPayloadIssue.Changed =>
-                        ManagedLauncherEntryOutcome.PayloadInvalid,
-                    ManagedDistributionPayloadIssue.None => throw new InvalidOperationException(
-                        "Successful payload admission returned no Bootstrap identity."),
-                    _ => throw new InvalidOperationException(
-                        "Payload admission returned an undefined issue."),
-                },
-                ManagedRoot: null,
-                Bootstrap: null);
-        }
-        if (payload.LauncherVersion != _runningLauncherVersion)
-        {
-            return new(ManagedLauncherEntryOutcome.PayloadInvalid, ManagedRoot: null, Bootstrap: null);
-        }
-        ManagedImmutableBootstrapIdentity bootstrap = payload.Bootstrap!;
-
-        VersionManagerStateLoadResult loaded = await _stateStore.LoadAsync(cancellationToken)
-            .ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (loaded.Issue == VersionManagerStateLoadIssue.Missing)
-        {
-            ManagedInstallationRootObservation root = await _rootProbe.ObserveAsync(
-                _defaultManagedRoot,
-                cancellationToken).ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-            return new(
-                root.Status switch
-                {
-                    ManagedInstallationRootStatus.Absent =>
-                        ManagedLauncherEntryOutcome.SetupRequired,
-                    ManagedInstallationRootStatus.Present or
-                    ManagedInstallationRootStatus.Residue or
-                    ManagedInstallationRootStatus.InvalidDestination =>
-                        ManagedLauncherEntryOutcome.RecoveryRequired,
-                    ManagedInstallationRootStatus.PermissionDenied or
-                    ManagedInstallationRootStatus.Unavailable =>
-                        ManagedLauncherEntryOutcome.HealthUnavailable,
-                    _ => throw new InvalidOperationException(
-                        "Root probe returned an undefined status."),
-                },
-                _defaultManagedRoot,
-                bootstrap);
-        }
-        if (!loaded.IsSuccess)
-        {
-            return new(
-                loaded.Issue is VersionManagerStateLoadIssue.Invalid or
-                    VersionManagerStateLoadIssue.ManagedRootMismatch
-                    ? ManagedLauncherEntryOutcome.RecoveryRequired
-                    : ManagedLauncherEntryOutcome.HealthUnavailable,
-                ManagedRoot: null,
-                Bootstrap: bootstrap);
-        }
-
-        VersionManagerState state = loaded.State!;
-        if (state.ManagedRootIdentity is null)
-        {
-            return new(
-                ManagedLauncherEntryOutcome.RecoveryRequired,
-                ManagedRoot: null,
-                Bootstrap: bootstrap);
-        }
-        string rootIdentity = ManagedRootPathIdentity.Normalize(state.ManagedRootIdentity);
-        ManagedInstallationRootObservation installedRoot = await _rootProbe.ObserveAsync(
-            rootIdentity,
-            cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        return installedRoot.Status == ManagedInstallationRootStatus.Present
-            ? new(Outcome: null, rootIdentity, bootstrap)
-            : new(
-                installedRoot.Status is ManagedInstallationRootStatus.Absent or
-                    ManagedInstallationRootStatus.Residue or
-                    ManagedInstallationRootStatus.InvalidDestination
-                    ? ManagedLauncherEntryOutcome.RecoveryRequired
-                    : ManagedLauncherEntryOutcome.HealthUnavailable,
-                rootIdentity,
-                bootstrap);
-    }
-
-    private static async ValueTask<T> AwaitIsolatedReadOnlyObservationAsync<T>(
-        Func<CancellationToken, ValueTask<T>> observe,
-        CancellationToken cancellationToken)
-    {
-        Task<T> pending = Task.Run(
-            async () => await observe(cancellationToken).ConfigureAwait(false),
-            CancellationToken.None);
-        try
-        {
-            return await pending.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            _ = ObserveAbandonedReadOnlyTaskAsync(pending);
-            throw;
-        }
-    }
-
-    private static async Task ObserveAbandonedReadOnlyTaskAsync(Task pending)
-    {
-        try
-        {
-            await pending.ConfigureAwait(false);
-        }
-        catch (Exception)
-        {
-            // The caller has already returned a typed timeout/cancellation result.
-        }
-    }
-
-    private sealed record LocalHealthObservation(
-        ManagedLauncherEntryOutcome? Outcome,
-        string? ManagedRoot,
-        ManagedImmutableBootstrapIdentity? Bootstrap);
 
     private ManagedLauncherEntryResult Result(
         ManagedLauncherEntryOutcome outcome,
         string? managedRoot,
-        long started)
+        long started,
+        ManagedLauncherEntryReason reason,
+        ManagedLauncherEntryStage stage)
     {
         TimeSpan elapsed = _timeProvider.GetElapsedTime(started);
-        return new(outcome, managedRoot, elapsed, elapsed);
+        return new(outcome, managedRoot, elapsed, elapsed)
+        {
+            Reason = reason,
+            Stage = stage,
+        };
     }
 
     private static TimeSpan Remaining(TimeSpan total, TimeSpan elapsed)
