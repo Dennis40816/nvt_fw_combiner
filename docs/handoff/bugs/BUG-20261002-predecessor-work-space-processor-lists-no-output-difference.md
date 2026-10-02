@@ -44,6 +44,7 @@ that space. Outside and straddling reads, later writes, unknown operation kinds,
 missing ranges and unnamed spaces refuse. Processors targeting `output-image`
 retain the original output-difference audit, including its stricter refusal of
 non-processor difference rows. The ADR 0057 default path is unchanged.
+Owner decision 278 (2026-10-03) subsequently admits only the exact `ab-combiner-work` B bank read `[262144, 524288)` for the declared `v0.9.16` baseline executor through decision 273's existing gate; all later work-space writes and every other decision 271 refusal remain unchanged.
 Regression evidence: `test_predecessor_owner_answers.py` was red before the rule;
 its accepted and refused work-space shapes now pass, and the written NT51950 AB
 Merge shape passes `test_predecessor_comparison.py`. These are synthetic per-side

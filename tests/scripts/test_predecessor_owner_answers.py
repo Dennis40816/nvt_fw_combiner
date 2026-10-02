@@ -10,7 +10,10 @@ from unittest.mock import patch
 from scripts import predecessor_comparison as comparison
 from scripts import predecessor_validation as validation
 from scripts import v0916_parity_certification as parity
-from tests.scripts.predecessor_test_support import written_1x_ab_merge_report, written_output_difference
+from tests.scripts.predecessor_test_support import (
+    _written_mutation, _written_operation, _written_report,
+    written_1x_ab_merge_report, written_output_difference,
+)
 from tests.scripts.test_predecessor_report_reader import raw_report
 
 
@@ -47,6 +50,125 @@ def verdict(raw, *, exit_code=0, output=None, v0916_executor=False):
     return validation.side_execution_verdict([evidence(raw, exit_code=exit_code, output=output)],
                                               capacities=CAPACITIES, complete=False,
                                               **({"v0916_executor": True} if v0916_executor else {}))
+
+
+def whole_bank_report(*, space="ab-combiner-work", start=262144, end=524288):
+    """Synthetic written shape of the v0.9.16 NT51950 AB Merge whole-bank import."""
+    command = {"ExecutablePath": str(TOOL), "WorkingDirectory": str(TEMPORARY / "work"),
+               "Arguments": ["AB_MODE", str(TEMPORARY / "work" / "output.bin")]}
+    operations = [
+        _written_operation("copy-dp-ab-image", 100, "CopyRange", "Reject",
+                           ("dp-ab-input", 0, 524288), ("output-image", 0, 524288)),
+        _written_operation("copy-a-bank-to-combiner-work", 600, "CopyRange", "Reject",
+                           ("output-image", 0, 262144), (space, 0, 262144)),
+        _written_operation("copy-b-bank-to-combiner-work", 650, "CopyRange", "Reject",
+                           ("output-image", 262144, 524288), (space, 262144, 524288)),
+        _written_operation("run-nt51950-ab-combiner", 700, "RunExternalProcessor", "ReplaceExisting", None,
+                           (space, 0, 524288), processor={
+                               "id": "nfc.synthetic.ab-combiner-v1",
+                               "writes": [(303360, 303364), (303376, 303380), (303408, 303412)],
+                               "commands": [command]}),
+        _written_operation("copy-postbuild-b-bank-to-output", 900, "CopyRange", "ReplaceExisting",
+                           (space, start, end), ("output-image", 524288 - (end - start), 524288)),
+    ]
+    return _written_report(
+        "ab-merge", "Merge", [("dp-ab-input", 524288, "a" * 64)], operations,
+        [_written_mutation(operation, 6 if operation["Kind"] == "RunExternalProcessor" else 0,
+                           same=operation["Kind"] != "RunExternalProcessor") for operation in operations], [],
+        committed=False, output_size=524288, output_sha256="c" * 64)
+
+
+class WholeBankDecision278Tests(unittest.TestCase):
+    def check_report(self, raw, *, report_version="v0916", stage="preview"):
+        item = evidence(raw, stage, report_version=report_version)
+        capacities = {"dp-ab-input": 524288, "output-image": 524288}
+        return validation.side_execution_verdict(
+            [item], capacities=capacities, complete=False, v0916_executor=report_version == "v0916")
+
+    def assert_read_refused(self, raw, *, report_version="v0916"):
+        result = self.check_report(raw, report_version=report_version)
+        self.assertEqual(("invalid", [validation.Failure(
+            "PREDECESSOR_REPORT_INVALID", "preview",
+            "later work-space read outside every processor allowed write range")]),
+            (result.status, result.failures))
+
+    def test_v0916_whole_b_bank_with_three_four_byte_writes_is_accepted(self):
+        result = self.check_report(whole_bank_report())
+        self.assertEqual(("ready", []), (result.status, result.failures))
+
+    def test_v0916_whole_bank_read_refuses_one_byte_more_or_less_at_either_end(self):
+        for start, end in ((262143, 524288), (262145, 524288), (262144, 524287), (262144, 524289)):
+            with self.subTest(start=start, end=end):
+                self.assert_read_refused(whole_bank_report(start=start, end=end))
+
+    def test_v0916_whole_a_bank_read_is_refused(self):
+        self.assert_read_refused(whole_bank_report(start=0, end=262144))
+
+    def test_v0916_later_write_to_combiner_work_is_still_refused(self):
+        raw = whole_bank_report()
+        raw["Operations"][-1]["TargetSpaceId"] = "ab-combiner-work"
+        raw["Mutations"][-1]["TargetSpaceId"] = "ab-combiner-work"
+        result = self.check_report(raw)
+        self.assertEqual(("invalid", [validation.Failure(
+            "PREDECESSOR_REPORT_INVALID", "preview",
+            "later operation writes the processor work address space")]), (result.status, result.failures))
+
+    def test_1x_whole_b_bank_read_is_refused_with_or_without_payload_version_claim(self):
+        for profile_version in ("0.7.0", "v0.9.16"):
+            with self.subTest(profile_version=profile_version):
+                raw = whole_bank_report()
+                raw["ProfileVersion"] = profile_version
+                self.assert_read_refused(raw, report_version="1x")
+
+    def test_v0916_whole_bank_read_in_other_work_spaces_is_refused(self):
+        for space in ("tp-b-work", "a-bank-work", "b-bank-work"):
+            with self.subTest(space=space):
+                self.assert_read_refused(whole_bank_report(space=space))
+
+    def test_executor_gate_reaches_incremental_and_final_preview_build_audits(self):
+        preview = whole_bank_report()
+        build = copy.deepcopy(preview)
+        build["Output"]["Committed"] = True
+        for version, status in (("v0916", "output"), ("1x", "invalid")):
+            with self.subTest(report_version=version):
+                captures = []
+                for stage, raw, output in (("preview", preview, None),
+                                           ("build", build, {"size": 524288, "sha256": "c" * 64})):
+                    read = comparison.read_cli_report(raw, report_version=version)
+                    item = evidence(raw, stage, output=output, report_version=version)
+                    captures.append(comparison.ProcessCapture(
+                        item.process, read, item.inputs, output, None, b"", b"", [], False,
+                        None, (str(TOOL),), str(TEMPORARY)))
+                executor = comparison.Executor({}, None, version, {})
+                with patch.object(comparison, "execute_cli_stage", side_effect=captures) as execute:
+                    result = comparison.execute_side_stages(None, executor, {}, None, {}, [])
+                self.assertEqual(status, result.result.side["status"])
+                self.assertEqual(2 if version == "v0916" else 1, execute.call_count)
+                self.assertEqual([] if version == "v0916" else [validation.Failure(
+                    "PREDECESSOR_REPORT_INVALID", "preview",
+                    "later work-space read outside every processor allowed write range")], result.result.failures)
+
+    def test_whole_bank_exception_does_not_admit_build_ranges_different_from_preview(self):
+        preview = whole_bank_report()
+        build = whole_bank_report(start=262143)
+        build["Output"]["Committed"] = True
+        pair = [evidence(preview, report_version="v0916"), evidence(
+            build, "build", output={"size": 524288, "sha256": "c" * 64}, report_version="v0916")]
+        result = validation.side_execution_verdict(
+            pair, capacities={"dp-ab-input": 524288, "output-image": 524288}, v0916_executor=True)
+        self.assertEqual("invalid", result.status)
+        self.assertEqual("build", result.stopped_at)
+        self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
+
+    def test_output_comparison_still_counts_bytes_outside_processor_allowed_writes(self):
+        baseline = bytes(524288)
+        candidate = bytearray(baseline)
+        candidate[262144] = 1
+        candidate[524287] = 2
+        result = comparison.compare_output_bytes(baseline, bytes(candidate))
+        self.assertEqual(2, result.different_byte_count)
+        self.assertEqual([{"start": 262144, "endExclusive": 262145},
+                          {"start": 524287, "endExclusive": 524288}], result.ranges)
 
 
 class OwnerAnswersTests(unittest.TestCase):

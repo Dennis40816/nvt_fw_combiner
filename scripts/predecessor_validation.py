@@ -459,11 +459,13 @@ def _declared_work_ranges(
 def _processor_write_audit_failures(
     stage: str, projection: Mapping[str, Any], context: Mapping[str, Any], authority: Mapping[str, Any],
     *, declared_work_ranges: Mapping[str, Sequence[tuple[int, int]]] | None = None,
+    v0916_executor: bool = False,
 ) -> list[Failure]:
     """Decision 261 output audit; decision 271 audits later compiled uses of a work space.
 
     The shared range check has already validated all present named ranges. Work-space
     results may only be read inside one allowed write range, and may never be overwritten.
+    Decision 278 admits the exact ab-combiner-work B bank read for the v0.9.16 executor only.
     Unknown operation semantics or missing read authority refuse instead of guessing.
     """
 
@@ -497,7 +499,9 @@ def _processor_write_audit_failures(
             if (kind in {"CopyRange", "ReplaceRange", "TransformScalar"} and (not source_space or source is None)
                     or (source_space is None) != (source is None)):
                 return [_failure("REPORT_INVALID", stage, "later operation has no named read range")]
-            if source_space == space and not inside(source, allowed(operation)):
+            if (source_space == space and not inside(source, allowed(operation))
+                    and not (v0916_executor and space == "ab-combiner-work"
+                             and (source["start"], source["endExclusive"]) == (262144, 524288))):
                 return [_failure("REPORT_INVALID", stage, "later work-space read outside every processor allowed write range")]
             if kind == "RunExternalProcessor" and not later.get("processor"):
                 return [_failure("REPORT_INVALID", stage, "later processor has no declared ranges")]
@@ -646,7 +650,7 @@ def side_execution_verdict(
                                             audited_processor_writes=True, skipped_rejection=skipped_rejection)
             audit = ([] if skipped_rejection else
                      _processor_write_audit_failures(stage, projection, evidence.context, authority,
-                                                    declared_work_ranges=declared))
+                                                    declared_work_ranges=declared, v0916_executor=v0916_executor))
         except (ParityError, KeyError, TypeError, ValueError) as error:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, str(error))])
         if audit:
