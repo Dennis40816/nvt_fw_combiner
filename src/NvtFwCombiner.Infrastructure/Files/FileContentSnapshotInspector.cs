@@ -37,9 +37,12 @@ public sealed class FileContentSnapshotInspector
     public async ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,
         long maximumBytes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        SelectedFileContentInspectionMode mode = SelectedFileContentInspectionMode.CaptureBytes)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        ValidateMode(mode);
+        cancellationToken.ThrowIfCancellationRequested();
         string fullPath = Path.GetFullPath(selectedPath);
         string path = FileSystemPathGuard.ResolveExistingFileUnderRoots(
             fullPath,
@@ -62,19 +65,18 @@ public sealed class FileContentSnapshotInspector
                 maximumBytes);
         }
 
-        (byte[] acceptedBytes, byte[] sha256) = await ReadAndHashExactLengthAsync(
+        (byte[]? acceptedBytes, byte[] sha256) = await ReadAndHashExactLengthAsync(
                 stream,
                 observedLength,
+                mode,
                 cancellationToken)
             .ConfigureAwait(false);
-        return stream.Position == observedLength && stream.Length == observedLength
-            ? new SelectedFileContentInspection(
-                new FileStamp(
-                    observedLength,
-                    Convert.ToHexStringLower(sha256)),
-                Path.GetFileName(path),
-                acceptedBytes: acceptedBytes)
-            : throw new SelectedFileChangedDuringInspectionException();
+        return new SelectedFileContentInspection(
+            new FileStamp(
+                observedLength,
+                Convert.ToHexStringLower(sha256)),
+            Path.GetFileName(path),
+            acceptedBytes: acceptedBytes is null ? (ReadOnlyMemory<byte>?)null : new ReadOnlyMemory<byte>(acceptedBytes));
     }
 
     /// <summary>
@@ -89,47 +91,92 @@ public sealed class FileContentSnapshotInspector
         (_, byte[] sha256) = await ReadAndHashExactLengthAsync(
                 stream,
                 observedLength,
+                SelectedFileContentInspectionMode.IdentityOnly,
                 cancellationToken)
             .ConfigureAwait(false);
         return sha256;
     }
 
-    private static async ValueTask<(byte[] AcceptedBytes, byte[] Sha256)>
+    internal static async ValueTask<(byte[]? AcceptedBytes, byte[] Sha256)>
         ReadAndHashExactLengthAsync(
             Stream stream,
             long observedLength,
+            SelectedFileContentInspectionMode mode,
             CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentOutOfRangeException.ThrowIfNegative(observedLength);
-
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        byte[] acceptedBytes = new byte[checked((int)observedLength)];
-        int offset = 0;
-        while (offset < acceptedBytes.Length)
+        ValidateMode(mode);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (mode == SelectedFileContentInspectionMode.CaptureBytes && observedLength > Array.MaxLength)
         {
-            int read = await stream.ReadAsync(
-                    acceptedBytes.AsMemory(
-                        offset,
-                        Math.Min(64 * 1024, acceptedBytes.Length - offset)),
-                    cancellationToken)
-                .ConfigureAwait(false);
-            if (read == 0)
-            {
-                throw new SelectedFileChangedDuringInspectionException();
-            }
-
-            hash.AppendData(acceptedBytes, offset, read);
-            offset += read;
+            throw new SelectedFileSizeLimitExceededException(observedLength, Array.MaxLength);
         }
 
-        byte[] trailing = new byte[1];
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        byte[]? acceptedBytes = mode == SelectedFileContentInspectionMode.CaptureBytes
+            ? new byte[checked((int)observedLength)]
+            : null;
+        byte[] buffer = new byte[64 * 1024];
+        long offset = 0;
+        while (offset < observedLength)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int requested = (int)Math.Min(buffer.Length, checked(observedLength - offset));
+            int read = await stream.ReadAsync(
+                    buffer.AsMemory(0, requested),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (read == 0)
+            {
+                throw new SelectedFileChangedDuringInspectionException(
+                    SelectedFileContentChangeKind.ShortRead);
+            }
+
+            hash.AppendData(buffer, 0, read);
+            if (acceptedBytes is not null)
+            {
+                buffer.AsMemory(0, read).CopyTo(acceptedBytes.AsMemory(checked((int)offset), read));
+            }
+            offset = checked(offset + read);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
         int trailingRead = await stream.ReadAsync(
-                trailing,
+                buffer.AsMemory(0, 1),
                 cancellationToken)
             .ConfigureAwait(false);
-        return trailingRead == 0
-            ? (acceptedBytes, hash.GetHashAndReset())
-            : throw new SelectedFileChangedDuringInspectionException();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (trailingRead != 0)
+        {
+            throw new SelectedFileChangedDuringInspectionException(SelectedFileContentChangeKind.Growth);
+        }
+        if (stream.CanSeek)
+        {
+            long finalLength = stream.Length;
+            if (finalLength != observedLength)
+            {
+                throw new SelectedFileChangedDuringInspectionException(
+                    finalLength < observedLength
+                        ? SelectedFileContentChangeKind.Shrinkage
+                        : SelectedFileContentChangeKind.Growth);
+            }
+            if (stream.Position != observedLength)
+            {
+                throw new SelectedFileChangedDuringInspectionException(
+                    SelectedFileContentChangeKind.PositionChanged);
+            }
+        }
+        return (acceptedBytes, hash.GetHashAndReset());
+    }
+
+    private static void ValidateMode(SelectedFileContentInspectionMode mode)
+    {
+        if (mode is not (SelectedFileContentInspectionMode.IdentityOnly or
+            SelectedFileContentInspectionMode.CaptureBytes))
+        {
+            throw new ArgumentOutOfRangeException(nameof(mode));
+        }
     }
 }

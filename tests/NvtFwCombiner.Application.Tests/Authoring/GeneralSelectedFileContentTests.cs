@@ -39,6 +39,58 @@ public sealed class GeneralSelectedFileContentTests
             acceptedBytes: new byte[] { 0x10, 0x21 }));
     }
 
+    /// <summary>A complete 64-bit stamp can be represented without retaining any file payload.</summary>
+    [Fact]
+    public void SelectedFileInspectionCanRetainOnlyCompleteIdentity()
+    {
+        var stamp = new FileStamp(4294967313L, new string('a', 64));
+        var inspection = new SelectedFileContentInspection(stamp, "large.bin");
+
+        Assert.Equal(stamp, inspection.FileStamp);
+        Assert.Null(inspection.AcceptedBytes);
+        Assert.Equal("large.bin", inspection.DisplayNameHint);
+    }
+
+    /// <summary>The General capture caller keeps its payload contract until the separate lifecycle migration.</summary>
+    [Fact]
+    public async Task GeneralInspectionStillRequestsAndPublishesCapturedBytes()
+    {
+        byte[] bytes = [0x10, 0x20, 0x30];
+        var stamp = FileStamp.FromBytes(bytes);
+        var inspector = new FakeSelectedFileContentInspector(
+            new SelectedFileContentInspection(stamp, acceptedBytes: bytes));
+        var service = new GeneralSelectedFileInspectionService(inspector);
+
+        GeneralSelectedFileInspectionResult result = await service.InspectAsync(
+            "mapping-1", @"C:\firmware\source.bin", new AuthoringRevision(4),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(SelectedFileContentInspectionMode.CaptureBytes, inspector.LastMode);
+        Assert.Equal(stamp, result.Inspection!.FileStamp);
+        Assert.Equal(bytes, result.Inspection.AcceptedBytes!.Value.ToArray());
+    }
+
+    /// <summary>Typed content instability is translated by the existing Application failure owner.</summary>
+    [Theory]
+    [InlineData(SelectedFileContentChangeKind.ShortRead)]
+    [InlineData(SelectedFileContentChangeKind.Growth)]
+    [InlineData(SelectedFileContentChangeKind.Shrinkage)]
+    public async Task ContentChangeReturnsIssueWithoutInspection(SelectedFileContentChangeKind kind)
+    {
+        var service = new GeneralSelectedFileInspectionService(
+            new ThrowingSelectedFileContentInspector(new SelectedFileChangedDuringInspectionException(kind)));
+
+        GeneralSelectedFileInspectionResult result = await service.InspectAsync(
+            "mapping-1", @"C:\firmware\source.bin", new AuthoringRevision(4),
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(result.Inspection);
+        Assert.Equal(GeneralSelectedFileInspectionIssueCodes.InspectionFailed, result.Issue!.Code);
+        Assert.Equal("mapping-1", result.Issue.DefinitionId);
+    }
+
     /// <summary>Explicit reinspection captures a fresh content identity.</summary>
     [Fact]
     public async Task ReinspectionCapturesFreshContentIdentity()
@@ -247,16 +299,19 @@ public sealed class GeneralSelectedFileContentTests
             new(results);
 
         internal int CallCount { get; private set; }
+        internal SelectedFileContentInspectionMode? LastMode { get; private set; }
 
         public ValueTask<SelectedFileContentInspection> InspectAsync(
             string selectedPath,
             long maximumBytes,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            SelectedFileContentInspectionMode mode = SelectedFileContentInspectionMode.CaptureBytes)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(selectedPath);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             cancellationToken.ThrowIfCancellationRequested();
             CallCount++;
+            LastMode = mode;
             return ValueTask.FromResult(_results.Dequeue());
         }
     }
@@ -267,7 +322,8 @@ public sealed class GeneralSelectedFileContentTests
         public ValueTask<SelectedFileContentInspection> InspectAsync(
             string selectedPath,
             long maximumBytes,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            SelectedFileContentInspectionMode mode = SelectedFileContentInspectionMode.CaptureBytes)
         {
             return ValueTask.FromException<SelectedFileContentInspection>(exception);
         }

@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Infrastructure.Tests.Files;
 
 /// <summary>Tests content-authoritative host-file inspection and hashing.</summary>
-public sealed class FileContentSnapshotInspectorTests
+public sealed partial class FileContentSnapshotInspectorTests
 {
     /// <summary>Inspection computes accepted length and SHA-256 from one selected file.</summary>
     [Fact]
@@ -122,7 +122,8 @@ public sealed class FileContentSnapshotInspectorTests
         SelectedFileContentInspection first = await inspector.InspectAsync(
             path,
             maximumBytes: int.MaxValue,
-            CancellationToken.None);
+            CancellationToken.None,
+            SelectedFileContentInspectionMode.IdentityOnly);
         await File.WriteAllBytesAsync(
             path,
             [1, 2, 9, 4],
@@ -131,10 +132,14 @@ public sealed class FileContentSnapshotInspectorTests
         SelectedFileContentInspection second = await inspector.InspectAsync(
             path,
             maximumBytes: int.MaxValue,
-            CancellationToken.None);
+            CancellationToken.None,
+            SelectedFileContentInspectionMode.IdentityOnly);
 
         Assert.Equal(first.FileStamp.AcceptedLength, second.FileStamp.AcceptedLength);
         Assert.NotEqual(first.FileStamp, second.FileStamp);
+        Assert.Equal(FileStamp.FromBytes([1, 2, 9, 4]), second.FileStamp);
+        Assert.Null(first.AcceptedBytes);
+        Assert.Null(second.AcceptedBytes);
     }
 
     /// <summary>Inspection rejects a selected path outside its configured roots.</summary>

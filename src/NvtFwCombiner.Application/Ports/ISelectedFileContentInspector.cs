@@ -8,14 +8,51 @@ namespace NvtFwCombiner.Application.Ports;
 /// </summary>
 public interface ISelectedFileContentInspector
 {
-    /// <summary>Inspects the complete currently selected file exactly once.</summary>
+    /// <summary>
+    /// Inspects the complete currently selected file. Identity-only inspection
+    /// retains no payload; existing callers capture bytes unless specified otherwise.
+    /// Cancellation propagates as <see cref="OperationCanceledException"/>;
+    /// unstable content raises <see cref="SelectedFileChangedDuringInspectionException"/>.
+    /// Capture is additionally limited by byte-array capacity; identity-only
+    /// inspection uses the caller's 64-bit ceiling without that storage limit.
+    /// </summary>
     ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,
         long maximumBytes,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        SelectedFileContentInspectionMode mode = SelectedFileContentInspectionMode.CaptureBytes);
 }
 
-/// <summary>A selected host file exceeds the caller-resolved inspection ceiling.</summary>
+/// <summary>Requested payload lifetime for complete selected-file inspection.</summary>
+public enum SelectedFileContentInspectionMode
+{
+    /// <summary>Return the complete length and SHA-256 without retaining file bytes.</summary>
+    IdentityOnly,
+
+    /// <summary>Also retain the complete immutable bytes matching the returned stamp.</summary>
+    CaptureBytes,
+}
+
+/// <summary>Observed instability while reading the admitted complete-file length.</summary>
+public enum SelectedFileContentChangeKind
+{
+    /// <summary>The caller did not supply a more specific observation.</summary>
+    Unspecified,
+
+    /// <summary>End of stream was reached before the admitted length.</summary>
+    ShortRead,
+
+    /// <summary>A trailing byte or a larger final length was observed.</summary>
+    Growth,
+
+    /// <summary>A smaller final length was observed.</summary>
+    Shrinkage,
+
+    /// <summary>The final stream position did not match the admitted length.</summary>
+    PositionChanged,
+}
+
+/// <summary>A selected host file exceeds the inspection or capture-storage ceiling.</summary>
 public sealed class SelectedFileSizeLimitExceededException : Exception
 {
     /// <summary>Creates one typed pre-hash size rejection.</summary>
@@ -34,7 +71,7 @@ public sealed class SelectedFileSizeLimitExceededException : Exception
     /// <summary>Whole-file length observed before hashing.</summary>
     public long ObservedBytes { get; }
 
-    /// <summary>Caller-resolved inclusive whole-file ceiling.</summary>
+    /// <summary>Inclusive whole-file ceiling imposed by the caller or capture storage.</summary>
     public long MaximumBytes { get; }
 }
 
@@ -42,15 +79,21 @@ public sealed class SelectedFileSizeLimitExceededException : Exception
 public sealed class SelectedFileChangedDuringInspectionException : IOException
 {
     /// <summary>Creates one typed whole-file stability rejection.</summary>
-    public SelectedFileChangedDuringInspectionException()
+    public SelectedFileChangedDuringInspectionException(
+        SelectedFileContentChangeKind changeKind = SelectedFileContentChangeKind.Unspecified)
         : base("Selected file length changed during complete-content inspection.")
     {
+        ChangeKind = changeKind;
     }
+
+    /// <summary>Typed read observation; no successful stamp is published for this read.</summary>
+    public SelectedFileContentChangeKind ChangeKind { get; }
 }
 
 /// <summary>
 /// Immutable host inspection result. <see cref="FileStamp"/> identifies the
-/// retained accepted bytes; display name and timestamp are hints only.
+/// complete inspected content. Bytes are optional; display name and timestamp
+/// are hints only.
 /// </summary>
 public sealed record SelectedFileContentInspection
 {
@@ -96,9 +139,9 @@ public sealed record SelectedFileContentInspection
     /// <summary>Non-authoritative UTC filesystem timestamp hint.</summary>
     public DateTimeOffset? LastWriteTimeUtcHint { get; }
 
-    /// <summary>Immutable complete bytes captured by this exact inspection.</summary>
+    /// <summary>Immutable complete captured bytes, or null for identity-only inspection.</summary>
     public ReadOnlyMemory<byte>? AcceptedBytes => AcceptedByteArray is null
-        ? null
+        ? (ReadOnlyMemory<byte>?)null
         : new ReadOnlyMemory<byte>(AcceptedByteArray);
 
     internal byte[]? AcceptedByteArray { get; }
