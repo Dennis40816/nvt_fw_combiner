@@ -514,17 +514,31 @@ second implementation. The comparator's staged-command identity check
 2. **Report ranges.** `validate_semantic_report_ranges` checks that every
    range is half-open, inside its address space's capacity and contained in
    its operation, and that a processor's read ranges and its write ranges do
-   not overlap among themselves. Declared writes are compared inside their
-   own address space, in strictly increasing integer `sequence` order: a write may overlap an earlier
-   write only when its operation declares the `ReplaceExisting` overlap
+   not overlap among themselves. Operation targets are compared inside their
+   own address space, in strictly increasing integer `sequence` order: a target may overlap an earlier
+   target only when its operation declares the `ReplaceExisting` overlap
    policy, as a map does when it copies the DP container and writes the TP
    over part of it. As in `CompositionOperation.GetProfileOverlapError`,
-   `ReplaceExisting` is allowed only for `CopyRange`, `RunExternalProcessor`,
-   `ReplaceRange`, `PatchScalar` or `TransformScalar`, and every declared write
-   must be fully contained in one earlier write in that space. A processor
-   declares its allowed write ranges; every other operation declares its target.
-   Partial cover, cover assembled from adjacent earlier writes, no earlier
-   overlapping write, and any other overlap are refused. The comparator asks for
+   `CopyRange`, `ReplaceRange`, `PatchScalar` and `TransformScalar` with
+   `ReplaceExisting` require their target to be fully contained in one earlier
+   target in that space. Partial cover and cover assembled from adjacent earlier
+   targets are refused for those kinds; `FillRange` and unknown kinds with
+   `ReplaceExisting` are refused.
+
+   `RunExternalProcessor` with `ReplaceExisting` instead requires an earlier
+   overlapping target, without full cover of its target or every allowed write.
+   `V2CompositionPlanCompiler.RuntimeReferenceReplace` validates overlaps only
+   for version-edit `PatchScalar` and mapping `ReplaceRange` operations before
+   appending postbuild processors. It seeds the output with
+   `ImageInitialization.Reference`, which is not an operation row. A CtrlRAM
+   Replace report therefore needs no invented `copy-reference` operation.
+   The processor's allowed writes remain constrained by the audit in item 5.
+
+   Every policy other than `ReplaceExisting` compares operation targets,
+   including a processor's whole target: disjoint allowed writes do not admit
+   a processor target overlapping an earlier target or a later copy into that
+   processor target outside its allowed writes. No earlier overlapping target
+   for `ReplaceExisting`, and any other target overlap, are refused. The comparator asks for
    this rule with the function's `declared_overlap` option; the ADR 0057
    terminal path keeps its default, which refuses every overlap.
 

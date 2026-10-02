@@ -634,7 +634,7 @@ class ComparisonTests(unittest.TestCase):
                             parity.validate_semantic_report_ranges(projection, capacities, declared_overlap=True)
                         self.assertEqual("PARITY_REPORT_RANGE_INVALID", found.exception.code)
 
-    def test_declared_overlap_uses_processor_writes_and_refuses_cover_from_adjacent_writes(self):
+    def test_processor_replace_existing_requires_target_overlap_without_full_write_cover(self):
         capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}
         base = comparison.read_cli_report(merge_report(committed=False, overlay=True), report_version="1x").projection
         base["compiledMutations"] = []
@@ -647,8 +647,7 @@ class ComparisonTests(unittest.TestCase):
         parity.validate_semantic_report_ranges(base, capacities, declared_overlap=True)
         partial = copy.deepcopy(base)
         partial["compiledOperations"][1]["processor"]["allowedWriteRanges"][0].update(start=2, endExclusive=6)
-        with self.assertRaises(parity.ParityError):
-            parity.validate_semantic_report_ranges(partial, capacities, declared_overlap=True)
+        parity.validate_semantic_report_ranges(partial, capacities, declared_overlap=True)
 
         only_declared = copy.deepcopy(base)
         earlier, later = only_declared["compiledOperations"]
@@ -656,8 +655,7 @@ class ComparisonTests(unittest.TestCase):
                        processor={"allowedReadRanges": [], "allowedWriteRanges": [
                            {"addressSpace": "output-image", "start": 0, "endExclusive": 2}]})
         later["processor"]["allowedWriteRanges"][0].update(start=2, endExclusive=3)
-        with self.assertRaises(parity.ParityError):
-            parity.validate_semantic_report_ranges(only_declared, capacities, declared_overlap=True)
+        parity.validate_semantic_report_ranges(only_declared, capacities, declared_overlap=True)
 
         adjacent = copy.deepcopy(base)
         earlier, later = adjacent["compiledOperations"]
@@ -667,8 +665,32 @@ class ComparisonTests(unittest.TestCase):
                       targetRange={"addressSpace": "output-image", "start": 2, "endExclusive": 4})
         adjacent["compiledOperations"].insert(1, second)
         later["processor"]["allowedWriteRanges"][0].update(start=0, endExclusive=4)
-        with self.assertRaises(parity.ParityError):
-            parity.validate_semantic_report_ranges(adjacent, capacities, declared_overlap=True)
+        parity.validate_semantic_report_ranges(adjacent, capacities, declared_overlap=True)
+
+        no_overlap = copy.deepcopy(base)
+        no_overlap["compiledOperations"][1]["targetRange"].update(start=4)
+        no_overlap["compiledOperations"][1]["processor"]["allowedWriteRanges"][0].update(start=4, endExclusive=5)
+        with self.assertRaises(parity.ParityError) as found:
+            parity.validate_semantic_report_ranges(no_overlap, capacities, declared_overlap=True)
+        self.assertEqual("PARITY_REPORT_RANGE_INVALID", found.exception.code)
+
+    def test_declared_non_processor_cover_cannot_be_assembled_from_adjacent_targets(self):
+        capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}
+        for kind in ("CopyRange", "ReplaceRange", "PatchScalar", "TransformScalar"):
+            with self.subTest(kind=kind):
+                projection = comparison.read_cli_report(merge_report(committed=False, overlay=True), report_version="1x").projection
+                projection["compiledMutations"] = []
+                earlier, later = projection["compiledOperations"]
+                earlier["sourceRange"]["endExclusive"] = earlier["targetRange"]["endExclusive"] = 2
+                second = copy.deepcopy(earlier)
+                second.update(operationId="second", sequence=150,
+                              targetRange={"addressSpace": "output-image", "start": 2, "endExclusive": 4})
+                projection["compiledOperations"].insert(1, second)
+                later.update(kind=kind, sourceRange=None, sourceSpaceId=None,
+                             targetRange={"addressSpace": "output-image", "start": 0, "endExclusive": 4})
+                with self.assertRaises(parity.ParityError) as found:
+                    parity.validate_semantic_report_ranges(projection, capacities, declared_overlap=True)
+                self.assertEqual("PARITY_REPORT_RANGE_INVALID", found.exception.code)
 
     def test_described_output_without_a_file_needs_committed_false(self):
         capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}
@@ -1218,6 +1240,48 @@ class ComparisonTests(unittest.TestCase):
             self.assertEqual(2, len(capture.staged_tools))
         preview, build = (capture.report.projection["compiledOperations"] for capture in captures)
         self.assertEqual(preview, build)
+
+    def test_reference_initialized_processor_report_is_ready_then_output(self):
+        """The 6e8c03505 CtrlRAM Replace shape has no copy-reference operation."""
+        for stages, expected in ((("preview",), "ready"), (("preview", "build"), "output")):
+            with self.subTest(stages=stages):
+                captures, result = self.processor_side(stages=stages)
+                preview = captures[0].evidence()
+                verdict = comparison.validation.side_execution_verdict(
+                    [capture.evidence() for capture in captures],
+                    capacities=comparison.validation.execution_capacities(preview),
+                    complete=len(stages) == 2)
+                self.assertEqual((expected, []), (verdict.status, verdict.failures))
+                if expected == "output":
+                    self.assertEqual((expected, []), (result.side["status"], result.failures))
+                operations = preview.projection["compiledOperations"]
+                self.assertEqual(["ReplaceRange", "RunExternalProcessor"], [row["kind"] for row in operations])
+                self.assertEqual((4, 8), (operations[0]["targetRange"]["start"], operations[0]["targetRange"]["endExclusive"]))
+                self.assertEqual([(0, 2), (4, 8), (12, 16)],
+                                 [(row["start"], row["endExclusive"]) for row in operations[1]["processor"]["allowedWriteRanges"]])
+
+    def test_reject_processor_target_overlap_is_refused_despite_disjoint_writes(self):
+        def disjoint_writes(raw, staging, temporary, working):
+            raw["Operations"][1]["OverlapPolicy"] = "Reject"
+            del raw["Operations"][1]["ProcessorAllowedWriteRanges"][1]
+
+        _, result = self.processor_side(disjoint_writes)
+        self.assert_refused(result, "preview", "PARITY_REPORT_RANGE_INVALID")
+
+    def test_reject_copy_into_processor_target_is_refused_outside_its_writes(self):
+        def copy_outside_writes(raw, staging, temporary, working):
+            operation = copy.deepcopy(raw["Operations"][0])
+            operation.update(OperationId="copy-outside-processor-writes", Sequence=2147483648, Kind="CopyRange",
+                             TargetRange={"Start": 8, "Length": 4, "EndExclusive": 12})
+            processor = raw["Operations"][1]
+            processor["OverlapPolicy"] = "Reject"
+            raw["Operations"] = [processor, operation]
+            mutation = copy.deepcopy(raw["Mutations"][0])
+            mutation.update(OperationId=operation["OperationId"], Kind="CopyRange", TargetRange=operation["TargetRange"])
+            raw["Mutations"] = [raw["Mutations"][1], mutation]
+
+        _, result = self.processor_side(copy_outside_writes)
+        self.assert_refused(result, "preview", "PARITY_REPORT_RANGE_INVALID")
 
     def test_executable_must_be_a_staged_hash_checked_tool(self):
         def beside_the_staging(raw, staging, temporary, working):
