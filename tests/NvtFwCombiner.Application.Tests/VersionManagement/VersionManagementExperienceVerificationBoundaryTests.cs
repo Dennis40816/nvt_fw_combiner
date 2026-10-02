@@ -2,7 +2,9 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+/// <summary>Tests version management verification boundaries.</summary>
+[Collection(nameof(VersionManagementExperienceSerialGroup))]
+public sealed partial class VersionManagementExperienceVerificationBoundaryTests
 {
     /// <summary>A candidate attached to a typed verification failure is never published.</summary>
     [Fact]

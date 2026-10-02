@@ -2,7 +2,9 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+/// <summary>Tests version management install result boundaries.</summary>
+[Collection(nameof(VersionManagementExperienceSerialGroup))]
+public sealed partial class VersionManagementExperienceInstallResultBoundaryTests
 {
     /// <summary>A contradictory failed adapter result cannot become a durable admission.</summary>
     [Fact]

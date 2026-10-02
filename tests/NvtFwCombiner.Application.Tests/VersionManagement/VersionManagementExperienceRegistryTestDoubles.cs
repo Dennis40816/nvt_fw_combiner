@@ -3,12 +3,12 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+internal static partial class VersionManagementExperienceTestSupport
 {
-    private const string CatalogContentDigest =
+    internal const string CatalogContentDigest =
         "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
-    private static UpdateSourceRegistryLoadResult Registry(
+    internal static UpdateSourceRegistryLoadResult Registry(
         long revision,
         string digest,
         params (string Path, UpdateSourceRegistryEntryStatus Status)[] entries)
@@ -22,7 +22,7 @@ public sealed partial class VersionManagementExperienceTests
             entries);
     }
 
-    private static UpdateSourceRegistryLoadResult RegistryWithPublication(
+    internal static UpdateSourceRegistryLoadResult RegistryWithPublication(
         string latestVersion,
         int catalogSchemaVersion,
         string catalogDigest,
@@ -46,12 +46,12 @@ public sealed partial class VersionManagementExperienceTests
             UpdateSourceRegistryLoadIssue.None);
     }
 
-    private static string SourcePath(string name)
+    internal static string SourcePath(string name)
     {
         return Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Combine("registry-sources", name)));
     }
 
-    private static UpdateCatalogSnapshot CatalogWithOlderReleaseNote(string olderNote)
+    internal static UpdateCatalogSnapshot CatalogWithOlderReleaseNote(string olderNote)
     {
         var document = new NvtFwCombiner.Contracts.VersionManagement.UpdateCatalogDocument(
             1,
@@ -78,7 +78,7 @@ public sealed partial class VersionManagementExperienceTests
         return Assert.IsType<UpdateCatalogSnapshot>(UpdateCatalogValidator.Validate(document).Snapshot);
     }
 
-    private static UpdateCatalogSnapshot CatalogWithVersionCount(int count)
+    internal static UpdateCatalogSnapshot CatalogWithVersionCount(int count)
     {
         var document = new NvtFwCombiner.Contracts.VersionManagement.UpdateCatalogDocument(
             1,
@@ -96,7 +96,7 @@ public sealed partial class VersionManagementExperienceTests
         return Assert.IsType<UpdateCatalogSnapshot>(UpdateCatalogValidator.Validate(document).Snapshot);
     }
 
-    private sealed class SequenceRegistrySource(params UpdateSourceRegistryLoadResult[] results)
+    internal sealed class SequenceRegistrySource(params UpdateSourceRegistryLoadResult[] results)
         : IUpdateSourceRegistry
     {
         private int _next;
@@ -110,7 +110,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class PathCatalogSource(
+    internal sealed class PathCatalogSource(
         params (string Path, UpdateCatalogLoadResult Result)[] results) : IRootCatalogSourceTestDouble
     {
         private readonly Dictionary<string, UpdateCatalogLoadResult> _results =
@@ -129,7 +129,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class SequencePathCatalogSource(
+    internal sealed class SequencePathCatalogSource(
         string path,
         params UpdateCatalogSnapshot[] snapshots) : IRootCatalogSourceTestDouble
     {
@@ -148,7 +148,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class CancelFirstCatalogSource(UpdateCatalogSnapshot snapshot)
+    internal sealed class CancelFirstCatalogSource(UpdateCatalogSnapshot snapshot)
         : IRootCatalogSourceTestDouble
     {
         private int _loadCount;
@@ -179,7 +179,7 @@ public sealed partial class VersionManagementExperienceTests
             : result;
     }
 
-    private sealed class CountingRepository(ManagedAppVersion? mismatchedVersion = null)
+    internal sealed class CountingRepository(ManagedAppVersion? mismatchedVersion = null)
         : IManagedVersionRepository
     {
         private readonly HealthyRepository _inner = new();
@@ -238,7 +238,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class BlockingFirstVerificationRepository : IManagedVersionRepository
+    internal sealed class BlockingFirstVerificationRepository : IManagedVersionRepository
     {
         private readonly HealthyRepository _inner = new();
         private int _verifyCount;
@@ -302,7 +302,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class LeaseCountingStateStore(VersionManagerState state) : IVersionManagerStateStore
+    internal sealed class LeaseCountingStateStore(VersionManagerState state) : IVersionManagerStateStore
     {
         internal int LeaseRequestCount { get; private set; }
 
@@ -335,7 +335,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class SequenceLoadStateStore(
+    internal sealed class SequenceLoadStateStore(
         params VersionManagerStateLoadResult[] results) : IVersionManagerStateStore
     {
         private int _loadCount;
@@ -371,7 +371,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class SequencedLeaseStateStore(VersionManagerState state)
+    internal sealed class SequencedLeaseStateStore(VersionManagerState state)
         : IVersionManagerStateStore
     {
         private int _leaseCount;
@@ -406,7 +406,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class DenyingMutationFence : ILauncherMutationFence
+    internal sealed class DenyingMutationFence : ILauncherMutationFence
     {
         public ValueTask<LauncherMutationProtection> LoadAsync(CancellationToken cancellationToken)
         {
@@ -429,7 +429,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class ReloadChangedStateStore : IVersionManagerStateStore
+    internal sealed class ReloadChangedStateStore : IVersionManagerStateStore
     {
         private readonly VersionManagerState _initial;
         private readonly VersionManagerState _changed;
