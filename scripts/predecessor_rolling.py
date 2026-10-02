@@ -364,6 +364,7 @@ def build_rolling_report(
     environment: dict[str, Any], scenarios: list[ScenarioReport], manifest: Mapping[str, Any],
     cases: Mapping[str, Any], evidence: Mapping[str, validation.ScopeEvidence],
     failures: Sequence[validation.Failure], *, admission: execution.ContractAdmission,
+    baseline_identity_report_sha256: str | None = None,
 ) -> dict[str, Any]:
     authority = sources.authority
     report = RollingReport(
@@ -376,6 +377,8 @@ def build_rolling_report(
         validation.rolling_coverage(sources.ledger, sources.baseline_ledger, sources.policy, manifest, sources.declaration),
         validation.rolling_gate([]))
     payload = asdict(report)
+    if baseline_identity_report_sha256 is not None:
+        payload["baselineIdentityReportSha256"] = baseline_identity_report_sha256
     checks = validation.rolling_report_failures(
         payload, ledger=sources.ledger, baseline_ledger=sources.baseline_ledger, policy=sources.policy,
         manifest=manifest, case_manifests=cases, plan=sources.plan, declaration=sources.declaration,
@@ -385,10 +388,22 @@ def build_rolling_report(
     return payload
 
 
+def compare_baseline_own_report(baseline: execution.Executor, path: Path, tag: str) -> str:
+    """Read once, refuse missing/mismatched identity, and bind the admitted bytes."""
+    try:
+        raw = path.read_bytes()
+        own_report = load_json_reject_duplicates(raw)
+    except (OSError, ParityError, ValueError, TypeError) as error:
+        raise execution.ExecutionError("PREDECESSOR_BASELINE_IDENTITY_MISSING",
+                                       "baseline own report is unavailable or malformed") from error
+    execution._refuse(validation.baseline_identity_failures(baseline.identity, own_report, baseline_version=tag[1:]))
+    return sha256(raw)
+
+
 def run_rolling(
     *, git: RollingGitHost, host: execution.ProcessHost, candidate_commit: str,
     baseline_tag: str | None, output_path: Path, temporary_root: Path, settings_folder: Path,
-    formal: bool = False, published: PublishedReleaseHost | None = None,
+    formal: bool = False, published: PublishedReleaseHost | None = None, baseline_report: Path | None = None,
     materializer: Callable = materialize_and_validate_canonical_input_authority,
 ) -> dict[str, Any]:
     """Build both 1.x executors, execute each ledger scenario once per side, and write the gate."""
@@ -405,6 +420,8 @@ def run_rolling(
             authority, manifest, cases = materialize_rolling_inputs(sources, runner.temporary_root / "canonical", materializer)
             baseline = execution.build_1x_executor(git, runner, sources.baseline.commit, sources.contract,
                                                    tag_object=sources.baseline.tag_object)
+            baseline_identity_report_sha256 = None if baseline_report is None else compare_baseline_own_report(
+                baseline, baseline_report, sources.baseline.tag)
             candidate = execution.build_1x_executor(git, runner, candidate_commit, sources.contract)
             scenarios, evidence, failures = [], {}, []
             for row in sources.ledger["scenarios"]:
@@ -418,7 +435,8 @@ def run_rolling(
         finally:
             environment, environment_failures = runner.finish()
         report = build_rolling_report(sources, baseline, candidate, environment, scenarios, manifest, cases, evidence,
-                                      [*failures, *environment_failures], admission=runner.admission)
+                                      [*failures, *environment_failures], admission=runner.admission,
+                                      baseline_identity_report_sha256=baseline_identity_report_sha256)
         write_json_exclusive_atomic(output_path, report)
         return report
     except execution.ExecutionError:
@@ -436,6 +454,7 @@ def rolling_main(argv: Sequence[str] | None = None) -> int:
     rolling.add_argument("--candidate-commit", required=True)
     rolling.add_argument("--baseline-tag", help="required for a local diagnostic run")
     rolling.add_argument("--published-release-inventory", type=Path, help="commander's complete published stable release inventory")
+    rolling.add_argument("--baseline-report", type=Path, help="opt in to comparing the rebuild with that release's own predecessor report")
     rolling.add_argument("--output", type=Path, required=True)
     policy = rolling.add_mutually_exclusive_group(required=True)
     policy.add_argument("--formal", action="store_true")
@@ -454,7 +473,8 @@ def rolling_main(argv: Sequence[str] | None = None) -> int:
             report = run_rolling(git=LocalRollingGitHost(execution.ROOT), host=execution.LocalExecutionHost(),
                                  candidate_commit=args.candidate_commit, baseline_tag=args.baseline_tag,
                                  output_path=args.output, temporary_root=Path(temporary),
-                                 settings_folder=execution.local_settings_folder(), formal=args.formal, published=published)
+                                 settings_folder=execution.local_settings_folder(), formal=args.formal, published=published,
+                                 baseline_report=args.baseline_report)
         return 0 if report["gate"]["result"] == "clear" else 1
     except (execution.ExecutionError, OSError, ParityError) as error:
         print(f"{getattr(error, 'code', 'PREDECESSOR_ENVIRONMENT_INVALID')}: {error}", file=sys.stderr)

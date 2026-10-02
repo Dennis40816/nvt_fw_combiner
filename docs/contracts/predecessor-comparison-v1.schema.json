@@ -151,6 +151,7 @@
         "lockFilesMustNotChange",
         "lockFileSet",
         "identityPinnedInAdvance",
+        "baselineIdentityComparison",
         "authorityTrees",
         "externalToolStaging",
         "recordedIdentity"
@@ -183,6 +184,22 @@
           }
         },
         "identityPinnedInAdvance": { "const": false },
+        "baselineIdentityComparison": {
+          "const": {
+            "status": "opt-in",
+            "mode": "rolling",
+            "option": "--baseline-report",
+            "recordedIdentityPath": "/candidate/executor",
+            "comparedMembers": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tree"],
+            "tagObjectRule": "null-or-rebuilt-tag-object",
+            "missing": "PREDECESSOR_BASELINE_IDENTITY_MISSING",
+            "mismatch": "PREDECESSOR_BASELINE_IDENTITY_MISMATCH",
+            "v0916": {
+              "status": "not-implemented",
+              "reason": "The v0.9.16 CLI report records no program identity also produced by its rebuild; executor v2 pins are not that program's own report."
+            }
+          }
+        },
         "authorityTrees": { "const": ["external-tools", "profiles", "src", "tools/crc-worker"] },
         "externalToolStaging": {
           "const": {

@@ -339,6 +339,52 @@ def executor_sdk_failures(version: str) -> list[Failure]:
     return []
 
 
+def baseline_identity_failures(
+    rebuilt: Mapping[str, Any], own_report: Any, *, baseline_version: str,
+) -> list[Failure]:
+    """Compare a rolling rebuild with the release's own candidate.executor.
+
+    The tag is assigned after the candidate report; its null tagObject is
+    admitted, but a recorded non-null tag must be the rebuilt tag object.
+    No CLI profile, compilation fingerprint or output identity identifies
+    the program. The caller supplies the already measured 1.x Executor.
+    """
+    candidate = own_report.get("candidate") if isinstance(own_report, Mapping) else None
+    recorded = candidate.get("executor") if isinstance(candidate, Mapping) else None
+    if not isinstance(recorded, Mapping):
+        return [_failure("BASELINE_IDENTITY_MISSING", "candidate.executor", "baseline own report records no executor identity")]
+
+    def compare(expected: Any, observed: Any, path: str) -> list[Failure]:
+        if observed is None:
+            return [_failure("BASELINE_IDENTITY_MISSING", path, "recorded identity value is missing")]
+        if isinstance(expected, Mapping) and isinstance(observed, Mapping):
+            failures = []
+            for member, value in expected.items():
+                failures.extend(compare(value, observed.get(member), f"{path}.{member}"))
+            if set(observed) - set(expected):
+                failures.append(_failure("BASELINE_IDENTITY_MISMATCH", path, "recorded identity has unexpected members"))
+            return failures
+        if type(observed) is not type(expected) or observed != expected:
+            return [_failure("BASELINE_IDENTITY_MISMATCH", path, "rebuilt and recorded identity values differ")]
+        return []
+
+    failures = compare({key: value for key, value in rebuilt.items() if key != "tagObject"},
+                       {key: value for key, value in recorded.items() if key != "tagObject"}, "candidate.executor")
+    if "tagObject" not in recorded:
+        failures.append(_failure("BASELINE_IDENTITY_MISSING", "candidate.executor.tagObject", "recorded tag member is missing"))
+    elif recorded["tagObject"] is not None and recorded["tagObject"] != rebuilt["tagObject"]:
+        failures.append(_failure("BASELINE_IDENTITY_MISMATCH", "candidate.executor.tagObject", "recorded tag differs from baseline tag"))
+    if candidate.get("version") is None:
+        failures.append(_failure("BASELINE_IDENTITY_MISSING", "candidate.version", "recorded candidate version is missing"))
+    elif candidate["version"] != baseline_version:
+        failures.append(_failure("BASELINE_IDENTITY_MISMATCH", "candidate.version", "recorded version differs from baseline version"))
+    if (own_report.get("schemaVersion") != "1.0" or own_report.get("kind") != "predecessor-comparison-report"
+            or own_report.get("mode") not in ("rolling", "v0916-1x")
+            or own_report.get("certification") != "none" or own_report.get("terminal") is not False):
+        failures.append(_failure("BASELINE_IDENTITY_MISMATCH", "baseline-report", "not a non-terminal predecessor report"))
+    return failures
+
+
 def executor_closure_failures(expected: Mapping[str, str], observed: Mapping[str, str | None]) -> list[Failure]:
     if dict(expected) != dict(observed):
         return [_failure("EXECUTOR_INVALID", "closure", "execution closure changed or disappeared")]

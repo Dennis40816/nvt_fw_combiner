@@ -719,6 +719,17 @@ class V0916Tests(unittest.TestCase):
         self.assertEqual("PARITY_WRITE_CONFLICT", found.exception.code)
         self.assertEqual(b"preserved", output.read_bytes())
 
+    def test_v0916_family_has_no_invented_baseline_self_report_comparison(self):
+        report, _, _, _ = self.run_world()
+        self.assertNotIn("baselineIdentityReportSha256", report)
+        with patch.object(milestone, "run_v0916") as run, self.assertRaises(SystemExit) as found:
+            execution.main(["v0916-1x", "--candidate-commit", CANDIDATE,
+                            "--baseline-report", "not-a-v0916-program-identity.json",
+                            "--output", str(self.root / "unused.json"),
+                            "--temporary-root", str(self.root), "--diagnostic"])
+        self.assertEqual(2, found.exception.code)
+        run.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
