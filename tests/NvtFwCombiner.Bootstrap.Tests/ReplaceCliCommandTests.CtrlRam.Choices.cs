@@ -11,6 +11,8 @@ public sealed partial class ReplaceCliCommandTests
     [InlineData("b", AbCtrlRamBankSelection.B, "preview")]
     [InlineData("both", AbCtrlRamBankSelection.Both, "preview")]
     [InlineData("b", AbCtrlRamBankSelection.B, "build")]
+    [InlineData(" A ", AbCtrlRamBankSelection.A, "preview")]
+    [InlineData(" Both ", AbCtrlRamBankSelection.Both, "build")]
     public async Task CtrlRamBankChoiceReachesApplicationAsync(string token, AbCtrlRamBankSelection expected, string action)
     {
         using var workspace = TempWorkspace.Create("ctrlram-cli-bank");
@@ -24,14 +26,12 @@ public sealed partial class ReplaceCliCommandTests
     }
 
     /// <summary>Standard version and sub-version text are typed bytes at the existing Application owner.</summary>
-    [Theory]
-    [InlineData("preview")]
-    [InlineData("build")]
-    public async Task CtrlRamStandardVersionPairReachesApplicationAsync(string action)
+    [Fact]
+    public async Task CtrlRamStandardVersionPairReachesApplicationAsync()
     {
         using var workspace = TempWorkspace.Create("ctrlram-cli-version");
         CtrlRamChoiceRun result = await RunCtrlRamChoiceAsync(workspace, ab: false,
-            ["--firmware-version", "a9", "--firmware-sub-version", "F2"], action);
+            ["--firmware-version", "a9", "--firmware-sub-version", "F2"], action: "build");
 
         Assert.True(result.ExitCode == 0, result.Error);
         CtrlRamFirmwareVersionDraftState draft = Assert.IsType<CtrlRamFirmwareVersionDraftState>(Assert.Single(result.Authoring.Drafts));
@@ -55,7 +55,7 @@ public sealed partial class ReplaceCliCommandTests
             .. editA ? new[] { "--a-firmware-version", "21", "--a-firmware-sub-version", "32" } : [],
             .. editB ? new[] { "--b-firmware-version", "29", "--b-firmware-sub-version", "41" } : [],
         ];
-        CtrlRamChoiceRun result = await RunCtrlRamChoiceAsync(workspace, ab: true, options);
+        CtrlRamChoiceRun result = await RunCtrlRamChoiceAsync(workspace, ab: true, options, action: "build");
 
         Assert.True(result.ExitCode == 0, result.Error);
         AbCtrlRamDraftState draft = Assert.IsType<AbCtrlRamDraftState>(result.Authoring.Drafts[^1]);
@@ -66,34 +66,69 @@ public sealed partial class ReplaceCliCommandTests
 
     /// <summary>Application rejects bank/profile mismatch and version edits to unselected banks before execution.</summary>
     [Theory]
-    [InlineData(false, "--bank", "a")]
-    [InlineData(false, "--bank", "both")]
-    [InlineData(false, "--a-firmware-version", "21", "--a-firmware-sub-version", "32")]
-    [InlineData(false, "--b-firmware-version", "29", "--b-firmware-sub-version", "41")]
-    [InlineData(true, "--firmware-version", "21", "--firmware-sub-version", "32")]
-    [InlineData(true, "--bank", "a", "--b-firmware-version", "29", "--b-firmware-sub-version", "41")]
-    [InlineData(true, "--bank", "b", "--a-firmware-version", "21", "--a-firmware-sub-version", "32")]
-    [InlineData(true, "--bank", "a", "--a-firmware-version", "21", "--a-firmware-sub-version", "32",
+    [InlineData(false, "profile.v2.compile.map-capacity-unavailable", "--bank", "a")]
+    [InlineData(false, "profile.v2.compile.map-capacity-unavailable", "--bank", "both")]
+    [InlineData(false, "profile.v2.compile.map-capacity-unavailable", "--a-firmware-version", "21", "--a-firmware-sub-version", "32")]
+    [InlineData(false, "profile.v2.compile.map-capacity-unavailable", "--b-firmware-version", "29", "--b-firmware-sub-version", "41")]
+    // A Standard version draft recompiles the full AB Reference against the Standard map capacity.
+    [InlineData(true, "input.address-space.length-mismatch", "--firmware-version", "21", "--firmware-sub-version", "32")]
+    [InlineData(true, "authoring.ctrlram.unselected-bank-version", "--bank", "a", "--b-firmware-version", "29", "--b-firmware-sub-version", "41")]
+    [InlineData(true, "authoring.ctrlram.unselected-bank-version", "--bank", "b", "--a-firmware-version", "21", "--a-firmware-sub-version", "32")]
+    [InlineData(true, "authoring.ctrlram.unselected-bank-version", "--bank", "a", "--a-firmware-version", "21", "--a-firmware-sub-version", "32",
         "--b-firmware-version", "29", "--b-firmware-sub-version", "41")]
-    [InlineData(true, "--bank", "b", "--a-firmware-version", "21", "--a-firmware-sub-version", "32",
+    [InlineData(true, "authoring.ctrlram.unselected-bank-version", "--bank", "b", "--a-firmware-version", "21", "--a-firmware-sub-version", "32",
         "--b-firmware-version", "29", "--b-firmware-sub-version", "41")]
-    public async Task CtrlRamApplicationRefusalWritesNoArtifactsAsync(bool ab, params string[] options)
+    public async Task CtrlRamApplicationRefusalWritesNoArtifactsAsync(bool ab, string issueCode, params string[] options)
+    {
+        await AssertCtrlRamApplicationRefusalAsync(ab, issueCode, options, existingArtifacts: false);
+        await AssertCtrlRamApplicationRefusalAsync(ab, issueCode, options, existingArtifacts: true);
+    }
+
+    private static async Task AssertCtrlRamApplicationRefusalAsync(
+        bool ab,
+        string issueCode,
+        string[] options,
+        bool existingArtifacts)
     {
         using var workspace = TempWorkspace.Create("ctrlram-cli-choice-refusal");
+        byte[] originalOutput = [0x12, 0x34];
+        byte[] originalReport = [0x56, 0x78];
+        if (existingArtifacts)
+        {
+            _ = workspace.Write("output.bin", originalOutput);
+            _ = workspace.Write("report.json", originalReport);
+        }
+
         CtrlRamChoiceRun result = await RunCtrlRamChoiceAsync(workspace, ab, options, action: "build");
 
         Assert.Equal(1, result.ExitCode);
         Assert.NotEmpty(result.Authoring.Drafts);
         Assert.Empty(result.Execution.Requests);
-        Assert.NotEmpty(result.Error);
+        Assert.Contains(issueCode, result.Error, StringComparison.Ordinal);
+        if (ab && result.Authoring.Drafts[0] is CtrlRamFirmwareVersionDraftState)
+        {
+            // Pin the incompatible Reference shape, rather than an unrelated source-length refusal.
+            Assert.Contains("Base firmware BIN length 0x80000 is unsupported for NT51929 / single CtrlRAM Replace",
+                result.Error, StringComparison.Ordinal);
+        }
+
         Assert.Empty(result.Output);
-        Assert.False(File.Exists(workspace.PathFor("output.bin")));
-        Assert.False(File.Exists(workspace.PathFor("report.json")));
+        if (existingArtifacts)
+        {
+            Assert.Equal(originalOutput, File.ReadAllBytes(workspace.PathFor("output.bin")));
+            Assert.Equal(originalReport, File.ReadAllBytes(workspace.PathFor("report.json")));
+        }
+        else
+        {
+            Assert.False(File.Exists(workspace.PathFor("output.bin")));
+            Assert.False(File.Exists(workspace.PathFor("report.json")));
+        }
     }
 
-    /// <summary>Invalid typed values and incomplete version pairs preserve the command's early-refusal exit.</summary>
+    /// <summary>Invalid typed values and incomplete version pairs are usage errors before any input read.</summary>
     [Theory]
     [InlineData("--bank", "unknown")]
+    [InlineData("--bank", "c")]
     [InlineData("--firmware-version", "GG", "--firmware-sub-version", "00")]
     [InlineData("--firmware-version", "100", "--firmware-sub-version", "00")]
     [InlineData("--firmware-version", "21")]
@@ -114,11 +149,42 @@ public sealed partial class ReplaceCliCommandTests
                 "--ctrlram", $"nf={workspace.PathFor("unread-nf.bin")}",
                 "--output", workspace.PathFor("output.bin"), "--report", workspace.PathFor("report.json")]);
 
-        Assert.Equal(1, result.ExitCode);
+        Assert.Equal(64, result.ExitCode);
         Assert.StartsWith("error:", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("input.artifact.read-failed", result.Error, StringComparison.Ordinal);
         Assert.Empty(result.Output);
         Assert.False(File.Exists(workspace.PathFor("output.bin")));
         Assert.False(File.Exists(workspace.PathFor("report.json")));
+    }
+
+    /// <summary>Preview rejects every version option before reading inputs and preserves existing destinations.</summary>
+    [Theory]
+    [InlineData("--firmware-version", "21", "--firmware-sub-version", "32")]
+    [InlineData("--a-firmware-version", "21", "--a-firmware-sub-version", "32")]
+    [InlineData("--b-firmware-version", "21", "--b-firmware-sub-version", "32")]
+    [InlineData("--firmware-version", "21")]
+    [InlineData("--firmware-sub-version", "32")]
+    [InlineData("--a-firmware-version", "21")]
+    [InlineData("--a-firmware-sub-version", "32")]
+    [InlineData("--b-firmware-version", "21")]
+    [InlineData("--b-firmware-sub-version", "32")]
+    [InlineData("--firmware-version", "GG", "--firmware-sub-version", "00")]
+    public async Task CtrlRamPreviewVersionOptionsAreUsageErrorsAsync(params string[] options)
+    {
+        using var workspace = TempWorkspace.Create("ctrlram-cli-preview-version");
+        byte[] original = [0x12, 0x34];
+        string outputPath = workspace.Write("output.bin", original);
+        string reportPath = workspace.Write("report.json", original);
+        CliRunResult result = await RunCliAsync(
+            ["ctrlram-replace", "preview", "--profile", "NT51929", "--ic-num", "single",
+                "--base", workspace.PathFor("unread-base.bin"), .. options,
+                "--ctrlram", $"nf={workspace.PathFor("unread-nf.bin")}", "--output", outputPath, "--report", reportPath]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains("firmware-version options are available only for ctrlram-replace build", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("input.artifact.read-failed", result.Error, StringComparison.Ordinal);
+        Assert.Empty(result.Output);
+        Assert.Equal(original, File.ReadAllBytes(outputPath));
+        Assert.Equal(original, File.ReadAllBytes(reportPath));
     }
 }

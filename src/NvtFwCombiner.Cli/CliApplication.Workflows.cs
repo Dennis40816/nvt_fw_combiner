@@ -60,14 +60,22 @@ public static partial class CliApplication
         string[] icIds = [.. selector.IcIds.Where(ic => selector.IsWorkflowAuthorable(ic, workflowId))];
         if (options.Values.TryGetValue("--profile", out string? profileFilter))
         {
-            icIds = [.. icIds.Where(ic =>
+            string? selectedIc = selector.IcIds.FirstOrDefault(ic =>
                 StringComparer.OrdinalIgnoreCase.Equals(ic, profileFilter.Trim()) ||
-                StringComparer.OrdinalIgnoreCase.Equals(CliCompositionRunSupport.GetIcNumber(ic), profileFilter.Trim()))];
-            if (icIds.Length == 0)
+                StringComparer.OrdinalIgnoreCase.Equals(CliCompositionRunSupport.GetIcNumber(ic), profileFilter.Trim()));
+            if (selectedIc is null)
             {
-                await error.WriteLineAsync($"error: unknown {workflowId} IC '{profileFilter}'").ConfigureAwait(false);
+                await error.WriteLineAsync($"error: unknown IC '{profileFilter}'").ConfigureAwait(false);
                 return UsageError;
             }
+
+            if (!icIds.Contains(selectedIc, StringComparer.Ordinal))
+            {
+                await error.WriteLineAsync($"error: IC '{selectedIc}' has no route for workflow '{workflowId}'").ConfigureAwait(false);
+                return UsageError;
+            }
+
+            icIds = [selectedIc];
         }
 
         string? numberFilter = options.Values.GetValueOrDefault("--ic-num");
@@ -84,12 +92,13 @@ public static partial class CliApplication
 
             if (numbers.Length == 0 && numberFilter is null)
             {
-                lines.Add($"ic={icId}");
+                lines.Add($"profile={icId}");
             }
 
             foreach (string number in numbers.Order(StringComparer.Ordinal))
             {
-                string context = $"ic={icId} ic-num={number}";
+                string numberOption = workflowId == ExperienceIds.AbMerge ? "ab-topology" : "ic-num";
+                string context = $"profile={icId} {numberOption}={number}";
                 lines.Add(context);
                 if (workflowId == ExperienceIds.CtrlRamReplace)
                 {

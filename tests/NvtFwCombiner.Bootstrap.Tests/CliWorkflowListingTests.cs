@@ -25,8 +25,8 @@ public sealed class CliWorkflowListingTests
         Assert.Equal(0, result.ExitCode);
         Assert.Empty(result.Error);
         Assert.Equal(
-            ["ic=NT51917", "ic=NT51919", "ic=NT51923", "ic=NT51926", "ic=NT51927",
-                "ic=NT51928", "ic=NT51929", "ic=NT51932", "ic=NT51950", "ic=NT51951"],
+            ["profile=NT51917", "profile=NT51919", "profile=NT51923", "profile=NT51926", "profile=NT51927",
+                "profile=NT51928", "profile=NT51929", "profile=NT51932", "profile=NT51950", "profile=NT51951"],
             Lines(result.Output));
     }
 
@@ -38,7 +38,7 @@ public sealed class CliWorkflowListingTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Empty(result.Error);
-        Assert.Equal(["ic=NT51950 ic-num=cascade", "ic=NT51950 ic-num=single"], Lines(result.Output));
+        Assert.Equal(["profile=NT51950 ab-topology=cascade", "profile=NT51950 ab-topology=single"], Lines(result.Output));
     }
 
     /// <summary>CtrlRAM discovery renders exactly the Application's declared slot ids for every count.</summary>
@@ -59,7 +59,7 @@ public sealed class CliWorkflowListingTests
             foreach (CapabilityNumberChoice? choice in selector.GetNumberSelectionChoices(ic, "ctrlram-replace")
                          .OrderBy(static choice => choice.Token, StringComparer.Ordinal))
             {
-                string context = $"ic={ic} ic-num={choice.Token}";
+                string context = $"profile={ic} ic-num={choice.Token}";
                 expected.Add(context);
                 expected.AddRange(host.CtrlRamAuthoring.GetDiscoveryDisplay(ic, choice.Token).InputSlots
                     .Select(static slot => slot.SlotId).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)
@@ -68,9 +68,9 @@ public sealed class CliWorkflowListingTests
         }
 
         Assert.Equal(expected, lines);
-        Assert.Contains("ic=NT51927 ic-num=2", lines);
-        Assert.Contains("ic=NT51927 ic-num=3", lines);
-        Assert.Contains("ic=NT51929 ic-num=single slot=replace-ctrlram-vn", lines);
+        Assert.Contains("profile=NT51927 ic-num=2", lines);
+        Assert.Contains("profile=NT51927 ic-num=3", lines);
+        Assert.Contains("profile=NT51929 ic-num=single slot=replace-ctrlram-vn", lines);
     }
 
     /// <summary>A known count filter returns only that IC/count's declared slots.</summary>
@@ -83,9 +83,9 @@ public sealed class CliWorkflowListingTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Empty(result.Error);
-        Assert.Equal("ic=NT51927 ic-num=2", lines[0]);
+        Assert.Equal("profile=NT51927 ic-num=2", lines[0]);
         Assert.True(lines.Length > 1);
-        Assert.All(lines[1..], static line => Assert.StartsWith("ic=NT51927 ic-num=2 slot=", line, StringComparison.Ordinal));
+        Assert.All(lines[1..], static line => Assert.StartsWith("profile=NT51927 ic-num=2 slot=", line, StringComparison.Ordinal));
     }
 
     /// <summary>Invalid filters and shared-parser failures never emit a partial listing or files.</summary>
@@ -121,6 +121,19 @@ public sealed class CliWorkflowListingTests
         Assert.Equal(0, result.ExitCode);
         Assert.Empty(result.Error);
         Assert.Equal(["ab-merge", "ctrlram-replace", "standard-merge"], Lines(result.Output));
+    }
+
+    /// <summary>A known IC without an AB route is distinguished from an unknown IC.</summary>
+    [Theory]
+    [InlineData("NT51917", "IC 'NT51917' has no route for workflow 'ab-merge'")]
+    [InlineData("unknown", "unknown IC 'unknown'")]
+    public async Task ProfileFilterExplainsMissingWorkflowRouteAsync(string profile, string message)
+    {
+        CliRunResult result = await RunAsync(["list", "--workflow", "ab-merge", "--profile", profile]);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Empty(result.Output);
+        Assert.Contains(message, result.Error, StringComparison.Ordinal);
     }
 
     private static async Task<CliRunResult> RunAsync(string[] args)

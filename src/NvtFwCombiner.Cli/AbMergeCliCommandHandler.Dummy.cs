@@ -20,6 +20,12 @@ internal static partial class AbMergeCliCommandHandler
             return (SoftwareError, new Dictionary<string, string>());
         }
 
+        if (options.Values.ContainsKey("--dp-ab"))
+        {
+            await error.WriteLineAsync("error: --dp-ab is not used with --dp-mode dummy").ConfigureAwait(false);
+            return (UsageError, new Dictionary<string, string>());
+        }
+
         bool succeeded = TryCreateSlotPaths([.. selection.InputBindings.Select(static binding => binding.AddressSpaceId)],
             options, error, out IReadOnlyDictionary<string, string> slotPaths);
         return (succeeded ? Success : UsageError, slotPaths);
@@ -27,7 +33,7 @@ internal static partial class AbMergeCliCommandHandler
 
     private static int ParseDpMode(ParsedCliOptions options, TextWriter error, out AbMergeDpMode mode)
     {
-        string token = options.Values.GetValueOrDefault(DpModeOption, "normal");
+        string token = options.Values.GetValueOrDefault(DpModeOption, "normal").Trim();
         mode = AbMergeDpMode.Normal;
         if (StringComparer.OrdinalIgnoreCase.Equals(token, "dummy"))
         {

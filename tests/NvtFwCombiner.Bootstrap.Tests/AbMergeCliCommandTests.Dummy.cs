@@ -7,10 +7,12 @@ public sealed partial class AbMergeCliCommandTests
 {
     /// <summary>Explicit DP modes reach the shared executor with the Application-owned input contract.</summary>
     [Theory]
-    [InlineData("preview", true)]
-    [InlineData("build", true)]
-    [InlineData("preview", false)]
-    public async Task ExplicitDpModeReachesApplicationInputContractAsync(string action, bool dummy)
+    [InlineData("preview", true, "dummy")]
+    [InlineData("build", true, "dummy")]
+    [InlineData("build", true, " DuMmY ")]
+    [InlineData("preview", false, "normal")]
+    [InlineData("preview", false, " NoRmAl ")]
+    public async Task ExplicitDpModeReachesApplicationInputContractAsync(string action, bool dummy, string modeToken)
     {
         using var workspace = TempWorkspace.Create("ab-cli-dummy");
         CompositionHostServices host = BootstrapTestHost.Services;
@@ -20,8 +22,8 @@ public sealed partial class AbMergeCliCommandTests
             host.GeneralAuthoring, host.CompositionOutputNaming, execution);
         string outputPath = workspace.PathFor("dummy.bin");
         string[] modeOptions = dummy
-            ? ["--dp-mode", "dummy", "--acknowledge-non-tp-ff"]
-            : ["--dp-mode", "normal", "--dp-ab", workspace.Write("dp.bin", new byte[0x80000])];
+            ? ["--dp-mode", modeToken, "--acknowledge-non-tp-ff"]
+            : ["--dp-mode", modeToken, "--dp-ab", workspace.Write("dp.bin", new byte[0x80000])];
         using var output = new StringWriter();
         using var error = new StringWriter();
 
@@ -78,7 +80,7 @@ public sealed partial class AbMergeCliCommandTests
 
     /// <summary>Dummy uses Application input applicability, so DP is rejected and both TP sources remain required.</summary>
     [Theory]
-    [InlineData(true, "--dp-ab is not used by this profile")]
+    [InlineData(true, "--dp-ab is not used with --dp-mode dummy")]
     [InlineData(false, "--tp-b is required")]
     public async Task DummyKeepsApplicationInputContractAsync(bool includeDp, string expectedError)
     {

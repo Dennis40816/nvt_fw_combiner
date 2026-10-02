@@ -16,9 +16,17 @@ internal static partial class ReplaceCliCommandHandler
         TextWriter error,
         CancellationToken cancellationToken)
     {
+        if (action == "preview" && CtrlRamChoiceOptions.Any(option =>
+                option != "--bank" && options.Values.ContainsKey(option)))
+        {
+            await error.WriteLineAsync("error: firmware-version options are available only for ctrlram-replace build")
+                .ConfigureAwait(false);
+            return UsageError;
+        }
+
         if (!TryParseCtrlRamChoices(options, error, out CtrlRamCliChoices choices))
         {
-            return CompositionFailed;
+            return UsageError;
         }
 
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||

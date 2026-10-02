@@ -21,5 +21,12 @@ public sealed class CliChoiceUsageTests
         Assert.Contains("0xFF replaces every non-TP output", result.Output, StringComparison.Ordinal);
         Assert.Contains("two hexadecimal digits (00..FF)", result.Output, StringComparison.Ordinal);
         Assert.Contains("omitted pairs preserve versions", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Version options are available only for ctrlram-replace build", result.Output, StringComparison.Ordinal);
+        Assert.Contains("profile=<ic>, ab-topology=<token> for AB Merge, ic-num=<token> for CtrlRAM Replace",
+            result.Output, StringComparison.Ordinal);
+        string previewUsage = Assert.Single(result.Output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries),
+            static line => line.Contains("ctrlram-replace preview --profile", StringComparison.Ordinal));
+        Assert.Contains("[--bank <a|b|both>]", previewUsage, StringComparison.Ordinal);
+        Assert.DoesNotContain("firmware-version options", previewUsage, StringComparison.Ordinal);
     }
 }

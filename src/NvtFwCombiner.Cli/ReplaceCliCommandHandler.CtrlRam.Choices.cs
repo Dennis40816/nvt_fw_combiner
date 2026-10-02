@@ -19,7 +19,7 @@ internal static partial class ReplaceCliCommandHandler
         AbCtrlRamBankSelection? banks = null;
         if (options.Values.TryGetValue("--bank", out string? token))
         {
-            banks = token.ToLowerInvariant() switch
+            banks = token.Trim().ToLowerInvariant() switch
             {
                 "a" => AbCtrlRamBankSelection.A,
                 "b" => AbCtrlRamBankSelection.B,
