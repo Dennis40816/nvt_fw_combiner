@@ -937,13 +937,17 @@ def informational_differences(baseline: ScenarioExecution, candidate: ScenarioEx
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Dispatch the two contract modes to their orchestration modules."""
+    """Dispatch execution modes and the format-only projection of a saved result."""
     arguments = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(description="Predecessor comparison")
     modes = parser.add_subparsers(dest="mode", required=True)
     modes.add_parser("rolling", add_help=False, help="compare with the previous stable release")
     modes.add_parser("v0916-1x", add_help=False, help="check the historical v0.9.16 plan at a milestone")
+    modes.add_parser("owner-list", add_help=False, help="write a coverage/difference list from a saved result")
     selected, _ = parser.parse_known_args(arguments)
+    if selected.mode == "owner-list":
+        from scripts.predecessor_report_reader import owner_list_main
+        return owner_list_main(arguments[1:])
     if selected.mode == "v0916-1x":
         from scripts.predecessor_v0916 import v0916_main
         return v0916_main(arguments)

@@ -1,4 +1,4 @@
-"""Versioned CLI report format projection for the predecessor comparator.
+"""CLI report reading and owner-list projection for the predecessor comparator.
 
 No process, Git, capture validation or outcome classification lives here.
 The caller applies sequence, compiled-authority and range checks unchanged,
@@ -11,6 +11,12 @@ range is read: its content previews are never read or kept.
 
 from __future__ import annotations
 
+import argparse
+import hashlib
+import html
+from pathlib import Path
+import re
+import sys
 from typing import Any, Mapping, NamedTuple
 
 try:
@@ -186,3 +192,308 @@ def read_cli_report(raw: Mapping[str, Any], *, report_version: str) -> ReadRepor
         "executedCommands": commands, "outputDifferenceRanges": differences,
     }
     return ReadReport(READER_VERSIONS[report_version], projection, context, issues, sorted(unknown))
+
+
+# These are presentation labels, not outcome classification or approval rules.
+VERDICT_LABELS = {
+    "equal": "equal（完整輸出相同）", "different": "different（完整輸出或前置輸出不同）",
+    "baseline-rejects": "baseline-rejects（基準拒絕輸入）",
+    "candidate-rejects": "candidate-rejects（候選版拒絕輸入）",
+    "both-reject": "both-reject（兩側均拒絕輸入）", "invalid": "invalid（執行或證據無效）",
+    "consistent": "consistent（符合該項證明）", "inconsistent": "inconsistent（不符合該項證明）",
+    "not-covered": "not-covered（未比較）",
+}
+GAP_LABELS = {
+    "debt-set": "無 canonical 認證案例；歷史 debt set",
+    "accepted-gap": "無 canonical 認證案例；本版已列為 accepted gap（仍須核對本版核准）",
+    "pending-gap": "無 canonical 認證案例；待本版 owner 核准",
+}
+
+
+def _owner_text(value: Any) -> str:
+    """Plain table text: redact absolute local paths; escape Markdown and HTML."""
+    text = str(value)
+    path = r"(?:[A-Za-z]:[\\/]|\\\\|/)[^\s\"'<>|]*"
+    text = re.sub(r'["\'](?:[A-Za-z]:[\\/]|\\\\|/)[^"\']*["\']',
+                  "[local path omitted]", text)
+    text = re.sub(r"(?<![\w:/])" + path, "[local path omitted]", text)
+    text = " ".join(text.split())
+    return html.escape(text, quote=False).replace("|", "&#124;").replace("`", "&#96;")
+
+
+def _side_label(side: Mapping[str, Any] | None) -> str:
+    if side is None:
+        return "—"
+    label = side["status"]
+    if side["stoppedAt"] is not None:
+        label += f" at {side['stoppedAt']}"
+    codes = sorted({issue["code"] for issue in side["issues"] if issue["severity"] == "error"})
+    return label + (": " + ", ".join(codes) if codes else "")
+
+
+def _range_lines(comparison: Mapping[str, Any] | None, scope: str) -> list[str]:
+    if comparison is None:
+        return []
+    lines = [f"- {scope} 不同 bytes：{comparison['differentByteCount']}；範圍數：{comparison['rangeCount']}；"
+             f"range-list SHA-256：{comparison['rangeListSha256']}。"]
+    lines.extend(f"  - {scope} [{row['start']}, {row['endExclusive']})"
+                 for row in sorted(comparison["ranges"], key=lambda row: (row["start"], row["endExclusive"])))
+    if comparison["rangesTruncated"]:
+        lines.append("  - 僅列出結果保留的前段範圍；完整宣告邊界須讀取該次綁定的 declaration 或 plan/amendment。")
+    return lines
+
+
+def _list_rows(report: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Adapt the two existing result shapes without deriving a new verdict."""
+    if report["mode"] == "rolling":
+        return [{"route": row["routeId"], "scenario": row["scenarioId"], "verdict": row["outcome"],
+                 "proof": f"inputRevision {row['inputRevision']}", "record": row}
+                for row in report["scenarios"]]
+    return [{"route": row["planRouteId"], "scenario": row["planRouteId"], "verdict": row["result"],
+             "proof": row["proofKind"], "record": row} for row in report["routes"]]
+
+
+def _check_list_input(report: Mapping[str, Any], rows: list[dict[str, Any]]) -> None:
+    """Projection admission only; cannot validate execution or release authority."""
+    from scripts import predecessor_validation as validation
+
+    if (report["schemaVersion"] != "1.0" or report["kind"] != "predecessor-comparison-report"
+            or report["certification"] != "none" or report["terminal"] is not False
+            or type(report["formal"]) is not bool):
+        raise ReportReaderError("unsupported predecessor comparison result")
+    if validation.deterministic_digest_failures(report):
+        raise ReportReaderError("comparison result digest mismatch")
+    if len({row["scenario"] for row in rows}) != len(rows):
+        raise ReportReaderError("duplicate comparison unit")
+    if any(row["verdict"] not in VERDICT_LABELS for row in rows):
+        raise ReportReaderError("unknown recorded verdict")
+    if report["mode"] == "rolling":
+        coverage = report["coverage"]
+        covered = {row["route"] for row in rows}
+        gaps = [row["routeId"] for row in coverage["notCovered"]]
+        if (coverage["scenarios"] != len(rows) or coverage["coveredRoutes"] != len(covered)
+                or len(set(gaps)) != len(gaps) or covered & set(gaps)
+                or coverage["universe"] != len(covered) + len(gaps)):
+            raise ReportReaderError("incomplete recorded coverage")
+    elif report["summary"] != validation.v0916_summary([row["verdict"] for row in rows]):
+        raise ReportReaderError("incomplete recorded historical coverage")
+
+
+def _bound_list_documents(report: Mapping[str, Any], documents: Mapping[str, bytes]) -> dict[str, Any]:
+    """Read only explicitly supplied documents whose raw bytes the result binds."""
+    from scripts.v0916_parity_certification import load_json_reject_duplicates
+
+    hashes = {row["path"]: row["sha256"] for row in report["comparator"]["contracts"]}
+    expected = {"declaration": report.get("declarationSha256"),
+                "amendment": report.get("amendmentSha256"),
+                "plan": hashes.get("docs/contracts/v0916-parity-certification-v1.json")}
+    parsed = {}
+    for name, raw in documents.items():
+        if expected.get(name) is None or hashlib.sha256(raw).hexdigest() != expected[name]:
+            raise ReportReaderError("supplemental disposition does not match result binding")
+        parsed[name] = load_json_reject_duplicates(raw)
+    return parsed
+
+
+def _declared_list_lines(record: Mapping[str, Any], documents: Mapping[str, Any]) -> list[str]:
+    """Display exact source rows; no declaration matching or approval verdict."""
+    reference = record.get("dispositionRow")
+    entry = record.get("declarationEntryId")
+    if entry:
+        source = documents.get("declaration")
+        if source is None:
+            return ["- 完整宣告邊界未載入；結果的 entry 引用不代替 declaration 核對。"]
+        matches = [row for row in source["entries"] if row["id"] == entry]
+    elif reference:
+        source = documents.get(reference["source"])
+        if source is None:
+            return ["- 完整宣告邊界未載入；須核對結果綁定的 plan/amendment row。"]
+        matches = [row for row in source[reference["member"]] if row["routeId"] == reference["routeId"]]
+    else:
+        return []
+    if len(matches) != 1:
+        raise ReportReaderError("referenced disposition row is missing or duplicated")
+    row = matches[0]
+    lines = ["- 結果綁定文件的完整宣告邊界（不代表本次已重現；仍看結果裁定）："]
+    if entry:
+        lines.append("  - kind: " + _owner_text(row["kind"]))
+        for scope, difference in sorted(row["differences"].items()):
+            if difference is not None:
+                lines.append(f"  - {scope} 不同 bytes：{difference['differentByteCount']}；範圍數：{difference['rangeCount']}")
+                lines.extend(f"    - {scope} output-image [{span['start']}, {span['endExclusive']})"
+                             for span in sorted(difference["ranges"], key=lambda span: span["start"]))
+        for name, side in sorted(row["expected"].items()):
+            lines.append("  - " + _owner_text(f"expected {name}: {side['result']}; stage: {side['stage']}; issueCodes: {side['issueCodes']}"))
+            for scope in ("output", "precursor"):
+                artifact = side[scope]
+                if artifact is not None:
+                    lines.append(f"    - {scope}: size {artifact['size']}; SHA-256 {artifact['sha256']}")
+    else:
+        if "differentRanges" in row:
+            lines.append(f"  - 不同 bytes：{row['differentByteCount']}")
+            lines.extend(f"    - output-image [{span['start']}, {span['endExclusive']})"
+                         for span in sorted(row["differentRanges"], key=lambda span: span["start"]))
+        for member in ("ownerDecision", "boardDecision", "scope", "reason"):
+            if member in row:
+                lines.append(f"  - {member}: {_owner_text(row[member])}")
+        for member in ("baselineOutput", "candidateOutput", "baselinePrecursor", "candidatePrecursor"):
+            artifact = row.get(member)
+            if artifact is not None:
+                lines.append(f"  - {member}: size {artifact['size']}; SHA-256 {artifact['sha256']}")
+        if "expectedBaseline" in row:
+            rejection = row["expectedBaseline"]
+            lines.append("  - " + _owner_text(f"baseline rejection: {rejection['rejectingStage']}; issueCodes: {rejection['issueCodes']}"))
+            for name in ("expectedBaseline", "expectedCandidate"):
+                for member in ("precursorOutput", "output"):
+                    artifact = row[name].get(member)
+                    if artifact is not None:
+                        lines.append(f"  - {name} {member}: size {artifact['size']}; SHA-256 {artifact['sha256']}")
+            lines.append("  - " + _owner_text(f"canonical binding: {row['binding']}"))
+    return lines
+
+
+def render_owner_list(
+    report: Mapping[str, Any], *, candidate_policy: Mapping[str, Any] | None = None,
+    bound_documents: Mapping[str, bytes] | None = None,
+) -> str:
+    """Deterministic, payload-free owner projection of one recorded mode.
+
+    No source acquisition or per-side safety rerun. Declaration references and
+    observed bounds are reported as recorded, never treated as new approvals.
+    An optional candidate policy is a supplemental catalogue, not run evidence.
+    """
+    from scripts import predecessor_validation as validation
+
+    try:
+        if report["mode"] not in {"rolling", "v0916-1x"}:
+            raise ReportReaderError("unsupported comparison mode")
+        rows = _list_rows(report)
+        _check_list_input(report, rows)
+        documents = _bound_list_documents(report, bound_documents or {})
+        rows.sort(key=lambda row: (row["route"], row["scenario"]))
+        rolling = report["mode"] == "rolling"
+        verdict = report["gate"]["result"] if rolling else report["result"]
+        status = "formal result；此清單不核發 report of record" if report["formal"] else "diagnostic rehearsal, not a report of record"
+        lines = ["# Predecessor coverage and difference list", "", f"Status: {status}", "",
+                 f"Mode: {report['mode']}; candidate: {report['candidate']['version']}; baseline: {report['baseline']['tag']}; result: {verdict}.",
+                 "certification: none; terminal: false", "",
+                 f"Candidate commit: {report['candidate']['executor']['commit']}",
+                 f"Result deterministic SHA-256: {report['deterministicSha256']}", "",
+                 "此清單未重新比較 bytes，也不核准 gap 或差異。宣告引用及裁定沿用結果；範圍是觀察值，不擴大核准邊界。",
+                 "正式證據與本版 owner 核准仍須另行確認；過去版本的 gap 核准不沿用。", ""]
+        if not rolling:
+            lines.extend([f"Milestone: {report['milestone']}", "",
+                          "歷史模式每個 plan route 是一個比較單位；proofKind 說明其情境。", ""])
+        coverage = report["coverage"] if rolling else report["summary"]
+        lines.extend(["## Coverage", "", "; ".join(f"{key}: {value}" for key, value in sorted(coverage.items()) if type(value) is int), "",
+                      "| Route | Scenario | Verdict | 情境／未比較原因 | Baseline | Candidate |",
+                      "| --- | --- | --- | --- | --- | --- |"])
+        table_rows = []
+        for row in rows:
+            record = row["record"]
+            reason = "無 canonical 認證案例；plan 列為 not-covered" if row["verdict"] == "not-covered" else row["proof"]
+            cells = (row["route"], row["scenario"], VERDICT_LABELS[row["verdict"]], reason,
+                     _side_label(record["baseline"]), _side_label(record["candidate"]))
+            table_rows.append((row["route"], row["scenario"], "| " + " | ".join(_owner_text(cell) for cell in cells) + " |"))
+        if rolling:
+            for gap in sorted(coverage["notCovered"], key=lambda row: row["routeId"]):
+                reason = GAP_LABELS[gap["reason"]] + f"；evidenceKind: {gap['evidenceKind']}"
+                table_rows.append((gap["routeId"], "", f"| {_owner_text(gap['routeId'])} | — | not-covered（未比較） | {_owner_text(reason)} | — | — |"))
+        lines.extend(line for _, _, line in sorted(table_rows))
+        represented = {row["route"] for row in rows} | ({gap["routeId"] for gap in coverage["notCovered"]} if rolling else set())
+        if candidate_policy is not None:
+            published = validation.universe_routes(candidate_policy)
+            lines.extend(["", "候選版 published routes 補充目錄：只按 routeId 列出，不推定 renamed route；不作為該次執行的 authority。", "",
+                          "| Route | Scenario | 未比較原因 |", "| --- | --- | --- |"])
+            for route in sorted(published - represented):
+                label = "unlisted（結果未列入；須核對 coverage）" if rolling else "outside-mode（不在本模式 plan route 集合）"
+                lines.append(f"| {_owner_text(route)} | — | {label} |")
+            if not published - represented:
+                lines.append("| — | — | 補充目錄沒有其他 route |")
+        else:
+            lines.extend(["", "未提供候選版 policy 補充目錄；只列出結果的模式範圍，未宣稱包含模式外 routes。"])
+        lines.extend(["", "## Differences and rejected inputs", "",
+                      "所有範圍採具名 address space 的半開區間；precursor 為前置 Standard Merge 輸出。", ""])
+        differences = 0
+        for row in rows:
+            record = row["record"]
+            disposition = record.get("dispositionRow")
+            if (row["verdict"] in {"equal", "not-covered"} or
+                    (row["verdict"] == "consistent" and disposition is None and record["comparison"] is None)):
+                continue
+            differences += 1
+            entry = record.get("declarationEntryId")
+            declared = f"已引用宣告 {entry}" if entry else (
+                f"已引用 {disposition['source']}/{disposition['member']}（裁定仍為 {row['verdict']}）" if disposition else
+                "未宣告差異" if row["verdict"] not in {"invalid", "consistent"} else "無可接受差異裁定")
+            lines.extend([f"### {_owner_text(row['scenario'])}", "", f"{_owner_text(declared)}；{VERDICT_LABELS[row['verdict']]}。", ""])
+            for name in ("baseline", "candidate"):
+                side = record[name]
+                lines.append(f"- {name}: {_owner_text(_side_label(side))}")
+                if side is not None:
+                    for scope in ("output", "precursor"):
+                        artifact = side[scope]
+                        if artifact is not None:
+                            lines.append(f"  - {scope}: size {artifact['size']}; SHA-256 {artifact['sha256']}")
+                    if side["status"] == "rejected":
+                        lines.append("  - 拒絕輸入沒有可比較的完整輸出；這是 acceptance 差異，不能算 equal。")
+            lines.extend(_range_lines(record["comparison"], "output-image"))
+            lines.extend(_range_lines(record.get("precursorComparison"), "precursor output-image"))
+            lines.extend(_declared_list_lines(record, documents))
+            if record["failureCode"] is not None:
+                lines.append(f"- 無效／不一致原因碼：{record['failureCode']}")
+            lines.append("")
+        if not differences:
+            lines.extend(["結果未列出 byte 或 acceptance 差異。", ""])
+        lines.extend(["## Failures and coverage changes", ""])
+        failures = report["gate"]["failures"] if rolling else report["failures"]
+        for failure in sorted(failures, key=lambda row: (row["subject"], row["code"], row["detail"])):
+            lines.append("- " + _owner_text(f"{failure['subject']}: {failure['code']} — {failure['detail']}"))
+        if not failures:
+            lines.append("結果未列出 failure。")
+        if rolling:
+            for change in sorted(coverage["changesSinceBaseline"], key=lambda row: (row["kind"], row["subject"])):
+                lines.append("- " + _owner_text(f"{change['kind']}: {change['subject']}; declaration: {change['declarationEntryId']}"))
+        lines.extend(["", "## Informational differences", "", "這些欄位沿用結果的 informational 分類，不是 byte／acceptance 差異。", ""])
+        info = [(row["scenario"], item) for row in rows for item in row["record"]["informational"]]
+        for scenario, item in sorted(info, key=lambda pair: (pair[0], pair[1]["field"])):
+            lines.append("- " + _owner_text(f"{scenario}: {item['field']}; baseline={item['baseline']}; candidate={item['candidate']}"))
+        if not info:
+            lines.append("結果未列出 informational 差異。")
+        return "\n".join(lines) + "\n"
+    except (KeyError, TypeError, ValueError, AttributeError) as error:
+        if isinstance(error, ReportReaderError):
+            raise
+        raise ReportReaderError("malformed comparison result or supplemental catalogue") from error
+
+
+def owner_list_main(argv: list[str]) -> int:
+    from scripts.v0916_parity_certification import load_json_reject_duplicates
+
+    parser = argparse.ArgumentParser(description="Write an owner list from an existing comparison result; no execution")
+    parser.add_argument("--result", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--candidate-policy", type=Path, help="optional supplemental published route catalogue; not run evidence")
+    for name in ("declaration", "plan", "amendment"):
+        parser.add_argument(f"--{name}", type=Path, help="optional result-bound document for complete declared bounds")
+    args = parser.parse_args(argv)
+    try:
+        raw = args.result.read_bytes()
+        report = load_json_reject_duplicates(raw)
+        policy_raw = None if args.candidate_policy is None else args.candidate_policy.read_bytes()
+        policy = None if policy_raw is None else load_json_reject_duplicates(policy_raw)
+        documents = {name: getattr(args, name).read_bytes() for name in ("declaration", "plan", "amendment")
+                     if getattr(args, name) is not None}
+        text = render_owner_list(report, candidate_policy=policy, bound_documents=documents)
+        text += f"\nResult file SHA-256: {hashlib.sha256(raw).hexdigest()}\n"
+        if policy_raw is not None:
+            text += f"Supplemental catalogue SHA-256: {hashlib.sha256(policy_raw).hexdigest()}\n"
+        for name, payload in sorted(documents.items()):
+            text += f"Bound {name} SHA-256: {hashlib.sha256(payload).hexdigest()}\n"
+        # Exclusive creation keeps previous owner-review lists intact.
+        with args.output.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(text)
+        return 0
+    except (OSError, ParityError, ValueError, TypeError):
+        print("PREDECESSOR_REPORT_INVALID: cannot write owner list (malformed input or unavailable output)", file=sys.stderr)
+        return 1

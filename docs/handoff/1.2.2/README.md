@@ -15,10 +15,10 @@ decisions are 249 to 251 on the [1.2.x board](../1.2.x.md). The contract is
 | R35-04 | rolling mode, report assembly, gate, CLI (`scripts/predecessor_rolling.py`) | pull request #517 |
 | R35-05 | v0.9.16 1.x mode (`scripts/predecessor_v0916.py`) | pull request #517 |
 | R35-06 | v0.9.16 baseline executor contract and compiler-host pinning | implemented on `feature/1.2.2/executor-contract`, rebased on the trunk, not yet submitted; the pull request is R3 |
-| R35-09 | diagnostic rehearsal against real builds | rolling mode against `v1.2.1`: 36 of 39 scenarios `equal`, 3 `invalid` and waiting for an owner decision; v0.9.16 mode at milestone `1.2.0-release-approval`: 35 of the 37 routes with canonical input `consistent`, 2 `invalid` and waiting for owner decisions; see "Rehearsal findings" |
-| R36-01 | coverage and difference disposition for `1.2.2` (decision 251) | not started; needs the rehearsal |
+| R35-09 | diagnostic rehearsal against real builds | saved rolling result `rolling-1003a`: 39 of 39 scenarios `equal`; saved v0.9.16 result `v0916-5`: 35 of 37 bound routes `consistent`, 2 `invalid`, 27 not covered; see "Rehearsal findings"; no fresh run claimed |
+| R36-01 | coverage and difference disposition for `1.2.2` (decision 251) | owner-list command and two diagnostic drafts implemented locally; the owner has not approved the `1.2.2` list |
 | R58 | Support Matrix hover flicker (decision 253) | pull request #518 |
-| R36-02, R36-03 | the two reports of record (decisions 249 and 250) | not started |
+| R36-02, R36-03 | the two reports of record (decisions 249 and 250) | still pending formal runs and owner disposition; diagnostic drafts are not reports of record |
 
 R35-06 activates both executor interfaces with complete compiler-host settings and the amendment's raw v2 binding. R35-09 remains the commander's actual-build rehearsal before reports of record.
 
@@ -27,7 +27,75 @@ R35-06 activates both executor interfaces with complete compiler-host settings a
 1. **Resolved: reproducible `deterministicSha256`.** This executor-contract batch retains and validates run capture evidence while both builders and validators share the contract's exact digest projection, covered by repeated synthetic runs with different ids, timestamps, paths and inventory collection times. Two real rolling runs of one candidate (`rolling-11`, `rolling-12`) give the same digest; only the members the contract excludes differ (each process's report size and hash and its stdout hash).
 2. **Resolved: the `1.2.2` milestone wording.** This batch states that candidate version `1.2.2` executes the deferred `1.2.0-release-approval` milestone under decisions 201 and 250, retaining the existing enum.
 3. **Resolved: the CLI supplies the baseline builder.** Part 2 wires `V0916BaselineExecutorBuilder`, loads v2 through the candidate snapshot's amendment binding and verifies its recipe and compiler host.
-4. **Open: baseline-identity comparison.** The comparison promised by the contract is not implemented yet; it is item A3 of the commander's work list, with no board item yet.
+4. **Implemented locally: baseline-identity comparison.** A3 supplies rolling `--baseline-report FILE`, compares the rebuilt baseline with that release's own predecessor report `candidate.executor`, and binds the admitted report bytes. The opt-in has synthetic tests; actual baseline report availability and exact-source execution remain commander checks. A v0.9.16 CLI report has no shared program identity and is not substituted for this input.
+
+## Owner coverage and difference lists (R36-01)
+
+These are **diagnostic rehearsal, not a report of record**. The files were
+generated from saved results, without another build or comparison:
+
+- [Rolling draft: `rolling-1003a`](rolling-1003a-owner-list-draft.md): 74 routes
+  in the recorded universe, 37 covered routes and 39 `equal` scenarios;
+  26 debt-set routes and 11 pending gaps. Equal scenarios do not clear the
+  `blocked` gate while gap approval is pending.
+- [v0.9.16 draft: `v0916-5`](v0916-5-owner-list-draft.md): 64 historical plan
+  routes, 35 `consistent`, 2 `invalid`, 27 `not-covered`; two approved
+  corrections with exact observed and declared bounds. The bound
+  plan/amendment rows and their SHA-256 are included, as are both invalid
+  causes. The invalid canonical-binding exception stays invalid.
+
+Both drafts identify candidate commit `1a5dd0d614033e49ac2e9659ff3d8df62ed94ce0`,
+result file SHA-256 and deterministic digest. They are evidence of those saved
+runs, not of this patch's execution. The optional candidate policy is a
+supplemental catalogue: its published route IDs absent from the historical
+result are listed as outside that mode, with no inferred route rename. It
+does not replace the pinned historical policy or establish execution coverage.
+
+The existing comparison command now provides a format-only projection:
+
+```text
+python scripts/predecessor_comparison.py owner-list --result RESULT.json --output LIST.md
+```
+
+Add `--candidate-policy POLICY.json` to list additional published routes;
+without it the list explicitly covers only the result's mode universe.
+Add `--declaration DECLARATION.json` for rolling full declared bounds, or
+`--plan PLAN.json --amendment AMENDMENT.json` for the historical rows. These
+disposition documents must match the result's raw SHA-256 bindings. The two
+drafts use the candidate policy; the historical draft also uses the bound
+plan and amendment. The command does not overwrite an existing list, rerun
+firmware, change verdicts or approve differences. It sorts the list and omits
+absolute local paths and payloads. A truncated observed range list is marked
+explicitly; it cannot stand in for the complete bound declaration.
+
+## Before reports of record (R36-02, R36-03)
+
+1. Under decision 251, the firmware owner approves the actual coverage and
+   difference list for **`1.2.2`**. Decision 96's approval covered `1.1.13`
+   only. Recompute the list from the final route set and inputs, dispose of
+   each gap/difference, and commit the release's ledger, declaration and
+   CHANGELOG IDs before the formal rolling run. The drafts confer no approval.
+2. Resolve the pending **NT51950 AB Merge baseline shape** decision. The
+   saved v0.9.16 baseline copies the whole bank `[262144, 524288)` from
+   `ab-combiner-work`, whereas decision 271 allows three 4-byte write ranges.
+   Do not turn its safety failure into an approved difference or rejection.
+   The saved CtrlRAM cascade invalid has a local decision-272 correction;
+   a fresh run still must demonstrate it. Neither invalid is waived here.
+3. In **CI or release context**, run the comparator formally against the exact
+   clean candidate source and clean-settings policy. Rolling uses the complete
+   published inventory selecting `v1.2.1` under decision 249, the committed
+   `1.2.2` dispositions, and must produce `formal: true`, gate `clear`, no
+   invalid scenario, undeclared difference or pending gap. The historical run
+   uses executor v2 and the pinned plan/amendment, milestone
+   `1.2.0-release-approval` under decision 250, and must be `formal: true` and
+   `consistent`, with the 37 bound and 27 unbound routes separately reported.
+4. Retain the two payload-free JSON reports and their exact-source/input,
+   inventory, executor, environment and digest evidence as the reports of
+   record. Generate owner Markdown lists from those new results, bind the
+   final owner approval to the release candidate, and have the commander
+   verify independent exact-head review, CI and applicable firmware/release
+   evidence outside this sandbox. No report of record is produced by this
+   local formatting change; missing or failing required evidence blocks release.
 
 The rolling inventory supplier is the commander's complete file passed through
 `--published-release-inventory FILE`; this batch supplies its schema, validation
