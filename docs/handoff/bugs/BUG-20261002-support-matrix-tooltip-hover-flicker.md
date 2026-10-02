@@ -22,8 +22,8 @@ see the check below):
   route have short tooltips that fit below, which is why it looked irregular.
 Fix: the cell tooltip uses `Placement="Custom"` with `ClearOfTargetToolTipPlacement.Callback`
 (`Behaviors/ClearOfTargetToolTipPlacement.cs`): below the cell if the tooltip fits there, else above, else to the
-right, else to the left, and only slides along the edge it is attached to; a tooltip that fits on no side shrinks on
-the roomier vertical side. It can no longer cover its cell. The look is unchanged where the tooltip already fitted
+right, else to the left, and only slides along the edge it is attached to; a tooltip that fits on no side stays on the
+roomier vertical side (shortened at the screen edge below, cut off by the screen above). It can no longer cover its cell. The look is unchanged where the tooltip already fitted
 below.
 Evidence: `ClearOfTargetToolTipPlacementTests` (the chosen side for each case; for every cell position and six tooltip
 heights the placed tooltip never intersects the cell) and the Support Matrix interaction test (the cell uses the

@@ -60,10 +60,12 @@ public static class ClearOfTargetToolTipPlacement
             return new(PopupAnchor.TopLeft, PopupGravity.BottomLeft, new Point(-gap, 0), PopupPositionerConstraintAdjustment.SlideY);
         }
 
-        // No side holds the whole popup: keep it on the roomier vertical side and let it shrink there.
-        const PopupPositionerConstraintAdjustment Shrink =
-            PopupPositionerConstraintAdjustment.SlideX | PopupPositionerConstraintAdjustment.ResizeY;
-        return below >= above ? Below(gap, Shrink) : Above(gap, Shrink);
+        // No side holds the whole popup: keep it on the roomier vertical side. Below, the positioner shortens it
+        // at the screen edge. Above, resizing would first move its top edge down onto the target, so it keeps its
+        // size and its top is cut off by the screen instead.
+        return below >= above
+            ? Below(gap, PopupPositionerConstraintAdjustment.SlideX | PopupPositionerConstraintAdjustment.ResizeY)
+            : Above(gap, PopupPositionerConstraintAdjustment.SlideX);
     }
 
     private static ToolTipPlacementChoice Below(double gap, PopupPositionerConstraintAdjustment adjustment)

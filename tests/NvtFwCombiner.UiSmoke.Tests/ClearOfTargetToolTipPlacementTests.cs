@@ -75,50 +75,74 @@ public sealed class ClearOfTargetToolTipPlacementTests
         }
     }
 
-    /// <summary>A tooltip that fits nowhere shrinks on the roomier vertical side instead of covering the target.</summary>
+    /// <summary>A tooltip that fits nowhere stays on the roomier vertical side and never moves onto the target.</summary>
     [Fact]
-    public void ATooltipThatFitsNowhereShrinksBesideTheTarget()
+    public void ATooltipThatFitsNowhereStaysBesideTheTarget()
     {
-        var target = new Rect(new Point(880, 300), Cell);
         var popup = new Size(1900, 1000);
 
-        ToolTipPlacementChoice choice = ClearOfTargetToolTipPlacement.Choose(target, popup, WorkArea, Gap);
+        // More room below: the positioner shortens the tooltip at the bottom of the screen.
+        var upper = new Rect(new Point(880, 300), Cell);
+        ToolTipPlacementChoice below = ClearOfTargetToolTipPlacement.Choose(upper, popup, WorkArea, Gap);
+        Assert.Equal(PopupAnchor.BottomLeft, below.Anchor);
+        Assert.Equal(
+            PopupPositionerConstraintAdjustment.SlideX | PopupPositionerConstraintAdjustment.ResizeY,
+            below.ConstraintAdjustment);
+        Rect placedBelow = Position(upper, popup, below);
+        Assert.False(placedBelow.Intersects(upper));
+        Assert.Equal(WorkArea.Bottom, placedBelow.Bottom);
 
-        Assert.Equal(PopupAnchor.BottomLeft, choice.Anchor);
-        Assert.True(choice.ConstraintAdjustment.HasFlag(PopupPositionerConstraintAdjustment.ResizeY));
-        Assert.False(choice.ConstraintAdjustment.HasFlag(PopupPositionerConstraintAdjustment.SlideY));
-        Assert.False(choice.ConstraintAdjustment.HasFlag(PopupPositionerConstraintAdjustment.FlipY));
-        Rect placed = Position(target, popup, choice);
-        Assert.False(placed.Intersects(target));
-        Assert.Equal(WorkArea.Bottom, placed.Bottom);
+        // More room above: resizing would move the top edge down onto the target, so only sliding along X is allowed.
+        var lower = new Rect(new Point(880, 736), Cell);
+        ToolTipPlacementChoice above = ClearOfTargetToolTipPlacement.Choose(lower, popup, WorkArea, Gap);
+        Assert.Equal(PopupAnchor.TopLeft, above.Anchor);
+        Assert.Equal(PopupPositionerConstraintAdjustment.SlideX, above.ConstraintAdjustment);
+        Rect placedAbove = Position(lower, popup, above);
+        Assert.False(placedAbove.Intersects(lower));
+        Assert.Equal(lower.Top - Gap, placedAbove.Bottom);
     }
 
-    /// <summary>The popup rectangle the positioner produces from a choice: attach, then apply only the allowed adjustments.</summary>
+    /// <summary>
+    /// The rectangle Avalonia's managed positioner produces for a choice. It follows that positioner's order:
+    /// attach, slide along X, slide along Y, then resize along Y (which first moves a top edge above the screen
+    /// down to the screen edge and only then shortens the bottom).
+    /// </summary>
     private static Rect Position(Rect target, Size popup, ToolTipPlacementChoice choice)
     {
         double anchorX = choice.Anchor.HasFlag(PopupAnchor.Right) ? target.Right : target.Left;
         double anchorY = choice.Anchor.HasFlag(PopupAnchor.Bottom) ? target.Bottom : target.Top;
         double x = (choice.Gravity.HasFlag(PopupGravity.Left) ? anchorX - popup.Width : anchorX) + choice.Offset.X;
         double y = (choice.Gravity.HasFlag(PopupGravity.Top) ? anchorY - popup.Height : anchorY) + choice.Offset.Y;
-        double width = popup.Width;
         double height = popup.Height;
         if (choice.ConstraintAdjustment.HasFlag(PopupPositionerConstraintAdjustment.SlideX))
         {
-            x = Math.Max(WorkArea.Left, Math.Min(x, WorkArea.Right - width));
+            x = Math.Max(x, WorkArea.Left);
+            if (x + popup.Width > WorkArea.Right)
+            {
+                x = WorkArea.Right - popup.Width;
+            }
         }
 
         if (choice.ConstraintAdjustment.HasFlag(PopupPositionerConstraintAdjustment.SlideY))
         {
-            y = Math.Max(WorkArea.Top, Math.Min(y, WorkArea.Bottom - height));
+            y = Math.Max(y, WorkArea.Top);
+            if (y + height > WorkArea.Bottom)
+            {
+                y = WorkArea.Bottom - height;
+            }
         }
 
         if (choice.ConstraintAdjustment.HasFlag(PopupPositionerConstraintAdjustment.ResizeY))
         {
-            double top = Math.Max(y, WorkArea.Top);
-            height = Math.Max(0, Math.Min(y + height, WorkArea.Bottom) - top);
-            y = top;
+            double top = y < WorkArea.Top ? WorkArea.Top : y;
+            double resized = top + height > WorkArea.Bottom ? WorkArea.Bottom - top : height;
+            if (resized > 0)
+            {
+                y = top;
+                height = resized;
+            }
         }
 
-        return new Rect(x, y, width, height);
+        return new Rect(x, y, popup.Width, height);
     }
 }
