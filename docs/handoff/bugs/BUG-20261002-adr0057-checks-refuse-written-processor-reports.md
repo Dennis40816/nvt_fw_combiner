@@ -30,7 +30,9 @@ allowed write range), so the rule itself needs a decision; it was not relaxed.
 Evidence: rehearsal runs `rolling-7` and `rolling-8` in the test area (`evidence\1.2.2\p2c\rehearsal`). In
 `rolling-8`, 27 scenarios stop at the reader refusal on both sides and 3 at the range refusal. Counts over the
 reports saved from `rolling-7`: item 1 in all 46 CtrlRAM and NT51950 AB Previews, item 2 in all 12 AB Previews,
-item 3 in the same 46. Items 4 and 5 come from reading the code and from the P-0.5 spike reports. With prototype rules for items 1 to 3 (diagnostic only), all 74 Preview and Build pairs of
-`v1.1.12` and its candidate in the P-0.5 spike pass the per-side checks.
+item 3 in the same 46. Items 4 and 5 come from reading the code and from the P-0.5 spike reports. With prototype
+rules for items 1 to 3 (diagnostic only, never evidence), all 74 Preview and Build pairs of `v1.1.12` and its
+candidate in the P-0.5 spike pass the per-side checks, and the shadow run `shadow-10` of the rehearsal gives `equal`
+for all 39 scenarios between `v1.2.1` and the candidate, with no informational difference.
 Owner: unassigned; firmware owner decision (R3) on the three rules
 Resolution: not fixed.
