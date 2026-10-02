@@ -18,7 +18,8 @@ from unittest.mock import patch
 from scripts import predecessor_comparison as comparison
 from scripts import v0916_parity_certification as parity
 from tests.scripts.predecessor_test_support import (contract_for_fake_processes, write_synthetic_cli_graph, RUNTIME_LIST, HOST_INFO, compiler_identity,
-                                                    written_1x_merge_report)
+                                                    written_1x_merge_report, written_1x_processor_report,
+                                                    written_1x_ab_merge_report, written_output_difference, PREVIEW_MARKER)
 from tests.scripts.test_predecessor_report_reader import raw_report
 
 
@@ -33,6 +34,10 @@ def digest(payload: bytes) -> str:
 
 
 MERGE_DP, MERGE_TP, MERGE_OUTPUT = b"DPDPdpdp", b"TPtp", b"TPtpdpdp"
+TOOL = "external-tools/legacy-combiner/1.13.0/Combiner.exe"
+TOOLS = {TOOL: b"synthetic tool", "external-tools/legacy-combiner/1.13.0/manifest.json": b"{}"}
+BASE, NF, PROCESSED = b"B" * 16, b"N" * 4, b"P" * 16
+DP_AB, TP_B = b"A" * 16, b"T" * 8
 
 
 def merge_report(*, committed: Any, overlay: bool = False) -> dict[str, Any]:
@@ -1032,6 +1037,273 @@ class ComparisonTests(unittest.TestCase):
                 self.assertEqual(("PREDECESSOR_EXECUTOR_INVALID", "preview", "execution closure changed or disappeared"),
                                  capture.failures[0])
                 self.assertEqual("invalid", comparison.assemble_side_result([capture], capacities={}).side["status"])
+
+
+    # Decision 261: the three per-side rules, on the report shapes a CLI writes.
+
+    def written_stages(self, workflow, payloads, bindings, write, *, token=None, stages=("preview", "build"),
+                       output=PROCESSED):
+        """Run Preview and Build through the real staging; `write(action, staging, temporary)` returns the report."""
+        authority = parity.MaterializedCanonicalAuthority(
+            self.root, "0" * 64, "golden/manifest.json", {f"golden/{name}.bin": payload for name, payload in payloads.items()})
+        artifacts = {name: {"role": "input", "path": f"{name}.bin", "size": len(payload), "sha256": digest(payload)}
+                     for name, payload in payloads.items()}
+        git = FakeGitHost()
+        git.files.update(TOOLS)
+        self.build_host(git)
+        executor = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
+        request = {"workflowId": workflow, "profileId": "test", "cliSelectionToken": token}
+
+        def cli(argv, cwd):
+            action = argv[2]
+            raw = write(action, cwd, Path(os.environ["TEMP"]))
+            Path(argv[argv.index("--report") + 1]).write_text(json.dumps(raw), encoding="utf-8")
+            if action == "build" and output is not None:
+                Path(argv[argv.index("--output") + 1]).write_bytes(output)
+            return subprocess.CompletedProcess(argv, 0, "", "")
+
+        captures = []
+        for stage in stages:
+            self.runner.host = FakeProcessHost(cli)
+            captures.append(comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts, bindings, stage=stage))
+        return captures
+
+    def processor_side(self, change=None, *, only=None, stages=("preview", "build")):
+        def write(action, staging, temporary):
+            working = temporary / "nvt-fw-combiner" / "external-tools" / f"synthetic-{action}.postbuild-single"
+            raw = written_1x_processor_report(
+                committed=action == "build", tool=staging / TOOL, working=working, base_sha256=digest(BASE),
+                replacement_sha256=digest(NF), output_sha256=digest(PROCESSED))
+            if change is not None and only in (None, action):
+                change(raw, staging, temporary, working)
+            return raw
+
+        captures = self.written_stages("ctrlram-replace", {"base": BASE, "nf": NF},
+                                       [("base", "replace-base"), ("nf", "replace-ctrlram-nf")], write,
+                                       token="single", stages=stages)
+        return captures, self.merge_side(captures)
+
+    def ab_side(self, *, combiner=False, change=None, only=None):
+        def write(action, staging, temporary):
+            working = temporary / "nvt-fw-combiner" / "external-tools" / f"synthetic-{action}.run-ab-combiner"
+            raw = written_1x_ab_merge_report(
+                committed=action == "build", dp_ab_sha256=digest(DP_AB), tp_b_sha256=digest(TP_B),
+                output_sha256=digest(PROCESSED), combiner=(staging / TOOL, working) if combiner else None)
+            if change is not None and only in (None, action):
+                change(raw)
+            return raw
+
+        captures = self.written_stages("ab-merge", {"dpab": DP_AB, "tpb": TP_B},
+                                       [("dpab", "dp-ab-input"), ("tpb", "tp-b-input")], write)
+        return captures, self.merge_side(captures)
+
+    def assert_refused(self, result, stage, detail):
+        self.assertEqual("invalid", result.side["status"])
+        self.assertEqual(("PREDECESSOR_REPORT_INVALID", stage, detail), result.failures[0])
+
+    def test_written_processor_report_gives_an_output_side_and_keeps_a_repeated_command(self):
+        captures, result = self.processor_side()
+        self.assertEqual([], result.failures)
+        self.assertEqual("output", result.side["status"])
+        self.assertEqual({"size": 16, "sha256": digest(PROCESSED)}, result.side["output"])
+        for capture in captures:
+            commands = capture.report.projection["compiledOperations"][1]["executedCommands"]
+            self.assertEqual([0, 1, 2], [row["sequence"] for row in commands])
+            self.assertEqual({TOOL}, {row["executablePackagePath"] for row in commands})
+            self.assertEqual(commands[0]["canonicalArgumentsSha256"], commands[1]["canonicalArgumentsSha256"])
+            self.assertNotEqual(commands[0]["canonicalArgumentsSha256"], commands[2]["canonicalArgumentsSha256"])
+            self.assertEqual([{"start": 0, "endExclusive": 2}, {"start": 12, "endExclusive": 13}],
+                             capture.report.context["outputDifferenceRanges"])
+            self.assertNotIn(PREVIEW_MARKER, repr(capture.report))
+            self.assertEqual(2, len(capture.staged_tools))
+        preview, build = (capture.report.projection["compiledOperations"] for capture in captures)
+        self.assertEqual(preview, build)
+
+    def test_executable_must_be_a_staged_hash_checked_tool(self):
+        def beside_the_staging(raw, staging, temporary, working):
+            for command in raw["Operations"][1]["ExecutedCommands"]:
+                command["ExecutablePath"] = str(staging.parent / "other" / TOOL)
+
+        def unstaged_file_in_the_tool_root(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][2]["ExecutablePath"] = str(staging / TOOL).replace("Combiner.exe", "Other.exe")
+
+        def runtime_closure_file(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][0]["ExecutablePath"] = str(staging / "runtime" / "external-tools" / "Combiner.exe")
+
+        for change in (beside_the_staging, unstaged_file_in_the_tool_root, runtime_closure_file):
+            with self.subTest(change=change.__name__):
+                _, result = self.processor_side(change)
+                self.assert_refused(result, "preview", "executed command is not a staged external tool")
+
+        def no_tool_folder(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][0]["ExecutablePath"] = str(staging / "runtime" / "Combiner.exe")
+
+        _, result = self.processor_side(no_tool_folder)
+        self.assert_refused(result, "preview", "written report format invalid")
+
+    def test_file_arguments_and_working_directory_stay_inside_the_process_staging(self):
+        def argument_outside(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][2]["Arguments"][1] = str(staging / "inputs" / "00-base.bin")
+
+        def argument_steps_back(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][2]["Arguments"][1] = str(working / ".." / "other.bin")
+
+        def no_arguments(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"][2]["Arguments"] = []
+
+        def no_commands(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"] = []
+
+        for change in (argument_outside, argument_steps_back, no_arguments, no_commands):
+            with self.subTest(change=change.__name__):
+                _, result = self.processor_side(change)
+                self.assert_refused(result, "preview", "written report format invalid")
+
+        def works_in_the_staging_root(raw, staging, temporary, working):
+            for command in raw["Operations"][1]["ExecutedCommands"]:
+                command["WorkingDirectory"] = str(staging / "work")
+                command["Arguments"] = [value.replace(str(working), str(staging / "work")) for value in command["Arguments"]]
+
+        def works_in_the_temporary_directory_itself(raw, staging, temporary, working):
+            for command in raw["Operations"][1]["ExecutedCommands"]:
+                command["WorkingDirectory"] = str(temporary)
+                command["Arguments"] = [value.replace(str(working), str(temporary)) for value in command["Arguments"]]
+
+        for change in (works_in_the_staging_root, works_in_the_temporary_directory_itself):
+            with self.subTest(change=change.__name__):
+                _, result = self.processor_side(change)
+                self.assert_refused(result, "preview", "executed command worked outside the process temporary directory")
+
+    def test_build_commands_are_compared_with_the_preview_in_order(self):
+        def reorder(raw, staging, temporary, working):
+            raw["Operations"][1]["ExecutedCommands"].reverse()
+
+        def drop_the_repeat(raw, staging, temporary, working):
+            del raw["Operations"][1]["ExecutedCommands"][1]
+
+        for change in (reorder, drop_the_repeat):
+            with self.subTest(change=change.__name__):
+                _, result = self.processor_side(change, only="build")
+                self.assert_refused(result, "build", "PARITY_PROVENANCE_INVALID")
+
+    def test_output_differences_are_audited_against_the_preview_allowed_write_ranges(self):
+        def outside_every_write_range(raw, staging, temporary, working):
+            raw["OutputDifferences"].append(written_output_difference(3, 8, 10))
+
+        def across_two_write_ranges(raw, staging, temporary, working):
+            raw["OutputDifferences"][0]["Range"] = {"Start": 0, "Length": 6, "EndExclusive": 6}
+
+        def empty_range(raw, staging, temporary, working):
+            raw["OutputDifferences"][0]["Range"] = {"Start": 1, "Length": 0, "EndExclusive": 1}
+
+        for change in (outside_every_write_range, across_two_write_ranges, empty_range):
+            for only in ("preview", "build"):
+                with self.subTest(change=change.__name__, only=only):
+                    _, result = self.processor_side(change, only=only)
+                    self.assert_refused(result, only, "output difference outside every write range the Preview allows")
+
+        def none_listed(raw, staging, temporary, working):
+            raw["OutputDifferences"] = []
+
+        for only in ("preview", "build"):
+            with self.subTest(change="none_listed", only=only):
+                _, result = self.processor_side(none_listed, only=only)
+                self.assert_refused(result, only, "processor changed bytes without a listed output difference")
+
+        def widened_with_the_difference(raw, staging, temporary, working):
+            raw["Operations"][1]["ProcessorAllowedWriteRanges"][0] = {"Start": 0, "Length": 3, "EndExclusive": 3}
+            raw["OutputDifferences"][0]["Range"] = {"Start": 0, "Length": 3, "EndExclusive": 3}
+
+        _, result = self.processor_side(widened_with_the_difference, only="build")
+        self.assert_refused(result, "build", "PARITY_PROVENANCE_INVALID")
+
+        def nothing_changed(raw, staging, temporary, working):
+            raw["OutputDifferences"] = []
+            raw["Mutations"][1].update(ChangedByteCount=0, AfterSha256=raw["Mutations"][1]["BeforeSha256"])
+
+        _, result = self.processor_side(nothing_changed)
+        self.assertEqual("output", result.side["status"])
+
+        def malformed_range(raw, staging, temporary, working):
+            raw["OutputDifferences"][0]["Range"] = {"Start": 0, "Length": 3, "EndExclusive": 2}
+
+        def missing_range(raw, staging, temporary, working):
+            del raw["OutputDifferences"][0]["Range"]
+
+        for change in (malformed_range, missing_range):
+            with self.subTest(change=change.__name__):
+                _, result = self.processor_side(change)
+                self.assert_refused(result, "preview", "written report format invalid")
+
+    def test_difference_without_any_processor_is_refused(self):
+        raw = merge_report(committed=False)
+        raw["OutputDifferences"] = [written_output_difference(1, 0, 2)]
+        result = self.merge_side([self.merge_capture("preview", raw)])
+        self.assert_refused(result, "preview", "output difference outside every write range the Preview allows")
+
+    def test_work_address_space_ranges_are_held_to_the_preview(self):
+        captures, result = self.ab_side()
+        self.assertEqual([], result.failures)
+        self.assertEqual("output", result.side["status"])
+        self.assertNotIn("tp-b-work", comparison.validation.execution_capacities(captures[0].evidence()))
+        self.assertEqual(16, comparison.validation.execution_capacities(captures[0].evidence())["output-image"])
+
+        def undeclared_work_space(raw):
+            for row in (raw["Operations"][1], raw["Mutations"][1]):
+                row["TargetSpaceId"] = "a-bank-work"
+            raw["Operations"][1]["SourceSpaceId"] = "a-bank-work"
+
+        _, result = self.ab_side(change=undeclared_work_space)
+        self.assert_refused(result, "preview", "PARITY_REPORT_RANGE_INVALID")
+
+        def build_mutation_beyond_the_preview(raw):
+            raw["Mutations"][1]["TargetRange"] = {"Start": 4, "Length": 8, "EndExclusive": 12}
+
+        _, result = self.ab_side(change=build_mutation_beyond_the_preview, only="build")
+        self.assertEqual("invalid", result.side["status"])
+        self.assertEqual(("PREDECESSOR_REPORT_INVALID", "build"), result.failures[0][:2])
+
+    def test_work_range_rule_of_the_range_function(self):
+        preview = comparison.read_cli_report(
+            written_1x_ab_merge_report(committed=False, dp_ab_sha256="a" * 64, tp_b_sha256="b" * 64, output_sha256="c" * 64),
+            report_version="1x").projection
+        capacities = {"dp-ab-input": 16, "tp-b-input": 8, "output-image": 16}
+        declared = comparison.validation._declared_work_ranges(preview)
+        self.assertEqual({"ab-combiner-work": [], "tp-b-work": [(4, 8), (4, 8), (0, 8)]}, declared)
+        options = dict(declared_overlap=True, audited_processor_writes=True)
+        parity.validate_semantic_report_ranges(preview, capacities, declared_work_ranges=declared, **options)
+        for missing in (None, {}, {"tp-b-work": []}, {"tp-b-work": [(4, 8)]}, {"tp-b-work": [(0, 4), (4, 8)]}):
+            with self.subTest(declared=missing), self.assertRaises(parity.ParityError) as found:
+                parity.validate_semantic_report_ranges(preview, capacities, declared_work_ranges=missing, **options)
+            self.assertEqual("PARITY_REPORT_RANGE_INVALID", found.exception.code)
+        build = copy.deepcopy(preview)
+        build["compiledMutations"][1]["targetRange"].update(endExclusive=12)
+        build["compiledOperations"][1]["targetRange"].update(endExclusive=12)
+        build["compiledOperations"][1]["sourceRange"].update(endExclusive=12)
+        with self.assertRaises(parity.ParityError):
+            parity.validate_semantic_report_ranges(build, capacities, declared_work_ranges=declared, **options)
+        measured = {**capacities, "tp-b-work": 6}
+        with self.assertRaises(parity.ParityError):
+            parity.validate_semantic_report_ranges(preview, measured, declared_work_ranges=declared, **options)
+
+    def test_processor_that_writes_a_work_address_space_lists_no_difference_and_is_refused(self):
+        """The NT51950 AB Merge shape. Decision 261 audits output differences; this report lists none."""
+        captures, result = self.ab_side(combiner=True)
+        self.assert_refused(result, "preview", "processor changed bytes without a listed output difference")
+        self.assertEqual([], captures[0].report.context["outputDifferenceRanges"])
+
+    def test_terminal_defaults_still_refuse_the_written_shapes(self):
+        captures, _ = self.processor_side(stages=("preview",))
+        raw = written_1x_processor_report(
+            committed=False, tool=self.root / TOOL, working=self.root / "tmp" / "run", base_sha256="a" * 64,
+            replacement_sha256="b" * 64, output_sha256="c" * 64)
+        with self.assertRaises(parity.ParityError):
+            parity.normalize_raw_operation(raw["Operations"][1])
+        projection = captures[0].report.projection
+        capacities = {"reference-base": 16, "replace-ctrlram-nf": 4, "output-image": 16}
+        parity.validate_semantic_report_ranges(projection, capacities, declared_overlap=True, audited_processor_writes=True)
+        with self.assertRaises(parity.ParityError):
+            parity.validate_semantic_report_ranges(projection, capacities, declared_overlap=True)
 
 
 if __name__ == "__main__":

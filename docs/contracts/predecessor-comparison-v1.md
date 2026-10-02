@@ -461,10 +461,13 @@ reused without a second implementation:
    operations to be the Preview's, in order, and its mutations to follow that
    order, and `validate_report_projection_against_compiled_authority` requires
    the Build projection's compiled operations to equal the authority's
-   exactly and every mutation to lie inside its own operation and, for a
-   processor, inside the authority's allowed write ranges. A report that
+   exactly and every mutation to lie inside its own operation. A report that
    widens its own operation or processor ranges together with its mutations
-   is therefore rejected even though it is self-consistent. A written
+   is therefore rejected even though it is self-consistent. A processor's
+   writes are held to the authority's allowed write ranges by the audit of
+   item 5, because its written mutation row is its whole operation target;
+   the comparator asks the range function for that with
+   `audited_processor_writes`, and the terminal path keeps its default. A written
    mutation row names its operation and carries no sequence, so the validator
    gives each row the sequence its own report declares for that operation
    before the order check; a row that names an undeclared operation fails it.
@@ -478,6 +481,16 @@ reused without a second implementation:
    over part of it. Any other overlap is refused. The comparator asks for
    this rule with the function's `declared_overlap` option; the ADR 0057
    terminal path keeps its default, which refuses every overlap.
+
+   A report declares no capacity for the work address spaces of AB Merge,
+   `tp-b-work` and `ab-combiner-work` (`perSideSafety.writtenReportRules`,
+   1.2.x board decision 261). No capacity is invented for them: a range in
+   such a space must lie inside one range the same side's Preview declares
+   there, as an operation source or target or a processor read or write
+   range. The Preview's own ranges are the declaration; a Build range
+   outside them, and a range in any other address space that is neither an
+   input nor `output-image`, is refused. A Preview's `output-image` bound is
+   the extent of its targets in `output-image` only.
 3. **Capture.** The report agrees with the captured inputs and output, and a
    side that produced an output carries no `error` issue. A Preview, or a run
    that stops before it writes, describes the output it would write with
@@ -485,6 +498,27 @@ reused without a second implementation:
    identity and is not compared with a capture. A described output without a
    file and with any other `Committed` value, or an output file whose report
    is not `Committed: true`, is `PREDECESSOR_REPORT_INVALID`.
+4. **Executed commands** (decision 261). The executable of every executed
+   command must be one of the external tool files the comparator staged for
+   that process and checked by hash before and after it; the path text alone
+   is not trusted. Its working directory must lie below the temporary
+   directory the comparator created for the process. Its file arguments
+   (the absolute paths among its arguments) must lie in the working directory
+   or below it, and no path may step back with `..`. A repeated command is
+   kept, and the Build's commands are compared with the Preview's in the
+   order they appear. A processor operation without an executed command is
+   still refused.
+5. **Write-range audit of an external processor** (decision 261). A written
+   mutation row of a processor is its whole operation target, so the audit
+   reads the ranges the report lists under `OutputDifferences`, and only the
+   ranges: the content previews of those rows are never read or kept. Each
+   listed range must lie inside one write range that the Preview allows a
+   processor in `output-image`. A processor whose mutation row reports
+   changed bytes must have a listed range inside its own allowed write
+   ranges; a report that lists none for it is refused, and so is a processor
+   that changed bytes in another address space, whose changes the output
+   differences cannot show. The comparator computes no byte difference of its
+   own for this audit.
 
 A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's
@@ -504,7 +538,9 @@ duplicate-rejecting loader. The returned `ReadReport` carries:
 - `projection`: `compiledOperations`, `compiledMutations` and
   `compilationFingerprint`, consumed by the existing per-side checks;
 - `context`: report identity, input/output identities, times, composition
-  kind and optional `mapId`, for the caller's capture checks;
+  kind and optional `mapId`, the executable and working directory of each
+  executed command, and the range of each output difference, for the
+  caller's capture, command and audit checks;
 - `issues`: each report issue's exact code and lower-case severity (`error`,
   `warning`, `info` or `unspecified`), with `source: report`;
 - `unknown_members`: sorted JSON pointers naming unknown optional members,
@@ -520,12 +556,19 @@ object, or in a range, provenance or command object inside one, is refused
 with `PREDECESSOR_REPORT_INVALID`: those rows carry write authority, and the
 ADR 0057 normalizers' exact-member rule is not relaxed. Known presentation
 members (`OriginalFileName`, `FileName`, `Message` and an issue's
-`OperationId`) are ignored; `OutputDifferences`,
-`Validations` and `OutputNaming` remain unconsumed and supply no authority.
+`OperationId`) are ignored; `Validations` and `OutputNaming` remain
+unconsumed and supply no authority. Of an `OutputDifferences` row only
+`Range` is read, as an exact `Start`/`Length`/`EndExclusive` triple; a row
+without one is refused, and no other member of the row, in particular no
+content preview, is read or kept.
 Required members are never supplied by an optional extension.
 
 The reader reuses `normalize_raw_operation` and `normalize_raw_mutation`, the
-ADR 0057 public aliases, without copying their implementations. It preserves
+ADR 0057 public aliases, without copying their implementations. It asks the
+operation normalizer for the command shape a CLI writes (`written_commands`):
+the executable stands below a directory named `external-tools` and is
+identified from that component, and absolute arguments stand in the working
+directory or below it. The ADR 0057 terminal path keeps its default. It preserves
 operation/mutation/input/issue order, named address spaces and half-open
 ranges. It does no file, process or Git access and makes no semantic verdict.
 A malformed format, unsupported version or absent report is
