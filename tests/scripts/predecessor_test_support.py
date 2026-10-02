@@ -80,6 +80,54 @@ def published_inventory(tags=("v1.2.0", "v1.2.1"), *, collected="2026-10-02T00:0
                          for index, tag in enumerate(tags)]}
 
 
+def written_1x_merge_report(*, committed, dp_sha256, tp_sha256, output_sha256):
+    """The member shape of a written 1.x Standard Merge report; a Preview is `committed=False`.
+
+    Structure only, as the 1.2.2 rehearsal saw it from a real CLI: profile sequences 100 and 200,
+    mutation rows without a sequence, the same mutations and described output in Preview and Build,
+    and input snapshots. Sizes, digests and names are synthetic; no firmware byte or path is here.
+    """
+    def span(start, end):
+        return {"Start": start, "Length": end - start, "EndExclusive": end}
+
+    def source(slot, size, digest):
+        return {"AddressSpaceId": slot, "ArtifactId": slot, "Size": size, "Sha256": digest,
+                "OriginalFileName": f"{slot}.bin",
+                "ExecutionSnapshot": {"AcceptedRange": span(0, size), "AcceptedSize": size, "AcceptedSha256": digest,
+                                      "IgnoredTrailingRange": None, "IgnoredTrailingBytes": 0}}
+
+    def operation(operation_id, sequence, slot, start, end):
+        return {"OperationId": operation_id, "Sequence": sequence, "Kind": "CopyRange", "Status": "Succeeded",
+                "SourceSpaceId": slot, "SourceRange": span(start, end), "TargetSpaceId": "output-image",
+                "TargetRange": span(start, end), "OverlapPolicy": "Reject", "ProcessorId": None,
+                "ToolBindingId": None, "ProcessorAllowedReadRanges": [], "ProcessorAllowedWriteRanges": [],
+                "ExecutedCommands": [], "Reason": f"synthetic {operation_id}",
+                "Provenance": {"Kind": "built-in-profile", "SourceId": None, "SourceVersion": None}}
+
+    def mutation(operation_id, start, end, after):
+        return {"OperationId": operation_id, "Kind": "CopyRange", "TargetSpaceId": "output-image",
+                "TargetRange": span(start, end), "ChangedByteCount": end - start, "BeforeSha256": "0" * 64,
+                "AfterSha256": after, "Reason": f"synthetic {operation_id}"}
+
+    return {
+        "RunId": "synthetic-run", "ProfileId": "synthetic-standard-merge", "ProfileVersion": "0.7.0",
+        "IcId": "synthetic", "ModeId": "standard-merge", "ExperienceId": "standard-merge", "CompositionKind": "Merge",
+        "StartedAtUtc": "2026-10-02T00:00:00.0000000+00:00", "CompletedAtUtc": "2026-10-02T00:00:00.5000000+00:00",
+        "Inputs": [source("dp-input", 8, dp_sha256), source("tp-input", 4, tp_sha256)],
+        "Operations": [operation("copy-tp", 100, "tp-input", 0, 4), operation("copy-dp", 200, "dp-input", 4, 8)],
+        "Mutations": [mutation("copy-tp", 0, 4, "1" * 64), mutation("copy-dp", 4, 8, "2" * 64)],
+        "Issues": [],
+        "Output": {"FileName": "output.bin", "Size": 8, "Sha256": output_sha256, "Committed": committed},
+        "OutputDifferences": [], "CompilationFingerprint": "c" * 64, "MapId": "synthetic-map",
+        "Validations": [{"RuleId": "dp-content-plausibility", "Stage": "InputLoad", "Status": "Passed",
+                         "Severity": "Warning", "IssueCode": "DP_UNIFORM_CONTENT_WARNING"}],
+        "OutputNaming": {"RendererKind": "normal-flashcode-v1", "Template": "{ic}_FlashCode.bin",
+                         "AutomaticFileName": "synthetic_FlashCode.bin", "ActualFileName": "output.bin",
+                         "IsExplicitOverride": True, "DateSource": "utc",
+                         "ResolvedAtUtc": "2026-10-02T00:00:00.0000000+00:00"},
+    }
+
+
 def contract_for_fake_processes(contract, temporary_root: Path):
     """Copy the contract, changing only the fake host's temporary path bound."""
     result = copy.deepcopy(contract)

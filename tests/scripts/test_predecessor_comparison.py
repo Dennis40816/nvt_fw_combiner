@@ -17,7 +17,8 @@ from unittest.mock import patch
 
 from scripts import predecessor_comparison as comparison
 from scripts import v0916_parity_certification as parity
-from tests.scripts.predecessor_test_support import (contract_for_fake_processes, write_synthetic_cli_graph, RUNTIME_LIST, HOST_INFO, compiler_identity)
+from tests.scripts.predecessor_test_support import (contract_for_fake_processes, write_synthetic_cli_graph, RUNTIME_LIST, HOST_INFO, compiler_identity,
+                                                    written_1x_merge_report)
 from tests.scripts.test_predecessor_report_reader import raw_report
 
 
@@ -29,6 +30,14 @@ PAYLOAD = b"abcdefgh"
 
 def digest(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
+
+
+MERGE_DP, MERGE_TP, MERGE_OUTPUT = b"DPDPdpdp", b"TPtp", b"TPtpdpdp"
+
+
+def merge_report(*, committed: Any) -> dict[str, Any]:
+    return written_1x_merge_report(committed=committed, dp_sha256=digest(MERGE_DP), tp_sha256=digest(MERGE_TP),
+                                   output_sha256=digest(MERGE_OUTPUT))
 
 
 def report(*, preview: bool = False) -> dict[str, Any]:
@@ -444,6 +453,98 @@ class ComparisonTests(unittest.TestCase):
                     captures = self.pair(raw)
                 result = comparison.assemble_side_result(captures, capacities={"source": 8, "output-image": 8})
                 self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
+
+    def merge_capture(self, stage, raw, output=None):
+        """One process over the two Standard Merge inputs, with the written 1.x report shape."""
+        work = self.root / f"merge-{len(self.runner.captures)}"
+        work.mkdir()
+        rows = []
+        for slot, payload in (("dp-input", MERGE_DP), ("tp-input", MERGE_TP)):
+            path = work / f"{slot}.bin"
+            path.write_bytes(payload)
+            rows.append({"path": str(path), "expectedReportAddressSpaceId": slot, "expectedReportArtifactId": slot,
+                         "size": len(payload), "sha256": digest(payload)})
+        report_path, output_path = work / "report.json", work / "output.bin"
+
+        def run(argv, cwd):
+            report_path.write_text(json.dumps(raw), encoding="utf-8")
+            if output is not None:
+                output_path.write_bytes(output)
+            return subprocess.CompletedProcess(argv, 0, "", "")
+
+        self.runner.host = FakeProcessHost(run)
+        return self.runner.run(stage=stage, argv=["synthetic"], staging_root=work, inputs=rows,
+                               report_path=report_path, output_path=output_path, report_version="1x")
+
+    def merge_side(self, captures):
+        capacities = {capture.record["stage"]: comparison.validation.execution_capacities(capture.evidence())
+                      for capture in captures}
+        return comparison.assemble_side_result(captures, capacities={}, capacities_by_stage=capacities)
+
+    def test_written_1x_preview_and_build_reports_give_an_output_side(self):
+        """Real shape: sequences 100 and 200, mutations in the Preview too, and a described Preview output."""
+        preview = self.merge_capture("preview", merge_report(committed=False))
+        build = self.merge_capture("build", merge_report(committed=True), output=MERGE_OUTPUT)
+        self.assertIsNone(preview.output)
+        self.assertEqual(["/Inputs/0/ExecutionSnapshot", "/Inputs/1/ExecutionSnapshot"],
+                         preview.record["report"]["unknownMembers"])
+        result = self.merge_side([preview, build])
+        self.assertEqual([], result.failures)
+        self.assertEqual("output", result.side["status"])
+        self.assertEqual({"size": 8, "sha256": digest(MERGE_OUTPUT)}, result.side["output"])
+
+    def test_written_mutations_must_follow_the_operation_order(self):
+        """The Preview is its own authority, so only the order check can refuse these rows."""
+        def reverse(raw):
+            raw["Mutations"].reverse()
+
+        def undeclared(raw):
+            raw["Mutations"][1]["OperationId"] = "copy-other"
+
+        def skipped(raw):
+            del raw["Mutations"][0]
+
+        def repeated(raw):
+            raw["Mutations"].append(copy.deepcopy(raw["Mutations"][0]))
+
+        for change in (reverse, undeclared, skipped, repeated):
+            with self.subTest(change=change.__name__):
+                raw = merge_report(committed=False)
+                change(raw)
+                result = self.merge_side([self.merge_capture("preview", raw)])
+                self.assertEqual("invalid", result.side["status"])
+                self.assertEqual(("PREDECESSOR_REPORT_INVALID", "preview", "PARITY_PROVENANCE_INVALID"),
+                                 result.failures[0])
+        prefix = merge_report(committed=False)
+        del prefix["Mutations"][1]
+        verdict = comparison.validation.side_execution_verdict(
+            [self.merge_capture("preview", prefix).evidence()],
+            capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
+        self.assertEqual("ready", verdict.status)
+
+    def test_described_output_without_a_file_needs_committed_false(self):
+        capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}
+        for committed, expected in ((False, "ready"), (True, "invalid"), (None, "invalid"), ("false", "invalid"), (0, "invalid")):
+            with self.subTest(committed=committed):
+                capture = self.merge_capture("preview", merge_report(committed=committed))
+                verdict = comparison.validation.side_execution_verdict([capture.evidence()], capacities=capacities, complete=False)
+                self.assertEqual(expected, verdict.status)
+                if expected == "invalid":
+                    self.assertEqual(("PREDECESSOR_REPORT_INVALID", "preview", "report output differs from capture"),
+                                     verdict.failures[0])
+        with_file = self.merge_capture("preview", merge_report(committed=False), output=MERGE_OUTPUT)
+        verdict = comparison.validation.side_execution_verdict([with_file.evidence()], capacities=capacities, complete=False)
+        self.assertEqual(("PREDECESSOR_REPORT_INVALID", "preview", "output is uncommitted or has an error issue"),
+                         verdict.failures[0])
+        other = merge_report(committed=True)
+        other["Output"]["Sha256"] = "0" * 64
+        result = self.merge_side([self.merge_capture("preview", merge_report(committed=False)),
+                                  self.merge_capture("build", other, output=MERGE_OUTPUT)])
+        self.assertEqual(("PREDECESSOR_REPORT_INVALID", "build", "report output differs from capture"), result.failures[0])
+        described = self.merge_side([self.merge_capture("preview", merge_report(committed=False)),
+                                     self.merge_capture("build", merge_report(committed=False))])
+        self.assertEqual(("PREDECESSOR_PROCESS_FAILED", "build", "successful Build has no captured output"),
+                         described.failures[0])
 
     def test_active_interfaces_admit_formal_and_diagnostic(self):
         for mode in ("rolling", "v0916-1x"):

@@ -445,12 +445,20 @@ reused unchanged:
    exactly and every mutation to lie inside its own operation and, for a
    processor, inside the authority's allowed write ranges. A report that
    widens its own operation or processor ranges together with its mutations
-   is therefore rejected even though it is self-consistent.
+   is therefore rejected even though it is self-consistent. A written
+   mutation row names its operation and carries no sequence, so the validator
+   gives each row the sequence its own report declares for that operation
+   before the order check; a row that names an undeclared operation fails it.
 2. **Report ranges.** `validate_semantic_report_ranges` checks that every
    range is half-open, inside its address space's capacity, non-overlapping
    and contained in its operation.
 3. **Capture.** The report agrees with the captured inputs and output, and a
-   side that produced an output carries no `error` issue.
+   side that produced an output carries no `error` issue. A Preview, or a run
+   that stops before it writes, describes the output it would write with
+   `Committed: false` and leaves no file; that description is not a file
+   identity and is not compared with a capture. A described output without a
+   file and with any other `Committed` value, or an output file whose report
+   is not `Committed: true`, is `PREDECESSOR_REPORT_INVALID`.
 
 A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's

@@ -346,13 +346,29 @@ def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
                 or reported["addressSpaceId"] != captured.get("expectedReportAddressSpaceId")):
             return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
     reported_output = evidence.context["output"]
-    if _identity(reported_output) != _identity(evidence.output):
+    # A Preview, or a run that stops before it writes, describes the output it would write with
+    # `Committed: false` and leaves no file; only a file identity can agree or disagree with a capture.
+    described_only = (evidence.output is None and reported_output is not None
+                      and reported_output["committed"] is False)
+    if not described_only and _identity(reported_output) != _identity(evidence.output):
         return [_failure("REPORT_INVALID", subject, "report output differs from capture")]
     if evidence.output is not None and (
         reported_output["committed"] is not True or any(issue["severity"] == "error" for issue in evidence.issues)
     ):
         return [_failure("REPORT_INVALID", subject, "output is uncommitted or has an error issue")]
     return []
+
+
+def _mutations_in_operation_order(projection: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Give each mutation row the sequence its own report declares for the operation it names.
+
+    A written mutation row names its operation and carries no sequence. The ADR 0057 order check
+    then compares an operation sequence (a profile value such as 100) with a list position; with
+    the declared sequence it compares the order of the operations, which is the contract's rule.
+    A mutation of an operation the report does not declare gets no sequence and fails that check.
+    """
+    sequences = {row.get("operationId"): row.get("sequence") for row in projection["compiledOperations"]}
+    return [{**row, "sequence": sequences.get(row.get("operationId"))} for row in projection["compiledMutations"]]
 
 
 def report_input_binding(
@@ -436,7 +452,7 @@ def side_execution_verdict(
             validate_report_sequence(
                 authority_operations=authority["compiledOperations"],
                 observed_operations=projection["compiledOperations"],
-                observed_mutations=projection["compiledMutations"],
+                observed_mutations=_mutations_in_operation_order(projection),
             )
             validate_report_projection_against_compiled_authority(projection, authority)
             validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities))
