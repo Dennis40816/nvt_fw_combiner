@@ -68,13 +68,25 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
     {
         ArgumentNullException.ThrowIfNull(draft);
         ArgumentNullException.ThrowIfNull(session);
+        (object lease, AuthoringSessionState prepared) = session.BeginGeneralPreparation();
+        ActiveSessionSnapshot? expected = prepared.CurrentSnapshot;
         GeneralMappingDraftRow[] fileRows = FileRows(draft.Mappings);
         IProgress<AuthoringInspectionProgress>? itemProgress = fileRows.Length == 0 ? null : progress;
         itemProgress?.Report(new(0, fileRows.Length));
+        AuthoringSessionIssue? freshness = session.CheckGeneralPreparation(lease, cancellationToken);
+        if (freshness is not null)
+        {
+            return Failed(freshness);
+        }
         Dictionary<string, GeneralSelectedFileInspection> inspections = [];
         GeneralAuthoringSessionPreparation? captureFailure =
             await CaptureSelectedFilesAsync(fileRows, inspections, itemProgress, 0, fileRows.Length, cancellationToken)
                 .ConfigureAwait(false);
+        freshness = session.CheckGeneralPreparation(lease, cancellationToken);
+        if (freshness is not null)
+        {
+            return Failed(freshness);
+        }
         if (captureFailure is not null)
         {
             return captureFailure;
@@ -85,12 +97,12 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             row => inspections[row.MappingId].FileStamp.AcceptedLength,
             StringComparer.Ordinal);
         ResolvedCapability? retained = TryRetainGeneralMappingCompilation(
-            session,
+            prepared,
             draft.Mappings,
             fileRows,
             inspections);
         ResolvedCapability? retainedCapability = retained is not null &&
-            session.CurrentSnapshot?.DraftState is GeneralMergeDraftState current &&
+            prepared.CurrentSnapshot?.DraftState is GeneralMergeDraftState current &&
             current.OutputInitializer == draft.OutputInitializer
                 ? retained
                 : null;
@@ -99,12 +111,17 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             draft,
             observedLengths,
             retainedCapability);
+        freshness = session.CheckGeneralPreparation(lease, cancellationToken);
+        if (freshness is not null)
+        {
+            return Failed(freshness);
+        }
         if (candidate.Plan is not { } plan)
         {
             return Failed(candidate.Issues, candidate.Admission);
         }
 
-        if (!session.Activate(CreateExactCatalog(
+        if (!prepared.Activate(CreateExactCatalog(
                 plan.Capability,
                 plan.InputResources,
                 plan.MappingDraft)).Succeeded)
@@ -112,9 +129,9 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             return Failed("The selected General Merge route is unavailable.");
         }
 
-        AuthoringSessionTransitionResult drafted = session.SetDraft(draft);
+        AuthoringSessionTransitionResult drafted = prepared.SetDraft(draft);
         GeneralAuthoringSessionPreparation? transitionFailure = drafted.Succeeded
-            ? AcceptSelectedFiles(session, fileRows, inspections, "Merge")
+            ? AcceptSelectedFiles(prepared, fileRows, inspections, "Merge")
             : Failed(drafted.Issue!);
         if (transitionFailure is not null)
         {
@@ -122,21 +139,23 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
         }
 
         var acceptedDraft =
-            (GeneralMergeDraftState)session.CurrentSnapshot!.DraftState!;
+            (GeneralMergeDraftState)prepared.CurrentSnapshot!.DraftState!;
         if (!plan.MappingDraft.HasSameCompilationInputs(acceptedDraft.Mappings))
         {
             return Failed("The selected General Merge mapping compilation became stale.");
         }
 
         CapabilityActionReadinessSnapshot? readiness =
-            PublishGeneralMergeReadiness(session, plan);
-        return readiness is not null && readiness.Build.IsAvailable
-            ? new GeneralAuthoringSessionPreparation(
-                session.CurrentSnapshot,
-                [],
-                candidate.Admission,
-                readiness)
-            : Failed("General Merge readiness could not be published.");
+            PublishGeneralMergeReadiness(prepared, plan);
+        if (readiness is null || !readiness.Build.IsAvailable)
+        {
+            return Failed("General Merge readiness could not be published.");
+        }
+        AuthoringSessionTransitionResult adopted = session.TryAdoptGeneralPreparation(
+            lease, expected, prepared, cancellationToken);
+        return adopted.Succeeded
+            ? new GeneralAuthoringSessionPreparation(adopted.Snapshot, [], candidate.Admission, readiness)
+            : Failed(adopted.Issue!);
     }
 
     public async ValueTask<GeneralAuthoringSessionPreparation>

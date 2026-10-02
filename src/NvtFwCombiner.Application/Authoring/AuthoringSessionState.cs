@@ -10,7 +10,7 @@ namespace NvtFwCombiner.Application.Authoring;
 /// </summary>
 public sealed partial class AuthoringSessionState
 {
-    private readonly Lock _transitionLock = new();
+    private readonly Lock _transitionLock;
     private readonly object _publicationIdentity = new();
     private AuthoringCapabilityCatalogSnapshot? _catalog;
     private ActiveSessionSnapshot? _current;
@@ -20,6 +20,7 @@ public sealed partial class AuthoringSessionState
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
         WorkflowId = workflowId;
+        _transitionLock = new();
     }
 
     /// <summary>Mode/workflow identity permanently owned by this instance.</summary>
