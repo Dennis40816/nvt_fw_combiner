@@ -55,7 +55,8 @@ UiSmoke also uses the shared Avalonia headless application/dispatcher, even with
 There are **19** aggregates. No GoldenRegression.Tests aggregate reaches either table's lower bound.
 "No pin found" describes the searched references; firmware-behavior tests can still have no pin.
 Golden or firmware-evidence moves require the firmware owner as approver and reference updates under S6.
-Decision 260 excludes these classes from the commander's scheduling authority, including the five input readers.
+Decision 260 excludes Golden and firmware-evidence classes from the commander's scheduling authority; that
+the five input readers belong to them is the commander's reading, not the decision's wording.
 UiSmoke pins in `scripts/verify.py:587-650` keep their class partitions; new types enter the last part.
 The Xaml pin is in `RepositoryBoundaryTestSupport.TestParallelism.cs:80-93`; see the UI-path limit in section 5.
 
@@ -69,10 +70,15 @@ S7 excludes a whole class while any file is locked, including classes below thes
 | L1 | `feature/1.2.4/bounded-identity-inspection` | `tests/NvtFwCombiner.Application.Tests/Authoring/GeneralSelectedFileContentTests.cs`; `tests/NvtFwCombiner.Application.Tests/Authoring/GeneralSelectedFileSessionLifecycleTests.cs`; `tests/NvtFwCombiner.Infrastructure.Tests/Files/FileContentSnapshotInspectorTests.cs` and branch-added `FileContentSnapshotInspectorTests.BoundedIdentity.cs` (recheck all `FileContentSnapshotInspectorTests*.cs`); `tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.FileIdentity.cs` |
 | L2 | `feature/1.2.4/general-preparation-freshness` | `tests/NvtFwCombiner.Application.Tests/Authoring/GeneralPreparationFreshnessTests.cs` (branch-added; absent from this measured checkout) |
 | L3 | `feature/1.2.6/launcher-entry-typed-reason` | All three current `ManagedLauncherEntryCoordinatorTests` files (`.cs`, `.HealthDeadline.cs`, `.Support.cs`), plus branch-added `.ReviewDiagnostics.cs` and `.TypedDiagnostics.cs`; hold the whole class |
-| L4 | `feature/1.2.11/t2b-deserialize` (PR #522) | Table 2: `CanonicalCatalogBoundaryTests.CanonicalAdmission.cs`, `HostInfrastructureBoundaryTests.FirstInstallationProgress.cs`, `PresentationBoundaryTests.Localization.cs`, `RepositoryBoundaryTests.cs`; hold all four classes |
-| L5 | `feature/1.2.11/r33-03-rename-batch-1` | One of thirteen renames belongs to Table 2: `LegacyCombinerPostbuildProcessorTestSupport.cs` becomes `LegacyCombinerPostbuildProcessorTests.TestSupport.cs`; hold `LegacyCombinerPostbuildProcessorTests`. The other twelve have no Table 1/2 overlap. |
+| L4 (released: merged as `05f1be1ed`) | `feature/1.2.11/t2b-deserialize` (PR #522) | Table 2: `CanonicalCatalogBoundaryTests.CanonicalAdmission.cs`, `HostInfrastructureBoundaryTests.FirstInstallationProgress.cs`, `PresentationBoundaryTests.Localization.cs`, `RepositoryBoundaryTests.cs`; hold all four classes |
+| L5 (released: merged as `10ac919c3`) | `feature/1.2.11/r33-03-rename-batch-1` | One of thirteen renames belongs to Table 2: `LegacyCombinerPostbuildProcessorTestSupport.cs` becomes `LegacyCombinerPostbuildProcessorTests.TestSupport.cs`; hold `LegacyCombinerPostbuildProcessorTests`. The other twelve have no Table 1/2 overlap. |
 
 The other L1 classes are below 1,500 lines here. Neither planned split intersects these locks.
+L4 and L5 merged after this measurement: their classes are free to schedule again, and the four Architecture
+classes are one line shorter on the trunk than the figures in the tables (measure again before planning them).
+The R54 retirement (`docs/handoff/1.2.4/R54-retirement-plan.md`) also changes
+`TrustedProfileBundleCatalogFactoryTests.ReplaceLowering.cs` and `.RuntimeReferenceReplace.cs`; the split of
+that class lands first, and R54 then edits the files under their new class names.
 
 ## 4. Table 2: watch list, 1,500 to 1,999 nonblank lines
 
@@ -101,7 +107,8 @@ Its future move needs the firmware owner as approver and updates to both evidenc
 ## 5. Two mechanical split plans
 
 The pilot's "After the pilot" names ProfileContract and Application aggregates, but no particular class.
-Decision 260 selects the largest current aggregate in each project, ProfileContract first, then Application.
+Decision 260 names two classes: `TrustedProfileBundleCatalogFactoryTests` (ProfileContract) first, then
+`VersionManagementExperienceTests` (Application); each is the largest current aggregate in its project.
 Larger UiSmoke classes are not offered here because ADR 0079 assigned their mixed-test splits to U2a.
 ADR item 17 later closed U2a (decision 114) after U0 and adopted U5; U2a is not a pending scheduling gate.
 Preserve S1-S10: no test-body, method-name, assertion or input change; no removal of serialization.

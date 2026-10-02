@@ -3,14 +3,14 @@
 ## 1. Status and purpose
 
 Status: Proposed retirement plan; inventory only; 2026-10-02; source HEAD `d38f4e7c3`.
-Version: 1.2.4, R54; branch `feature/1.2.4/r54-retirement-plan`.
+Version: 1.2.4, R54; recorded through `feature/1.2.4/records-r54-r33-05-idle`.
 
 Retire Customized Replace (`General Replace`, `general-replace`) while preserving Customized Merge.
 Decision 230 fixes retirement of active code, route, profile and saved-rule execution, including NT51926 compatibility.
 Decision 229 reopens only Customized Merge. This document proposes implementation boundaries; it changes no behavior.
 
 Authority: `docs/handoff/1.2.x.md:314` and `docs/handoff/1.2.x.md:325`.
-Allocation: `docs/handoff/1.1.14/1.2.x-allocation.md:198` also requires historical reports to remain readable.
+Allocation: `docs/handoff/1.1.14/1.2.x-allocation.md:203` also requires historical reports to remain readable.
 No dedicated R54 row exists in the allocation inventory; its O05 cross-reference is at
 `docs/handoff/1.1.14/1.2.x-inventory.md:535`.
 The retirement residue input is `docs/handoff/1.2.1/R12-02.md:190`.
@@ -69,7 +69,7 @@ DELETE applies only to exclusive files. Each row gives at most five representati
 | Tests: CatalogProbe | 2 | KEEP-SHARED | `tests/NvtFwCombiner.CatalogProbe/CompilationScenarios.cs:60`; `tests/NvtFwCombiner.CatalogProbe/CatalogEvidence.cs:195`: remove General registration enumeration and success expectations; General Merge scenario remains at `tests/NvtFwCombiner.CatalogProbe/CompilationScenarios.cs:54`. |
 | Tests: Shared helpers | 1 | KEEP-SHARED | `tests/Shared/TrustedProfileBundleCatalogTestExtensions.cs:58`: retain the generic compile helper; CtrlRAM request caller at `tests/NvtFwCombiner.ProfileContract.Tests/TrustedProfileBundleCatalogFactoryTests.RuntimeReferenceReplaceProcessor.cs:84`. |
 | Tests: GoldenRegression.Tests and ReadyProbe | 0 | KEEP-SHARED | No exact matches. This is not proof of unaffected execution or a Golden pass; applicable surviving Golden cases remain required. |
-| SPEC and current handoff documents | 4 | KEEP-SHARED | `SPEC.md:249` still advertises executable General Replace and must change during implementation; shared General Merge authoring remains at `SPEC.md:584`. Preserve decisions at `docs/handoff/1.2.x.md:325`, allocation at `docs/handoff/1.1.14/1.2.x-allocation.md:198`, and the remaining-workflow inventory at `docs/handoff/1.1.14/1.2.x-inventory.md:535`. |
+| SPEC and current handoff documents | 4 | KEEP-SHARED | `SPEC.md:249` still advertises executable General Replace and must change during implementation; shared General Merge authoring remains at `SPEC.md:584`. Preserve decisions at `docs/handoff/1.2.x.md:325`, allocation at `docs/handoff/1.1.14/1.2.x-allocation.md:203`, and the remaining-workflow inventory at `docs/handoff/1.1.14/1.2.x-inventory.md:535`. |
 | SPEC and documents: dated residue assessment | 1 | KEEP-REPLAY | `docs/handoff/1.2.1/R12-02.md:190`: preserve its dated findings and use them as the removal checklist; R39's related historical boundary is at `docs/handoff/1.2.1/R39.md:39` (zero counted matches). |
 | Test data: manifests | 1 | KEEP-SHARED | `testdata/golden/canonical/manifest.json:427` is contract-only, not a certified output case. Remove its active retired-route entry with policy/registration removal; General Merge evidence at `testdata/golden/canonical/manifest.json:420` and Standard Merge Golden evidence at `:434` remain. Do not alter surviving expected output hashes or bytes; option B permits only the reviewed route-evidence re-pins described in section 4. |
 | Test data: dated owner evidence request | 1 | KEEP-REPLAY | `testdata/golden/owner-handoff/0718-missing-owner-evidence/README_請先看.md:26` is a dated General Replace migration evidence request. Preserve it as history; `testdata/**` is R3 and this file is outside the implementation write set. |
@@ -162,7 +162,7 @@ Shared-definition consequences (step 4, firmware-owner decision before implement
   starting at `docs/contracts/canonical-capability-policy-v1.json:563`, plus eight route-evidence pins at
   `testdata/golden/canonical/manifest.json:332-410`, require re-pinning under option B.
   `tests/NvtFwCombiner.Bootstrap.Tests/CtrlRamV2PlanClosureProfileTests.cs:15` also pins the bundle hash;
-  it is a dependency outside the original 219 matching files and must join step 4 if B is selected.
+  it is a dependency outside the original 220 matching files and must join step 4 if B is selected.
 - Option A removes only the General Replace trust-index registration, policy row and manifest route-evidence row
   from active data; runtime registration/route removal and compiler refusal still apply. Bundle/family/profile bytes
   stay. Whether materializer and catalog accept the unregistered profile inside that bundle is unconfirmed,
@@ -235,7 +235,9 @@ Release readiness still requires independent review, R3 role approval and candid
 
 ## 6. Decisions for the owner
 
-Retirement, NT51926 execution refusal, readable historical reports and leaving rule files unchanged are settled.
+Retirement, NT51926 execution refusal and readable historical reports are settled (decisions 229 and 230).
+Leaving old rule files unchanged on disk is this plan's proposed default, not a recorded decision; it is
+confirmed together with question 2.
 Use "Customized Replace is retired" consistently because Customized Replace is the name users see.
 Proposed retirement exit code is 64, matching DP's retired command; today's failed rule check returns 1.
 This is a new retirement-specific result; unrelated invalid rules retain their existing errors and exit codes.
@@ -243,7 +245,7 @@ Three questions remain; this inventory chooses neither firmware option.
 
 **1. Firmware-owner: keep shared bundle/family/profile bytes, or rewrite and re-pin eight surviving CtrlRAM routes?**
 
-- **A — Keep bytes (recommended, conditional):** keep bundle/family/profile files, including the retired declaration;
+- **A — Keep bytes (conditional, not yet recommended):** keep bundle/family/profile files, including the retired declaration;
   remove only its trust-index registration, policy row and manifest row from active data. Remove runtime publication
   and refuse compiler artifacts. Surviving hashes/fingerprints stay unchanged; profile files become KEEP-SHARED.
   Materializer/catalog acceptance of the unregistered profile is **unconfirmed, to be proven before choosing** A.
@@ -272,8 +274,12 @@ B adds bounded read-only inspection in step 3, without a new Presentation viewer
 
 `src/NvtFwCombiner.Cli/MergeCliCommandHandler.SavedRules.cs:28` calls Merge admission; exact-parent mismatch is
 reported at `src/NvtFwCombiner.Infrastructure/Composition/SavedCompositionRuleV2Admission.cs:70-75` for valid v2 rules.
-Recommend the same retirement message/64 for recognizable retired rules; keeping today's mismatch/1 is the other
-choice. Resolve this before step 3. Neither choice retires General Merge or converts the old rule into a Merge rule.
+- **A — Say it is retired (recommended):** a rule file that is recognizably an old Customized Replace rule gets
+  the same message, "Customized Replace is retired", and exit code 64, as in question 2.
+- **B — Keep today's message:** the command keeps reporting that the rule does not belong to Customized Merge,
+  with exit code 1, and does not mention the retirement.
+
+Resolve this before step 3. Neither choice retires General Merge or converts the old rule into a Merge rule.
 
 ## 7. Limits
 
