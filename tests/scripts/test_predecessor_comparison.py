@@ -859,6 +859,74 @@ class ComparisonTests(unittest.TestCase):
             comparison.stage_case_inputs(authority, bad, [("input", "dp-input")], self.root / "bad")
         self.assertEqual("PREDECESSOR_INPUT_INVALID", found.exception.code)
 
+    def cli_stage_with_tools(self, tools, cli, custody=None):
+        authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
+        artifacts = {"input": {"role": "input", "path": "input.bin", "size": 8, "sha256": digest(PAYLOAD)}}
+        git = FakeGitHost()
+        git.files.update(tools)
+        self.build_host(git)
+        executor = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
+        if custody is not None:
+            self.runner.custody = custody
+        self.runner.host = FakeProcessHost(cli)
+        request = {"workflowId": "standard-merge", "profileId": "test", "cliSelectionToken": None}
+        return executor, comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts,
+                                                      [("input", "dp-input")], stage="preview")
+
+    def test_cli_stage_gets_the_executor_commit_tools_beside_its_closure(self):
+        """The CLI searches upwards from its base directory for `external-tools`; no per-user setting supplies them."""
+        tools = {"external-tools/legacy-combiner/1.13.0/Combiner.exe": b"synthetic tool",
+                 "external-tools/legacy-combiner/1.13.0/manifest.json": b'{"toolId":"legacy-combiner"}',
+                 "external-tools/catalog.json": b"{}"}
+        seen = {}
+
+        def cli(argv, cwd):
+            base = Path(argv[0]).parent
+            seen["search"] = [parent / "external-tools" for parent in (base, *base.parents) if (parent / "external-tools").is_dir()][0]
+            seen["files"] = {path.relative_to(cwd).as_posix(): path.read_bytes() for path in seen["search"].rglob("*") if path.is_file()}
+            seen["writable"] = [path for path in seen["search"].rglob("*") if path.is_file() and os.access(path, os.W_OK)]
+            return subprocess.CompletedProcess(argv, 0, "", "")
+
+        executor, capture = self.cli_stage_with_tools(tools, cli)
+        self.assertEqual(tools, dict(executor.external_tools))
+        self.assertEqual(Path(self.runner.host.calls[0][1]) / "external-tools", seen["search"])
+        self.assertEqual(tools, seen["files"])
+        self.assertEqual([], seen["writable"])
+        self.assertEqual("runtime", Path(self.runner.host.calls[0][0][0]).parent.name)
+        self.assertNotIn("PREDECESSOR_EXECUTOR_INVALID", [failure.code for failure in capture.failures])
+        measured = parity.runtime_closure_inventory(executor.closure.root, cli_relative=executor.closure.cli_relative)
+        self.assertEqual(measured.identity_sha256, executor.identity["runtimeClosureSha256"])
+        self.assertFalse(any(path.startswith("external-tools") for path in executor.closure.files))
+
+    def test_cli_stage_without_a_tool_still_owns_the_search_directory(self):
+        seen = {}
+
+        def cli(argv, cwd):
+            seen["entries"] = list((cwd / "external-tools").iterdir())
+            return subprocess.CompletedProcess(argv, 0, "", "")
+
+        executor, _ = self.cli_stage_with_tools({}, cli)
+        self.assertEqual({}, dict(executor.external_tools))
+        self.assertEqual([], seen["entries"])
+
+    def test_changed_or_removed_staged_tool_is_an_executor_failure(self):
+        tools = {"external-tools/legacy-combiner/1.13.0/Combiner.exe": b"synthetic tool"}
+        for fault in ("changed", "removed"):
+            with self.subTest(fault=fault):
+                def cli(argv, cwd):
+                    target = cwd / "external-tools/legacy-combiner/1.13.0/Combiner.exe"
+                    target.chmod(0o600)
+                    if fault == "changed":
+                        target.write_bytes(b"another tool")
+                    else:
+                        target.unlink()
+                    return subprocess.CompletedProcess(argv, 0, "", "")
+
+                _, capture = self.cli_stage_with_tools(tools, cli, custody=lambda paths: nullcontext())
+                self.assertEqual(("PREDECESSOR_EXECUTOR_INVALID", "preview", "execution closure changed or disappeared"),
+                                 capture.failures[0])
+                self.assertEqual("invalid", comparison.assemble_side_result([capture], capacities={}).side["status"])
+
 
 if __name__ == "__main__":
     unittest.main()

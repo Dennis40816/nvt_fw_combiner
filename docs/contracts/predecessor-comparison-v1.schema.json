@@ -151,6 +151,7 @@
         "lockFileSet",
         "identityPinnedInAdvance",
         "authorityTrees",
+        "externalToolStaging",
         "recordedIdentity"
       ],
       "properties": {
@@ -181,6 +182,15 @@
         },
         "identityPinnedInAdvance": { "const": false },
         "authorityTrees": { "const": ["external-tools", "profiles", "src", "tools/crc-worker"] },
+        "externalToolStaging": {
+          "const": {
+            "tree": "external-tools",
+            "bytes": "git-blob-at-executor-commit",
+            "destination": "beside-staged-runtime-closure",
+            "custody": "execution-closure",
+            "directoryAlwaysCreated": true
+          }
+        },
         "recordedIdentity": {
           "const": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
         }

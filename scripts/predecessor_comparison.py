@@ -132,6 +132,7 @@ class Executor(NamedTuple):
     identity: dict[str, Any]
     closure: CapturedExecutionClosure
     report_version: str
+    external_tools: Mapping[str, bytes]
 
 
 class BaselineExecutorBuilder(Protocol):
@@ -638,6 +639,9 @@ def _build_executor(
         locks = {path: git.read_file(commit, path) for path in sorted(paths)
                  if len(PurePosixPath(path).parts) == 3 and PurePosixPath(path).match(recipe["lockFileSet"]["pattern"])}
         lock_inventory = [{"path": path, **_payload_identity(payload)} for path, payload in locks.items()]
+        tools_tree = recipe["externalToolStaging"]["tree"]
+        external_tools = {path: git.read_file(commit, path) for path in sorted(paths)
+                          if PurePosixPath(path).parts[:1] == (tools_tree,)}
         if baseline is not None:
             for row in [baseline["toolchain"]["globalJson"], *baseline["lockFiles"], *baseline["externalTools"]]:
                 if _payload_identity(git.read_file(commit, row["path"])) != {key: row[key] for key in ("size", "sha256")}:
@@ -722,11 +726,32 @@ def _build_executor(
                 "runtimeClosureSha256": closure.identity_sha256, "tagObject": tag_object, "tree": git.git_tree(source),
                 "compilerHost": compiler_identity,
             }
-            return Executor({member: identity[member] for member in recipe["recordedIdentity"]}, closure, "v0916" if baseline else "1x")
+            return Executor({member: identity[member] for member in recipe["recordedIdentity"]}, closure,
+                            "v0916" if baseline else "1x", external_tools)
     except ExecutionError:
         raise
     except (ParityError, PdbProbeError, OSError, subprocess.SubprocessError, KeyError, TypeError, ValueError) as error:
         raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "executor acquisition or identity failed") from error
+
+
+def stage_external_tools(files: Mapping[str, bytes], staging_root: Path, tree: str) -> dict[Path, str]:
+    """Stage the executor commit's external tools where the CLI's own search finds them first.
+
+    A 1.x or v0.9.16 CLI looks for a directory named `external-tools` in its base directory and
+    then in each parent. The copy stands beside the staged runtime closure, comes from the Git
+    blobs of the executor's commit and joins the closure's custody and hash checks. The directory
+    exists even without a tool, so the search never leaves the staging root.
+    """
+    hashes: dict[Path, str] = {}
+    (staging_root / PurePosixPath(tree)).mkdir()
+    for relative, payload in files.items():
+        target = staging_root / PurePosixPath(relative)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("xb") as stream:
+            stream.write(payload)
+        target.chmod(stat.S_IREAD)
+        hashes[target] = _sha256(payload)
+    return hashes
 
 
 def execute_cli_stage(
@@ -753,6 +778,8 @@ def execute_cli_stage(
         rows = [{**row, "order": order} for order, row in enumerate(rows)]
     try:
         cli, hashes = materialize_execution_closure(executor.closure, work / "runtime")
+        hashes.update(stage_external_tools(executor.external_tools, work,
+                                           runner.admission.contract["executor"]["externalToolStaging"]["tree"]))
     except (ParityError, OSError) as error:
         raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "cannot stage executor closure") from error
     report_path, output_path = work / "report.json", work / "output.bin"
