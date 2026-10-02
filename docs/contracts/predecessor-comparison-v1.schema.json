@@ -241,13 +241,28 @@
               "repeatedCommand": "kept-in-order"
             },
             "workAddressSpaces": ["ab-combiner-work", "tp-b-work"],
+            "v0916ExecutorWorkAddressSpaces": ["a-bank-work", "b-bank-work"],
+            "v0916ExecutorWorkAddressSpacesDecision": "1.2.x board decision 273",
             "workAddressSpaceRanges": "inside-same-side-preview-declared-ranges",
             "processorWriteAudit": {
               "source": "output-difference-ranges",
               "contentPreviewsRead": false,
               "addressSpace": "output-image",
               "rule": "each-range-inside-one-preview-allowed-write-range",
-              "changedProcessorWithoutListedRange": "refused"
+              "changedProcessorWithoutListedRange": "refused",
+              "workAddressSpaceAudit": {
+                "boardDecision": "1.2.x board decision 271",
+                "source": "compiled-operations-in-preview-order",
+                "laterReads": "each-range-inside-one-processor-allowed-write-range",
+                "laterWrites": "refused",
+                "unclassifiableOperation": "refused"
+              }
+            },
+            "previewBuildOutput": {
+              "boardDecision": "1.2.x board decision 274",
+              "when": "both-preview-and-build-describe-output",
+              "rule": "same-size-and-sha256-on-the-same-side",
+              "mismatch": "PREDECESSOR_REPORT_INVALID"
             }
           }
         }
@@ -256,12 +271,19 @@
     "typedRejection": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["reportRequired", "nonzeroExitRequired", "errorIssueRequired", "processFailureIssueCodes"],
+      "required": ["reportRequired", "nonzeroExitRequired", "errorIssueRequired", "processFailureIssueCodes", "skippedOperations"],
       "properties": {
         "reportRequired": { "const": true },
         "nonzeroExitRequired": { "const": true },
         "errorIssueRequired": { "const": true },
-        "processFailureIssueCodes": { "const": ["external-tool.process.failed", "external-tool.process.start-failed"] }
+        "processFailureIssueCodes": { "const": ["external-tool.process.failed", "external-tool.process.start-failed"] },
+        "skippedOperations": {
+          "const": {
+            "boardDecision": "1.2.x board decision 272",
+            "conditions": ["nonzero-exit", "report-error-issue", "all-operations-skipped", "no-mutation-command-or-output-difference", "no-output-file"],
+            "operationThatRan": "invalid"
+          }
+        }
       }
     },
     "interfaces": {

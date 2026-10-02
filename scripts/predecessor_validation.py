@@ -35,6 +35,7 @@ try:
         validate_report_sequence,
         validate_report_projection_against_compiled_authority,
         validate_semantic_report_ranges,
+        _contained,
     )
 except ModuleNotFoundError as error:
     if error.name != "scripts":
@@ -51,6 +52,7 @@ except ModuleNotFoundError as error:
         validate_report_sequence,
         validate_report_projection_against_compiled_authority,
         validate_semantic_report_ranges,
+        _contained,
     )
 
 
@@ -70,6 +72,7 @@ PROCESS_FAILURE_ISSUE_CODES = frozenset({"external-tool.process.failed", "extern
 # 1.2.x board decision 261: the address spaces a report uses without declaring a capacity, and the
 # address space whose changed ranges a report lists as output differences.
 WORK_ADDRESS_SPACES = frozenset({"ab-combiner-work", "tp-b-work"})
+V0916_WORK_ADDRESS_SPACES = frozenset({"a-bank-work", "b-bank-work"})
 OUTPUT_ADDRESS_SPACE = "output-image"
 # The codes of the shared execution failures (contract section "Shared
 # execution"; the report schema's scenarioFailureCode): an executor, the
@@ -388,9 +391,12 @@ def _executed_command_failures(evidence: SideProcessEvidence) -> list[Failure]:
     return []
 
 
-def _declared_work_ranges(authority: Mapping[str, Any]) -> dict[str, list[tuple[int, int]]]:
+def _declared_work_ranges(
+    authority: Mapping[str, Any], *, v0916_executor: bool = False,
+) -> dict[str, list[tuple[int, int]]]:
     """The ranges a Preview declares in each work address space; a report gives no capacity for them."""
-    declared: dict[str, list[tuple[int, int]]] = {space: [] for space in sorted(WORK_ADDRESS_SPACES)}
+    spaces = WORK_ADDRESS_SPACES | (V0916_WORK_ADDRESS_SPACES if v0916_executor else frozenset())
+    declared: dict[str, list[tuple[int, int]]] = {space: [] for space in sorted(spaces)}
     for operation in authority["compiledOperations"]:
         target = operation.get("targetSpaceId")
         rows = [(operation.get("sourceSpaceId"), operation.get("sourceRange")), (target, operation.get("targetRange"))]
@@ -405,20 +411,20 @@ def _declared_work_ranges(authority: Mapping[str, Any]) -> dict[str, list[tuple[
 
 def _processor_write_audit_failures(
     stage: str, projection: Mapping[str, Any], context: Mapping[str, Any], authority: Mapping[str, Any],
+    *, declared_work_ranges: Mapping[str, Sequence[tuple[int, int]]] | None = None,
 ) -> list[Failure]:
-    """Audit an external processor's writes from the ranges of the report's output differences.
+    """Decision 261 output audit; decision 271 audits later compiled uses of a work space.
 
-    Each listed range must lie inside one write range the Preview allows a processor in `output-image`. A
-    processor whose mutation row reports changed bytes must have a listed range inside its own allowed write
-    ranges; a report that lists none for it is refused, and so is a processor that changed bytes in another
-    address space, whose changes the output differences cannot show.
+    The shared range check has already validated all present named ranges. Work-space
+    results may only be read inside one allowed write range, and may never be overwritten.
+    Unknown operation semantics or missing read authority refuse instead of guessing.
     """
 
     def allowed(operation: Mapping[str, Any]) -> list[tuple[int, int]]:
         return [(row["start"], row["endExclusive"]) for row in operation["processor"]["allowedWriteRanges"]]
 
     def inside(row: Mapping[str, int], spans: Sequence[tuple[int, int]]) -> bool:
-        return any(start <= row["start"] and row["endExclusive"] <= end for start, end in spans)
+        return any(_contained((row["start"], row["endExclusive"]), span) for span in spans)
 
     output_spans = [span for operation in authority["compiledOperations"]
                     if operation.get("processor") and operation["targetSpaceId"] == OUTPUT_ADDRESS_SPACE
@@ -427,8 +433,31 @@ def _processor_write_audit_failures(
     if any(row["start"] < 0 or row["endExclusive"] <= row["start"] or not inside(row, output_spans) for row in differences):
         return [_failure("REPORT_INVALID", stage, "output difference outside every write range the Preview allows")]
     changed = {row["operationId"]: row["changedByteCount"] for row in projection["compiledMutations"]}
+    operations = authority["compiledOperations"]
+    for index, operation in enumerate(operations):
+        space = operation["targetSpaceId"]
+        if not operation.get("processor") or space not in (declared_work_ranges or {}):
+            continue
+        if operation["kind"] != "RunExternalProcessor":
+            return [_failure("REPORT_INVALID", stage, "unknown work-space processor operation kind")]
+        for later in operations[index + 1:]:
+            kind = later["kind"]
+            if kind not in {"CopyRange", "ReplaceRange", "TransformScalar", "FillRange", "PatchScalar", "RunExternalProcessor"}:
+                return [_failure("REPORT_INVALID", stage, "unknown later operation kind in work-space processor audit")]
+            if later["targetSpaceId"] == space:
+                return [_failure("REPORT_INVALID", stage, "later operation writes the processor work address space")]
+            source_space, source = later.get("sourceSpaceId"), later.get("sourceRange")
+            if (kind in {"CopyRange", "ReplaceRange", "TransformScalar"} and (not source_space or source is None)
+                    or (source_space is None) != (source is None)):
+                return [_failure("REPORT_INVALID", stage, "later operation has no named read range")]
+            if source_space == space and not inside(source, allowed(operation)):
+                return [_failure("REPORT_INVALID", stage, "later work-space read outside every processor allowed write range")]
+            if kind == "RunExternalProcessor" and not later.get("processor"):
+                return [_failure("REPORT_INVALID", stage, "later processor has no declared ranges")]
     for operation in projection["compiledOperations"]:
         if not operation.get("processor") or changed.get(operation["operationId"], 0) == 0:
+            continue
+        if operation["targetSpaceId"] in (declared_work_ranges or {}):
             continue
         if (operation["targetSpaceId"] != OUTPUT_ADDRESS_SPACE
                 or not any(inside(row, allowed(operation)) for row in differences)):
@@ -497,6 +526,7 @@ def side_execution_verdict(
     processes: Sequence[SideProcessEvidence], *, capacities: Mapping[str, int],
     capacities_by_stage: Mapping[str, Mapping[str, int]] | None = None,
     complete: bool = True,
+    v0916_executor: bool = False,
 ) -> SideVerdict:
     """Shared side classification; ADR 0057 safety owners remain unchanged.
 
@@ -513,6 +543,7 @@ def side_execution_verdict(
     if stages != expected_stages[:len(stages)]:
         return SideVerdict("invalid", stages[-1], [_failure("REPORT_INVALID", "side", "invalid Preview/Build process order")])
     authority: Mapping[str, Any] | None = None
+    preview_output: Mapping[str, Any] | None = None
     for index, evidence in enumerate(processes):
         process = evidence.process
         stage = process["stage"]
@@ -535,19 +566,36 @@ def side_execution_verdict(
         projection = evidence.projection
         if stage.endswith("preview"):
             authority = projection
+            preview_output = evidence.context["output"]
         if authority is None:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "no same-side Preview authority")])
         try:
+            if (process["exitCode"] != 0 and projection["compiledOperations"]
+                    and any(row.get("status") != "skipped" for row in projection["compiledOperations"])):
+                return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "rejected process has an operation that ran")])
+            has_skipped = any(row.get("status") == "skipped" for row in projection["compiledOperations"])
+            skipped_rejection = (
+                has_skipped and process["exitCode"] != 0
+                and any(issue["severity"] == "error" for issue in evidence.issues)
+                and all(row.get("status") == "skipped" for row in projection["compiledOperations"])
+                and not projection["compiledMutations"] and not evidence.context["executedCommands"]
+                and not any(row["executedCommands"] for row in projection["compiledOperations"])
+                and not evidence.context["outputDifferenceRanges"] and evidence.output is None
+            )
+            if has_skipped and not skipped_rejection:
+                return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Skipped operations do not satisfy no-write typed rejection conditions")])
             validate_report_sequence(
                 authority_operations=authority["compiledOperations"],
                 observed_operations=projection["compiledOperations"],
                 observed_mutations=_mutations_in_operation_order(projection),
             )
-            validate_report_projection_against_compiled_authority(projection, authority)
+            validate_report_projection_against_compiled_authority(projection, authority, skipped_rejection=skipped_rejection)
+            declared = _declared_work_ranges(authority, v0916_executor=v0916_executor)
             validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities),
-                                            declared_overlap=True, declared_work_ranges=_declared_work_ranges(authority),
+                                            declared_overlap=True, declared_work_ranges=declared,
                                             audited_processor_writes=True)
-            audit = _processor_write_audit_failures(stage, projection, evidence.context, authority)
+            audit = _processor_write_audit_failures(stage, projection, evidence.context, authority,
+                                                   declared_work_ranges=declared)
         except (ParityError, KeyError, TypeError, ValueError) as error:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, str(error))])
         if audit:
@@ -560,6 +608,9 @@ def side_execution_verdict(
         failures = _side_capture_failures(evidence)
         if failures:
             return SideVerdict("invalid", stage, failures)
+        if (stage.endswith("build") and preview_output is not None and evidence.context["output"] is not None
+                and _identity(preview_output) != _identity(evidence.context["output"])):
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Build output size or hash differs from Preview prediction")])
         if process["exitCode"] != 0:
             if evidence.output is None and any(issue["severity"] == "error" for issue in evidence.issues):
                 if index != len(processes) - 1:
