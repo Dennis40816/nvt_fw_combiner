@@ -1,6 +1,7 @@
 # Pilot split plan: `RepositoryBoundaryTests` (WS-TEST batches T2a and T2b)
 
-- Status: **approved plan, not started.** Board decision 74 (D-6) chose this
+- Status: **T2a done on 2026-10-02 (pull request #519, merged as `1ab3319c0`; result and differences from this
+  plan in the [log](WS-TEST.md)); T2b not started.** Board decision 74 (D-6) chose this
   class, with the class, fixture and shared-state review, the file list
   recomputed at the real branch point and active write locks respected;
   decision 73 puts T2a and T2b in 1.1.13. The commander decided on 2026-09-26
