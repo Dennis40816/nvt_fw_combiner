@@ -22,6 +22,11 @@
 /src/NvtFwCombiner.Infrastructure/Capabilities/** @Dennis40816
 /src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs @Dennis40816
 /src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs @Dennis40816
+/src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.cs @Dennis40816
+/src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.Dummy.cs @Dennis40816
+/src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs @Dennis40816
+/src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs @Dennis40816
+/src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.Choices.cs @Dennis40816
 # contracts (R3)
 /docs/contracts/** @Dennis40816
 # external-tools (R3)
