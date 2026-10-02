@@ -871,6 +871,21 @@ class GitRunTests(unittest.TestCase):
                 changes = check.Git(self.repo).changes(base, head)
                 self.assertIn((path,), [item.paths for item in changes if item.status == "M"])
 
+    def test_added_and_removed_submodules_are_reported_under_an_ignoring_configuration(self) -> None:
+        # The configuration alone hides them too, with no "ignore" entry in .gitmodules.
+        self.git("config", "diff.ignoreSubmodules", "all")
+        removed, added = "third-party/removed", "profiles/built-in/added"
+        self.git("update-index", "--add", "--cacheinfo", f"160000,{'1' * 40},{removed}")
+        self.git("commit", "-q", "-m", "submodule")
+        base = self.git("rev-parse", "HEAD")
+        self.git("update-index", "--force-remove", removed)
+        self.git("update-index", "--add", "--cacheinfo", f"160000,{'2' * 40},{added}")
+        self.git("commit", "-q", "-m", "remove one submodule and add another")
+        head = self.git("rev-parse", "HEAD")
+        changes = {(item.status, item.paths) for item in check.Git(self.repo).changes(base, head)}
+        self.assertIn(("D", (removed,)), changes)
+        self.assertIn(("A", (added,)), changes)
+
     def test_degraded_copy_detection_fails_closed(self) -> None:
         for index in range(3):
             self.write(f"src/NvtFwCombiner.Cli/New{index}.cs", f"class New{index} {{}}\n".encode())
