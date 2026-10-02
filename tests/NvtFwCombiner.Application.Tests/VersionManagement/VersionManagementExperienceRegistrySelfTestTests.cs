@@ -2,7 +2,9 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+/// <summary>Tests version management registry self-tests.</summary>
+[Collection(nameof(VersionManagementExperienceSerialGroup))]
+public sealed partial class VersionManagementExperienceRegistrySelfTestTests
 {
     /// <summary>Environment Self-test still verifies the asserted newest package when v2 policy is manual-only.</summary>
     [Fact]

@@ -2,13 +2,10 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+/// <summary>Tests version management registry operations.</summary>
+[Collection(nameof(VersionManagementExperienceSerialGroup))]
+public sealed partial class VersionManagementExperienceRegistryTests
 {
-    private const string FirstRegistryDigest =
-        "1111111111111111111111111111111111111111111111111111111111111111";
-    private const string SecondRegistryDigest =
-        "2222222222222222222222222222222222222222222222222222222222222222";
-
     /// <summary>All-manual Registry authority is readmitted under the lease with zero package I/O.</summary>
     [Fact]
     public async Task RegistryAutomaticAllManualReadmitsAuthorityAndAdvancesOnlyExistingCompatibleState()

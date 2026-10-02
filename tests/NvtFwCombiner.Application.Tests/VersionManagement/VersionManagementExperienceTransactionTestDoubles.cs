@@ -3,9 +3,9 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+internal static partial class VersionManagementExperienceTestSupport
 {
-    private sealed class FailingStateStore(
+    internal sealed class FailingStateStore(
         VersionManagerState state,
         int failOnSave) : IVersionManagerStateStore
     {
@@ -38,7 +38,7 @@ public sealed partial class VersionManagementExperienceTests
         }
     }
 
-    private sealed class TransactionRepository : IManagedVersionRepository
+    internal sealed class TransactionRepository : IManagedVersionRepository
     {
         private readonly Dictionary<ManagedAppVersion, ManagedVersionAdmission?> _installed;
 

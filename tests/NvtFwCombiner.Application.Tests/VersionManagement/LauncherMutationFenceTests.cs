@@ -2,7 +2,9 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+/// <summary>Tests launcher mutation fences.</summary>
+[Collection(nameof(VersionManagementExperienceSerialGroup))]
+public sealed partial class LauncherMutationFenceTests
 {
     /// <summary>Update-source mutation fails closed while launcher activation is pending.</summary>
     [Fact]
@@ -101,40 +103,5 @@ public sealed partial class VersionManagementExperienceTests
         Assert.Equal(VersionDeleteOperationIssue.None, deleted.OperationIssue);
         Assert.Equal([rollbackOwner.Version], repository.Deleted);
         Assert.Equal([rollbackOwner], fence.Retired);
-    }
-
-    private static LauncherMutationProtection PendingProtection()
-    {
-        return new(
-            LauncherMutationFenceIssue.None,
-            HasPendingActivation: true,
-            ActiveOwner: Admission("0.10.5"),
-            LastKnownGoodOwner: Admission("0.10.5"),
-            PendingOwners: [Admission("0.10.6")]);
-    }
-
-    private sealed class RecordingLauncherFence(LauncherMutationProtection protection)
-        : ILauncherMutationFence
-    {
-        public int LoadCount { get; private set; }
-        public int RetireCount => Retired.Count;
-        public List<ManagedVersionAdmission> Retired { get; } = [];
-
-        public ValueTask<LauncherMutationProtection> LoadAsync(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            LoadCount++;
-            return ValueTask.FromResult(protection);
-        }
-
-        public ValueTask<LauncherMutationFenceIssue> RetireLastKnownGoodOwnerAsync(
-            ManagedVersionAdmission expectedOwner,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Retired.Add(expectedOwner);
-            protection = protection with { LastKnownGoodOwner = protection.ActiveOwner };
-            return ValueTask.FromResult(LauncherMutationFenceIssue.None);
-        }
     }
 }

@@ -2,7 +2,9 @@ using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+/// <summary>Tests fresh installation candidates.</summary>
+[Collection(nameof(VersionManagementExperienceSerialGroup))]
+public sealed partial class FreshInstallationCandidateTests
 {
     /// <summary>Fresh-install inspect and reverify ignore notification policy and verify v2 newest package.</summary>
     [Fact]

@@ -1,1 +1,2 @@
 global using Xunit;
+global using static NvtFwCombiner.Application.Tests.VersionManagement.VersionManagementExperienceTestSupport;

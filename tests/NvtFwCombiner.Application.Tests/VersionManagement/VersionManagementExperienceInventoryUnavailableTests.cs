@@ -3,7 +3,9 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+/// <summary>Tests unavailable version management inventory.</summary>
+[Collection(nameof(VersionManagementExperienceSerialGroup))]
+public sealed partial class VersionManagementExperienceInventoryUnavailableTests
 {
     /// <summary>Only a truly missing state may bootstrap an observed empty inventory.</summary>
     [Theory]

@@ -3,7 +3,9 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
 
-public sealed partial class VersionManagementExperienceTests
+/// <summary>Tests version management concurrency.</summary>
+[Collection(nameof(VersionManagementExperienceSerialGroup))]
+public sealed partial class VersionManagementExperienceConcurrencyTests
 {
     /// <summary>Experiences for the same managed root serialize through shared state and reload before committing.</summary>
     [Fact]
