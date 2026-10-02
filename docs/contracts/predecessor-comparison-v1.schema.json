@@ -221,14 +221,34 @@
     "perSideSafety": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["owner", "authorityProducer", "checks", "readerMayRelaxChecks"],
+      "required": ["owner", "authorityProducer", "checks", "readerMayRelaxChecks", "writtenReportRules"],
       "properties": {
         "owner": { "const": "scripts/v0916_parity_certification.py" },
         "authorityProducer": { "const": "typed-preview-of-the-same-executor-and-staged-inputs" },
         "checks": {
           "const": ["validate_report_sequence", "validate_report_projection_against_compiled_authority", "validate_semantic_report_ranges"]
         },
-        "readerMayRelaxChecks": { "const": false }
+        "readerMayRelaxChecks": { "const": false },
+        "writtenReportRules": {
+          "const": {
+            "boardDecision": "1.2.x board decision 261",
+            "executedCommands": {
+              "executable": "staged-hash-checked-external-tool",
+              "workingDirectory": "below-process-temporary-directory",
+              "fileArguments": "working-directory-or-below",
+              "repeatedCommand": "kept-in-order"
+            },
+            "workAddressSpaces": ["ab-combiner-work", "tp-b-work"],
+            "workAddressSpaceRanges": "inside-same-side-preview-declared-ranges",
+            "processorWriteAudit": {
+              "source": "output-difference-ranges",
+              "contentPreviewsRead": false,
+              "addressSpace": "output-image",
+              "rule": "each-range-inside-one-preview-allowed-write-range",
+              "changedProcessorWithoutListedRange": "refused"
+            }
+          }
+        }
       }
     },
     "typedRejection": {

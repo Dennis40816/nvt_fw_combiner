@@ -4,7 +4,9 @@ No process, Git, capture validation or outcome classification lives here.
 The caller applies sequence, compiled-authority and range checks unchanged,
 in contract order, using the typed Preview of the same side as authority.
 Unknown optional members are recorded as JSON pointers, never as values;
-an unknown member of an operation or mutation row is refused.
+an unknown member of an operation or mutation row is refused. Executed commands
+are read in the shape a CLI writes them, and of an output difference only its
+range is read: its content previews are never read or kept.
 """
 
 from __future__ import annotations
@@ -40,6 +42,7 @@ OUTPUT_MEMBERS = frozenset({"Size", "Sha256", "Committed"})
 ISSUE_MEMBERS = frozenset({"Code", "Severity"})
 ISSUE_PRESENTATION_MEMBERS = frozenset({"Message", "OperationId"})
 ISSUE_SEVERITIES = frozenset({"error", "info", "unspecified", "warning"})
+RANGE_MEMBERS = frozenset({"Start", "Length", "EndExclusive"})
 
 
 class ReportReaderError(ValueError):
@@ -96,7 +99,32 @@ def _operation(raw: Any, path: str) -> dict[str, Any]:
     _exact(raw.get("Provenance"), PROVENANCE_MEMBERS, f"{path}/Provenance")
     for index, command in enumerate(_rows(raw.get("ExecutedCommands"), f"{path}/ExecutedCommands")):
         _exact(command, COMMAND_MEMBERS, f"{path}/ExecutedCommands/{index}")
-    return normalize_raw_operation(raw)
+    return normalize_raw_operation(raw, written_commands=True)
+
+
+def _executed_commands(operations: Any) -> list[dict[str, Any]]:
+    """Where each command ran, for the caller's check against the tools and directory it staged."""
+
+    rows = []
+    for operation in operations:
+        for sequence, command in enumerate(operation["ExecutedCommands"]):
+            located = {"operationId": operation["OperationId"], "sequence": sequence,
+                       "executablePath": command["ExecutablePath"], "workingDirectory": command["WorkingDirectory"]}
+            if not all(isinstance(located[member], str) for member in ("executablePath", "workingDirectory")):
+                raise ReportReaderError("malformed executed command")
+            rows.append(located)
+    return rows
+
+
+def _output_difference_range(raw: Any, path: str) -> dict[str, int]:
+    """Only the range of an output difference; no other member of the row is read."""
+
+    span = raw.get("Range") if isinstance(raw, Mapping) else None
+    if (not isinstance(span, Mapping) or set(span) != RANGE_MEMBERS
+            or any(type(span[member]) is not int for member in RANGE_MEMBERS)
+            or span["Length"] != span["EndExclusive"] - span["Start"]):
+        raise ReportReaderError(f"malformed output difference range at {path}")
+    return {"start": span["Start"], "endExclusive": span["EndExclusive"]}
 
 
 def _issue(raw: Any, path: str, unknown: list[str]) -> dict[str, str]:
@@ -116,6 +144,8 @@ def read_cli_report(raw: Mapping[str, Any], *, report_version: str) -> ReadRepor
     and future optional members outside operation and mutation rows are
     recorded only by name; inside those rows they are refused. Issues come only
     from this report; stderr and missing-report handling belong to the caller.
+    The context also carries where each command ran and the ranges of the
+    output differences, for the caller's checks.
     The caller loads JSON with the ADR 0057 duplicate-rejecting loader.
     """
 
@@ -127,6 +157,9 @@ def read_cli_report(raw: Mapping[str, Any], *, report_version: str) -> ReadRepor
         operations = [_operation(row, f"/Operations/{index}")
                       for index, row in enumerate(_rows(report["Operations"], "/Operations"))]
         mutations = [normalize_raw_mutation(row) for row in _rows(report["Mutations"], "/Mutations")]
+        commands = _executed_commands(report["Operations"])
+        differences = [_output_difference_range(row, f"/OutputDifferences/{index}")
+                       for index, row in enumerate(_rows(report["OutputDifferences"], "/OutputDifferences"))]
         inputs = []
         for index, row in enumerate(_rows(report["Inputs"], "/Inputs")):
             item = _members(row, INPUT_MEMBERS, f"/Inputs/{index}", unknown, frozenset({"OriginalFileName"}))
@@ -150,5 +183,6 @@ def read_cli_report(raw: Mapping[str, Any], *, report_version: str) -> ReadRepor
         "mapId": raw.get("MapId"), "compositionKind": report["CompositionKind"],
         "startedAtUtc": report["StartedAtUtc"], "completedAtUtc": report["CompletedAtUtc"],
         "orderedInputs": inputs, "output": output, "issueCount": len(issues),
+        "executedCommands": commands, "outputDifferenceRanges": differences,
     }
     return ReadReport(READER_VERSIONS[report_version], projection, context, issues, sorted(unknown))

@@ -288,6 +288,8 @@ class ProcessCapture(NamedTuple):
     failures: list[validation.Failure]
     settings_present: bool
     written_report_identity: dict[str, Any] | None
+    staged_tools: tuple[str, ...]
+    temporary_directory: str
 
     def evidence(self) -> validation.SideProcessEvidence:
         return validation.SideProcessEvidence(
@@ -295,6 +297,7 @@ class ProcessCapture(NamedTuple):
             None if self.report is None else self.report.context,
             [] if self.report is None else self.report.issues,
             self.inputs, self.output, self.failures, self.settings_present,
+            self.staged_tools, self.temporary_directory,
         )
 
 
@@ -381,6 +384,7 @@ class ProcessRunner:
         inputs: Sequence[Mapping[str, Any]], report_path: Path | None = None,
         output_path: Path | None = None, report_version: str = "1x",
         execution_hashes: Mapping[Path, str] | None = None,
+        tool_hashes: Mapping[Path, str] | None = None,
     ) -> ProcessCapture:
         if self.finished:
             raise ExecutionError("PREDECESSOR_ENVIRONMENT_INVALID", "run already finished")
@@ -396,7 +400,8 @@ class ProcessRunner:
         paths = [Path(row["path"]) for row in inputs]
         if any(not path.resolve().is_relative_to(work) for path in paths):
             raise ExecutionError("PREDECESSOR_INPUT_INVALID", "process input outside its staging root")
-        closure_hashes = execution_hashes or {}
+        # The staged external tools are under the same custody and hash checks as the runtime closure.
+        closure_hashes = {**(execution_hashes or {}), **(tool_hashes or {})}
         before: list[dict[str, Any] | None] = []
         after: list[dict[str, Any] | None] = []
         failures: list[validation.Failure] = []
@@ -446,7 +451,8 @@ class ProcessRunner:
         capture = ProcessCapture(record, read, [dict(row) for row in inputs], output, output_path,
                                  stdout, stderr, failures,
                                  any(value is not None for value in (*settings_before.values(), *settings_after.values())),
-                                 None if written is None else _payload_identity(written))
+                                 None if written is None else _payload_identity(written),
+                                 tuple(str(path) for path in (tool_hashes or {})), str(temporary))
         self.captures.append(capture)
         return capture
 
@@ -778,8 +784,8 @@ def execute_cli_stage(
     rows = validation.report_ordered_inputs(request["workflowId"], rows)
     try:
         cli, hashes = materialize_execution_closure(executor.closure, work / "runtime")
-        hashes.update(stage_external_tools(executor.external_tools, work,
-                                           runner.admission.contract["executor"]["externalToolStaging"]["tree"]))
+        tools = stage_external_tools(executor.external_tools, work,
+                                     runner.admission.contract["executor"]["externalToolStaging"]["tree"])
     except (ParityError, OSError) as error:
         raise ExecutionError("PREDECESSOR_EXECUTOR_INVALID", "cannot stage executor closure") from error
     report_path, output_path = work / "report.json", work / "output.bin"
@@ -789,7 +795,7 @@ def execute_cli_stage(
     arguments.extend(("--output", str(output_path), "--report", str(report_path)))
     return runner.run(stage=stage, argv=arguments, staging_root=work, inputs=rows,
                       report_path=report_path, output_path=output_path, report_version=executor.report_version,
-                      execution_hashes=hashes)
+                      execution_hashes=hashes, tool_hashes=tools)
 
 
 class SideResult(NamedTuple):

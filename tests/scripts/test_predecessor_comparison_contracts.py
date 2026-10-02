@@ -170,6 +170,12 @@ class PredecessorComparisonContractTests(unittest.TestCase):
             with self.subTest(check=name):
                 self.assertTrue(callable(getattr(MODULE, name, None)))
         self.assertFalse(safety["readerMayRelaxChecks"])
+        rules = safety["writtenReportRules"]
+        self.assertEqual(sorted(validation.WORK_ADDRESS_SPACES), rules["workAddressSpaces"])
+        self.assertEqual(validation.OUTPUT_ADDRESS_SPACE, rules["processorWriteAudit"]["addressSpace"])
+        self.assertIs(False, rules["processorWriteAudit"]["contentPreviewsRead"])
+        schema = load_json(CONTRACTS / "predecessor-comparison-v1.schema.json")
+        self.assertEqual(rules, schema["properties"]["perSideSafety"]["properties"]["writtenReportRules"]["const"])
         for name in ("declarationSchema", "reportSchema", "reportReader"):
             self.assertEqual("in-effect", self.contract["interfaces"][name]["status"])
         self.assertEqual(sorted(reader.READER_VERSIONS.values()), self.contract["interfaces"]["reportReader"]["readerVersions"])

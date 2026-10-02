@@ -21,6 +21,7 @@ import re
 import copy
 import hashlib
 from datetime import datetime
+from pathlib import PurePath
 from typing import Any, Iterable, Mapping, NamedTuple, Sequence
 
 try:
@@ -66,6 +67,10 @@ COVERAGE_ENTRY_KINDS = frozenset({"accepted-gap", "input-revision", "scenario-re
 # Stages before a Standard Merge precursor exists; a side stopped at one has none.
 PRECURSOR_STAGES = frozenset({"precursor-preview", "precursor-build"})
 PROCESS_FAILURE_ISSUE_CODES = frozenset({"external-tool.process.failed", "external-tool.process.start-failed"})
+# 1.2.x board decision 261: the address spaces a report uses without declaring a capacity, and the
+# address space whose changed ranges a report lists as output differences.
+WORK_ADDRESS_SPACES = frozenset({"ab-combiner-work", "tp-b-work"})
+OUTPUT_ADDRESS_SPACE = "output-image"
 # The codes of the shared execution failures (contract section "Shared
 # execution"; the report schema's scenarioFailureCode): an executor, the
 # environment, a staged input, a process, or a report or per-side safety check.
@@ -115,6 +120,10 @@ class SideProcessEvidence(NamedTuple):
     output: Mapping[str, Any] | None
     failures: Sequence[Failure]
     settings_present: bool
+    # The external tool files the comparator staged and hash-checked for this process, and the
+    # temporary directory it created for it; an executed command is held to both.
+    staged_tools: Sequence[str] = ()
+    temporary_directory: str | None = None
 
 
 class SideVerdict(NamedTuple):
@@ -356,6 +365,74 @@ def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
         reported_output["committed"] is not True or any(issue["severity"] == "error" for issue in evidence.issues)
     ):
         return [_failure("REPORT_INVALID", subject, "output is uncommitted or has an error issue")]
+    return _executed_command_failures(evidence)
+
+
+def _executed_command_failures(evidence: SideProcessEvidence) -> list[Failure]:
+    """Each executed command ran a staged, hash-checked external tool below the process's own temporary directory.
+
+    The reader has already held the command's file arguments to its working directory. The path text alone is
+    not trusted: the executable must be one of the files the comparator staged from the executor's commit and
+    checked by hash before and after the process.
+    """
+    assert evidence.context is not None
+    subject = evidence.process["stage"]
+    tools = {PurePath(path) for path in evidence.staged_tools}
+    temporary = None if evidence.temporary_directory is None else PurePath(evidence.temporary_directory)
+    for command in evidence.context["executedCommands"]:
+        if PurePath(command["executablePath"]) not in tools:
+            return [_failure("REPORT_INVALID", subject, "executed command is not a staged external tool")]
+        working = PurePath(command["workingDirectory"])
+        if temporary is None or working == temporary or not working.is_relative_to(temporary):
+            return [_failure("REPORT_INVALID", subject, "executed command worked outside the process temporary directory")]
+    return []
+
+
+def _declared_work_ranges(authority: Mapping[str, Any]) -> dict[str, list[tuple[int, int]]]:
+    """The ranges a Preview declares in each work address space; a report gives no capacity for them."""
+    declared: dict[str, list[tuple[int, int]]] = {space: [] for space in sorted(WORK_ADDRESS_SPACES)}
+    for operation in authority["compiledOperations"]:
+        target = operation.get("targetSpaceId")
+        rows = [(operation.get("sourceSpaceId"), operation.get("sourceRange")), (target, operation.get("targetRange"))]
+        processor = operation.get("processor") or {}
+        rows += [(target, row) for member in ("allowedReadRanges", "allowedWriteRanges") for row in processor.get(member, [])]
+        for space, row in rows:
+            if (space in declared and isinstance(row, Mapping)
+                    and type(row.get("start")) is int and type(row.get("endExclusive")) is int):
+                declared[space].append((row["start"], row["endExclusive"]))
+    return declared
+
+
+def _processor_write_audit_failures(
+    stage: str, projection: Mapping[str, Any], context: Mapping[str, Any], authority: Mapping[str, Any],
+) -> list[Failure]:
+    """Audit an external processor's writes from the ranges of the report's output differences.
+
+    Each listed range must lie inside one write range the Preview allows a processor in `output-image`. A
+    processor whose mutation row reports changed bytes must have a listed range inside its own allowed write
+    ranges; a report that lists none for it is refused, and so is a processor that changed bytes in another
+    address space, whose changes the output differences cannot show.
+    """
+
+    def allowed(operation: Mapping[str, Any]) -> list[tuple[int, int]]:
+        return [(row["start"], row["endExclusive"]) for row in operation["processor"]["allowedWriteRanges"]]
+
+    def inside(row: Mapping[str, int], spans: Sequence[tuple[int, int]]) -> bool:
+        return any(start <= row["start"] and row["endExclusive"] <= end for start, end in spans)
+
+    output_spans = [span for operation in authority["compiledOperations"]
+                    if operation.get("processor") and operation["targetSpaceId"] == OUTPUT_ADDRESS_SPACE
+                    for span in allowed(operation)]
+    differences = context["outputDifferenceRanges"]
+    if any(row["start"] < 0 or row["endExclusive"] <= row["start"] or not inside(row, output_spans) for row in differences):
+        return [_failure("REPORT_INVALID", stage, "output difference outside every write range the Preview allows")]
+    changed = {row["operationId"]: row["changedByteCount"] for row in projection["compiledMutations"]}
+    for operation in projection["compiledOperations"]:
+        if not operation.get("processor") or changed.get(operation["operationId"], 0) == 0:
+            continue
+        if (operation["targetSpaceId"] != OUTPUT_ADDRESS_SPACE
+                or not any(inside(row, allowed(operation)) for row in differences)):
+            return [_failure("REPORT_INVALID", stage, "processor changed bytes without a listed output difference")]
     return []
 
 
@@ -468,9 +545,13 @@ def side_execution_verdict(
             )
             validate_report_projection_against_compiled_authority(projection, authority)
             validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities),
-                                            declared_overlap=True)
+                                            declared_overlap=True, declared_work_ranges=_declared_work_ranges(authority),
+                                            audited_processor_writes=True)
+            audit = _processor_write_audit_failures(stage, projection, evidence.context, authority)
         except (ParityError, KeyError, TypeError, ValueError) as error:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, str(error))])
+        if audit:
+            return SideVerdict("invalid", stage, audit)
         if stage.endswith("build") and (
             projection["compilationFingerprint"] is None
             or projection["compilationFingerprint"] != authority["compilationFingerprint"]
@@ -1064,13 +1145,15 @@ def execution_capacities(evidence: SideProcessEvidence) -> dict[str, int]:
     """Input sizes are captured; output bounds come from bytes or the typed Preview.
 
     Build is still checked against that same side's Preview before its ranges.
-    Preview has no output artifact, so its compiled target extent is its bound.
+    Preview has no output artifact, so its compiled target extent in `output-image` is its bound;
+    a target in another address space never sets it.
     """
     capacities = {reported["addressSpaceId"]: captured["size"]
                   for reported, captured in zip((evidence.context or {}).get("orderedInputs", []), evidence.inputs)}
-    capacities["output-image"] = (evidence.output or {}).get("size", max(
+    capacities[OUTPUT_ADDRESS_SPACE] = (evidence.output or {}).get("size", max(
         (operation["targetRange"]["endExclusive"] for operation in
-         (evidence.projection or {}).get("compiledOperations", []) if operation.get("targetRange") is not None), default=0))
+         (evidence.projection or {}).get("compiledOperations", [])
+         if operation.get("targetRange") is not None and operation.get("targetSpaceId") == OUTPUT_ADDRESS_SPACE), default=0))
     return capacities
 
 
