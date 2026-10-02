@@ -1,6 +1,6 @@
 # BUG-20261002-idle-return-first-interaction-stall: the application seems to stall briefly after a long idle period
 
-Status: open; reported; first measurements done, a real idle run is pending
+Status: open; reported; not reproduced so far on a development build (a forced-trim probe and a 75-minute run)
 Severity: P3 until measured (a brief stall; no effect on firmware output)
 Found: 2026-10-02, the owner, in chat: "若閒置很久 回去操控好像會卡住一下，這是否屬實?". The owner asked whether this is
 real. The build (installed package or development build), the idle time, whether the display slept, what the owner
@@ -47,15 +47,20 @@ on a machine that was also running builds; evidence in the test area under `evid
 - After emptying the process's working set (from about 257 MB to under 10 MB; this causes soft faults only, the best
   case): the first pointer move takes 1 to 2 ms with about 5,000 to 8,000 page faults for a sweep of 24 moves; the
   tree walk takes 150 to 235 ms. No measurable delay in these two probes; neither measures what is painted.
-- So in these probes trimming alone, while the pages are still in memory, adds no delay a person would notice. A real
-  idle run (window minimized for 75 minutes, then restored and measured without artificial trimming) is running;
-  hard faults from the page file, the display waking up (cause 2) and a heavy first action (cause 4) are still open.
+- So in these probes trimming alone, while the pages are still in memory, adds no delay a person would notice.
+- A real idle run: the window stayed minimized for 75 minutes (15:29 to 16:44) while the machine kept working
+  and the display stayed on. The process was not trimmed: its working set was 76.3 MB when it was minimized and
+  114.7 MB before the restore (private bytes 215.2 and 211.5 MB).
+  Restoring the window and the first round trip took 53.8 ms; the first pointer move 0.27 ms; the first tree
+  walk 227 ms against 140 and 154 ms for the next two, inside the baseline's range. No stall was reproduced.
+- Still open, none measured yet: the display or the machine asleep (cause 2), memory pressure that forces hard
+  faults, the packaged build, a longer idle time, and a heavy first action (cause 4).
 Existing records: none for this symptom. R52 (native first-readable latency of the Memory Layout card, `1.2.12`),
 R30 (CtrlRAM cold first-open) and R28 (repeated notification, inspection and compile work) are related measurements
 but none covers the return from idle; the memory gates of 1.1.12 measure only the startup peak.
 What the owner was told (2026-10-02): plausible but not confirmed; the application does nothing of its own on
 return; the platform paging the idle process back in fits best; the commander measures it and records the result.
-Next step (the commander): finish the real idle run; repeat with the packaged build, whose code pages are not
+Next step (the commander): repeat with the packaged build, whose code pages are not
 backed by the image file and which therefore pages differently; compare "minimized only" with "after the display
 was off" (cause 2); check whether a card reopens after switching away and back (cause 3); time opening Build
 Settings first after a long idle (cause 4). The built-in startup trace stops after startup and cannot measure this.

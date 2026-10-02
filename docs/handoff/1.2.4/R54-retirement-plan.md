@@ -236,12 +236,13 @@ Release readiness still requires independent review, R3 role approval and candid
 ## 6. Decisions for the owner
 
 Retirement, NT51926 execution refusal and readable historical reports are settled (decisions 229 and 230).
-Leaving old rule files unchanged on disk is this plan's proposed default, not a recorded decision; it is
-confirmed together with question 2.
+Old rule files stay unchanged on disk (decision 264).
 Use "Customized Replace is retired" consistently because Customized Replace is the name users see.
 Proposed retirement exit code is 64, matching DP's retired command; today's failed rule check returns 1.
 This is a new retirement-specific result; unrelated invalid rules retain their existing errors and exit codes.
-Three questions remain; this inventory chooses neither firmware option.
+Questions 2 and 3 are answered by decision 264: option A in both (say that Customized Replace is retired and
+identify the rule, without listing its ranges; the same message with 64 for a Customized Merge command).
+Question 1 remains; this inventory chooses neither firmware option.
 
 **1. Firmware-owner: keep shared bundle/family/profile bytes, or rewrite and re-pin eight surviving CtrlRAM routes?**
 
@@ -260,7 +261,7 @@ The proof of A is a separate feasibility check, started on 2026-10-02 and not fi
 The split of `TrustedProfileBundleCatalogFactoryTests` (`docs/handoff/1.2.11/R33-05-candidates.md`) lands before
 this retirement: the test files Table 1 lists under that class then carry their new class names.
 
-**2. What should the command line show when it checks an old rule file?**
+**2. What should the command line show when it checks an old rule file?** Answered: A (decision 264).
 
 The entries are `saved-rule validate|mappings` (`src/NvtFwCombiner.Cli/SavedRuleCliCommandHandler.cs:27`)
 and a composition command's `--rule`; Presentation loads no Saved Rule file.
@@ -274,6 +275,7 @@ Both choices leave the file unchanged and refuse execution. A follows the minima
 B adds bounded read-only inspection in step 3, without a new Presentation viewer or rule conversion.
 
 **3. Should `general-merge --rule <old Replace rule>` say retired, or keep today's parent mismatch?**
+Answered: A (decision 264).
 
 `src/NvtFwCombiner.Cli/MergeCliCommandHandler.SavedRules.cs:28` calls Merge admission; exact-parent mismatch is
 reported at `src/NvtFwCombiner.Infrastructure/Composition/SavedCompositionRuleV2Admission.cs:70-75` for valid v2 rules.
@@ -282,7 +284,7 @@ reported at `src/NvtFwCombiner.Infrastructure/Composition/SavedCompositionRuleV2
 - **B — Keep today's message:** the command keeps reporting that the rule does not belong to Customized Merge,
   with exit code 1, and does not mention the retirement.
 
-Resolve this before step 3. Neither choice retires General Merge or converts the old rule into a Merge rule.
+Neither choice retires General Merge or converts the old rule into a Merge rule.
 
 ## 7. Limits
 
