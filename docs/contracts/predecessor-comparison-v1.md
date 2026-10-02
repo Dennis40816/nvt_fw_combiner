@@ -659,6 +659,21 @@ second implementation. The comparator's staged-command identity check
    and `RunExternalProcessor`; an unknown kind, missing range or unnamed
    address space refuses. The `output-image` output-difference audit is unchanged.
 
+   **Owner decision 278 (2026-10-03): v0.9.16 baseline exception.** A later
+   read of `ab-combiner-work` may instead be exactly the whole B bank
+   `[262144, 524288)`, even when it exceeds the processor's allowed write
+   ranges. This reuses decision 273's gate: the declared baseline executor's
+   `report_version="v0916"`, passed as `v0916_executor` to the existing audit,
+   never a filename, route name or version string inside the report. No other
+   range (including a one-byte extension or reduction or the A bank), work
+   space, rolling or 1.x executor receives this exception. Later writes to
+   `ab-combiner-work` remain forbidden, and the candidate keeps the full
+   decision 271 audit. Preview/Build authority, range and declared-overlap
+   checks remain in force; complete outputs are still compared byte for byte.
+   The serialized `workAddressSpaceAudit.laterReads` retains the general
+   decision 271 rule; this section defines its decision 278 exception without
+   changing the report or executor format.
+
    **Current refusal is stricter than decision 261:** the audit holds every
    `OutputDifferences` row to processor write ranges, including a non-processor
    row such as `DeclaredReplacement`. It does not filter rows by their producer.
