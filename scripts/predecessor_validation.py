@@ -154,7 +154,7 @@ def execution_mode_failures(contract: Mapping[str, Any], mode: str) -> list[Fail
 
 
 def executor_compiler_host_failures(compiler_host: Mapping[str, Any]) -> list[Failure]:
-    """Admit the closed compiler-host settings, including the pending decision-79 extension, never status alone."""
+    """Admit closed compiler-host settings and the comparator-only runtime pin approved by decisions 275 and 277."""
     if compiler_host.get("status") != "in-effect":
         return []
     required = compiler_host.get("requiredRuntime")
@@ -165,7 +165,7 @@ def executor_compiler_host_failures(compiler_host: Mapping[str, Any]) -> list[Fa
             != ["-p:RuntimeFrameworkVersion=" + str(required.get("version"))]):
         return [_failure("EXECUTOR_INVALID", "compilerHost", "RuntimeFrameworkVersion must equal requiredRuntime.version")]
     expected = {
-        "status": "in-effect", "boardDecisions": ["1.1.12 board decision 79"],
+        "status": "in-effect", "boardDecisions": ["1.1.12 board decision 79", "1.2.x board decision 275", "1.2.x board decision 277"],
         "requiredRuntime": {"framework": "Microsoft.NETCore.App", "version": "10.0.11", "architecture": "x64"},
         "environmentVariables": {"DOTNET_ROLL_FORWARD": "Disable"},
         "extraBuildArguments": ["-p:UseSharedCompilation=false", "-nodeReuse:false", "-p:RuntimeFrameworkVersion=10.0.11"],
@@ -186,7 +186,8 @@ def baseline_executor_binding_failures(baseline: Mapping[str, Any], raw: bytes |
         return []
     binding = baseline.get("contract")
     valid = (set(baseline) == {"status", "boardDecisions", "contract"}
-             and baseline.get("boardDecisions") == ["1.1.12 board decision 63", "1.1.12 board decision 79"]
+             and baseline.get("boardDecisions") == ["1.1.12 board decision 63", "1.1.12 board decision 79",
+                                                     "1.2.x board decision 275", "1.2.x board decision 277"]
              and isinstance(binding, Mapping) and set(binding) == {"path", "size", "sha256"}
              and binding.get("path") == BASELINE_EXECUTOR_V2_PATH
              and type(binding.get("size")) is int and binding["size"] > 0
@@ -570,9 +571,6 @@ def side_execution_verdict(
         if authority is None:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "no same-side Preview authority")])
         try:
-            if (process["exitCode"] != 0 and projection["compiledOperations"]
-                    and any(row.get("status") != "skipped" for row in projection["compiledOperations"])):
-                return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "rejected process has an operation that ran")])
             has_skipped = any(row.get("status") == "skipped" for row in projection["compiledOperations"])
             skipped_rejection = (
                 has_skipped and process["exitCode"] != 0
@@ -608,7 +606,8 @@ def side_execution_verdict(
         failures = _side_capture_failures(evidence)
         if failures:
             return SideVerdict("invalid", stage, failures)
-        if (stage.endswith("build") and preview_output is not None and evidence.context["output"] is not None
+        if (stage.endswith("build") and evidence.output is not None
+                and preview_output is not None and evidence.context["output"] is not None
                 and _identity(preview_output) != _identity(evidence.context["output"])):
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Build output size or hash differs from Preview prediction")])
         if process["exitCode"] != 0:
@@ -619,6 +618,8 @@ def side_execution_verdict(
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "nonzero exit is not a typed rejection")])
         if any(issue["severity"] == "error" for issue in evidence.issues):
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful process has error issue")])
+        if stage.endswith("preview") and not v0916_executor and preview_output is None:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful 1.x Preview has no output prediction")])
         if stage.endswith("build") and evidence.output is None:
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "successful Build has no captured output")])
     if not complete:

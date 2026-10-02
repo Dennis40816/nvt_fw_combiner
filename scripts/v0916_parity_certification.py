@@ -3363,11 +3363,15 @@ def _non_overlapping(ranges: Sequence[tuple[int, int]]) -> bool:
 
 
 def _invalid_declared_overlap(
-    operation: Mapping[str, Any], target: tuple[int, int], earlier: Sequence[tuple[int, int]],
+    operation: Mapping[str, Any], writes: Sequence[tuple[int, int]], earlier: Sequence[tuple[int, int]],
 ) -> bool:
-    """`ReplaceExisting` requires an earlier target in its address space; other policies must not overlap."""
-    overlaps = any(target[0] < row[1] and row[0] < target[1] for row in earlier)
-    return overlaps != (operation.get("overlapPolicy") == "ReplaceExisting")
+    """Mirror CompositionOperation.GetProfileOverlapError over declared writes in one address space."""
+    overlaps = any(write[0] < row[1] and row[0] < write[1] for write in writes for row in earlier)
+    if operation.get("overlapPolicy") != "ReplaceExisting":
+        return overlaps
+    return (not overlaps or operation.get("kind") not in {
+        "CopyRange", "RunExternalProcessor", "ReplaceRange", "PatchScalar", "TransformScalar",
+    } or not all(any(_contained(write, row) for row in earlier) for write in writes))
 
 
 def validate_semantic_report_ranges(
@@ -3381,7 +3385,8 @@ def validate_semantic_report_ranges(
     report overlays ranges on purpose: an operation whose overlap policy is `ReplaceExisting`
     writes over an earlier target. With `declared_overlap`, targets are compared inside their own
     address space, in strictly increasing integer sequence order, and such an operation must
-    overlap an earlier target; no other operation may do so.
+    have every declared write fully covered by one earlier write; no other operation may overlap.
+    Processors declare their allowed write ranges; other operations declare their target.
 
     `declared_work_ranges` names the address spaces without a measured capacity and the ranges
     the authority declared in each; a range in such a space must lie inside one of them.
@@ -3406,9 +3411,7 @@ def validate_semantic_report_ranges(
             target = _range(operation["targetRange"], expected_space=operation["targetSpaceId"], capacities=capacities, declared=declared_work_ranges)
             target_ranges.append(target)
             earlier = targets_by_space.setdefault(operation["targetSpaceId"], [])
-            if declared_overlap and _invalid_declared_overlap(operation, target, earlier):
-                _fail("PARITY_REPORT_RANGE_INVALID")
-            earlier.append(target)
+            writes = [target]
             source = operation.get("sourceRange")
             if source is not None:
                 source_range = _range(source, expected_space=operation["sourceSpaceId"], capacities=capacities, declared=declared_work_ranges)
@@ -3421,6 +3424,12 @@ def validate_semantic_report_ranges(
                     admitted = [_range(row, expected_space=operation["targetSpaceId"], capacities=capacities, declared=declared_work_ranges) for row in processor[field]]
                     if not _non_overlapping(admitted) or any(not _contained(row, target) for row in admitted):
                         _fail("PARITY_REPORT_RANGE_INVALID")
+                    if field == "allowedWriteRanges" and operation.get("kind") == "RunExternalProcessor":
+                        writes = admitted
+            if declared_overlap:
+                if _invalid_declared_overlap(operation, writes, earlier):
+                    _fail("PARITY_REPORT_RANGE_INVALID")
+                earlier.extend(writes)
         if not declared_overlap and not _non_overlapping(target_ranges):
             _fail("PARITY_REPORT_RANGE_INVALID")
         for mutation in mutations:
@@ -3498,15 +3507,20 @@ def _written_command(sequence: int, command: Mapping[str, Any]) -> dict[str, Any
         _fail("PARITY_PROVENANCE_INVALID")
     argument_paths = [Path(value) for value in arguments if Path(value).is_absolute()]
     tokens = [value for value in arguments if not Path(value).is_absolute()]
+    # Inspect attached option values as well as bare tokens. These prefixes
+    # carry no file authority and cannot hide a device or parent traversal.
+    option_values = [re.sub(r"^(?:--[^=:]+[=:]|/[^:]+:|-[^-])", "", value, count=1) for value in tokens]
     parents = executable.parts[:-1]
     if (not arguments or not executable.is_absolute() or not working.is_absolute() or "external-tools" not in parents
             or any(".." in path.parts for path in (executable, working, *argument_paths))
             or any(not path.is_relative_to(working) for path in argument_paths)
             or any(value in (".", "..") or value.startswith("@") or "%" in value
                    or any(mark in value for mark in ("/", "\\", ":"))
-                   or re.fullmatch(r"CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9¹²³]|LPT[1-9¹²³]",
+                   for value in tokens)
+            or any(".." in re.split(r"[/\\]", value)
+                   or re.fullmatch(r"CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[0-9¹²³]|LPT[0-9¹²³]",
                                    value.split(".", 1)[0].rstrip(" "), re.IGNORECASE)
-                   for value in tokens)):
+                   for value in option_values)):
         _fail("PARITY_PROVENANCE_INVALID")
     index = len(parents) - 1 - parents[::-1].index("external-tools")
     package_root = Path(*executable.parts[:index])

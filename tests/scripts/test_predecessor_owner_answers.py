@@ -99,6 +99,54 @@ class OwnerAnswersTests(unittest.TestCase):
                 result = verdict(raw)
                 self.assertEqual("invalid", result.status)
                 self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
+                # Isolate the named processor audit from the shared range checker:
+                # unnamed spaces can also fail that earlier checker.
+                measured = evidence(raw)
+                details = validation._processor_write_audit_failures(
+                    "preview", measured.projection, measured.context, measured.projection,
+                    declared_work_ranges=validation._declared_work_ranges(measured.projection))
+                expected = {
+                    "outside": "later work-space read outside every processor allowed write range",
+                    "outside-zero-change": "later work-space read outside every processor allowed write range",
+                    "straddles": "later work-space read outside every processor allowed write range",
+                    "write": "later operation writes the processor work address space",
+                    "unknown": "unknown later operation kind in work-space processor audit",
+                    "missing-range": "later operation has no named read range",
+                    "unnamed-space": "later operation has no named read range",
+                }
+                self.assertEqual([validation.Failure("PREDECESSOR_REPORT_INVALID", "preview", expected[shape])], details)
+
+    def test_work_processor_audit_refuses_wrong_kind_and_later_processor_without_declaration(self):
+        for shape, detail in (
+            ("wrong-kind", "unknown work-space processor operation kind"),
+            ("undeclared-later-processor", "later processor has no declared ranges"),
+        ):
+            with self.subTest(shape=shape):
+                measured = evidence(ab_report(processor=True))
+                operations = measured.projection["compiledOperations"]
+                if shape == "wrong-kind":
+                    operations[4]["kind"] = "CopyRange"
+                else:
+                    operations[5]["kind"] = "RunExternalProcessor"
+                result = validation._processor_write_audit_failures(
+                    "preview", measured.projection, measured.context, measured.projection,
+                    declared_work_ranges=validation._declared_work_ranges(measured.projection))
+                self.assertEqual([validation.Failure("PREDECESSOR_REPORT_INVALID", "preview", detail)], result)
+
+    def test_all_skipped_output_processor_refuses_even_a_difference_inside_its_write_range(self):
+        raw = ab_report(processor=True)
+        raw.update(Mutations=[], Output=None, Issues=[{"Code": "product.rejected", "Severity": "Error"}])
+        # Keep only the output container and an output-image processor.
+        raw["Operations"] = [raw["Operations"][0], raw["Operations"][4]]
+        raw["Operations"][1]["TargetSpaceId"] = "output-image"
+        for operation in raw["Operations"]:
+            operation.update(Status="Skipped", ExecutedCommands=[])
+        self.assertEqual("rejected", verdict(raw, exit_code=1).status)
+        raw["OutputDifferences"] = [written_output_difference(1, 10, 11)]
+        result = verdict(raw, exit_code=1)
+        self.assertEqual(("invalid", [validation.Failure(
+            "PREDECESSOR_REPORT_INVALID", "preview",
+            "Skipped operations do not satisfy no-write typed rejection conditions")]), (result.status, result.failures))
 
     def test_all_skipped_rejection_accepts_preview_and_build_without_writes(self):
         raw = rejected_report()
@@ -106,8 +154,32 @@ class OwnerAnswersTests(unittest.TestCase):
         preview = copy.deepcopy(raw)
         preview["Operations"][0]["Status"] = "Succeeded"
         preview["Issues"] = []
+        preview["Output"] = {"FileName": "synthetic.bin", "Size": 8, "Sha256": "b" * 64, "Committed": False}
         pair = [evidence(preview), evidence(raw, "build", exit_code=1)]
         self.assertEqual("rejected", validation.side_execution_verdict(pair, capacities=CAPACITIES).status)
+
+    def test_all_skipped_build_accepts_the_products_uncommitted_empty_output_description(self):
+        raw = ab_report(processor=True)
+        raw.update(Mutations=[], Issues=[{"Code": "product.rejected", "Severity": "Error"}])
+        raw["Output"].update(Size=0, Sha256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", Committed=False)
+        for operation in raw["Operations"]:
+            operation.update(Status="Skipped", ExecutedCommands=[])
+        pair = [evidence(ab_report(processor=True)), evidence(raw, "build", exit_code=1)]
+        result = validation.side_execution_verdict(pair, capacities=CAPACITIES)
+        self.assertEqual(("rejected", []), (result.status, result.failures))
+        raw["Output"]["Committed"] = True
+        result = validation.side_execution_verdict([pair[0], evidence(raw, "build", exit_code=1)], capacities=CAPACITIES)
+        self.assertEqual("invalid", result.status)
+
+    def test_build_rejection_after_succeeded_operations_and_mutations_remains_rejected(self):
+        preview = ab_report(processor=True)
+        build = copy.deepcopy(preview)
+        build["Issues"] = [{"Code": "product.publication-blocked", "Severity": "Error"}]
+        self.assertTrue(build["Mutations"])
+        self.assertTrue(all(row["Status"] == "Succeeded" for row in build["Operations"]))
+        result = validation.side_execution_verdict(
+            [evidence(preview), evidence(build, "build", exit_code=1)], capacities=CAPACITIES)
+        self.assertEqual(("rejected", []), (result.status, result.failures))
 
     def test_all_skipped_processors_without_commands_are_rejections_only_with_all_five_conditions(self):
         raw = ab_report(processor=True)
@@ -157,6 +229,10 @@ class OwnerAnswersTests(unittest.TestCase):
                     raw["Issues"][0]["Severity"] = "Warning"
                 elif shape == "one-ran":
                     raw["Operations"][0]["Status"] = "Succeeded"
+                    skipped = copy.deepcopy(raw["Operations"][0])
+                    skipped.update(OperationId="skipped-copy", Sequence=1, Status="Skipped",
+                                   TargetRange={"Start": 8, "Length": 8, "EndExclusive": 16})
+                    raw["Operations"].append(skipped)
                 elif shape == "mutation":
                     raw["Mutations"] = raw_report()["Mutations"]
                 elif shape == "command":
@@ -209,7 +285,7 @@ class OwnerAnswersTests(unittest.TestCase):
                                                            declared_work_ranges=declared, audited_processor_writes=True)
 
     def test_preview_build_output_identity_must_match_when_both_describe_output(self):
-        for shape in ("equal", "size", "hash", "no-prediction"):
+        for shape in ("equal", "size", "hash"):
             with self.subTest(shape=shape):
                 preview = ab_report()
                 build = copy.deepcopy(preview)
@@ -218,8 +294,6 @@ class OwnerAnswersTests(unittest.TestCase):
                     preview["Output"]["Size"] = 15
                 elif shape == "hash":
                     preview["Output"]["Sha256"] = "d" * 64
-                elif shape == "no-prediction":
-                    preview["Output"] = None
                 pair = [evidence(preview), evidence(build, "build", output={"size": 16, "sha256": "c" * 64})]
                 result = validation.side_execution_verdict(pair, capacities=CAPACITIES)
                 self.assertEqual("invalid" if shape in ("size", "hash") else "output", result.status)
@@ -240,6 +314,21 @@ class OwnerAnswersTests(unittest.TestCase):
         result = validation.side_execution_verdict(pairs, capacities=CAPACITIES)
         self.assertEqual(("invalid", "precursor-build"), (result.status, result.stopped_at))
         self.assertIn("Build output size or hash differs from Preview prediction", result.failures[0].detail)
+
+    def test_successful_preview_requires_output_prediction_only_for_a_1x_executor(self):
+        raw = ab_report()
+        raw["Output"] = None
+        for stage in ("preview", "precursor-preview"):
+            for old_executor in (False, True):
+                with self.subTest(stage=stage, v0916_executor=old_executor):
+                    result = validation.side_execution_verdict(
+                        [evidence(raw, stage)], capacities=CAPACITIES, complete=False, v0916_executor=old_executor)
+                    if old_executor:
+                        self.assertEqual(("ready", []), (result.status, result.failures))
+                    else:
+                        self.assertEqual(("invalid", [validation.Failure(
+                            "PREDECESSOR_REPORT_INVALID", stage, "successful 1.x Preview has no output prediction")]),
+                            (result.status, result.failures))
 
     def test_terminal_projection_default_still_accepts_succeeded_and_refuses_skipped(self):
         rejected = evidence(rejected_report(), exit_code=1).projection

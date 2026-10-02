@@ -229,7 +229,8 @@ class V0916Processes(SyntheticProcesses):
             if report["Output"] is not None:
                 output_path = Path(argv[argv.index("--output") + 1])
                 payload = self.payload if isinstance(change, bytes) or name == "tp" or side == "candidate" else PAYLOAD
-                output_path.write_bytes(payload)
+                if action == "build":
+                    output_path.write_bytes(payload)
                 report["Output"].update(Size=len(payload), Sha256=identity(payload)["sha256"])
             report_path.write_bytes(encoded(report))
         return value

@@ -200,8 +200,10 @@ def written_1x_processor_report(*, committed, tool, working, base_sha256, replac
     merge = {"ExecutablePath": str(tool), "WorkingDirectory": str(working),
              "Arguments": ["MERGE_MODE", firmware, firmware, "0x0", "0x0", "16", block, "0x0", "0x4", "4"]}
     crc = {"ExecutablePath": str(tool), "WorkingDirectory": str(working), "Arguments": ["CRC8", firmware, "0x0"]}
-    replace = _written_operation("replace-nf-00", 100, "ReplaceRange", "Reject",
-                                 ("replace-ctrlram-nf", 0, 4), ("output-image", 4, 8))
+    # Explicitly seed the whole output before the processor overlays it. Each
+    # processor write must have an earlier full cover, just as in the compiler.
+    replace = _written_operation("copy-reference", 100, "CopyRange", "Reject",
+                                 ("reference-base", 0, 16), ("output-image", 0, 16))
     postbuild = _written_operation(
         "postbuild-single", 2147483647, "RunExternalProcessor", "ReplaceExisting", None, ("output-image", 0, 16),
         processor={"id": "nfc.synthetic.ctrlram-postbuild-v1", "writes": [(0, 2), (4, 8), (12, 16)],

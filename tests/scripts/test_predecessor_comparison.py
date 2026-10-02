@@ -50,7 +50,8 @@ def report(*, preview: bool = False) -> dict[str, Any]:
     value["Inputs"][0].update(ArtifactId="source", Sha256=digest(PAYLOAD))
     value["Output"]["Sha256"] = digest(PAYLOAD)
     if preview:
-        value.update(Output=None, Mutations=[])
+        value["Output"]["Committed"] = False
+        value["Mutations"] = []
     return value
 
 
@@ -304,8 +305,6 @@ class ComparisonTests(unittest.TestCase):
                 raw = report(preview=True)
                 if stage == "preview":
                     raw.update(Operations=[], Mutations=[], CompilationFingerprint=None)
-                else:
-                    raw["Operations"][0]["Status"] = "Skipped"
                 raw["Issues"] = [{"Code": "product.rejected", "Severity": "Error"}]
                 captures = [] if stage == "preview" else [self.capture("preview", report(preview=True), output=None)]
                 captures.append(self.capture(stage, raw, exit_code=1, output=None))
@@ -616,6 +615,60 @@ class ComparisonTests(unittest.TestCase):
         raw["Operations"][1]["OverlapPolicy"] = "ReplaceExisting"
         self.assert_refused(self.merge_side([self.merge_capture("preview", raw)]),
                             "preview", "PARITY_REPORT_RANGE_INVALID")
+
+    def test_declared_replace_existing_requires_full_cover_by_one_earlier_write(self):
+        capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}
+        for kind in ("CopyRange", "ReplaceRange", "PatchScalar", "TransformScalar", "FillRange"):
+            for end, accepted in ((4, kind != "FillRange"), (6, False)):
+                with self.subTest(kind=kind, target=(2, end)):
+                    projection = comparison.read_cli_report(merge_report(committed=False, overlay=True), report_version="1x").projection
+                    projection["compiledMutations"] = []
+                    earlier, later = projection["compiledOperations"]
+                    earlier["sourceRange"]["endExclusive"] = earlier["targetRange"]["endExclusive"] = 4
+                    later.update(kind=kind, sourceRange=None, sourceSpaceId=None,
+                                 targetRange={"addressSpace": "output-image", "start": 2, "endExclusive": end})
+                    if accepted:
+                        parity.validate_semantic_report_ranges(projection, capacities, declared_overlap=True)
+                    else:
+                        with self.assertRaises(parity.ParityError) as found:
+                            parity.validate_semantic_report_ranges(projection, capacities, declared_overlap=True)
+                        self.assertEqual("PARITY_REPORT_RANGE_INVALID", found.exception.code)
+
+    def test_declared_overlap_uses_processor_writes_and_refuses_cover_from_adjacent_writes(self):
+        capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}
+        base = comparison.read_cli_report(merge_report(committed=False, overlay=True), report_version="1x").projection
+        base["compiledMutations"] = []
+        earlier, later = base["compiledOperations"]
+        earlier["sourceRange"]["endExclusive"] = earlier["targetRange"]["endExclusive"] = 4
+        later.update(kind="RunExternalProcessor", sourceRange=None, sourceSpaceId=None,
+                     targetRange={"addressSpace": "output-image", "start": 0, "endExclusive": 8},
+                     processor={"allowedReadRanges": [], "allowedWriteRanges": [
+                         {"addressSpace": "output-image", "start": 1, "endExclusive": 2}]})
+        parity.validate_semantic_report_ranges(base, capacities, declared_overlap=True)
+        partial = copy.deepcopy(base)
+        partial["compiledOperations"][1]["processor"]["allowedWriteRanges"][0].update(start=2, endExclusive=6)
+        with self.assertRaises(parity.ParityError):
+            parity.validate_semantic_report_ranges(partial, capacities, declared_overlap=True)
+
+        only_declared = copy.deepcopy(base)
+        earlier, later = only_declared["compiledOperations"]
+        earlier.update(kind="RunExternalProcessor", sourceRange=None, sourceSpaceId=None,
+                       processor={"allowedReadRanges": [], "allowedWriteRanges": [
+                           {"addressSpace": "output-image", "start": 0, "endExclusive": 2}]})
+        later["processor"]["allowedWriteRanges"][0].update(start=2, endExclusive=3)
+        with self.assertRaises(parity.ParityError):
+            parity.validate_semantic_report_ranges(only_declared, capacities, declared_overlap=True)
+
+        adjacent = copy.deepcopy(base)
+        earlier, later = adjacent["compiledOperations"]
+        earlier["sourceRange"]["endExclusive"] = earlier["targetRange"]["endExclusive"] = 2
+        second = copy.deepcopy(earlier)
+        second.update(operationId="second", sequence=150,
+                      targetRange={"addressSpace": "output-image", "start": 2, "endExclusive": 4})
+        adjacent["compiledOperations"].insert(1, second)
+        later["processor"]["allowedWriteRanges"][0].update(start=0, endExclusive=4)
+        with self.assertRaises(parity.ParityError):
+            parity.validate_semantic_report_ranges(adjacent, capacities, declared_overlap=True)
 
     def test_described_output_without_a_file_needs_committed_false(self):
         capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}
@@ -1266,8 +1319,10 @@ class ComparisonTests(unittest.TestCase):
             base_sha256="a" * 64, replacement_sha256="b" * 64, output_sha256="c" * 64)["Operations"][1]
         raw["ExecutedCommands"] = raw["ExecutedCommands"][-1:]
         devices = ("NUL", "CON", "PRN", "AUX", "CONIN$", "CONOUT$",
-                   *(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "123456789¹²³"))
+                   *(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in "0123456789¹²³"))
         refused = [token for device in devices for token in (device, device.lower() + ".bin")]
+        refused += [prefix + token for prefix in ("-o", "--out=", "--out:", "/out:")
+                    for token in (*devices, *(device.lower() + ".bin" for device in devices), "..", "../file", "dir/../file", "dir\\..\\file")]
         refused += ["@rsp", "@", "%USERPROFILE%", "prefix%variable%suffix"]
         for token in refused:
             with self.subTest(token=token):
@@ -1275,8 +1330,9 @@ class ComparisonTests(unittest.TestCase):
                 with self.assertRaises(parity.ParityError) as found:
                     parity.normalize_raw_operation(raw, written_commands=True)
                 self.assertEqual("PARITY_PROVENANCE_INVALID", found.exception.code)
-                parity.normalize_raw_operation(raw)
-        for token in ("CRC8", "COM0", "COM10", "LPT0", "LPT10", "CONSOLE", "NULish.bin", "name@value"):
+                if not any(mark in token for mark in ("/", "\\", ":")):
+                    parity.normalize_raw_operation(raw)
+        for token in ("CRC8", "COM10", "LPT10", "CONSOLE", "NULish.bin", "name@value", "-oresult.bin", "--out=result.bin"):
             with self.subTest(ordinary=token):
                 raw["ExecutedCommands"][0]["Arguments"] = [token]
                 self.assertEqual(parity.normalize_raw_operation(raw),

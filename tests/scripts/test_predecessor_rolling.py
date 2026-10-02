@@ -285,7 +285,8 @@ class SyntheticProcesses(FakeProcessHost):
         value["Mutations"][0].update(TargetRange=dict(span), ChangedByteCount=160)
         value["Output"].update(Size=len(output), Sha256=rolling.sha256(output))
         if action == "preview":
-            value.update(Output=None, Mutations=[])
+            value["Output"]["Committed"] = False
+            value["Mutations"] = []
         if rejection:
             value.update(Output=None, Operations=[], Mutations=[], CompilationFingerprint=None)
             value["Issues"] = [{"Code": "synthetic.product-rejection", "Severity": "error"}]
@@ -311,7 +312,7 @@ class SyntheticProcesses(FakeProcessHost):
                 value["Operations"][0]["TargetRange"].update(Length=161, EndExclusive=161)
                 value["Mutations"][0]["TargetRange"].update(Length=161, EndExclusive=161)
         Path(argv[argv.index("--report") + 1]).write_bytes(json.dumps(value).encode())
-        if value["Output"] is not None:
+        if value["Output"] is not None and action == "build":
             Path(argv[argv.index("--output") + 1]).write_bytes(output)
         return subprocess.CompletedProcess(argv, exit_code, "", "")
 
