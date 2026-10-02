@@ -247,7 +247,8 @@ No question remains open.
 **1. Firmware-owner: keep shared bundle/family/profile bytes, or rewrite and re-pin eight surviving CtrlRAM routes?**
 Answered: B (decision 266): the definition leaves the shared bundle in this retirement and the eight routes are
 registered again once, with complete before and after outputs and write ranges for the owner. The text below is
-kept as the record of what was asked.
+kept as the record of what was asked. Table 1, sections 4 and 7 and step 4 of section 5 were written before this
+decision and still treat option A as the working assumption; they are re-derived for B before step 4 starts.
 
 - **A — Keep bytes (conditional, not yet recommended):** keep bundle/family/profile files, including the retired declaration;
   remove only its trust-index registration, policy row and manifest row from active data. Remove runtime publication

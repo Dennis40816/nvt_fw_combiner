@@ -3,6 +3,11 @@
 Status: 2026-10-02; source commit `1f1be9bc7e0238a2cc7bc2e39f9026b051093855`; spike, not merged. The experiment ran
 the same day (section "Experiment result" at the end). The firmware owner then chose option B (board decision
 266): this document stays as the record of what option A needed and of the experiment; it is not the plan.
+Everything from the "Recommendation" line to "Unconfirmed and limits" was written before the experiment and
+before decision 266: its recommendation, the option A write set and its "not built, not run" statements are
+superseded by the experiment result at the end and by that decision. Two test files it cites
+(`TrustedProfileBundleCatalogFactoryTests.ReplaceLowering.cs`, `.RuntimeReferenceReplace.cs`) were renamed by
+pull request #528.
 Recommendation: **static inspection shows option A is feasible with bounded code/test changes; a build, freshly computed fingerprints and the Golden run must confirm it.** No bundle rewrite or survivor re-pinning is predicted, not yet proved by execution.
 The retained declaration is admitted catalog content, not active route publication. Withdrawal alone does not prohibit direct compilation.
 Scope: the shared NT51926 CtrlRAM admission/artifact boundary in plan section 6 question 1 and step 4, not all R54 removals.
