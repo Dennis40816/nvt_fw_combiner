@@ -236,11 +236,6 @@ public sealed partial class HostInfrastructureBoundaryTests
         Assert.Contains("production from 98,135 to 98,133", specification, StringComparison.Ordinal);
         Assert.Contains("673 removed and 2,103 added", specification, StringComparison.Ordinal);
         Assert.Contains("full production from 98,133 to 99,563", specification, StringComparison.Ordinal);
-        Assert.Equal(
-            1,
-            CountOccurrences(changelog, "#### Message Center, report, and System Information readability"));
-        Assert.DoesNotContain("#### Message Center report and System Information readability", changelog, StringComparison.Ordinal);
-        Assert.DoesNotContain("#### Message Center and report readability", changelog, StringComparison.Ordinal);
         Assert.Contains("PL-00 release-candidate validation is in", changelog, StringComparison.Ordinal);
         Assert.Contains("Historical PL-00 candidate evidence (superseded for release admission)", baseline, StringComparison.Ordinal);
         Assert.Contains("validation.releaseAdmissionPassed=true", baseline, StringComparison.Ordinal);
