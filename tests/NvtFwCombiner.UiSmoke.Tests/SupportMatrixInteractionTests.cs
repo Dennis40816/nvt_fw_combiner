@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NvtFwCombiner.Presentation.Avalonia;
+using NvtFwCombiner.Presentation.Avalonia.Behaviors;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.UiSmoke.Tests.ReportControlTestHost;
@@ -110,6 +111,9 @@ public sealed class SupportMatrixInteractionTests
                 Assert.Equal(model.AccessibleDetail, AutomationProperties.GetHelpText(cell));
                 ToolTip tooltip = Assert.IsType<ToolTip>(ToolTip.GetTip(cell));
                 Assert.False(tooltip.IsHitTestVisible);
+                // A tooltip over its own cell takes the pointer from the cell and reopens in a loop (hover flicker).
+                Assert.Equal(PlacementMode.Custom, ToolTip.GetPlacement(cell));
+                Assert.Same(ClearOfTargetToolTipPlacement.Callback, cell.GetValue(ToolTip.CustomPopupPlacementCallbackProperty));
                 Assert.Contains(tooltip.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == model.IcId);
                 Assert.Contains(tooltip.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == model.WorkflowLabel);
                 Rect cellBounds = Bounds(cell, window);
