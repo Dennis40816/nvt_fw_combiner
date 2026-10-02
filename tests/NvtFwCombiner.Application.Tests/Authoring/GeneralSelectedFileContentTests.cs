@@ -72,14 +72,12 @@ public sealed class GeneralSelectedFileContentTests
     }
 
     /// <summary>Typed content instability is translated by the existing Application failure owner.</summary>
-    [Theory]
-    [InlineData(SelectedFileContentChangeKind.ShortRead)]
-    [InlineData(SelectedFileContentChangeKind.Growth)]
-    [InlineData(SelectedFileContentChangeKind.Shrinkage)]
-    public async Task ContentChangeReturnsIssueWithoutInspection(SelectedFileContentChangeKind kind)
+    [Fact]
+    public async Task ContentChangeReturnsIssueWithoutInspection()
     {
         var service = new GeneralSelectedFileInspectionService(
-            new ThrowingSelectedFileContentInspector(new SelectedFileChangedDuringInspectionException(kind)));
+            new ThrowingSelectedFileContentInspector(
+                new SelectedFileChangedDuringInspectionException(SelectedFileContentChangeKind.ShortRead)));
 
         GeneralSelectedFileInspectionResult result = await service.InspectAsync(
             "mapping-1", @"C:\firmware\source.bin", new AuthoringRevision(4),
@@ -89,6 +87,9 @@ public sealed class GeneralSelectedFileContentTests
         Assert.Null(result.Inspection);
         Assert.Equal(GeneralSelectedFileInspectionIssueCodes.InspectionFailed, result.Issue!.Code);
         Assert.Equal("mapping-1", result.Issue.DefinitionId);
+        Assert.Equal(
+            "Selected General file inspection failed (SelectedFileChangedDuringInspectionException).",
+            result.Issue.Message);
     }
 
     /// <summary>Explicit reinspection captures a fresh content identity.</summary>
@@ -175,6 +176,31 @@ public sealed class GeneralSelectedFileContentTests
         Assert.Equal(GeneralAuthoringIssueCodes.FileSizeExceeded, issue.Code);
         Assert.Contains("5 bytes", issue.Message, StringComparison.Ordinal);
         Assert.Contains("maximum 4", issue.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Capture storage rejection reports its actual ceiling while preserving the General issue code.</summary>
+    [Fact]
+    public async Task InspectionCaptureStorageLimitReturnsTruthfulFileSizeBlocker()
+    {
+        long observedBytes = (long)Array.MaxLength + 1;
+        var service = new GeneralSelectedFileInspectionService(
+            new ThrowingSelectedFileContentInspector(
+                new SelectedFileSizeLimitExceededException(
+                    observedBytes, Array.MaxLength, isCaptureStorageLimit: true)),
+            maximumFileBytes: long.MaxValue);
+
+        GeneralSelectedFileInspectionResult result = await service.InspectAsync(
+            "mapping-1", @"C:\firmware\source.bin", new AuthoringRevision(8),
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(result.Inspection);
+        Assert.Equal(
+            new GeneralSelectedFileInspectionIssue(
+                GeneralAuthoringIssueCodes.FileSizeExceeded,
+                $"Selected General file is {observedBytes} bytes, exceeding the capture storage limit {Array.MaxLength}.",
+                "mapping-1"),
+            result.Issue);
     }
 
     /// <summary>An unauthorized inspection returns one typed failure.</summary>

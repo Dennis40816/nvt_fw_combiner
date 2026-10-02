@@ -44,6 +44,7 @@ public sealed partial class FileContentSnapshotInspectorTests
 
         Assert.Equal(4, exception.ObservedBytes);
         Assert.Equal(3, exception.MaximumBytes);
+        Assert.False(exception.IsCaptureStorageLimit);
     }
 
     /// <summary>The fixed-workflow hard ceiling rejects a sparse oversized file before allocation.</summary>
@@ -113,8 +114,10 @@ public sealed partial class FileContentSnapshotInspectorTests
     }
 
     /// <summary>Same-size file mutation is visible even when host length does not change.</summary>
-    [Fact]
-    public async Task InspectAsyncDetectsSameSizeMutation()
+    [Theory]
+    [InlineData(SelectedFileContentInspectionMode.IdentityOnly)]
+    [InlineData(SelectedFileContentInspectionMode.CaptureBytes)]
+    public async Task InspectAsyncDetectsSameSizeMutation(SelectedFileContentInspectionMode mode)
     {
         using var workspace = TempWorkspace.Create();
         string path = workspace.Write("input.bin", [1, 2, 3, 4]);
@@ -123,7 +126,7 @@ public sealed partial class FileContentSnapshotInspectorTests
             path,
             maximumBytes: int.MaxValue,
             CancellationToken.None,
-            SelectedFileContentInspectionMode.IdentityOnly);
+            mode);
         await File.WriteAllBytesAsync(
             path,
             [1, 2, 9, 4],
@@ -133,13 +136,21 @@ public sealed partial class FileContentSnapshotInspectorTests
             path,
             maximumBytes: int.MaxValue,
             CancellationToken.None,
-            SelectedFileContentInspectionMode.IdentityOnly);
+            mode);
 
         Assert.Equal(first.FileStamp.AcceptedLength, second.FileStamp.AcceptedLength);
         Assert.NotEqual(first.FileStamp, second.FileStamp);
         Assert.Equal(FileStamp.FromBytes([1, 2, 9, 4]), second.FileStamp);
-        Assert.Null(first.AcceptedBytes);
-        Assert.Null(second.AcceptedBytes);
+        if (mode == SelectedFileContentInspectionMode.CaptureBytes)
+        {
+            Assert.Equal([1, 2, 3, 4], first.AcceptedBytes!.Value.ToArray());
+            Assert.Equal([1, 2, 9, 4], second.AcceptedBytes!.Value.ToArray());
+        }
+        else
+        {
+            Assert.Null(first.AcceptedBytes);
+            Assert.Null(second.AcceptedBytes);
+        }
     }
 
     /// <summary>Inspection rejects a selected path outside its configured roots.</summary>

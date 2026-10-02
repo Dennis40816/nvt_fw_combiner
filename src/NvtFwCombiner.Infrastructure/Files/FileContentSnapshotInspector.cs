@@ -110,7 +110,8 @@ public sealed class FileContentSnapshotInspector
         cancellationToken.ThrowIfCancellationRequested();
         if (mode == SelectedFileContentInspectionMode.CaptureBytes && observedLength > Array.MaxLength)
         {
-            throw new SelectedFileSizeLimitExceededException(observedLength, Array.MaxLength);
+            throw new SelectedFileSizeLimitExceededException(
+                observedLength, Array.MaxLength, isCaptureStorageLimit: true);
         }
 
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -123,8 +124,11 @@ public sealed class FileContentSnapshotInspector
         {
             cancellationToken.ThrowIfCancellationRequested();
             int requested = (int)Math.Min(buffer.Length, checked(observedLength - offset));
+            Memory<byte> destination = acceptedBytes is null
+                ? buffer.AsMemory(0, requested)
+                : acceptedBytes.AsMemory(checked((int)offset), requested);
             int read = await stream.ReadAsync(
-                    buffer.AsMemory(0, requested),
+                    destination,
                     cancellationToken)
                 .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
@@ -134,11 +138,7 @@ public sealed class FileContentSnapshotInspector
                     SelectedFileContentChangeKind.ShortRead);
             }
 
-            hash.AppendData(buffer, 0, read);
-            if (acceptedBytes is not null)
-            {
-                buffer.AsMemory(0, read).CopyTo(acceptedBytes.AsMemory(checked((int)offset), read));
-            }
+            hash.AppendData(destination.Span[..read]);
             offset = checked(offset + read);
         }
 

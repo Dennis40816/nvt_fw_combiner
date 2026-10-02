@@ -59,13 +59,25 @@ public sealed class SelectedFileSizeLimitExceededException : Exception
     public SelectedFileSizeLimitExceededException(
         long observedBytes,
         long maximumBytes)
+        : this(observedBytes, maximumBytes, isCaptureStorageLimit: false)
+    {
+    }
+
+    /// <summary>Creates a typed size rejection identifying whether capture storage imposed the ceiling.</summary>
+    public SelectedFileSizeLimitExceededException(
+        long observedBytes,
+        long maximumBytes,
+        bool isCaptureStorageLimit)
         : base(
-            $"Selected file length {observedBytes} exceeds the resolved maximum {maximumBytes} bytes.")
+            isCaptureStorageLimit
+                ? $"Selected file length {observedBytes} exceeds the capture storage limit {maximumBytes} bytes."
+                : $"Selected file length {observedBytes} exceeds the resolved maximum {maximumBytes} bytes.")
     {
         ArgumentOutOfRangeException.ThrowIfNegative(observedBytes);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         ObservedBytes = observedBytes;
         MaximumBytes = maximumBytes;
+        IsCaptureStorageLimit = isCaptureStorageLimit;
     }
 
     /// <summary>Whole-file length observed before hashing.</summary>
@@ -73,6 +85,9 @@ public sealed class SelectedFileSizeLimitExceededException : Exception
 
     /// <summary>Inclusive whole-file ceiling imposed by the caller or capture storage.</summary>
     public long MaximumBytes { get; }
+
+    /// <summary>True when capture storage, rather than the caller's resolved ceiling, imposed the limit.</summary>
+    public bool IsCaptureStorageLimit { get; }
 }
 
 /// <summary>The selected file changed while its admitted bytes were being inspected.</summary>

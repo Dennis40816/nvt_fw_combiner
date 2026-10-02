@@ -52,14 +52,12 @@ public sealed partial class FileContentSnapshotInspectorTests
         Assert.True(stream.MaximumRequested <= 65536);
     }
 
-    /// <summary>Identity inspection counts and hashes beyond both 2 and 4 GiB without allocating a payload.</summary>
+    /// <summary>Identity inspection hashes beyond 2 and 4 GiB against Python-computed SHA-256 for 0xA5 bytes.</summary>
     [Theory]
-    [InlineData(2147483665L)]
-    [InlineData(4294967313L)]
-    public async Task ReadAndHashExactLengthAsyncUsesLongCountersWithoutPayload(long length)
+    [InlineData(2147483665L, "f650a6f46439a9d3cf3d83254cff0321a139e94bc9dbdf280da93df545f0a196")]
+    [InlineData(4294967313L, "f8378e7969a7ef05ad12276fed64adf6cbcf7e31ec74249a7b6f0b84d4caf32e")]
+    public async Task ReadAndHashExactLengthAsyncUsesLongCountersWithoutPayload(long length, string expectedSha256)
     {
-        await using var expectedStream = new GeneratedReadStream(length);
-        byte[] expected = await SHA256.HashDataAsync(expectedStream, TestContext.Current.CancellationToken);
         await using var stream = new GeneratedReadStream(length);
 
         (byte[]? acceptedBytes, byte[] actual) = await FileContentSnapshotInspector.ReadAndHashExactLengthAsync(
@@ -67,7 +65,7 @@ public sealed partial class FileContentSnapshotInspectorTests
             TestContext.Current.CancellationToken);
 
         Assert.Null(acceptedBytes);
-        Assert.Equal(expected, actual);
+        Assert.Equal(expectedSha256, Convert.ToHexStringLower(actual));
         Assert.Equal(length, stream.Position);
         Assert.Equal(length, stream.TotalBytesRead);
         Assert.Equal(((length + 65535) / 65536) + 1, stream.ReadCalls);
@@ -75,10 +73,12 @@ public sealed partial class FileContentSnapshotInspectorTests
     }
 
     /// <summary>A capture request cannot overflow its byte-array index before any content read.</summary>
-    [Fact]
-    public async Task ReadAndHashExactLengthAsyncRejectsUnrepresentableCaptureBeforeReading()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReadAndHashExactLengthAsyncRejectsUnrepresentableCaptureBeforeReading(bool useArrayBoundary)
     {
-        long length = (long)int.MaxValue + 1;
+        long length = useArrayBoundary ? (long)Array.MaxLength + 1 : (long)int.MaxValue + 1;
         await using var stream = new GeneratedReadStream(length);
 
         SelectedFileSizeLimitExceededException exception =
@@ -89,7 +89,82 @@ public sealed partial class FileContentSnapshotInspectorTests
 
         Assert.Equal(length, exception.ObservedBytes);
         Assert.Equal(Array.MaxLength, exception.MaximumBytes);
+        Assert.True(exception.IsCaptureStorageLimit);
         Assert.Equal(0, stream.ReadCalls);
+    }
+
+    /// <summary>Capture preserves and hashes every byte when the stream returns only 17 bytes per read.</summary>
+    [Fact]
+    public async Task ReadAndHashExactLengthAsyncCapturesPartialReads()
+    {
+        const int length = 53;
+        await using var stream = new GeneratedReadStream(length, maximumReadSize: 17);
+        byte[] expectedBytes = new byte[length];
+        Array.Fill(expectedBytes, (byte)0xA5);
+
+        (byte[]? acceptedBytes, byte[] actual) = await FileContentSnapshotInspector.ReadAndHashExactLengthAsync(
+            stream, length, SelectedFileContentInspectionMode.CaptureBytes,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedBytes, acceptedBytes);
+        Assert.Equal(SHA256.HashData(expectedBytes), actual);
+        Assert.Equal(length, stream.TotalBytesRead);
+        Assert.Equal(5, stream.ReadCalls);
+        Assert.Equal(length, stream.Position);
+    }
+
+    /// <summary>A changed position at EOF rejects both modes without publishing a stamp or captured bytes.</summary>
+    [Theory]
+    [InlineData(SelectedFileContentInspectionMode.IdentityOnly)]
+    [InlineData(SelectedFileContentInspectionMode.CaptureBytes)]
+    public async Task ReadAndHashExactLengthAsyncRejectsFinalPositionChange(SelectedFileContentInspectionMode mode)
+    {
+        const long length = 53;
+        await using var stream = new GeneratedReadStream(length);
+        stream.AfterRead = (source, read) =>
+        {
+            if (read == 0)
+            {
+                source.Position = length - 1;
+            }
+        };
+
+        SelectedFileChangedDuringInspectionException exception =
+            await Assert.ThrowsAsync<SelectedFileChangedDuringInspectionException>(() =>
+                FileContentSnapshotInspector.ReadAndHashExactLengthAsync(
+                    stream, length, mode, TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(SelectedFileContentChangeKind.PositionChanged, exception.ChangeKind);
+        Assert.Equal(length, stream.TotalBytesRead);
+        Assert.Equal(2, stream.ReadCalls);
+    }
+
+    /// <summary>Non-seekable streams are identified without accessing unsupported length or position members.</summary>
+    [Theory]
+    [InlineData(SelectedFileContentInspectionMode.IdentityOnly)]
+    [InlineData(SelectedFileContentInspectionMode.CaptureBytes)]
+    public async Task ReadAndHashExactLengthAsyncSupportsNonSeekableStream(SelectedFileContentInspectionMode mode)
+    {
+        const int length = 53;
+        await using var stream = new GeneratedReadStream(length, canSeek: false);
+        byte[] expectedBytes = new byte[length];
+        Array.Fill(expectedBytes, (byte)0xA5);
+
+        (byte[]? acceptedBytes, byte[] actual) = await FileContentSnapshotInspector.ReadAndHashExactLengthAsync(
+            stream, length, mode, TestContext.Current.CancellationToken);
+
+        Assert.False(stream.CanSeek);
+        Assert.Equal(SHA256.HashData(expectedBytes), actual);
+        Assert.Equal(length, stream.TotalBytesRead);
+        Assert.Equal(2, stream.ReadCalls);
+        if (mode == SelectedFileContentInspectionMode.CaptureBytes)
+        {
+            Assert.Equal(expectedBytes, acceptedBytes);
+        }
+        else
+        {
+            Assert.Null(acceptedBytes);
+        }
     }
 
     /// <summary>Growth after a buffer read rejects both modes with only a one-byte trailing probe.</summary>
@@ -180,8 +255,13 @@ public sealed partial class FileContentSnapshotInspectorTests
         Assert.Equal(65536, stream.Position);
     }
 
-    private sealed class GeneratedReadStream(long length, int maximumReadSize = int.MaxValue) : Stream
+    private sealed class GeneratedReadStream(
+        long length,
+        int maximumReadSize = int.MaxValue,
+        bool canSeek = true) : Stream
     {
+        private long _position;
+
         internal long ReadableLength { get; set; } = length;
         internal long ReportedLength { get; set; } = length;
         internal long TotalBytesRead { get; private set; }
@@ -190,10 +270,21 @@ public sealed partial class FileContentSnapshotInspectorTests
         internal Action<GeneratedReadStream, int>? AfterRead { get; set; }
 
         public override bool CanRead => true;
-        public override bool CanSeek => true;
+        public override bool CanSeek => canSeek;
         public override bool CanWrite => false;
-        public override long Length => ReportedLength;
-        public override long Position { get; set; }
+        public override long Length => canSeek ? ReportedLength : throw new NotSupportedException();
+        public override long Position
+        {
+            get => canSeek ? _position : throw new NotSupportedException();
+            set
+            {
+                if (!canSeek)
+                {
+                    throw new NotSupportedException();
+                }
+                _position = value;
+            }
+        }
 
         public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
@@ -210,9 +301,9 @@ public sealed partial class FileContentSnapshotInspectorTests
         {
             ReadCalls++;
             MaximumRequested = Math.Max(MaximumRequested, buffer.Length);
-            int read = (int)Math.Min(Math.Min(buffer.Length, maximumReadSize), ReadableLength - Position);
+            int read = (int)Math.Min(Math.Min(buffer.Length, maximumReadSize), ReadableLength - _position);
             buffer[..read].Fill(0xA5);
-            Position = checked(Position + read);
+            _position = checked(_position + read);
             TotalBytesRead = checked(TotalBytesRead + read);
             AfterRead?.Invoke(this, read);
             return read;
