@@ -1,6 +1,6 @@
 # BUG-20261002-predecessor-work-space-processor-lists-no-output-difference: the write-range audit has nothing to read for a processor that writes a work address space
 
-Status: open (needs a firmware owner decision)
+Status: fixed on this branch (decision 271)
 Severity: P1 for the predecessor comparison (the three NT51950 AB Merge scenarios stay `invalid`)
 Found: 2026-10-02, Claude Code (Opus 5.5), in the R35-09 real-execution rehearsal against `v1.2.1`, at
 `feature/1.2.2/executor-contract`@`5eb2f9fda`
@@ -34,5 +34,20 @@ Options for the owner:
    product change, holds for the `v1.2.1` baseline, and is checked from the report alone.
 2. Leave the three routes as an approved coverage gap until a release lists work-space differences in its report.
 3. Change the product report; the `v1.2.1` baseline cannot change, so the gap of option 2 stays for one release.
-Owner: unassigned; firmware owner decision (R3)
-Resolution: not fixed.
+Owner: executor-contract workstream; firmware owner decision 271 (R3)
+Resolution: decision 271 approved option 1 on 2026-10-02, adding the prohibition
+on every later write to the processor's work address space. The comparator's
+`_processor_write_audit_failures` now reads the same side's Preview-bound compiled
+operations for a processor targeting a declared work space: each later read must
+fit completely inside one allowed write range, and no later operation may write
+that space. Outside and straddling reads, later writes, unknown operation kinds,
+missing ranges and unnamed spaces refuse. Processors targeting `output-image`
+retain the original output-difference audit, including its stricter refusal of
+non-processor difference rows. The ADR 0057 default path is unchanged.
+Regression evidence: `test_predecessor_owner_answers.py` was red before the rule;
+its accepted and refused work-space shapes now pass, and the written NT51950 AB
+Merge shape passes `test_predecessor_comparison.py`. These are synthetic per-side
+checks, not a fresh real-build rehearsal or byte/Golden certification. The history
+and rehearsal observations above remain the pre-fix evidence; the commander must
+rerun the rehearsal and obtain independent review and firmware/release-owner gates
+on the final reviewed source before integration.

@@ -177,12 +177,15 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         self.assertFalse(safety["readerMayRelaxChecks"])
         rules = safety["writtenReportRules"]
         self.assertEqual(sorted(validation.WORK_ADDRESS_SPACES), rules["workAddressSpaces"])
+        self.assertEqual(sorted(validation.V0916_WORK_ADDRESS_SPACES), rules["v0916ExecutorWorkAddressSpaces"])
         self.assertEqual(validation.OUTPUT_ADDRESS_SPACE, rules["processorWriteAudit"]["addressSpace"])
         self.assertIs(False, rules["processorWriteAudit"]["contentPreviewsRead"])
         schema = load_json(CONTRACTS / "predecessor-comparison-v1.schema.json")
         for member in ("owner", "checks"):
             self.assertEqual(safety[member], schema["properties"]["perSideSafety"]["properties"][member]["const"])
         self.assertEqual(rules, schema["properties"]["perSideSafety"]["properties"]["writtenReportRules"]["const"])
+        self.assertEqual(self.contract["typedRejection"]["skippedOperations"],
+                         schema["properties"]["typedRejection"]["properties"]["skippedOperations"]["const"])
         for name in ("declarationSchema", "reportSchema", "reportReader"):
             self.assertEqual("in-effect", self.contract["interfaces"][name]["status"])
         self.assertEqual(sorted(reader.READER_VERSIONS.values()), self.contract["interfaces"]["reportReader"]["readerVersions"])

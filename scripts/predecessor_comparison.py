@@ -838,22 +838,25 @@ def execute_side_stages(
         captures.append(capture)
         capacities[stage] = validation.execution_capacities(capture.evidence())
         verdict = validation.side_execution_verdict([item.evidence() for item in captures], capacities={},
-                                                    capacities_by_stage=capacities, complete=False)
+                                                    capacities_by_stage=capacities, complete=False,
+                                                    v0916_executor=executor.report_version == "v0916")
         if verdict.status != "ready":
             break
         if stage == "precursor-build":
             precursor = capture
-    return ScenarioExecution(assemble_side_result(captures, capacities={}, capacities_by_stage=capacities), captures)
+    return ScenarioExecution(assemble_side_result(captures, capacities={}, capacities_by_stage=capacities,
+                                                  v0916_executor=executor.report_version == "v0916"), captures)
 
 
 def assemble_side_result(
     captures: Sequence[ProcessCapture], *, capacities: Mapping[str, int],
     capacities_by_stage: Mapping[str, Mapping[str, int]] | None = None,
+    v0916_executor: bool = False,
 ) -> SideResult:
     """Project the validator's verdict into exactly the report schema's side."""
 
     verdict = validation.side_execution_verdict([capture.evidence() for capture in captures], capacities=capacities,
-                                               capacities_by_stage=capacities_by_stage)
+                                               capacities_by_stage=capacities_by_stage, v0916_executor=v0916_executor)
     issues = [dict(issue) for capture in captures if capture.report is not None for issue in capture.report.issues]
     precursor = next((capture.output for capture in captures if capture.record["stage"] == "precursor-build"), None)
     output = next((capture.output for capture in captures if capture.record["stage"] == "build"), None)

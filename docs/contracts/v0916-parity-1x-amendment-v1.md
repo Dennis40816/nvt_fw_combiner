@@ -139,10 +139,8 @@ force-evaluate restore, seven pinned lock rewrites and explained complete diff,
 compiler host 10.0.11, and closure identical to v1. The builder checks source,
 tool and SDK pins, the complete post-restore/post-build delta and the final
 PDB/managed/CLI/closure pins. The terminal plan keeps v1 unchanged.
-The build's `-p:RuntimeFrameworkVersion=10.0.11` argument is an extension of
-decision 79 that waits for the release owner's decision; it is not authorized
-by that decision's compiler-host list. The v2 JSON and its raw amendment binding
-remain unchanged.
+The build's `-p:RuntimeFrameworkVersion=10.0.11` argument is an extension of decision 79 that the release owner approved on 2026-10-02 (board decision 275).
+The v2 JSON and its raw amendment binding remain unchanged.
 
 This activation is an R3 change requiring exact-head approval of its last
 push by both the firmware owner and the release owner, with byte/Golden,

@@ -3255,7 +3255,9 @@ def _valid_mutation(mutation: Mapping[str, Any], operations: Sequence[Mapping[st
     return True
 
 
-def validate_report_projection_against_compiled_authority(projection: Mapping[str, Any], authority: Mapping[str, Any]) -> None:
+def validate_report_projection_against_compiled_authority(
+    projection: Mapping[str, Any], authority: Mapping[str, Any], *, skipped_rejection: bool = False,
+) -> None:
     operations = projection.get("compiledOperations")
     expected = authority.get("compiledOperations")
     mutations = projection.get("compiledMutations")
@@ -3263,18 +3265,33 @@ def validate_report_projection_against_compiled_authority(projection: Mapping[st
         _fail("PARITY_PROVENANCE_INVALID")
     if projection.get("compilationFingerprint") is not None and projection.get("compilationFingerprint") != authority.get("compilationFingerprint"):
         _fail("PARITY_PROVENANCE_INVALID")
-    if operations != expected or len({row.get("operationId") for row in operations}) != len(operations):
+    # Comparator decision 272: a rejected run performed no operation. The caller
+    # proves the exit, issue, capture and no-write conditions before opting in.
+    comparable = operations
+    if skipped_rejection:
+        if mutations or any(row.get("status") != "skipped" or row.get("executedCommands") != [] for row in operations):
+            _fail("PARITY_PROVENANCE_INVALID")
+        if len(operations) != len(expected) or any(row.get("status") not in ("succeeded", "skipped") for row in expected):
+            _fail("PARITY_PROVENANCE_INVALID")
+        # Status and executed commands describe execution, not compiled write
+        # authority. A skipped Build carries neither successful status nor the
+        # commands its successful Preview ran; all other fields remain exact.
+        comparable = [{**row, "status": prior["status"], "executedCommands": prior["executedCommands"]}
+                      for row, prior in zip(operations, expected)]
+    if comparable != expected or len({row.get("operationId") for row in operations}) != len(operations):
         _fail("PARITY_PROVENANCE_INVALID")
     for operation in operations:
-        if operation.get("status") != "succeeded" or not operation.get("reason"):
+        if operation.get("status") != ("skipped" if skipped_rejection else "succeeded") or not operation.get("reason"):
             _fail("PARITY_PROVENANCE_INVALID")
         processor = operation.get("processor")
         commands = operation.get("executedCommands")
         if processor is None:
             if commands != []:
                 _fail("PARITY_PROVENANCE_INVALID")
-        elif not isinstance(commands, list) or not commands or [row.get("sequence") for row in commands] != list(range(len(commands))):
+        elif not skipped_rejection and (not isinstance(commands, list) or not commands or [row.get("sequence") for row in commands] != list(range(len(commands)))):
             _fail("PARITY_PROVENANCE_INVALID")
+    if skipped_rejection:
+        return
     if len({row.get("operationId") for row in mutations}) != len(mutations) or any(not _valid_mutation(row, operations) for row in mutations):
         _fail("PARITY_PROVENANCE_INVALID")
     if projection.get("compilationFingerprint") is not None:
@@ -3538,7 +3555,10 @@ def _normalize_raw_operation(raw: Mapping[str, Any], *, written_commands: bool =
         if raw["ToolBindingId"] is not None or raw["ProcessorAllowedReadRanges"] or raw["ProcessorAllowedWriteRanges"] or commands:
             _fail("PARITY_PROVENANCE_INVALID")
         return result
-    if not isinstance(commands, list) or not commands:
+    # Written comparator reports also describe processors that never ran. Their
+    # empty command list carries no execution authority; decision 272 is checked
+    # by the per-side caller. The terminal normalizer keeps its default refusal.
+    if not isinstance(commands, list) or (not commands and not (written_commands and result["status"] == "skipped")):
         _fail("PARITY_PROVENANCE_INVALID")
     result["processor"] = {
         "processorId": raw["ProcessorId"], "toolBindingId": raw["ToolBindingId"],

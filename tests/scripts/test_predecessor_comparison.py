@@ -304,6 +304,8 @@ class ComparisonTests(unittest.TestCase):
                 raw = report(preview=True)
                 if stage == "preview":
                     raw.update(Operations=[], Mutations=[], CompilationFingerprint=None)
+                else:
+                    raw["Operations"][0]["Status"] = "Skipped"
                 raw["Issues"] = [{"Code": "product.rejected", "Severity": "Error"}]
                 captures = [] if stage == "preview" else [self.capture("preview", report(preview=True), output=None)]
                 captures.append(self.capture(stage, raw, exit_code=1, output=None))
@@ -1399,10 +1401,11 @@ class ComparisonTests(unittest.TestCase):
         with self.assertRaises(parity.ParityError):
             parity.validate_semantic_report_ranges(preview, measured, declared_work_ranges=declared, **options)
 
-    def test_processor_that_writes_a_work_address_space_lists_no_difference_and_is_refused(self):
-        """The NT51950 AB Merge shape. Decision 261 audits output differences; this report lists none."""
+    def test_processor_that_writes_a_work_address_space_is_audited_by_its_later_reads(self):
+        """Decision 271 admits the NT51950 AB Merge shape without an output difference."""
         captures, result = self.ab_side(combiner=True)
-        self.assert_refused(result, "preview", "processor changed bytes without a listed output difference")
+        self.assertEqual("output", result.side["status"])
+        self.assertEqual([], result.failures)
         self.assertEqual([], captures[0].report.context["outputDifferenceRanges"])
 
     def test_terminal_defaults_still_refuse_the_written_shapes(self):

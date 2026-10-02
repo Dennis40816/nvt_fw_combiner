@@ -335,9 +335,9 @@ same host's `x64` architecture. Restore/build alone receive
 `DOTNET_ROLL_FORWARD=Disable`; build appends `-p:UseSharedCompilation=false`
 and `-nodeReuse:false` and `-p:RuntimeFrameworkVersion=10.0.11` once; the
 `RuntimeFrameworkVersion` value must equal `compilerHost.requiredRuntime.version`.
-The `-p:RuntimeFrameworkVersion=10.0.11` argument is an extension of decision
-79 that waits for the release owner's decision. `compilerHost.boardDecisions`
-records the decision-79 compiler-host pinning; it does not authorize this extension.
+The `-p:RuntimeFrameworkVersion=10.0.11` argument is an extension of decision 79 that the release owner approved on 2026-10-02 (board decision 275).
+`compilerHost.boardDecisions` records the original decision-79 compiler-host pinning;
+decision 275 authorizes this extension without changing the executor v2 JSON or its amendment binding.
 Every path restores the previous environment.
 Missing runtime or a wrong architecture refuses with
 `PREDECESSOR_EXECUTOR_INVALID`, without installing or selecting another host.
@@ -443,6 +443,16 @@ times out, exits without a report or reports a process failure is
 `PREDECESSOR_PROCESS_FAILED`; it is never a rejection and can never be
 declared or approved.
 
+For a rejection with compiled operations, decision 272 admits `Skipped` only
+when all five conditions hold: the process exits nonzero; its written report
+carries an `error` issue; every operation is `Skipped`; there is no write record
+(no mutation row, processor command or output difference); and no output file
+exists for that side. One operation that ran makes the side `invalid`.
+The comparator opts into the shared projection check's `skipped_rejection`
+only after proving these conditions. A skipped processor may describe its
+declared ranges without an executed command; this supplies no execution authority.
+The ADR 0057 default normalization and projection checks still refuse that shape.
+
 The CLI reads `event-buffer-format.v1.json` and `toolchain-runtime.v1.json`
 from the local application-data folder. The P-0.5 spike confirmed that
 `LOCALAPPDATA` or `APPDATA` alone does not redirect that folder and that
@@ -473,7 +483,15 @@ second implementation. The comparator's staged-command identity check
    operations to be the Preview's, in order, and its mutations to follow that
    order, and `validate_report_projection_against_compiled_authority` requires
    the Build projection's compiled operations to equal the authority's
-   exactly and every mutation to lie inside its own operation. A report that
+   exactly and every mutation to lie inside its own operation. Decision 272's
+   no-write typed rejection opts into `skipped_rejection`: only the operation
+   status and execution-only command records may differ from a succeeded Preview, every observed operation must
+   be `Skipped`, and there may be no mutation, command, output difference or
+   output file. The nonzero-exit and report-error requirements above still
+   apply; the compiled operation identities, order, ranges and other fields
+   remain bound to that Preview. In particular, a processor that ran in the
+   Preview may have commands there and none in the skipped Build; its processor
+   declaration and allowed ranges must still match exactly. A report that
    widens its own operation or processor ranges together with its mutations
    is therefore rejected even though it is self-consistent. A processor's
    writes are held to the authority's allowed write ranges by the audit of
@@ -504,6 +522,11 @@ second implementation. The comparator's staged-command identity check
    outside them, and a range in any other address space that is neither an
    input nor `output-image`, is refused. A Preview's `output-image` bound is
    the extent of its targets in `output-image` only.
+   Decision 273 adds `a-bank-work` and `b-bank-work` only for the declared
+   `v0.9.16` baseline executor (`report_version="v0916"`, selected by the
+   mode's executor identity). No filename or version string inside a report
+   can select these names. The same Preview containment rule applies; every
+   other executor refuses them.
 3. **Capture.** The report agrees with the captured inputs and output, and a
    side that produced an output carries no `error` issue. A Preview, or a run
    that stops before it writes, describes the output it would write with
@@ -511,6 +534,11 @@ second implementation. The comparator's staged-command identity check
    identity and is not compared with a capture. A described output without a
    file and with any other `Committed` value, or an output file whose report
    is not `Committed: true`, is `PREDECESSOR_REPORT_INVALID`.
+   In addition, decision 274 requires each same-side Preview/Build pair,
+   including the precursor pair, to agree on output size and SHA-256 whenever
+   both reports describe output. Either mismatch is `PREDECESSOR_REPORT_INVALID`
+   with `Build output size or hash differs from Preview prediction`. A Preview
+   without an output prediction adds no equality check; other safety checks remain.
 4. **Executed commands** (decision 261). The executable of every executed
    command must be one of the external tool files the comparator staged for
    that process and checked by hash before and after it; the path text alone
@@ -525,26 +553,35 @@ second implementation. The comparator's staged-command identity check
    kept, and the Build's commands are compared with the Preview's in the
    order they appear. A processor operation without an executed command is
    still refused.
-5. **Write-range audit of an external processor** (decision 261). A written
+5. **Write-range audit of an external processor** (decisions 261 and 271). A written
    mutation row of a processor is its whole operation target, so the audit
    reads the ranges the report lists under `OutputDifferences`, and only the
    ranges: the content previews of those rows are never read or kept. Each
    listed range must lie inside one write range that the Preview allows a
    processor in `output-image`. A processor whose mutation row reports
    changed bytes must have a listed range inside its own allowed write
-   ranges; a report that lists none for it is refused, and so is a processor
-   that changed bytes in another address space, whose changes the output
-   differences cannot show. The comparator computes no byte difference of its
-   own for this audit.
+   ranges; an `output-image` processor that lists none for its changed bytes
+   is still refused. The comparator computes no byte difference of its own.
+
+   For a processor targeting a declared work address space, decision 271
+   instead reads the compiled operations in Preview order, regardless of its
+   mutation's changed-byte count. Every later operation that reads that work
+   space must read a range completely inside one of that processor's allowed
+   write ranges; spanning two ranges is refused even when they are adjacent.
+   No later operation may write that work space. The audit classifies
+   `CopyRange`, `ReplaceRange`, `TransformScalar`, `FillRange`, `PatchScalar`
+   and `RunExternalProcessor`; an unknown kind, missing range or unnamed
+   address space refuses. The `output-image` output-difference audit is unchanged.
 
    **Current refusal is stricter than decision 261:** the audit holds every
    `OutputDifferences` row to processor write ranges, including a non-processor
    row such as `DeclaredReplacement`. It does not filter rows by their producer.
    The product's `CompositionRunService.CreateOutputDifferences` returns an
    empty list for every Merge and whenever output and reference lengths differ.
-   The open work-space-processor evidence question therefore extends beyond
-   NT51950, and these refusals remain until the firmware owner decides it
+   The empty work-space evidence question is resolved by decision 271 above
    ([bug record](../handoff/bugs/BUG-20261002-predecessor-work-space-processor-lists-no-output-difference.md)).
+   Non-processor output differences and missing differences for a changed
+   `output-image` processor retain their existing refusals.
 
 A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's
