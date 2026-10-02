@@ -6,7 +6,10 @@ namespace NvtFwCombiner.Application.Authoring;
 
 /// <summary>
 /// Host-independent state and transition policy for one workflow mode. The
-/// desktop owns one instance per mode; CLI creates an ephemeral instance.
+/// desktop retains an accepted instance per mode; CLI creates an ephemeral
+/// instance. General preparation uses a call-local candidate sharing the
+/// transition lock but with a separate publication identity, so its publication
+/// and inspection leases cannot address the accepted session.
 /// </summary>
 public sealed partial class AuthoringSessionState
 {
@@ -38,6 +41,7 @@ public sealed partial class AuthoringSessionState
     {
         lock (_transitionLock)
         {
+            _generalPreparationLease = null;
             _catalog = null;
             Volatile.Write(ref _current, null);
         }

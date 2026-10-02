@@ -68,11 +68,12 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
     {
         ArgumentNullException.ThrowIfNull(draft);
         ArgumentNullException.ThrowIfNull(session);
-        (object lease, AuthoringSessionState prepared) = session.BeginGeneralPreparation();
-        ActiveSessionSnapshot? expected = prepared.CurrentSnapshot;
+        (AuthoringSessionState.GeneralPreparationLease lease, AuthoringSessionState prepared) =
+            session.BeginGeneralPreparation();
         GeneralMappingDraftRow[] fileRows = FileRows(draft.Mappings);
         IProgress<AuthoringInspectionProgress>? itemProgress = fileRows.Length == 0 ? null : progress;
         itemProgress?.Report(new(0, fileRows.Length));
+        // Check entry cancellation even when there are no file rows to capture.
         AuthoringSessionIssue? freshness = session.CheckGeneralPreparation(lease, cancellationToken);
         if (freshness is not null)
         {
@@ -82,6 +83,7 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
         GeneralAuthoringSessionPreparation? captureFailure =
             await CaptureSelectedFilesAsync(fileRows, inspections, itemProgress, 0, fileRows.Length, cancellationToken)
                 .ConfigureAwait(false);
+        // Cancellation or supersession takes precedence over a capture failure.
         freshness = session.CheckGeneralPreparation(lease, cancellationToken);
         if (freshness is not null)
         {
@@ -121,6 +123,8 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             return Failed(candidate.Issues, candidate.Admission);
         }
 
+        // Apply transitions only to the candidate; any late failure preserves
+        // the previously accepted snapshot until successful adoption.
         if (!prepared.Activate(CreateExactCatalog(
                 plan.Capability,
                 plan.InputResources,
@@ -152,7 +156,7 @@ internal sealed partial class GeneralAuthoringExperience : IGeneralAuthoring
             return Failed("General Merge readiness could not be published.");
         }
         AuthoringSessionTransitionResult adopted = session.TryAdoptGeneralPreparation(
-            lease, expected, prepared, cancellationToken);
+            lease, prepared, cancellationToken);
         return adopted.Succeeded
             ? new GeneralAuthoringSessionPreparation(adopted.Snapshot, [], candidate.Admission, readiness)
             : Failed(adopted.Issue!);

@@ -1,6 +1,7 @@
 # BUG-20261001-general-merge-stale-preparation-overwrites-session: a superseded General Merge preparation can overwrite the accepted session, and Build then writes the stale mapping
 
-Status: open for the Application freshness gap (hypothesis B), a prerequisite of the `1.2.4` General Merge reopening;
+Status: the Application freshness gap (hypothesis B) is fixed on `feature/1.2.4/general-preparation-freshness`, which
+merges with `1.2.4` as an R3 change and is a prerequisite of the `1.2.4` General Merge reopening;
 the test flake itself is fixed (#507, merge `de58ebaf3`, test-only; released in `v1.2.1`)
 Severity: P3 as a test flake. If either hypothesis below can occur on the desktop path, it is a latent P2: General Merge
 would write a mapping the screen no longer shows, without a warning. The released UI hides the General Merge entry
@@ -60,4 +61,27 @@ Fix: the test runs on `UiThreadTestContext` (test-only; `MergeWorkflowTests` 40/
 Application `AuthoringSessionState` owner (prepare a private candidate, adopt it once under the transition lock after
 checking a lease renewed when a newer request is queued) before the Customized Merge entry reopens in `1.2.4`; that
 change is an R3 firmware-semantic gate.
+Fix of B as implemented (2026-10-02, Codex `gpt-6.1-sol`; built, run and integrated by the commander; firmware-semantic
+review by Claude Opus 5.5):
+- `AuthoringSessionState` issues a request lease when a General Merge preparation enters the Application call (not
+  when it is queued), before any progress report or file read. A newer preparation, or an invalidation of the
+  session's canonical publication, replaces or revokes it.
+- The preparation computes its result on a call-local candidate session that shares the transition lock and has a
+  separate publication identity; the shared session is not touched until adoption.
+- Adoption happens once, inside the transition lock: the lease must still be the current one, the caller's token must
+  not be cancelled, and the accepted snapshot must be the one the preparation started from. Otherwise the session is
+  left unchanged and the call returns the existing stale-inspection outcome (`authoring.session.inspection-stale`)
+  or throws the cancellation. No issue code was added.
+- On the desktop the lifecycle already serializes preparations (it cancels and awaits the predecessor), so a
+  superseded preparation reaches the adoption check through its cancelled token; the lease covers callers that do
+  not serialize.
+- General Replace and the AB `PrepareSessionAsync` keep the old shape: General Replace is retiring (decision 230,
+  R54) and the AB method is used only by the CLI, which prepares once per run on a fresh session.
+- Unchanged for the newest preparation: accepted session, draft, slots, revision numbers, readiness and progress
+  reports. Changed only for a cancelled or failed preparation: a token already cancelled on entry now throws even
+  with no file rows; a capture failure together with cancellation or supersession reports the cancellation or the
+  stale outcome instead of the capture issue; a late failure keeps the previous accepted snapshot instead of a
+  half-applied one.
+- Evidence: `GeneralPreparationFreshnessTests` (19 cases, gated with completion sources, no timing): nine of the
+  first ten fail on the base production code and pass with the fix; Application.Tests 1673 passed.
 Owner: Claude Code commander (test fix); the `1.2.4` General input owner (hypothesis B).

@@ -224,6 +224,216 @@ public sealed class GeneralPreparationFreshnessTests
         }
     }
 
+    /// <summary>Invalidation revokes a candidate even when the accepted snapshot stays null.</summary>
+    [Fact]
+    public async Task PreparationStartedInactiveCannotAdoptAfterCanonicalInvalidation()
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        var resources = new ResourceGate();
+        GeneralAuthoringExperience experience = Experience(new Planner(resources), new Inspector());
+        Task<GeneralAuthoringSessionPreparation> pending = Task.Run(async () =>
+            await experience.PrepareMergeSessionAsync(session, IcId, Draft(0x5), CancellationToken.None));
+        try
+        {
+            await resources.Reached.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+            Assert.Null(session.CurrentSnapshot);
+            session.InvalidateCanonicalPublication();
+            Assert.Null(session.CurrentSnapshot);
+            resources.Release.SetResult();
+            AssertSuperseded(await pending);
+            Assert.Null(session.CurrentSnapshot);
+        }
+        finally
+        {
+            _ = resources.Release.TrySetResult();
+        }
+    }
+
+    /// <summary>A cancelled request does not prevent the next request from adopting.</summary>
+    [Fact]
+    public async Task NextPreparationAdoptsAfterCancelledPreparation()
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        GeneralAuthoringExperience experience = Experience(new Planner(), new Inspector());
+        GeneralAuthoringSessionPreparation accepted = await experience.PrepareMergeSessionAsync(
+            session, IcId, Draft(0x3), CancellationToken.None);
+        AssertAccepted(accepted, session, 0x3);
+        using var cancellation = new CancellationTokenSource();
+        var gate = new ProgressGate(completedWork: 1, CancellationToken.None);
+        Task<GeneralAuthoringSessionPreparation> pending = Task.Run(async () =>
+            await experience.PrepareMergeSessionAsync(session, IcId, Draft(0x5), cancellation.Token, gate));
+        try
+        {
+            await gate.Reached.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+            cancellation.Cancel();
+            gate.Release.SetResult();
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await pending);
+            Assert.Same(accepted.AcceptedSession, session.CurrentSnapshot);
+            GeneralAuthoringSessionPreparation next = await experience.PrepareMergeSessionAsync(
+                session, IcId, Draft(0x4), CancellationToken.None);
+            AssertAccepted(next, session, 0x4);
+        }
+        finally
+        {
+            _ = gate.Release.TrySetResult();
+        }
+    }
+
+    /// <summary>A failed capture preserves accepted state and permits the next request to adopt.</summary>
+    [Fact]
+    public async Task NextPreparationAdoptsAfterCaptureFailure()
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        GeneralAuthoringExperience experience = Experience(new Planner(), new Inspector());
+        GeneralAuthoringSessionPreparation accepted = await experience.PrepareMergeSessionAsync(
+            session, IcId, Draft(0x3), CancellationToken.None);
+        AssertAccepted(accepted, session, 0x3);
+        GeneralAuthoringExperience failingExperience = Experience(new Planner(), new Inspector(failCapture: true));
+        GeneralAuthoringSessionPreparation failed = await failingExperience.PrepareMergeSessionAsync(
+            session, IcId, Draft(0x5), CancellationToken.None);
+        Assert.False(failed.Succeeded);
+        Assert.Null(failed.AcceptedSession);
+        Assert.Null(failed.Readiness);
+        Assert.Equal(GeneralSelectedFileInspectionIssueCodes.InspectionFailed, Assert.Single(failed.Issues).Code);
+        Assert.Same(accepted.AcceptedSession, session.CurrentSnapshot);
+        GeneralAuthoringSessionPreparation next = await experience.PrepareMergeSessionAsync(
+            session, IcId, Draft(0x4), CancellationToken.None);
+        AssertAccepted(next, session, 0x4);
+    }
+
+    /// <summary>With three requests entering A-B-C, only C adopts in either completion order.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OnlyThirdPreparationAdoptsInForwardOrReverseCompletionOrder(bool newestFinishesFirst)
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        GeneralAuthoringExperience experience = Experience(new Planner(), new Inspector());
+        ProgressGate[] gates =
+        [
+            new(completedWork: 1, CancellationToken.None),
+            new(completedWork: 1, CancellationToken.None),
+            new(completedWork: 1, CancellationToken.None),
+        ];
+        List<Task<GeneralAuthoringSessionPreparation>> preparations = [];
+        try
+        {
+            for (int index = 0; index < gates.Length; index++)
+            {
+                ProgressGate gate = gates[index];
+                long target = 0x3 + index;
+                preparations.Add(Task.Run(async () =>
+                    await experience.PrepareMergeSessionAsync(session, IcId, Draft(target), CancellationToken.None, gate)));
+                await gate.Reached.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+                Assert.Null(session.CurrentSnapshot);
+            }
+
+            int[] completionOrder = newestFinishesFirst ? [2, 1, 0] : [0, 1, 2];
+            ActiveSessionSnapshot? accepted = null;
+            foreach (int index in completionOrder)
+            {
+                gates[index].Release.SetResult();
+                GeneralAuthoringSessionPreparation result = await preparations[index];
+                if (index == 2)
+                {
+                    AssertAccepted(result, session, 0x5);
+                    accepted = result.AcceptedSession;
+                }
+                else
+                {
+                    AssertSuperseded(result);
+                }
+                Assert.Same(accepted, session.CurrentSnapshot);
+            }
+        }
+        finally
+        {
+            foreach (ProgressGate gate in gates)
+            {
+                _ = gate.Release.TrySetResult();
+            }
+        }
+    }
+
+    /// <summary>A null lease cannot match the cleared ownership field after adoption.</summary>
+    [Fact]
+    public async Task NullPreparationLeaseIsRejectedAfterAdoption()
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        GeneralAuthoringExperience experience = Experience(new Planner(), new Inspector());
+        GeneralAuthoringSessionPreparation accepted = await experience.PrepareMergeSessionAsync(
+            session, IcId, Draft(0x4), CancellationToken.None);
+        AssertAccepted(accepted, session, 0x4);
+        _ = Assert.Throws<ArgumentNullException>("lease", () =>
+            session.CheckGeneralPreparation(null!, CancellationToken.None));
+        _ = Assert.Throws<ArgumentNullException>("lease", () =>
+            session.TryAdoptGeneralPreparation(null!, session, CancellationToken.None));
+        Assert.Same(accepted.AcceptedSession, session.CurrentSnapshot);
+    }
+
+    /// <summary>Entry cancellation is enforced even without any selected file rows.</summary>
+    [Fact]
+    public async Task AlreadyCancelledPreparationWithoutFileRowsThrows()
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        var planner = new Planner();
+        var inspector = new Inspector();
+        GeneralAuthoringExperience experience = Experience(planner, inspector);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var draft = new GeneralMergeDraftState(new GeneralMergeOutputInitializer(16, 0xA5), new GeneralMappingDraftState([]));
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await experience.PrepareMergeSessionAsync(session, IcId, draft, cancellation.Token));
+        Assert.Null(session.CurrentSnapshot);
+        Assert.Null(planner.LastPlan);
+        Assert.Equal(0, inspector.ReadCount);
+    }
+
+    /// <summary>Cancellation or supersession takes precedence over a completed failed capture.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RevokedPreparationDoesNotReportCaptureFailure(bool cancelOld)
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        GeneralAuthoringExperience failingExperience = Experience(new Planner(), new Inspector(failCapture: true));
+        using var cancellation = new CancellationTokenSource();
+        var gate = new ProgressGate(completedWork: 1, CancellationToken.None);
+        Task<GeneralAuthoringSessionPreparation> pending = Task.Run(async () =>
+            await failingExperience.PrepareMergeSessionAsync(session, IcId, Draft(0x5), cancellation.Token, gate));
+        try
+        {
+            await gate.Reached.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+            ActiveSessionSnapshot? accepted = null;
+            if (cancelOld)
+            {
+                cancellation.Cancel();
+            }
+            else
+            {
+                GeneralAuthoringExperience experience = Experience(new Planner(), new Inspector());
+                GeneralAuthoringSessionPreparation newest = await experience.PrepareMergeSessionAsync(
+                    session, IcId, Draft(0x4), CancellationToken.None);
+                AssertAccepted(newest, session, 0x4);
+                accepted = newest.AcceptedSession;
+            }
+            gate.Release.SetResult();
+            if (cancelOld)
+            {
+                _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await pending);
+            }
+            else
+            {
+                AssertSuperseded(await pending);
+            }
+            Assert.Same(accepted, session.CurrentSnapshot);
+        }
+        finally
+        {
+            _ = gate.Release.TrySetResult();
+        }
+    }
+
     /// <summary>Newest preparation preserves the original transitions, revisions and readiness.</summary>
     [Fact]
     public async Task NewestPreparationPreservesAcceptedDraftAndReadiness()
@@ -354,7 +564,7 @@ public sealed class GeneralPreparationFreshnessTests
         }
     }
 
-    private sealed class Inspector : ISelectedFileContentInspector
+    private sealed class Inspector(bool failCapture = false) : ISelectedFileContentInspector
     {
         private int _readCount;
         internal int ReadCount => Volatile.Read(ref _readCount);
@@ -364,8 +574,10 @@ public sealed class GeneralPreparationFreshnessTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             _ = Interlocked.Increment(ref _readCount);
-            return ValueTask.FromResult(new SelectedFileContentInspection(FileStamp.FromBytes(SourceBytes),
-                acceptedBytes: SourceBytes));
+            return failCapture
+                ? throw new IOException("Synthetic capture failure.")
+                : ValueTask.FromResult(new SelectedFileContentInspection(FileStamp.FromBytes(SourceBytes),
+                    acceptedBytes: SourceBytes));
         }
     }
 

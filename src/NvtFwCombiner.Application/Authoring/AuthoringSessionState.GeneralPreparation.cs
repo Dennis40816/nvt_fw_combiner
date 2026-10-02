@@ -2,7 +2,18 @@ namespace NvtFwCombiner.Application.Authoring;
 
 public sealed partial class AuthoringSessionState
 {
-    private object? _generalPreparationLease;
+    private GeneralPreparationLease? _generalPreparationLease;
+
+    /// <summary>One request's identity and the accepted snapshot it began from.</summary>
+    internal sealed class GeneralPreparationLease
+    {
+        internal GeneralPreparationLease(ActiveSessionSnapshot? expectedSnapshot)
+        {
+            ExpectedSnapshot = expectedSnapshot;
+        }
+
+        internal ActiveSessionSnapshot? ExpectedSnapshot { get; }
+    }
 
     private AuthoringSessionState(AuthoringSessionState accepted)
     {
@@ -13,11 +24,11 @@ public sealed partial class AuthoringSessionState
     }
 
     /// <summary>Renews request ownership before any progress callback or file capture.</summary>
-    internal (object Lease, AuthoringSessionState Candidate) BeginGeneralPreparation()
+    internal (GeneralPreparationLease Lease, AuthoringSessionState Candidate) BeginGeneralPreparation()
     {
         lock (_transitionLock)
         {
-            _generalPreparationLease = new object();
+            _generalPreparationLease = new GeneralPreparationLease(_current);
             // Reuse the same transitions and lock on a call-local candidate. Only
             // adoption writes the accepted state, preserving its original revisions.
             return (_generalPreparationLease, new AuthoringSessionState(this));
@@ -26,8 +37,9 @@ public sealed partial class AuthoringSessionState
 
     /// <summary>Rejects cancellation or supersession without touching accepted state.</summary>
     internal AuthoringSessionIssue? CheckGeneralPreparation(
-        object lease, CancellationToken cancellationToken)
+        GeneralPreparationLease lease, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(lease);
         lock (_transitionLock)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -40,9 +52,10 @@ public sealed partial class AuthoringSessionState
 
     /// <summary>Adopts a completed candidate once, only while its request and starting snapshot are current.</summary>
     internal AuthoringSessionTransitionResult TryAdoptGeneralPreparation(
-        object lease, ActiveSessionSnapshot? expected, AuthoringSessionState candidate,
+        GeneralPreparationLease lease, AuthoringSessionState candidate,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(lease);
         lock (_transitionLock)
         {
             AuthoringSessionIssue? issue = CheckGeneralPreparation(lease, cancellationToken);
@@ -50,7 +63,7 @@ public sealed partial class AuthoringSessionState
             {
                 return new AuthoringSessionTransitionResult(_current, issue);
             }
-            if (!ReferenceEquals(_current, expected))
+            if (!ReferenceEquals(_current, lease.ExpectedSnapshot))
             {
                 return Failure(AuthoringSessionIssueCodes.StaleInspection,
                     "The accepted session changed during General preparation.", WorkflowId);
