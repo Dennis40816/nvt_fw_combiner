@@ -1,20 +1,13 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests atomic normalization and exact family binding for trusted V2 bundle catalog sources.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
 public sealed partial class TrustedProfileBundleCatalogFactoryTests
 {
-    private const string FirmwareFamilySchemaId =
-        "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json";
-
-    private const string CompositionProfileSchemaId =
-        "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json";
 
     /// <summary>Verifies every trusted hash survives and the profile retains its exact normalized family instance.</summary>
     [Fact]
@@ -117,53 +110,4 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile-bundle.catalog.profile-map-missing", exception.Code);
         Assert.Equal("profile-entry", exception.EntryId);
     }
-
-    private static TrustedProfileBundleCatalog CreateCatalogFromSources(
-        IEnumerable<(TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)> families,
-        IEnumerable<(TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)> profiles,
-        string bundleContentHash = BundleHash)
-    {
-        return TrustedProfileBundleCatalogFactory.Create(
-            ManifestHash,
-            new ProfileBundleIdentity("bundle", "1.0.0", bundleContentHash, "release-binding"),
-            families,
-            profiles);
-    }
-
-    private static (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document) Family(
-        string entryId,
-        string contentHash,
-        JsonElement document)
-    {
-        return (
-            new TrustedProfileBundleCatalogEntryIdentity(
-                entryId,
-                $"families/{entryId}.json",
-                FirmwareFamilySchemaId,
-                contentHash),
-            document);
-    }
-
-    private static (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document) Profile(
-        string entryId,
-        string contentHash,
-        JsonElement document)
-    {
-        return (
-            new TrustedProfileBundleCatalogEntryIdentity(
-                entryId,
-                $"profiles/{entryId}.json",
-                CompositionProfileSchemaId,
-                contentHash),
-            document);
-    }
-
-    private static string Hash(string json)
-    {
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json))).ToLowerInvariant();
-    }
-
-    private const string ManifestHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-
-    private const string BundleHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 }

@@ -5,7 +5,9 @@ using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog reference replace lowering.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogReplaceLoweringTests
 {
     /// <summary>A readable retired declaration cannot mint a public plan or runtime artifact at any otherwise valid promotion.</summary>
     [Theory]

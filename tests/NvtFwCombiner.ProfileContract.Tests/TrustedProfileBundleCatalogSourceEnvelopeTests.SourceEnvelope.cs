@@ -9,7 +9,9 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog source envelopes.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogSourceEnvelopeTests
 {
     private static readonly JsonSerializerOptions s_sourceEnvelopeJsonOptions =
         new(JsonSerializerDefaults.Web);

@@ -4,7 +4,9 @@ using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog output naming.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogOutputNamingTests
 {
     /// <summary>Canonical normal naming templates compile to their closed executable renderers.</summary>
     [Fact]

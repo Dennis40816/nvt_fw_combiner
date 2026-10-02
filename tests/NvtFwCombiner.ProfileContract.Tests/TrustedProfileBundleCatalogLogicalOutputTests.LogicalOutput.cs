@@ -4,7 +4,9 @@ using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog logical output lowering.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogLogicalOutputTests
 {
     /// <summary>Verifies map-bound lowering cannot silently treat a logical runtime capacity as a physical map capacity.</summary>
     [Fact]

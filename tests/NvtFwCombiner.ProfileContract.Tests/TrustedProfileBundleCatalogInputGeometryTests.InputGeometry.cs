@@ -5,7 +5,9 @@ using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog input geometry.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogInputGeometryTests
 {
     /// <summary>Verifies one TP slot retains its 256 KiB policy while its immutable plan space extracts the exact referenced source span.</summary>
     [Fact]
@@ -271,55 +273,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.plan.invalid-input-geometry", Assert.Single(result.Issues).Code);
     }
 
-    private static string ProfileWithTpMaximumInput(
-        string profileJson,
-        ByteRange sourceRange,
-        IReadOnlyList<ByteRange>? additionalSourceRanges = null)
-    {
-        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
-        JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
-        slot["artifactClass"] = "tp-firmware";
-        JsonObject acceptance = Assert.IsType<JsonObject>(slot["acceptance"]);
-        acceptance["lengthRule"] = new JsonObject
-        {
-            ["kind"] = "tp-maximum-256k",
-            ["maximumBytes"] = 262144,
-        };
-
-        JsonArray views = Assert.IsType<JsonArray>(profile["views"]);
-        Assert.IsType<JsonObject>(views[0])["selector"] = new JsonObject
-        {
-            ["kind"] = "map-region-slice",
-            ["regionId"] = "root",
-            ["offset"] = sourceRange.Start,
-            ["length"] = sourceRange.Length,
-        };
-        Assert.IsType<JsonObject>(views[1])["selector"] = new JsonObject
-        {
-            ["kind"] = "space-range",
-            ["range"] = new JsonObject { ["start"] = 0, ["length"] = sourceRange.Length },
-        };
-        int index = 0;
-        foreach (ByteRange additionalRange in additionalSourceRanges ?? [])
-        {
-            views.Add(new JsonObject
-            {
-                ["viewId"] = $"tp-extra-{index}",
-                ["spaceId"] = "tp-source",
-                ["selector"] = new JsonObject
-                {
-                    ["kind"] = "map-region-slice",
-                    ["regionId"] = "root",
-                    ["offset"] = additionalRange.Start,
-                    ["length"] = additionalRange.Length,
-                },
-            });
-            index++;
-        }
-        Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["regionAccessRules"])[0])["access"] = "explicit-range";
-        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-    }
-
     private static string ProfileWithExactTpInput(string profileJson, long bytes)
     {
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
@@ -346,68 +299,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
-    private static string ProfileWithInactiveOptionalBranch(
-        string profileJson,
-        Action<JsonObject>? mutateSlot = null,
-        Action<JsonObject>? mutateOperation = null)
-    {
-        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
-        profile["schemaVersion"] = "2.13";
-        profile["compilationContext"] = new JsonObject { ["kind"] = "resolved-map" };
-        var slot = new JsonObject
-        {
-            ["slotId"] = "optional-input",
-            ["role"] = "auxiliary",
-            ["artifactClass"] = "auxiliary",
-            ["required"] = false,
-            ["cardinality"] = "zero-or-one",
-            ["acceptedExtensions"] = new JsonArray(".bin"),
-            ["acceptance"] = new JsonObject
-            {
-                ["lengthRule"] = new JsonObject { ["kind"] = "source-view-coverage" },
-                ["normalization"] = new JsonObject { ["kind"] = "none" },
-            },
-        };
-        Assert.IsType<JsonArray>(profile["inputSlots"]).Add(slot);
-        profile["inputSelectionGroups"] = new JsonArray
-        {
-            new JsonObject
-            {
-                ["groupId"] = "optional-selection",
-                ["memberSlotIds"] = new JsonArray("optional-input"),
-                ["minimumSelected"] = 0,
-                ["maximumSelected"] = 1,
-            },
-        };
-        Assert.IsType<JsonArray>(profile["spaces"]).Add(new JsonObject
-        {
-            ["spaceId"] = "optional-source",
-            ["kind"] = "input-artifact",
-            ["slotId"] = "optional-input",
-            ["instancePolicy"] = "singleton",
-        });
-        Assert.IsType<JsonArray>(profile["views"]).Add(new JsonObject
-        {
-            ["viewId"] = "optional-view",
-            ["spaceId"] = "optional-source",
-            ["selector"] = new JsonObject { ["kind"] = "map-region", ["regionId"] = "root" },
-        });
-        var operation = new JsonObject
-        {
-            ["operationId"] = "copy-optional",
-            ["sequence"] = 1,
-            ["overlapPolicy"] = "reject",
-            ["reason"] = "Copy the selected optional source view.",
-            ["kind"] = "copy-range",
-            ["sourceViewId"] = "optional-view",
-            ["targetViewId"] = "output-code",
-        };
-        Assert.IsType<JsonArray>(profile["operations"]).Add(operation);
-        mutateSlot?.Invoke(slot);
-        mutateOperation?.Invoke(operation);
-        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-    }
-
     private static string ProfileWithNormalDpExtraction(
         string profileJson,
         IReadOnlyList<long>? expectedInputLengths = null)
@@ -426,36 +317,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             lengthRule["expectedInputLengths"] = new JsonArray(
                 expectedInputLengths.Select(static value => JsonValue.Create(value)).ToArray());
         }
-        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-    }
-
-    private static string ProfileWithDeclaredPrefix(
-        string profileJson,
-        string role,
-        string artifactClass,
-        long requiredEndExclusive)
-    {
-        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
-        profile["schemaVersion"] = "2.10";
-        profile["compilationContext"] = new JsonObject { ["kind"] = "resolved-map" };
-        JsonObject slot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[0]);
-        slot["role"] = role;
-        slot["artifactClass"] = artifactClass;
-        Assert.IsType<JsonObject>(slot["acceptance"])["lengthRule"] = new JsonObject
-        {
-            ["kind"] = "declared-prefix-with-warning",
-            ["requiredEndExclusive"] = requiredEndExclusive,
-            ["expectedOuterLengths"] = new JsonArray(requiredEndExclusive),
-            ["shortInputIssueCode"] = "INPUT_SHORT",
-            ["unexpectedOuterLengthIssueCode"] = "INPUT_OUTER_LENGTH",
-        };
-        Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["views"])[1])["selector"] = new JsonObject
-        {
-            ["kind"] = "space-range",
-            ["range"] = new JsonObject { ["start"] = 0, ["length"] = requiredEndExclusive },
-        };
-        Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["regionAccessRules"])[0])["access"] =
-            "explicit-range";
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 

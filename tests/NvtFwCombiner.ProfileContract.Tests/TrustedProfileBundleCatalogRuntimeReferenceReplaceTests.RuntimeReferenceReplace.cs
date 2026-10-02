@@ -7,7 +7,9 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog runtime reference replace lowering.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogRuntimeReferenceReplaceTests
 {
     /// <summary>Verifies one map-bound General Replace candidate lowers and executes through the shared reference-clone engine.</summary>
     [Fact]
@@ -417,43 +419,4 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             [Family("family-entry", familyHash, familyDocument.RootElement.Clone())],
             [Profile("runtime-reference-replace-profile", Hash(profileJson), profileDocument.RootElement.Clone())]);
     }
-
-    private static V2RuntimeReferenceReplaceCompileRequest RuntimeReferenceReplaceRequest(
-        long referenceLength = 16,
-        long sourceLength = 4,
-        params ExplicitMapping[] mappings)
-    {
-        return new V2RuntimeReferenceReplaceCompileRequest(
-            [
-                new V2ExplicitMappingInputBinding("base", "reference", referenceLength),
-                new V2ExplicitMappingInputBinding("source-a", "source", sourceLength),
-            ],
-            mappings.Length == 0
-                ? [RuntimeReferenceReplaceMapping("replace-source", 10, new ByteRange(2, 2), new ByteRange(8, 2))]
-                : mappings);
-    }
-
-    private static ExplicitMapping RuntimeReferenceReplaceMapping(
-        string mappingId,
-        int sequence,
-        ByteRange sourceRange,
-        ByteRange targetRange,
-        string sourceBindingId = "source-a",
-        ExplicitMappingOperationKind operationKind = ExplicitMappingOperationKind.ReplaceRange,
-        OverlapPolicy overlapPolicy = OverlapPolicy.Reject,
-        int alignment = 1)
-    {
-        return new ExplicitMapping(
-            mappingId,
-            sequence,
-            operationKind,
-            sourceBindingId,
-            sourceRange,
-            "output-image",
-            targetRange,
-            overlapPolicy,
-            alignment,
-            reason: "Synthetic runtime General Replace mapping");
-    }
-
 }

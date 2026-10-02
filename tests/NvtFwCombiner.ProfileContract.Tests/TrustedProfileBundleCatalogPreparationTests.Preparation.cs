@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -7,7 +6,9 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog preparation.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogPreparationTests
 {
     /// <summary>Verifies only exact id/version lookup creates a catalog-owned selection and admitted map context.</summary>
     [Fact]
@@ -393,85 +394,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(32, thirtyTwo.CompiledComposition?.Plan.OutputInitialization.Capacity);
         Assert.Null(unavailable.CompiledComposition);
         Assert.Equal("profile.v2.compile.map-capacity-unavailable", Assert.Single(unavailable.Issues).Code);
-    }
-
-    private static TrustedProfileBundleCatalog CreateCatalog(
-        string? familyJson = null,
-        string? profileJson = null,
-        string bundleContentHash = BundleHash)
-    {
-        familyJson ??= TrustedV2BundleTestDocuments.FamilyJson();
-        string familyHash = Hash(familyJson);
-        profileJson ??= TrustedV2BundleTestDocuments.ProfileJson(familyHash);
-        return CreateCatalogFromSources(
-            [Family("family-entry", familyHash, Parse(familyJson))],
-            [Profile("profile-entry", Hash(profileJson), Parse(profileJson))],
-            bundleContentHash);
-    }
-
-    private static TrustedCompositionProfileCatalogEntry Select(TrustedProfileBundleCatalog catalog)
-    {
-        TrustedCompositionProfileCatalogEntry? selection = catalog.SelectProfile(
-            "profile",
-            "1.0.0",
-            out IReadOnlyList<CompositionIssue> issues);
-        Assert.Empty(issues);
-        return Assert.IsType<TrustedCompositionProfileCatalogEntry>(selection);
-    }
-
-    private static PreparedProfile PrepareAdmitted(
-        TrustedProfileBundleCatalog catalog,
-        TrustedCompositionProfileCatalogEntry selection,
-        FirmwareMapResolutionInputs inputs)
-    {
-        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
-            catalog,
-            selection,
-            inputs,
-            out V2CompositionPreparationService.PreparedCompilation? preparation,
-            out _,
-            out IReadOnlyList<CompositionIssue> issues);
-        Assert.True(
-            admitted,
-            string.Join(
-                Environment.NewLine,
-                issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
-        return new PreparedProfile(
-            Assert.IsType<V2CompositionPreparationService.PreparedCompilation>(preparation));
-    }
-
-    private static V2CompositionPlanCompileResult Compile(
-        PreparedProfile preparation,
-        IReadOnlyCollection<string>? selectedInputSlotIds = null)
-    {
-        return V2CompositionPlanCompiler.CompilePrepared(
-            preparation.Compilation,
-            selectedInputSlotIds);
-    }
-
-    private sealed record PreparedProfile(
-        V2CompositionPreparationService.PreparedCompilation Compilation)
-    {
-        internal IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions =>
-            Compilation.CapabilityAdmissions;
-    }
-
-    private static FirmwareMapResolutionInputs Inputs(
-        long capacityBytes = 16,
-        string modeId = "standard")
-    {
-        return new FirmwareMapResolutionInputs(
-            "NT00001",
-            modeId,
-            capacityBytes,
-            requestedTopology: null,
-            []);
-    }
-
-    private static JsonElement Parse(string json)
-    {
-        using var document = JsonDocument.Parse(json);
-        return document.RootElement.Clone();
     }
 
     private static string FamilyJsonRequiringArtifact()
