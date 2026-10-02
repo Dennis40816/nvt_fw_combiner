@@ -18,6 +18,6 @@ Evidence: diagnostic shadow run `shadow-9` in the test area (`evidence\1.2.2\p2c
 and these three `invalid`; the saved Preview reports list the inputs in ordinal order. The CtrlRAM Previews of the
 P-0.5 spike (`v0.9.16`, `v1.1.12`, candidate) are in ordinal order too.
 Owner: Claude Code, `feature/1.2.2/executor-contract`
-Resolution: fixed by the commit that adds this file: the comparator stages, passes and expects CtrlRAM Replace
+Resolution: fixed in `039cb6582` (the shadow run `shadow-10` gives `equal` for the three scenarios): the comparator stages, passes and expects CtrlRAM Replace
 inputs in ordinal slot order (`report_ordered_inputs`); the positional check is unchanged. One test in
 `tests/scripts/test_predecessor_comparison.py`.
