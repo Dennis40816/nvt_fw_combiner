@@ -380,13 +380,49 @@ exact-head approval of the last push, with byte/Golden, write-range and
 release-policy evidence. R35-09 rehearses actual builds before formal reports.
 
 The 1.x identity is measured; the v0.9.16 v2 identity is pinned in its contract.
-**Not implemented yet:** comparing the rebuilt rolling baseline identity with
-the candidate identity recorded in the baseline release's own report, reporting
-a mismatch, and making it a failure once local and hosted builds are shown to
-match. No delivery item in the [1.2.2 handoff](../handoff/1.2.2/README.md)
-explicitly owns this follow-up.
+Rolling mode implements the comparison with the baseline release's own
+**predecessor comparison report**, opt-in through `--baseline-report FILE`.
+That report's `candidate.version` must equal the selected baseline tag's
+version, and its `candidate.executor` is compared with the rebuilt baseline's
+`Executor.identity`. Either predecessor report mode (`rolling` or `v0916-1x`)
+may record a 1.x candidate. The report must identify schemaVersion `1.0`, kind
+`predecessor-comparison-report`, certification `none` and terminal `false`.
+This is an identity check, not admission of the report's outcomes or evidence
+rank, and does not authenticate publication; the commander supplies the
+correct release artifact and verifies its provenance.
 
-| Contract `recordedIdentity` | Report `executor` member | Value |
+All eight identity members other than `tagObject`, including every nested
+authority tree and compiler-host value, must equal exactly with their types.
+`tagObject` must be present and either `null` (the candidate report predates
+tagging) or the rebuilt baseline's annotated tag object. Another non-null tag
+refuses. Missing or null required values, an unreadable/malformed report or
+duplicate JSON members refuse with `PREDECESSOR_BASELINE_IDENTITY_MISSING`;
+a different value, unexpected identity member, wrong candidate version or
+report family refuses with `PREDECESSOR_BASELINE_IDENTITY_MISMATCH`. Refusal
+occurs after the baseline rebuild, before building the candidate or running
+any scenario; no comparison output report is written. A successful opt-in run
+records the exact input report bytes' SHA-256 as optional
+`baselineIdentityReportSha256`, retained in `deterministicSha256`.
+Without the option that member is absent and no own-report comparison is
+claimed. Making this mandatory remains deferred until local and hosted
+builds are shown to match; ADR 0057's default/terminal path is unchanged.
+
+**Not implemented for the v0.9.16 baseline family:** its own CLI
+`CompositionRunReport` records no program identity also produced by the
+rebuild. AssemblyVersion, FileVersion and InformationalVersion come from
+`Directory.Build.props`/`VERSION`, but are not recorded in that report.
+Current build-admission assembly metadata (`NfcBuiltInTrustIndexSha256` and
+`NfcBuiltInManifestSetSha256`) identifies profile admission inputs and is
+likewise not a report program identity. `Executor.report_version` (`v0916` or
+`1x`) selects the report reader; it is host-declared, not a field the program
+writes. ProfileVersion and CompilationFingerprint identify profile/compiled
+firmware facts, not the program. The v2 contract's pinned CLI, managed-assembly
+and closure hashes are external build evidence, not a v0.9.16 self-report.
+No comparison is invented from them, and `v0916-1x` has no baseline-report
+option. A 1.x CLI Preview/Build report also lacks these program fields: the
+common fields below are in the predecessor report, not the CLI report.
+
+| Contract `recordedIdentity` | Own predecessor report `candidate.executor` member | Rebuilt value from `_build_executor` |
 | --- | --- | --- |
 | `authorityTrees` | `authorityTrees` | the Git tree ids of `external-tools`, `profiles`, `src` and `tools/crc-worker` at the commit |
 | `cliSha256` | `cliSha256` | SHA-256 of the built `cliAssembly` |

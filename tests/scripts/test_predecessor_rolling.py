@@ -333,7 +333,7 @@ class RollingTests(unittest.TestCase):
         self.scratch.cleanup()
 
     def run_world(self, behavior="equal", *, payload=CHANGED, precursor_payload=None, git=None, formal=False,
-                  published=None, host_factory=SyntheticProcesses, temporary_name=None):
+                  published=None, host_factory=SyntheticProcesses, temporary_name=None, baseline_report=None):
         git = git or RollingFakeGit(self.world)
         host = host_factory(git, behavior, payload, precursor_payload)
         self.counter += 1
@@ -360,10 +360,78 @@ class RollingTests(unittest.TestCase):
             report = rolling.run_rolling(git=git, host=host, candidate_commit=CANDIDATE, baseline_tag="v1.2.1",
                                          output_path=output, temporary_root=temporary, settings_folder=self.settings,
                                          formal=formal, materializer=materialize,
+                                         baseline_report=baseline_report,
                                          published=published or (PublishedInventory(["v1.2.0", "v1.2.1"]) if formal else None))
         self.assertEqual(1, len(captures))
         self.assertEqual(parity.canonical_json_bytes(report) + b"\n", output.read_bytes())
         return report, host, git
+
+    def own_baseline_report(self):
+        rebuilt = self.run_world()[0]["baseline"]["executor"]
+        own = {"schemaVersion": "1.0", "kind": "predecessor-comparison-report",
+               "certification": "none", "terminal": False, "mode": "rolling",
+               "candidate": {"version": "1.2.1", "executor": {**rebuilt, "tagObject": None}}}
+        path = self.root / "baseline-own-report.json"
+        path.write_bytes(encoded(own))
+        return path, own
+
+    def test_opt_in_compares_rebuilt_baseline_with_its_own_candidate_identity(self):
+        path, own = self.own_baseline_report()
+        for mode in ("rolling", "v0916-1x"):
+            own["mode"] = mode
+            path.write_bytes(encoded(own))
+            before = path.read_bytes()
+            report, _, _ = self.run_world(baseline_report=path)
+            self.assertEqual("clear", report["gate"]["result"])
+            self.assertEqual(rolling.sha256(before), report["baselineIdentityReportSha256"])
+            self.assertEqual(before, path.read_bytes())
+            self.assertEqual(validation.deterministic_report_sha256(report), report["deterministicSha256"])
+
+    def test_opt_in_identity_difference_refuses_before_candidate_build_or_cli(self):
+        path, own = self.own_baseline_report()
+        own["candidate"]["executor"]["cliSha256"] = "0" * 64
+        path.write_bytes(encoded(own))
+        git = RollingFakeGit(self.world)
+        with self.assertRaises(execution.ExecutionError) as found:
+            self.run_world(git=git, baseline_report=path)
+        self.assertEqual("PREDECESSOR_BASELINE_IDENTITY_MISMATCH", found.exception.code)
+        self.assertEqual([BASELINE], [commit for commit, _ in git.detached])
+        self.assertFalse((self.root / "report-2.json").exists())
+
+    def test_opt_in_missing_recorded_identity_refuses_with_its_own_code(self):
+        path, own = self.own_baseline_report()
+        del own["candidate"]["executor"]["runtimeClosureSha256"]
+        path.write_bytes(encoded(own))
+        with self.assertRaises(execution.ExecutionError) as found:
+            self.run_world(baseline_report=path)
+        self.assertEqual("PREDECESSOR_BASELINE_IDENTITY_MISSING", found.exception.code)
+        self.assertFalse((self.root / "report-2.json").exists())
+
+    def test_default_does_not_claim_comparison_with_a_baseline_own_report(self):
+        report, _, _ = self.run_world()
+        self.assertNotIn("baselineIdentityReportSha256", report)
+
+    def test_opt_in_unreadable_malformed_and_duplicate_recorded_reports_refuse(self):
+        path = self.root / "invalid-own-report.json"
+        for raw in (None, b"not JSON", b'{"candidate":{},"candidate":{}}'):
+            with self.subTest(raw=raw):
+                if raw is not None:
+                    path.write_bytes(raw)
+                with self.assertRaises(execution.ExecutionError) as found:
+                    self.run_world(baseline_report=path)
+                self.assertEqual("PREDECESSOR_BASELINE_IDENTITY_MISSING", found.exception.code)
+                self.assertFalse((self.root / f"report-{self.counter}.json").exists())
+
+    def test_cli_passes_opt_in_path_and_identity_refusal_returns_nonzero(self):
+        path = self.root / "own-report.json"
+        arguments = ["rolling", "--candidate-commit", CANDIDATE, "--baseline-tag", "v1.2.1",
+                     "--baseline-report", str(path), "--output", str(self.root / "cli.json"),
+                     "--temporary-root", str(self.root), "--diagnostic"]
+        for code in ("PREDECESSOR_BASELINE_IDENTITY_MISSING", "PREDECESSOR_BASELINE_IDENTITY_MISMATCH"):
+            with (patch.object(rolling, "run_rolling", side_effect=execution.ExecutionError(code, "identity")) as run,
+                  patch.object(execution, "local_settings_folder", return_value=self.settings)):
+                self.assertEqual(1, execution.main(arguments))
+            self.assertEqual(path, run.call_args.kwargs["baseline_report"])
 
     def test_equal_declared_difference_and_typed_rejections_complete(self):
         for behavior in ("equal", "different", "baseline-rejects", "candidate-rejects", "both-reject"):
