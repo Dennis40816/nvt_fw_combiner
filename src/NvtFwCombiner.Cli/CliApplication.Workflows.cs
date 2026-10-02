@@ -50,7 +50,7 @@ public static partial class CliApplication
         }
 
         string? workflowId = workflows.FirstOrDefault(workflow =>
-            StringComparer.OrdinalIgnoreCase.Equals(workflow, workflowFilter));
+            StringComparer.OrdinalIgnoreCase.Equals(workflow, workflowFilter.Trim()));
         if (workflowId is null)
         {
             await error.WriteLineAsync($"error: unknown workflow '{workflowFilter}'").ConfigureAwait(false);
@@ -72,7 +72,7 @@ public static partial class CliApplication
             if (!icIds.Contains(selectedIc, StringComparer.Ordinal))
             {
                 await error.WriteLineAsync($"error: IC '{selectedIc}' has no route for workflow '{workflowId}'").ConfigureAwait(false);
-                return UsageError;
+                return CompositionFailed;
             }
 
             icIds = [selectedIc];
@@ -114,7 +114,7 @@ public static partial class CliApplication
         if (numberFilter is not null && lines.Count == 0)
         {
             await error.WriteLineAsync($"error: unknown {workflowId} IC count '{numberFilter}'").ConfigureAwait(false);
-            return UsageError;
+            return CompositionFailed;
         }
 
         foreach (string line in lines)

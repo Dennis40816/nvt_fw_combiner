@@ -52,7 +52,7 @@ public sealed partial class AbMergeCliCommandTests
 
     /// <summary>Missing acknowledgement, invalid modes and duplicate options refuse without output or JSON.</summary>
     [Theory]
-    [InlineData(1, "--dp-mode", "dummy")]
+    [InlineData(64, "--dp-mode", "dummy")]
     [InlineData(64, "--dp-mode", "unknown")]
     [InlineData(64, "--acknowledge-non-tp-ff")]
     [InlineData(64, "--dp-mode", "dummy", "--dp-mode", "dummy")]
@@ -60,6 +60,7 @@ public sealed partial class AbMergeCliCommandTests
     [InlineData(64, "--bank", "a")]
     public async Task DummyOptionRefusalsWriteNoArtifactsAsync(int expectedExit, params string[] options)
     {
+        ArgumentNullException.ThrowIfNull(options);
         using var workspace = TempWorkspace.Create("ab-cli-dummy-refusal");
         string bin = workspace.PathFor("must-not-exist.bin");
         string report = workspace.PathFor("must-not-exist.json");
@@ -72,10 +73,37 @@ public sealed partial class AbMergeCliCommandTests
         Assert.StartsWith("error:", result.Error, StringComparison.Ordinal);
         Assert.False(File.Exists(bin));
         Assert.False(File.Exists(report));
-        if (expectedExit == 1)
+        if (options.Length == 2 && options[0] == "--dp-mode" && options[1] == "dummy")
         {
             Assert.Contains("0xFF replaces every non-TP output", result.Error, StringComparison.Ordinal);
         }
+    }
+
+    /// <summary>Contradictory Dummy/DP options are usage errors before profile or Application selection.</summary>
+    [Theory]
+    [InlineData("NT51929", null, true)]
+    [InlineData("NT51950", "single", true)]
+    [InlineData("NT51950", "cascade", true)]
+    [InlineData("NT51951", null, true)]
+    [InlineData("unknown", null, false)]
+    public async Task DummyDpContradictionRefusesBeforeApplicationSelectionAsync(
+        string profile, string? topology, bool acknowledged)
+    {
+        using var workspace = TempWorkspace.Create("ab-cli-dummy-contradiction");
+        string[] selection = topology is null ? [] : ["--ab-topology", topology];
+        string[] acknowledgement = acknowledged ? ["--acknowledge-non-tp-ff"] : [];
+        string bin = workspace.PathFor("output.bin");
+        string report = workspace.PathFor("report.json");
+        CliRunResult result = await CliTestHarness.RunAsync(
+            ["ab-merge", "build", "--profile", profile, .. selection, "--dp-mode", "dummy", .. acknowledgement,
+                "--dp-ab", workspace.PathFor("unread-dp.bin"), "--output", bin, "--report", report],
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(64, result.ExitCode);
+        Assert.Equal("error: --dp-ab is not used with --dp-mode dummy" + Environment.NewLine, result.Error);
+        Assert.Empty(result.Output);
+        Assert.False(File.Exists(bin));
+        Assert.False(File.Exists(report));
     }
 
     /// <summary>Dummy uses Application input applicability, so DP is rejected and both TP sources remain required.</summary>

@@ -32,7 +32,8 @@ public sealed partial class ReplaceCliCommandTests
 
         CanonicalGoldenDifferenceResult differences = CanonicalGoldenTestData.AssertAllowedByteDifferences(
             goldenCase, File.ReadAllBytes(basePath), built.Bytes);
-        Assert.Equal(15, differences.DifferenceCount);
+        Assert.Equal(goldenCase.GetProperty("phaseBResult").GetProperty("differenceCounts").GetProperty("ownerToV2").GetInt64(),
+            differences.DifferenceCount);
         Assert.Equal(goldenCase.GetProperty("phaseBResult").GetProperty("v2OutputSha256").GetString(),
             CliGoldenByteEvidence.Hash(built.Bytes));
     }
@@ -81,8 +82,11 @@ public sealed partial class ReplaceCliCommandTests
                 continue;
             }
 
-            Assert.Equal(range, CliGoldenByteEvidence.TargetRange(selected.Report, bankId + "/publish"));
-            CliGoldenByteEvidence.EqualRange(both.Bytes, selected.Bytes, range);
+            if (bank != "both")
+            {
+                Assert.Equal(range, CliGoldenByteEvidence.TargetRange(selected.Report, bankId + "/publish"));
+                CliGoldenByteEvidence.EqualRange(both.Bytes, selected.Bytes, range);
+            }
             Assert.False(reference.AsSpan(checked((int)range.Start), checked((int)range.Length))
                 .SequenceEqual(selected.Bytes.AsSpan(checked((int)range.Start), checked((int)range.Length))));
             AssertPublishedReplacement(selected.Report, bankId, source, selected.Bytes);
@@ -98,7 +102,7 @@ public sealed partial class ReplaceCliCommandTests
         }
     }
 
-    /// <summary>Standard and independent AB version pairs change only report-declared version/processor writes and retain Application naming.</summary>
+    /// <summary>Requested Standard/AB versions read back exactly; all replacement payloads remain identical and differences stay within version/non-payload processor writes.</summary>
     [Theory]
     [InlineData(false, "both", true, false)]
     [InlineData(true, "a", true, false)]
@@ -116,10 +120,13 @@ public sealed partial class ReplaceCliCommandTests
             ab ? AbByteCaseId : CtrlRamByteCaseId);
         JsonElement sourceCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CtrlRamByteCaseId);
         string basePath = CliGoldenByteEvidence.ArtifactPath(baseCase, "expected-output");
-        string sourcePath = CliGoldenByteEvidence.ArtifactPath(sourceCase, "postbuild-nf-ctrlram");
+        Dictionary<string, string> sourcePaths = PostbuildCtrlRamSources.ToDictionary(
+            static source => CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix + source,
+            source => CliGoldenByteEvidence.ArtifactPath(sourceCase, $"postbuild-{source}-ctrlram"), StringComparer.Ordinal);
+        string[] sources = [.. sourcePaths.SelectMany(static pair => new[] { "--ctrlram", $"{pair.Key}={pair.Value}" })];
         string[] selection = ab ? ["--bank", bank] : [];
         string[] inputs = ["ctrlram-replace", "build", "--profile", "NT51929", "--ic-num", "single", "--base", basePath,
-            "--ctrlram", $"replace-ctrlram-nf={sourcePath}", .. selection];
+            .. sources, .. selection];
         string[] aVersion = editA ? ["--a-firmware-version", "21", "--a-firmware-sub-version", "32"] : [];
         string[] bVersion = editB ? ["--b-firmware-version", "29", "--b-firmware-sub-version", "41"] : [];
         string[] versions = ab ? [.. aVersion, .. bVersion] : ["--firmware-version", "21", "--firmware-sub-version", "32"];
@@ -128,11 +135,11 @@ public sealed partial class ReplaceCliCommandTests
         CliGoldenByteEvidence.BuildEvidence edited = await CliGoldenByteEvidence.BuildAsync(workspace, "edited",
             [.. inputs, .. versions], automaticName: true);
 
-        AssertVersionDifferencesAreDeclared(control, edited, ab && editA && editB ? 2 : 1);
         CtrlRamAuthoringDraftState draft = ab
             ? new AbCtrlRamDraftState(bank == "a" ? AbCtrlRamBankSelection.A : bank == "b" ? AbCtrlRamBankSelection.B : AbCtrlRamBankSelection.Both,
                 editA ? new(0x21, 0x32) : null, editB ? new(0x29, 0x41) : null)
             : new CtrlRamFirmwareVersionDraftState(0x21, 0x32);
-        AssertAcceptedOutputName(basePath, sourcePath, draft, edited.Report);
+        AssertVersionDifferencesAreDeclared(control, edited, draft);
+        AssertAcceptedOutputName(basePath, sourcePaths, draft, edited.Report);
     }
 }

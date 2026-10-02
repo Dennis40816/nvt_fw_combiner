@@ -96,7 +96,7 @@ internal static partial class ReplaceCliCommandHandler
             return await UnknownReplaceProfileAsync(command, profileSelector, error).ConfigureAwait(false);
         }
 
-        if (!services.Capabilities.IsReplaceWorkflowAvailable(
+        if (command == ExperienceIds.GeneralReplace && !services.Capabilities.IsReplaceWorkflowAvailable(
                 icId,
                 command))
         {

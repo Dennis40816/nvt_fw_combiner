@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -23,37 +24,63 @@ public sealed partial class ReplaceCliCommandTests
     }
 
     private static void AssertVersionDifferencesAreDeclared(
-        CliGoldenByteEvidence.BuildEvidence control, CliGoldenByteEvidence.BuildEvidence edited, int versionPairCount)
+        CliGoldenByteEvidence.BuildEvidence control, CliGoldenByteEvidence.BuildEvidence edited, CtrlRamAuthoringDraftState draft)
     {
         Assert.Equal(control.Bytes.Length, edited.Bytes.Length);
         JsonElement[] operations = [.. edited.Report.GetProperty("Operations").EnumerateArray()];
         JsonElement[] patches = [.. operations.Where(static operation =>
             operation.GetProperty("OperationId").GetString()!.Contains("patch-fw-", StringComparison.Ordinal))];
+        int versionPairCount = draft is AbCtrlRamDraftState ab
+            ? (ab.AVersion is null ? 0 : 1) + (ab.BVersion is null ? 0 : 1)
+            : 1;
         Assert.Equal(versionPairCount * 2, patches.Length);
         JsonElement[] publications = [.. operations.Where(static operation =>
             operation.GetProperty("OperationId").GetString()!.EndsWith("/publish", StringComparison.Ordinal))];
         string outputSpace = publications.Length == 0
             ? patches[0].GetProperty("TargetSpaceId").GetString()!
             : publications[0].GetProperty("TargetSpaceId").GetString()!;
+        JsonElement[] replacements = [.. operations.Where(static operation =>
+            operation.GetProperty("SourceSpaceId").GetString()?.StartsWith(
+                CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix, StringComparison.Ordinal) == true)];
+        ByteRange[] payloadRanges = [.. replacements.Select(operation => ProjectOperationRange(
+            operation, CliGoldenByteEvidence.Range(operation.GetProperty("TargetRange")), publications, outputSpace))];
+        Assert.Equal(PostbuildCtrlRamSources.Length * Math.Max(1, publications.Length), payloadRanges.Length);
+        foreach (JsonElement replacement in replacements)
+        {
+            string id = replacement.GetProperty("OperationId").GetString()!;
+            JsonElement controlReplacement = Assert.Single(control.Report.GetProperty("Operations").EnumerateArray(),
+                operation => operation.GetProperty("OperationId").GetString() == id);
+            Assert.Equal(controlReplacement.GetProperty("TargetSpaceId").GetString(), replacement.GetProperty("TargetSpaceId").GetString());
+            Assert.Equal(CliGoldenByteEvidence.Range(controlReplacement.GetProperty("TargetRange")),
+                CliGoldenByteEvidence.Range(replacement.GetProperty("TargetRange")));
+            Assert.Equal("Succeeded", replacement.GetProperty("Status").GetString());
+        }
+
+        Assert.All(payloadRanges, range => CliGoldenByteEvidence.EqualRange(control.Bytes, edited.Bytes, range));
         var allowedWrites = new List<ByteRange>();
         var versionWrites = new List<ByteRange>();
         foreach (JsonElement operation in operations)
         {
             string id = operation.GetProperty("OperationId").GetString()!;
-            string space = operation.GetProperty("TargetSpaceId").GetString()!;
             ByteRange[] writes = id.Contains("patch-fw-", StringComparison.Ordinal)
                 ? [CliGoldenByteEvidence.Range(operation.GetProperty("TargetRange"))]
                 : [.. operation.GetProperty("ProcessorAllowedWriteRanges").EnumerateArray().Select(CliGoldenByteEvidence.Range)];
             foreach (ByteRange range in writes)
             {
                 Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
-                ByteRange outputRange = space == outputSpace ? range : ProjectPublishedRange(
-                    Assert.Single(publications, publication => publication.GetProperty("SourceSpaceId").GetString() == space), range);
+                ByteRange outputRange = ProjectOperationRange(operation, range, publications, outputSpace);
                 Assert.InRange(outputRange.EndExclusive, 1, edited.Bytes.LongLength);
-                allowedWrites.Add(outputRange);
                 if (id.Contains("patch-fw-", StringComparison.Ordinal))
                 {
+                    Assert.DoesNotContain(payloadRanges, payload => payload.Overlaps(outputRange));
+                    AssertRequestedVersionPatch(edited.Bytes, id, outputRange, draft);
+                    allowedWrites.Add(outputRange);
                     versionWrites.Add(outputRange);
+                }
+                else
+                {
+                    // Processor authority can include payload publications; version edits must leave them unchanged.
+                    allowedWrites.AddRange(outputRange.Subtract(payloadRanges));
                 }
             }
         }
@@ -69,7 +96,7 @@ public sealed partial class ReplaceCliCommandTests
 
             if (!allowedWrites.Any(range => range.Contains(offset)))
             {
-                Assert.Fail($"Version option changed output-image offset 0x{offset:X} outside report-declared writes.");
+                Assert.Fail($"Version option changed output-image offset 0x{offset:X} outside version patches and non-payload processor writes.");
             }
 
             differences.Add(offset);
@@ -77,6 +104,36 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.NotEmpty(differences);
         Assert.All(versionWrites, range => Assert.Contains(differences, range.Contains));
+    }
+
+    private static void AssertRequestedVersionPatch(
+        byte[] output, string operationId, ByteRange range, CtrlRamAuthoringDraftState draft)
+    {
+        CtrlRamFirmwareVersionDraftState? expected = draft switch
+        {
+            CtrlRamFirmwareVersionDraftState standard => standard,
+            AbCtrlRamDraftState ab when operationId.StartsWith("a-bank/", StringComparison.Ordinal) => ab.AVersion,
+            AbCtrlRamDraftState ab when operationId.StartsWith("b-bank/", StringComparison.Ordinal) => ab.BVersion,
+            _ => null,
+        };
+        Assert.NotNull(expected);
+        bool versionAndBar = operationId.EndsWith("patch-fw-version-and-bar", StringComparison.Ordinal);
+        Assert.True(versionAndBar || operationId.EndsWith("patch-fw-sub-version", StringComparison.Ordinal));
+        Assert.Equal(versionAndBar ? sizeof(ushort) : sizeof(byte), range.Length);
+        long structureStart = checked(range.Start - (versionAndBar
+            ? FirmwareConfigLayout.FirmwareVersionOffset : FirmwareConfigLayout.FirmwareSubVersionOffset));
+        Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(output, structureStart, out FirmwareConfigMetadata metadata));
+        Assert.Equal(expected.FirmwareVersion, metadata.FirmwareVersion);
+        Assert.True(metadata.IsFirmwareVersionBarValid);
+        Assert.Equal(expected.FirmwareSubVersion, metadata.FirmwareSubVersion);
+    }
+
+    private static ByteRange ProjectOperationRange(
+        JsonElement operation, ByteRange range, JsonElement[] publications, string outputSpace)
+    {
+        string space = operation.GetProperty("TargetSpaceId").GetString()!;
+        return space == outputSpace ? range : ProjectPublishedRange(
+            Assert.Single(publications, publication => publication.GetProperty("SourceSpaceId").GetString() == space), range);
     }
 
     private static ByteRange ProjectPublishedRange(JsonElement publish, ByteRange workspaceRange)
@@ -89,19 +146,15 @@ public sealed partial class ReplaceCliCommandTests
     }
 
     private static void AssertAcceptedOutputName(
-        string basePath, string sourcePath, CtrlRamAuthoringDraftState draft, JsonElement report)
+        string basePath, IReadOnlyDictionary<string, string> sourcePaths, CtrlRamAuthoringDraftState draft, JsonElement report)
     {
         CompositionHostServices host = BootstrapTestHost.ProductServices;
-        var paths = new Dictionary<string, string>(StringComparer.Ordinal)
+        var paths = new Dictionary<string, string>(sourcePaths, StringComparer.Ordinal)
         {
             [CompositionSlotIds.ReplaceBase] = basePath,
-            ["replace-ctrlram-nf"] = sourcePath,
         };
-        var bytes = new Dictionary<string, byte[]>(StringComparer.Ordinal)
-        {
-            [CompositionSlotIds.ReplaceBase] = File.ReadAllBytes(basePath),
-            ["replace-ctrlram-nf"] = File.ReadAllBytes(sourcePath),
-        };
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key,
+            static pair => File.ReadAllBytes(pair.Value), StringComparer.Ordinal);
         var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         CtrlRamAuthoringSessionPreparation prepared = host.CtrlRamAuthoring.PrepareSession(
             session, "NT51929", "single", paths, bytes);

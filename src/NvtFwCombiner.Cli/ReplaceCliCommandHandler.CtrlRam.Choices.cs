@@ -1,10 +1,14 @@
 using System.Globalization;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Cli;
 
 internal static partial class ReplaceCliCommandHandler
 {
+    private const string AbBaseVersionOptionsIssueCode = "cli.ctrlram.ab-base-version-options";
+    private const string StandardBaseBankOptionsIssueCode = "cli.ctrlram.standard-base-bank-options";
+
     private static readonly string[] CtrlRamChoiceOptions =
     [
         "--bank", "--firmware-version", "--firmware-sub-version",
@@ -91,6 +95,21 @@ internal static partial class ReplaceCliCommandHandler
         IReadOnlyDictionary<string, string> slotPaths, ActiveSessionSnapshot accepted,
         CtrlRamCliChoices choices)
     {
+        if (accepted.DraftState is AbCtrlRamDraftState && choices.Version is not null)
+        {
+            return new(null, [new CompositionIssue(
+                AbBaseVersionOptionsIssueCode,
+                "this Base has A and B banks: use --a-firmware-version/--a-firmware-sub-version and --b-firmware-version/--b-firmware-sub-version, not --firmware-version")]);
+        }
+
+        if (accepted.DraftState is not AbCtrlRamDraftState &&
+            (choices.Banks is not null || choices.AVersion is not null || choices.BVersion is not null))
+        {
+            return new(null, [new CompositionIssue(
+                StandardBaseBankOptionsIssueCode,
+                "--bank and the per-bank version options apply only to a Base with A and B banks")]);
+        }
+
         ActiveSessionSnapshot current = accepted;
         if (choices.Banks is { } banks)
         {

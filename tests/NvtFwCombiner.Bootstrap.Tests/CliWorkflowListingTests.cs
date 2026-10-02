@@ -74,11 +74,13 @@ public sealed class CliWorkflowListingTests
     }
 
     /// <summary>A known count filter returns only that IC/count's declared slots.</summary>
-    [Fact]
-    public async Task FiltersCtrlRamSlotsByDeclaredIcAndCountAsync()
+    [Theory]
+    [InlineData("ctrlram-replace", "51927", "2")]
+    [InlineData(" CtrlRam-Replace ", " 51927 ", " 2 ")]
+    public async Task FiltersCtrlRamSlotsByDeclaredIcAndCountAsync(string workflow, string profile, string number)
     {
         CliRunResult result = await RunAsync(
-            ["list", "--workflow", "ctrlram-replace", "--profile", "51927", "--ic-num", "2"]);
+            ["list", "--workflow", workflow, "--profile", profile, "--ic-num", number]);
         string[] lines = Lines(result.Output);
 
         Assert.Equal(0, result.ExitCode);
@@ -95,8 +97,6 @@ public sealed class CliWorkflowListingTests
     [InlineData("--workflow", "unknown")]
     [InlineData("--profile", "NT51929")]
     [InlineData("--workflow", "ctrlram-replace", "--profile", "unknown")]
-    [InlineData("--workflow", "ctrlram-replace", "--ic-num", "unknown")]
-    [InlineData("--workflow", "standard-merge", "--ic-num", "single")]
     [InlineData("--workflow", "ab-merge", "--workflow", "ab-merge")]
     [InlineData("--workflow", "ab-merge", "--profile", "NT51950", "--profile", "NT51950")]
     [InlineData("--workflow", "ctrlram-replace", "--ic-num", "single", "--ic-num", "single")]
@@ -125,15 +125,31 @@ public sealed class CliWorkflowListingTests
 
     /// <summary>A known IC without an AB route is distinguished from an unknown IC.</summary>
     [Theory]
-    [InlineData("NT51917", "IC 'NT51917' has no route for workflow 'ab-merge'")]
-    [InlineData("unknown", "unknown IC 'unknown'")]
-    public async Task ProfileFilterExplainsMissingWorkflowRouteAsync(string profile, string message)
+    [InlineData("NT51917", 1, "IC 'NT51917' has no route for workflow 'ab-merge'")]
+    [InlineData("unknown", 64, "unknown IC 'unknown'")]
+    public async Task ProfileFilterExplainsMissingWorkflowRouteAsync(string profile, int expectedExit, string message)
     {
         CliRunResult result = await RunAsync(["list", "--workflow", "ab-merge", "--profile", profile]);
 
-        Assert.Equal(64, result.ExitCode);
+        Assert.Equal(expectedExit, result.ExitCode);
         Assert.Empty(result.Output);
         Assert.Contains(message, result.Error, StringComparison.Ordinal);
+    }
+
+    /// <summary>A well-formed count absent from the declared catalog is a composition refusal, without partial output.</summary>
+    [Theory]
+    [InlineData("ctrlram-replace", null, "unknown")]
+    [InlineData("standard-merge", null, "single")]
+    [InlineData("ctrlram-replace", "NT51929", "2")]
+    [InlineData("ab-merge", "NT51929", "cascade")]
+    public async Task UndeclaredCountUsesCompositionExitAsync(string workflow, string? profile, string number)
+    {
+        string[] selection = profile is null ? [] : ["--profile", profile];
+        CliRunResult result = await RunAsync(["list", "--workflow", workflow, .. selection, "--ic-num", number]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(result.Output);
+        Assert.Equal($"error: unknown {workflow} IC count '{number}'" + Environment.NewLine, result.Error);
     }
 
     private static async Task<CliRunResult> RunAsync(string[] args)

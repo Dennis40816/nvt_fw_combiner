@@ -43,6 +43,14 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
+        if (!services.Capabilities.IsReplaceWorkflowAvailable(icId, ExperienceIds.CtrlRamReplace))
+        {
+            await error.WriteLineAsync(
+                $"error: {CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported}: {icId} {ExperienceIds.CtrlRamReplace} Replace is Not available.")
+                .ConfigureAwait(false);
+            return CompositionFailed;
+        }
+
         string resolvedBasePath = Path.GetFullPath(basePath);
         byte[] acceptedBaseBytes;
         try

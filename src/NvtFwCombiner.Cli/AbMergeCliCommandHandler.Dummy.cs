@@ -20,12 +20,6 @@ internal static partial class AbMergeCliCommandHandler
             return (SoftwareError, new Dictionary<string, string>());
         }
 
-        if (options.Values.ContainsKey("--dp-ab"))
-        {
-            await error.WriteLineAsync("error: --dp-ab is not used with --dp-mode dummy").ConfigureAwait(false);
-            return (UsageError, new Dictionary<string, string>());
-        }
-
         bool succeeded = TryCreateSlotPaths([.. selection.InputBindings.Select(static binding => binding.AddressSpaceId)],
             options, error, out IReadOnlyDictionary<string, string> slotPaths);
         return (succeeded ? Success : UsageError, slotPaths);
@@ -45,6 +39,12 @@ internal static partial class AbMergeCliCommandHandler
             return UsageError;
         }
 
+        if (mode == AbMergeDpMode.Dummy && options.Values.ContainsKey("--dp-ab"))
+        {
+            error.WriteLine("error: --dp-ab is not used with --dp-mode dummy");
+            return UsageError;
+        }
+
         bool acknowledged = options.Flags.Contains(DummyAcknowledgementOption);
         if (mode == AbMergeDpMode.Normal && acknowledged)
         {
@@ -55,7 +55,7 @@ internal static partial class AbMergeCliCommandHandler
         if (mode == AbMergeDpMode.Dummy && !acknowledged)
         {
             error.WriteLine($"error: {DummyAcknowledgementOption} is required to confirm that 0xFF replaces every non-TP output");
-            return CompositionFailed;
+            return UsageError;
         }
 
         return Success;
