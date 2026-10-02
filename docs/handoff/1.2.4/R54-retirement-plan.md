@@ -240,11 +240,14 @@ Old rule files stay unchanged on disk (decision 264).
 Use "Customized Replace is retired" consistently because Customized Replace is the name users see.
 Proposed retirement exit code is 64, matching DP's retired command; today's failed rule check returns 1.
 This is a new retirement-specific result; unrelated invalid rules retain their existing errors and exit codes.
-Questions 2 and 3 are answered by decision 264: option A in both (say that Customized Replace is retired and
+Question 1 is answered by decision 266 (B). Questions 2 and 3 are answered by decision 264: option A in both (say that Customized Replace is retired and
 identify the rule, without listing its ranges; the same message with 64 for a Customized Merge command).
-Question 1 remains; this inventory chooses neither firmware option.
+No question remains open.
 
 **1. Firmware-owner: keep shared bundle/family/profile bytes, or rewrite and re-pin eight surviving CtrlRAM routes?**
+Answered: B (decision 266): the definition leaves the shared bundle in this retirement and the eight routes are
+registered again once, with complete before and after outputs and write ranges for the owner. The text below is
+kept as the record of what was asked.
 
 - **A — Keep bytes (conditional, not yet recommended):** keep bundle/family/profile files, including the retired declaration;
   remove only its trust-index registration, policy row and manifest row from active data. Remove runtime publication
@@ -257,7 +260,8 @@ Question 1 remains; this inventory chooses neither firmware option.
 
 Decision 230's "as for DP Replace" and the DP terminalContract support A if its acceptance is proven.
 Failure to prove A does not select B automatically; the firmware owner must decide before step 4.
-The proof of A is a separate feasibility check, started on 2026-10-02 and not finished at this record.
+The feasibility experiment for A ran on 2026-10-02 and showed A accepted by the code within its scope
+(`R54-option-a-feasibility.md`, "Experiment result"); the owner chose B all the same.
 The split of `TrustedProfileBundleCatalogFactoryTests` (`docs/handoff/1.2.11/R33-05-candidates.md`) lands before
 this retirement: the test files Table 1 lists under that class then carry their new class names.
 
