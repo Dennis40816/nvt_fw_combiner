@@ -7,7 +7,8 @@ Where: `src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplate
 (the cell tooltip in Settings > Support Matrix).
 Observed: on some cells the tooltip opens and closes in a rapid loop while the pointer rests on the cell; other cells
 are fine.
-Cause (from the Avalonia 12.0.5 sources and the catalog data; not reproduced by a tool, see Limits):
+Cause (from the Avalonia 12.0.5 sources and the catalog data; the loop was then observed in the running application,
+see the check below):
 - the cell tooltip lists every route of the cell. 12 of the 36 cells have 3 to 8 routes (the CtrlRAM Replace column
   and two Standard Merge cells), and the tooltip is 320 wide in effect (the theme's maximum width clamps the declared
   560), so those tooltips are taller than the room below or above most cells;
