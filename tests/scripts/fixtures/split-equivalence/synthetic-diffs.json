@@ -49,7 +49,7 @@
         "patch": "--- \n+++ \n@@ -2,0 +3 @@\n+[Collection(nameof(Serial))]\n"
       }
     ],
-    "passed": true,
+    "passed": false,
     "counts": {
       "rename": 1,
       "class_declaration": 2,

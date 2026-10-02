@@ -5,25 +5,17 @@ from __future__ import annotations
 import json
 import difflib
 import os
-import subprocess
-import sys
 import tempfile
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-from scripts import split_equivalence as split
-from scripts.authority_check import Git
-
-FIXTURES = Path(__file__).parent / "fixtures" / "split-equivalence"
-
 from split_equivalence_test_support import (
-    ROOT, FIXTURES, CASES, MEMBER_BODIES, SCHEDULED_SPLITS,
-    text, load_case, changed_file, split_pair, member_move,
+    ROOT, MEMBER_BODIES, SCHEDULED_SPLITS, split,
+    text, load_case, changed_file, split_pair, member_move, require_split_commits, added_collection_definition,
 )
+from scripts.authority_check import Git
 
 
 @pytest.mark.parametrize("project", ["tests/NvtFwCombiner.Architecture.Tests", "scripts/split_equivalence.py"])
@@ -39,6 +31,7 @@ def test_empty_diff_is_not_mechanical_evidence():
 
 def test_real_git_nonancestor_base_is_input_error(capsys):
     pilot = json.loads(text("pilot.json"))
+    require_split_commits(pilot)
     assert split.main(["e3", "--base", pilot["head"], "--head", pilot["base"],
                        "--project", pilot["project"]]) == 2
     assert "ancestor" in json.loads(capsys.readouterr().out)["error"]
@@ -129,7 +122,7 @@ def test_unknown_hunk_identity_cannot_authorize_a_declaration_pair():
 
 
 def test_modified_topic_declaration_identifies_the_source_root():
-    report = split.e3(split_pair())
+    report = split.e3((*split_pair(), added_collection_definition()))
     assert report["passed"]
     assert report["counts"]["collection_attribute"] == 2
 

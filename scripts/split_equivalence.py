@@ -4,13 +4,20 @@ E1 preserves method arguments and multiplicity. A mapping normally uses exact
 method identities; topics need explicit identities because discovery has no
 source paths. E3 is deliberately a conservative C# subset, not a C# parser.
 Unsupported syntax remains unclassified. Counts are signed changed lines,
-except rename, which counts path pairs. This tool does not establish E7.
+except rename, which counts path pairs. This tool establishes neither E2 nor
+E4 to E7. Unchanged lines are not examined for equivalence: a constructor in an
+unchanged root partial that topic classes no longer share is invisible. Paths
+outside --project are not examined. Plain added/removed using directives and
+helper moves get no name-binding check beyond rejecting moved members whose
+simple name remains declared outside the support class in touched/split files.
+E1 without --mapping does not check the declared new class.
 New support files classify constants and readonly fields as support_member_move;
 established support files retain the legacy helper_move kind for single-line
 readonly fields, keeping historical replay counts stable.
 Collection attributes may be added once per new split class and on the source
 class's root file. Accepted declaration pairs identify the single source class;
 all split classes must retain the same collection membership.
+Added memberships require a definition added by this diff or the source class's base collection.
 
 The blank separator kind is an addition to the plan's E3 list, justified by
 the pilot's seven separators; blanks inside multiline literals never qualify.
@@ -36,10 +43,16 @@ try:
     from scripts.authority_check import AuthorityError, Git, strict_json
     from scripts.split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, pair_moves
     from scripts.split_equivalence_paths import named_split_pairs
+    from scripts.split_equivalence_source import (
+        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, declared_names,
+    )
 except ModuleNotFoundError:  # Direct invocation from scripts/.
     from authority_check import AuthorityError, Git, strict_json
     from split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, pair_moves
     from split_equivalence_paths import named_split_pairs
+    from split_equivalence_source import (
+        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, declared_names,
+    )
 
 
 @dataclass(frozen=True)
@@ -63,7 +76,8 @@ def discovery_input(text: str) -> tuple[tuple[Identity, ...], tuple[str, ...]]:
         elif not result and line == line.lstrip() and value.endswith((":", "：")):
             headers.append(line)
         else:
-            raise ValueError(f"invalid discovery line: {line!r}")
+            raise ValueError(f"invalid discovery line: {line!r}; strip the preamble and keep the test names"
+                             ' (and optionally the unindented "The following Tests are available:" header)')
     if not result:
         raise ValueError("discovery contains no fully qualified tests")
     return tuple(result), tuple(headers)
@@ -139,6 +153,8 @@ class FileDiff:
     lines: tuple[Line, ...]
     existing_classes: frozenset[str] = frozenset()
     head_sources: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    base_sources: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    binding_sources: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 def source_lines(text: str) -> tuple[str, ...]:
@@ -248,6 +264,7 @@ def read_diff(git: Git, base: str, head: str, project: str) -> tuple[FileDiff, .
     if any(class_name(line.text) or line.text.startswith("/// <summary>")
            for file in result for line in file.lines):
         baseline: set[str] = set()
+        base_sources: list[tuple[str, tuple[str, ...]]] = []
         paths = git.run("ls-tree", "-r", "-z", "--name-only", base, "--", str(path)).decode("utf-8").split("\0")
         for name in paths:
             if not name.endswith(".cs"):
@@ -255,31 +272,36 @@ def read_diff(git: Git, base: str, head: str, project: str) -> tuple[FileDiff, .
             blob = git.blob(base, name)
             if blob is None:
                 raise ValueError("missing baseline class source")
-            for line in code_lines(source_lines(blob[1].decode("utf-8"))):
+            source = source_lines(blob[1].decode("utf-8"))
+            base_sources.append((name, source))
+            for line in code_lines(source):
                 match = re.match(r"\s*(?:(?:public|internal|private|protected|sealed|static|abstract|partial|unsafe)\s+)*class\s+(\w+)", line)
                 if match:
                     baseline.add(match[1])
-        result = [replace(file, existing_classes=frozenset(baseline)) for file in result]
+        result = [replace(file, existing_classes=frozenset(baseline), base_sources=tuple(base_sources)) for file in result]
     roots = {target[1] for file in result for line in code_lines(file.before)
              if (target := class_name(line))}
     roots.update(match[1].rsplit(".", 1)[-1] for file in result for line in file.lines
                  if (match := re.fullmatch(r"global using static (?:global::)?([\w.]+);", line.text)))
+    binding_roots = roots | {target[1] for file in result for line in code_lines(file.after)
+                             if (target := class_name(line))}
     changed = {file.new_path for file in result}
     context: list[tuple[str, tuple[str, ...]]] = []
-    if roots:
+    binding_context: list[tuple[str, tuple[str, ...]]] = []
+    if binding_roots:
         for name in git.run("ls-tree", "-r", "-z", "--name-only", head, "--", str(path)).decode("utf-8").split("\0"):
-            if name not in changed and name.endswith(".cs") and PurePosixPath(name).name.split(".")[0] in roots:
+            if name not in changed and name.endswith(".cs"):
                 blob = git.blob(head, name)
                 if blob is None:
                     raise ValueError("missing head class source")
-                context.append((name, source_lines(blob[1].decode("utf-8"))))
-    result = [replace(file, head_sources=tuple(context)) for file in result]
+                source = source_lines(blob[1].decode("utf-8"))
+                if PurePosixPath(name).name.split(".")[0] in roots:
+                    context.append((name, source))
+                if any(re.search(r"\bclass\s+" + re.escape(root) + r"\b", line)
+                       for root in binding_roots for line in code_lines(source)):
+                    binding_context.append((name, source))
+    result = [replace(file, head_sources=tuple(context), binding_sources=tuple(binding_context)) for file in result]
     return tuple(result)
-
-
-def class_name(line: str) -> tuple[str, str] | None:
-    match = re.fullmatch(r"((?:public sealed(?: partial)?|internal static(?: partial)?) class) (\w+)\r?", line)
-    return match.groups() if match else None
 
 
 def using(line: str, support_class: str | None = None) -> bool:
@@ -287,12 +309,6 @@ def using(line: str, support_class: str | None = None) -> bool:
         return True
     match = re.fullmatch(r"global using static (?:global::)?(\w+(?:\.\w+)*);", line)
     return bool(match and support_class and match[1] == support_class)
-
-
-def collection(line: str, definition: bool = False) -> bool:
-    name = "CollectionDefinition" if definition else "Collection"
-    argument = r'(?:nameof\(\w+(?:\.\w+)*\)|"[\w .-]+")'
-    return re.fullmatch(r"\[" + name + r"\(" + argument + r"\)\]\r?", line) is not None
 
 
 def definition(lines: tuple[str, ...]) -> bool:
@@ -306,38 +322,11 @@ def definition(lines: tuple[str, ...]) -> bool:
             and content[2:] == ["{", "}"])
 
 
-def masked_source(lines: tuple[str, ...]) -> tuple[tuple[str, ...], frozenset[int]]:
-    """Mask literals/comments and track covered lines, including empty ones."""
-    pattern = (r'\$*(?P<raw>"{3,})[\s\S]*?(?P=raw)|(?:\$?@|@\$)"(?:""|[^"])*"|'
-               r'\$?"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|'
-               r'/\*[\s\S]*?\*/|(?P<summary>///[^\n]*)|//[^\n]*')
-    text = "\n".join(lines)
-    covered: set[int] = set()
-    def mask(match: re.Match[str]) -> str:
-        if match["summary"] is not None:
-            return match[0]
-        first = text.count("\n", 0, match.start()) + 1
-        covered.update(range(first, first + match[0].count("\n") + 1))
-        return re.sub(r"[^\n]", " ", match[0])
-    clean = re.sub(pattern, mask, text)
-    return tuple(clean.split("\n")), frozenset(covered)
-
-
-def code_lines(lines: tuple[str, ...]) -> tuple[str, ...]:
-    return masked_source(lines)[0]
-
-
 def members(lines: tuple[str, ...], include_annotated: bool = False,
             containers: frozenset[str] = frozenset()) -> tuple[tuple[int, int], ...]:
     return tuple((m.start, m.end) for m in member_spans(lines, code_lines(lines), include_annotated, containers)
                  if m.kind == "helper_move" or (m.kind == "support_member_move"
                                                 and " static readonly " in lines[m.start - 1]))
-
-
-def namespace(lines: tuple[str, ...]) -> str | None:
-    names = [match[1] for line in code_lines(lines)
-             if (match := re.fullmatch(r"namespace (\w+(?:\.\w+)*);", line))]
-    return names[0] if len(names) == 1 else None
 
 
 def support_source(path: str, lines: tuple[str, ...], names: set[str]) -> bool:
@@ -373,20 +362,6 @@ def skeleton(lines: tuple[str, ...], names: set[str], source_partial: bool = Fal
     return allowed if not source_partial or (closed and depth == 0) else set()
 
 
-def memberships(sources: dict[str, tuple[str, ...]]) -> dict[tuple[PurePosixPath, str], list[str]]:
-    result: dict[tuple[PurePosixPath, str], list[str]] = {}
-    for path, lines in sources.items():
-        for number, line in enumerate(code_lines(lines)):
-            if target := class_name(line):
-                values = result.setdefault((PurePosixPath(path).parent, target[1]), [])
-                previous = number - 1
-                while previous >= 0 and (not lines[previous].strip() or lines[previous].startswith(("[", "///"))):
-                    if lines[previous].startswith("[Collection("):
-                        values.append(lines[previous])
-                    previous -= 1
-    return result
-
-
 def e3(files: Sequence[FileDiff], support_class: str | None = None,
        allow_directory_move: bool = False) -> dict[str, object]:
     if not files:
@@ -406,6 +381,8 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
         raise ValueError("multiple support classes; specify --support-class")
     head_sources = dict(source for file in files for source in file.head_sources)
     head_sources.update((file.new_path, file.after) for file in files if file.status != "D")
+    base_sources = dict(source for file in files for source in file.base_sources)
+    base_sources.update((file.old_path, file.before) for file in files if file.status != "A")
     support_names.update({support_class} if support_class and any(
         support_source(path, lines, {support_class}) for path, lines in head_sources.items()) else set())
     qualified_support = {namespace(lines) + "." + support_class for path, lines in head_sources.items()
@@ -418,6 +395,8 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
     collection_candidates: dict[tuple[int, int], tuple[str, bool]] = {}
     summaries: Counter[str] = Counter()
     moved: list[dict[str, str]] = []
+    unrelated_moves: list[dict[str, str]] = []
+    reasons: dict[tuple[int, int], str] = {}
     for index, file in enumerate(files):
         csharp = file.old_path.endswith(".cs") and file.new_path.endswith(".cs")
         directory_move = PurePosixPath(file.old_path).parent != PurePosixPath(file.new_path).parent
@@ -533,12 +512,33 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
                          if line.side == "+" and marked.get((index, offset)) == "class_declaration"
                          and (target := class_name(line.text)) and not target[0].startswith("internal static"))
     collection_failures: list[dict[str, object]] = []
+    original_memberships = memberships({path: lines for path, lines in base_sources.items()
+                                       if any((namespace(lines), name) in source_identities
+                                              for _, name in source_classes)})
+    new_collections = {line.text.replace("CollectionDefinition(", "Collection(", 1)
+                       for index, file in enumerate(files) for offset, line in enumerate(file.lines)
+                       if line.side == "+" and collection(line.text, True)
+                       and marked.get((index, offset)) == "collection_definition"}
+    original_collections = {item for key in source_classes for item in original_memberships.get(key, [])}
     if source_classes:
         values = {key: class_memberships.get(key, []) for key in sorted(split_classes)}
         if not single_source or len({tuple(value) for value in values.values()}) != 1 or any(
                 len(value) > 1 or any(not collection(item) for item in value) for value in values.values()):
             collection_failures.append({"classes": sorted({key[1] for key in values}),
                                         "memberships": {str(key[0]) + "/" + key[1]: value for key, value in values.items()}})
+        for item in sorted(collection_names - new_collections - original_collections):
+            collection_failures.append({"classes": sorted({key[1] for key in values}), "collection": item,
+                                        "reason": "collection is neither newly defined nor the source class's base collection"})
+    allowed_origins = {(namespace(file.after), target[1]) for index, file in enumerate(files)
+                       for offset, line in enumerate(file.lines)
+                       if line.side == "+" and marked.get((index, offset)) == "class_declaration"
+                       and (target := class_name(line.text))} | source_identities
+    if not allowed_origins:
+        # Standalone helper replays identify a single source without declaration changes.
+        origins = {(namespace(file.before), target[1]) for file in files for line in code_lines(file.before)
+                   if (target := class_name(line)) and target[1] not in support_names}
+        if len(origins) == 1:
+            allowed_origins = origins
     removed: list[Candidate] = []
     added: list[Candidate] = []
     for index, file in enumerate(files):
@@ -570,9 +570,25 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
                     prefix_positions.insert(0, offsets[0])
                     previous -= 1
                 output.append(Candidate(index, member, body, positions, tuple(prefix), tuple(prefix_positions)))
-    for old, new in pair_moves(removed, added):
+    pairs = pair_moves(removed, added)
+    moved_types = {new.member.name for old, new in pairs if old.member.kind == "support_type_move"
+                   and namespace(files[old.file].before) == namespace(files[new.file].after)}
+    binding_sources = dict(source for file in files for source in file.binding_sources)
+    binding_sources.update(head_sources)
+    remaining_names = {path: declared_names(code_lines(lines), frozenset(support_names | moved_types)
+                                            if support_source(path, lines, support_names) else frozenset())
+                       for path, lines in binding_sources.items() if path.endswith(".cs")}
+    for old, new in pairs:
         if (namespace(files[old.file].before) is None
                 or namespace(files[old.file].before) != namespace(files[new.file].after)):
+            continue
+        collisions = sorted(path for path, names in remaining_names.items() if old.member.name in names)
+        if collisions:
+            reason = f"same-named member remains in {collisions[0]}: overload resolution may change"
+            for candidate in (old, new):
+                for offset in candidate.positions:
+                    marked.pop((candidate.file, offset), None)
+                    reasons[candidate.file, offset] = reason
             continue
         kind = old.member.kind
         # Preserve the pre-existing single-line field kind in established support files.
@@ -589,6 +605,9 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
                     marked[candidate.file, offset] = kind
         moved.append({"kind": kind, "name": old.member.name,
                       "old_file": files[old.file].old_path, "new_file": files[new.file].new_path})
+        origin = class_at(code_lines(files[old.file].before), old.member.start)
+        if (namespace(files[old.file].before), origin) not in allowed_origins:
+            unrelated_moves.append({**moved[-1], "old_class": origin})
     move_kinds = {"helper_move", "support_member_move", "support_type_move"}
     for index, file in enumerate(files):
         if file.status != "D" or index in blocked or not single_source:
@@ -617,9 +636,11 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
                 counts[kind] += 1
             else:
                 unclassified.append({"file": file.old_path if line.side == "-" else file.new_path,
-                                     "side": line.side, "line": line.number, "text": line.text})
-    return {"passed": not (unclassified or collection_failures), "changed_paths": len(files), "counts": counts,
-            "unclassified": unclassified, "collection_consistency": collection_failures, "moves": moved}
+                                     "side": line.side, "line": line.number, "text": line.text,
+                                     **({"reason": reasons[index, offset]} if (index, offset) in reasons else {})})
+    return {"passed": not (unclassified or collection_failures or unrelated_moves), "changed_paths": len(files), "counts": counts,
+            "unclassified": unclassified, "collection_consistency": collection_failures, "moves": moved,
+            "moves_from_unrelated_classes": unrelated_moves}
 
 
 class Parser(argparse.ArgumentParser):
@@ -631,16 +652,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         parser = Parser(description=__doc__)
         commands = parser.add_subparsers(dest="command", required=True)
-        first = commands.add_parser("e1")
-        first.add_argument("--before", type=Path, required=True)
-        first.add_argument("--after", type=Path, required=True)
-        first.add_argument("--mapping", type=Path)
-        third = commands.add_parser("e3")
-        third.add_argument("--base", required=True)
-        third.add_argument("--head", required=True)
-        third.add_argument("--project", required=True)
-        third.add_argument("--support-class")
-        third.add_argument("--allow-directory-move", action="store_true")
+        first = commands.add_parser("e1", help="Compare discovery identities and multiplicity.", description=__doc__)
+        first.add_argument("--before", type=Path, required=True, help="Base discovery text: test names and optional headers.")
+        first.add_argument("--after", type=Path, required=True, help="Head discovery text in the same format as --before.")
+        first.add_argument("--mapping", type=Path, help="JSON mapping of identities to declared old/new classes; without it the declared new class is not checked.")
+        third = commands.add_parser("e3", help="Classify changed lines inside one project.", description=__doc__)
+        third.add_argument("--base", required=True, help="Base Git commit; must be an ancestor of --head.")
+        third.add_argument("--head", required=True, help="Head Git commit to compare with --base.")
+        third.add_argument("--project", required=True, help="Repository-relative project path; paths outside it are not examined.")
+        third.add_argument("--support-class", help="Simple name of the shared static support class.")
+        third.add_argument("--allow-directory-move", action="store_true", help="Allow C# renames across directories; all other checks still apply.")
         args = parser.parse_args(argv)
         if args.command == "e1":
             mapping = strict_json(args.mapping.read_bytes(), "mapping") if args.mapping else None

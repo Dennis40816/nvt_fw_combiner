@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import difflib
 import os
 import subprocess
 import sys
@@ -13,17 +12,10 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-from scripts import split_equivalence as split
-from scripts.authority_check import Git
-
-FIXTURES = Path(__file__).parent / "fixtures" / "split-equivalence"
-
 from split_equivalence_test_support import (
-    ROOT, FIXTURES, CASES, MEMBER_BODIES, SCHEDULED_SPLITS,
-    text, load_case, changed_file, split_pair, member_move,
+    ROOT, FIXTURES, CASES, split, text, load_case, changed_file, require_split_commits, added_collection_definition,
 )
+from scripts.authority_check import Git
 
 
 @pytest.mark.parametrize("after,missing,added", [
@@ -309,6 +301,7 @@ def test_real_pilot_range_accepts_the_source_class_collection_and_pins_counts(mo
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     expected = json.loads(text("pilot.json"))
+    require_split_commits(expected)
     assert split.main(["e3", "--base", expected["base"], "--head", expected["head"],
                        "--project", expected["project"], "--support-class",
                        "RepositoryBoundaryTestSupport"]) == 0
@@ -522,7 +515,7 @@ def test_source_collection_requires_the_unchanged_root_and_one_shared_attribute(
         renamed_split_file, name, path, attributes, passed, classified, unclassified):
     body = f"public sealed partial class {name}\n{{\n}}\n"
     file = changed_file(body, attributes + body, path)
-    report = split.e3((renamed_split_file, file))
+    report = split.e3((renamed_split_file, file, added_collection_definition("A", "tests/Project/Shared.cs")))
     assert report["passed"] == passed
     assert report["counts"]["collection_attribute"] == classified
     assert len(report["unclassified"]) == unclassified

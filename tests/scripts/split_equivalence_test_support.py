@@ -8,15 +8,28 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from scripts import split_equivalence as split
+from scripts.authority_check import AuthorityError, Git
 
 FIXTURES = Path(__file__).parent / "fixtures" / "split-equivalence"
 
 
 def text(name: str) -> str:
     return (FIXTURES / name).read_text(encoding="utf-8")
+
+
+def require_split_commits(expected):
+    for revision in (expected["base"], expected["head"]):
+        try:
+            Git(ROOT).run("rev-parse", "--verify", "--quiet", "--end-of-options", revision + "^{commit}")
+        except AuthorityError as error:
+            if str(error) != "git rev-parse --verify failed: 1":
+                raise
+            pytest.skip(f"split commit {revision} is absent from this clone")
 
 
 def load_case(case: dict) -> tuple[split.FileDiff, ...]:
@@ -43,6 +56,11 @@ def split_pair(old="Old", new="New", attribute='[Collection("Shared")]\n'):
                                             attribute + f"public sealed partial class {new}"), new + ".cs")
     root = changed_file(body, body.replace("public sealed", '[Collection("Shared")]\npublic sealed'), old + ".cs")
     return topic, root
+
+
+def added_collection_definition(name="Shared", path="Shared.cs"):
+    source = f'namespace N;\n[CollectionDefinition("{name}")]\npublic sealed class Shared\n{{\n}}\n'
+    return replace(changed_file("", source, path), status="A")
 
 
 MEMBER_BODIES = [
