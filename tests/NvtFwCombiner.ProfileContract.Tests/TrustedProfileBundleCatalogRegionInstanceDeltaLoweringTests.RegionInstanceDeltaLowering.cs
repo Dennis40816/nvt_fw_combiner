@@ -5,7 +5,9 @@ using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog region instance delta lowering.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogRegionInstanceDeltaLoweringTests
 {
     /// <summary>Verifies relocation addends are derived from the selected canonical instance bases.</summary>
     [Fact]

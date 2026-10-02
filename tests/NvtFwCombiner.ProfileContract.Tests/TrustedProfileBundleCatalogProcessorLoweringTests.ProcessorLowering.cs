@@ -5,7 +5,9 @@ using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog processor lowering.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogProcessorLoweringTests
 {
     /// <summary>An active processor cannot retain a read from an omitted optional input.</summary>
     [Theory]

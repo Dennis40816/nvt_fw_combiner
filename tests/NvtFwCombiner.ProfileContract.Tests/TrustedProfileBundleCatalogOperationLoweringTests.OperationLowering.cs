@@ -6,7 +6,9 @@ using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog operation lowering.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogOperationLoweringTests
 {
     /// <summary>Omitting a valid whole-region seed changes the first write policy, not output geometry.</summary>
     [Theory]
@@ -655,35 +657,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             ["kind"] = "clone",
             ["sourceSlotId"] = "tp-input",
         };
-        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-    }
-
-    private static string ProfileWithWorkBuffer(
-        string profileJson,
-        string? cloneSourceSlotId = null,
-        int? fixedCapacityBytes = null)
-    {
-        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
-        JsonArray spaces = Assert.IsType<JsonArray>(profile["spaces"]);
-        spaces.Add(new JsonObject
-        {
-            ["spaceId"] = "scratch",
-            ["kind"] = "work-buffer",
-            ["capacity"] = fixedCapacityBytes is null
-                ? new JsonObject { ["kind"] = "resolved-map" }
-                : new JsonObject { ["kind"] = "fixed", ["bytes"] = fixedCapacityBytes },
-            ["initializer"] = cloneSourceSlotId is null
-                ? new JsonObject
-                {
-                    ["kind"] = "blank",
-                    ["fillByte"] = 0,
-                }
-                : new JsonObject
-                {
-                    ["kind"] = "clone",
-                    ["sourceSlotId"] = cloneSourceSlotId,
-                },
-        });
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 

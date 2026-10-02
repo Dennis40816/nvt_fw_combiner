@@ -6,7 +6,9 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-public sealed partial class TrustedProfileBundleCatalogFactoryTests
+/// <summary>Tests trusted profile bundle catalog map-bound lowering.</summary>
+[Collection(nameof(TrustedProfileBundleCatalogFactorySerialGroup))]
+public sealed partial class TrustedProfileBundleCatalogLoweringTests
 {
     /// <summary>Verifies the admitted blank-copy subset lowers into one complete non-executable V2 plan artifact.</summary>
     [Fact]
@@ -384,71 +386,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Same(Assert.Single(preparation.CapabilityAdmissions), capability);
     }
 
-    private static PreparedProfile PrepareSupportedBlankCopy(
-        Func<string, string>? profileJsonFactory = null,
-        string? familyJson = null,
-        long capacityBytes = 16)
-    {
-        familyJson ??= FamilyJsonWithRootWriteConstraint("whole-region");
-        string familyHash = Hash(familyJson);
-        string profileJson = (profileJsonFactory ?? (hash => SupportedProfileJson(hash)))(familyHash);
-        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
-        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
-        return PrepareAdmitted(catalog, selection, Inputs(capacityBytes));
-    }
-
-    private static string SupportedProfileJson(string familyHash, string? access = "whole")
-    {
-        string profile = TrustedV2BundleTestDocuments.ProfileJson(familyHash)
-            .Replace("\"stage\": \"known\"", "\"stage\": \"compilable\"", StringComparison.Ordinal)
-            .Replace("\"artifactClass\": \"tp-firmware\"", "\"artifactClass\": \"reference-image\"", StringComparison.Ordinal)
-            .Replace(
-                "\"lengthRule\": { \"kind\": \"tp-maximum-256k\", \"maximumBytes\": 262144 }",
-                "\"lengthRule\": { \"kind\": \"exact-resolved-map-capacity\" }",
-                StringComparison.Ordinal);
-        JsonObject profileNode = Assert.IsType<JsonObject>(JsonNode.Parse(profile));
-        JsonArray rules = Assert.IsType<JsonArray>(profileNode["regionAccessRules"]);
-        if (access is null)
-        {
-            rules.Clear();
-        }
-        else
-        {
-            Assert.IsType<JsonObject>(rules[0])["access"] = access;
-        }
-
-        return profileNode.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-    }
-
-    private static string RuntimeSupportedProfileJson(
-        string familyHash,
-        string stage = "supported",
-        bool tokenizedOutput = false,
-        bool allowOutputOverride = false,
-        string invalidCharacterPolicy = "reject")
-    {
-        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(SupportedProfileJson(familyHash)));
-        JsonObject promotion = Assert.IsType<JsonObject>(profile["promotion"]);
-        promotion["stage"] = stage;
-        promotion["blockers"] = new JsonArray();
-        JsonObject output = Assert.IsType<JsonObject>(profile["output"]);
-        output["fileNameTemplate"] = tokenizedOutput ? "{original-name}.bin" : "v2-output.bin";
-        output["allowOverride"] = allowOutputOverride;
-        output["invalidCharacterPolicy"] = invalidCharacterPolicy;
-        output["requiredTokenIds"] = tokenizedOutput
-            ? new JsonArray("original-name")
-            : [];
-        return profile.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-    }
-
-    private static string ProfileRequiringCapability(string profileJson)
-    {
-        return profileJson.Replace(
-            "\"requiredCapabilityIds\": []",
-            "\"requiredCapabilityIds\": [\"ab-code\"]",
-            StringComparison.Ordinal);
-    }
-
     private static string ProfileWithSourceSlice(string profileJson, int length)
     {
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
@@ -602,23 +539,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         return family.ToJsonString();
     }
 
-    private static string FamilyJsonWithRootWriteConstraint(
-        string writeConstraint,
-        int alignment = 1,
-        long capacity = 16)
-    {
-        JsonObject family = ParseFamily();
-        JsonObject root = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(
-            Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(family["regionSets"])[0])["regions"])[0]);
-        root["writeConstraint"] = writeConstraint;
-        root["alignment"] = alignment;
-        root["range"] = new JsonObject { ["start"] = 0, ["length"] = capacity };
-        JsonObject map = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(family["imageMaps"])[0]);
-        JsonObject applicability = Assert.IsType<JsonObject>(map["applicability"]);
-        applicability["capacityBytes"] = capacity;
-        return family.ToJsonString();
-    }
-
     private static string FamilyJsonWithSplitRoot(string rootWriteConstraint)
     {
         JsonObject family = ParseFamily();
@@ -647,40 +567,5 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             ["alignment"] = 1,
         });
         return family.ToJsonString();
-    }
-
-    private static JsonObject ParseFamily(string? familyJson = null)
-    {
-        return Assert.IsType<JsonObject>(JsonNode.Parse(familyJson ?? TrustedV2BundleTestDocuments.FamilyJson()));
-    }
-
-    private static JsonObject Capability(
-        string capabilityFactId,
-        string capabilityId,
-        string memberId,
-        string mapId,
-        string reason)
-    {
-        return new JsonObject
-        {
-            ["capabilityFactId"] = capabilityFactId,
-            ["capabilityId"] = capabilityId,
-            ["memberId"] = memberId,
-            ["mapId"] = mapId,
-            ["applicability"] = Applicability(),
-            ["state"] = "confirmed-present",
-            ["reason"] = reason,
-            ["evidenceRefs"] = new JsonArray("source-capability-evidence"),
-        };
-    }
-
-    private static JsonObject Applicability()
-    {
-        return new JsonObject
-        {
-            ["modeIds"] = new JsonArray("standard"),
-            ["topologyRequirement"] = new JsonObject { ["kind"] = "none" },
-            ["capacityBytes"] = 16,
-        };
     }
 }
