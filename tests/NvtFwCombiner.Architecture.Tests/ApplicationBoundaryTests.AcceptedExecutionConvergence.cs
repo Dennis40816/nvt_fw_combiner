@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped ApplicationBoundaryTests repository checks.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
 public sealed partial class ApplicationBoundaryTests
 {
     /// <summary>Accepted immutable sessions enter the Application run service through one owner.</summary>

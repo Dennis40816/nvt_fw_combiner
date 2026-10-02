@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped HostInfrastructureBoundaryTests repository checks.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
 public sealed partial class HostInfrastructureBoundaryTests
 {
     /// <summary>First-install progress remains one actual-work projection rather than an estimate.</summary>

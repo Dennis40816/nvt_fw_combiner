@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped PackageTrustBoundaryTests repository checks.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
+[Collection(nameof(PackageTrustMaterializationProcessSerialGroup))]
 public sealed partial class PackageTrustBoundaryTests
 {
     /// <summary>CtrlRAM report metadata uses one declared Standard map counterpart, never runtime shape inference.</summary>

@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped BootstrapCliBoundaryTests repository checks.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
 public sealed partial class BootstrapCliBoundaryTests
 {
     /// <summary>Bootstrap and CLI keep only production-owned inspection and dispatch entry points.</summary>

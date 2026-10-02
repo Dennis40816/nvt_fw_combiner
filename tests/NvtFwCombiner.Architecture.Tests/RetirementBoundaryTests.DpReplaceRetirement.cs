@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped RetirementBoundaryTests repository checks.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
 public sealed partial class RetirementBoundaryTests
 {
     /// <summary>The obsolete DP slot adapter remains absent after retirement.</summary>

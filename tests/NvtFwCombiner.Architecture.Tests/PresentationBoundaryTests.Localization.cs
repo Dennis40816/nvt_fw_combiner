@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped PresentationBoundaryTests repository checks.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
 public sealed partial class PresentationBoundaryTests
 {
     /// <summary>Verifies shell copy is routed through bilingual text resources.</summary>
