@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped CanonicalCatalogBoundaryTests repository checks.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
 public sealed partial class CanonicalCatalogBoundaryTests
 {
     /// <summary>Map preparation retains Domain capability admission without a Profiles mirror graph.</summary>

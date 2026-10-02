@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped RepositoryDocumentTests repository checks.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
 public sealed partial class RepositoryDocumentTests
 {
     // Catastrophic-growth alarm only. Cohesion and semantic ownership are enforced by

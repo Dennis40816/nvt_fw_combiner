@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Repository-level architecture boundary checks that do not depend on production assemblies.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
 public sealed partial class RepositoryBoundaryTests
 {
 

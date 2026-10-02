@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped ProfileBoundaryTests repository checks.</summary>
-[Collection(nameof(RepositoryBoundarySerialGroup))]
 public sealed partial class ProfileBoundaryTests
 {
     /// <summary>Locks the manifest to one compact class transport without record value semantics.</summary>
