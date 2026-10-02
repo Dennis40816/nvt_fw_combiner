@@ -5,16 +5,17 @@ method identities; topics need explicit identities because discovery has no
 source paths. E3 is deliberately a conservative C# subset, not a C# parser.
 Unsupported syntax remains unclassified. Counts are signed changed lines,
 except rename, which counts path pairs. This tool does not establish E7.
-Collection attributes may be added once per new split class with a changed
-declaration and on the unchanged source class's own root file, identified by renamed files'
-paired old declarations. All additions must share one collection so the split
-classes, including the residual class, retain the pilot's serialization.
+New support files classify constants and readonly fields as support_member_move;
+established support files retain the legacy helper_move kind for single-line
+readonly fields, keeping historical replay counts stable.
+Collection attributes may be added once per new split class and on the source
+class's root file. Accepted declaration pairs identify the single source class;
+all split classes must retain the same collection membership.
 
 The blank separator kind is an addition to the plan's E3 list, justified by
 the pilot's seven separators; blanks inside multiline literals never qualify.
-Known conservative rejections requiring a human decision: comments before moved
-helpers, array fields with initializer blocks, private const, nested types,
-brand-new support files, merging identical helpers, multiline summaries, adding
+Known conservative rejections requiring a human decision: merging identical
+helpers, multiline summaries, adding
 partial, and files without a final newline. E1 rejects raw multiline dotnet test
 --list-tests preambles, Outer+Inner names, generic methods, and mappings for the
 same method identity in two old classes. Mappings name fully qualified old_class
@@ -28,13 +29,15 @@ import json
 import re
 from collections import Counter
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 
 try:
     from scripts.authority_check import AuthorityError, Git, strict_json
+    from scripts.split_equivalence_moves import Candidate, canonical_body, member_spans, pair_moves
 except ModuleNotFoundError:  # Direct invocation from scripts/.
     from authority_check import AuthorityError, Git, strict_json
+    from split_equivalence_moves import Candidate, canonical_body, member_spans, pair_moves
 
 
 @dataclass(frozen=True)
@@ -108,7 +111,8 @@ def e1(before: str, after: str, mapping: object | None = None) -> dict[str, obje
         return Counter((item.class_name.split(".")[0], item.method) for item in items)
     root_changes = sorted((roots(new) - roots(old)).elements())
     missing, added = sorted((left - right).elements()), sorted((right - left).elements())
-    return {"passed": not (missing or added or wrong_old or wrong_new or root_changes), "before_count": len(old),
+    return {"passed": not (missing or added or wrong_old or wrong_new or root_changes
+                           or len(old_headers) != len(new_headers)), "before_count": len(old),
             "after_count": len(new), "missing": missing, "added": added,
             "moved-from-unexpected-class": wrong_old, "moved-to-unexpected-class": wrong_new,
             "namespace_root_differences": root_changes,
@@ -120,6 +124,7 @@ class Line:
     side: str
     number: int
     text: str
+    hunk: int = 0
 
 
 @dataclass(frozen=True)
@@ -131,6 +136,7 @@ class FileDiff:
     after: tuple[str, ...]
     lines: tuple[Line, ...]
     existing_classes: frozenset[str] = frozenset()
+    head_sources: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 def source_lines(text: str) -> tuple[str, ...]:
@@ -140,10 +146,11 @@ def source_lines(text: str) -> tuple[str, ...]:
 
 def patch_lines(patch: str) -> tuple[Line, ...]:
     result: list[Line] = []
-    old = new = remaining_old = remaining_new = 0
+    old = new = remaining_old = remaining_new = hunk = 0
     for line in patch.split("\n"):
         match = re.match(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", line)
         if match:
+            hunk += 1
             if remaining_old or remaining_new:
                 raise ValueError("truncated diff hunk")
             old, old_count, new, new_count = match.groups()
@@ -156,10 +163,10 @@ def patch_lines(patch: str) -> tuple[Line, ...]:
             result.append(Line("!", 0, line))
         elif remaining_old or remaining_new:
             if line.startswith("-") and remaining_old:
-                result.append(Line("-", old, line[1:]))
+                result.append(Line("-", old, line[1:], hunk))
                 old, remaining_old = old + 1, remaining_old - 1
             elif line.startswith("+") and remaining_new:
-                result.append(Line("+", new, line[1:]))
+                result.append(Line("+", new, line[1:], hunk))
                 new, remaining_new = new + 1, remaining_new - 1
             else:
                 raise ValueError(f"invalid zero-context diff line: {line!r}")
@@ -221,7 +228,7 @@ def read_diff(git: Git, base: str, head: str, project: str) -> tuple[FileDiff, .
         result.append(FileDiff(status, old_path, new_path,
                                source_lines(before[1].decode("utf-8")) if before else (),
                                source_lines(after[1].decode("utf-8")) if after else (), patch_lines(patch)))
-    if any(line.side == "+" and line.text.startswith("/// <summary>")
+    if any(class_name(line.text) or line.text.startswith("/// <summary>")
            for file in result for line in file.lines):
         baseline: set[str] = set()
         paths = git.run("ls-tree", "-r", "-z", "--name-only", base, "--", str(path)).decode("utf-8").split("\0")
@@ -235,13 +242,26 @@ def read_diff(git: Git, base: str, head: str, project: str) -> tuple[FileDiff, .
                 match = re.match(r"\s*(?:(?:public|internal|private|protected|sealed|static|abstract|partial|unsafe)\s+)*class\s+(\w+)", line)
                 if match:
                     baseline.add(match[1])
-        result = [FileDiff(file.status, file.old_path, file.new_path, file.before, file.after,
-                           file.lines, frozenset(baseline)) for file in result]
+        result = [replace(file, existing_classes=frozenset(baseline)) for file in result]
+    roots = {target[1] for file in result for line in code_lines(file.before)
+             if (target := class_name(line))}
+    roots.update(match[1].rsplit(".", 1)[-1] for file in result for line in file.lines
+                 if (match := re.fullmatch(r"global using static (?:global::)?([\w.]+);", line.text)))
+    changed = {file.new_path for file in result}
+    context: list[tuple[str, tuple[str, ...]]] = []
+    if roots:
+        for name in git.run("ls-tree", "-r", "-z", "--name-only", head, "--", str(path)).decode("utf-8").split("\0"):
+            if name not in changed and name.endswith(".cs") and PurePosixPath(name).name.split(".")[0] in roots:
+                blob = git.blob(head, name)
+                if blob is None:
+                    raise ValueError("missing head class source")
+                context.append((name, source_lines(blob[1].decode("utf-8"))))
+    result = [replace(file, head_sources=tuple(context)) for file in result]
     return tuple(result)
 
 
 def class_name(line: str) -> tuple[str, str] | None:
-    match = re.fullmatch(r"((?:public sealed(?: partial)?|internal static partial) class) (\w+)\r?", line)
+    match = re.fullmatch(r"((?:public sealed(?: partial)?|internal static(?: partial)?) class) (\w+)\r?", line)
     return match.groups() if match else None
 
 
@@ -249,8 +269,7 @@ def using(line: str, support_class: str | None = None) -> bool:
     if re.fullmatch(r"(?:global )?using (?:global::)?\w+(?:\.\w+)*;", line):
         return True
     match = re.fullmatch(r"global using static (?:global::)?(\w+(?:\.\w+)*);", line)
-    return bool(match and support_class and (match[1] == support_class or
-                                             match[1].rsplit(".", 1)[-1] == support_class))
+    return bool(match and support_class and match[1] == support_class)
 
 
 def collection(line: str, definition: bool = False) -> bool:
@@ -291,72 +310,112 @@ def code_lines(lines: tuple[str, ...]) -> tuple[str, ...]:
     return masked_source(lines)[0]
 
 
-def members(lines: tuple[str, ...], include_annotated: bool = False) -> tuple[tuple[int, int], ...]:
-    """Find complete static helper spans, refusing ambiguous strings/comments."""
-    spans: list[tuple[int, int]] = []
-    clean_lines = code_lines(lines)
-    for start, line in enumerate(lines):
-        if not re.match(r"    (?:private|internal) static \S", clean_lines[start]):
-            continue
-        if not include_annotated and start and lines[start - 1].lstrip().startswith("["):
-            # Attributes can carry semantics; accessibility-only pairs still work below.
-            continue
-        clean = "\n".join(clean_lines[start:])
-        stack: list[str] = []
-        number = start
-        for position, char in enumerate(clean):
-            if char == "\n":
-                number += 1
-            elif char in "([{":
-                stack.append(char)
-            elif char in ")]}":
-                if not stack or stack.pop() != {")": "(", "]": "[", "}": "{"}[char]:
-                    break
-                if char == "}" and not stack:
-                    end = clean.find("\n", position)
-                    if not clean[position + 1:end if end >= 0 else None].strip():
-                        spans.append((start + 1, number + 1))
-                    break
-            elif char == ";" and not stack:
-                end = clean.find("\n", position)
-                if not clean[position + 1:end if end >= 0 else None].strip():
-                    spans.append((start + 1, number + 1))
-                break
-            elif char in "\"'":
-                break
-    return tuple(spans)
+def members(lines: tuple[str, ...], include_annotated: bool = False,
+            containers: frozenset[str] = frozenset()) -> tuple[tuple[int, int], ...]:
+    return tuple((m.start, m.end) for m in member_spans(lines, code_lines(lines), include_annotated, containers)
+                 if m.kind == "helper_move" or (m.kind == "support_member_move"
+                                                and " static readonly " in lines[m.start - 1]))
 
 
-def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str, object]:
+def namespace(lines: tuple[str, ...]) -> str | None:
+    names = [match[1] for line in code_lines(lines)
+             if (match := re.fullmatch(r"namespace (\w+(?:\.\w+)*);", line))]
+    return names[0] if len(names) == 1 else None
+
+
+def support_source(path: str, lines: tuple[str, ...], names: set[str]) -> bool:
+    return any(PurePosixPath(path).name == name + ".cs" or
+               re.fullmatch(re.escape(name) + r"\.\w+\.cs", PurePosixPath(path).name)
+               for name in names) and sum(
+                   bool((target := class_name(line)) and target[0].startswith("internal static") and target[1] in names)
+                   for line in code_lines(lines)) == 1
+
+
+def skeleton(lines: tuple[str, ...], names: set[str]) -> set[int]:
+    clean = code_lines(lines)
+    declarations = [i for i, line in enumerate(clean) if (target := class_name(line))
+                    and target[0].startswith("internal static") and target[1] in names]
+    if len(declarations) != 1 or namespace(lines) is None:
+        return set()
+    start = declarations[0]
+    if start + 1 >= len(lines) or lines[start + 1] != "{":
+        return set()
+    allowed = {start + 1, start + 2}
+    if start and re.fullmatch(r"/// <summary>.+</summary>", lines[start - 1]):
+        allowed.add(start)
+    depth = 0
+    closed = False
+    for i, line in enumerate(clean):
+        if depth == 0 and (using(lines[i]) or re.fullmatch(r"namespace \w+(?:\.\w+)*;", line)):
+            allowed.add(i + 1)
+        if not closed and i > start + 1 and depth == 1 and line == "}":
+            allowed.add(i + 1)
+            closed = True
+        depth += line.count("{") - line.count("}")
+    return allowed
+
+
+def memberships(sources: dict[str, tuple[str, ...]]) -> dict[tuple[PurePosixPath, str], list[str]]:
+    result: dict[tuple[PurePosixPath, str], list[str]] = {}
+    for path, lines in sources.items():
+        for number, line in enumerate(code_lines(lines)):
+            if target := class_name(line):
+                values = result.setdefault((PurePosixPath(path).parent, target[1]), [])
+                previous = number - 1
+                while previous >= 0 and (not lines[previous].strip() or lines[previous].startswith(("[", "///"))):
+                    if lines[previous].startswith("[Collection("):
+                        values.append(lines[previous])
+                    previous -= 1
+    return result
+
+
+def e3(files: Sequence[FileDiff], support_class: str | None = None,
+       allow_directory_move: bool = False) -> dict[str, object]:
     if not files:
         raise ValueError("no changed path in project")
     kinds = ("rename", "class_declaration", "summary", "using", "support_accessibility",
-             "helper_move", "collection_attribute", "collection_definition", "blank")
+             "helper_move", "collection_attribute", "collection_definition", "blank",
+             "support_member_move", "support_type_move", "support_file_skeleton")
     counts = dict.fromkeys(kinds, 0)
     marked: dict[tuple[int, int], str] = {}
     old_classes = {value[1] for file in files for line in code_lines(file.before) if (value := class_name(line))}
     old_classes.update(name for file in files for name in file.existing_classes)
     support_names = {value[1] for file in files for line in code_lines(file.after)
-                     if (value := class_name(line)) and value[0] == "internal static partial class"}
+                     if (value := class_name(line)) and value[0].startswith("internal static")}
     if support_class is not None:
         support_names &= {support_class}
     if len(support_names) > 1:
         raise ValueError("multiple support classes; specify --support-class")
+    head_sources = dict(source for file in files for source in file.head_sources)
+    head_sources.update((file.new_path, file.after) for file in files if file.status != "D")
+    support_names.update({support_class} if support_class and any(
+        support_source(path, lines, {support_class}) for path, lines in head_sources.items()) else set())
+    qualified_support = {namespace(lines) + "." + support_class for path, lines in head_sources.items()
+                         if support_class and namespace(lines) and support_source(path, lines, {support_class})}
+    support_identity = next(iter(qualified_support)) if len(qualified_support) == 1 else None
+    blocked: set[int] = set()
     collection_names = {line.text for file in files for line in file.lines
                         if line.side == "+" and collection(line.text)}
     class_collections: Counter[str] = Counter()
     collection_candidates: dict[tuple[int, int], tuple[str, bool]] = {}
     summaries: Counter[str] = Counter()
+    moved: list[dict[str, str]] = []
     for index, file in enumerate(files):
         csharp = file.old_path.endswith(".cs") and file.new_path.endswith(".cs")
-        if file.status == "R" and csharp:
+        directory_move = PurePosixPath(file.old_path).parent != PurePosixPath(file.new_path).parent
+        if file.status == "R" and csharp and (allow_directory_move or not directory_move):
             counts["rename"] += 1
         (before_code, before_mask), (after_code, after_mask) = masked_source(file.before), masked_source(file.after)
-        is_support = (sum(class_name(line) is not None for line in after_code) == 1
-                      and any(class_name(line) == ("internal static partial class", name)
-                              for line in after_code for name in support_names))
+        if (any('"' in line and not line.lstrip().startswith("///") for line in (*before_code, *after_code))
+                or (file.status == "R" and directory_move and not allow_directory_move)):
+            blocked.add(index)
+            continue
+        is_support = support_source(file.new_path, file.after, support_names)
+        support_skeleton = (skeleton(file.after, support_names)
+                            if is_support and file.status == "A" and support_class is not None else set())
         is_definition = file.status == "A" and definition(file.after)
-        has_tests = any(re.search(r"\[(?:\w+\.)*(?:Fact|Theory)(?:Attribute)?\b", line) for line in before_code)
+        has_tests = re.search(r"(?:\[|,)\s*(?:\w+:\s*)?(?:global::)?(?:@?\w+\.)*"
+                              r"@?\w*(?:Fact|Theory)(?:Attribute)?\b", "\n".join(before_code)) is not None
         removed_collection = any(line.side == "-" and collection(line.text) for line in file.lines)
         added_classes = {line.number for line in file.lines if line.side == "+" and class_name(line.text)}
         for number, declaration in enumerate(after_code):
@@ -374,8 +433,11 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
                     marked[key] = "blank"
             elif not (before_code if line.side == "-" else after_code)[line.number - 1].strip():
                 continue
-            elif line.side == "+" and using(line.text, support_class):
+            elif (line.side == "+" and using(line.text, support_identity)
+                  and (not (is_support and file.status == "A") or line.number in support_skeleton)):
                 marked[key] = "using"
+            elif line.side == "+" and line.number in support_skeleton:
+                marked[key] = "support_file_skeleton"
             elif is_definition:
                 marked[key] = "collection_definition"
             elif collection(line.text):
@@ -386,6 +448,8 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
             elif (new_class := class_name(line.text)) and line.side == "+":
                 partners = [(position, item) for position, item in enumerate(file.lines)
                             if item.side == "-" and class_name(item.text)
+                            and item.hunk > 0 and item.hunk == line.hunk and class_name(item.text)[1] != new_class[1]
+                            and new_class[1] not in old_classes
                             and before_code[item.number - 1].strip()
                             and (index, position) not in marked]
                 if len(partners) == 1:
@@ -403,8 +467,8 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
                     summaries[target[1]] += 1
                     marked[key] = "summary"
         if is_support:
-            old_starts = dict(members(file.before, True))
-            new_starts = dict(members(file.after, True))
+            old_starts = dict(members(file.before, True, frozenset(support_names)))
+            new_starts = dict(members(file.after, True, frozenset(support_names)))
             for offset, line in enumerate(file.lines):
                 if line.side == "+" and line.number in new_starts and re.match(r"    internal static \S", line.text):
                     for position, old in enumerate(file.lines):
@@ -414,12 +478,24 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
                                 == file.after[line.number - 1:new_starts[line.number]]
                                 and (index, position) not in marked):
                             marked[index, offset] = marked[index, position] = "support_accessibility"
+                            if file.old_path != file.new_path:
+                                name = next(member.name for member in member_spans(
+                                    file.before, before_code, True, frozenset(support_names)) if member.start == old.number)
+                                moved.append({"kind": "support_accessibility", "name": name,
+                                              "old_file": file.old_path, "new_file": file.new_path})
                             break
     source_classes = {(PurePosixPath(file.old_path).parent, target[1])
-                      for index, file in enumerate(files) if file.status == "R"
+                      for index, file in enumerate(files)
                       for offset, line in enumerate(file.lines)
                       if line.side == "-" and marked.get((index, offset)) == "class_declaration"
                       and (target := class_name(line.text))}
+    source_identities = {(namespace(file.before), target[1])
+                         for index, file in enumerate(files) for offset, line in enumerate(file.lines)
+                         if line.side == "-" and marked.get((index, offset)) == "class_declaration"
+                         and (target := class_name(line.text))}
+    single_source = len(source_classes) == len(source_identities) == 1
+    if source_classes and not single_source:
+        marked = {key: kind for key, kind in marked.items() if kind != "class_declaration"}
     for key, (name, changed_declaration) in collection_candidates.items():
         file = files[key[0]]
         path = PurePosixPath(file.new_path)
@@ -427,53 +503,89 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None) -> dict[str,
                   and file.old_path == file.new_path and path.name == name + ".cs"
                   and code_lines(file.before).count(file.after[file.lines[key[1]].number]) == 1
                   and sum(class_name(line) is not None for line in code_lines(file.after)) == 1)
-        if class_collections[name] == 1 and (changed_declaration or source):
+        accepted = any(item.side == "+" and item.number == file.lines[key[1]].number + 1
+                       and marked.get((key[0], i)) == "class_declaration" for i, item in enumerate(file.lines))
+        if single_source and class_collections[name] == 1 and (source or (changed_declaration and accepted)):
             marked[key] = "collection_attribute"
-    # Match whole removed helpers to whole added helpers; consume each occurrence once.
-    removed: list[tuple[int, tuple[str, ...], tuple[int, ...]]] = []
-    added: list[tuple[int, tuple[str, ...], tuple[int, ...]]] = []
+    class_memberships = memberships(head_sources)
+    split_classes = set(source_classes)
+    split_classes.update((PurePosixPath(file.new_path).parent, target[1])
+                         for index, file in enumerate(files) for offset, line in enumerate(file.lines)
+                         if line.side == "+" and marked.get((index, offset)) == "class_declaration"
+                         and (target := class_name(line.text)) and not target[0].startswith("internal static"))
+    collection_failures: list[dict[str, object]] = []
+    if source_classes:
+        values = {key: class_memberships.get(key, []) for key in sorted(split_classes)}
+        if not single_source or len({tuple(value) for value in values.values()}) != 1 or any(
+                len(value) > 1 or any(not collection(item) for item in value) for value in values.values()):
+            collection_failures.append({"classes": sorted({key[1] for key in values}),
+                                        "memberships": {str(key[0]) + "/" + key[1]: value for key, value in values.items()}})
+    removed: list[Candidate] = []
+    added: list[Candidate] = []
     for index, file in enumerate(files):
-        if not (file.old_path.endswith(".cs") and file.new_path.endswith(".cs")):
+        if index in blocked or not (file.old_path.endswith(".cs") and file.new_path.endswith(".cs")):
             continue
         for side, source, output in (("-", file.before, removed), ("+", file.after, added)):
-            if not (file.old_path if side == "-" else file.new_path).endswith(".cs"):
+            if side == "+" and not support_source(file.new_path, file.after, support_names):
                 continue
-            clean = code_lines(source)
-            if side == "+" and not (sum(class_name(line) is not None for line in clean) == 1
-                                    and any(class_name(line) == ("internal static partial class", name)
-                                            for line in clean for name in support_names)):
-                continue
-            for start, end in members(source):
+            for member in member_spans(source, code_lines(source), containers=frozenset(support_names)):
                 positions = tuple(offset for offset, line in enumerate(file.lines)
-                                  if line.side == side and start <= line.number <= end)
-                if len(positions) == end - start + 1 and all(marked.get((index, p)) in {None, "blank"} for p in positions):
-                    body = list(source[start - 1:end])
-                    if side == "-" and body[0].startswith("    private static "):
-                        body[0] = body[0].replace("private", "internal", 1)
-                    elif not body[0].startswith("    internal static "):
-                        continue
-                    output.append((index, tuple(body), positions))
-    for index, body, positions in removed:
-        for candidate, (target, new_body, new_positions) in enumerate(added):
-            if body == new_body and index != target:
-                for owner, offsets in ((index, positions), (target, new_positions)):
-                    for offset in offsets:
-                        marked[owner, offset] = "helper_move"
-                added.pop(candidate)
-                break
+                                  if line.side == side and member.start <= line.number <= member.end)
+                if len(positions) != member.end - member.start + 1 or any(
+                        marked.get((index, p)) not in {None, "blank"} for p in positions):
+                    continue
+                body = canonical_body(source, member, side == "-")
+                if body is None:
+                    continue
+                prefix_positions: list[int] = []
+                prefix: list[str] = []
+                previous = member.start - 1
+                while previous > 0:
+                    offsets = [i for i, line in enumerate(file.lines) if line.side == side and line.number == previous]
+                    if len(offsets) != 1 or marked.get((index, offsets[0])) not in {None, "blank"}:
+                        break
+                    text = source[previous - 1]
+                    if text.strip() and not text.lstrip().startswith("//"):
+                        break
+                    prefix.insert(0, text)
+                    prefix_positions.insert(0, offsets[0])
+                    previous -= 1
+                output.append(Candidate(index, member, body, positions, tuple(prefix), tuple(prefix_positions)))
+    for old, new in pair_moves(removed, added):
+        if (namespace(files[old.file].before) is None
+                or namespace(files[old.file].before) != namespace(files[new.file].after)):
+            continue
+        kind = old.member.kind
+        # Preserve the pre-existing single-line field kind in established support files.
+        if (kind == "support_member_move" and old.member.start == old.member.end
+                and " static readonly " in old.body[0] and files[new.file].status != "A"):
+            kind = "helper_move"
+        for candidate in (old, new):
+            for offset in candidate.positions:
+                marked[candidate.file, offset] = kind
+        new_prefix = tuple("    " + line if line else line for line in new.prefix) if new.member.top_level else new.prefix
+        if old.prefix == new_prefix:
+            for candidate in (old, new):
+                for offset in candidate.prefix_positions:
+                    marked[candidate.file, offset] = kind
+        moved.append({"kind": kind, "name": old.member.name,
+                      "old_file": files[old.file].old_path, "new_file": files[new.file].new_path})
     unclassified: list[dict[str, object]] = []
     for index, file in enumerate(files):
         if file.status == "R" and not (file.old_path.endswith(".cs") and file.new_path.endswith(".cs")):
             unclassified.append({"file": file.new_path, "side": "!", "line": 0,
                                  "text": f"non-C# rename: {file.old_path} -> {file.new_path}"})
+        if file.status == "R" and index in blocked and not file.lines:
+            unclassified.append({"file": file.new_path, "side": "!", "line": 0,
+                                 "text": f"unapproved rename: {file.old_path} -> {file.new_path}"})
         for offset, line in enumerate(file.lines):
             if kind := marked.get((index, offset)):
                 counts[kind] += 1
             else:
                 unclassified.append({"file": file.old_path if line.side == "-" else file.new_path,
                                      "side": line.side, "line": line.number, "text": line.text})
-    return {"passed": not unclassified, "changed_paths": len(files), "counts": counts,
-            "unclassified": unclassified}
+    return {"passed": not (unclassified or collection_failures), "changed_paths": len(files), "counts": counts,
+            "unclassified": unclassified, "collection_consistency": collection_failures, "moves": moved}
 
 
 class Parser(argparse.ArgumentParser):
@@ -494,6 +606,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         third.add_argument("--head", required=True)
         third.add_argument("--project", required=True)
         third.add_argument("--support-class")
+        third.add_argument("--allow-directory-move", action="store_true")
         args = parser.parse_args(argv)
         if args.command == "e1":
             mapping = strict_json(args.mapping.read_bytes(), "mapping") if args.mapping else None
@@ -504,7 +617,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         else:
             git = Git(Path(__file__).resolve().parents[1])
             base, head = git.commit(args.base), git.commit(args.head)
-            report = e3(read_diff(git, base, head, args.project), args.support_class)
+            report = e3(read_diff(git, base, head, args.project), args.support_class, args.allow_directory_move)
             report.update(base=base, head=head, project=args.project, support_class=args.support_class)
         print(json.dumps(report, ensure_ascii=True, indent=2))
         return 0 if report["passed"] else 1

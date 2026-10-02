@@ -11,7 +11,10 @@
     "helper_move": 72,
     "collection_attribute": 10,
     "collection_definition": 6,
-    "blank": 7
+    "blank": 7,
+    "support_member_move": 0,
+    "support_type_move": 0,
+    "support_file_skeleton": 0
   },
   "unclassified": []
 }

@@ -21,7 +21,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": []
   },
@@ -35,6 +38,14 @@
         "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
         "after": "namespace Example;\n\n/// <summary>New topic checks.</summary>\n[Collection(nameof(Serial))]\npublic sealed partial class New\n{\n}\n",
         "patch": "--- a/Old.Topic.cs\n+++ b/New.Topic.cs\n@@ -3 +3,3 @@\n-public sealed partial class Old\n+/// <summary>New topic checks.</summary>\n+[Collection(nameof(Serial))]\n+public sealed partial class New\n"
+      },
+      {
+        "status": "M",
+        "old_path": "Old.cs",
+        "new_path": "Old.cs",
+        "before": "namespace Example;\n\npublic sealed partial class Old\n{\n}\n",
+        "after": "namespace Example;\n\n[Collection(nameof(Serial))]\npublic sealed partial class Old\n{\n}\n",
+        "patch": "--- \n+++ \n@@ -2,0 +3 @@\n+[Collection(nameof(Serial))]\n"
       }
     ],
     "passed": true,
@@ -45,9 +56,12 @@
       "using": 0,
       "support_accessibility": 0,
       "helper_move": 0,
-      "collection_attribute": 1,
+      "collection_attribute": 2,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": []
   },
@@ -60,7 +74,10 @@
         "new_path": "Old.Topic.cs",
         "before": "using System;\nnamespace Example;\n\npublic sealed partial class Old\n{\n}\n",
         "after": "global using static Example.Support;\nnamespace Example;\n\npublic sealed partial class Old\n{\n}\n",
-        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -1 +1 @@\n-using System;\n+global using static Example.Support;\n"
+        "patch": "--- a/Old.Topic.cs\n+++ b/Old.Topic.cs\n@@ -1 +1 @@\n-using System;\n+global using static Example.Support;\n",
+        "head_sources": {
+          "Support.cs": "namespace Example;\ninternal static partial class Support\n{\n}\n"
+        }
       }
     ],
     "passed": false,
@@ -73,7 +90,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -106,7 +126,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 1
+      "blank": 1,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": []
   },
@@ -132,7 +155,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": []
   },
@@ -166,7 +192,10 @@
       "helper_move": 8,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": []
   },
@@ -200,7 +229,10 @@
       "helper_move": 2,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": []
   },
@@ -226,7 +258,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 6,
-      "blank": 1
+      "blank": 1,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": []
   },
@@ -252,7 +287,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 1
+      "blank": 1,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -315,7 +353,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -348,7 +389,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -381,7 +425,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -420,7 +467,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -459,7 +509,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -506,7 +559,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -581,7 +637,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -620,7 +679,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -653,7 +715,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -692,7 +757,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
@@ -733,7 +801,10 @@
       "helper_move": 0,
       "collection_attribute": 0,
       "collection_definition": 0,
-      "blank": 0
+      "blank": 0,
+      "support_member_move": 0,
+      "support_type_move": 0,
+      "support_file_skeleton": 0
     },
     "unclassified": [
       {
