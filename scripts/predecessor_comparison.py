@@ -691,6 +691,8 @@ def _build_executor(
             for action in ("restore", "build"):
                 arguments = [value.replace("{sourceRoot}", str(source)) for value in recipe[action]["arguments"]]
                 if action == "build":
+                    # Decisions 275/277 approve the runtime property for every
+                    # comparator-built program (both baselines and candidate) only.
                     extras = recipe["compilerHost"].get("extraBuildArguments", [])
                     arguments = [value for value in arguments if value not in extras] + list(extras)
                 with _compiler_environment(recipe["compilerHost"]):

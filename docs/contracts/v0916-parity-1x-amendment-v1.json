@@ -157,11 +157,11 @@
   ],
   "baselineExecutor": {
     "status": "in-effect",
-    "boardDecisions": ["1.1.12 board decision 63", "1.1.12 board decision 79"],
+    "boardDecisions": ["1.1.12 board decision 63", "1.1.12 board decision 79", "1.2.x board decision 275", "1.2.x board decision 277"],
     "contract": {
       "path": "docs/contracts/v0916-baseline-executor-v2.json",
-      "size": 15254,
-      "sha256": "b17b36b5d5acb1a6a5559c748b1e3ebd365878989a721c70c8f4a17990066c0c"
+      "size": 15322,
+      "sha256": "5b202a402c11c370a42f286788b56ca7426e0c7ca87e7786268242cd8e261921"
     }
   }
 }

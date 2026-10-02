@@ -24,8 +24,11 @@ to restore/build, appends `-p:UseSharedCompilation=false`, `-nodeReuse:false`
 and `-p:RuntimeFrameworkVersion=10.0.11` once, and restores the environment on
 success and failure. The `RuntimeFrameworkVersion` value must equal
 `compilerHost.requiredRuntime.version`. No `-m:1` is added to v0.9.16.
-The `-p:RuntimeFrameworkVersion=10.0.11` argument is an extension of decision 79 that the release owner approved on 2026-10-02 (board decision 275).
-The v2 JSON and its raw amendment binding remain unchanged.
+The release owner approved `-p:RuntimeFrameworkVersion=10.0.11` on 2026-10-02
+(board decisions 275 and 277, extending decision 79). It applies to every
+program the comparator builds: the v0.9.16 baseline, the 1.x baseline and the
+candidate, and only to those builds. The v2 JSON's `compilerHost.boardDecisions`
+and schema record the approval; the amendment binds the updated raw bytes.
 
 Since 1.1.13, the 1.x build runs the framework-dependent prebuilt profile
 catalog generator, which requests runtime `10.0.0` and cannot start while

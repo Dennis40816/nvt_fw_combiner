@@ -27,6 +27,7 @@ R35-06 activates both executor interfaces with complete compiler-host settings a
 1. **Resolved: reproducible `deterministicSha256`.** This executor-contract batch retains and validates run capture evidence while both builders and validators share the contract's exact digest projection, covered by repeated synthetic runs with different ids, timestamps, paths and inventory collection times. Two real rolling runs of one candidate (`rolling-11`, `rolling-12`) give the same digest; only the members the contract excludes differ (each process's report size and hash and its stdout hash).
 2. **Resolved: the `1.2.2` milestone wording.** This batch states that candidate version `1.2.2` executes the deferred `1.2.0-release-approval` milestone under decisions 201 and 250, retaining the existing enum.
 3. **Resolved: the CLI supplies the baseline builder.** Part 2 wires `V0916BaselineExecutorBuilder`, loads v2 through the candidate snapshot's amendment binding and verifies its recipe and compiler host.
+4. **Open: baseline-identity comparison.** The comparison promised by the contract is not implemented yet; it is item A3 of the commander's work list, with no board item yet.
 
 The rolling inventory supplier is the commander's complete file passed through
 `--published-release-inventory FILE`; this batch supplies its schema, validation
@@ -52,8 +53,9 @@ each fixed on that branch before the next run:
   commit that sets it;
 - `git worktree add` fails on long paths: the comparator passes `core.longpaths` through the environment;
 - the 1.x build's catalog generator requests runtime 10.0.0 and fails under `DOTNET_ROLL_FORWARD=Disable`: the
-  build contracts add `-p:RuntimeFrameworkVersion=10.0.11`. This extends decision 79's pinning and is flagged for
-  the owner in the R3 pull request;
+  build contracts add `-p:RuntimeFrameworkVersion=10.0.11`. The release owner approved this extension of
+  decision 79 on 2026-10-02 (decisions 275 and 277) for every comparator-built program: the v0.9.16 baseline,
+  the 1.x baseline and the candidate, and only for those builds;
 - first complete run: all 39 scenarios `invalid`, because checks written against synthetic reports met the reports
   a CLI really writes. No check was relaxed without a decision; each cause has a bug record:
   - the order and capture checks misread a written report

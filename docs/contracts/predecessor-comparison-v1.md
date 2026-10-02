@@ -335,9 +335,12 @@ same host's `x64` architecture. Restore/build alone receive
 `DOTNET_ROLL_FORWARD=Disable`; build appends `-p:UseSharedCompilation=false`
 and `-nodeReuse:false` and `-p:RuntimeFrameworkVersion=10.0.11` once; the
 `RuntimeFrameworkVersion` value must equal `compilerHost.requiredRuntime.version`.
-The `-p:RuntimeFrameworkVersion=10.0.11` argument is an extension of decision 79 that the release owner approved on 2026-10-02 (board decision 275).
-`compilerHost.boardDecisions` records the original decision-79 compiler-host pinning;
-decision 275 authorizes this extension without changing the executor v2 JSON or its amendment binding.
+The release owner approved `-p:RuntimeFrameworkVersion=10.0.11` on 2026-10-02
+(board decisions 275 and 277, extending decision 79). It applies to every
+program the comparator builds: the v0.9.16 baseline, the 1.x baseline and the
+candidate, and only to those builds. `compilerHost.boardDecisions` records
+decisions 79, 275 and 277; the executor v2 JSON, schema and raw amendment
+binding carry the same approval.
 Every path restores the previous environment.
 Missing runtime or a wrong architecture refuses with
 `PREDECESSOR_EXECUTOR_INVALID`, without installing or selecting another host.
@@ -443,11 +446,18 @@ times out, exits without a report or reports a process failure is
 `PREDECESSOR_PROCESS_FAILED`; it is never a rejection and can never be
 declared or approved.
 
-For a rejection with compiled operations, decision 272 admits `Skipped` only
-when all five conditions hold: the process exits nonzero; its written report
-carries an `error` issue; every operation is `Skipped`; there is no write record
-(no mutation row, processor command or output difference); and no output file
-exists for that side. One operation that ran makes the side `invalid`.
+For a rejection with compiled operations, there are three cases:
+
+- With no `Skipped` row, operations that ran and mutation rows remain admitted
+  under the existing typed rejection and per-side safety rules when publication
+  was blocked and no output file was committed.
+- With every row `Skipped`, decision 272 requires all five conditions: the
+  process exits nonzero; its written report carries an `error` issue; every
+  operation is `Skipped`; there is no write record (no mutation row, processor
+  command or output difference); and no output file exists for that side.
+  No output file means absent `Output` or `Committed: false`, with no captured file.
+- A report mixing `Skipped` rows with rows that ran is `invalid`.
+
 The comparator opts into the shared projection check's `skipped_rejection`
 only after proving these conditions. A skipped processor may describe its
 declared ranges without an executed command; this supplies no execution authority.
@@ -504,12 +514,17 @@ second implementation. The comparator's staged-command identity check
 2. **Report ranges.** `validate_semantic_report_ranges` checks that every
    range is half-open, inside its address space's capacity and contained in
    its operation, and that a processor's read ranges and its write ranges do
-   not overlap among themselves. Operation targets are compared inside their
-   own address space, in strictly increasing integer `sequence` order: a target may overlap an earlier
-   target only when its operation declares the `ReplaceExisting` overlap
+   not overlap among themselves. Declared writes are compared inside their
+   own address space, in strictly increasing integer `sequence` order: a write may overlap an earlier
+   write only when its operation declares the `ReplaceExisting` overlap
    policy, as a map does when it copies the DP container and writes the TP
-   over part of it. `ReplaceExisting` with no earlier overlapping target in
-   that address space is refused, as is any other overlap. The comparator asks for
+   over part of it. As in `CompositionOperation.GetProfileOverlapError`,
+   `ReplaceExisting` is allowed only for `CopyRange`, `RunExternalProcessor`,
+   `ReplaceRange`, `PatchScalar` or `TransformScalar`, and every declared write
+   must be fully contained in one earlier write in that space. A processor
+   declares its allowed write ranges; every other operation declares its target.
+   Partial cover, cover assembled from adjacent earlier writes, no earlier
+   overlapping write, and any other overlap are refused. The comparator asks for
    this rule with the function's `declared_overlap` option; the ADR 0057
    terminal path keeps its default, which refuses every overlap.
 
@@ -535,10 +550,16 @@ second implementation. The comparator's staged-command identity check
    file and with any other `Committed` value, or an output file whose report
    is not `Committed: true`, is `PREDECESSOR_REPORT_INVALID`.
    In addition, decision 274 requires each same-side Preview/Build pair,
-   including the precursor pair, to agree on output size and SHA-256 whenever
-   both reports describe output. Either mismatch is `PREDECESSOR_REPORT_INVALID`
-   with `Build output size or hash differs from Preview prediction`. A Preview
-   without an output prediction adds no equality check; other safety checks remain.
+   including the precursor pair, to agree on output size and SHA-256 when the
+   Build committed an output file and both reports describe output. An
+   uncommitted failed Build's empty output description is not compared with
+   the Preview prediction. Either mismatch is `PREDECESSOR_REPORT_INVALID`
+   with `Build output size or hash differs from Preview prediction`. A successful Preview
+   of a 1.x executor without an output prediction is `PREDECESSOR_REPORT_INVALID`
+   with `successful 1.x Preview has no output prediction`. For the v0.9.16
+   executor, whose Preview shape is not yet observed for this rule, a Preview
+   without an output prediction keeps the existing behavior and adds no equality
+   check; other safety checks remain.
 4. **Executed commands** (decision 261). The executable of every executed
    command must be one of the external tool files the comparator staged for
    that process and checked by hash before and after it; the path text alone
@@ -549,7 +570,10 @@ second implementation. The comparator's staged-command identity check
    of strings. Any other argument is a
    plain token: one that could name a file elsewhere (a path separator, a
    drive colon, `.` or `..`, a reserved device name with or without an
-   extension in any case, a leading `@`, or any `%`) is refused. A repeated command is
+   extension in any case, including `COM0` and `LPT0`, a leading `@`, or any `%`)
+   is refused. The value after a leading `-x`, `--name=`, `--name:` or `/name:`
+   is also refused if it is a reserved device name (with or without extension,
+   any case) or contains a `..` path segment. A repeated command is
    kept, and the Build's commands are compared with the Preview's in the
    order they appear. A processor operation without an executed command is
    still refused.
@@ -761,7 +785,7 @@ member name is permitted.
 | declaration schema | in effect (R35-02) | — |
 | report schema | in effect (R35-02) | — |
 | report reader | in effect (R35-01) | — |
-| compiler-host pinning | in effect (board decision 79) | runtime preflight and embedded PDB verification |
+| compiler-host pinning | in effect (board decision 79; decisions 275 and 277 approve the runtime property for all comparator-built programs only) | runtime preflight and embedded PDB verification |
 | v0.9.16 baseline executor | in effect through the amendment binding to v2 (board decisions 63 and 79) | exact source, recipe, lock rewrites and closure pins |
 
 A formal run requested while any of these is not in effect fails with

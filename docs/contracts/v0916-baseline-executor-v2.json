@@ -136,7 +136,9 @@
   "compilerHost": {
     "status": "in-effect",
     "boardDecisions": [
-      "1.1.12 board decision 79"
+      "1.1.12 board decision 79",
+      "1.2.x board decision 275",
+      "1.2.x board decision 277"
     ],
     "requiredRuntime": {
       "framework": "Microsoft.NETCore.App",
