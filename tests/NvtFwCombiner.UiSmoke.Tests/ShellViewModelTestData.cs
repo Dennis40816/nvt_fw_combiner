@@ -1,8 +1,6 @@
-using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Bootstrap;
+using System.Security.Cryptography;
 using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -10,59 +8,54 @@ internal static class ShellViewModelTestData
 {
     internal const int ReportFixtureTargetStart = 0x3E020;
 
-    internal static async Task<CompositionRunResult> CreateGeneralReplaceInspectionResultAsync(
-        CompositionHostServices host,
-        int changeLength = 2)
+    // Historical typed report plus byte planes; no catalog, admission, input file or live preparation is required.
+    internal static CompositionRunResult CreateHistoricalReplaceInspectionResult(int changeLength = 2)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(changeLength, 2);
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-report-hex-diff");
-        byte[] baseBytes = CreatePattern(0x40000, 0x51);
-        byte[] replacementBytes = baseBytes.AsSpan(ReportFixtureTargetStart, changeLength).ToArray();
+        byte[] before = CreatePattern(0x40000, 0x51);
+        byte[] after = [.. before];
         for (int index = 0; index < changeLength; index++)
         {
-            replacementBytes[index] ^= 0xFF;
+            after[ReportFixtureTargetStart + index] ^= 0xFF;
         }
 
-        replacementBytes[0] = 0xA5;
-        replacementBytes[1] = 0x5A;
-        string basePath = workspace.Write("base.bin", baseBytes);
-        string replacementPath = workspace.Write("replacement.bin", replacementBytes);
-        var paths = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [CompositionSlotIds.ReplaceBase] = basePath,
-        };
-        var draft = new GeneralMappingDraftState(
-        [
-            new GeneralMappingDraftRow(
-                "report-diff",
-                ExplicitMappingOperationKind.ReplaceRange,
-                GeneralMappingSource.File(replacementPath),
-                new ByteRange(0, changeLength),
-                CompositionAddressSpaceIds.OutputImage,
-                new ByteRange(ReportFixtureTargetStart, changeLength),
-                OverlapPolicy.Reject,
-                alignment: 1,
-                "Synthetic Report replay fixture."),
-        ]);
-        GeneralAuthoringSessionPreparation prepared = await host.GeneralAuthoring.PrepareReplaceSessionAsync(
-            new AuthoringSessionState(ExperienceIds.GeneralReplace),
-            "NT51926",
-            "single",
-            basePath,
-            draft,
-            TestContext.Current.CancellationToken);
-        Assert.True(prepared.Succeeded);
-        CompositionRunResult result = await host.CompositionExecution.ExecuteAsync(
-            new AcceptedCompositionExecutionRequest(
-                prepared.AcceptedSession!,
-                paths,
-                build: false,
-                actionReadiness: prepared.Readiness),
-            new CompositionRunProgressFeed(),
-            TestContext.Current.CancellationToken);
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        _ = Assert.IsType<CompositionRunInspectionSnapshot>(result.InspectionSnapshot);
-        return result;
+        after[ReportFixtureTargetStart] = 0xA5;
+        after[ReportFixtureTargetStart + 1] = 0x5A;
+        var range = new ByteRange(ReportFixtureTargetStart, changeLength);
+        string beforeHash = Convert.ToHexStringLower(SHA256.HashData(before.AsSpan(ReportFixtureTargetStart, changeLength)));
+        string afterHash = Convert.ToHexStringLower(SHA256.HashData(after.AsSpan(ReportFixtureTargetStart, changeLength)));
+        var difference = new OutputDifferenceSummary(
+            "diff-001", range, changeLength, OutputDifferenceClassifications.DeclaredReplacement,
+            isAccepted: true, "report-diff", "Historical declared replacement.", "DP payload", beforeHash, afterHash,
+            beforeHexPreview: Convert.ToHexString(before.AsSpan(ReportFixtureTargetStart, Math.Min(changeLength, 16))),
+            afterHexPreview: Convert.ToHexString(after.AsSpan(ReportFixtureTargetStart, Math.Min(changeLength, 16))),
+            hexPreviewByteCount: Math.Min(changeLength, 16), isHexPreviewComplete: changeLength <= 16,
+            replay: OutputDifferenceReplaySegment.CreateWithAlignedContext(before, after, range));
+        var report = new CompositionRunReport(
+            "historical-general-replace", "nt51926-general-replace-dp-single-candidate", "0.1.0", "NT51926",
+            ExperienceIds.GeneralReplace, ExperienceIds.GeneralReplace, CompositionKind.Replace,
+            DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch,
+            [
+                new InputArtifactSummary("reference-image", "base.bin", before.Length,
+                    Convert.ToHexStringLower(SHA256.HashData(before))),
+                new InputArtifactSummary("replacement", "replacement.bin", changeLength, afterHash),
+            ],
+            [new OperationRunSummary("report-diff", 100, CompositionOperationKind.ReplaceRange,
+                OperationRunStatus.Succeeded, "replacement", new ByteRange(0, changeLength),
+                CompositionAddressSpaceIds.OutputImage, range, OverlapPolicy.Reject, null, null, [], [],
+                "Historical declared replacement.")],
+            [new MutationRunSummary("report-diff", CompositionOperationKind.ReplaceRange,
+                CompositionAddressSpaceIds.OutputImage, range, changeLength, beforeHash, afterHash,
+                "Historical declared replacement.")],
+            issues: [],
+            new OutputArtifactSummary("preview.bin", after.Length, Convert.ToHexStringLower(SHA256.HashData(after)),
+                committed: false),
+            [difference],
+            imageInitialization: ImageInitializationSummary.FromCompiled(
+                ImageInitialization.Reference(CompositionAddressSpaceIds.OutputImage, "reference-image", before.Length)));
+        return new CompositionRunResult(
+            CompositionExecutionStatus.Succeeded, after, report, committedOutputId: null,
+            CompositionAddressSpaceIds.OutputImage, "reference-image", before, after);
     }
 
     internal static CompositionRunResult WithReport(

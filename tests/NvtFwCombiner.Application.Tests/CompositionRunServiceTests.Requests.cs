@@ -155,7 +155,7 @@ public sealed partial class CompositionRunServiceTests
                 "1.0.0",
                 "NT-SYNTHETIC",
                 "multi-reference",
-                "general-replace",
+                "ctrlram-replace",
                 CompositionKind.Replace),
             "multi-reference.bin",
             IcNumberInputMode.SingleSelector);

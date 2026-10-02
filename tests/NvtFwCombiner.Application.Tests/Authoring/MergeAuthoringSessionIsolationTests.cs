@@ -170,7 +170,7 @@ public sealed class MergeAuthoringSessionIsolationTests
         Assert.Null(incompatible.DraftState);
     }
 
-    /// <summary>Initializer edits revise General Merge state and remain invalid for General Replace.</summary>
+    /// <summary>Initializer edits revise General Merge state and remain invalid for CtrlRAM Replace.</summary>
     [Fact]
     public void GeneralMergeInitializerParticipatesInRevisionAndCannotEnterReplace()
     {
@@ -210,17 +210,17 @@ public sealed class MergeAuthoringSessionIsolationTests
         Assert.Equal(zero.AuthoringRevision.Next(), ff.AuthoringRevision);
         Assert.Empty(ff.DerivedPublications);
 
-        var replace = new AuthoringSessionState(ExperienceIds.GeneralReplace);
+        var replace = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         _ = Activate(
             replace,
             Catalog(
-                ExperienceIds.GeneralReplace,
+                ExperienceIds.CtrlRamReplace,
                 "replace-token",
                 Route(
                     "NT51950",
-                    ExperienceIds.GeneralReplace,
+                    ExperienceIds.CtrlRamReplace,
                     "selector-free",
-                    "general-replace",
+                    "ctrlram-replace",
                     "replace-fingerprint",
                     "reference")));
         AuthoringSessionTransitionResult rejected = replace.SetDraft(

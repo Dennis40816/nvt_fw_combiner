@@ -7,14 +7,26 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>General confirmation retains accepted source and reference identities.</summary>
 public sealed class GeneralOutputConfirmationTests
 {
-    /// <summary>General inputs remain visible without compiled slot-inspection statuses.</summary>
+    /// <summary>Surviving General Merge files retain accepted identities without compiled slot-inspection statuses.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AcceptedGeneralFilesAppearInConfirmation(bool extraMappings)
+    {
+        await AssertAcceptedGeneralFilesAsync(replace: false, extraMappings);
+    }
+
+    /// <summary>Retained until step 7: only live General Replace has a reference and unsupported inline patch admission.</summary>
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
-    [InlineData(false, true)]
     [InlineData(true, true)]
-    [InlineData(true, true, true)]
-    public async Task AcceptedGeneralFilesAppearInConfirmation(bool replace, bool extraMappings, bool unsupportedInline = false)
+    public async Task GeneralReplaceConfirmationRetainsReferenceAndRejectsInlinePatch(bool extraMappings, bool unsupportedInline)
+    {
+        await AssertAcceptedGeneralFilesAsync(replace: true, extraMappings, unsupportedInline);
+    }
+
+    private static async Task AssertAcceptedGeneralFilesAsync(bool replace, bool extraMappings, bool unsupportedInline = false)
     {
         using TempWorkspace workspace = TempWorkspace.Create("general-confirmation");
         CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());

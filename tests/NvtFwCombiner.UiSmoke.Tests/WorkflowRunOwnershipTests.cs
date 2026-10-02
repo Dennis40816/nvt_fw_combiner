@@ -479,7 +479,7 @@ public sealed partial class BuildOutcomeTests
         shell.ShowMergeCommand.Execute(null);
         var visible = new UiRunResultViewModel("Visible merge", "retained", "old.bin", true);
         shell.RunSession.PublishRunResult(shell.Merge.RunState, visible);
-        CompositionRunContext context = shell.Replace.CaptureRunContext(ExperienceIds.GeneralReplace);
+        CompositionRunContext context = shell.Replace.CaptureRunContext(ExperienceIds.CtrlRamReplace);
         var admission = new CapabilityAdmissionSnapshot("route", new string('a', 64), new string('b', 64),
             new ResolutionToken("catalog:1"), new AuthoringRevision(0), CapabilityAuthoringAvailability.Unavailable,
             false, CapabilityEvidenceStatus.Missing, CapabilityPublicationStatus.Candidate);
@@ -515,7 +515,7 @@ public sealed partial class ReportProjectionConcurrencyTests
     [Fact]
     public async Task WorkflowRunDelayedProjectionRetainsCapturedOwner()
     {
-        CompositionRunResult source = await CreateGeneralReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult source = CreateHistoricalReplaceInspectionResult();
         CompositionRunResult result = WithReport(source, CreateLargeDifferenceReport(
             source.Report, count: 10_000, sectionCount: 40, runId: "captured-owner-projection"));
         MainWindowViewModel shell = PresentationTestHost.CreateViewModel();

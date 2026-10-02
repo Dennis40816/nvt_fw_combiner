@@ -32,21 +32,25 @@ public sealed class CanonicalMemoryLayoutProjectionTests
         AssertCanonicalProjection(fixture, snapshot);
     }
 
-    /// <summary>General Replace keeps retained base ranges distinct from compiled replacement ranges.</summary>
+    /// <summary>CtrlRAM Replace keeps retained base ranges distinct from compiled replacement ranges.</summary>
     [Fact]
-    public async Task GeneralReplaceDistinguishesBaseFirmwareFromReplacementInputs()
+    public void CtrlRamReplaceDistinguishesBaseFirmwareFromReplacementInputs()
     {
-        (MemoryLayoutSnapshot layout, string replacementAddressSpace) =
-            await CanonicalMemoryLayoutTestSupport.PrepareGeneralReplaceAsync();
+        (MemoryLayoutSnapshot layout, string[] replacementAddressSpaces) =
+            CanonicalMemoryLayoutTestSupport.PrepareCtrlRamReplace();
 
         Assert.Contains(layout.BeforeSegments, static segment =>
             segment.Disposition == MemoryWorkflowDisposition.Kept);
-        Assert.Contains(layout.AfterSegments, segment =>
-            segment.Disposition == MemoryWorkflowDisposition.WillReplace &&
-            segment.SourceSpaceId == replacementAddressSpace);
-        Assert.DoesNotContain(layout.AfterSegments, segment =>
-            segment.Disposition == MemoryWorkflowDisposition.Kept &&
-            segment.SourceSpaceId == replacementAddressSpace);
+        Assert.NotEmpty(replacementAddressSpaces);
+        Assert.All(replacementAddressSpaces, replacementAddressSpace =>
+        {
+            Assert.Contains(layout.AfterSegments, segment =>
+                segment.Disposition == MemoryWorkflowDisposition.WillReplace &&
+                segment.SourceSpaceId == replacementAddressSpace);
+            Assert.DoesNotContain(layout.AfterSegments, segment =>
+                segment.Disposition == MemoryWorkflowDisposition.Kept &&
+                segment.SourceSpaceId == replacementAddressSpace);
+        });
     }
 
     /// <summary>Projects the real AB Merge overlay chain without a Bootstrap display replica.</summary>

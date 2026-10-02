@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Application.Tests.Authoring;
 /// <summary>Tests caller-owned, mode-isolated Replace authoring sessions.</summary>
 public sealed class ReplaceAuthoringSessionIsolationTests
 {
-    /// <summary>Six independently owned workflow sessions retain their exact workflow identities.</summary>
+    /// <summary>Five independently owned workflow sessions retain their exact workflow identities, including the historical DP token.</summary>
     [Fact]
     public void CallerOwnedWorkflowSessionsRemainDistinct()
     {
@@ -18,7 +18,6 @@ public sealed class ReplaceAuthoringSessionIsolationTests
             new(ExperienceIds.GeneralMerge),
             new(ExperienceIds.DpReplace),
             new(ExperienceIds.CtrlRamReplace),
-            new(ExperienceIds.GeneralReplace),
         ];
 
         Assert.Equal(
@@ -28,28 +27,27 @@ public sealed class ReplaceAuthoringSessionIsolationTests
                 ExperienceIds.GeneralMerge,
                 ExperienceIds.DpReplace,
                 ExperienceIds.CtrlRamReplace,
-                ExperienceIds.GeneralReplace,
             ],
             sessions.Select(static session => session.WorkflowId));
         Assert.Equal(sessions.Length, sessions.Distinct().Count());
     }
 
-    /// <summary>Each Replace mode restores only its own slots, mapping draft, readiness, and results.</summary>
+    /// <summary>Surviving workflows restore only their own slots, mapping draft, readiness, and results.</summary>
     [Fact]
-    public void ReplaceModesRestoreOnlyTheirOwnSlotsDraftReadinessAndResults()
+    public void WorkflowSessionsRestoreOnlyTheirOwnSlotsDraftReadinessAndResults()
     {
-        var dp = new AuthoringSessionState(ExperienceIds.DpReplace);
+        var dp = new AuthoringSessionState(ExperienceIds.StandardMerge);
         var ctrlRam = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
-        var general = new AuthoringSessionState(ExperienceIds.GeneralReplace);
+        var general = new AuthoringSessionState(ExperienceIds.GeneralMerge);
 
         _ = Activate(
             dp,
             Catalog(
-                ExperienceIds.DpReplace,
+                ExperienceIds.StandardMerge,
                 "dp-token",
                 Route(
                     "NT51929",
-                    ExperienceIds.DpReplace,
+                    ExperienceIds.StandardMerge,
                     "selector-free",
                     "dp-map",
                     "dp-fingerprint",
@@ -71,11 +69,11 @@ public sealed class ReplaceAuthoringSessionIsolationTests
         _ = Activate(
             general,
             Catalog(
-                ExperienceIds.GeneralReplace,
+                ExperienceIds.GeneralMerge,
                 "general-token",
                 Route(
                     "NT51926",
-                    ExperienceIds.GeneralReplace,
+                    ExperienceIds.GeneralMerge,
                     "single",
                     "general-map",
                     "general-fingerprint",
@@ -188,21 +186,21 @@ public sealed class ReplaceAuthoringSessionIsolationTests
         Assert.Empty(after.DerivedPublications);
     }
 
-    /// <summary>General Replace drafts survive only compatible routes and reject stale results.</summary>
+    /// <summary>General Merge drafts survive only compatible routes and reject stale results.</summary>
     [Fact]
-    public void GeneralReplaceDraftUsesCapabilityAndPublicationIdentity()
+    public void GeneralMergeDraftUsesCapabilityAndPublicationIdentity()
     {
         const string sharedFingerprint = "shared-general-fingerprint";
         var session = new AuthoringSessionState(
-            ExperienceIds.GeneralReplace);
+            ExperienceIds.GeneralMerge);
         _ = Activate(
             session,
             Catalog(
-                ExperienceIds.GeneralReplace,
+                ExperienceIds.GeneralMerge,
                 "general-token",
                 Route(
                     "NT51926",
-                    ExperienceIds.GeneralReplace,
+                    ExperienceIds.GeneralMerge,
                     "single",
                     "single-map",
                     sharedFingerprint,
@@ -210,7 +208,7 @@ public sealed class ReplaceAuthoringSessionIsolationTests
                     "mapping-source"),
                 Route(
                     "NT51926",
-                    ExperienceIds.GeneralReplace,
+                    ExperienceIds.GeneralMerge,
                     "cascade",
                     "cascade-map",
                     sharedFingerprint,
@@ -218,7 +216,7 @@ public sealed class ReplaceAuthoringSessionIsolationTests
                     "mapping-source"),
                 Route(
                     "NT51929",
-                    ExperienceIds.GeneralReplace,
+                    ExperienceIds.GeneralMerge,
                     "selector-free",
                     "other-map",
                     "other-general-fingerprint",
@@ -413,7 +411,7 @@ public sealed class ReplaceAuthoringSessionIsolationTests
     }
 
     private sealed record TestDraftState(string Value)
-        : AuthoringDraftState(AuthoringDraftKind.GeneralMapping)
+        : AuthoringDraftState(AuthoringDraftKind.GeneralMerge)
     {
         internal override AuthoringDraftState CreateImmutableSnapshot()
         {

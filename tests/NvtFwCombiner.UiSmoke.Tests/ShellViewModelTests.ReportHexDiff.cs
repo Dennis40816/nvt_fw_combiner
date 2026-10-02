@@ -2,33 +2,19 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Avalonia.Controls;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
-using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ReportReviewHistoryTests
 {
-    /// <summary>The shared live Report fixture uses a surviving route under the actual product policy.</summary>
-    [Fact]
-    public async Task ReportInspectionFixtureUsesProductionGeneralReplace()
-    {
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(CompositionHostServices.Create(IsolatedLocalState.CreateDirectory()));
-        using JsonDocument json = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
-
-        Assert.Equal(ExperienceIds.GeneralReplace, json.RootElement.GetProperty("ExperienceId").GetString());
-        Assert.Equal("NT51926", json.RootElement.GetProperty("IcId").GetString());
-        Assert.Equal(2, json.RootElement.GetProperty("OutputDifferences")[0].GetProperty("ChangedByteCount").GetInt32());
-    }
-
     /// <summary>Current and reopened reports project identical bytes through the shared viewport.</summary>
     [Fact]
-    public async Task ReportHexDiffUsesVerifiedAndPersistedReplayBytes()
+    public void ReportHexDiffUsesVerifiedAndPersistedReplayBytes()
     {
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = CreateHistoricalReplaceInspectionResult();
         var report = ReportReviewViewModel.FromJsonCancellable(
             CompositionRunReportJson.Serialize(result),
             "preview report",
@@ -156,9 +142,9 @@ public sealed partial class ReportReviewHistoryTests
 
     /// <summary>Unverified snapshots and invalid ranges never resurrect preview bytes as a trusted viewport.</summary>
     [Fact]
-    public async Task ReportHexDiffRejectsUnverifiedSnapshotAndRangeIdentity()
+    public void ReportHexDiffRejectsUnverifiedSnapshotAndRangeIdentity()
     {
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = CreateHistoricalReplaceInspectionResult();
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         (string Name, string Json)[] invalidReports =
@@ -234,9 +220,9 @@ public sealed partial class ReportReviewHistoryTests
 
     /// <summary>Persisted replay bytes are unavailable when either changed bytes or context bytes lose hash identity.</summary>
     [Fact]
-    public async Task ReportHexDiffRejectsTamperedPersistedReplayBytes()
+    public void ReportHexDiffRejectsTamperedPersistedReplayBytes()
     {
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = CreateHistoricalReplaceInspectionResult();
 
         foreach (bool tamperChangedByte in new[] { false, true })
         {
@@ -261,9 +247,9 @@ public sealed partial class ReportReviewHistoryTests
 
     /// <summary>Replay must keep the canonical aligned envelope and its observed changed-byte count.</summary>
     [Fact]
-    public async Task ReportHexDiffRejectsNonCanonicalReplayEvidence()
+    public void ReportHexDiffRejectsNonCanonicalReplayEvidence()
     {
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = CreateHistoricalReplaceInspectionResult();
         JsonNode shortenedRoot = JsonNode.Parse(CompositionRunReportJson.Serialize(result))!;
         JsonNode shortenedDifference = shortenedRoot["OutputDifferences"]!.AsArray()[0]!;
         JsonNode shortenedReplay = shortenedDifference["Replay"]!;
@@ -290,9 +276,9 @@ public sealed partial class ReportReviewHistoryTests
 
     /// <summary>Long persisted ranges scroll inside their replay segment with a bounded physical-row window.</summary>
     [Fact]
-    public async Task ReportHexDiffKeepsLongRangeScrollingLocalAndBounded()
+    public void ReportHexDiffKeepsLongRangeScrollingLocalAndBounded()
     {
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost, changeLength: 0x200);
+        CompositionRunResult result = CreateHistoricalReplaceInspectionResult(changeLength: 0x200);
         var report = ReportReviewViewModel.FromJson(CompositionRunReportJson.Serialize(result), "persisted long range");
 
         Assert.True(report.HexDiff.IsReportedRangeMode);
@@ -339,9 +325,9 @@ public sealed partial class ReportReviewHistoryTests
 
     /// <summary>A 10,000-range report exposes lazy rows for a virtualized semantic navigator.</summary>
     [Fact]
-    public async Task ReportHexDiffKeepsLargeRangeNavigationBounded()
+    public void ReportHexDiffKeepsLargeRangeNavigationBounded()
     {
-        CompositionRunResult result = await CreateGeneralReplaceInspectionResultAsync(TestHost);
+        CompositionRunResult result = CreateHistoricalReplaceInspectionResult();
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(

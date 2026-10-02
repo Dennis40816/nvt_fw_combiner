@@ -45,6 +45,49 @@ internal static class ReportJsonSamples
         }
         """;
 
+    // Fixed historical wire data, including unrecognized fields; no live Replace fixture generator.
+    internal const string HistoricalGeneralReplaceDiagnostic = """
+        {
+          "RunId": "historical-general-replace-diagnostic",
+          "ProfileId": "nt51926-general-replace-dp-single-candidate",
+          "ProfileVersion": "0.1.0",
+          "IcId": "NT51926",
+          "ModeId": "general-replace",
+          "ExperienceId": "general-replace",
+          "CompositionKind": "Replace",
+          "StartedAtUtc": "2026-07-01T00:00:00Z",
+          "CompletedAtUtc": "2026-07-01T00:00:00Z",
+          "Inputs": [],
+          "Operations": [],
+          "Mutations": [],
+          "Issues": [],
+          "OutputDifferences": [],
+          "Output": null,
+          "DiagnosticPreview": {
+            "Mode": "diagnostic-plan-only",
+            "Message": "POSTBUILD required but unavailable — plan only; no output was produced.",
+            "RequiredStageId": null,
+            "PostbuildRequired": true,
+            "OutputProduced": false,
+            "ClaimsFinalIntegrity": false,
+            "Blocker": {
+              "Code": "capability.readiness.postbuild-stage-authority-missing",
+              "Dimension": "Execution",
+              "SubjectId": "parent-profile",
+              "Message": "The exact Parent omits POSTBUILD.",
+              "NextAction": "ReviewCompilation"
+            },
+            "Coverage": [
+              { "Range": { "Start": 0, "EndExclusive": 10, "Length": 10 }, "Disposition": "Kept" },
+              { "Range": { "Start": 10, "EndExclusive": 12, "Length": 2 }, "Disposition": "Changed", "MappingId": "write" },
+              { "Range": { "Start": 12, "EndExclusive": 20, "Length": 8 }, "Disposition": "Kept" }
+            ],
+            "FutureDiagnosticField": { "text": "原始證據", "value": 17 }
+          },
+          "FutureReportField": ["unknown", 42]
+        }
+        """;
+
     public static string Succeeded(
         string profileId = "nt51927-standard-merge-gen-flash",
         string icId = "NT51927",

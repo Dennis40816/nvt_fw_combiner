@@ -14,43 +14,8 @@ public sealed partial class MemoryLayoutProjectorTests
     public void GeneralMergeProjectsLogicalOutputGeometry()
     {
         CompiledComposition composition = CreateLogicalGeneralMergeComposition();
-        var route = new CapabilityRouteIdentity(
-            "NT-SYNTHETIC",
-            ExperienceIds.GeneralMerge,
-            "selector-free",
-            "generic");
-        const string capabilityFingerprint =
-            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
-        var compilationContract = new CanonicalCapabilityCompilationContract(
-            "logical-general-merge",
-            "1.0.0",
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            ["generic"],
-            CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId,
-            ["family:synthetic-family"],
-            allowsLogicalOutput: true);
-        var capability = new ResolvedCapability(
-            route,
-            capabilityFingerprint,
-            composition,
-            Decision(
-                "authoring",
-                route,
-                capabilityFingerprint,
-                CapabilityAuthoringAvailability.Available),
-            Decision(
-                "publication",
-                route,
-                capabilityFingerprint,
-                CapabilityPublicationStatus.Supported),
-            Decision(
-                "evidence",
-                route,
-                capabilityFingerprint,
-                CapabilityEvidenceStatus.SyntheticOracle),
-            MetadataPlanDefinition.Empty.Resolve(Token),
-            Token,
-            compilationContract);
+        ResolvedCapability capability = CreateLogicalGeneralMergeCapability(composition);
+        var route = new CapabilityRouteIdentity("NT-SYNTHETIC", ExperienceIds.GeneralMerge, "selector-free", "generic");
         var session = new ActiveSessionSnapshot(
             route.WorkflowId,
             Token,
@@ -115,9 +80,52 @@ public sealed partial class MemoryLayoutProjectorTests
                 .Count());
     }
 
-    private static CompiledComposition CreateLogicalGeneralMergeComposition()
+    private static ResolvedCapability CreateLogicalGeneralMergeCapability(CompiledComposition composition)
     {
-        var plan = new CompositionPlan(
+        var route = new CapabilityRouteIdentity(
+            "NT-SYNTHETIC",
+            ExperienceIds.GeneralMerge,
+            "selector-free",
+            "generic");
+        const string capabilityFingerprint =
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+        var compilationContract = new CanonicalCapabilityCompilationContract(
+            "logical-general-merge",
+            "1.0.0",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ["generic"],
+            CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId,
+            ["family:synthetic-family"],
+            allowsLogicalOutput: true);
+        return new ResolvedCapability(
+            route,
+            capabilityFingerprint,
+            composition,
+            Decision(
+                "authoring",
+                route,
+                capabilityFingerprint,
+                CapabilityAuthoringAvailability.Available),
+            Decision(
+                "publication",
+                route,
+                capabilityFingerprint,
+                CapabilityPublicationStatus.Supported),
+            Decision(
+                "evidence",
+                route,
+                capabilityFingerprint,
+                CapabilityEvidenceStatus.SyntheticOracle),
+            MetadataPlanDefinition.Empty.Resolve(Token),
+            Token,
+            compilationContract);
+    }
+
+    private static CompiledComposition CreateLogicalGeneralMergeComposition(
+        CompositionPlan? customPlan = null,
+        CompiledInputContract? customInputContract = null)
+    {
+        CompositionPlan plan = customPlan ?? new CompositionPlan(
             [ImageInitialization.Blank("output-image", 6, 0)],
             "output-image",
             [
@@ -169,7 +177,7 @@ public sealed partial class MemoryLayoutProjectorTests
             ExperienceIds.GeneralMerge,
             CompositionKind.Merge,
             provenance,
-            new CompiledInputContract(
+            customInputContract ?? new CompiledInputContract(
                 [CompiledInputSlotTestFactory.Create(
                     "source-slot",
                     "source",
