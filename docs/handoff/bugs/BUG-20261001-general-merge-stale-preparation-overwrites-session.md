@@ -83,5 +83,8 @@ review by Claude Opus 5.5):
   stale outcome instead of the capture issue; a late failure keeps the previous accepted snapshot instead of a
   half-applied one.
 - Evidence: `GeneralPreparationFreshnessTests` (19 cases, gated with completion sources, no timing): nine of the
-  first ten fail on the base production code and pass with the fix; Application.Tests 1673 passed.
+  first ten fail on the base production code and pass with the fix. At `edbc7b5ee`: Application.Tests 1673,
+  Bootstrap.Tests 2158, the UiSmoke Merge tests 201 and Architecture.Tests 277 passed. The independent review
+  accepted that head with no open P0 or P1. No Build bytes or Golden cases were executed for this change; the
+  R3 pull request that merges it in `1.2.4` carries the firmware-owner evidence.
 Owner: Claude Code commander (test fix); the `1.2.4` General input owner (hypothesis B).
