@@ -49,7 +49,7 @@ on a machine that was also running builds; evidence in the test area under `evid
   tree walk takes 150 to 235 ms. No measurable delay in these two probes; neither measures what is painted.
 - So in these probes trimming alone, while the pages are still in memory, adds no delay a person would notice.
 - A real idle run: the window stayed minimized for 75 minutes (15:29 to 16:44) while the machine kept working
-  and the display stayed on. The process was not trimmed: its working set was 76.3 MB when it was minimized and
+  and the display stayed on. The process was not trimmed further during the 75 minutes: its working set was 76.3 MB when it was minimized and
   114.7 MB before the restore (private bytes 215.2 and 211.5 MB).
   Restoring the window and the first round trip took 53.8 ms; the first pointer move 0.27 ms; the first tree
   walk 227 ms against 140 and 154 ms for the next two, inside the baseline's range. No stall was reproduced.
