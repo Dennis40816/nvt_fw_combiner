@@ -1,0 +1,280 @@
+{
+  "revision_note": "Commander updates these base/head ids here if the split is rebased before merging.",
+  "base": "02aed34e7404c6e4e7b7c6d80d65346334327699",
+  "head": "8dfe624cc63eda4179137f49e027f49f2c5ad029",
+  "project": "tests/NvtFwCombiner.Application.Tests",
+  "support_class": "VersionManagementExperienceTestSupport",
+  "exit_code": 1,
+  "changed_paths": 15,
+  "changed_lines": 572,
+  "counts": {
+    "rename": 0,
+    "class_declaration": 18,
+    "summary": 9,
+    "using": 6,
+    "support_accessibility": 38,
+    "helper_move": 100,
+    "collection_attribute": 10,
+    "collection_definition": 6,
+    "blank": 8,
+    "support_member_move": 12,
+    "support_type_move": 320,
+    "support_file_skeleton": 5,
+    "emptied_partial_removed": 0,
+    "support_partial_conversion": 4
+  },
+  "unclassified": [
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 13,
+      "text": "    internal static VersionManagerState State(",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 14,
+      "text": "        IReadOnlyList<ManagedVersionAdmission> admissions,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 15,
+      "text": "        string active,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 16,
+      "text": "        string lastKnownGood,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 17,
+      "text": "        string source = \"source-root\",",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 18,
+      "text": "        VersionSourceRegistryState? sourceRegistryState = null)",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 19,
+      "text": "    {",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 20,
+      "text": "        return VersionManagerState.Create(",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 21,
+      "text": "            source,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 22,
+      "text": "            ManagedAppVersion.Parse(active),",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 23,
+      "text": "            ManagedAppVersion.Parse(lastKnownGood),",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 24,
+      "text": "            admissions,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 25,
+      "text": "            pendingActivation: null,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 26,
+      "text": "            failedActivationVersion: null,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 27,
+      "text": "            retentionReviewDue: false,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 28,
+      "text": "            managedRootIdentity: \"managed-root\",",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 29,
+      "text": "            sourceRegistryState: sourceRegistryState);",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTestSupport.cs",
+      "side": "+",
+      "line": 30,
+      "text": "    }",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 492,
+      "text": "    private static VersionManagerState State(",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 493,
+      "text": "        IReadOnlyList<ManagedVersionAdmission> admissions,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 494,
+      "text": "        string active,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 495,
+      "text": "        string lastKnownGood,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 496,
+      "text": "        string source = \"source-root\",",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 497,
+      "text": "        VersionSourceRegistryState? sourceRegistryState = null)",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 498,
+      "text": "    {",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 499,
+      "text": "        return VersionManagerState.Create(",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 500,
+      "text": "            source,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 501,
+      "text": "            ManagedAppVersion.Parse(active),",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 502,
+      "text": "            ManagedAppVersion.Parse(lastKnownGood),",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 503,
+      "text": "            admissions,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 504,
+      "text": "            pendingActivation: null,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 505,
+      "text": "            failedActivationVersion: null,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 506,
+      "text": "            retentionReviewDue: false,",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 507,
+      "text": "            managedRootIdentity: \"managed-root\",",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 508,
+      "text": "            sourceRegistryState: sourceRegistryState);",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    },
+    {
+      "file": "tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceTests.cs",
+      "side": "-",
+      "line": 509,
+      "text": "    }",
+      "reason": "same-named member remains in tests/NvtFwCombiner.Application.Tests/VersionManagement/VersionManagementExperienceConcurrencyTests.cs: overload resolution may change"
+    }
+  ]
+}

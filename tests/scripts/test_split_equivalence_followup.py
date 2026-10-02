@@ -143,7 +143,7 @@ def test_real_scheduled_split_pins_path_line_and_kind_counts(monkeypatch, capsys
     for key in ("base", "head", "project", "support_class"):
         assert report[key] == expected[key]
     assert report["changed_paths"] == expected["changed_paths"]
-    assert report["counts"] == expected["counts"]
+    assert report["counts"] == {**expected["counts"], "support_partial_conversion": 0}
     assert sum(value for kind, value in report["counts"].items() if kind != "rename") == expected["changed_lines"]
     assert report["unclassified"] == report["collection_consistency"] == []
 

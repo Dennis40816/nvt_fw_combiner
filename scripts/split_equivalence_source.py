@@ -38,6 +38,12 @@ def code_lines(lines: tuple[str, ...]) -> tuple[str, ...]:
     return masked_source(lines)[0]
 
 
+def has_test_attributes(clean: tuple[str, ...]) -> bool:
+    """Conservatively detect Fact/Theory suffixes in already masked source."""
+    return re.search(r"(?:\[|,)\s*(?:\w+:\s*)?(?:global::)?(?:@?\w+\.)*"
+                     r"@?\w*(?:Fact|Theory)(?:Attribute)?\b", "\n".join(clean)) is not None
+
+
 def namespace(lines: tuple[str, ...]) -> str | None:
     names = [match[1] for line in code_lines(lines)
              if (match := re.fullmatch(r"namespace (\w+(?:\.\w+)*);", line))]

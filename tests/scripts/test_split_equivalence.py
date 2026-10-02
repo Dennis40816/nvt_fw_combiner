@@ -93,7 +93,7 @@ def test_synthetic_allowed_and_forbidden_changes(case):
     files = load_case(case)
     report = split.e3(files, "Support")
     assert report["passed"] == case["passed"]
-    assert report["counts"] == case["counts"]
+    assert report["counts"] == {**case["counts"], "support_partial_conversion": 0}
     assert report["unclassified"] == case["unclassified"]
     assert sum(value for kind, value in report["counts"].items() if kind != "rename") + len(
         report["unclassified"]) == sum(len(file.lines) for file in files)
@@ -293,7 +293,7 @@ def test_e3_cli_returns_difference_as_one(monkeypatch, capsys):
     assert split.main(["e3", "--base", "a", "--head", "b", "--project", "tests"]) == 1
     report = json.loads(capsys.readouterr().out)
     assert report["unclassified"] == case["unclassified"]
-    assert report["counts"] == case["counts"]
+    assert report["counts"] == {**case["counts"], "support_partial_conversion": 0}
 
 
 def test_real_pilot_range_accepts_the_source_class_collection_and_pins_counts(monkeypatch, capsys):
@@ -312,7 +312,7 @@ def test_real_pilot_range_accepts_the_source_class_collection_and_pins_counts(mo
     assert len(report["base"]) == len(report["head"]) == 40
     assert report["project"] == expected["project"]
     assert report["support_class"] == "RepositoryBoundaryTestSupport"
-    assert report["counts"] == expected["counts"]
+    assert report["counts"] == {**expected["counts"], "support_partial_conversion": 0}
     assert report["unclassified"] == expected["unclassified"]
     assert report["passed"]
     assert sum(count for kind, count in report["counts"].items() if kind != "rename") == 307

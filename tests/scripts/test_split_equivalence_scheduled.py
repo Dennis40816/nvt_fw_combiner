@@ -323,7 +323,7 @@ def test_scheduled_split_shapes_pass_through_the_cli_with_pinned_counts(case, mo
     assert split.main(["e3", "--base", "base", "--head", "head", "--project", "tests",
                        "--support-class", case["support_class"]]) == 0
     report = json.loads(capsys.readouterr().out)
-    assert report["counts"] == case["counts"]
+    assert report["counts"] == {**case["counts"], "support_partial_conversion": 0}
     assert report["changed_paths"] == len(case["files"])
     assert report["unclassified"] == report["collection_consistency"] == []
     assert {move["name"] for move in report["moves"]} == (

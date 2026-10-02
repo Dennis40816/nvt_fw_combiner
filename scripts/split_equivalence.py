@@ -18,6 +18,9 @@ Collection attributes may be added once per new split class and on the source
 class's root file. Accepted declaration pairs identify the single source class;
 all split classes must retain the same collection membership.
 Added memberships require a definition added by this diff or the source class's base collection.
+Helper-only source partials may convert in place to the named static support
+partial only when all direct members are proven static, const or nested types,
+all support declarations are partial, and only declaration/access modifiers change.
 
 The blank separator kind is an addition to the plan's E3 list, justified by
 the pilot's seven separators; blanks inside multiline literals never qualify.
@@ -40,18 +43,20 @@ from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 
 try:
+    from scripts.split_equivalence_conversion import partial_conversion
     from scripts.authority_check import AuthorityError, Git, strict_json
     from scripts.split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, pair_moves
     from scripts.split_equivalence_paths import named_split_pairs
     from scripts.split_equivalence_source import (
-        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, declared_names,
+        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, declared_names, has_test_attributes,
     )
 except ModuleNotFoundError:  # Direct invocation from scripts/.
+    from split_equivalence_conversion import partial_conversion
     from authority_check import AuthorityError, Git, strict_json
     from split_equivalence_moves import Candidate, canonical_body, member_positions, member_spans, pair_moves
     from split_equivalence_paths import named_split_pairs
     from split_equivalence_source import (
-        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, declared_names,
+        class_name, collection, code_lines, masked_source, namespace, memberships, class_at, declared_names, has_test_attributes,
     )
 
 
@@ -368,7 +373,8 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
         raise ValueError("no changed path in project")
     kinds = ("rename", "class_declaration", "summary", "using", "support_accessibility",
              "helper_move", "collection_attribute", "collection_definition", "blank",
-             "support_member_move", "support_type_move", "support_file_skeleton", "emptied_partial_removed")
+             "support_member_move", "support_type_move", "support_file_skeleton", "emptied_partial_removed",
+             "support_partial_conversion")
     counts = dict.fromkeys(kinds, 0)
     marked: dict[tuple[int, int], str] = {}
     old_classes = {value[1] for file in files for line in code_lines(file.before) if (value := class_name(line))}
@@ -411,8 +417,7 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
         support_skeleton = (skeleton(file.after, support_names)
                             if is_support and file.status == "A" and support_class is not None else set())
         is_definition = file.status == "A" and definition(file.after)
-        has_tests = re.search(r"(?:\[|,)\s*(?:\w+:\s*)?(?:global::)?(?:@?\w+\.)*"
-                              r"@?\w*(?:Fact|Theory)(?:Attribute)?\b", "\n".join(before_code)) is not None
+        has_tests = has_test_attributes(before_code)
         removed_collection = any(line.side == "-" and collection(line.text) for line in file.lines)
         added_classes = {line.number for line in file.lines if line.side == "+" and class_name(line.text)}
         for number, declaration in enumerate(after_code):
@@ -541,9 +546,13 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
             allowed_origins = origins
     removed: list[Candidate] = []
     added: list[Candidate] = []
+    conversion_sources = dict(source for file in files for source in file.binding_sources)
+    conversion_sources.update(head_sources)
     for index, file in enumerate(files):
         if index in blocked or not (file.old_path.endswith(".cs") and file.new_path.endswith(".cs")):
             continue
+        converted = partial_conversion(file, support_class, source_identities or allowed_origins, conversion_sources)
+        marked.update(((index, offset), kind) for offset, kind in converted.items())
         for side, source, output in (("-", file.before, removed), ("+", file.after, added)):
             if side == "+" and not support_source(file.new_path, file.after, support_names):
                 continue
