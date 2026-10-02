@@ -236,12 +236,13 @@ Release readiness still requires independent review, R3 role approval and candid
 ## 6. Decisions for the owner
 
 Retirement, NT51926 execution refusal and readable historical reports are settled (decisions 229 and 230).
-Leaving old rule files unchanged on disk is this plan's proposed default, not a recorded decision; it is
-confirmed together with question 2.
+Old rule files stay unchanged on disk (decision 264).
 Use "Customized Replace is retired" consistently because Customized Replace is the name users see.
 Proposed retirement exit code is 64, matching DP's retired command; today's failed rule check returns 1.
 This is a new retirement-specific result; unrelated invalid rules retain their existing errors and exit codes.
-Three questions remain; this inventory chooses neither firmware option.
+Questions 2 and 3 are answered by decision 264: option A in both (say that Customized Replace is retired and
+identify the rule, without listing its ranges; the same message with 64 for a Customized Merge command).
+Question 1 remains; this inventory chooses neither firmware option.
 
 **1. Firmware-owner: keep shared bundle/family/profile bytes, or rewrite and re-pin eight surviving CtrlRAM routes?**
 
