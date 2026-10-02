@@ -35,9 +35,9 @@ def digest(payload: bytes) -> str:
 MERGE_DP, MERGE_TP, MERGE_OUTPUT = b"DPDPdpdp", b"TPtp", b"TPtpdpdp"
 
 
-def merge_report(*, committed: Any) -> dict[str, Any]:
+def merge_report(*, committed: Any, overlay: bool = False) -> dict[str, Any]:
     return written_1x_merge_report(committed=committed, dp_sha256=digest(MERGE_DP), tp_sha256=digest(MERGE_TP),
-                                   output_sha256=digest(MERGE_OUTPUT))
+                                   output_sha256=digest(MERGE_OUTPUT), overlay=overlay)
 
 
 def report(*, preview: bool = False) -> dict[str, Any]:
@@ -521,6 +521,49 @@ class ComparisonTests(unittest.TestCase):
             [self.merge_capture("preview", prefix).evidence()],
             capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
         self.assertEqual("ready", verdict.status)
+
+    def test_declared_overlay_is_admitted_and_any_other_target_overlap_is_refused(self):
+        """Real shape: the DP container is copied whole and the TP is written over it with `ReplaceExisting`."""
+        preview = self.merge_capture("preview", merge_report(committed=False, overlay=True))
+        build = self.merge_capture("build", merge_report(committed=True, overlay=True), output=MERGE_OUTPUT)
+        result = self.merge_side([preview, build])
+        self.assertEqual([], result.failures)
+        self.assertEqual("output", result.side["status"])
+
+        def overlay_rejects(raw):
+            raw["Operations"][1]["OverlapPolicy"] = "Reject"
+
+        def overlay_unknown_policy(raw):
+            raw["Operations"][1]["OverlapPolicy"] = "Allow"
+
+        def only_the_earlier_declares(raw):
+            raw["Operations"][0]["OverlapPolicy"] = "ReplaceExisting"
+            raw["Operations"][1]["OverlapPolicy"] = "Reject"
+
+        for change in (overlay_rejects, overlay_unknown_policy, only_the_earlier_declares):
+            with self.subTest(change=change.__name__):
+                raw = merge_report(committed=False, overlay=True)
+                change(raw)
+                result = self.merge_side([self.merge_capture("preview", raw)])
+                self.assertEqual(("PREDECESSOR_REPORT_INVALID", "preview", "PARITY_REPORT_RANGE_INVALID"),
+                                 result.failures[0])
+
+    def test_declared_overlap_is_per_address_space_and_the_terminal_default_is_unchanged(self):
+        overlay = comparison.read_cli_report(merge_report(committed=False, overlay=True), report_version="1x").projection
+        capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8, "work": 8}
+        parity.validate_semantic_report_ranges(overlay, capacities, declared_overlap=True)
+        with self.assertRaises(parity.ParityError) as found:
+            parity.validate_semantic_report_ranges(overlay, capacities)
+        self.assertEqual("PARITY_REPORT_RANGE_INVALID", found.exception.code)
+        spaces = copy.deepcopy(overlay)
+        second = spaces["compiledOperations"][1]
+        second.update(overlapPolicy="Reject", targetSpaceId="work",
+                      targetRange={**second["targetRange"], "addressSpace": "work"})
+        spaces["compiledMutations"][1].update(targetSpaceId="work",
+                                              targetRange={**spaces["compiledMutations"][1]["targetRange"], "addressSpace": "work"})
+        parity.validate_semantic_report_ranges(spaces, capacities, declared_overlap=True)
+        with self.assertRaises(parity.ParityError):
+            parity.validate_semantic_report_ranges(spaces, capacities)
 
     def test_described_output_without_a_file_needs_committed_false(self):
         capacities = {"dp-input": 8, "tp-input": 4, "output-image": 8}

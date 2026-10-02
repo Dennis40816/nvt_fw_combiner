@@ -3331,15 +3331,37 @@ def _non_overlapping(ranges: Sequence[tuple[int, int]]) -> bool:
     return all(left[1] <= right[0] for left, right in zip(ordered, ordered[1:]))
 
 
-def validate_semantic_report_ranges(projection: Mapping[str, Any], capacities: Mapping[str, int]) -> None:
+def _overlaps_earlier_target(
+    operation: Mapping[str, Any], target: tuple[int, int], earlier: Sequence[tuple[int, int]],
+) -> bool:
+    """Only an operation that declares `ReplaceExisting` may write over an earlier target of its address space."""
+    return (operation.get("overlapPolicy") != "ReplaceExisting"
+            and any(target[0] < row[1] and row[0] < target[1] for row in earlier))
+
+
+def validate_semantic_report_ranges(
+    projection: Mapping[str, Any], capacities: Mapping[str, int], *, declared_overlap: bool = False,
+) -> None:
+    """Check every report range; `declared_overlap` is the 1.x comparator's opt-in.
+
+    By default (the terminal path, unchanged) no two operation targets may intersect. A written
+    report overlays ranges on purpose: an operation whose overlap policy is `ReplaceExisting`
+    writes over an earlier target. With `declared_overlap`, targets are compared inside their own
+    address space, in operation order, and only such an operation may overlap an earlier target.
+    """
     try:
         operations = projection["compiledOperations"]
         mutations = projection["compiledMutations"]
         target_ranges: list[tuple[int, int]] = []
+        targets_by_space: dict[str, list[tuple[int, int]]] = {}
         by_id: dict[str, tuple[Mapping[str, Any], tuple[int, int]]] = {}
         for operation in operations:
             target = _range(operation["targetRange"], expected_space=operation["targetSpaceId"], capacities=capacities)
             target_ranges.append(target)
+            earlier = targets_by_space.setdefault(operation["targetSpaceId"], [])
+            if declared_overlap and _overlaps_earlier_target(operation, target, earlier):
+                _fail("PARITY_REPORT_RANGE_INVALID")
+            earlier.append(target)
             source = operation.get("sourceRange")
             if source is not None:
                 source_range = _range(source, expected_space=operation["sourceSpaceId"], capacities=capacities)
@@ -3352,7 +3374,7 @@ def validate_semantic_report_ranges(projection: Mapping[str, Any], capacities: M
                     admitted = [_range(row, expected_space=operation["targetSpaceId"], capacities=capacities) for row in processor[field]]
                     if not _non_overlapping(admitted) or any(not _contained(row, target) for row in admitted):
                         _fail("PARITY_REPORT_RANGE_INVALID")
-        if not _non_overlapping(target_ranges):
+        if not declared_overlap and not _non_overlapping(target_ranges):
             _fail("PARITY_REPORT_RANGE_INVALID")
         for mutation in mutations:
             operation, target = by_id[mutation["operationId"]]

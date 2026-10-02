@@ -455,7 +455,8 @@ def side_execution_verdict(
                 observed_mutations=_mutations_in_operation_order(projection),
             )
             validate_report_projection_against_compiled_authority(projection, authority)
-            validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities))
+            validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities),
+                                            declared_overlap=True)
         except (ParityError, KeyError, TypeError, ValueError) as error:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, str(error))])
         if stage.endswith("build") and (
