@@ -16,6 +16,11 @@ internal static partial class ReplaceCliCommandHandler
         TextWriter error,
         CancellationToken cancellationToken)
     {
+        if (!TryParseCtrlRamChoices(options, error, out CtrlRamCliChoices choices))
+        {
+            return CompositionFailed;
+        }
+
         if (!RequireOption(options, "--ic-num", error, out string? icNumber) ||
             !RequireOption(options, "--base", error, out string? basePath))
         {
@@ -121,6 +126,15 @@ internal static partial class ReplaceCliCommandHandler
         }
 
         ActiveSessionSnapshot acceptedSession = prepared.AcceptedSession!;
+        CtrlRamAuthoringTransitionResult selected = ApplyCtrlRamChoices(
+            services.CtrlRamAuthoring, session, icId, icNumber, slotPaths, acceptedSession, choices);
+        if (!selected.Succeeded)
+        {
+            await CliCompositionRunSupport.PrintIssuesAsync(error, selected.Issues).ConfigureAwait(false);
+            return CompositionFailed;
+        }
+
+        acceptedSession = selected.Session!;
         CapabilityActionReadinessSnapshot? readiness =
             await services.CtrlRamAuthoring.GetActionReadinessAsync(
                     icId,

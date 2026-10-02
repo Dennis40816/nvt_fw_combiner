@@ -53,6 +53,7 @@ internal static partial class ReplaceCliCommandHandler
         {
             case ExperienceIds.CtrlRamReplace:
                 valueOptions.Add("--ctrlram");
+                valueOptions.AddRange(CtrlRamChoiceOptions);
                 repeatableValueOptions.Add("--ctrlram");
                 break;
             case ExperienceIds.GeneralReplace:
