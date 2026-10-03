@@ -8,6 +8,9 @@
     Focusable="True"
     KeyboardNavigation.TabNavigation="Cycle"
     Background="{DynamicResource NfcReportModalScrimBrush}">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding ClearReportHistoryCommand}" />
+  </UserControl.KeyBindings>
   <UserControl.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>

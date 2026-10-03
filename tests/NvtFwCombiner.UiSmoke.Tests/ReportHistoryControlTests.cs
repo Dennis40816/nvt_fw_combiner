@@ -18,7 +18,7 @@ using static NvtFwCombiner.UiSmoke.Tests.ReportControlTestHost;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>History actions run through actual rendered controls and the existing queued file writer.</summary>
-public sealed class ReportHistoryControlTests
+public sealed partial class ReportHistoryControlTests
 {
     /// <summary>The history card renders recorded DP lengths, and its screenshot preserves the actual page.</summary>
     [AvaloniaFact]
@@ -321,7 +321,8 @@ public sealed class ReportHistoryControlTests
     private static Button ConfirmationButton(Window window, string label)
     {
         return Assert.Single(window.GetVisualDescendants().OfType<Button>(), button =>
-            button.IsEffectivelyVisible && Equals(button.Content, label));
+            button.IsEffectivelyVisible && Equals(button.Content, label) &&
+            button.GetVisualAncestors().OfType<ReportHistoryDeleteConfirmationModal>().Any());
     }
 
     private static Button EntryButton(Window window, ReportHistoryEntryViewModel entry, bool delete)

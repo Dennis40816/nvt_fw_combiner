@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:ReportPresentationViewModel"
+    AutomationProperties.Name="{Binding HistoryDeletionTitle}"
     Focusable="True"
     KeyboardNavigation.TabNavigation="Cycle"
     KeyDown="Confirmation_OnKeyDown"
@@ -13,10 +14,10 @@
           BorderBrush="{DynamicResource NfcWarningAccentBrush}">
     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="5">
-        <TextBlock Classes="modalTitle" Text="{Binding Text.DeleteHistoryTitle}" />
-        <TextBlock Classes="mutedText" Text="{Binding Text.DeleteHistoryDetail}" TextWrapping="Wrap" />
+        <TextBlock Classes="modalTitle" Text="{Binding HistoryDeletionTitle}" />
+        <TextBlock Classes="mutedText" Text="{Binding HistoryDeletionDetail}" TextWrapping="Wrap" />
       </StackPanel>
-      <Border Grid.Row="1" Classes="insetSurface" Padding="10,8">
+      <Border Grid.Row="1" Classes="insetSurface" Padding="10,8" IsVisible="{Binding !IsClearAllHistoryDeletionPending}">
         <StackPanel Spacing="3">
           <TextBlock Classes="captionText" Text="{Binding PendingHistoryDeletion.SequenceLabel}" />
           <TextBlock Classes="detailText" Text="{Binding PendingHistoryDeletion.Title}" TextWrapping="Wrap" />
@@ -28,7 +29,7 @@
                 Content="{Binding Text.OutputDeliveryCancelLabel}" />
         <Button x:Name="DeleteButton" Classes="semanticAction danger"
                 Command="{Binding ConfirmReportHistoryDeletionCommand}"
-                Content="{Binding Text.DeleteHistoryConfirmLabel}" />
+                Content="{Binding HistoryDeletionConfirmLabel}" />
       </StackPanel>
     </Grid>
   </Border>
