@@ -19,6 +19,7 @@ class Member:
     name: str
     kind: str
     top_level: bool = False
+    suppression_start: int | None = None
 
 
 def member_end(clean: tuple[str, ...], start: int, semicolon: bool) -> int | None:
@@ -53,11 +54,6 @@ def member_spans(lines: tuple[str, ...], clean: tuple[str, ...],
         top = depth == 0 and line.startswith("internal ")
         if start >= occupied_until and (direct or top):
             declaration = line[4:] if direct else line
-            previous = start - 1
-            while previous >= 0 and (not clean[previous].strip() or lines[previous].lstrip().startswith("///")):
-                previous -= 1
-            annotated = previous >= 0 and (clean[previous].lstrip().startswith("[")
-                                            or clean[previous].rstrip().endswith("]"))
             type_match = re.match(r"(?:private|internal) (?:(?:sealed|static|abstract|readonly|ref|partial) )*"
                                   r"(?:class|record(?: class| struct)?|struct|enum|interface) (\w+)", declaration)
             delegate = re.match(r"(?:private|internal) delegate .+?\b(\w+)\s*(?:<[^<>]+>)?\(", declaration)
@@ -73,16 +69,33 @@ def member_spans(lines: tuple[str, ...], clean: tuple[str, ...],
             elif field and not top:
                 name, kind, semicolon = field[1], "support_member_move", True
             elif helper:
+                # Only join a return-type line with the following indented method header.
+                if (start + 1 < len(clean) and re.fullmatch(
+                        r"(?:private|internal) static (?:partial )?(?:\([^)]*\)|[\w.<>,?\[\] ]+)", declaration)
+                        and re.match(r"        \w+(?:<[^<>]+>)?\s*\(", clean[start + 1])):
+                    declaration += " " + clean[start + 1].strip()
                 signature = re.match(r"(?:private|internal) static (?:partial )?"
                                      r"(?:\([^)]*\)|[\w.<>,?\[\] ]+?)\s+(\w+)"
                                      r"(?:<[^<>]+>)?\s*(\(|=>|=|;)", declaration)
                 name = signature[1] if signature else ""
                 kind = "helper_move"
                 semicolon = bool(signature and signature[2] == "=")
+            suppression_start = None
+            # Only the scheduled two-line CA2000 method suppression, immediately before its signature.
+            if (not include_annotated and kind == "helper_move" and signature and signature[2] == "("
+                    and start >= 2 and lines[start - 2] ==
+                    '    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification ='
+                    and re.fullmatch(r'        "(?:\\.|[^"\\\r])*"\)\]', lines[start - 1])):
+                suppression_start = start - 1
+            previous = suppression_start - 2 if suppression_start is not None else start - 1
+            while previous >= 0 and (not clean[previous].strip() or lines[previous].lstrip().startswith("///")):
+                previous -= 1
+            annotated = previous >= 0 and (clean[previous].lstrip().startswith("[")
+                                            or clean[previous].rstrip().endswith("]"))
             if kind and name and (include_annotated or not annotated):
                 end = member_end(clean, start, semicolon)
                 if end is not None:
-                    result.append(Member(start + 1, end, name, kind, top))
+                    result.append(Member(start + 1, end, name, kind, top, suppression_start))
                     occupied_until = end
         depth += line.count("{") - line.count("}")
     return tuple(result)
@@ -116,7 +129,8 @@ def canonical_body(lines: tuple[str, ...], member: Member, removed: bool) -> tup
         body = ["    " + line if line else line for line in body]
     if removed:
         body[0] = body[0].replace("private", "internal", 1)
-    return tuple(body)
+    suppression = lines[member.suppression_start - 1:member.start - 1] if member.suppression_start is not None else ()
+    return suppression + tuple(body)
 
 
 def pair_moves(removed: Sequence[Candidate], added: Sequence[Candidate]) -> tuple[tuple[Candidate, Candidate], ...]:
@@ -143,18 +157,19 @@ def member_positions(source: tuple[str, ...], member: Member, changed: dict[int,
     brace. Exchange their attribution, never their text. The declaration must
     itself change, and full canonical member comparison still decides a move.
     """
-    if member.start not in changed or changed[member.start] not in available:
+    first = member.suppression_start or member.start
+    if any(number not in changed or changed[number] not in available for number in range(first, member.start + 1)):
         return None
-    positions = {number: changed[number] for number in range(member.start, member.end + 1) if number in changed}
+    positions = {number: changed[number] for number in range(first, member.end + 1) if number in changed}
     if any(offset not in available for offset in positions.values()):
         return None
     deleted = set(changed)
     kept = tuple(line for number, line in enumerate(source, 1) if number not in deleted)
-    for missing in range(member.start, member.end + 1):
+    for missing in range(first, member.end + 1):
         if missing in positions:
             continue
         alternatives = sorted((number for number, offset in changed.items()
-                               if not member.start <= number <= member.end and offset in available
+                               if not first <= number <= member.end and offset in available
                                and number in deleted and source[number - 1] == source[missing - 1]),
                               key=lambda number: abs(number - missing))
         for number in alternatives:
@@ -165,4 +180,4 @@ def member_positions(source: tuple[str, ...], member: Member, changed: dict[int,
                 break
         else:
             return None
-    return tuple(positions[number] for number in range(member.start, member.end + 1))
+    return tuple(positions[number] for number in range(first, member.end + 1))

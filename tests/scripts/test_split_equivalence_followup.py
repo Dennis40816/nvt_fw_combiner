@@ -14,13 +14,15 @@ from scripts.authority_check import AuthorityError, Git
 
 
 def read_named_pair(*, mutation=False, new_path="New.Topic.cs", declaration="New", extra="",
-                    ambiguous=False, metadata="", context=None, dependencies=None):
+                    ambiguous=False, metadata="", context=None, dependencies=None,
+                    helper="    private static int Read() => 1;\n", moved_helper=None):
     body = "namespace N;\npublic sealed partial class Old\n{\n    [Fact]\n    public void Check() => Assert.Equal(1, Read());\n"
-    before = body + "    private static int Read() => 1;\n}\n"
+    before = body + helper + "}\n"
     after = body.replace("class Old", "class " + declaration) + "}\n" + extra
     if mutation:
         after = after.replace("Assert.Equal(1", "Assert.Equal(2")
-    support = "namespace N;\ninternal static class Support\n{\n    internal static int Read() => 1;\n}\n"
+    support = ("namespace N;\ninternal static class Support\n{\n" +
+               (helper if moved_helper is None else moved_helper).replace("private", "internal", 1) + "}\n")
     sources = {"Old.Topic.cs": before, new_path: after, "Support.cs": support}
     names = [("D", "Old.Topic.cs"), ("A", new_path), ("A", "Support.cs")]
     sources.update(context or {})
@@ -61,6 +63,81 @@ def read_named_pair(*, mutation=False, new_path="New.Topic.cs", declaration="New
             return ("diff --git a/source b/source\n" + metadata + patch).encode()
 
     return split.read_diff(PairGit(ROOT), "base", "head", ".")
+
+
+@pytest.mark.parametrize("change", ["", "body", "signature", "layout"])
+def test_named_split_classifies_only_verbatim_two_line_helper_moves(change):
+    helper = "    private static int\n        Read()\n    {\n        return 1;\n    }\n"
+    moved_helper = {"": helper, "body": helper.replace("return 1", "return 2"),
+                    "signature": helper.replace("Read()", "Read(int value)"),
+                    "layout": helper.replace("int\n        Read", "int Read")}[change]
+    report = split.e3(read_named_pair(helper=helper, moved_helper=moved_helper), "Support")
+    assert report["passed"] == (not change)
+    assert report["counts"]["helper_move"] == (0 if change else 10)
+    if change:
+        assert report["unclassified"]
+    else:
+        assert report["unclassified"] == report["collisions"] == report["moves_from_unrelated_classes"] == []
+        assert report["moves"] == [{"kind": "helper_move", "name": "Read",
+                                    "old_file": "Old.Topic.cs", "new_file": "Support.cs"}]
+
+
+@pytest.mark.parametrize("helper", [
+    "    private static int\n        Read => 1;\n",
+    "    private static int\n        Read = 1;\n",
+    "    private static int\n        Read\n        () => 1;\n",
+])
+def test_named_split_keeps_other_folded_declarations_unclassified(helper):
+    report = split.e3(read_named_pair(helper=helper), "Support")
+    assert not report["passed"]
+    assert report["counts"]["helper_move"] == 0
+    assert report["unclassified"]
+
+
+@pytest.mark.parametrize("change", ["", "justification", "body", "signature", "attribute_layout",
+                                  "other_attribute", "extra_attribute", "leave_attribute"])
+def test_named_split_moves_only_verbatim_two_line_ca2000_helper_attributes(change):
+    attribute = ('    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification =\n'
+                 '        "Ownership transfers through the returned Bootstrap start receipt and its launch wrapper.")]\n')
+    body = ("    private static ImmutableBootstrapStartResult StartResultOwningLease(\n"
+            "        IImmutableBootstrapLaunch launch,\n"
+            "        IManagedExecutableLaunchLease ownedLease,\n"
+            "        ImmutableBootstrapStartIssue issue = ImmutableBootstrapStartIssue.None)\n"
+            "    {\n"
+            "        return new(new LeaseOwningBootstrapLaunch(launch, ownedLease), issue);\n"
+            "    }\n")
+    helper = attribute + body
+    moved = helper
+    if change == "justification":
+        moved = moved.replace("Ownership transfers", "Ownership changes")
+    elif change == "body":
+        moved = moved.replace("ownedLease), issue", "ownedLease), default")
+    elif change == "signature":
+        moved = moved.replace("issue = ImmutableBootstrapStartIssue.None", "issue")
+    elif change == "attribute_layout":
+        helper = moved = helper.replace("Justification =\n        ", "Justification = ")
+    elif change == "other_attribute":
+        helper = moved = helper.replace('"Reliability"', '"Usage"')
+    elif change == "extra_attribute":
+        helper = moved = "    [Obsolete]\n" + helper
+    elif change == "leave_attribute":
+        moved = body
+    files = read_named_pair(helper=helper, moved_helper=moved)
+    if change == "leave_attribute":
+        source = next(file for file in files if file.status == "R")
+        after = "\n".join(source.after[:-1]) + "\n" + attribute + "}\n"
+        files = tuple(replace(changed_file("\n".join(file.before) + "\n", after, file.old_path),
+                              status="R", new_path=file.new_path) if file is source else file for file in files)
+    report = split.e3(files, "Support")
+    assert report["passed"] == (not change)
+    assert report["counts"]["helper_move"] == (0 if change else 18)
+    if change:
+        assert report["unclassified"]
+        assert report["moves"] == []
+    else:
+        assert report["unclassified"] == report["collisions"] == report["moves_from_unrelated_classes"] == []
+        assert report["moves"] == [{"kind": "helper_move", "name": "StartResultOwningLease",
+                                    "old_file": "Old.Topic.cs", "new_file": "Support.cs"}]
 
 
 @pytest.mark.parametrize("mutation", [False, True])
