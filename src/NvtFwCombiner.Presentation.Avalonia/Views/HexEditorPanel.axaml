@@ -35,6 +35,12 @@
     </DataTemplate>
   </UserControl.Resources>
   <UserControl.Styles>
+    <Style Selector="Border.hexEditorDataSurface">
+      <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    </Style>
+    <Style Selector="Border.hexEditorDataSurface:disabled">
+      <Setter Property="BorderBrush" Value="{DynamicResource NfcTextDisabledBrush}" />
+    </Style>
     <Style Selector="Button.hexGoToAddress Path">
       <Setter Property="Width" Value="16" />
       <Setter Property="Height" Value="16" />
@@ -174,7 +180,7 @@
       </Grid>
 
       <Grid MaxWidth="1720" ColumnDefinitions="*,336" ColumnSpacing="{DynamicResource NfcSpace12}">
-        <Border Grid.Column="0" Padding="8" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderBrush="{DynamicResource NfcTextDisabledBrush}" BorderThickness="2" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
+        <Border Grid.Column="0" Classes="hexEditorDataSurface" Padding="8" Background="{DynamicResource NfcSurfaceSubtleBrush}" BorderThickness="2" CornerRadius="{DynamicResource NfcCompactCornerRadius}">
           <Grid RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace4}">
             <Grid Margin="0,0,20,0" ColumnDefinitions="112,*,144" ColumnSpacing="{DynamicResource NfcSpace4}">
               <TextBlock

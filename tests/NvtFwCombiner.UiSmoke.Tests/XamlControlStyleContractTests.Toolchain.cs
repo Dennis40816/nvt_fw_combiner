@@ -43,6 +43,10 @@ public sealed partial class XamlControlStyleContractTests
             RenderSettingsVersion(window);
             CaptureToolchainFrame(window, $"normal-{width}x{height}-{dark}-{chinese}");
             Grid page = Assert.Single(window.GetVisualDescendants().OfType<Grid>(), control => control.Name == "ToolchainPageRoot");
+            Border bundledRow = Assert.Single(page.GetVisualDescendants().OfType<Border>(), control => control.Name == "ToolchainBundledRow");
+            Border userRow = Assert.Single(page.GetVisualDescendants().OfType<Border>(), control => control.Name == "ToolchainUserRow");
+            Assert.Equal(new Thickness(4, 18), bundledRow.Padding);
+            Assert.Equal(bundledRow.Padding, userRow.Padding);
             Border rail = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "SettingsNavigationRail");
             Assert.InRange(rail.Bounds.Width, 317.5, 318.5);
             Rect bounds = EventBufferBounds(page, window);
