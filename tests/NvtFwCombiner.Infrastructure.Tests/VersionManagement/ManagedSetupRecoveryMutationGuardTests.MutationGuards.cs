@@ -4,7 +4,7 @@ using NvtFwCombiner.Infrastructure.VersionManagement;
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Locks exact writer custody and fail-closed recovery execution.</summary>
-public sealed partial class ManagedSetupRecoveryExecutionTests
+public sealed partial class ManagedSetupRecoveryMutationGuardTests
 {
     /// <summary>READY convergence removes only residue and the marker.</summary>
     [Fact]

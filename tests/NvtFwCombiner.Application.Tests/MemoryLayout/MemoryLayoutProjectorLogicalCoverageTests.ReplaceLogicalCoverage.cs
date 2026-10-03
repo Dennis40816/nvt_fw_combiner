@@ -6,7 +6,7 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Tests.MemoryLayout;
 
-public sealed partial class MemoryLayoutProjectorTests
+public sealed partial class MemoryLayoutProjectorLogicalCoverageTests
 {
     /// <summary>Application alone assigns retained ranges to one unambiguous replacement source.</summary>
     [Fact]

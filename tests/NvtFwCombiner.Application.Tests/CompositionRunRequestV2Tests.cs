@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.TestSupport;
@@ -7,10 +6,9 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Application.Tests;
 
 /// <summary>Tests the closed Application admission contract for V2 plan and runtime artifacts.</summary>
+[Collection(nameof(CompositionRunRequestV2SerialGroup))]
 public sealed partial class CompositionRunRequestV2Tests
 {
-    private static readonly DateTimeOffset FirstTimestamp = new(2026, 7, 12, 0, 0, 0, TimeSpan.Zero);
-    private static readonly DateTimeOffset SecondTimestamp = FirstTimestamp.AddSeconds(1);
     private static readonly DateTimeOffset ThirdTimestamp = FirstTimestamp.AddSeconds(2);
     private static readonly DateTimeOffset FourthTimestamp = FirstTimestamp.AddSeconds(3);
 
@@ -547,104 +545,4 @@ public sealed partial class CompositionRunRequestV2Tests
                 CompiledInputInstancePolicy.Singleton)]);
     }
 
-    private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap CreateResolvedMap(
-        string modeId = "standard",
-        FirmwareWriteConstraint rootWriteConstraint = FirmwareWriteConstraint.Forbidden,
-        TopologyRequirement? topologyRequirement = null,
-        TopologySelection? requestedTopology = null,
-        FirmwareRegionOwner rootOwner = FirmwareRegionOwner.System,
-        FirmwareRegionKind rootKind = FirmwareRegionKind.Image,
-        bool includeNestedCtrlRamRegion = false)
-    {
-        FirmwareRegion[] regions = includeNestedCtrlRamRegion
-            ?
-            [
-                new FirmwareRegion(
-                    "root",
-                    parentRegionId: null,
-                    FirmwareRegionOwner.System,
-                    FirmwareRegionKind.Image,
-                    new ByteRange(0, 4),
-                    rootWriteConstraint),
-                new FirmwareRegion(
-                    "prefix",
-                    "root",
-                    FirmwareRegionOwner.Unknown,
-                    FirmwareRegionKind.Unmapped,
-                    new ByteRange(0, 1),
-                    FirmwareWriteConstraint.Forbidden),
-                new FirmwareRegion(
-                    "ctrlram",
-                    "root",
-                    FirmwareRegionOwner.Tp,
-                    FirmwareRegionKind.CtrlRam,
-                    new ByteRange(1, 2),
-                    FirmwareWriteConstraint.ExplicitRange),
-                new FirmwareRegion(
-                    "suffix",
-                    "root",
-                    FirmwareRegionOwner.Unknown,
-                    FirmwareRegionKind.Unmapped,
-                    new ByteRange(3, 1),
-                    FirmwareWriteConstraint.Forbidden),
-            ]
-            :
-            [
-                new FirmwareRegion(
-                    "root",
-                    parentRegionId: null,
-                    rootOwner,
-                    rootKind,
-                    new ByteRange(0, 4),
-                    rootWriteConstraint),
-            ];
-        FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
-            "map",
-            "flash",
-            new FirmwareMapApplicability(
-                ["NT-SYNTHETIC"],
-                [modeId],
-                topologyRequirement ?? TopologyRequirement.NoTopologyConstraint(),
-                4),
-            FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
-            [new FirmwareRegionSet(
-                "physical",
-                "flash",
-                regions,
-                ["map-evidence"])],
-            [],
-            ["map-evidence"]);
-        var definition = new FirmwareFamilyResolutionDefinition(
-            "synthetic-family",
-            "1.0.0",
-            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            [map],
-            []);
-        FirmwareMapResolutionResult result = definition.ResolveMap(new FirmwareMapResolutionInputs(
-            "NT-SYNTHETIC",
-            modeId,
-            4,
-            requestedTopology,
-            []));
-
-        return Assert.IsType<FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap>(result.ResolvedMap);
-    }
-
-    private sealed class RecordingOutputWriter : ICompositionOutputWriter
-    {
-        internal bool WasCalled { get; private set; }
-
-        internal string? FileName { get; private set; }
-
-        public ValueTask<CompositionOutputCommitReceipt> CommitAsync(
-            string fileName,
-            ReadOnlyMemory<byte> outputBytes,
-            CancellationToken cancellationToken)
-        {
-            WasCalled = true;
-            FileName = fileName;
-            return ValueTask.FromResult(CompositionOutputCommitReceipt.CreateLoose(
-                $"committed:{fileName}", fileName, outputBytes.Span));
-        }
-    }
 }

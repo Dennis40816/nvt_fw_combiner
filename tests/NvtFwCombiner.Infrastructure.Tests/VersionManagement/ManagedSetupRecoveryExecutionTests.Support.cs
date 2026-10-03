@@ -6,11 +6,11 @@ using System.Security.Cryptography;
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Locks exact writer custody and fail-closed recovery execution.</summary>
-public sealed partial class ManagedSetupRecoveryExecutionTests
+internal static partial class ManagedSetupRecoveryExecutionTestSupport
 {
-    private sealed record ForeignToken : ManagedSetupRecoveryExecutionToken;
+    internal sealed record ForeignToken : ManagedSetupRecoveryExecutionToken;
 
-    private static string DirectoryProof(string root)
+    internal static string DirectoryProof(string root)
     {
         return string.Join('\n', Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
             .Select(path => string.Concat(
@@ -20,14 +20,14 @@ public sealed partial class ManagedSetupRecoveryExecutionTests
             .Order(StringComparer.Ordinal));
     }
 
-    private sealed class NoOpDisposable : IDisposable
+    internal sealed class NoOpDisposable : IDisposable
     {
         public void Dispose()
         {
         }
     }
 
-    private sealed class RecoveryEvidenceFixture : IDisposable
+    internal sealed class RecoveryEvidenceFixture : IDisposable
     {
         private readonly TempWorkspace _workspace;
         private readonly IManagedVersionRepository _repository;
