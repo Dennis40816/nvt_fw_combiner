@@ -58,7 +58,7 @@ public sealed partial class XamlControlStyleContractTests
             ToggleButton tpBadge = Assert.Single(tpSlot.GetVisualDescendants().OfType<ToggleButton>(),
                 item => item.Classes.Contains("slotStateAction"));
             Assert.True(tpBadge.Focus(NavigationMethod.Tab));
-            await SaveReferenceFrameAsync(window, "error");
+            await SaveReferenceFrameAsync(window, "error", tpBadge);
             Border target = window.FindControl<Border>("MergeBuildBlockerTarget")!;
             Button build = window.FindControl<Button>("MergeBuildButton")!;
             Assert.False(build.IsEnabled);
@@ -89,7 +89,7 @@ public sealed partial class XamlControlStyleContractTests
             _ = tpBadge.Focus();
             Assert.True(target.Focus(NavigationMethod.Tab));
             Assert.True(ToolTip.GetIsOpen(target));
-            await SaveReferenceFrameAsync(window, "build");
+            await SaveReferenceFrameAsync(window, "build", target);
             await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeDp, dpPath, TestContext.Current.CancellationToken);
             Assert.False(viewModel.MergeBuildBlockerCard.HasAdditionalBlockers);
             await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeTp, tpPath, TestContext.Current.CancellationToken);
@@ -112,7 +112,7 @@ public sealed partial class XamlControlStyleContractTests
             Assert.True(target.IsVisible);
             Assert.NotNull(viewModel.Merge.MergeTpSlot.IssueCard);
             Assert.True(tpBadge.Focus(NavigationMethod.Tab));
-            await SaveReferenceFrameAsync(window, "invalid-metadata");
+            await SaveReferenceFrameAsync(window, "invalid-metadata", tpBadge);
             await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeTp, tpPath, TestContext.Current.CancellationToken);
             Dispatcher.UIThread.RunJobs();
             Assert.True(build.IsEnabled);
@@ -128,7 +128,7 @@ public sealed partial class XamlControlStyleContractTests
                 TabControl tabs = Assert.Single(window.GetVisualDescendants().OfType<TabControl>(), item => item.Classes.Contains("reportTabs"));
                 tabs.SelectedItem = Assert.Single(tabs.Items.OfType<TabItem>(), item => Equals(item.Header, viewModel.Text.ReportTabIssues));
                 Assert.Equal("input.artifact.read-failed", viewModel.Reports.LoadedReport.PrimaryIssue.Title);
-                await SaveReferenceFrameAsync(window, "report");
+                await SaveReferenceFrameAsync(window, "report", null);
             }
         }
         finally
@@ -137,7 +137,7 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
-    private static async Task SaveReferenceFrameAsync(Window window, string state)
+    private static async Task SaveReferenceFrameAsync(Window window, string state, Control? popupTarget)
     {
         string? destination = Environment.GetEnvironmentVariable("NFC_UI_REFERENCE_CAPTURE_DIR");
         if (string.IsNullOrWhiteSpace(destination))
@@ -146,8 +146,40 @@ public sealed partial class XamlControlStyleContractTests
         }
         string root = Environment.GetEnvironmentVariable("NFC_TEST_AREA_ROOT")!;
         Assert.StartsWith(Path.GetFullPath(root) + Path.DirectorySeparatorChar, Path.GetFullPath(destination), StringComparison.OrdinalIgnoreCase);
-        await Task.Delay(300, TestContext.Current.CancellationToken); // Allow the production popup fade to settle before retaining visual evidence.
-        Dispatcher.UIThread.RunJobs();
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        while (true)
+        {
+            TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            ToolTip? popup = popupTarget is null ? null : ToolTip.GetTip(popupTarget) as ToolTip;
+            popup?.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+
+            Control[] popupControls = popup is null ? [] :
+                [popup, .. popup.GetVisualAncestors().OfType<Control>(), .. popup.GetVisualDescendants().OfType<Control>()];
+            Control? animating = popupControls.FirstOrDefault(control => control.IsAnimating(Visual.OpacityProperty));
+            Control? pendingLayout = popupControls.FirstOrDefault(control => control.IsEffectivelyVisible &&
+                (!control.IsMeasureValid || !control.IsArrangeValid));
+            bool windowLayoutReady = window.IsMeasureValid && window.IsArrangeValid;
+            bool popupOpen = popupTarget is not null && ToolTip.GetIsOpen(popupTarget);
+            bool popupAttached = popup is not null && TopLevel.GetTopLevel(popup) is not null;
+            bool popupVisible = popup is { IsEffectivelyVisible: true, Opacity: 1 } &&
+                popup.Bounds.Width > 0 && popup.Bounds.Height > 0;
+            if (windowLayoutReady && (popupTarget is null ||
+                (popupOpen && popupAttached && popupVisible && animating is null && pendingLayout is null)))
+            {
+                break;
+            }
+
+            Assert.True(elapsed.Elapsed < TimeSpan.FromSeconds(5),
+                $"Reference capture '{state}' did not reach its popup animation/layout end state within 5 seconds: " +
+                $"windowLayoutReady={windowLayoutReady}; popupOpen={popupOpen}; popupAttached={popupAttached}; " +
+                $"popupVisible={popupVisible}; opacity={popup?.Opacity}; bounds={popup?.Bounds}; " +
+                $"animating={animating?.GetType().Name}/{animating?.Name}; pendingLayout={pendingLayout?.GetType().Name}/{pendingLayout?.Name}.");
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
         using Avalonia.Media.Imaging.WriteableBitmap? frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         _ = Directory.CreateDirectory(destination);

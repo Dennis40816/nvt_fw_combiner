@@ -137,8 +137,28 @@ public sealed class ReleaseExampleScreenshots
                 ToggleButton badge = Assert.Single(card.GetVisualDescendants().OfType<ToggleButton>(),
                     item => item.Classes.Contains("slotStateAction"));
                 ToolTip.SetIsOpen(badge, true);
-                await Task.Delay(350, TestContext.Current.CancellationToken);
-                Dispatcher.UIThread.RunJobs();
+                ToolTip tooltip = Assert.IsType<ToolTip>(ToolTip.GetTip(badge));
+                using (var wait = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+                {
+                    while (true)
+                    {
+                        Dispatcher.UIThread.RunJobs();
+                        window.UpdateLayout();
+                        tooltip.UpdateLayout();
+                        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                        Dispatcher.UIThread.RunJobs();
+                        if (ToolTip.GetIsOpen(badge) && tooltip.IsEffectivelyVisible && tooltip.Opacity == 1 &&
+                            tooltip.Bounds.Width > 0 && tooltip.Bounds.Height > 0 &&
+                            tooltip.GetVisualDescendants().OfType<IssueDetailsCard>().Any(control =>
+                                control.IsEffectivelyVisible && control.Bounds.Width > 0 && control.Bounds.Height > 0))
+                        {
+                            break;
+                        }
+                        Assert.False(wait.IsCancellationRequested,
+                            $"Input popup reveal/layout did not complete for {exampleId}: opacity={tooltip.Opacity}, bounds={tooltip.Bounds}.");
+                        await Task.Delay(50, TestContext.Current.CancellationToken);
+                    }
+                }
                 Save("input-popup");
                 ToolTip.SetIsOpen(badge, false);
             }
@@ -161,9 +181,26 @@ public sealed class ReleaseExampleScreenshots
                 window.UpdateLayout();
                 Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
                 Assert.Single(card.GetVisualDescendants().OfType<Expander>()).IsExpanded = true;
-                await Task.Delay(350, TestContext.Current.CancellationToken);
-                Dispatcher.UIThread.RunJobs();
-                window.UpdateLayout();
+                using (var wait = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+                {
+                    while (true)
+                    {
+                        Dispatcher.UIThread.RunJobs();
+                        window.UpdateLayout();
+                        card.UpdateLayout();
+                        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                        Dispatcher.UIThread.RunJobs();
+                        if (card.Opacity == 1 &&
+                            card.GetVisualDescendants().OfType<TextBlock>().Any(control => control.IsEffectivelyVisible && control.Text == "a-cmi-dp-version") &&
+                            card.GetVisualDescendants().OfType<TextBlock>().Any(control => control.IsEffectivelyVisible && control.Bounds.Width > 0 && control.Text == "flash [0x401A,0x401D)"))
+                        {
+                            break;
+                        }
+                        Assert.False(wait.IsCancellationRequested,
+                            $"DP card reveal/expanded field layout did not complete for {exampleId}: opacity={card.Opacity}, bounds={card.Bounds}.");
+                        await Task.Delay(50, TestContext.Current.CancellationToken);
+                    }
+                }
                 Assert.Equal(1, card.Opacity);
                 Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), control => control.IsEffectivelyVisible && control.Text == "a-cmi-dp-version");
                 Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), control => control.IsEffectivelyVisible && control.Bounds.Width > 0 && control.Text == "flash [0x401A,0x401D)");

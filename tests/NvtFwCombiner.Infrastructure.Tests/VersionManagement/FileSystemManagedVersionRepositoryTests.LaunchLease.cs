@@ -170,8 +170,29 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR", previousBehavior);
             acquired.Lease.Dispose();
         }
-        await Task.Delay(500, TestContext.Current.CancellationToken);
-        File.Move(executable, displaced);
+        long releaseDeadline = Environment.TickCount64 + 5_000;
+        while (true)
+        {
+            TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                File.Move(executable, displaced);
+                break;
+            }
+            catch (IOException exception)
+            {
+                long remaining = releaseDeadline - Environment.TickCount64;
+                if (remaining <= 0)
+                {
+                    throw new TimeoutException(
+                        "Executable could not be moved within 5 seconds after launch lease disposal.",
+                        exception);
+                }
+                await Task.Delay(
+                    TimeSpan.FromMilliseconds(Math.Min(25, remaining)),
+                    TestContext.Current.CancellationToken);
+            }
+        }
         File.Move(displaced, executable);
     }
 }

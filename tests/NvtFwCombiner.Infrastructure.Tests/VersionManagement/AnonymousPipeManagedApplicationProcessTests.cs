@@ -25,14 +25,17 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         using var workspace = TempWorkspace.Create();
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
         PrepareProbe(workspace.Root, version);
+        string marker = Path.Combine(workspace.Root, "application-process.txt");
 
         ManagedProcessStartResult result = await RunAsync(
             workspace.Root,
             version,
             "ready",
             TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken);
-        await Task.Delay(500, TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken,
+            processMarker: marker);
+        await WaitForApplicationLifetimeExitAsync(
+            Path.Combine(workspace.Root, "state", "version-manager.v1.json"), marker, result);
 
         Assert.Equal(ManagedProcessStartOutcome.Ready, result.Outcome);
     }
@@ -46,12 +49,15 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         PrepareProbe(workspace.Root, version);
         string statePath = Path.Combine(workspace.Root, "state", "custom state.json");
         string argumentsPath = Path.Combine(workspace.Root, "application-arguments.txt");
+        string marker = Path.Combine(workspace.Root, "application-process.txt");
         string? previousBehavior = Environment.GetEnvironmentVariable(BehaviorEnvironment);
         string? previousArguments = Environment.GetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH");
+        string? previousMarker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_PROCESS_MARKER");
         try
         {
             Environment.SetEnvironmentVariable(BehaviorEnvironment, "ready");
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH", argumentsPath);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_PROCESS_MARKER", marker);
             using TestExecutableLaunchLease executableLease = ExecutableLease(workspace.Root, version);
             ManagedProcessStartResult result = await new AnonymousPipeManagedApplicationProcess(statePath)
                 .StartUntilReadyAsync(
@@ -60,7 +66,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
                     executableLease,
                     TimeSpan.FromSeconds(5),
                     TestContext.Current.CancellationToken);
-            await Task.Delay(500, TestContext.Current.CancellationToken);
+            await WaitForApplicationLifetimeExitAsync(statePath, marker, result);
 
             Assert.Equal(ManagedProcessStartOutcome.Ready, result.Outcome);
             Assert.Equal(
@@ -71,6 +77,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         {
             Environment.SetEnvironmentVariable(BehaviorEnvironment, previousBehavior);
             Environment.SetEnvironmentVariable("NVT_READY_PROBE_ARGS_PATH", previousArguments);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_PROCESS_MARKER", previousMarker);
         }
     }
 
@@ -178,14 +185,17 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         using var workspace = TempWorkspace.Create();
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
         PrepareProbe(workspace.Root, version);
+        string marker = Path.Combine(workspace.Root, "application-process.txt");
 
         ManagedProcessStartResult result = await RunAsync(
             workspace.Root,
             version,
             "invalid",
             TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken);
-        await Task.Delay(500, TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken,
+            processMarker: marker);
+        await WaitForApplicationLifetimeExitAsync(
+            Path.Combine(workspace.Root, "state", "version-manager.v1.json"), marker, result);
 
         Assert.Equal(ManagedProcessStartOutcome.InvalidReadySignal, result.Outcome);
     }
@@ -215,14 +225,17 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         using var workspace = TempWorkspace.Create();
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
         PrepareProbe(workspace.Root, version);
+        string marker = Path.Combine(workspace.Root, "application-process.txt");
 
         ManagedProcessStartResult result = await RunAsync(
             workspace.Root,
             version,
             "exit",
             TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken);
-        await Task.Delay(500, TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken,
+            processMarker: marker);
+        await WaitForApplicationLifetimeExitAsync(
+            Path.Combine(workspace.Root, "state", "version-manager.v1.json"), marker, result);
 
         Assert.Equal(ManagedProcessStartOutcome.ExitedBeforeReady, result.Outcome);
         Assert.Equal(7, result.ExitCode);
@@ -235,14 +248,17 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         using var workspace = TempWorkspace.Create();
         ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
         PrepareProbe(workspace.Root, version);
+        string marker = Path.Combine(workspace.Root, "application-process.txt");
 
         ManagedProcessStartResult result = await RunAsync(
             workspace.Root,
             version,
             "oversized",
             TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken);
-        await Task.Delay(500, TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken,
+            processMarker: marker);
+        await WaitForApplicationLifetimeExitAsync(
+            Path.Combine(workspace.Root, "state", "version-manager.v1.json"), marker, result);
 
         Assert.Equal(ManagedProcessStartOutcome.InvalidReadySignal, result.Outcome);
     }

@@ -354,26 +354,31 @@ public sealed class SystemExternalProcessRunnerTests
 
     private static async Task AssertProcessExitedAsync(TestProcessIdentity expected, CancellationToken cancellationToken)
     {
-        for (int attempt = 0; attempt < 120; attempt++)
+        cancellationToken.ThrowIfCancellationRequested();
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                using var process = Process.GetProcessById(expected.ProcessId);
-                if (process.HasExited || process.StartTime != expected.StartTime)
-                {
-                    return;
-                }
-            }
-            catch (ArgumentException)
+            using var process = Process.GetProcessById(expected.ProcessId);
+            if (process.HasExited || process.StartTime != expected.StartTime)
             {
                 return;
             }
 
-            await Task.Delay(TimeSpan.FromMilliseconds(25), cancellationToken);
+            using var exitCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            exitCancellation.CancelAfter(TimeSpan.FromSeconds(3));
+            try
+            {
+                await process.WaitForExitAsync(exitCancellation.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                Assert.Fail(
+                    $"Test process {expected.ProcessId} (started {expected.StartTime:O}) is still running 3 seconds after runner completion.");
+            }
         }
-
-        Assert.Fail($"Test process {expected.ProcessId} is still running after runner completion.");
+        catch (ArgumentException)
+        {
+            return;
+        }
     }
 
     private static void KillTestProcessTree(TestProcessIdentity? expected)

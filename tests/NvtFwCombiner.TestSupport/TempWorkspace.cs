@@ -54,20 +54,25 @@ public sealed class TempWorkspace : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        for (int attempt = 0; Directory.Exists(Root); attempt++)
+        long retryDeadline = Environment.TickCount64 + 450;
+        while (Directory.Exists(Root))
         {
             try
             {
                 Directory.Delete(Root, recursive: true);
                 return;
             }
-            catch (IOException) when (OperatingSystem.IsWindows() && attempt < 9)
+            catch (IOException) when (OperatingSystem.IsWindows() && Environment.TickCount64 < retryDeadline)
             {
-                Thread.Sleep(TimeSpan.FromMilliseconds(50));
             }
-            catch (UnauthorizedAccessException) when (OperatingSystem.IsWindows() && attempt < 9)
+            catch (UnauthorizedAccessException) when (OperatingSystem.IsWindows() && Environment.TickCount64 < retryDeadline)
             {
-                Thread.Sleep(TimeSpan.FromMilliseconds(50));
+            }
+
+            long remainingMilliseconds = retryDeadline - Environment.TickCount64;
+            if (remainingMilliseconds > 0)
+            {
+                Thread.Sleep((int)Math.Min(50, remainingMilliseconds));
             }
         }
     }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -181,9 +182,29 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             MemoryCoverageSegmentViewModel detailSegment = Assert.IsType<MemoryCoverageSegmentViewModel>(detailCard.DataContext);
             Assert.Equal("NF CtrlRAM", detailSegment.SourceLabel);
             Assert.Equal(0x5FC00, detailSegment.RangeStart);
-            await Task.Delay(350, TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            var revealWait = Stopwatch.StartNew();
+            bool detailCardReady;
+            do
+            {
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
+                detailCardReady = detailCard.IsEffectivelyVisible && detailCard.Opacity == 1 &&
+                    (detailCard.RenderTransform?.Value ?? Matrix.Identity) == Matrix.Identity &&
+                    detailCard.IsMeasureValid && detailCard.IsArrangeValid &&
+                    detailCard.Bounds.Width > 0 && detailCard.Bounds.Height > 0;
+                if (detailCardReady)
+                {
+                    break;
+                }
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
+            while (revealWait.Elapsed < TimeSpan.FromSeconds(5));
+            Assert.True(detailCardReady,
+                $"MemorySliceCard reveal/layout did not complete within 5 seconds: visible={detailCard.IsEffectivelyVisible}, " +
+                $"opacity={detailCard.Opacity}, transform={detailCard.RenderTransform?.Value}, " +
+                $"measureValid={detailCard.IsMeasureValid}, arrangeValid={detailCard.IsArrangeValid}, bounds={detailCard.Bounds}.");
             using global::Avalonia.Media.Imaging.Bitmap? hoverFrame = window.GetLastRenderedFrame();
             Assert.NotNull(hoverFrame);
             if (output is not null)

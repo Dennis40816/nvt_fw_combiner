@@ -52,12 +52,12 @@ public sealed class CtrlRamMemoryDisplayFailureTests
                 control => control.Name == "ReplaceMemoryDisplayWarning");
             Assert.True(warning.IsEffectivelyVisible);
             Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(warning));
-            CtrlRamCascadeMemoryLayoutTests.Capture(window, "preview-unavailable-" + (dark ? "dark" : "light"));
+            await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, "preview-unavailable-" + (dark ? "dark" : "light"));
             Assert.True(warning.Bounds.Width > 200);
             shell.SelectedLanguage = "Traditional Chinese";
             Assert.Equal("無法顯示 Memory Layout", shell.Replace.Text.MemoryLayoutUnavailableTitle);
             Assert.True(shell.Replace.CanBuildReplace);
-            CtrlRamCascadeMemoryLayoutTests.Capture(window, "preview-unavailable-" + (dark ? "dark" : "light") + "-zh");
+            await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, "preview-unavailable-" + (dark ? "dark" : "light") + "-zh");
             shell.SelectedLanguage = "English";
 
             string basePath = shell.Replace.ReplaceBaseSlot.FilePath!;

@@ -241,17 +241,34 @@ public sealed class ReplicatedUpdateSourceRegistryTests
             TestContext.Current.CancellationToken);
         releasePrimary.Set();
         await blocked.FirstLoadCompleted.Task.WaitAsync(TestContext.Current.CancellationToken);
+        // The fake's completion signal precedes the host read task completing and being retired.
+        TimeSpan recoveryTimeout = TimeSpan.FromSeconds(5);
+        using var recoveryDeadline = CancellationTokenSource.CreateLinkedTokenSource(
+            TestContext.Current.CancellationToken);
+        recoveryDeadline.CancelAfter(recoveryTimeout);
         UpdateSourceRegistryLoadResult? recovered = null;
-        for (int attempt = 0; attempt < 100; attempt++)
+        UpdateSourceRegistryLoadResult lastObserved = timedOut;
+        try
         {
-            UpdateSourceRegistryLoadResult candidate = await registry.LoadAsync(
-                TestContext.Current.CancellationToken);
-            if (candidate.Replicas![0].Issue != UpdateSourceRegistryLoadIssue.RegistryTimedOut)
+            while (true)
             {
-                recovered = candidate;
-                break;
+                lastObserved = await registry.LoadAsync(recoveryDeadline.Token);
+                if (lastObserved.Replicas![0].Issue != UpdateSourceRegistryLoadIssue.RegistryTimedOut)
+                {
+                    recovered = lastObserved;
+                    break;
+                }
+                await Task.Delay(10, recoveryDeadline.Token);
             }
-            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+        catch (OperationCanceledException) when (
+            recoveryDeadline.IsCancellationRequested &&
+            !TestContext.Current.CancellationToken.IsCancellationRequested)
+        {
+            Assert.Fail(
+                $"Registry recovery timed out after {recoveryTimeout}; primary physical reads={blocked.LoadCount}; " +
+                $"last replicas=[{string.Join(", ", lastObserved.Replicas!.Select(static replica =>
+                    $"position={replica.Position}, issue={replica.Issue}, selected={replica.IsSelected}, revision={replica.RegistryRevision}"))}].");
         }
 
         Assert.Equal(UpdateSourceRegistryLoadIssue.RegistryTimedOut, timedOut.Replicas![0].Issue);
