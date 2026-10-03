@@ -5,7 +5,8 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Locks exact writer custody and fail-closed recovery execution.</summary>
-public sealed partial class ManagedSetupRecoveryExecutionTests
+[Collection(nameof(ManagedSetupRecoveryExecutionSerialGroup))]
+public sealed partial class ManagedSetupRecoveryMutationGuardTests
 {
     /// <summary>Held tree custody blocks content mutation after state deletion.</summary>
     [Fact]

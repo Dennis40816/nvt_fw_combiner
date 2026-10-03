@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Tests.MemoryLayout;
 
-public sealed partial class MemoryLayoutProjectorTests
+public sealed partial class MemoryLayoutProjectorLogicalCoverageTests
 {
     /// <summary>A DP field before its sibling code retains code identity, never the field's title.</summary>
     [Fact]

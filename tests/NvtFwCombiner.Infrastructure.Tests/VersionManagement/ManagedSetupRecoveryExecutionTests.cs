@@ -4,6 +4,7 @@ using NvtFwCombiner.Infrastructure.VersionManagement;
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Locks exact writer custody and fail-closed recovery execution.</summary>
+[Collection(nameof(ManagedSetupRecoveryExecutionSerialGroup))]
 public sealed partial class ManagedSetupRecoveryExecutionTests
 {
     /// <summary>An exact marker before staging creation is a deterministic Missing/Missing prefix.</summary>

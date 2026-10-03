@@ -1,2 +1,6 @@
 global using Xunit;
 global using static NvtFwCombiner.Application.Tests.VersionManagement.VersionManagementExperienceTestSupport;
+global using static NvtFwCombiner.Application.Tests.VersionManagement.ManagedFirstInstallationExperienceTestSupport;
+global using static NvtFwCombiner.Application.Tests.MemoryLayout.MemoryLayoutProjectorTestSupport;
+global using static NvtFwCombiner.Application.Tests.CompositionRunRequestV2TestSupport;
+global using static NvtFwCombiner.Application.Tests.Authoring.AuthoringInputSlotInspectionTestSupport;

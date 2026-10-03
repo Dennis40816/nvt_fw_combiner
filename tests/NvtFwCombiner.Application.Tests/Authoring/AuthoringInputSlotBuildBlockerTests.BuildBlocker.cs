@@ -6,7 +6,9 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
-public sealed partial class AuthoringInputSlotInspectionTests
+/// <summary>Tests canonical build blocker projection for authoring input slots.</summary>
+[Collection(nameof(AuthoringInputSlotInspectionSerialGroup))]
+public sealed partial class AuthoringInputSlotBuildBlockerTests
 {
     /// <summary>The shell blocker projection delegates compiled sessions to canonical action readiness.</summary>
     [Fact]
