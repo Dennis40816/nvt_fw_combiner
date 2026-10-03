@@ -58,6 +58,14 @@ public sealed partial class ReportReviewHistoryTests
 
         viewModel.Reports.ClearReportHistoryCommand.Execute(null);
 
+        Assert.True(viewModel.Reports.IsHistoryDeleteConfirmationOpen);
+        Assert.Equal(1, viewModel.Reports.ReportHistoryCount);
+        viewModel.Reports.CancelReportHistoryDeletionCommand.Execute(null);
+        Assert.False(viewModel.Reports.IsHistoryDeleteConfirmationOpen);
+        Assert.Equal(1, viewModel.Reports.ReportHistoryCount);
+        viewModel.Reports.ClearReportHistoryCommand.Execute(null);
+        viewModel.Reports.ConfirmReportHistoryDeletionCommand.Execute(null);
+
         Assert.False(viewModel.Reports.HasReportHistory);
         Assert.True(viewModel.Reports.IsReportHistoryEmpty);
         Assert.Equal(0, viewModel.Reports.ReportHistoryCount);
@@ -82,9 +90,9 @@ public sealed partial class ReportReviewHistoryTests
         Assert.Equal("No output hash", entry.OutputHash);
     }
 
-    /// <summary>Verifies local report history reports oversized storage and can be cleared in one action.</summary>
+    /// <summary>Oversized history remains intact until its cleanup is confirmed.</summary>
     [Fact]
-    public void ReportHistoryFlagsOversizedStorageForOneClickCleanup()
+    public void ReportHistoryFlagsOversizedStorageForConfirmedCleanup()
     {
         string json = ReportJsonSamples.Succeeded();
         string paddedJson = json.Insert(json.LastIndexOf('}'), $",\"Padding\":\"{new string('A', 1024 * 1024)}\"");
@@ -99,6 +107,16 @@ public sealed partial class ReportReviewHistoryTests
         Assert.Contains("Clear history", viewModel.Reports.ReportHistoryStorageWarning, StringComparison.Ordinal);
 
         viewModel.Reports.ClearReportHistoryCommand.Execute(null);
+
+        Assert.True(viewModel.Reports.IsHistoryDeleteConfirmationOpen);
+        Assert.True(viewModel.Reports.HasReportHistoryStorageWarning);
+        _ = Assert.Single(viewModel.Reports.ExportReportHistory());
+        viewModel.Reports.CancelReportHistoryDeletionCommand.Execute(null);
+        Assert.False(viewModel.Reports.IsHistoryDeleteConfirmationOpen);
+        Assert.True(viewModel.Reports.HasReportHistoryStorageWarning);
+        _ = Assert.Single(viewModel.Reports.ExportReportHistory());
+        viewModel.Reports.ClearReportHistoryCommand.Execute(null);
+        viewModel.Reports.ConfirmReportHistoryDeletionCommand.Execute(null);
 
         Assert.False(viewModel.Reports.HasReportHistoryStorageWarning);
         Assert.Equal("0 B stored locally", viewModel.Reports.ReportHistoryStorageSummary);

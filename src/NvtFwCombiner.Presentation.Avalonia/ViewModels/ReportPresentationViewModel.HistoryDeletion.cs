@@ -9,12 +9,47 @@ internal sealed partial class ReportPresentationViewModel
     [NotifyPropertyChangedFor(nameof(IsHistoryDeleteConfirmationOpen))]
     public partial ReportHistoryEntryViewModel? PendingHistoryDeletion { get; private set; }
 
-    public bool IsHistoryDeleteConfirmationOpen => PendingHistoryDeletion is not null;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsHistoryDeleteConfirmationOpen))]
+    public partial bool IsClearAllHistoryDeletionPending { get; private set; }
+
+    public bool IsHistoryDeleteConfirmationOpen => PendingHistoryDeletion is not null || IsClearAllHistoryDeletionPending;
+
+    public string HistoryDeletionTitle => IsClearAllHistoryDeletionPending ? Text.ClearHistoryTitle : Text.DeleteHistoryTitle;
+
+    public string HistoryDeletionDetail => IsClearAllHistoryDeletionPending ? Text.ClearHistoryDetail : Text.DeleteHistoryDetail;
+
+    public string HistoryDeletionConfirmLabel => IsClearAllHistoryDeletionPending ? Text.ClearAllLabel : Text.DeleteHistoryConfirmLabel;
+
+    partial void OnIsClearAllHistoryDeletionPendingChanged(bool value) => NotifyHistoryDeletionTextChanged();
+
+    private void NotifyHistoryDeletionTextChanged()
+    {
+        OnPropertyChanged(nameof(HistoryDeletionTitle));
+        OnPropertyChanged(nameof(HistoryDeletionDetail));
+        OnPropertyChanged(nameof(HistoryDeletionConfirmLabel));
+    }
+
+    private void RequestClearReportHistory()
+    {
+        if (IsHistoryDeleteConfirmationOpen || !HasReportHistory)
+        {
+            return;
+        }
+
+        if (!IsReportModalOpen)
+        {
+            ShowReportHistory();
+        }
+
+        CancelReportHistoryReopen();
+        IsClearAllHistoryDeletionPending = true;
+    }
 
     [RelayCommand]
     private void RequestReportHistoryDeletion(ReportHistoryEntryViewModel? entry)
     {
-        if (PendingHistoryDeletion is not null || entry is null || !ReportHistoryEntries.Contains(entry))
+        if (IsHistoryDeleteConfirmationOpen || entry is null || !ReportHistoryEntries.Contains(entry))
         {
             return;
         }
@@ -27,13 +62,27 @@ internal sealed partial class ReportPresentationViewModel
     private void CancelReportHistoryDeletion()
     {
         PendingHistoryDeletion = null;
+        IsClearAllHistoryDeletionPending = false;
     }
 
     [RelayCommand]
     private void ConfirmReportHistoryDeletion()
     {
+        if (!IsHistoryDeleteConfirmationOpen)
+        {
+            return;
+        }
+
         ReportHistoryEntryViewModel? entry = PendingHistoryDeletion;
-        PendingHistoryDeletion = null;
-        RemoveReportHistoryEntry(entry);
+        bool clearAll = IsClearAllHistoryDeletionPending;
+        CancelReportHistoryDeletion();
+        if (clearAll)
+        {
+            ClearReportHistory();
+        }
+        else
+        {
+            RemoveReportHistoryEntry(entry);
+        }
     }
 }

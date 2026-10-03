@@ -415,7 +415,8 @@ public sealed partial class ReportProjectionConcurrencyTests
     [InlineData("cancel")]
     [InlineData("close")]
     [InlineData("back")]
-    [InlineData("clear")]
+    [InlineData("clear-cancel")]
+    [InlineData("clear-confirm")]
     [InlineData("remove")]
     public async Task ChangeReportHistoryReopenHonorsInFlightUserAction(string action)
     {
@@ -429,6 +430,8 @@ public sealed partial class ReportProjectionConcurrencyTests
             ReportHistoryEntryViewModel olderEntry = viewModel.Reports.ReportHistoryEntries[0];
             viewModel.Reports.LoadReportJson(currentJson, "current-before-action.json");
             viewModel.Reports.ShowReportHistoryCommand.Execute(null);
+            IReadOnlyList<ReportHistorySnapshot> history = viewModel.Reports.ExportReportHistory();
+            ReportReviewViewModel currentReport = viewModel.Reports.LoadedReport;
 
             int legacyCanExecuteNotifications = 0;
             viewModel.Reports.OpenReportHistoryEntryCommand.CanExecuteChanged += (_, _) => legacyCanExecuteNotifications++;
@@ -449,8 +452,29 @@ public sealed partial class ReportProjectionConcurrencyTests
                 case "back":
                     viewModel.Reports.CloseReportHistoryCommand.Execute(null);
                     break;
-                case "clear":
+                case "clear-cancel":
+                case "clear-confirm":
                     viewModel.Reports.ClearReportHistoryCommand.Execute(null);
+                    Assert.True(viewModel.Reports.IsHistoryDeleteConfirmationOpen);
+                    Assert.Equal(2, viewModel.Reports.ReportHistoryCount);
+                    await reopening;
+                    Assert.Same(currentReport, viewModel.Reports.LoadedReport);
+                    Assert.Equal(currentJson, viewModel.Reports.LoadedReportJson);
+                    Assert.Equal(history, viewModel.Reports.ExportReportHistory());
+                    Assert.True(viewModel.Reports.IsReportHistoryViewOpen);
+                    Assert.True(viewModel.Reports.IsReportModalOpen);
+                    Assert.True(viewModel.Reports.IsHistoryDeleteConfirmationOpen);
+                    Assert.True(viewModel.Reports.IsClearAllHistoryDeletionPending);
+                    Assert.Null(viewModel.Reports.PendingHistoryDeletion);
+                    if (action == "clear-confirm")
+                    {
+                        viewModel.Reports.ConfirmReportHistoryDeletionCommand.Execute(null);
+                    }
+                    else
+                    {
+                        viewModel.Reports.CancelReportHistoryDeletionCommand.Execute(null);
+                    }
+                    Assert.False(viewModel.Reports.IsHistoryDeleteConfirmationOpen);
                     break;
                 case "remove":
                     viewModel.Reports.RemoveReportHistoryEntryCommand.Execute(olderEntry);
@@ -476,9 +500,14 @@ public sealed partial class ReportProjectionConcurrencyTests
                 Assert.True(viewModel.Reports.IsReportModalOpen);
                 Assert.False(viewModel.Reports.IsReportHistoryViewOpen);
             }
-            else if (action == "clear")
+            else if (action == "clear-confirm")
             {
                 Assert.Empty(viewModel.Reports.ReportHistoryEntries);
+            }
+            else if (action == "clear-cancel")
+            {
+                Assert.Equal(history, viewModel.Reports.ExportReportHistory());
+                Assert.True(viewModel.Reports.IsReportHistoryViewOpen);
             }
             else if (action == "remove")
             {

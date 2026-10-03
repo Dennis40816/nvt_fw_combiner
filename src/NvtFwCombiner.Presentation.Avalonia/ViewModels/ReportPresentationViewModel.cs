@@ -95,6 +95,19 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
 
     internal ILocalFileStore? LocalFiles { get; set; }
 
+    internal bool IsOtherModalOpen
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field = value;
+                ClearReportHistoryCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
     internal ReportPresentationViewModel(
         Func<ShellTextResources> textProvider,
         Action beforeOpen)
@@ -109,7 +122,7 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         DismissReportToastCommand = new RelayCommand(DismissReportToast);
         ShowReportHistoryCommand = new RelayCommand(ShowReportHistory, () => CanOpenReportHistory);
         CloseReportHistoryCommand = new RelayCommand(CloseReportHistory);
-        ClearReportHistoryCommand = new RelayCommand(ClearReportHistory, () => CanClearReportHistory);
+        ClearReportHistoryCommand = new RelayCommand(RequestClearReportHistory, () => CanClearReportHistory && !IsOtherModalOpen);
         OpenReportHistoryEntryAsyncCommand = new AsyncRelayCommand<ReportHistoryEntryViewModel>(OpenReportHistoryEntryAsync);
         OpenReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(
             entry => OpenReportHistoryEntryAsyncCommand.Execute(entry),
@@ -569,6 +582,7 @@ internal sealed partial class ReportPresentationViewModel : ObservableObject
         OnPropertyChanged(nameof(RunReportSummary));
         OnPropertyChanged(nameof(ReportHistoryStorageSummary));
         OnPropertyChanged(nameof(ReportHistoryStorageWarning));
+        NotifyHistoryDeletionTextChanged();
         RequestReportRelocalization();
     }
 

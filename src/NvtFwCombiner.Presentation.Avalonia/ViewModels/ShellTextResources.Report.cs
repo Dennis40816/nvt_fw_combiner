@@ -20,10 +20,10 @@ internal sealed partial class ShellTextResources
             FormattableString.Invariant($"{count} 筆報告"));
     }
     public string DeleteHistoryTitle => SelectLanguage("Delete this report?", "刪除這筆報告？");
-    public string DeleteHistoryDetail => SelectLanguage(
-        "This removes only this history entry. Report files and output files will not be deleted.",
-        "只移除這筆歷史紀錄，不會刪除報告檔或輸出檔案。");
+    public string DeleteHistoryDetail => SelectLanguage("This removes only this history entry. Report files and output files will not be deleted.", "只移除這筆歷史紀錄，不會刪除報告檔或輸出檔案。");
     public string DeleteHistoryConfirmLabel => SelectLanguage("Delete", "刪除");
+    public string ClearHistoryTitle => SelectLanguage("Clear all reports?", "清除全部報告？");
+    public string ClearHistoryDetail => SelectLanguage("This removes all history entries. Report files and output files will not be deleted.", "只移除全部歷史紀錄，不會刪除報告檔或輸出檔案。");
 
     public string ReportToastTitle { get; private init; } = string.Empty;
 

@@ -39,8 +39,9 @@ internal sealed partial class MainWindowViewModel
     private bool IsBlockingSurfaceOpen =>
         IsSettingsModalOpen || IsOtherBlockingSurfaceOpen;
 
-    private bool IsOtherBlockingSurfaceOpen =>
-        OutputDelivery.IsOpen ||
+    private bool IsOtherBlockingSurfaceOpen => Reports.IsReportModalOpen || IsNonReportBlockingSurfaceOpen;
+
+    private bool IsNonReportBlockingSurfaceOpen => OutputDelivery.IsOpen ||
         Replace.IsReplaceSelectionModalOpen ||
         Replace.IsCtrlRamFirmwareVersionModalOpen ||
         WorkflowSession.IsWorkflowContextModalOpen ||
@@ -48,7 +49,6 @@ internal sealed partial class MainWindowViewModel
         WorkflowSession.IsFirmwareNumberMismatchModalOpen ||
         Navigation.IsNavigationClearConfirmationOpen ||
         MessageCenter.IsOpen ||
-        Reports.IsReportModalOpen ||
         Merge.IsAbSameTpConflictPromptOpen ||
         Merge.IsAbDummyDpPromptOpen ||
         BuildResult.IsOpen ||
@@ -70,6 +70,7 @@ internal sealed partial class MainWindowViewModel
             IsSettingsModalOpen = false;
         }
 
+        Reports.IsOtherModalOpen = IsSettingsModalOpen || IsNonReportBlockingSurfaceOpen;
         OnPropertyChanged(nameof(IsCompositionActionRailVisible));
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
     }
