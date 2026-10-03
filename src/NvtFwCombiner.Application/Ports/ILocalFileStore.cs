@@ -3,7 +3,11 @@ namespace NvtFwCombiner.Application.Ports;
 /// <summary>Provides bounded stable local-file reads and atomic writes.</summary>
 public interface ILocalFileStore
 {
-    /// <summary>Reads and projects one stable bounded path.</summary>
+    /// <summary>
+    /// Reads and projects one stable bounded path. The read-only stream exposes only its admitted extent;
+    /// seeks must remain within that extent and reads inherit the operation's cancellation token.
+    /// Stability is checked before returning the projected value; failures return no partial value.
+    /// </summary>
     ValueTask<T> ReadAsync<T>(
         string path,
         long maximumBytes,
@@ -17,7 +21,11 @@ public interface ILocalFileStore
         CancellationToken cancellationToken,
         Action<LocalFileReadProgress>? progress = null);
 
-    /// <summary>Reads one storage-provider stream as bounded UTF text.</summary>
+    /// <summary>
+    /// Reads one storage-provider stream as bounded UTF text. Seekable sources admit their remaining extent;
+    /// unknown-length sources use the caller ceiling. At most one extra byte is probed for growth/overflow,
+    /// never projected. Cancellation and typed local-read failures propagate without returning partial text.
+    /// </summary>
     ValueTask<string> ReadTextAsync(
         Func<CancellationToken, ValueTask<Stream>> openReadAsync,
         long maximumBytes,

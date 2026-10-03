@@ -19,6 +19,7 @@ public sealed class LocalFileStore : ILocalFileStore
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(project);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
             await using var stream = new FileStream(
@@ -32,7 +33,10 @@ public sealed class LocalFileStore : ILocalFileStore
             long admittedLength = stream.Length;
             DateTime admittedLastWriteTimeUtc = File.GetLastWriteTimeUtc(stream.SafeFileHandle);
             EnsureAccepted(admittedLength, maximumBytes);
-            T result = await project(stream, cancellationToken).ConfigureAwait(false);
+            using var bounded = new BoundedLocalReadStream(stream, maximumBytes, cancellationToken, admittedLength);
+            cancellationToken.ThrowIfCancellationRequested();
+            T result = await project(bounded, cancellationToken).ConfigureAwait(false);
+            await bounded.CompleteAsync().ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             return stream.Length == admittedLength &&
                    File.GetLastWriteTimeUtc(stream.SafeFileHandle) == admittedLastWriteTimeUtc
@@ -64,6 +68,7 @@ public sealed class LocalFileStore : ILocalFileStore
     {
         ArgumentNullException.ThrowIfNull(openReadAsync);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
             await using Stream source = await openReadAsync(cancellationToken).ConfigureAwait(false) ??
@@ -76,23 +81,24 @@ public sealed class LocalFileStore : ILocalFileStore
             }
 
             EnsureAccepted(admittedLength, maximumBytes);
+            using var bounded = new BoundedLocalReadStream(
+                source, maximumBytes, cancellationToken, seekable ? admittedLength : null);
 
             using var snapshot = new MemoryStream();
             byte[] buffer = new byte[BufferBytes];
             int read;
-            while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            while ((read = await bounded.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
             {
                 EnsureAccepted(checked(snapshot.Length + read), maximumBytes);
                 await snapshot.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
             }
 
-            if (seekable && snapshot.Length != admittedLength)
-            {
-                throw new IOException("The selected source changed during the stable read.");
-            }
+            await bounded.CompleteAsync().ConfigureAwait(false);
 
             snapshot.Position = 0;
-            return await ReadTextAsync(snapshot, null, cancellationToken).ConfigureAwait(false);
+            string result = await ReadTextAsync(snapshot, null, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return result;
         }
         catch (Exception exception) when (Wrap(exception) is { } wrapped)
         {

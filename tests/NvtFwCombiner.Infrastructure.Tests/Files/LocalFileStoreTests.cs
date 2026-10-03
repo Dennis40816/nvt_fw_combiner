@@ -169,6 +169,162 @@ public sealed class LocalFileStoreTests
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => read);
     }
 
+    /// <summary>Growth is detected with one probe byte rather than copying the growing tail.</summary>
+    [Fact]
+    public async Task ReadTextAsyncBoundsGrowingProviderToAdmittedExtentAndOneProbe()
+    {
+        using var source = new MeasuredReadStream("AAAABBBBBBBBBBBBBBBB"u8.ToArray(), admittedLength: 4);
+
+        _ = await Assert.ThrowsAsync<LocalFileReadException>(() => new LocalFileStore().ReadTextAsync(
+            _ => new ValueTask<Stream>(source), 1024, TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(5, source.BytesRead);
+        Assert.InRange(source.LargestRequest, 1, 4);
+        Assert.False(source.CanRead);
+    }
+
+    /// <summary>An unknown-length provider can expose only the caller ceiling plus one refusal probe.</summary>
+    [Fact]
+    public async Task ReadTextAsyncBoundsNonSeekableProviderRequests()
+    {
+        using var source = new MeasuredReadStream("AAAABBBBBBBBBBBBBBBB"u8.ToArray(), seekable: false);
+
+        _ = await Assert.ThrowsAsync<LocalFileTooLargeException>(() => new LocalFileStore().ReadTextAsync(
+            _ => new ValueTask<Stream>(source), 4, TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(5, source.BytesRead);
+        Assert.InRange(source.LargestRequest, 1, 4);
+        Assert.False(source.CanRead);
+    }
+
+    /// <summary>Known-length provider growth beyond the caller ceiling keeps the typed oversized category.</summary>
+    [Fact]
+    public async Task ReadTextAsyncKeepsTypedCeilingRefusalForGrowingSeekableProvider()
+    {
+        using var source = new MeasuredReadStream("AAAABB"u8.ToArray(), admittedLength: 4);
+
+        _ = await Assert.ThrowsAsync<LocalFileTooLargeException>(() => new LocalFileStore().ReadTextAsync(
+            _ => new ValueTask<Stream>(source), 4, TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(5, source.BytesRead);
+    }
+
+    /// <summary>A provider already beyond the ceiling is disposed without reading it.</summary>
+    [Fact]
+    public async Task ReadTextAsyncRejectsKnownProviderOverLimitBeforeReading()
+    {
+        using var source = new MeasuredReadStream("AAAAA"u8.ToArray());
+
+        _ = await Assert.ThrowsAsync<LocalFileTooLargeException>(() => new LocalFileStore().ReadTextAsync(
+            _ => new ValueTask<Stream>(source), 4, TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(0, source.BytesRead);
+        Assert.False(source.CanRead);
+    }
+
+    /// <summary>Pre-cancellation prevents storage-provider opening and preserves cancellation as its own category.</summary>
+    [Fact]
+    public async Task ReadTextAsyncDoesNotOpenAlreadyCancelledProvider()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        bool opened = false;
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new LocalFileStore().ReadTextAsync(
+            _ =>
+            {
+                opened = true;
+                return new ValueTask<Stream>(new MemoryStream([1]));
+            }, 4, cancellation.Token).AsTask());
+
+        Assert.False(opened);
+    }
+
+    /// <summary>Partial reads and a BOM retain the encoding and the provider's admitted remaining extent.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ReadTextAsyncPreservesBomEncodingAcrossPartialProviderReads(bool seekable)
+    {
+        const string expected = "本機檔案\U0001F600";
+        byte[] bytes = [.. Encoding.Unicode.GetPreamble(), .. Encoding.Unicode.GetBytes(expected)];
+        using var source = new MeasuredReadStream(bytes, seekable: seekable, partialReadBytes: 1);
+
+        string actual = await new LocalFileStore().ReadTextAsync(
+            _ => new ValueTask<Stream>(source), bytes.Length, TestContext.Current.CancellationToken);
+
+        Assert.Equal(expected, actual);
+        Assert.Equal(bytes.Length, source.BytesRead);
+    }
+
+    /// <summary>Seekable providers admit only the bytes after their initial position.</summary>
+    [Fact]
+    public async Task ReadTextAsyncAdmitsProviderRemainingExtent()
+    {
+        using var source = new MemoryStream("skiptext"u8.ToArray());
+        source.Position = 4;
+
+        Assert.Equal("text", await new LocalFileStore().ReadTextAsync(
+            _ => new ValueTask<Stream>(source), 4, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>Cancellation is checked before invoking an arbitrary projector.</summary>
+    [Fact]
+    public async Task ReadAsyncDoesNotInvokeProjectorWhenAlreadyCancelled()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.Write("cancelled.json", [1, 2, 3, 4]);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        bool invoked = false;
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new LocalFileStore().ReadAsync(
+            path, 4, (stream, token) =>
+            {
+                invoked = true;
+                return new ValueTask<int>(stream.ReadByte());
+            }, cancellation.Token).AsTask());
+
+        Assert.False(invoked);
+    }
+
+    /// <summary>Stream projection inherits cancellation even for synchronous reads without a token.</summary>
+    [Fact]
+    public async Task ReadAsyncCancelsSynchronousProjectorReads()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.Write("cancelled.json", [1, 2, 3, 4]);
+        using var cancellation = new CancellationTokenSource();
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new LocalFileStore().ReadAsync(
+            path, 4, (stream, token) =>
+            {
+                cancellation.Cancel();
+                _ = Assert.ThrowsAny<OperationCanceledException>(() => stream.ReadByte());
+                return new ValueTask<int>(0);
+            }, cancellation.Token).AsTask());
+    }
+
+    /// <summary>Projectors keep read-only seek support within the admitted extent.</summary>
+    [Fact]
+    public async Task ReadAsyncRestrictsProjectorSeekingToAdmittedExtent()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.Write("bounded.json", [1, 2, 3, 4]);
+
+        int value = await new LocalFileStore().ReadAsync(path, 8, (stream, token) =>
+        {
+            Assert.Equal(4, stream.Length);
+            Assert.True(stream.CanSeek);
+            Assert.False(stream.CanWrite);
+            _ = Assert.Throws<IOException>(() => stream.Seek(5, SeekOrigin.Begin));
+            Assert.Equal(3, stream.Seek(-1, SeekOrigin.End));
+            return new ValueTask<int>(stream.ReadByte());
+        }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(4, value);
+    }
+
     /// <summary>An admitted path cannot grow or truncate while its stable read handle is active.</summary>
     [Theory]
     [InlineData(3)]
@@ -294,6 +450,31 @@ public sealed class LocalFileStoreTests
         public override long Seek(long offset, SeekOrigin loc)
         {
             throw new NotSupportedException();
+        }
+    }
+
+    private sealed class MeasuredReadStream(
+        byte[] bytes,
+        long? admittedLength = null,
+        bool seekable = true,
+        int partialReadBytes = int.MaxValue) : MemoryStream(bytes, writable: false)
+    {
+        internal int BytesRead { get; private set; }
+        internal int LargestRequest { get; private set; }
+        public override bool CanSeek => seekable;
+        public override long Length => seekable ? admittedLength ?? base.Length : throw new NotSupportedException();
+        public override long Position
+        {
+            get => seekable ? base.Position : throw new NotSupportedException();
+            set => base.Position = value;
+        }
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            LargestRequest = Math.Max(LargestRequest, buffer.Length);
+            int read = await base.ReadAsync(buffer[..Math.Min(buffer.Length, partialReadBytes)], cancellationToken);
+            BytesRead += read;
+            return read;
         }
     }
 
