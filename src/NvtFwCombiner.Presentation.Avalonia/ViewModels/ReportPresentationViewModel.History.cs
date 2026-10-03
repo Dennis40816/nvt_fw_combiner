@@ -387,6 +387,10 @@ internal sealed partial class ReportPresentationViewModel
     /// </summary>
     private void AddReportHistoryEntry(ReportHistoryEntryViewModel entry)
     {
+        if (!Persistence.AllowHistoryInsertion)
+        {
+            return;
+        }
         _reportHistorySequence = entry.Sequence;
         PresentationObserver.Invoke(() => ReportHistoryEntries.Insert(0, entry));
         while (ReportHistoryEntries.Count > MaxReportHistoryEntries ||

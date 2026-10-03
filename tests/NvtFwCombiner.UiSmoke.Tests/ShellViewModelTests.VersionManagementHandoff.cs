@@ -615,6 +615,30 @@ public sealed partial class VersionManagementSettingsTests
             }
             await inner.WriteAsync(path, bytes, cancellationToken);
         }
+
+        public ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken)
+        {
+            return inner.InspectDestinationAsync(path, cancellationToken);
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteOptions options, CancellationToken cancellationToken)
+        {
+            return options.RequireExistingParent ? inner.WriteAsync(path, bytes, options, cancellationToken)
+                : WriteAsync(path, bytes, options.Mode, cancellationToken);
+        }
+
+        public ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken)
+        {
+            return inner.RefersToSameFileAsync(first, second, cancellationToken);
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteMode mode, CancellationToken cancellationToken)
+        {
+            return mode == LocalFileWriteMode.ReplaceExisting ? WriteAsync(path, bytes, cancellationToken)
+                : inner.WriteAsync(path, bytes, mode, cancellationToken);
+        }
     }
 
     /// <summary>The window-wired inspection survives suspended progress and shows a terminal fault on reopen.</summary>
@@ -1013,6 +1037,54 @@ public sealed partial class VersionManagementSettingsTests
         Assert.False(shell.IsSettingsModalOpen);
     }
 
+    /// <summary>Capture retains managed READY publication while skipping the optional check and its busy flag.</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SavedReportCaptureSuppressesOnlyOptionalVersionDiscovery(bool capture)
+    {
+        using var workspace = TempWorkspace.Create("capture-ready-source");
+        string report = workspace.Write("report.json", Encoding.UTF8.GetBytes(ReportJsonSamples.Succeeded()));
+        VersionManagementSnapshot snapshot = Snapshot(retentionReviewDue: false, updateSource: workspace.Root);
+        var experience = new RecordingVersionExperience(snapshot);
+        var startup = new IgnoringReadyStartup();
+        PresentationHostServices baseServices = PresentationTestHost.CreateServices("0.10.5", experience);
+        var services = new PresentationHostServices(baseServices.Composition, baseServices.FileReveal, baseServices.SupportMatrix,
+            baseServices.SystemInformation, baseServices.SystemDiagnosticsExporter, baseServices.RawBinaryEditorFileSessions,
+            baseServices.CanonicalCatalogLoader, baseServices.ExternalEnvironmentLoader, baseServices.LocalFiles,
+            workspace.Root, experience, startup, null);
+        string[] arguments = capture
+            ? ["--report", report, "--open-report", "--capture", workspace.PathFor("out.png")]
+            : ["--report", report, "--open-report"];
+        using var window = new MainWindow(UiLaunchOptions.Parse(arguments, services.LocalFiles),
+            StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
+        window.Show();
+        await startup.Entered.WaitAsync(TimeSpan.FromSeconds(20), TestContext.Current.CancellationToken);
+        startup.Release(new(ApplicationReadySignalOutcome.Reported, snapshot));
+        if (capture)
+        {
+            await window.LaunchCoordinator.CaptureSession.CaptureFrameRequested.WaitAsync(TimeSpan.FromSeconds(20), TestContext.Current.CancellationToken);
+            window.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+        }
+        await window.StartupWork.WaitAsync(TimeSpan.FromSeconds(20), TestContext.Current.CancellationToken);
+        MainWindowViewModel viewModel = Assert.IsType<MainWindowViewModel>(window.DataContext);
+        Assert.False(viewModel.Settings.IsSourceChecking);
+        Assert.Equal(capture ? 0 : 1, experience.Checks);
+        Assert.Equal(snapshot.State!.UpdateSource, viewModel.Settings.UpdateSourcePath);
+        if (capture)
+        {
+            await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(20), TestContext.Current.CancellationToken);
+            Assert.Equal(0, window.LaunchCoordinator.CaptureSession.CaptureExitCode);
+        }
+        else
+        {
+            Assert.True(window.IsVisible);
+            await ReportControlTestHost.CloseAndFlushAsync(window);
+        }
+    }
+
     private sealed class IgnoringReadyStartup : IManagedApplicationStartupCoordinator
     {
         private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1023,7 +1095,7 @@ public sealed partial class VersionManagementSettingsTests
         {
             _released.SetResult(result);
         }
-        public ValueTask<ManagedApplicationStartupResult> CompleteStartupAsync(CancellationToken cancellationToken)
+        public ValueTask<ManagedApplicationStartupResult> CompleteStartupAsync(CancellationToken cancellationToken, bool isReadOnly = false)
         {
             _ = _entered.TrySetResult();
             return new(_released.Task);

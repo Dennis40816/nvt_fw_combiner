@@ -32,7 +32,7 @@ public sealed partial class CompositionHostServices
     internal const string CurrentUserLocalStateForbiddenSwitch =
         JsonVersionManagerStateStore.CurrentUserLocalStateForbiddenSwitch;
 
-    private const string LocalStateFolderName = "NvtFwCombiner";
+    internal const string LocalStateFolderName = "NvtFwCombiner";
     private const string ToolchainRuntimeFileName = "toolchain-runtime.v1.json";
     private const string EventBufferFormatFileName = "event-buffer-format.v1.json";
     private readonly Lock _configurationGate = new();

@@ -25,7 +25,49 @@ public interface ILocalFileStore
 
     /// <summary>Atomically replaces one local file.</summary>
     ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken);
+
+    /// <summary>Atomically publishes one local file using the requested replacement policy.</summary>
+    /// <remarks>CreateNew refuses an existing destination at publication, preserving its bytes.</remarks>
+    ValueTask WriteAsync(
+        string path,
+        ReadOnlyMemory<byte> bytes,
+        LocalFileWriteMode mode,
+        CancellationToken cancellationToken);
+
+    /// <summary>Atomically publishes with explicit parent-directory admission and replacement policy.</summary>
+    ValueTask WriteAsync(
+        string path,
+        ReadOnlyMemory<byte> bytes,
+        LocalFileWriteOptions options,
+        CancellationToken cancellationToken);
+
+    /// <summary>Inspects a local destination without creating the parent or destination.</summary>
+    ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken);
+
+    /// <summary>Tests physical file identity, including alternate spellings, symbolic links and hard links.</summary>
+    /// <remarks>Returns false when either path does not exist. Does not require content-read access.</remarks>
+    ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken);
 }
+
+/// <summary>Controls atomic local-file publication when the destination already exists.</summary>
+public enum LocalFileWriteMode
+{
+    /// <summary>Replaces an existing destination atomically.</summary>
+    ReplaceExisting,
+
+    /// <summary>Publishes only if the destination is absent at the commit boundary.</summary>
+    CreateNew,
+}
+
+/// <summary>Controls local-file publication and whether its parent must already exist.</summary>
+public readonly record struct LocalFileWriteOptions(LocalFileWriteMode Mode, bool RequireExistingParent);
+
+/// <summary>Snapshot of destination and parent admission; publication must recheck its own invariants.</summary>
+public readonly record struct LocalFileDestinationInfo(
+    bool ParentExists,
+    bool IsDirectory,
+    bool Exists,
+    bool ParentHasExactPath);
 
 /// <summary>Admitted text bytes consumed so far; total remains stable and progress is monotonic.</summary>
 public readonly record struct LocalFileReadProgress(long BytesRead, long TotalBytes);

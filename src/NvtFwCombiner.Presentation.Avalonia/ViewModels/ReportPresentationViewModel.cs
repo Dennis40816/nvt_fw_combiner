@@ -15,6 +15,7 @@ internal readonly record struct ReportPublicationResult(
 internal sealed partial class ReportPresentationViewModel : ObservableObject
 {
     internal WindowPublicationLease? WindowPublication { get; set; }
+    internal CapturePersistenceScope Persistence { get; set; } = new(false);
     private readonly Lock _saveOperationLock = new();
     private int _saveOperationsInFlight;
     private TaskCompletionSource _saveOperationsIdle = CompletedSaveIdleSignal();

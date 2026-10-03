@@ -64,8 +64,9 @@ public interface IVersionManagementExperience
 {
     /// <summary>Loads state and installed inventory without contacting the update source.</summary>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="isReadOnly">Reads without acquiring a writer lease or reconciling pending mutations.</param>
     /// <returns>The initial immutable snapshot.</returns>
-    ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken);
+    ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken, bool isReadOnly = false);
 
     /// <summary>Loads durable state after an exact inherited READY write while the launcher commits.</summary>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -182,11 +183,12 @@ public sealed partial class VersionManagementExperience :
     }
 
     /// <inheritdoc />
-    public async ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
+    public async ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken, bool isReadOnly = false)
     {
         return await InitializeWithWriterLeaseTimeoutAsync(
             TimeSpan.Zero,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            isReadOnly).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -200,18 +202,15 @@ public sealed partial class VersionManagementExperience :
 
     private async ValueTask<VersionManagementSnapshot> InitializeWithWriterLeaseTimeoutAsync(
         TimeSpan writerLeaseTimeout,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool isReadOnly = false)
     {
         ThrowIfDisposed();
         await _mutation.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            using VersionManagerWriteLeaseResult lease = await AcquireWriteLeaseAsync(
-                writerLeaseTimeout,
-                cancellationToken).ConfigureAwait(false);
-            return lease.IsAcquired
-                ? await ReloadDurableCurrentWithoutLockAsync(cancellationToken).ConfigureAwait(false)
-                : PublishStateUnavailable();
+            return await VersionManagementInitialization.LoadAsync(isReadOnly, writerLeaseTimeout,
+                ReloadDurableCurrentWithoutLockAsync, AcquireWriteLeaseAsync, PublishStateUnavailable, cancellationToken).ConfigureAwait(false);
         }
         finally
         {

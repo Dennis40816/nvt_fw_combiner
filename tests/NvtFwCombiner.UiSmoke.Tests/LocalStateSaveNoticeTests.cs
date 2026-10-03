@@ -1309,6 +1309,30 @@ public sealed class LocalStateSaveNoticeTests
                 }
             }
         }
+
+        public ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken)
+        {
+            return inner.InspectDestinationAsync(path, cancellationToken);
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteOptions options, CancellationToken cancellationToken)
+        {
+            return options.RequireExistingParent ? inner.WriteAsync(path, bytes, options, cancellationToken)
+                : WriteAsync(path, bytes, options.Mode, cancellationToken);
+        }
+
+        public ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken)
+        {
+            return inner.RefersToSameFileAsync(first, second, cancellationToken);
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteMode mode, CancellationToken cancellationToken)
+        {
+            return mode == LocalFileWriteMode.ReplaceExisting ? WriteAsync(path, bytes, cancellationToken)
+                : inner.WriteAsync(path, bytes, mode, cancellationToken);
+        }
     }
 
     private sealed class UnreachableFiles : ILocalFileStore
@@ -1334,6 +1358,28 @@ public sealed class LocalStateSaveNoticeTests
         public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
         {
             throw new InvalidOperationException("Unexpected write.");
+        }
+
+        public ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Unexpected file access.");
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteOptions options, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Unexpected file access.");
+        }
+
+        public ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Unexpected file access.");
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteMode mode, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Unexpected file access.");
         }
     }
 }

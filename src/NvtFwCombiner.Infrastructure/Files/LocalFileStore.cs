@@ -112,6 +112,70 @@ public sealed class LocalFileStore : ILocalFileStore
         await writeScope.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public ValueTask WriteAsync(
+        string path,
+        ReadOnlyMemory<byte> bytes,
+        LocalFileWriteMode mode,
+        CancellationToken cancellationToken)
+    {
+        return WriteAsync(path, bytes, new LocalFileWriteOptions(mode, false), cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask WriteAsync(
+        string path,
+        ReadOnlyMemory<byte> bytes,
+        LocalFileWriteOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (options.Mode is not (LocalFileWriteMode.ReplaceExisting or LocalFileWriteMode.CreateNew))
+        {
+            throw new ArgumentOutOfRangeException(nameof(options));
+        }
+        string fullPath = Path.GetFullPath(path);
+        string parent = Path.GetDirectoryName(fullPath)!;
+        if (options.RequireExistingParent)
+        {
+            if (!Directory.Exists(parent))
+            {
+                throw new DirectoryNotFoundException($"Local file target directory was not found: {parent}");
+            }
+        }
+        else
+        {
+            _ = Directory.CreateDirectory(parent);
+        }
+        using IAtomicFileWriteScope writeScope = AtomicFileWriteScope.Open(fullPath);
+        await writeScope.WriteAsync(bytes, options.Mode, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        string fullPath = Path.GetFullPath(path);
+        string parent = Path.GetDirectoryName(fullPath)!;
+        bool parentExists = Directory.Exists(parent);
+        bool exactParent = parentExists && (OperatingSystem.IsWindows()
+            ? WindowsAtomicFileWriteScope.HasExactDirectoryPath(parent)
+            : UnixAtomicFileWriteScope.HasExactDirectoryPath(parent));
+        return ValueTask.FromResult(new LocalFileDestinationInfo(
+            parentExists,
+            Directory.Exists(fullPath),
+            File.Exists(fullPath) || new FileInfo(fullPath).LinkTarget is not null,
+            exactParent));
+    }
+
+    /// <inheritdoc />
+    public ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(first);
+        ArgumentException.ThrowIfNullOrWhiteSpace(second);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(LocalFileIdentity.RefersToSameFile(Path.GetFullPath(first), Path.GetFullPath(second)));
+    }
+
     private static async ValueTask<string> ReadTextAsync(
         Stream stream,
         Action<LocalFileReadProgress>? observer,

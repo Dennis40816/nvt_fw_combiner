@@ -3,7 +3,8 @@ namespace NvtFwCombiner.Bootstrap;
 /// <summary>Resolves ordered external host configuration for fixed Registry replicas.</summary>
 public static class UpdateSourceRegistryLocator
 {
-    internal const string EnvironmentVariableName = "NFC_UPDATE_SOURCE_REGISTRY_PATH";
+    /// <summary>The external host override for the update-source Registry locator.</summary>
+    public const string EnvironmentVariableName = "NFC_UPDATE_SOURCE_REGISTRY_PATH";
     internal static IReadOnlyList<string> ProductionDefaults { get; } = Array.AsReadOnly(
     [
         @"G:\AUTO\projects\模組專案開發\NVT_FW_Combiner\update-source-registry.json",

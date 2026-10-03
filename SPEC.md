@@ -950,6 +950,22 @@ The milestone intentionally does not claim real firmware copy/replace parity unt
 
 Initial UI shell must expose the workflow taxonomy without embedding firmware rules. Actual firmware operations are introduced after application core stabilizes.
 
+Desktop capture currently supports only a saved run report:
+`NvtFwCombiner.Desktop.exe --report <file> --open-report --capture <path.png> [--overwrite-capture]`.
+Value options also accept `--name=value`.
+The destination must be a new `.png` file in an existing parent folder given by its real path.
+`--overwrite-capture` permits atomic replacement of an existing destination,
+but never permits overwriting or aliasing the report, version-manager state file,
+explicitly configured local registry paths, or History/preferences files.
+Capture exits after completion: `0` = committed PNG; `1` = expected load/draw/save failure;
+`64` = refused request (invalid/unsupported options, target or destination);
+`70` = unexpected exception, cancellation or the 300-second capture deadline.
+`--help` alone prints public usage and exits `0` before host composition or window creation.
+Strict UI parsing and these capture/help exit codes apply only when `--capture` or `--help` is present.
+The 300-second deadline starts when MainWindow opens and covers required startup, report loading,
+target readiness, layout/frame and draw/save; host composition before the window opens is outside it.
+Without `--capture` or `--help`, ordinary interactive launches are unchanged.
+
 ### 11.1 Top-level navigation
 
 Top-level navigation uses top tabs.

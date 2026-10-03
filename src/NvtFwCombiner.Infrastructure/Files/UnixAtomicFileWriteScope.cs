@@ -1,6 +1,8 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
+using NvtFwCombiner.Application.Ports;
 
 namespace NvtFwCombiner.Infrastructure.Files;
 
@@ -20,6 +22,9 @@ internal sealed partial class UnixAtomicFileWriteScope : IAtomicFileWriteScope
     private const int OpenWriteOnly = 1;
     private const uint OwnerReadWriteMode = 0x00000180;
     private const int MacGetPath = 50;
+    private const int NotDirectory = 20;
+    private const int LinuxSymbolicLinkLoop = 40;
+    private const int MacSymbolicLinkLoop = 62;
     private readonly SafeFileHandle _directoryHandle;
     private readonly string _directoryPath;
     private readonly string _destinationName;
@@ -38,12 +43,40 @@ internal sealed partial class UnixAtomicFileWriteScope : IAtomicFileWriteScope
     {
         string fullPath = Path.GetFullPath(destinationPath);
         string? directoryPath = Path.GetDirectoryName(fullPath);
-        if (string.IsNullOrWhiteSpace(directoryPath))
-        {
-            throw new DirectoryNotFoundException(
-                $"Saved Rule target directory was not found: {directoryPath}");
-        }
+        return string.IsNullOrWhiteSpace(directoryPath)
+            ? throw new DirectoryNotFoundException($"Saved Rule target directory was not found: {directoryPath}")
+            : new UnixAtomicFileWriteScope(
+                OpenDirectory(directoryPath),
+                directoryPath,
+                Path.GetFileName(fullPath));
+    }
 
+    internal static bool HasExactDirectoryPath(string directoryPath)
+    {
+        try
+        {
+            using SafeFileHandle handle = OpenDirectory(directoryPath);
+            return true;
+        }
+        // Path mismatches and ENOTDIR/ELOOP open failures are non-exact; other native errors propagate.
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (IOException exception) when (exception.InnerException is Win32Exception native &&
+            (native.NativeErrorCode == NotDirectory ||
+                native.NativeErrorCode == (OperatingSystem.IsLinux() ? LinuxSymbolicLinkLoop : MacSymbolicLinkLoop)))
+        {
+            return false;
+        }
+    }
+
+    private static SafeFileHandle OpenDirectory(string directoryPath)
+    {
+        if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
+        {
+            throw new PlatformNotSupportedException("Local directory inspection requires Windows, Linux, or macOS.");
+        }
         int descriptor = UnixOpen(
             directoryPath,
             DirectoryOpenFlags(),
@@ -57,10 +90,7 @@ internal sealed partial class UnixAtomicFileWriteScope : IAtomicFileWriteScope
         try
         {
             RequireExactDirectory(handle, directoryPath);
-            return new UnixAtomicFileWriteScope(
-                handle,
-                directoryPath,
-                Path.GetFileName(fullPath));
+            return handle;
         }
         catch
         {
@@ -69,8 +99,24 @@ internal sealed partial class UnixAtomicFileWriteScope : IAtomicFileWriteScope
         }
     }
 
-    public async ValueTask WriteAsync(
+    public ValueTask WriteAsync(
         ReadOnlyMemory<byte> documentBytes,
+        CancellationToken cancellationToken)
+    {
+        return WriteCoreAsync(documentBytes, mode: null, cancellationToken);
+    }
+
+    public ValueTask WriteAsync(
+        ReadOnlyMemory<byte> documentBytes,
+        LocalFileWriteMode mode,
+        CancellationToken cancellationToken)
+    {
+        return WriteCoreAsync(documentBytes, mode, cancellationToken);
+    }
+
+    private async ValueTask WriteCoreAsync(
+        ReadOnlyMemory<byte> documentBytes,
+        LocalFileWriteMode? mode,
         CancellationToken cancellationToken)
     {
         string tempName = $".{_destinationName}.{Guid.NewGuid():N}.tmp";
@@ -104,7 +150,18 @@ internal sealed partial class UnixAtomicFileWriteScope : IAtomicFileWriteScope
             }
 
             RequireExactDirectory(_directoryHandle, _directoryPath);
-            if (UnixRenameAt(
+            // Explicit write options add the cancellation boundary; legacy callers retain their promotion behavior.
+            if (mode.HasValue) { cancellationToken.ThrowIfCancellationRequested(); }
+            if (mode == LocalFileWriteMode.CreateNew)
+            {
+                // linkat atomically admits only an absent destination, using the held directory authority.
+                if (UnixLinkAt(directoryDescriptor, tempName, directoryDescriptor, _destinationName, 0) != 0)
+                {
+                    throw NativeFailure("linkat", _destinationName);
+                }
+                _ = UnixUnlinkAt(directoryDescriptor, tempName, 0);
+            }
+            else if (UnixRenameAt(
                     directoryDescriptor,
                     tempName,
                     directoryDescriptor,
@@ -114,7 +171,7 @@ internal sealed partial class UnixAtomicFileWriteScope : IAtomicFileWriteScope
             }
 
             // The verified directory descriptor is the acquired write authority;
-            // successful renameat is the final, non-fallible commit boundary.
+            // successful renameat/linkat is the final, non-fallible commit boundary.
         }
         catch
         {
@@ -207,8 +264,10 @@ internal sealed partial class UnixAtomicFileWriteScope : IAtomicFileWriteScope
 
     private static IOException NativeFailure(string operation, string path)
     {
+        int error = Marshal.GetLastPInvokeError();
         return new IOException(
-            $"Saved Rule {operation} failed for '{path}' (native error {Marshal.GetLastPInvokeError()}).");
+            $"Saved Rule {operation} failed for '{path}' (native error {error}).",
+            new Win32Exception(error));
     }
 
     [LibraryImport(
@@ -239,6 +298,18 @@ internal sealed partial class UnixAtomicFileWriteScope : IAtomicFileWriteScope
         string oldPath,
         int newDirectoryDescriptor,
         string newPath);
+
+    [LibraryImport(
+        "libc",
+        EntryPoint = "linkat",
+        StringMarshalling = StringMarshalling.Utf8,
+        SetLastError = true)]
+    private static partial int UnixLinkAt(
+        int oldDirectoryDescriptor,
+        string oldPath,
+        int newDirectoryDescriptor,
+        string newPath,
+        int flags);
 
     [LibraryImport(
         "libc",

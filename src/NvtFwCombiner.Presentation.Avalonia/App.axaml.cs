@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -52,11 +53,17 @@ public sealed partial class App : global::Avalonia.Application
         {
             ShellPreferenceSnapshot preferences = _startupPreferences.GetAwaiter().GetResult();
             StartupTrace.Mark("shell-preferences.loaded");
-            desktop.MainWindow = new MainWindow(
+            var window = new MainWindow(
                 StartupOptions,
                 StartupTrace,
                 HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."),
                 preferences);
+            desktop.MainWindow = window;
+            if (StartupOptions.CapturePath is not null)
+            {
+                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                window.Closed += (_, _) => desktop.Shutdown(window.LaunchCoordinator.CaptureSession.CaptureExitCode ?? 70);
+            }
             StartupTrace.Mark("main-window.assigned");
         }
 

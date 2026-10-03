@@ -441,7 +441,7 @@ public sealed partial class WindowLifetimeTests
         internal Task Entered => _entered.Task;
         internal bool ReportedReady { get; private set; }
 
-        public async ValueTask<ManagedApplicationStartupResult> CompleteStartupAsync(CancellationToken cancellationToken)
+        public async ValueTask<ManagedApplicationStartupResult> CompleteStartupAsync(CancellationToken cancellationToken, bool isReadOnly = false)
         {
             _ = _entered.TrySetResult();
             await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);

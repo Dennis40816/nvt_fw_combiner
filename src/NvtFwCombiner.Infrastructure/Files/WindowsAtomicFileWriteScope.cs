@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using NvtFwCombiner.Application.Ports;
 
 namespace NvtFwCombiner.Infrastructure.Files;
 
@@ -76,8 +77,38 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
         }
     }
 
-    public async ValueTask WriteAsync(
+    internal static bool HasExactDirectoryPath(string directoryPath)
+    {
+        using SafeFileHandle handle = OpenDirectory(directoryPath, desiredAccess: 0);
+        try
+        {
+            RequireExactDirectory(handle, directoryPath);
+            return true;
+        }
+        catch (IOException exception) when (exception.HResult == ErrorReparsePointEncountered)
+        {
+            return false;
+        }
+    }
+
+    public ValueTask WriteAsync(
         ReadOnlyMemory<byte> documentBytes,
+        CancellationToken cancellationToken)
+    {
+        return WriteCoreAsync(documentBytes, mode: null, cancellationToken);
+    }
+
+    public ValueTask WriteAsync(
+        ReadOnlyMemory<byte> documentBytes,
+        LocalFileWriteMode mode,
+        CancellationToken cancellationToken)
+    {
+        return WriteCoreAsync(documentBytes, mode, cancellationToken);
+    }
+
+    private async ValueTask WriteCoreAsync(
+        ReadOnlyMemory<byte> documentBytes,
+        LocalFileWriteMode? mode,
         CancellationToken cancellationToken)
     {
         string directory = Path.GetDirectoryName(_destinationPath)!;
@@ -103,7 +134,13 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
             }
 
             RequireExactDirectory(_directoryHandle, directory);
-            if (File.Exists(_destinationPath))
+            // Explicit write options add the cancellation boundary; legacy callers retain their promotion behavior.
+            if (mode.HasValue) { cancellationToken.ThrowIfCancellationRequested(); }
+            if (mode == LocalFileWriteMode.CreateNew)
+            {
+                File.Move(tempPath, _destinationPath, overwrite: false);
+            }
+            else if (File.Exists(_destinationPath))
             {
                 try
                 {
@@ -136,11 +173,11 @@ internal sealed partial class WindowsAtomicFileWriteScope : IAtomicFileWriteScop
         _directoryHandle.Dispose();
     }
 
-    private static SafeFileHandle OpenDirectory(string directoryPath)
+    private static SafeFileHandle OpenDirectory(string directoryPath, uint desiredAccess = DirectoryAccess)
     {
         SafeFileHandle handle = WindowsCreateFile(
             directoryPath,
-            DirectoryAccess,
+            desiredAccess,
             FileShareRead | FileShareWrite | FileShareDelete,
             0,
             OpenExisting,

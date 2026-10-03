@@ -146,6 +146,28 @@ public sealed class PrebuiltProfileCatalogProbeTests
         {
             throw Unexpected();
         }
+
+        public ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken)
+        {
+            throw Unexpected();
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteOptions options, CancellationToken cancellationToken)
+        {
+            throw Unexpected();
+        }
+
+        public ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken)
+        {
+            throw Unexpected();
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteMode mode, CancellationToken cancellationToken)
+        {
+            throw Unexpected();
+        }
     }
 
     private sealed class TrapToolchain : IToolchainRuntimeConfigurationSession
