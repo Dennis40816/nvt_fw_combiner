@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -32,8 +33,26 @@ public sealed class MemoryOuterAddressTests
             await MainWindow.ApplyAbMergeLaunchAsync(shell, new AbMergeLaunchRequest("NT51929", "single",
                 PathFor(golden, "dp-ab-input"), PathFor(golden, "tp-a-input"), PathFor(golden, "tp-b-input")),
                 TestContext.Current.CancellationToken);
-            await Task.Delay(300, TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
+            var addressWait = System.Diagnostics.Stopwatch.StartNew();
+            while (true)
+            {
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
+                if (shell.Merge.MergeStartAddress == "0x00000" && shell.Merge.MergeEndAddress == "0x7FFFF" &&
+                    window.GetVisualDescendants().OfType<Grid>().Any(grid =>
+                        grid.Name == "MemoryOverviewAddresses" && grid.IsEffectivelyVisible &&
+                        grid.Children.OfType<TextBlock>().Where(static text => text.IsEffectivelyVisible)
+                            .Select(static text => text.Text).SequenceEqual(["0x00000", "0x7FFFF"])))
+                {
+                    break;
+                }
+
+                Assert.True(addressWait.Elapsed < TimeSpan.FromSeconds(10),
+                    "Timed out waiting for AB Merge outer addresses 0x00000 and 0x7FFFF in the view model and visible overview labels.");
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
             Assert.Equal("0x00000", shell.Merge.MergeStartAddress);
             Assert.Equal("0x7FFFF", shell.Merge.MergeEndAddress);
             Assert.False(string.IsNullOrEmpty(shell.Merge.MergeMemoryRangeLabel));

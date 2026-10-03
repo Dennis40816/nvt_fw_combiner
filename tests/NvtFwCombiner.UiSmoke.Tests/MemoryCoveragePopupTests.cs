@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
@@ -48,8 +49,16 @@ public sealed partial class MemoryCoveragePopupTests
                 Assert.False(disclosure.IsExpanded);
                 disclosure.IsExpanded = true;
                 Render();
-                await Task.Delay(250, TestContext.Current.CancellationToken);
-                Render();
+                await WaitUntilAsync(() =>
+                {
+                    TextBlock[] expanded = [.. disclosure.GetVisualDescendants().OfType<TextBlock>()
+                        .Where(block => block.IsEffectivelyVisible && block.IsMeasureValid && block.IsArrangeValid
+                            && block.Bounds.Width > 0 && block.Bounds.Height > 0)];
+                    return disclosure.IsExpanded && disclosure.IsMeasureValid && disclosure.IsArrangeValid
+                        && expanded.Any(block => block.Text == summary)
+                        && expanded.Any(block => block.Text == "flash")
+                        && (!distinct || expanded.Any(block => block.Text == detail));
+                }, $"expanded context text (dark={dark}, chinese={chinese}, distinct={distinct})");
                 TextBlock[] visible = [.. card.GetVisualDescendants().OfType<TextBlock>().Where(block => block.IsEffectivelyVisible)];
                 _ = Assert.Single(visible, block => block.Text == summary);
                 _ = Assert.Single(visible, block => block.Text == "flash");
@@ -106,6 +115,8 @@ public sealed partial class MemoryCoveragePopupTests
                 Render();
                 AssertUnscaledLabel();
             }
+            await WaitUntilAsync(() => target.RenderTransform?.Value.M22 is >= 1.179 and <= 1.181,
+                $"completed label lift (dark={dark}, level={level})");
             Assert.InRange(target.RenderTransform!.Value.M22, 1.179, 1.181);
             Assert.Equal(originalBounds, target.Bounds);
             Capture(window, $"label-lift-{dark}-{level}");
@@ -495,8 +506,8 @@ public sealed partial class MemoryCoveragePopupTests
             Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
 
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
-            Render();
+            await WaitUntilAsync(() => FindNamed<Border>(window, "MemorySliceCard") is null,
+                "MemorySliceCard dismissal after pointer traversal");
             Assert.Null(FindNamed<Border>(window, "MemorySliceCard"));
         }
         finally
@@ -544,8 +555,9 @@ public sealed partial class MemoryCoveragePopupTests
             }
             Assert.NotNull(FindNamed<Border>(window, depth == 1 ? "MemoryLocalView" : "MemorySliceCard"));
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
-            Render();
+            await WaitUntilAsync(() => FindNamed<Border>(window, "MemoryLocalView") is null
+                && FindNamed<Border>(window, "MemorySliceCard") is null,
+                $"both overlays dismissed after pointer exit (depth={depth}, click={click})");
             AssertNoOverlay(window);
         }
         finally { window.Close(); }
@@ -587,8 +599,9 @@ public sealed partial class MemoryCoveragePopupTests
             window.MouseMove(BoundsInWindow(target, window).Center, RawInputModifiers.None);
             Render();
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
-            Render();
+            await WaitUntilAsync(() => FindNamed<Border>(window, "MemoryLocalView") is null
+                && FindNamed<Border>(window, "MemorySliceCard") is null,
+                $"both overlays dismissed after pointer takeover (depth={depth})");
             AssertNoOverlay(window);
         }
         finally { window.Close(); }
@@ -671,11 +684,26 @@ public sealed partial class MemoryCoveragePopupTests
             Assert.Same(slices[6], card.DataContext);
             Assert.True(BoundsInWindow(local, window).Bottom < BoundsInWindow(bar, window).Top);
             Assert.InRange(card.Bounds.Width / bar.Bounds.Width, 0.89, 0.91);
-            for (int tick = 0; tick < 4; tick++)
+            Control group = MainTarget(bar, 1);
+            Control leaf = FocusableControl(LocalStrip(local).Children[5]);
+            (Rect Local, Rect Card)? previousBounds = null;
+            await WaitUntilAsync(() =>
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(80), TestContext.Current.CancellationToken);
-                Render();
-            }
+                if (local.Opacity != 1 || card.Opacity != 1
+                    || local.RenderTransform?.Value.IsIdentity != true || card.RenderTransform?.Value.IsIdentity != true
+                    || group.RenderTransform?.Value.M22 is not (>= 1.179 and <= 1.181)
+                    || leaf.RenderTransform?.Value.M22 is not (>= 1.179 and <= 1.181)
+                    || !local.IsMeasureValid || !local.IsArrangeValid || !card.IsMeasureValid || !card.IsArrangeValid
+                    || local.Bounds.Width <= 0 || local.Bounds.Height <= 0 || card.Bounds.Width <= 0 || card.Bounds.Height <= 0)
+                {
+                    previousBounds = null;
+                    return false;
+                }
+                (Rect Local, Rect Card) bounds = (BoundsInWindow(local, window), BoundsInWindow(card, window));
+                bool stable = previousBounds == bounds;
+                previousBounds = bounds;
+                return stable;
+            }, $"bottom overlay reveal, lift and stable layout (darkChinese={darkChinese})");
             Capture(window, darkChinese ? "388-dark-zh-bottom" : "388-light-en-bottom");
             Assert.Equal(new Thickness(1), local.BorderThickness);
             TextBlock heading = Assert.Single(local.GetVisualDescendants().OfType<TextBlock>(),
@@ -1066,6 +1094,19 @@ public sealed partial class MemoryCoveragePopupTests
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition, string description)
+    {
+        var elapsed = Stopwatch.StartNew();
+        while (true)
+        {
+            TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+            Render();
+            if (condition()) { return; }
+            Assert.True(elapsed.Elapsed < TimeSpan.FromSeconds(10), $"Timed out waiting for {description}.");
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
     }
 
     private sealed record ShellFixture(ShellTextResources Text);

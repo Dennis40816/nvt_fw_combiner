@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
@@ -42,7 +43,10 @@ public sealed class MemoryLegendRailHighlightTests
             }
             await MainWindow.ApplyAbMergeLaunchAsync(shell, new AbMergeLaunchRequest(ic, "single",
                 Input("dp-ab-input"), Input("tp-a-input"), Input("tp-b-input")), TestContext.Current.CancellationToken);
-            await SettleAsync(400);
+            await WaitForAsync(() => window.GetVisualDescendants().OfType<MemoryCoverageBar>().Any(static bar =>
+                bar.IsEffectivelyVisible && bar.GetVisualDescendants().OfType<Control>().Any(static control =>
+                    control.IsEffectivelyVisible && control.Classes.Contains("memoryExplorerSlice") && !control.Classes.Contains("memoryLocalSlice"))),
+                $"{ic} AB rail slices to become visible");
             MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), static bar => bar.IsEffectivelyVisible);
             Border[] rows = [.. bar.GetVisualDescendants().OfType<Border>().Where(static row => row.Name == "MemoryLegendTarget")];
             Control[] slices = [.. bar.GetVisualDescendants().OfType<Control>().Where(static control =>
@@ -52,12 +56,15 @@ public sealed class MemoryLegendRailHighlightTests
             {
                 Border row = Assert.Single(rows, row => ReferenceEquals(row.DataContext, slice.DataContext));
                 window.MouseMove(Center(slice, window), RawInputModifiers.None);
-                await SettleAsync(300);
+                await WaitForAsync(() => row.Classes.Contains("railActive"),
+                    $"{((MemoryCoverageSegmentViewModel)slice.DataContext!).DisplayTitle} to light its legend row");
                 Assert.True(row.Classes.Contains("railActive"),
                     $"{((MemoryCoverageSegmentViewModel)slice.DataContext!).DisplayTitle} did not light its legend row.");
                 _ = Assert.Single(rows, static candidate => candidate.Classes.Contains("railActive"));
                 window.MouseMove(new Point(2, 2), RawInputModifiers.None);
-                await SettleAsync(500);
+                await WaitForAsync(() => !rows.Any(static row => row.Classes.Contains("railActive")) &&
+                    !window.GetVisualDescendants().OfType<Border>().Any(static view => view.Name is "MemoryLocalView" or "MemorySliceCard"),
+                    $"{((MemoryCoverageSegmentViewModel)slice.DataContext!).DisplayTitle} overlay to close and legend highlight to clear after pointer exit");
             }
         }
         finally { await CloseAndFlushAsync(window); }
@@ -85,22 +92,32 @@ public sealed class MemoryLegendRailHighlightTests
             UiLaunchOptions options = UiLaunchOptions.Parse(["--workflow", "ctrlram-replace", "--ic", "NT51950", "--ic-num", "single",
                 "--base", PathFor("expected-output"), "--ctrlram", "replace-ctrlram-nf=" + PathFor("postbuild-nf-ctrlram")]);
             await MainWindow.ApplyCtrlRamLaunchAsync(shell, options.CtrlRam!, TestContext.Current.CancellationToken);
-            await SettleAsync(400);
+            await WaitForAsync(() => window.GetVisualDescendants().OfType<MemoryCoverageBar>().Any(static bar =>
+                bar.IsEffectivelyVisible && bar.FocusPositions is not null &&
+                bar.GetVisualDescendants().OfType<Border>().Any(static target => target.Name == "MemoryFocusPosition" && target.IsEffectivelyVisible)),
+                "CtrlRAM focus rail to become visible");
             MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(),
                 static bar => bar.IsEffectivelyVisible && bar.FocusPositions is not null);
             Border[] rows = [.. bar.GetVisualDescendants().OfType<Border>().Where(static row => row.Name == "MemoryLegendTarget")];
             Border tp = Assert.Single(rows, static row => ((MemoryCoverageSegmentViewModel)row.DataContext!).ContentRole == MemoryContentRole.Tp);
             Border master = Assert.Single(bar.GetVisualDescendants().OfType<Border>(), static target => target.Name == "MemoryFocusPosition");
             window.MouseMove(Center(master, window), RawInputModifiers.None);
-            await SettleAsync(300);
+            await WaitForAsync(() => tp.Classes.Contains("railActive") &&
+                window.GetVisualDescendants().OfType<Border>().Any(static view => view.Name == "MemoryLocalView" && view.IsEffectivelyVisible),
+                "CtrlRAM lane to light its containing TP section row and open its local view");
             Assert.Contains("railActive", tp.Classes);
             Assert.Equal([tp], rows.Where(static row => row.Classes.Contains("railActive")));
             Border local = Assert.Single(window.GetVisualDescendants().OfType<Border>(), static view => view.Name == "MemoryLocalView");
             window.MouseMove(new Point(Center(local, window).X, local.TranslatePoint(new Point(0, 8), window)!.Value.Y), RawInputModifiers.None);
-            await SettleAsync(300);
+            // Observe persistence after entering the local view; immediate presence is insufficient.
+            await Task.Delay(300, TestContext.Current.CancellationToken);
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Assert.Contains("railActive", tp.Classes);
             window.MouseMove(new Point(2, 2), RawInputModifiers.None);
-            await SettleAsync(700);
+            await WaitForAsync(() => !rows.Any(static row => row.Classes.Contains("railActive")) &&
+                !window.GetVisualDescendants().OfType<Border>().Any(static view => view.Name is "MemoryLocalView" or "MemorySliceCard"),
+                "CtrlRAM overlay to close and section highlight to clear after pointer exit");
             Assert.DoesNotContain(rows, static row => row.Classes.Contains("railActive"));
         }
         finally { await CloseAndFlushAsync(window); }
@@ -111,10 +128,17 @@ public sealed class MemoryLegendRailHighlightTests
         return control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
     }
 
-    private static async Task SettleAsync(int delayMilliseconds)
+    private static async Task WaitForAsync(Func<bool> condition, string reason)
     {
-        await Task.Delay(delayMilliseconds, TestContext.Current.CancellationToken);
-        Dispatcher.UIThread.RunJobs();
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Stopwatch elapsed = Stopwatch.StartNew();
+        while (true)
+        {
+            TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            if (condition()) { return; }
+            Assert.True(elapsed.Elapsed < TimeSpan.FromSeconds(10), $"Timed out after 10 seconds waiting for {reason}.");
+            await Task.Yield();
+        }
     }
 }

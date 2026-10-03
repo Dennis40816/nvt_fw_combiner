@@ -155,13 +155,59 @@ public sealed class MemorySourcePresentationTests
             Assert.False(segment.Interaction.IsActive);
             Assert.True(stack.Children.Remove(tooltip));
             window.Height = 650;
-            // Flush layout/compositor work and let the existing Fluent chevron reach its end state.
-            for (int tick = 0; tick < 4; tick++)
+            ContentControl[] cards = [.. stack.Children.OfType<ContentControl>()];
+            Expander[] disclosures = [.. cards.Select(card => Assert.Single(card.GetVisualDescendants().OfType<Expander>()))];
+            global::Avalonia.Controls.Shapes.Path[] chevrons = [.. disclosures.Select(disclosure =>
+                Assert.Single(disclosure.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Path>(),
+                    path => path.Name == "ExpandCollapseChevron"))];
+            bool HasFinalDisclosureLayout()
             {
-                Dispatcher.UIThread.RunJobs();
-                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-                Thread.Sleep(100);
+                if (window.Bounds.Size != new Size(380, 650) || !window.IsMeasureValid || !window.IsArrangeValid ||
+                    !stack.IsMeasureValid || !stack.IsArrangeValid || stack.Children.Count != 2)
+                {
+                    return false;
+                }
+                for (int index = 0; index < cards.Length; index++)
+                {
+                    bool expanded = index == 1;
+                    Matrix? transform = chevrons[index].RenderTransform?.Value;
+                    double cosine = expanded ? -1 : 1;
+                    Point? at = cards[index].TranslatePoint(default, window);
+                    Border separator = Assert.Single(disclosures[index].GetVisualDescendants().OfType<Border>(),
+                        border => border.Name == "MemoryTechnicalSeparator");
+                    if (disclosures[index].IsExpanded != expanded || separator.IsEffectivelyVisible != expanded ||
+                        !chevrons[index].IsEffectivelyVisible || transform is not { } matrix ||
+                        Math.Abs(matrix.M11 - cosine) > 0.0001 || Math.Abs(matrix.M22 - cosine) > 0.0001 ||
+                        Math.Abs(matrix.M12) > 0.0001 || Math.Abs(matrix.M21) > 0.0001 ||
+                        !cards[index].IsMeasureValid || !cards[index].IsArrangeValid ||
+                        Math.Abs(cards[index].Bounds.Width - 348) > 0.5 || cards[index].Bounds.Height <= 0 ||
+                        at is not { } position || position.X < 16 || position.Y < 16 ||
+                        position.X + cards[index].Bounds.Width > 364.5 ||
+                        position.Y + cards[index].Bounds.Height > 634.5)
+                    {
+                        return false;
+                    }
+                }
+                return Math.Abs(cards[1].Bounds.Y - cards[0].Bounds.Bottom - stack.Spacing) <= 0.5 &&
+                    stack.Bounds.Size == new Size(348, 618);
             }
+            // Await the Fluent chevron endpoints and resized layout before capturing the comparison.
+            Assert.True(SpinWait.SpinUntil(() =>
+            {
+                TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                if (!HasFinalDisclosureLayout())
+                {
+                    return false;
+                }
+                // Commit the terminal geometry rather than accepting a frame from before the resize.
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                using global::Avalonia.Media.Imaging.Bitmap? rendered = window.GetLastRenderedFrame();
+                return HasFinalDisclosureLayout() && rendered?.PixelSize == PixelSize.FromSize(new Size(380, 650), window.RenderScaling);
+            }, TimeSpan.FromSeconds(5)),
+                $"Timed out waiting for disclosure chevrons/layout: window={window.Bounds}, stack={stack.Bounds}, cards={string.Join(", ", cards.Select(card => card.Bounds))}, transforms={string.Join(", ", chevrons.Select(chevron => chevron.RenderTransform?.Value))}.");
             using global::Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
             string? destination = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");

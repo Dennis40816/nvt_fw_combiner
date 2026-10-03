@@ -50,12 +50,12 @@ public sealed partial class XamlControlStyleContractTests
             Point badgeOrigin = badge.TranslatePoint(default, host)!.Value;
             Rect badgeRect = new(badgeOrigin, badge.Bounds.Size);
             host.MouseMove(badgeRect.Center, RawInputModifiers.None);
-            await Task.Delay(500, TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Assert.True(badge.IsPointerOver);
-            Assert.True(ToolTip.GetIsOpen(badge));
-            AssertIssueTooltipGeometry(host, badge, nearBottom);
+            await WaitForTooltipAsync(() =>
+            {
+                Assert.True(badge.IsPointerOver);
+                Assert.True(ToolTip.GetIsOpen(badge));
+                AssertIssueTooltipGeometry(host, badge, nearBottom);
+            });
             Assert.False(slot.BlocksBuild);
             host.MouseMove(new Point(1, 1), RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
@@ -65,16 +65,9 @@ public sealed partial class XamlControlStyleContractTests
             scroll.Offset = new Vector(0, nearBottom ? 424 : 0);
             Dispatcher.UIThread.RunJobs();
             Assert.True(badge.Focus(NavigationMethod.Tab));
-            await Task.Delay(300, TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            AssertIssueTooltipGeometry(host, badge, !nearBottom);
+            await WaitForTooltipAsync(() => AssertIssueTooltipGeometry(host, badge, !nearBottom));
             scroll.Offset = new Vector(0, nearBottom ? 0 : 424);
-            await Task.Delay(100, TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Dispatcher.UIThread.RunJobs();
-            Assert.False(ToolTip.GetIsOpen(badge));
+            await WaitForTooltipAsync(() => Assert.False(ToolTip.GetIsOpen(badge)));
             Assert.True(card.FindControl<Button>("BrowseButton")!.Focus());
             Assert.True(badge.Focus(NavigationMethod.Tab));
             Dispatcher.UIThread.RunJobs();
@@ -88,6 +81,27 @@ public sealed partial class XamlControlStyleContractTests
         finally
         {
             host.Close();
+        }
+
+        static async Task WaitForTooltipAsync(Action assertState)
+        {
+            var elapsed = System.Diagnostics.Stopwatch.StartNew();
+            while (true)
+            {
+                TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
+                try
+                {
+                    assertState();
+                    return;
+                }
+                catch (Xunit.Sdk.XunitException) when (elapsed.Elapsed < TimeSpan.FromSeconds(5))
+                {
+                    await Task.Delay(10, TestContext.Current.CancellationToken);
+                }
+            }
         }
     }
 
