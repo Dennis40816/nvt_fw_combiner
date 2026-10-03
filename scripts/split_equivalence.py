@@ -538,7 +538,7 @@ def e3(files: Sequence[FileDiff], support_class: str | None = None,
                     continue
                 prefix_positions: list[int] = []
                 prefix: list[str] = []
-                previous = member.start - 1
+                previous = (member.suppression_start or member.start) - 1
                 while previous > 0:
                     offsets = [i for i, line in enumerate(file.lines) if line.side == side and line.number == previous]
                     if len(offsets) != 1 or marked.get((index, offsets[0])) not in {None, "blank"}:
