@@ -62,8 +62,8 @@ Earlier dated checkpoints below remain history, not open release gates.
   explicit CtrlRAM Replace layout-context maps that delete the fallback (A-13).
 - **`1.2.10`** (decisions 189, 196, 205 and 212): the Memory Layout legend's
   non-colour cue in the High Contrast acceptance, and the hideable inspection panel.
-- **`1.2.11`** (decision 181): the CI core-shard H2, diagnostic evidence from a real CI
-  failure.
+- **`1.2.11`** (decisions 181 and 295): the CI core-shard H2, diagnostic evidence from a real CI
+  failure; the closure of the Avalonia off-session / headless stall (R34).
 - **`1.2.6`** (decisions 218, 231, 232 and 234, 2026-10-01): the managed-start residual windows
   N1-N4 are fixed with C01-2 and R05-02; the health result gains a typed reason; no delta update
   (R04-02 not built); version management moves into the Launcher, which starts the default version
@@ -433,7 +433,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.2.8` | **Report, typed state and user text**: physical-section grouping and historical replay compatibility (preserve completed Changes cards/navigation), F09/F10/F12 and the text findings. |
 | `1.2.9` | **Shared visual and typography**: F11 semantic typography, theme, tooltip and spacing roles, and the memory detail visuals, including Memory Layout design A (decisions 181 and 189), the DP-only AB layout fix (decisions 204 and 212) and the selected-slice highlight redesign (R53, decision 226), approved on a real-screen preview first. |
 | `1.2.10` | **Native accessibility and notifications**: DPI, high contrast, screen reader, System activity and toasts, with Report and Message Center visual and interaction consistency (decision 173); the high-contrast acceptance includes the Memory Layout legend's non-colour cue (decisions 189 and 196), and the inspection panel becomes hideable (decisions 205 and 212). |
-| `1.2.11` | **CI closure and test structure**: shared Release build and UiSmoke partition, T4b required-check activation after the shadow window, .NET lane regrouping, split pilots and mechanical splits, and the CI core-shard H2 (decision 181). |
+| `1.2.11` | **CI closure and test structure**: shared Release build and UiSmoke partition, T4b required-check activation after the shadow window, .NET lane regrouping, split pilots and mechanical splits, the CI core-shard H2 (decision 181), and the closure of the Avalonia off-session / headless stall (R34, decision 295). |
 | `1.2.12` | **Conditional performance and cleanup**: F14/F15 and CtrlRAM cold first-open only with demonstrated value; the F13 helper; documentation reconciliation (R25-03 to R25-05) and proven-unused cleanup against a remeasured analyzer baseline. Home startup optimization stays delivered in `1.1.12`; do not claim a new ten-minute result. R25-01/02 move to `1.2.13` (decision 188). A native first-readable measurement of Memory Layout card opening decides whether that needs work (decisions 189 and 219). |
 | `1.2.13` | **Launcher completion** (decision 188, main case): the final candidate closes publisher-content integrity (A2), controlled preproduction on the same share plus a staging Registry with a diagnostic override canary client (A3), the full clean-Windows candidate rerun for the normal and fault paths (A4/A5), cold-health acceptance (A6), the Catalog/package HTTPS requirement (F14), the final publisher-trust re-confirmation and release/security-owner GO (A7), and closing the SPEC/handoff/active-TODO alignment (A8, moved from `1.2.12`). No GO ships with a known defect; see `1.2.14`. |
 | `1.2.14` | **Launcher repair reserve** (decision 188, conditional): opens only if `1.2.13`'s final gates (A4-A7) find a defect that must close before GO; scope and weight are set from the finding when it occurs (fix, re-verification, and any carried-over `1.2.13` work), and the affected gates rerun on the refrozen candidate. |
