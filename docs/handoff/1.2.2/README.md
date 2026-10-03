@@ -3,7 +3,8 @@
 Status: in progress. `1.2.2` delivers the predecessor comparator of
 [ADR 0078](../../adr/0078-predecessor-comparison-for-1x-releases.md) and the first formal comparisons. Scope and
 order are in the [1.2.x allocation](../1.1.14/1.2.x-allocation.md) (items R35 and R36); the owner's opening
-decisions are 249 to 251 on the [1.2.x board](../1.2.x.md). The contract is
+decisions are 249 to 251 on the [1.2.x board](../1.2.x.md); executor follow-ups
+are decisions 261 and 271 to 278. The contract is
 [predecessor-comparison-v1](../../contracts/predecessor-comparison-v1.md); this file only tracks delivery.
 
 ## Delivery
@@ -75,12 +76,13 @@ explicitly; it cannot stand in for the complete bound declaration.
    only. Recompute the list from the final route set and inputs, dispose of
    each gap/difference, and commit the release's ledger, declaration and
    CHANGELOG IDs before the formal rolling run. The drafts confer no approval.
-2. Resolve the pending **NT51950 AB Merge baseline shape** decision. The
-   saved v0.9.16 baseline copies the whole bank `[262144, 524288)` from
-   `ab-combiner-work`, whereas decision 271 allows three 4-byte write ranges.
-   Do not turn its safety failure into an approved difference or rejection.
-   The saved CtrlRAM cascade invalid has a local decision-272 correction;
-   a fresh run still must demonstrate it. Neither invalid is waived here.
+2. Rerun the two historical invalid routes against the corrected source.
+   Decision 278 admits only the exact `ab-combiner-work` B bank read
+   `[262144, 524288)` for the declared v0.9.16 baseline executor; the candidate
+   keeps decision 271's audit. The saved CtrlRAM cascade invalid has a local
+   decision-272 correction. Both rules are implemented locally, but a fresh
+   run still must demonstrate them. The saved invalid results remain history;
+   neither is waived or reclassified here.
 3. In **CI or release context**, run the comparator formally against the exact
    clean candidate source and clean-settings policy. Rolling uses the complete
    published inventory selecting `v1.2.1` under decision 249, the committed
@@ -114,9 +116,9 @@ To check at the rehearsal, because every test so far uses synthetic CLI reports:
 
 ## Rehearsal findings
 
-Current state: rolling mode `rolling-1003a`, candidate `9f806f182` plus the local version commit: 39 of 39 scenarios `equal`.
+Recorded rehearsal: rolling mode `rolling-1003a`, candidate `9f806f182` plus the local version commit: 39 of 39 scenarios `equal`.
 v0.9.16 mode `v0916-5`: 35 routes `consistent`, 2 `invalid`, 27 not covered; these are recorded run results, not a rerun of this patch.
-The invalid routes are NT51950 CtrlRAM cascade full flash (all-`Skipped` baseline refused for unknown range spaces, fixed locally here under decision 272) and NT51950 AB Merge 512k (baseline copies a whole bank `[262144,524288)` out of `ab-combiner-work` after the processor; decision 271 allows only three write ranges of 4 bytes each; an owner decision is pending, and nothing is relaxed).
+The recorded invalid routes are NT51950 CtrlRAM cascade full flash (all-`Skipped` baseline refused for unknown range spaces, corrected locally under decision 272) and NT51950 AB Merge 512k (baseline copies a whole bank `[262144,524288)` out of `ab-combiner-work` after the processor; decision 278 subsequently admitted that exact v0.9.16 read). These local corrections do not change the saved invalid results; a fresh run is pending.
 
 Found by running the comparator against real builds (baseline tag `v1.2.1`, candidate the executor-contract branch),
 each fixed on that branch before the next run:

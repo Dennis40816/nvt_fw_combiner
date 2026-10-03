@@ -218,6 +218,54 @@ def test_malformed_or_incomplete_results_are_refused(mutation):
         reader.render_owner_list(report)
 
 
+@pytest.mark.parametrize("name", ["rolling-equal", "v0916-consistent"])
+def test_empty_units_refuse_even_with_zero_counts_and_resealed_digest(name):
+    report = result(name)
+    assert reader.render_owner_list(report)
+    if report["mode"] == "rolling":
+        report["scenarios"] = []
+        report["coverage"].update(universe=0, coveredRoutes=0, scenarios=0)
+        report["coverage"]["notCovered"] = []
+    else:
+        report["routes"] = []
+        report["summary"] = validation.v0916_summary([])
+    with pytest.raises(reader.ReportReaderError):
+        reader.render_owner_list(seal(report))
+
+
+@pytest.mark.parametrize("shape", ["rolling-invalid", "rolling-failure", "rolling-undeclared",
+                                  "historical-inconsistent", "historical-invalid", "historical-failure",
+                                  "historical-wrong-invalid", "historical-wrong-inconsistent"])
+def test_top_verdict_cannot_contradict_recorded_units_or_failures(shape):
+    historical = shape.startswith("historical")
+    report = result("v0916-consistent" if historical else "rolling-equal")
+    assert reader.render_owner_list(report)
+    failure = {"code": "PREDECESSOR_REPORT_INVALID", "subject": "synthetic", "detail": "invalid evidence"}
+    if historical:
+        if shape.endswith("failure"):
+            report["failures"] = [failure]
+        elif "wrong" in shape:
+            report["result"] = shape.rsplit("-", 1)[1]
+            report["failures"] = [failure]
+        else:
+            report["routes"][0]["result"] = shape.rsplit("-", 1)[1]
+            report["routes"][0]["failureCode"] = failure["code"]
+            report["summary"] = validation.v0916_summary([row["result"] for row in report["routes"]])
+    elif shape.endswith("failure"):
+        report["gate"]["failures"] = [failure]
+    else:
+        report["scenarios"][0]["outcome"] = "invalid" if shape.endswith("invalid") else "different"
+        report["scenarios"][0]["failureCode"] = failure["code"] if shape.endswith("invalid") else None
+    with pytest.raises(reader.ReportReaderError):
+        reader.render_owner_list(seal(report))
+
+
+@pytest.mark.parametrize("name", ["rolling-undeclared", "v0916-inconsistent"])
+def test_blocked_and_inconsistent_recorded_results_remain_displayable(name):
+    report = result(name)
+    assert reader.render_owner_list(report)
+
+
 @pytest.fixture
 def private_directory():
     with tempfile.TemporaryDirectory() as directory:

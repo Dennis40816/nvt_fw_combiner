@@ -16,13 +16,19 @@ HOST_INFO = "Host:\n  Version: 10.0.11\n  Architecture: x64\n  Commit: synthetic
 
 
 def synthetic_managed_pe(*, runtime=RUNTIME_VERSION, compiler=COMPILER_VERSION, options=None,
-                         debug_type=17, debug_directory=True, corrupt_deflate=False):
+                         debug_type=17, debug_directory=True, corrupt_deflate=False,
+                         options_parent=39, module_rows=1, method_rows=0):
     """Minimal PE32+ and genuine portable metadata with a compilation-options CDI."""
     if options is None:
         options = b"version\0" + b"2\0runtime-version\0" + runtime.encode() + b"\0compiler-version\0" + compiler.encode() + b"\0"
     size = len(options)
     prefix = bytes([size]) if size < 128 else bytes([0x80 | (size >> 8), size & 255])
-    streams = {"#Pdb": bytes(32), "#~": struct.pack("<IBBBBQQIHHH", 0, 2, 0, 0, 1, 1 << 55, 0, 1, 39, 1, 1),
+    external = bytes(24) + struct.pack("<QI", 1 | ((1 << 6) if method_rows else 0), module_rows)
+    if method_rows:
+        external += struct.pack("<I", method_rows)
+    parent_format = "I" if max(module_rows, method_rows) >= 2048 else "H"
+    streams = {"#Pdb": external,
+               "#~": struct.pack("<IBBBBQQI" + parent_format + "HH", 0, 2, 0, 0, 1, 1 << 55, 0, 1, options_parent, 1, 1),
                "#Blob": b"\0" + prefix + options, "#GUID": OPTIONS_KIND}
     version = b"PDB v1.0\0\0\0\0"
     header = b"BSJB" + struct.pack("<HHII", 1, 1, 0, len(version)) + version + struct.pack("<HH", 0, len(streams))

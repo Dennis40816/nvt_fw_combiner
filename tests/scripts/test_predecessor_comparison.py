@@ -1470,6 +1470,27 @@ class ComparisonTests(unittest.TestCase):
                 _, result = self.processor_side(change)
                 self.assert_refused(result, "preview", "written report format invalid")
 
+    def test_zero_processor_count_requires_equal_hashes_in_both_stages(self):
+        def zero_count(raw, staging, temporary, working):
+            raw["OutputDifferences"] = []
+            raw["Mutations"][1]["ChangedByteCount"] = 0
+
+        # Both stages lie together, so Preview/Build equality cannot catch it.
+        for only in (None, "preview", "build"):
+            with self.subTest(only=only):
+                _, result = self.processor_side(zero_count, only=only)
+                detail = ("PARITY_PROVENANCE_INVALID" if only == "build"
+                          else "zero processor changed-byte count has differing hashes")
+                self.assert_refused(result, only or "preview", detail)
+
+        def unchanged(raw, staging, temporary, working):
+            zero_count(raw, staging, temporary, working)
+            raw["Mutations"][1]["AfterSha256"] = raw["Mutations"][1]["BeforeSha256"]
+
+        _, result = self.processor_side(unchanged)
+        self.assertEqual("output", result.side["status"])
+        self.assertEqual([], result.failures)
+
     def test_difference_without_any_processor_is_refused(self):
         raw = merge_report(committed=False)
         raw["OutputDifferences"] = [written_output_difference(1, 0, 2)]

@@ -369,7 +369,10 @@ report, and the existing refusal is preserved.
 built CLI `.deps.json` project graph in the measured closure. It parses PE
 entry type 17, inflates `MPDB` raw deflate and reads portable metadata streams
 `#Pdb`, `#~`, `#GUID` and `#Blob`. CustomDebugInformation kind
-`B5FEEC05-8CD0-4A83-96DA-466284BB4BD8` supplies null-terminated UTF-8 options.
+`B5FEEC05-8CD0-4A83-96DA-466284BB4BD8` supplies null-terminated UTF-8 options
+only when its `HasCustomDebugInformation` Parent is Module RID 1 (tag 7)
+and `#Pdb` declares exactly one external Module row. Nil parents, other tags,
+other RIDs and absent or invalid Module row counts refuse compiler-host evidence.
 `runtime-version` must equal the pinned servicing version; `compiler-version`
 is the compiler identity, while `version` is the options format version.
 Empty graphs, missing or ambiguous PDB/options, corrupt metadata and mixed
@@ -613,15 +616,13 @@ second implementation. The comparator's staged-command identity check
    is not `Committed: true`, is `PREDECESSOR_REPORT_INVALID`.
    In addition, decision 274 requires each same-side Preview/Build pair,
    including the precursor pair, to agree on output size and SHA-256 when the
-   Build committed an output file and both reports describe output. An
+   Build committed an output file. A successful Preview must describe its
+   output prediction for every executor, including v0.9.16. An
    uncommitted failed Build's empty output description is not compared with
    the Preview prediction. Either mismatch is `PREDECESSOR_REPORT_INVALID`
-   with `Build output size or hash differs from Preview prediction`. A successful Preview
-   of a 1.x executor without an output prediction is `PREDECESSOR_REPORT_INVALID`
-   with `successful 1.x Preview has no output prediction`. For the v0.9.16
-   executor, whose Preview shape is not yet observed for this rule, a Preview
-   without an output prediction keeps the existing behavior and adds no equality
-   check; other safety checks remain.
+   with `Build output size or hash differs from Preview prediction`. A successful
+   Preview without a prediction is `PREDECESSOR_REPORT_INVALID` with
+   `successful Preview has no output prediction`; there is no v0.9.16 exception.
 4. **Executed commands** (decision 261). The executable of every executed
    command must be one of the external tool files the comparator staged for
    that process and checked by hash before and after it; the path text alone
@@ -647,7 +648,12 @@ second implementation. The comparator's staged-command identity check
    processor in `output-image`. A processor whose mutation row reports
    changed bytes must have a listed range inside its own allowed write
    ranges; an `output-image` processor that lists none for its changed bytes
-   is still refused. The comparator computes no byte difference of its own.
+   is still refused. Before exempting a processor mutation with zero changed
+   bytes, its before and after SHA-256 must be equal in each stage. Different
+   hashes with a zero count refuse even when both Preview and Build report the
+   same false count and omit every output difference. This applies to output
+   and work-space processors; work-space read/write checks still run for zero
+   changes. The comparator computes no byte difference of its own.
 
    For a processor targeting a declared work address space, decision 271
    instead reads the compiled operations in Preview order, regardless of its
@@ -766,6 +772,16 @@ bytes, never a wider range or a pattern. Per-side safety is a separate check,
 and the union of both sides' write ranges is not an attribution.
 
 ## Validation
+
+The `owner-list` projection admits no empty `scenarios` or `routes`, even when
+the counts and deterministic digest have been recomputed to agree. Its existing
+`_check_list_input` checks the recorded rolling gate against `rolling_gate`
+and refuses a clear gate containing an invalid or undeclared non-equal unit.
+Historical summaries and top-level results must agree with `v0916_summary`
+and `v0916_result`; a consistent result has no failures, and other results
+must carry failures. Admission failures are `PREDECESSOR_REPORT_INVALID` and
+produce no owner list. These checks do not rerun execution or grant release
+authority, and do not substitute for full report schema validation.
 
 The schemas hold every rule that can be decided inside one document, including
 the conditional ones: a formal report needs both settings files absent; a
