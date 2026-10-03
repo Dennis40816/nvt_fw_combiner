@@ -81,13 +81,16 @@ public sealed partial class SystemExternalProcessRunner
             }
 
             await WaitUntilAsync(Settled(TerminalWork(streams)), schedule.ReaderStopAt).ConfigureAwait(false);
+            Task readersStopping = Task.CompletedTask;
             if (!streams.IsCompleted)
             {
-                _ = Track(_readerStop.CancelAsync());
+                readersStopping = Track(_readerStop.CancelAsync());
                 Notify(ExternalProcessRunnerPhase.ReaderStopRequested);
             }
 
-            await WaitUntilAsync(Settled(TerminalWork(streams)), schedule.DeadlineAt).ConfigureAwait(false);
+            // A reader joins its own cancellation callback before completing; also join the stop dispatch
+            // within the same deadline so a just-finishing CancelAsync cannot cause a spurious Detached phase.
+            await WaitUntilAsync(Settled([.. TerminalWork(streams), readersStopping]), schedule.DeadlineAt).ConfigureAwait(false);
 
             ExternalProcessCleanup cleanup = Classify(heldAfterExit);
             if (cancellationToken.IsCancellationRequested)

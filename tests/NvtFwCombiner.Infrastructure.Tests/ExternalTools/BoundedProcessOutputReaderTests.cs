@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.IO.Pipes;
 using System.Text;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 
@@ -7,6 +8,102 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 /// <summary>Contracts for bounded, deadlock-free external-process diagnostics.</summary>
 public sealed class BoundedProcessOutputReaderTests
 {
+    /// <summary>Startup validation is a reader task fault, never a synchronous exception escaping the runner.</summary>
+    [Fact]
+    public async Task ProductionDrainStartupFailureReturnsFaultedTask()
+    {
+        Task<BoundedProcessOutput>? drain = null;
+        Exception? synchronousFailure = Record.Exception(() =>
+        {
+            drain = ExternalProcessRunnerSeams.Production.Drain(null!, CancellationToken.None);
+        });
+
+        Assert.Null(synchronousFailure);
+        Assert.NotNull(drain);
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() => drain);
+    }
+
+    /// <summary>Stop before dedicated startup does not deadlock an inline cancellation registration.</summary>
+    [Fact]
+    public async Task ProductionDrainAlreadyStoppedReturnsWithoutReading()
+    {
+        using var reader = new StringReader("must not be read");
+        using var stop = new CancellationTokenSource();
+        await stop.CancelAsync();
+
+        BoundedProcessOutput result = await ExternalProcessRunnerSeams.Production.Drain(reader, stop.Token)
+            .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.Equal(new BoundedProcessOutput(string.Empty, false), result);
+    }
+
+    /// <summary>Stop between entering Read and the kernel pipe read must not be lost.</summary>
+    [Fact]
+    public async Task ProductionDrainStopsWhenCancellationPrecedesKernelRead()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("This race exercises CancelSynchronousIo on a synchronous Windows pipe.");
+        }
+
+        using var writer = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.None);
+        using var pipeReader = new StreamReader(new AnonymousPipeClientStream(PipeDirection.In, writer.ClientSafePipeHandle));
+        using var gated = new BeforeKernelReadReader(pipeReader);
+        using var stop = new CancellationTokenSource();
+        Task<BoundedProcessOutput> drain = ExternalProcessRunnerSeams.Production.Drain(gated, stop.Token);
+        Task stopping = Task.CompletedTask;
+        try
+        {
+            await gated.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            stopping = stop.CancelAsync();
+            Assert.True(stop.IsCancellationRequested);
+            gated.Open();
+
+            BoundedProcessOutput result = await drain.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            await stopping.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Assert.Equal(new BoundedProcessOutput(string.Empty, false), result);
+        }
+        finally
+        {
+            gated.Open();
+            // EOF releases even a regressed uncancellable drain, so the test never leaves a blocked thread.
+            writer.Dispose();
+            _ = await drain.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            await stopping.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        }
+    }
+
+    private sealed class BeforeKernelReadReader(TextReader reader) : TextReader
+    {
+        private readonly ManualResetEventSlim _open = new();
+        private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal Task Entered => _entered.Task;
+
+        internal void Open()
+        {
+            _open.Set();
+        }
+
+        public override int Read(char[] buffer, int index, int count)
+        {
+            Assert.False(Thread.CurrentThread.IsThreadPoolThread);
+            _entered.SetResult();
+            _open.Wait();
+            return reader.Read(buffer, index, count);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _open.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+    }
+
     /// <summary>Small process output remains byte-for-character exact.</summary>
     [Fact]
     public async Task SmallOutputRemainsExact()
