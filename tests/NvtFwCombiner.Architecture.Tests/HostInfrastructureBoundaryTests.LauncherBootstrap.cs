@@ -440,7 +440,7 @@ public sealed partial class HostInfrastructureBoundaryTests
             ReadText(
                 "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/LauncherBootstrapRuntime.cs");
         string stableLeaseTest = ReadText(
-            "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/FileSystemManagedVersionRepositoryLaunchLeaseTests.cs");
+            "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/FileSystemManagedVersionRepositoryTests.LaunchLease.cs");
 
         Assert.True(
             coordinator.IndexOf("LoadRawStatesAsync", StringComparison.Ordinal) <
