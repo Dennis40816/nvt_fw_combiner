@@ -481,7 +481,12 @@ def _processor_write_audit_failures(
     differences = context["outputDifferenceRanges"]
     if any(row["start"] < 0 or row["endExclusive"] <= row["start"] or not inside(row, output_spans) for row in differences):
         return [_failure("REPORT_INVALID", stage, "output difference outside every write range the Preview allows")]
-    changed = {row["operationId"]: row["changedByteCount"] for row in projection["compiledMutations"]}
+    mutations = {row["operationId"]: row for row in projection["compiledMutations"]}
+    for operation in projection["compiledOperations"]:
+        mutation = mutations.get(operation["operationId"])
+        if (operation.get("processor") and mutation is not None and mutation["changedByteCount"] == 0
+                and mutation["beforeSha256"] != mutation["afterSha256"]):
+            return [_failure("REPORT_INVALID", stage, "zero processor changed-byte count has differing hashes")]
     operations = authority["compiledOperations"]
     for index, operation in enumerate(operations):
         space = operation["targetSpaceId"]
@@ -506,7 +511,7 @@ def _processor_write_audit_failures(
             if kind == "RunExternalProcessor" and not later.get("processor"):
                 return [_failure("REPORT_INVALID", stage, "later processor has no declared ranges")]
     for operation in projection["compiledOperations"]:
-        if not operation.get("processor") or changed.get(operation["operationId"], 0) == 0:
+        if not operation.get("processor") or mutations.get(operation["operationId"], {}).get("changedByteCount", 0) == 0:
             continue
         if operation["targetSpaceId"] in (declared_work_ranges or {}):
             continue
@@ -675,8 +680,8 @@ def side_execution_verdict(
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "nonzero exit is not a typed rejection")])
         if any(issue["severity"] == "error" for issue in evidence.issues):
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful process has error issue")])
-        if stage.endswith("preview") and not v0916_executor and preview_output is None:
-            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful 1.x Preview has no output prediction")])
+        if stage.endswith("preview") and preview_output is None:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful Preview has no output prediction")])
         if stage.endswith("build") and evidence.output is None:
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "successful Build has no captured output")])
     if not complete:

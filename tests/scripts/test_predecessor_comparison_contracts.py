@@ -198,6 +198,20 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         declaration_schema = load_json(CONTRACTS / "predecessor-comparison-declaration-v1.schema.json")
         self.assertEqual(self.contract["typedRejection"]["processFailureIssueCodes"], declaration_schema["$defs"]["processFailureIssueCode"]["enum"])
 
+    def test_decision_278_is_indexed_without_reclassifying_saved_invalid_rehearsal(self) -> None:
+        board = (ROOT / "docs/handoff/1.2.x.md").read_text(encoding="utf-8")
+        self.assertTrue("\n278. **Predecessor comparator:" in board, "decision 278 must be indexed on the board")
+        decision = board.split("\n278. ", 1)[1].split("\n\n", 1)[0]
+        for member in ("ab-combiner-work", "[262144, 524288)", "v0.9.16", "273"):
+            self.assertIn(member, decision)
+        handoff = (ROOT / "docs/handoff/1.2.2/README.md").read_text(encoding="utf-8")
+        pending = handoff.split("## Before reports of record", 1)[1].split("## Rehearsal findings", 1)[0]
+        self.assertIn("Decision 278", pending)
+        self.assertNotIn("Resolve the pending", pending)
+        history = handoff.split("## Rehearsal findings", 1)[1]
+        self.assertIn("35 routes `consistent`, 2 `invalid`, 27 not covered", history)
+        self.assertIn("saved invalid results", history)
+
     def test_all_execution_interfaces_are_in_effect(self) -> None:
         self.assertEqual("in-effect", self.contract["executor"]["compilerHost"]["status"])
         amendment = load_json(CONTRACTS / "v0916-parity-1x-amendment-v1.json")

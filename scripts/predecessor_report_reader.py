@@ -263,20 +263,34 @@ def _check_list_input(report: Mapping[str, Any], rows: list[dict[str, Any]]) -> 
         raise ReportReaderError("unsupported predecessor comparison result")
     if validation.deterministic_digest_failures(report):
         raise ReportReaderError("comparison result digest mismatch")
+    if not rows:
+        raise ReportReaderError("comparison result has no comparison units")
     if len({row["scenario"] for row in rows}) != len(rows):
         raise ReportReaderError("duplicate comparison unit")
     if any(row["verdict"] not in VERDICT_LABELS for row in rows):
         raise ReportReaderError("unknown recorded verdict")
     if report["mode"] == "rolling":
         coverage = report["coverage"]
+        gate = report["gate"]
+        expected_gate = validation.rolling_gate([validation.Failure(**row) for row in gate["failures"]])
+        if (gate["result"] != expected_gate["result"]
+                or gate["result"] == "clear" and any(
+                    row["verdict"] == "invalid" or
+                    row["verdict"] != "equal" and row["record"]["declarationEntryId"] is None for row in rows)):
+            raise ReportReaderError("recorded rolling gate contradicts comparison units or failures")
         covered = {row["route"] for row in rows}
         gaps = [row["routeId"] for row in coverage["notCovered"]]
         if (coverage["scenarios"] != len(rows) or coverage["coveredRoutes"] != len(covered)
                 or len(set(gaps)) != len(gaps) or covered & set(gaps)
                 or coverage["universe"] != len(covered) + len(gaps)):
             raise ReportReaderError("incomplete recorded coverage")
-    elif report["summary"] != validation.v0916_summary([row["verdict"] for row in rows]):
-        raise ReportReaderError("incomplete recorded historical coverage")
+    else:
+        results = [row["verdict"] for row in rows]
+        if report["summary"] != validation.v0916_summary(results):
+            raise ReportReaderError("incomplete recorded historical coverage")
+        if (report["result"] != validation.v0916_result(results)
+                or bool(report["failures"]) != (report["result"] != "consistent")):
+            raise ReportReaderError("recorded historical result contradicts comparison units or failures")
 
 
 def _bound_list_documents(report: Mapping[str, Any], documents: Mapping[str, bytes]) -> dict[str, Any]:

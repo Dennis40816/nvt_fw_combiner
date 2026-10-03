@@ -172,6 +172,25 @@ class WholeBankDecision278Tests(unittest.TestCase):
 
 
 class OwnerAnswersTests(unittest.TestCase):
+    def test_zero_work_space_processor_count_requires_equal_hashes_in_each_stage(self):
+        for same_hash in (False, True):
+            with self.subTest(same_hash=same_hash):
+                preview = ab_report(processor=True)
+                mutation = preview["Mutations"][4]
+                mutation["ChangedByteCount"] = 0
+                if same_hash:
+                    mutation["AfterSha256"] = mutation["BeforeSha256"]
+                build = copy.deepcopy(preview)
+                build["Output"]["Committed"] = True
+                pair = [evidence(preview), evidence(build, "build", output={"size": 16, "sha256": "c" * 64})]
+                result = validation.side_execution_verdict(pair, capacities=CAPACITIES)
+                self.assertEqual("output" if same_hash else "invalid", result.status)
+                if same_hash:
+                    self.assertEqual([], result.failures)
+                else:
+                    self.assertEqual([validation.Failure("PREDECESSOR_REPORT_INVALID", "preview",
+                        "zero processor changed-byte count has differing hashes")], result.failures)
+
     def assert_work_processor_accepted(self):
         result = verdict(ab_report(processor=True))
         self.assertEqual(("ready", []), (result.status, result.failures))
@@ -437,7 +456,7 @@ class OwnerAnswersTests(unittest.TestCase):
         self.assertEqual(("invalid", "precursor-build"), (result.status, result.stopped_at))
         self.assertIn("Build output size or hash differs from Preview prediction", result.failures[0].detail)
 
-    def test_successful_preview_requires_output_prediction_only_for_a_1x_executor(self):
+    def test_successful_preview_requires_output_prediction_for_every_executor(self):
         raw = ab_report()
         raw["Output"] = None
         for stage in ("preview", "precursor-preview"):
@@ -445,12 +464,31 @@ class OwnerAnswersTests(unittest.TestCase):
                 with self.subTest(stage=stage, v0916_executor=old_executor):
                     result = validation.side_execution_verdict(
                         [evidence(raw, stage)], capacities=CAPACITIES, complete=False, v0916_executor=old_executor)
-                    if old_executor:
-                        self.assertEqual(("ready", []), (result.status, result.failures))
-                    else:
-                        self.assertEqual(("invalid", [validation.Failure(
-                            "PREDECESSOR_REPORT_INVALID", stage, "successful 1.x Preview has no output prediction")]),
-                            (result.status, result.failures))
+                    self.assertEqual(("invalid", [validation.Failure(
+                        "PREDECESSOR_REPORT_INVALID", stage, "successful Preview has no output prediction")]),
+                        (result.status, result.failures))
+
+    def test_missing_prediction_refuses_completed_and_precursor_flows_for_every_executor(self):
+        for old_executor in (False, True):
+            for precursor in (False, True):
+                for missing in (False, True):
+                    with self.subTest(v0916_executor=old_executor, precursor=precursor, missing=missing):
+                        preview = ab_report()
+                        build = copy.deepcopy(preview)
+                        build["Output"]["Committed"] = True
+                        pair = [evidence(preview), evidence(build, "build", output={"size": 16, "sha256": "c" * 64})]
+                        if precursor:
+                            pair = [evidence(preview, "precursor-preview"),
+                                    evidence(build, "precursor-build", output={"size": 16, "sha256": "c" * 64}), *pair]
+                        if missing:
+                            pair[0].context["output"] = None
+                        result = validation.side_execution_verdict(pair, capacities=CAPACITIES, v0916_executor=old_executor)
+                        self.assertEqual("invalid" if missing else "output", result.status)
+                        if missing:
+                            self.assertEqual("precursor-preview" if precursor else "preview", result.stopped_at)
+                            self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
+                        else:
+                            self.assertEqual([], result.failures)
 
     def test_terminal_projection_default_still_accepts_succeeded_and_refuses_skipped(self):
         rejected = evidence(rejected_report(), exit_code=1).projection

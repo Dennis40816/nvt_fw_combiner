@@ -167,6 +167,11 @@ def _options_blob(streams: dict[str, bytes]) -> bytes:
             if table == 55:
                 kind = _number(tables, position + parent, guid)
                 if kind and _slice(streams["#GUID"], (kind - 1) * 16, 16) == OPTIONS_KIND:
+                    entity = _number(tables, position, parent)
+                    # HasCustomDebugInformation uses five tag bits; Module is tag 7.
+                    # ECMA-335 permits exactly one Module row, and this CDI owns it.
+                    if entity != ((1 << 5) | 7) or rows.get(0, 0) != 1:
+                        raise PdbProbeError("compilation-options parent must be Module RID 1")
                     options.append(_blob(streams["#Blob"], _number(tables, position + parent + guid, blob)))
             position += widths[table]
     if len(options) != 1:

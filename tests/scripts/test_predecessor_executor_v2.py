@@ -89,6 +89,23 @@ def assert_schema(value, schema, document):
 
 
 class PdbProbeTests(unittest.TestCase):
+    def test_compilation_options_require_existing_module_rid_one_parent(self):
+        self.assertEqual((RUNTIME_VERSION, COMPILER_VERSION), probe_compilation_options(
+            synthetic_managed_pe(options_parent=(1 << 5) | 7, module_rows=1)))
+        for parent, modules in ((0, 1), (7, 1), (39, 0), (71, 1), (71, 2), (39, 2),
+                                (63, 1), (32, 1), (35, 1), (46, 1), (54, 1)):
+            with self.subTest(parent=parent, modules=modules), self.assertRaisesRegex(
+                    PdbProbeError, "compilation-options parent must be Module RID 1"):
+                probe_compilation_options(synthetic_managed_pe(options_parent=parent, module_rows=modules))
+        for methods in (1, 2048):
+            with self.subTest(method_rows=methods):
+                self.assertEqual((RUNTIME_VERSION, COMPILER_VERSION), probe_compilation_options(
+                    synthetic_managed_pe(method_rows=methods)))
+                with self.assertRaisesRegex(PdbProbeError, "compilation-options parent must be Module RID 1"):
+                    probe_compilation_options(synthetic_managed_pe(options_parent=32, method_rows=methods))
+        with self.assertRaisesRegex(PdbProbeError, "compilation-options parent must be Module RID 1"):
+            probe_compilation_options(synthetic_managed_pe(options_parent=(3000 << 5) | 7, method_rows=2048))
+
     def test_portable_metadata_compilation_options_are_found(self):
         result = probe_compilation_options(synthetic_managed_pe())
         self.assertEqual((RUNTIME_VERSION, COMPILER_VERSION), result)
