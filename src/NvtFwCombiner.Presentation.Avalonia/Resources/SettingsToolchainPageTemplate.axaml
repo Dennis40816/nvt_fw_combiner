@@ -3,6 +3,7 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     xmlns:config="using:NvtFwCombiner.Application.Configuration"
     xmlns:converters="using:Avalonia.Data.Converters">
+  <Thickness x:Key="ToolchainSourceRowPadding">4,18</Thickness>
   <DataTemplate x:Key="SettingsToolchainPageTemplate" DataType="vm:MainWindowViewModel">
     <Grid x:Name="ToolchainPageRoot" Margin="36,20,36,32" RowDefinitions="Auto,*,Auto" RowSpacing="24">
       <StackPanel Spacing="{DynamicResource NfcSpace8}">
@@ -16,7 +17,7 @@
       </StackPanel>
       <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel>
-          <Border x:Name="ToolchainBundledRow" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1" Padding="4,18">
+          <Border x:Name="ToolchainBundledRow" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1" Padding="{StaticResource ToolchainSourceRowPadding}">
             <Grid ColumnDefinitions="210,*" ColumnSpacing="{DynamicResource NfcSpace12}">
               <RadioButton GroupName="ToolchainSources" IsChecked="{Binding Settings.IsBundledToolchainSelected, Mode=OneWay}"
                   Command="{Binding Settings.SelectBundledToolchainCommand}" Content="{Binding Text.ToolchainBundledLabel}"
@@ -24,7 +25,7 @@
               <TextBlock Grid.Column="1" Classes="supportingText" VerticalAlignment="Center" Text="{Binding Text.ToolchainDefaultLabel}" />
             </Grid>
           </Border>
-          <Border x:Name="ToolchainUserRow" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" Padding="4,16">
+          <Border x:Name="ToolchainUserRow" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" Padding="{StaticResource ToolchainSourceRowPadding}">
             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="210,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="{DynamicResource NfcSpace12}">
               <RadioButton GroupName="ToolchainSources" IsChecked="{Binding Settings.IsUserToolchainSelected, Mode=OneWay}"
                   Command="{Binding Settings.SelectUserToolchainCommand}" Content="{Binding Text.ToolchainUserLabel}"

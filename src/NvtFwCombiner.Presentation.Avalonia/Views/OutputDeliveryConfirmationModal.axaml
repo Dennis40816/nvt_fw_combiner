@@ -49,7 +49,7 @@
                         Classes="semanticAction inlineEdit outputNameEdit" IsVisible="{Binding IsOutputFileNameEditing}"
                         AutomationProperties.Name="{Binding Text.OutputDeliveryDoneOutputNameLabel}"
                         ToolTip.Tip="{Binding Text.OutputDeliveryDoneOutputNameLabel}" Click="CompleteOutputFileNameEditButton_OnClick">
-                  <Path Width="16" Height="16" Data="M2 8L6 12L14 3" Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
+                  <Path Width="16" Height="16" Data="{StaticResource NfcDoneIconGeometry}" Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
                 </Button>
                 <ToggleButton x:Name="SourcesDisclosureToggle" Grid.Row="2" Grid.ColumnSpan="2" MinHeight="24" Padding="0,2"
                               HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Left" Classes="inlineDisclosure buildSettingsDisclosure"
@@ -308,7 +308,7 @@
                               AutomationProperties.Name="{Binding Text.OutputDeliveryDoneAdditionalNameLabel}"
                               ToolTip.Tip="{Binding Text.OutputDeliveryDoneAdditionalNameLabel}"
                               IsVisible="{Binding IsAdditionalOutputFileNameEditing}" Click="CompleteAdditionalOutputFileNameEditButton_OnClick">
-                        <Path Width="16" Height="16" Data="M2 8L6 12L14 3" Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
+                        <Path Width="16" Height="16" Data="{StaticResource NfcDoneIconGeometry}" Fill="Transparent" StrokeThickness="1.5" Stretch="Uniform" />
                       </Button>
                     <TextBlock Grid.Row="1" Classes="detailText" Text="{Binding AdditionalOutputSize}" />
                   </Grid>
@@ -348,7 +348,7 @@
                             Click="CompleteBundleDestinationEditButton_OnClick"
                             IsVisible="{Binding IsBundleDestinationEditing}"
                             ToolTip.Tip="{Binding Text.OutputDeliveryDoneEditingLabel}">
-                      <Path Width="16" Height="16" Data="M2 8L6 12L14 3" Fill="Transparent"
+                      <Path Width="16" Height="16" Data="{StaticResource NfcDoneIconGeometry}" Fill="Transparent"
                             StrokeThickness="1.5" Stretch="Uniform" />
                     </Button>
                       <TextBlock Grid.Row="2" Margin="0,8,0,0" Classes="fieldLabel" Text="{Binding Text.OutputDeliveryParentLabel}" />
