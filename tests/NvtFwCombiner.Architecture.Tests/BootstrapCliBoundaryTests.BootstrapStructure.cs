@@ -188,8 +188,8 @@ public sealed partial class BootstrapCliBoundaryTests
         string cli = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs");
         string registrations = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
         string packageTrustIndex = ReadText("profiles/built-in/package-trust-index.json");
-        string diagnosticProfile = ReadText(
-            "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw141-cascade.json");
+        string runtimeSingleProfile = ReadText(
+            "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw141-runtime-single.json");
         string runtimeProfile = ReadText(
             "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw141-runtime-cascade.json");
         string fw200SingleProfile = ReadText(
@@ -242,7 +242,7 @@ public sealed partial class BootstrapCliBoundaryTests
             "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-general-replace-dp-single-candidate.json");
         string[] supportedCtrlRamProfiles =
         [
-            diagnosticProfile,
+            runtimeSingleProfile,
             runtimeProfile,
             fw200SingleProfile,
             fw200CascadeProfile,
