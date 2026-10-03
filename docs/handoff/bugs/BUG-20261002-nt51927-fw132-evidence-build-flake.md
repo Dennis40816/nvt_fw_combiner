@@ -1,6 +1,6 @@
 # BUG-20261002-nt51927-fw132-evidence-build-flake: the NT51927 FW 1.3.2 two-chip evidence Build failed once on a pull-request CI run
 
-Status: open (scheduling correction committed as `def8e3af3`; held-pipe review correction locally tested; original CI trigger remains inferred)
+Status: open (fix merged in #538 as `3d16b8b2d` on 2026-10-03; the original CI trigger remains inferred, so the record stays open until the commander closes it after the following push CI runs show no recurrence)
 Severity: P2 (a CtrlRAM Replace Build of an owner-certified case reported failure once)
 Found: 2026-10-02, Claude Code commander (Claude Opus 5.5): pull request #535 (records only: handoff documents),
 CI run `37013137906`, job `dotnet / build-test` (`110861530924`). The test failed on attempt 1 and passed on the
@@ -253,6 +253,18 @@ no residual P0/P1 found in this fixed source scope; existing semantic owners are
 dependencies and internal Platform ownership are preserved. No firmware bytes/ranges/order/integrity/support,
 profiles, staged writes, public API or Golden expectations changed; no retry or widened bounds. Local Polytail
 verdict at that time: `FAIL` (Architecture.Tests could not be built in the sandbox; the outside run above passed).
-This author review does not substitute for independent review (pull request 538). After the blocker is resolved, independent
-exact-head review, protected CI, applicable Golden execution and firmware-owner approval remain integration
-gates. Open product/design questions: none.
+This author review does not substitute for independent review (pull request 538), which was done on the final head
+(Claude Opus 5.5: accept, no open P0/P1). Pull request 538 merged as `3d16b8b2d` after the firmware owner's GitHub
+approval at head `74eaa3764` and a green protected CI; the push CI on `3d16b8b2d` passed. Open product/design
+questions: none.
+
+## Follow-ups from the independent review of #538
+
+The four P3 follow-ups are tracked, one record each:
+[friend-assembly grant](BUG-20261003-nt51927-drain-friend-assembly-grant.md),
+[entry-point names](BUG-20261003-nt51927-drain-entrypoint-names.md),
+[cancel retry bound](BUG-20261003-nt51927-drain-cancel-retry-bound.md),
+[timeout-orphan assertions](BUG-20261003-nt51927-drain-timeout-orphan-assertions.md).
+Unexplained observation, not shown to be fixed by #538: before the fix, outside runs of the branches `r54b` and
+`r54c` each failed one Bootstrap test with `external-tool.process.cleanup-capacity` under heavy machine load; the
+held-pipe mechanism above is one candidate cause, nothing here proves it.
