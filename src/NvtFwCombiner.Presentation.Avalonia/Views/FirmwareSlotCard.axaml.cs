@@ -78,7 +78,9 @@ public sealed partial class FirmwareSlotCard : UserControl
 
     private void ApplyResponsiveLayout(double width)
     {
-        int columns = width is > 0 and < 480 ? 1 : width is > 0 and < CompactLayoutBreakpoint ? 2 : 3;
+        int columns = width is > 0 and < 480 ? 1
+            : width is > 0 and < CompactLayoutBreakpoint ? 2
+            : width < CompactLayoutBreakpoint / 3 * 4 ? 3 : 4;
         if (FactColumnCount == columns)
         {
             return;

@@ -197,6 +197,9 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
     [ObservableProperty]
     public partial string ExportStatus { get; private set; } = string.Empty;
 
+    [ObservableProperty]
+    public partial bool HasExportFailure { get; private set; }
+
     public IRelayCommand OpenCommand { get; }
 
     public IRelayCommand CloseCommand { get; }
@@ -317,6 +320,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
                 SystemActivityImportance.Debug,
                 SystemActivityCategory.Diagnostics,
                 SystemActivitySeverity.Success));
+            HasExportFailure = false;
             ExportStatus = Text.DiagnosticsExportedLabel;
             NotifyActivityChanged();
         }
@@ -337,6 +341,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
             SystemActivityImportance.Important,
             SystemActivityCategory.Diagnostics,
             SystemActivitySeverity.Error));
+        HasExportFailure = true;
         ExportStatus = Text.DiagnosticsExportFailedLabel;
         NotifyActivityChanged();
     }
@@ -354,6 +359,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
         OnPropertyChanged(nameof(ActivityItems));
         OnPropertyChanged(nameof(SessionActivitySummary));
         OnPropertyChanged(nameof(DebugActivityActionLabel));
+        HasExportFailure = false;
         if (!string.IsNullOrEmpty(ExportStatus))
         {
             ExportStatus = string.Empty;
@@ -376,6 +382,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
     private void Open()
     {
         ExportContextGeneration = checked(ExportContextGeneration + 1);
+        HasExportFailure = false;
         ExportStatus = string.Empty;
         _systemInformation.RecordActivity(new SystemActivityDraft(
             SystemActivityCodes.MessageCenterOpened,
@@ -556,7 +563,11 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
             publicationChanged = reloadCatalog && !StringComparer.Ordinal.Equals(
                 previousPublicationToken,
                 refreshed.PublicationToken);
-            PresentationObserver.Invoke(() => ExportStatus = string.Empty);
+            PresentationObserver.Invoke(() =>
+            {
+                HasExportFailure = false;
+                ExportStatus = string.Empty;
+            });
             NotifySystemStateChanged();
         }
         finally

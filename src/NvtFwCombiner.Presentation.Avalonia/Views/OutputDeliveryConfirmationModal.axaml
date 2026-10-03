@@ -1,6 +1,7 @@
 <UserControl x:Class="NvtFwCombiner.Presentation.Avalonia.Views.OutputDeliveryConfirmationModal"
              xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+             xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
              x:DataType="vm:OutputDeliveryConfirmationViewModel"
              AutomationProperties.Name="{Binding Text.OutputDeliveryTitle}"
              Background="{DynamicResource NfcModalScrimBrush}" Focusable="True"
@@ -75,15 +76,22 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
                       <Border BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
-                      <Grid ColumnDefinitions="110,*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" Margin="0,2">
+                      <Grid ColumnDefinitions="110,*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" Margin="0,2"
+                            Background="Transparent" Focusable="True" AutomationProperties.Name="{Binding FileName}"
+                            behaviors:FocusToolTipBehavior.IsEnabled="True">
+                        <AutomationProperties.HelpText>
+                          <MultiBinding StringFormat="{}{0}&#10;{1}&#10;{2}">
+                            <Binding Path="FileName" /><Binding Path="Size" /><Binding Path="Sha256" />
+                          </MultiBinding>
+                        </AutomationProperties.HelpText>
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace2}">
-                          <TextBlock Text="{Binding Role}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Role}" />
+                          <TextBlock Text="{Binding Role}" TextTrimming="CharacterEllipsis" />
                           <Path Grid.Column="1" Width="12" Height="12" VerticalAlignment="Center" IsVisible="{Binding HasWarning}"
                                 ToolTip.Tip="{Binding Warning}" AutomationProperties.Name="{Binding Warning}"
                                 Data="M12 3L22 20H2L12 3 M12 9V14 M12 17H12.01" Stretch="Uniform"
                                 Stroke="{DynamicResource NfcWarningTextBrush}" StrokeThickness="1.8" />
                         </Grid>
-                        <TextBlock Grid.Column="1" FontWeight="Medium" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FileName}" />
+                        <TextBlock Grid.Column="1" FontWeight="Medium" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{Binding Size}" />
                         <ToolTip.Tip>
                           <StackPanel Spacing="3" MaxWidth="500">
