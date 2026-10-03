@@ -74,6 +74,18 @@ internal static partial class RegularFileGuard
             $"Bundle file '{path}' must be a regular filesystem file.");
     }
 
+    internal static (long Device, long Inode)? ReadUnixIdentity(string path)
+    {
+        if (UnixStat(path, out UnixFileStatus status) == 0)
+        {
+            return (status.Dev, status.Ino);
+        }
+        int error = Marshal.GetLastPInvokeError();
+        // ENOENT/ENOTDIR mean the path is absent, including a concurrent deletion.
+        return error is 2 or 20 ? null
+            : throw new IOException($"Could not inspect local file '{path}' (native error {error}).");
+    }
+
     private static IOException NativeInspectionFailure(string path)
     {
         return new IOException(
@@ -89,6 +101,13 @@ internal static partial class RegularFileGuard
         StringMarshalling = StringMarshalling.Utf8,
         SetLastError = true)]
     private static partial int UnixLStat(string path, out UnixFileStatus status);
+
+    [LibraryImport(
+        "System.Native",
+        EntryPoint = "SystemNative_Stat",
+        StringMarshalling = StringMarshalling.Utf8,
+        SetLastError = true)]
+    private static partial int UnixStat(string path, out UnixFileStatus status);
 
     [LibraryImport("System.Native", EntryPoint = "SystemNative_FStat", SetLastError = true)]
     private static partial int UnixFStat(SafeFileHandle handle, out UnixFileStatus status);

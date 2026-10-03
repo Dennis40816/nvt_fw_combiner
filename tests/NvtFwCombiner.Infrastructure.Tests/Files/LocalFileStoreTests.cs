@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Infrastructure.Tests.Files;
 
 /// <summary>Tests the one bounded report and report-history filesystem adapter.</summary>
-public sealed class LocalFileStoreTests
+public sealed partial class LocalFileStoreTests
 {
     /// <summary>Empty and exact-limit inputs retain their complete text.</summary>
     [Theory]

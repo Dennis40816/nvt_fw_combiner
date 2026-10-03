@@ -18,12 +18,12 @@ public sealed partial class MainWindow
         {
             return;
         }
-        ManagedApplicationStartupResult result = await startup.CompleteStartupAsync(cancellationToken);
+        ManagedApplicationStartupResult result = await startup.CompleteStartupAsync(cancellationToken, isReadOnly: !LaunchCoordinator.Persistence.AllowLocalStateWrites);
         if (!cancellationToken.IsCancellationRequested &&
             DataContext is MainWindowViewModel viewModel)
         {
             viewModel.Settings.ApplyVersionSnapshot(result.Snapshot);
-            viewModel.Settings.SetSourceChecking(result.Snapshot.State?.UpdateSource is not null);
+            viewModel.Settings.SetSourceChecking(LaunchCoordinator.StartVersionDiscovery && result.Snapshot.State?.UpdateSource is not null);
         }
     }
 
@@ -296,12 +296,12 @@ public sealed partial class MainWindow
         {
             if (_preferenceChangedWhileSealed)
             {
-                _shellPreferencePersistence.Queue(dirtyViewModel.ExportShellPreferences());
+                LaunchCoordinator.Persistence.QueueLocalState(() => _shellPreferencePersistence.Queue(LaunchCoordinator.Persistence.ExportPreferences(dirtyViewModel)));
                 _preferenceChangedWhileSealed = false;
             }
             if (_historyChangedWhileSealed)
             {
-                _reportHistoryPersistence.Queue(dirtyViewModel.Reports.ExportReportHistory());
+                LaunchCoordinator.Persistence.QueueLocalState(() => _reportHistoryPersistence.Queue(dirtyViewModel.Reports.ExportReportHistory()));
                 _historyChangedWhileSealed = false;
             }
         }

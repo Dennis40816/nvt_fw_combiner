@@ -8,10 +8,11 @@ public sealed partial class RepositoryBoundaryTests
 
     /// <summary>
     /// Bootstrap and version-manager state retain their separate default resolvers behind one test-process switch;
-    /// Presentation receives the composed directory, and test sources only inject isolated directories.
+    /// Presentation receives the composed directory; test hosts inject isolated directories except the
+    /// read-only real-profile snapshot guard around actual Desktop capture child processes.
     /// </summary>
     [Fact]
-    public void CurrentUserLocalStateHasOneGuardedOwnerThatTestsCannotReach()
+    public void CurrentUserLocalStateHasOneGuardedOwnerAndDeclaredTestReaders()
     {
         string owner = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
         int guard = owner.IndexOf(
@@ -77,10 +78,18 @@ public sealed partial class RepositoryBoundaryTests
             "tests",
             "CompositionHostServices.Create()",
             "ResolveCurrentUserLocalStateDirectory",
-            "SpecialFolder.LocalApplicationData",
             "DefaultHistoryPath",
             "DefaultPreferencesPath");
         Assert.Equal(["tests/NvtFwCombiner.Bootstrap.Tests/LocalStateGuardTests.cs"], reachingTests);
+        Assert.Equal(
+            [
+                "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.cs",
+            ],
+            SourceFilesContaining("tests", "SpecialFolder.LocalApplicationData"));
+        string captureTests = ReadText("tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.cs");
+        Assert.Equal(1, CountOccurrences(captureTests, "SpecialFolder.LocalApplicationData"));
+        Assert.Equal(1, CountOccurrences(captureTests,
+            "Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)"));
     }
 
     private static string[] SourceFilesContaining(string directory, string value)

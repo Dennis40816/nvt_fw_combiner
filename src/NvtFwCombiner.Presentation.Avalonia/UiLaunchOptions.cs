@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -14,7 +15,9 @@ internal sealed partial class UiLaunchOptions
         IReadOnlyList<string> issues,
         CtrlRamLaunchRequest? ctrlRam = null,
         AbMergeLaunchRequest? abMerge = null,
-        StandardMergeLaunchRequest? standardMerge = null)
+        StandardMergeLaunchRequest? standardMerge = null,
+        bool scriptedRequest = false,
+        LaunchParseState? parsed = null)
     {
         Page = page;
         OpenSettings = openSettings;
@@ -24,6 +27,13 @@ internal sealed partial class UiLaunchOptions
         CtrlRam = ctrlRam;
         AbMerge = abMerge;
         StandardMerge = standardMerge;
+        IsScriptedRequest = scriptedRequest;
+        InitializeCapture(parsed);
+        InitializeReportTabs(parsed);
+        InitializeAppearance(parsed);
+        InitializeWorkflowState(parsed);
+        InitializeNavigation(parsed);
+        InitializeUtilities(parsed);
     }
 
     /// <summary>Gets empty launch options.</summary>
@@ -41,7 +51,7 @@ internal sealed partial class UiLaunchOptions
     /// <summary>True when the report modal should open after loading a report.</summary>
     public bool OpenReport { get; }
 
-    /// <summary>Gets startup argument parse issues shown through the report surface.</summary>
+    /// <summary>Gets startup argument issues displayed interactively or refused for scripted requests.</summary>
     public IReadOnlyList<string> Issues { get; }
 
     /// <summary>Explicit input selection only; never grants Preview or Build authority.</summary>
@@ -53,15 +63,22 @@ internal sealed partial class UiLaunchOptions
     /// <summary>Explicit Standard Merge selections inspected through the ordinary Browse owner.</summary>
     public StandardMergeLaunchRequest? StandardMerge { get; }
 
+    /// <summary>Gets whether ordinary firmware input preload was requested.</summary>
     public bool HasStartupInputs => CtrlRam is not null || AbMerge is not null || StandardMerge is not null;
 
-    /// <summary>Parses UI shell startup arguments.</summary>
-    public static UiLaunchOptions Parse(IReadOnlyList<string> args)
+    internal bool HasStartupReportStage => Issues.Count > 0 || !string.IsNullOrWhiteSpace(ReportPath) || OpenReport;
+
+    /// <summary>Parses UI shell startup arguments; capture validation requires the supplied local-file port.</summary>
+    public static UiLaunchOptions Parse(IReadOnlyList<string> args, ILocalFileStore? files = null,
+        IReadOnlyList<string>? protectedInputs = null)
     {
         ArgumentNullException.ThrowIfNull(args);
 
         ShellPage? page = null;
         int pageCount = 0;
+        int reportCount = 0;
+        bool scriptedRequest = RequestsScriptedCompletion(args);
+        var singletonFlags = new HashSet<string>(StringComparer.Ordinal);
         bool openSettings = false;
         string? reportPath = null;
         bool openReport = false;
@@ -69,6 +86,8 @@ internal sealed partial class UiLaunchOptions
         var inputOptions = new Dictionary<string, string>(StringComparer.Ordinal);
         var inputs = new List<CtrlRamLaunchInput>();
         var unknownArguments = new List<string>();
+        var parsed = new LaunchParseState(scriptedRequest, singletonFlags, issues, inputOptions, inputs, unknownArguments);
+        if (protectedInputs is not null) { parsed.ProtectedInputs.AddRange(protectedInputs); }
 
         for (int index = 0; index < args.Count; index++)
         {
@@ -77,10 +96,32 @@ internal sealed partial class UiLaunchOptions
             {
                 continue;
             }
+            bool consumed = false;
+            ConsumeCaptureToken(parsed, args, ref index, ref consumed);
+            ConsumeReportTabsToken(parsed, args, ref index, ref consumed);
+            ConsumeAppearanceToken(parsed, args, ref index, ref consumed);
+            ConsumeWorkflowStateToken(parsed, args, ref index, ref consumed);
+            ConsumeNavigationToken(parsed, args, ref index, ref consumed);
+            ConsumeUtilitiesToken(parsed, args, ref index, ref consumed);
+            if (consumed)
+            {
+                continue;
+            }
+            if (argument == "--open-report")
+            {
+                if (!singletonFlags.Add(argument) && scriptedRequest)
+                {
+                    issues.Add($"Duplicate option '{argument}'.");
+                }
+                openReport = true;
+                continue;
+            }
             if (TrySplitValue(argument, "--page", out string? inlinePage))
             {
                 pageCount++;
-                string? value = inlinePage ?? TakeValue(args, ref index, "--page", issues);
+                string? value = scriptedRequest
+                    ? TakeOptionValue(args, ref index, "--page", inlinePage, issues)
+                    : inlinePage ?? TakeValue(args, ref index, "--page", issues);
                 page = ParsePage(value, issues, out bool settingsRequested);
                 openSettings |= settingsRequested;
                 continue;
@@ -88,21 +129,18 @@ internal sealed partial class UiLaunchOptions
 
             if (TrySplitValue(argument, "--load-report", out string? inlineReport))
             {
+                reportCount++;
                 reportPath = TakeOptionValue(args, ref index, "--load-report", inlineReport, issues);
                 continue;
             }
 
             if (TrySplitValue(argument, "--report", out inlineReport))
             {
+                reportCount++;
                 reportPath = TakeOptionValue(args, ref index, "--report", inlineReport, issues);
                 continue;
             }
 
-            if (string.Equals(argument, "--open-report", StringComparison.Ordinal))
-            {
-                openReport = true;
-                continue;
-            }
             unknownArguments.Add(argument);
         }
 
@@ -118,17 +156,157 @@ internal sealed partial class UiLaunchOptions
             }
         }
 
+        if (scriptedRequest)
+        {
+            foreach (string argument in unknownArguments)
+            {
+                issues.Add($"Unsupported startup argument '{argument}'.");
+            }
+            unknownArguments.Clear();
+            if (reportCount > 1) { issues.Add("Duplicate report option '--load-report'/'--report'."); }
+            ValidateCaptureSyntax(parsed, args);
+            if (openReport && string.IsNullOrWhiteSpace(reportPath))
+            {
+                issues.Add("--open-report requires a loaded report. Pass --load-report <path> or --report <path>.");
+            }
+            if (openSettings && (reportPath is not null || openReport))
+            {
+                issues.Add("--page settings cannot be combined with report loading or --open-report.");
+            }
+        }
+        parsed.Page = page;
+        parsed.OpenSettings = openSettings;
+        parsed.ReportPath = reportPath;
+        parsed.OpenReport = openReport;
+        ValidateReportTabs(parsed, args, files);
+        ValidateAppearance(parsed, args, files);
+        ValidateWorkflowState(parsed, args, files);
+        ValidateNavigation(parsed, args, files);
+        ValidateUtilities(parsed, args, files);
+        ValidateCapture(parsed, args, files);
         if (pageCount > 1) { issues.Add("Duplicate option '--page'."); }
-        bool isAbMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.AbMerge;
-        bool isStandardMerge = inputOptions.GetValueOrDefault("--workflow") == ExperienceIds.StandardMerge;
-        AbMergeLaunchRequest? abMerge = isAbMerge ? ParseAbMergeRequest(
-            inputOptions, page, openSettings, reportPath, openReport, unknownArguments, issues) : null;
-        StandardMergeLaunchRequest? standardMerge = isStandardMerge ? ParseStandardMergeRequest(
-            inputOptions, page, openSettings, reportPath, openReport, unknownArguments, issues) : null;
-        CtrlRamLaunchRequest? ctrlRam = isAbMerge || isStandardMerge ? null : ParseCtrlRamRequest(
-            inputOptions, inputs, page, openSettings, reportPath, openReport, unknownArguments, issues);
-        return new UiLaunchOptions(abMerge is not null || standardMerge is not null ? ShellPage.Merge : ctrlRam is not null ? ShellPage.Replace : page,
-            openSettings, NormalizeBlank(reportPath), openReport, issues, ctrlRam, abMerge, standardMerge);
+        ParseLegacyWorkflowInputs(parsed);
+        return new UiLaunchOptions(parsed.AbMerge is not null || parsed.StandardMerge is not null
+                ? ShellPage.Merge : parsed.CtrlRam is not null ? ShellPage.Replace : parsed.Page,
+            parsed.OpenSettings, NormalizeBlank(parsed.ReportPath), parsed.OpenReport, issues,
+            parsed.CtrlRam, parsed.AbMerge, parsed.StandardMerge, scriptedRequest, parsed);
+    }
+
+    private static void ParseLegacyWorkflowInputs(LaunchParseState parsed)
+    {
+        if (parsed.WorkflowInputs == WorkflowInputDisposition.LeaveSetupUnconfirmed)
+        {
+            return;
+        }
+        bool isAbMerge = parsed.InputOptions.GetValueOrDefault("--workflow") == ExperienceIds.AbMerge;
+        bool isStandardMerge = parsed.InputOptions.GetValueOrDefault("--workflow") == ExperienceIds.StandardMerge;
+        parsed.AbMerge = isAbMerge ? ParseAbMergeRequest(
+            parsed.InputOptions, parsed.Page, parsed.OpenSettings, parsed.ReportPath, parsed.OpenReport,
+            parsed.UnknownArguments, parsed.Issues) : null;
+        parsed.StandardMerge = isStandardMerge ? ParseStandardMergeRequest(
+            parsed.InputOptions, parsed.Page, parsed.OpenSettings, parsed.ReportPath, parsed.OpenReport,
+            parsed.UnknownArguments, parsed.Issues) : null;
+        parsed.CtrlRam = isAbMerge || isStandardMerge ? null : ParseCtrlRamRequest(
+            parsed.InputOptions, parsed.CtrlRamInputs, parsed.Page, parsed.OpenSettings, parsed.ReportPath, parsed.OpenReport,
+            parsed.UnknownArguments, parsed.Issues);
+    }
+
+    static partial void ConsumeCaptureToken(LaunchParseState parsed, IReadOnlyList<string> args, ref int index, ref bool consumed);
+    static partial void ValidateCaptureSyntax(LaunchParseState parsed, IReadOnlyList<string> args);
+    static partial void ValidateCapture(LaunchParseState parsed, IReadOnlyList<string> args, ILocalFileStore? files);
+    partial void InitializeCapture(LaunchParseState? parsed);
+    static partial void AppendCaptureHelp(List<string> entries);
+
+    static partial void ConsumeReportTabsToken(LaunchParseState parsed, IReadOnlyList<string> args, ref int index, ref bool consumed);
+    static partial void ValidateReportTabs(LaunchParseState parsed, IReadOnlyList<string> args, ILocalFileStore? files);
+    partial void InitializeReportTabs(LaunchParseState? parsed);
+    static partial void AppendReportTabsHelp(List<string> entries);
+
+    static partial void ConsumeAppearanceToken(LaunchParseState parsed, IReadOnlyList<string> args, ref int index, ref bool consumed);
+    static partial void ValidateAppearance(LaunchParseState parsed, IReadOnlyList<string> args, ILocalFileStore? files);
+    partial void InitializeAppearance(LaunchParseState? parsed);
+    static partial void AppendAppearanceHelp(List<string> entries);
+
+    static partial void ConsumeWorkflowStateToken(LaunchParseState parsed, IReadOnlyList<string> args, ref int index, ref bool consumed);
+    static partial void ValidateWorkflowState(LaunchParseState parsed, IReadOnlyList<string> args, ILocalFileStore? files);
+    partial void InitializeWorkflowState(LaunchParseState? parsed);
+    static partial void AppendWorkflowStateHelp(List<string> entries);
+
+    static partial void ConsumeNavigationToken(LaunchParseState parsed, IReadOnlyList<string> args, ref int index, ref bool consumed);
+    static partial void ValidateNavigation(LaunchParseState parsed, IReadOnlyList<string> args, ILocalFileStore? files);
+    partial void InitializeNavigation(LaunchParseState? parsed);
+    static partial void AppendNavigationHelp(List<string> entries);
+
+    static partial void ConsumeUtilitiesToken(LaunchParseState parsed, IReadOnlyList<string> args, ref int index, ref bool consumed);
+    static partial void ValidateUtilities(LaunchParseState parsed, IReadOnlyList<string> args, ILocalFileStore? files);
+    partial void InitializeUtilities(LaunchParseState? parsed);
+    static partial void AppendUtilitiesHelp(List<string> entries);
+
+    private enum WorkflowInputDisposition { LoadInputs, LeaveSetupUnconfirmed }
+
+    private sealed partial class LaunchParseState(bool scripted, HashSet<string> singletonFlags, List<string> issues,
+        Dictionary<string, string> inputOptions, List<CtrlRamLaunchInput> ctrlRamInputs, List<string> unknownArguments)
+    {
+        internal bool Scripted { get; } = scripted;
+        internal HashSet<string> SingletonFlags { get; } = singletonFlags;
+        internal List<string> Issues { get; } = issues;
+        internal ShellPage? Page { get; set; }
+        internal bool OpenSettings { get; set; }
+        internal string? ReportPath { get; set; }
+        internal bool OpenReport { get; set; }
+        internal Dictionary<string, string> InputOptions { get; } = inputOptions;
+        internal List<CtrlRamLaunchInput> CtrlRamInputs { get; } = ctrlRamInputs;
+        internal List<string> UnknownArguments { get; } = unknownArguments;
+        internal bool HasInputOptions => InputOptions.Count > 0;
+        internal WorkflowInputDisposition WorkflowInputs { get; set; } = WorkflowInputDisposition.LoadInputs;
+        internal CtrlRamLaunchRequest? CtrlRam { get; set; }
+        internal AbMergeLaunchRequest? AbMerge { get; set; }
+        internal StandardMergeLaunchRequest? StandardMerge { get; set; }
+        internal bool CaptureTargetSupported { get; set; }
+        internal List<string> ProtectedInputs { get; } = [];
+    }
+
+    internal bool IsScriptedRequest { get; }
+
+    internal static bool RequestsScriptedCompletion(IReadOnlyList<string> args)
+    {
+        return args.Any(IsScriptedArgument);
+    }
+
+    private static bool IsScriptedArgument(string argument)
+    {
+        return argument is "--capture" or "--help" ||
+            argument.StartsWith("--capture=", StringComparison.Ordinal) ||
+            argument.StartsWith("--help=", StringComparison.Ordinal);
+    }
+
+    private const string CoreUsage = """
+        Usage: NvtFwCombiner.Desktop [options]
+          --page home|merge|replace|hex-editor|settings
+          --load-report <json-path>            Load a saved report (alias: --report).
+          --open-report                       Open the loaded report modal.
+          --workflow standard-merge|ab-merge|ctrlram-replace
+          --ic <catalog-id> --ic-num <count>   Required input-preload context.
+          --dp <bin-path> --tp <bin-path>      Standard Merge inputs.
+          --dp <bin-path> --tp-a <bin-path> --tp-b <bin-path>
+                                              AB Merge inputs.
+          --base <bin-path> --ctrlram <slot-id>=<bin-path>
+                                              CtrlRAM inputs; distinct slots may repeat.
+        """;
+
+    internal static string Usage
+    {
+        get
+        {
+            List<string> entries = [CoreUsage];
+            AppendCaptureHelp(entries);
+            AppendReportTabsHelp(entries);
+            AppendAppearanceHelp(entries);
+            AppendWorkflowStateHelp(entries);
+            AppendNavigationHelp(entries);
+            AppendUtilitiesHelp(entries);
+            return string.Join(Environment.NewLine, entries);
+        }
     }
 
     private static bool TrySplitValue(string argument, string option, out string? value)
@@ -169,7 +347,7 @@ internal sealed partial class UiLaunchOptions
         List<string> issues)
     {
         string? value = inlineValue ?? TakeValue(args, ref index, option, issues);
-        if (inlineValue is not null && string.IsNullOrWhiteSpace(inlineValue))
+        if (value is not null && (inlineValue is not null || RequestsScriptedCompletion(args)) && string.IsNullOrWhiteSpace(value))
         {
             issues.Add($"{option} requires a value.");
         }

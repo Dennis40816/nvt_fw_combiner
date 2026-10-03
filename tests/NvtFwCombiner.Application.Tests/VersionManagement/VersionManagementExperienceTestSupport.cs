@@ -100,6 +100,7 @@ internal static partial class VersionManagementExperienceTestSupport
     internal sealed class MemoryStateStore(VersionManagerState state) : IVersionManagerStateStore
     {
         internal int SaveCount { get; private set; }
+        internal int WriteLeaseCount { get; private set; }
 
         internal VersionManagerState State { get; private set; } = state;
 
@@ -112,6 +113,7 @@ internal static partial class VersionManagementExperienceTestSupport
             TimeSpan waitTimeout,
             CancellationToken cancellationToken)
         {
+            WriteLeaseCount++;
             return ValueTask.FromResult(VersionManagerWriteLeaseTestSupport.Acquired());
         }
 

@@ -18,7 +18,8 @@ public sealed partial class VersionManagementExperience
     }
 
     private async ValueTask<VersionManagementSnapshot> ReloadDurableCurrentWithoutLockAsync(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool recoverPendingMutation = true)
     {
         VersionManagementSnapshot? prior = _current;
         bool isRecoveringSourceAuthority = prior is null || !HasUsableAuthority(prior);
@@ -33,13 +34,13 @@ public sealed partial class VersionManagementExperience
                 ? EmptyState()
                 : null;
         bool launcherFenceUnavailable = false;
-        if (state?.PendingMutation is not null &&
+        if (recoverPendingMutation && state?.PendingMutation is not null &&
             await LoadClearLauncherFenceAsync(cancellationToken).ConfigureAwait(false) is null)
         {
             state = null;
             launcherFenceUnavailable = true;
         }
-        else if (state?.PendingMutation is not null)
+        else if (recoverPendingMutation && state?.PendingMutation is not null)
         {
             state = await ReconcilePendingMutationAsync(state, cancellationToken).ConfigureAwait(false);
         }

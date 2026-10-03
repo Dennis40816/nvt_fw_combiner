@@ -113,13 +113,6 @@ public sealed partial class MainWindow
         }
     }
 
-    private static bool HasStartupReportStage(UiLaunchOptions launchOptions)
-    {
-        return launchOptions.Issues.Count > 0 ||
-            !string.IsNullOrWhiteSpace(launchOptions.ReportPath) ||
-            launchOptions.OpenReport;
-    }
-
     internal static async Task ApplyStartupReportAsync(
         MainWindowViewModel viewModel,
         ILocalFileStore reportFiles,

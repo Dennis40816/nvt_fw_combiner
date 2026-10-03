@@ -169,5 +169,27 @@ public sealed class ReportFileLoadingTests
         {
             return ValueTask.FromException(new NotSupportedException());
         }
+
+        public ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteOptions options, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteMode mode, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

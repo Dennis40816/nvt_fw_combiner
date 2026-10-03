@@ -51,18 +51,41 @@ internal static class Program
             return 22;
         }
 
-        string localStateDirectory = CompositionHostServices.ResolveCurrentUserLocalStateDirectory();
-        return DesktopApplication.Run(
-            () => CreatePresentationHostServices(
-                managedRoot,
-                statePath,
-                bootstrapIdentity,
-                updateSourceRegistryPaths,
-                applicationReady,
-                localStateDirectory),
-            CompositionHostServices.CreateLocalFileStore(),
-            localStateDirectory,
-            remaining);
+        try
+        {
+            string localStateDirectory = CompositionHostServices.ResolveCurrentUserLocalStateDirectory();
+            return DesktopApplication.Run(
+                () => CreatePresentationHostServices(
+                    managedRoot,
+                    statePath,
+                    bootstrapIdentity,
+                    updateSourceRegistryPaths,
+                    applicationReady,
+                    localStateDirectory),
+                CompositionHostServices.CreateLocalFileStore(),
+                localStateDirectory,
+                remaining,
+                GetCaptureProtectedInputs(remaining, statePath,
+                    registryLocatorSupplied || !string.IsNullOrWhiteSpace(
+                        Environment.GetEnvironmentVariable(UpdateSourceRegistryLocator.EnvironmentVariableName)),
+                    updateSourceRegistryPaths));
+        }
+        catch (Exception exception) when (remaining.Any(static arg =>
+            arg == "--capture" || arg.StartsWith("--capture=", StringComparison.Ordinal)))
+        {
+            Console.Error.WriteLine($"startup request '{string.Join(" ", remaining)}': {exception.Message}");
+            return 70;
+        }
+    }
+
+    internal static IReadOnlyList<string> GetCaptureProtectedInputs(
+        string[] args, string? statePath, bool registryOverrideSupplied, IReadOnlyList<string> registryPaths)
+    {
+        return args.Any(static arg => arg == "--capture" || arg.StartsWith("--capture=", StringComparison.Ordinal))
+            ? [statePath ?? JsonVersionManagerStateStore.GetDefaultPath(),
+                .. (registryOverrideSupplied ? registryPaths : []).Where(static path =>
+                    !Uri.TryCreate(path, UriKind.Absolute, out Uri? uri) || uri.IsFile)]
+            : [];
     }
 
     private static PresentationHostServices CreatePresentationHostServices(

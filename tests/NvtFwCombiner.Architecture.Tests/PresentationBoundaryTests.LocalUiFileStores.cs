@@ -42,6 +42,7 @@ public sealed partial class PresentationBoundaryTests
         AssertContainsAll(stores, "internal const long MaximumPreferencesFileBytes = 64L * 1024;",
             "MaximumPreferencesFileBytes,");
         AssertDoesNotContainAny(stores, "File.", "JsonSerializerOptions");
+        AssertDoesNotContainAny(ReadPresentationSources(), "DllImport(", "LibraryImport(");
         AssertContainsAll(codec, "JsonSerializerOptions", "JsonSerializer.DeserializeAsync");
         AssertContainsAll(mainWindow, "_reportHistoryPersistence.Queue", "_shellPreferencePersistence.Queue",
             "e.Cancel = true", "IsEnabled = false", "CloseAttempt = RunCloseAttemptAsync();");

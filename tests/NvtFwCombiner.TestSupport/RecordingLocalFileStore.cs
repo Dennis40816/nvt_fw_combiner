@@ -61,4 +61,32 @@ public sealed class RecordingLocalFileStore : ILocalFileStore
         _writes.Enqueue(Path.GetFullPath(path));
         return ValueTask.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(false);
+    }
+
+    /// <inheritdoc />
+    public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+        LocalFileWriteMode mode, CancellationToken cancellationToken)
+    {
+        return WriteAsync(path, bytes, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+        LocalFileWriteOptions options, CancellationToken cancellationToken)
+    {
+        return WriteAsync(path, bytes, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(new LocalFileDestinationInfo(true, false, false, true));
+    }
 }

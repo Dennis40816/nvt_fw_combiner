@@ -248,5 +248,27 @@ public sealed partial class RunReportsListTests
         {
             return new LocalFileStore().WriteAsync(path, bytes, new CancellationToken(canceled: true));
         }
+
+        public ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteOptions options, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteMode mode, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

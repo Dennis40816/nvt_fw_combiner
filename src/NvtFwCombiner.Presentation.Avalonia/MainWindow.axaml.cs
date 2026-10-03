@@ -37,6 +37,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isDisposed;
     private bool _isStartupLoadStarted;
     private bool _isStartupDurationReported;
+    internal DesktopLaunchCoordinator LaunchCoordinator { get; }
 
     /// <summary>Initializes the XAML loader constructor; production supplies explicit startup state.</summary>
     public MainWindow()
@@ -110,7 +111,9 @@ public sealed partial class MainWindow : Window, IDisposable
         _preloadSession = new(
             stage => PresentPreloadStage(viewModel, stage),
             viewModel.Text,
-            HasStartupReportStage(_launchOptions));
+            _launchOptions.HasStartupReportStage);
+        LaunchCoordinator = new(this, launchOptions, startupTrace, hostServices, _preloadSession, viewModel, () => { _isExitConfirmed = true; Close(); });
+        viewModel.Reports.Persistence = LaunchCoordinator.Persistence;
         _preloadLoading = new(RetryStartupPreloadAsync, CancelStartupAsync);
         _preloadSession.SetReducedMotion(viewModel.IsReducedMotionEnabled);
         _startupTrace.Mark("shell-view-model.created");
@@ -158,6 +161,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
 
         e.Cancel = true;
+        _isExitConfirmed |= LaunchCoordinator.CaptureSession.CancelForClose();
         if (ClosePhase != WindowClosePhase.Open || _isDisposed)
         {
             base.OnClosing(e);
@@ -246,7 +250,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _isStartupLoadStarted = true;
         CancellationToken startupCancellation = _startupLoadCancellation.Token;
         CatalogLoadingSurfaceHost.Content = _preloadLoading;
-        StartupWork = RunStartupAfterOpenedAsync(viewModel, startupCancellation);
+        StartupWork = LaunchCoordinator.GuardStartup(RunStartupAfterOpenedAsync(viewModel, startupCancellation), startupCancellation);
         ObserveSessionTask(StartupWork);
     }
 
@@ -262,11 +266,13 @@ public sealed partial class MainWindow : Window, IDisposable
         catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
         {
             CompleteStartupTrace("startup-warmup.cancelled");
+            LaunchCoordinator.CaptureSession.CompleteCapture(70, "preload", "Startup was cancelled.");
         }
         catch (Exception exception)
         {
             Trace.TraceError("Startup preload failed: {0}", exception);
             CompleteStartupTrace("startup-warmup.failed");
+            LaunchCoordinator.CaptureSession.CompleteCapture(70, "preload", exception.Message);
         }
     }
 
@@ -279,16 +285,16 @@ public sealed partial class MainWindow : Window, IDisposable
             return;
         }
 
-        await LoadStartupInputsAsync(viewModel, startupCancellation);
+        await LaunchCoordinator.BeforeInputsAsync(() => LoadStartupInputsAsync(viewModel, startupCancellation), startupCancellation);
         if (startupCancellation.IsCancellationRequested) { return; }
         ReportStartupDuration(viewModel);
         await ReportManagedApplicationReadyAsync(startupCancellation);
         if (startupCancellation.IsCancellationRequested) { return; }
-        ObserveSessionTask(RunVersionDiscoveryAfterReadyAsync(startupCancellation));
+        if (LaunchCoordinator.StartVersionDiscovery) { ObserveSessionTask(RunVersionDiscoveryAfterReadyAsync(startupCancellation)); }
 
         try
         {
-            await _preloadSession.RunOptionalStagesAsync(
+            await LaunchCoordinator.RunOptionalStagesAsync(work => _preloadSession.RunOptionalStagesAsync(work, startupCancellation),
                 new(
                     () =>
                     {
@@ -302,7 +308,7 @@ public sealed partial class MainWindow : Window, IDisposable
                                 ReportHistoryFileStore.PathIn(_hostServices.LocalStateDirectory),
                                 token),
                             cancellationToken)),
-                    HasStartupReportStage(_launchOptions)
+                    _launchOptions.HasStartupReportStage
                         ? (progress, cancellationToken) => ApplyStartupReportAsync(
                             viewModel,
                             _hostServices.LocalFiles,
@@ -329,7 +335,7 @@ public sealed partial class MainWindow : Window, IDisposable
                             cancellationToken)),
                 startupCancellation);
             ShellPreloadStageState history = _preloadSession.Stage(ShellPreloadSession.HistoryStageId).State;
-            bool hasStartupReport = HasStartupReportStage(_launchOptions);
+            bool hasStartupReport = _launchOptions.HasStartupReportStage;
             ShellPreloadStageState report = hasStartupReport
                 ? _preloadSession.Stage(ShellPreloadSession.ReportStageId).State
                 : ShellPreloadStageState.Succeeded;
@@ -410,7 +416,7 @@ public sealed partial class MainWindow : Window, IDisposable
             CompleteStartupTrace("startup-warmup.cancelled");
             return false;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (_launchOptions.CapturePath is null)
         {
             Trace.TraceWarning("Canonical catalog warm-up did not complete: {0}", exception.Message);
             _startupTrace.MarkProfileAdmission(_hostServices.SystemInformation.BuiltInProfileAdmission);
@@ -590,7 +596,7 @@ public sealed partial class MainWindow : Window, IDisposable
             }
             else if (!_isDisposed)
             {
-                _shellPreferencePersistence.Queue(viewModel.ExportShellPreferences());
+                LaunchCoordinator.Persistence.QueueLocalState(() => _shellPreferencePersistence.Queue(LaunchCoordinator.Persistence.ExportPreferences(viewModel)));
             }
         }
 
@@ -664,7 +670,7 @@ public sealed partial class MainWindow : Window, IDisposable
             }
             else if (!_isDisposed)
             {
-                _reportHistoryPersistence.Queue(reports.ExportReportHistory());
+                LaunchCoordinator.Persistence.QueueLocalState(() => _reportHistoryPersistence.Queue(reports.ExportReportHistory()));
             }
         }
 

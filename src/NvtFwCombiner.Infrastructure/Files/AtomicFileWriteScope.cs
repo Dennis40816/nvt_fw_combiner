@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Ports;
+
 namespace NvtFwCombiner.Infrastructure.Files;
 
 /// <summary>One verified parent-directory authority held through atomic promotion.</summary>
@@ -5,6 +7,11 @@ internal interface IAtomicFileWriteScope : IDisposable
 {
     ValueTask WriteAsync(
         ReadOnlyMemory<byte> documentBytes,
+        CancellationToken cancellationToken);
+
+    ValueTask WriteAsync(
+        ReadOnlyMemory<byte> documentBytes,
+        LocalFileWriteMode mode,
         CancellationToken cancellationToken);
 }
 

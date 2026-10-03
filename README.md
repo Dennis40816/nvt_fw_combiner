@@ -96,6 +96,22 @@ automatic selections. Already loaded inputs remain visible for review or manual
 correction. No files are read until the canonical catalog is ready, and ordinary
 interactive startup is unchanged when these input options are absent.
 
+Capture currently supports only an opened saved run report and closes when finished:
+
+```cmd
+start /wait "" NvtFwCombiner.Desktop.exe --report run.json --open-report --capture report.png 2>capture-errors.txt
+echo %ERRORLEVEL%
+type capture-errors.txt
+```
+
+Desktop is a WinExe; wait for the process and redirect stderr to collect diagnostics.
+`--help` alone prints usage and exits `0`; redirect stdout to a file to read it from cmd.
+Use a new `.png` in an existing parent folder given by its real path;
+add `--overwrite-capture` for atomic replacement, subject to [SPEC.md](SPEC.md)'s protected-path rules.
+Capture exits: `0` committed PNG; `1` expected load/draw/save failure; `64` refused request;
+`70` unexpected exception, cancellation or the 300-second capture deadline.
+Strict UI parsing and these capture/help exit codes apply only when `--capture` or `--help` is present.
+
 ## Deploy a published version to an update source
 
 Use one Windows command after the exact stable GitHub Release exists. The

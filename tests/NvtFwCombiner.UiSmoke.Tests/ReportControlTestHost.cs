@@ -92,5 +92,29 @@ internal static class ReportControlTestHost
         {
             return inner.WriteAsync(Admit(path), bytes, cancellationToken);
         }
+
+        public ValueTask<LocalFileDestinationInfo> InspectDestinationAsync(string path, CancellationToken cancellationToken)
+        {
+            return inner.InspectDestinationAsync(Admit(path), cancellationToken);
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteOptions options, CancellationToken cancellationToken)
+        {
+            return options.RequireExistingParent ? inner.WriteAsync(Admit(path), bytes, options, cancellationToken)
+                : WriteAsync(path, bytes, options.Mode, cancellationToken);
+        }
+
+        public ValueTask<bool> RefersToSameFileAsync(string first, string second, CancellationToken cancellationToken)
+        {
+            return inner.RefersToSameFileAsync(Admit(first), Admit(second), cancellationToken);
+        }
+
+        public ValueTask WriteAsync(string path, ReadOnlyMemory<byte> bytes,
+            LocalFileWriteMode mode, CancellationToken cancellationToken)
+        {
+            return mode == LocalFileWriteMode.ReplaceExisting ? WriteAsync(path, bytes, cancellationToken)
+                : inner.WriteAsync(Admit(path), bytes, mode, cancellationToken);
+        }
     }
 }

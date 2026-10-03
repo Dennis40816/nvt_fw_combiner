@@ -9,8 +9,10 @@ public sealed record ManagedApplicationStartupResult(
 public interface IManagedApplicationStartupCoordinator
 {
     /// <summary>Reports READY once and loads the exact durable version state.</summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="isReadOnly">Preserves READY signaling but forbids initialization writes and recovery.</param>
     ValueTask<ManagedApplicationStartupResult> CompleteStartupAsync(
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken, bool isReadOnly = false);
 }
 
 /// <summary>Coordinates the managed child READY handoff with the launcher's exact state-path lease.</summary>
@@ -33,12 +35,14 @@ public sealed class ManagedApplicationStartupCoordinator : IManagedApplicationSt
 
     /// <inheritdoc />
     public async ValueTask<ManagedApplicationStartupResult> CompleteStartupAsync(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool isReadOnly = false)
     {
         ApplicationReadySignalOutcome ready = await _readySignal.ReportReadyAsync(
             _applicationVersion,
             cancellationToken).ConfigureAwait(false);
-        VersionManagementSnapshot snapshot = ready == ApplicationReadySignalOutcome.Reported
+        VersionManagementSnapshot snapshot = isReadOnly
+            ? await _versionManagement.InitializeAsync(cancellationToken, isReadOnly: true).ConfigureAwait(false)
+            : ready == ApplicationReadySignalOutcome.Reported
             ? await _versionManagement.InitializeAfterManagedReadyAsync(
                 cancellationToken).ConfigureAwait(false)
             : await _versionManagement.InitializeAsync(cancellationToken).ConfigureAwait(false);

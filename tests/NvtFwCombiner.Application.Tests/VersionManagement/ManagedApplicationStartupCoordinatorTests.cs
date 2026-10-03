@@ -26,6 +26,7 @@ public sealed class ManagedApplicationStartupCoordinatorTests
         Assert.Equal(version, signal.ReportedVersion);
         Assert.Equal(outcome, result.ReadySignalOutcome);
         Assert.Equal("durable", result.Snapshot.State!.UpdateSource);
+        Assert.Equal(0, experience.ReadOnlyInitializations);
         if (outcome == ApplicationReadySignalOutcome.Reported)
         {
             Assert.Equal(0, experience.ImmediateInitializations);
@@ -36,6 +37,31 @@ public sealed class ManagedApplicationStartupCoordinatorTests
             Assert.Equal(1, experience.ImmediateInitializations);
             Assert.False(experience.ManagedReadyInitialization);
         }
+    }
+
+    /// <summary>Capture reports READY for every outcome, then reads without selecting either writer initialization.</summary>
+    [Theory]
+    [InlineData(ApplicationReadySignalOutcome.NotInherited)]
+    [InlineData(ApplicationReadySignalOutcome.InvalidInheritedContext)]
+    [InlineData(ApplicationReadySignalOutcome.WriteFailed)]
+    [InlineData(ApplicationReadySignalOutcome.Reported)]
+    public async Task ReadOnlyStartupPreservesReadySignalWithoutWriterInitialization(ApplicationReadySignalOutcome outcome)
+    {
+        ManagedAppVersion version = ManagedAppVersion.Parse("0.10.6");
+        VersionManagementSnapshot snapshot = Snapshot("durable");
+        var signal = new FixedReadySignal(outcome);
+        var experience = new RecordingExperience(snapshot);
+        var coordinator = new ManagedApplicationStartupCoordinator(version, signal, experience);
+
+        ManagedApplicationStartupResult result = await coordinator.CompleteStartupAsync(
+            TestContext.Current.CancellationToken, isReadOnly: true);
+
+        Assert.Equal(version, signal.ReportedVersion);
+        Assert.Equal(1, signal.ReportCount);
+        Assert.Equal(new ManagedApplicationStartupResult(outcome, snapshot), result);
+        Assert.Equal(1, experience.ReadOnlyInitializations);
+        Assert.Equal(0, experience.ImmediateInitializations);
+        Assert.False(experience.ManagedReadyInitialization);
     }
 
     /// <summary>The managed READY path waits on the existing lease owner and reloads state committed before release.</summary>
@@ -144,6 +170,7 @@ public sealed class ManagedApplicationStartupCoordinatorTests
         : IApplicationReadySignal
     {
         internal ManagedAppVersion? ReportedVersion { get; private set; }
+        internal int ReportCount { get; private set; }
 
         public ValueTask<ApplicationReadySignalOutcome> ReportReadyAsync(
             ManagedAppVersion version,
@@ -151,6 +178,7 @@ public sealed class ManagedApplicationStartupCoordinatorTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             ReportedVersion = version;
+            ReportCount++;
             return ValueTask.FromResult(outcome);
         }
     }
@@ -159,13 +187,15 @@ public sealed class ManagedApplicationStartupCoordinatorTests
         : IVersionManagementExperience
     {
         internal int ImmediateInitializations { get; private set; }
+        internal int ReadOnlyInitializations { get; private set; }
 
         internal bool ManagedReadyInitialization { get; private set; }
 
-        public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
+        public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken, bool isReadOnly = false)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ImmediateInitializations++;
+            if (isReadOnly) { ReadOnlyInitializations++; }
+            else { ImmediateInitializations++; }
             return ValueTask.FromResult(snapshot);
         }
 

@@ -520,7 +520,7 @@ public sealed partial class VersionManagementSettingsTests
 
         internal int Checks { get; private set; }
 
-        public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken)
+        public ValueTask<VersionManagementSnapshot> InitializeAsync(CancellationToken cancellationToken, bool isReadOnly = false)
         {
             return ValueTask.FromResult(Current);
         }

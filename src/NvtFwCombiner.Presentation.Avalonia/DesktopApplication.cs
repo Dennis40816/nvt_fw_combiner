@@ -15,21 +15,104 @@ public static class DesktopApplication
     /// <param name="startupFiles">Bounded file adapter for startup work that precedes host composition.</param>
     /// <param name="localStateDirectory">Executable-composed directory that holds the shell preferences.</param>
     /// <param name="args">Remaining command-line arguments.</param>
+    /// <param name="protectedInputs">Resolved local inputs consumed by the executable before UI parsing.</param>
     public static int Run(
         Func<PresentationHostServices> hostServicesFactory,
         ILocalFileStore startupFiles,
         string localStateDirectory,
-        string[] args)
+        string[] args,
+        IReadOnlyList<string>? protectedInputs = null)
     {
         ArgumentNullException.ThrowIfNull(hostServicesFactory);
         ArgumentNullException.ThrowIfNull(startupFiles);
         ArgumentException.ThrowIfNullOrWhiteSpace(localStateDirectory);
         ArgumentNullException.ThrowIfNull(args);
-        UiLaunchOptions launchOptions = UiLaunchOptions.Parse(args);
-        // The executable rejects unusable managed/inherited context before this call.
-        // UI option issues remain usable launch state and are shown by the startup report stage.
+        UiLaunchOptions launchOptions;
+        try
+        {
+            launchOptions = UiLaunchOptions.Parse(args, startupFiles, protectedInputs);
+        }
+        catch (Exception exception) when (UiLaunchOptions.RequestsScriptedCompletion(args))
+        {
+            Console.Error.WriteLine($"validation startup request '{string.Join(" ", args)}': {exception.Message}");
+            return 70;
+        }
+        return DispatchLaunch(launchOptions, Console.Out, Console.Error, startupTrace =>
+            RunValidatedDesktop(hostServicesFactory, startupFiles, localStateDirectory, args, launchOptions, startupTrace));
+    }
 
-        var startupTrace = StartupTraceSession.StartFromEnvironment();
+    internal static int DispatchLaunch(UiLaunchOptions options, TextWriter output, TextWriter error,
+        Func<StartupTraceSession, int> runDesktop)
+    {
+        // Public completion precedes tracing, preferences, composition and window creation.
+        if (CompletePublicRequest(options, output, error) is { } terminal)
+        {
+            return terminal;
+        }
+        StartupTraceSession trace = options.CapturePath is null
+            ? StartupTraceSession.StartFromEnvironment() : StartupTraceSession.Disabled;
+        return runDesktop(trace);
+    }
+
+    private static int RunValidatedDesktop(
+        Func<PresentationHostServices> hostServicesFactory, ILocalFileStore startupFiles,
+        string localStateDirectory, string[] args, UiLaunchOptions launchOptions, StartupTraceSession startupTrace)
+    {
+        if (launchOptions.CapturePath is { } capturePath)
+        {
+            try
+            {
+                DesktopScreenshotCapture.RefuseLocalStateAliasesAsync(
+                    startupFiles, capturePath, localStateDirectory, CancellationToken.None).AsTask().GetAwaiter().GetResult();
+            }
+            catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
+            {
+                Console.Error.WriteLine($"validation --capture '{capturePath}': {exception.Message}");
+                return 64;
+            }
+            catch (Exception exception)
+            {
+                Console.Error.WriteLine($"validation --capture '{capturePath}': {exception.Message}");
+                return 70;
+            }
+        }
+        try
+        {
+            return RunDesktop(hostServicesFactory, startupFiles, localStateDirectory, args, launchOptions, startupTrace);
+        }
+        catch (Exception exception) when (launchOptions.CapturePath is not null)
+        {
+            Console.Error.WriteLine($"startup --capture '{launchOptions.CapturePath}'{DesktopScreenshotCapture.DescribeProtectedInputs(launchOptions.ProtectedInputs)}: {exception.Message}");
+            return 70;
+        }
+    }
+
+    internal static int? CompletePublicRequest(UiLaunchOptions options, TextWriter output, TextWriter error)
+    {
+        if (options.IsScriptedRequest && options.Issues.Count > 0)
+        {
+            foreach (string issue in options.Issues)
+            {
+                error.WriteLine($"validation: {issue}");
+            }
+            return 64;
+        }
+        if (options.Help)
+        {
+            output.WriteLine(UiLaunchOptions.Usage);
+            return 0;
+        }
+        return null;
+    }
+
+    private static int RunDesktop(
+        Func<PresentationHostServices> hostServicesFactory,
+        ILocalFileStore startupFiles,
+        string localStateDirectory,
+        string[] args,
+        UiLaunchOptions launchOptions,
+        StartupTraceSession startupTrace)
+    {
         startupTrace.Mark("launch-options.parsed");
         (PresentationHostServices hostServices, Task<ShellPreferenceSnapshot> shellPreferences) =
             PrepareStartup(
