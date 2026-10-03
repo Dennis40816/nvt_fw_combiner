@@ -95,11 +95,11 @@ internal sealed partial class AbMergeAuthoringExperience
                 capability.ResolutionToken, acceptedSession.AuthoringRevision, 0, unavailable, unavailable);
         }
 
-        RuntimeDependencyReadinessRequest request =
+        var request =
             RuntimeDependencyReadinessRequest.FromResolvedCapability(
                 capability,
                 acceptedSession.AuthoringRevision);
-        CapabilityAdmissionSnapshot admission =
+        var admission =
             CapabilityAdmissionSnapshot.FromResolvedCapability(
                 capability,
                 acceptedSession.AuthoringRevision);

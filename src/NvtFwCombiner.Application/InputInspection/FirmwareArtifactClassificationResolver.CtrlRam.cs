@@ -24,7 +24,7 @@ internal sealed partial class FirmwareArtifactClassificationResolver
         ReadOnlyMemory<byte> candidate, CtrlRamAuthoringDraftState? draft, ICtrlRamAuthoringAdapter adapter)
     {
         CanonicalCapabilityCatalogSnapshot? publication = _catalog.TryGetCurrentSnapshot();
-        FileStamp referenceStamp = FileStamp.FromBytes(candidate.Span);
+        var referenceStamp = FileStamp.FromBytes(candidate.Span);
         string ic = IcIdentifier.Normalize(icId);
         if (publication is null || (exactCapability is not null && !IsCurrentCapability(publication, ic, exactCapability)))
         {

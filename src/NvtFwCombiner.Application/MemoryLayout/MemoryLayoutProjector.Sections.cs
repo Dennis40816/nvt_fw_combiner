@@ -118,12 +118,12 @@ public static partial class MemoryLayoutProjector
                 region.Owner is FirmwareRegionOwner.Tp or FirmwareRegionOwner.Dp &&
                 output.Contains(region.Range)),
         ];
-        Dictionary<string, FirmwareRegion> byId = map.Regions.ToDictionary(static region => region.RegionId);
+        var byId = map.Regions.ToDictionary(static region => region.RegionId);
         codes = [.. codes.Where(region => !HasAncestor(region, codes, byId, sameOwner: true))];
         FirmwareRegion[] fields = [.. map.Regions.Where(region => region.Owner == FirmwareRegionOwner.Dp &&
             region.Kind is FirmwareRegionKind.Command or FirmwareRegionKind.Header or FirmwareRegionKind.FirmwareConfig or
                 FirmwareRegionKind.CustomerInformation or FirmwareRegionKind.Checksum && output.Contains(region.Range))];
-        Dictionary<string, FirmwareRegion?> owners = codes.Concat(fields).ToDictionary(static region => region.RegionId,
+        var owners = codes.Concat(fields).ToDictionary(static region => region.RegionId,
             region => DeclaredSectionOwner(region, codes, byId), StringComparer.Ordinal);
         // Sibling fields share a declared parent and DP owner with code. A field with no declared
         // DP parent or code sibling stays neutral until its companion map supplies that authority.

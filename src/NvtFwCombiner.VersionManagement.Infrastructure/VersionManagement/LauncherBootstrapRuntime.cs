@@ -183,8 +183,8 @@ public static class LauncherBootstrapRuntime
             statePath,
             ManagedProcessLifetimeKind.Bootstrap,
             lifetimeAdvertised);
-        BootstrapStartGate gate = BootstrapStartGate.Capture();
-        BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
+        var gate = BootstrapStartGate.Capture();
+        var admission = BootstrapAdmissionSignal.Capture();
         ManagedImmutableBootstrapIdentity? identity =
             InheritedManagedBootstrapIdentityContext.CaptureAndClear();
         bool legacy = lifetime.Outcome == InheritedManagedProcessLifetimeOutcome.NotInherited &&

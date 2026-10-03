@@ -118,7 +118,7 @@ public sealed partial class AuthoringSessionState
         {
             AuthoringSlotInspectionLease[] capturedLeases = [.. leases];
             AuthoringInputSlotStatus[] capturedStatuses = [.. statuses];
-            HashSet<string> ids = capturedLeases.Select(static lease => lease.DefinitionId).ToHashSet(StringComparer.Ordinal);
+            var ids = capturedLeases.Select(static lease => lease.DefinitionId).ToHashSet(StringComparer.Ordinal);
             bool valid = _current is not null && _current.ResolutionToken == catalog.ResolutionToken &&
                 _current.WorkflowId == catalog.WorkflowId && capturedLeases.Length > 0 && ids.Count == capturedLeases.Length &&
                 capturedStatuses.Length == capturedLeases.Length &&

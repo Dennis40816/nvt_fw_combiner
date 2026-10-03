@@ -183,7 +183,7 @@ public sealed partial class HexEditorPanel : UserControl
 
     private async void OpenHexEditorSourceButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        var topLevel = TopLevel.GetTopLevel(this);
         if (DataContext is not HexEditorWorkspaceViewModel viewModel ||
             topLevel?.StorageProvider is not { } storageProvider)
         {

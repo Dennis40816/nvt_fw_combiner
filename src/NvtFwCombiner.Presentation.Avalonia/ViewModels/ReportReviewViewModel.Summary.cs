@@ -19,7 +19,7 @@ internal sealed partial class ReportReviewViewModel
     private static string CreateIssueSummary(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
     {
         const int summaryLimit = 5;
-        ShellTextResources text = ShellTextResources.For(language);
+        var text = ShellTextResources.For(language);
         IEnumerable<string> lines = issues.Take(summaryLimit).Select(issue =>
         {
             string severity = string.Equals(issue.Severity, "info", StringComparison.OrdinalIgnoreCase)

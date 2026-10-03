@@ -66,7 +66,7 @@ public sealed partial class RunReportsTable : UserControl
         {
             return;
         }
-        TopLevel? window = TopLevel.GetTopLevel(this);
+        var window = TopLevel.GetTopLevel(this);
         if (_reports?.IsReportModalOpen == true)
         {
             // The report host may already have taken focus during an earlier

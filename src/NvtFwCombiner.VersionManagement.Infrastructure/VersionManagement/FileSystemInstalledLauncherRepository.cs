@@ -151,7 +151,7 @@ internal sealed class FileSystemInstalledLauncherRepository : IInstalledLauncher
                 return Failure(InstalledLauncherIssue.Tampered);
             }
 
-            ManagedLauncherIdentity identity = ManagedLauncherIdentity.Create(
+            var identity = ManagedLauncherIdentity.Create(
                 admission.Version,
                 admission.AdmissionIdentity,
                 admission.ReleaseManifestSha256,

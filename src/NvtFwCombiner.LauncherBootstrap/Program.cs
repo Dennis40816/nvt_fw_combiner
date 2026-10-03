@@ -10,7 +10,7 @@ internal static class Program
     {
         try
         {
-            LauncherBootstrapLaunchOptions options = LauncherBootstrapLaunchOptions.Parse(args, AppContext.BaseDirectory);
+            var options = LauncherBootstrapLaunchOptions.Parse(args, AppContext.BaseDirectory);
             return LauncherBootstrapRuntime.RunEntryAsync(
                     options.ManagedRoot,
                     options.StatePath,

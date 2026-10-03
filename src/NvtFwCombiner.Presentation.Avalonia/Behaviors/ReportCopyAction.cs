@@ -54,7 +54,7 @@ public sealed class ReportCopyAction : AvaloniaObject
             return;
         }
 
-        TopLevel? topLevel = TopLevel.GetTopLevel(button);
+        var topLevel = TopLevel.GetTopLevel(button);
         try
         {
             if (topLevel?.Clipboard is { } clipboard)

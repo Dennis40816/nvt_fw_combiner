@@ -72,7 +72,7 @@ public sealed class JsonLauncherMutationFence : ILauncherMutationFence
             return LauncherMutationFenceIssue.Invalid;
         }
 
-        LauncherBootstrapState retired = LauncherBootstrapState.Create(
+        var retired = LauncherBootstrapState.Create(
             state.ManagedRootIdentity,
             state.Active,
             state.Active,

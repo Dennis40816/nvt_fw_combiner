@@ -221,7 +221,7 @@ public sealed class JsonVersionManagerStateStore :
             }
         }
 
-        VersionManagerState state = VersionManagerState.Create(
+        var state = VersionManagerState.Create(
             document.UpdateSource,
             active,
             lastKnownGood,

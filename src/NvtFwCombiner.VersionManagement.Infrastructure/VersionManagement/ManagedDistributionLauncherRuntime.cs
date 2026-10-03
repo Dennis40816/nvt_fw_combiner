@@ -228,7 +228,7 @@ public sealed class EmbeddedManagedDistributionPayloadSource : IManagedDistribut
                 {
                     return DescriptorProjectionResult.Failure(ManagedDistributionPayloadIssue.Invalid);
                 }
-                var buffer = new byte[MaximumDescriptorBytes + 1];
+                byte[] buffer = new byte[MaximumDescriptorBytes + 1];
                 int count = 0;
                 while (count < buffer.Length)
                 {
@@ -366,7 +366,7 @@ public sealed class EmbeddedManagedDistributionPayloadSource : IManagedDistribut
 
                 byte[]? captured = captureBytes ? new byte[checked((int)expected.Length)] : null;
                 byte[] readBuffer = captureBytes ? captured! : new byte[64 * 1024];
-                using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                 long remaining = expected.Length;
                 int capturedOffset = 0;
                 while (remaining > 0)
@@ -387,7 +387,7 @@ public sealed class EmbeddedManagedDistributionPayloadSource : IManagedDistribut
                     capturedOffset += read;
                 }
 
-                var probe = new byte[1];
+                byte[] probe = new byte[1];
                 if (await bootstrap.ReadAsync(probe, cancellationToken).ConfigureAwait(false) != 0)
                 {
                     return BootstrapReadResult.Failure(ManagedDistributionPayloadIssue.Invalid);
