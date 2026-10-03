@@ -16,6 +16,147 @@ public sealed class GeneralPreparationFreshnessTests
     private const string SourcePath = @"C:\firmware\source.bin";
     private static readonly byte[] SourceBytes = [0x11, 0x12, 0x13];
 
+    /// <summary>A terminal request must not keep the prior snapshot alive after its slot is cleared.</summary>
+    [Theory]
+    [InlineData("accepted")]
+    [InlineData("capture-failure")]
+    [InlineData("late-failure")]
+    [InlineData("entry-cancellation")]
+    [InlineData("late-cancellation")]
+    [InlineData("snapshot-mismatch")]
+    [InlineData("progress-exception")]
+    public async Task TerminatedPreparationReleasesStartingSnapshot(string termination)
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        WeakReference<ActiveSessionSnapshot> previous = await PrepareSnapshotReferenceAsync(session);
+        using var cancellation = new CancellationTokenSource();
+        GeneralAuthoringExperience experience = Experience(
+            new Planner(mismatchMapping: termination == "late-failure"),
+            new Inspector(failCapture: termination == "capture-failure"));
+        var progress = new InlineProgress(value =>
+        {
+            if (value.CompletedWork != 1)
+            {
+                return;
+            }
+            switch (termination)
+            {
+                case "late-cancellation":
+                    cancellation.Cancel();
+                    break;
+                case "snapshot-mismatch":
+                    Assert.True(session.SetSlotFile(MappingId, null, null).Succeeded);
+                    break;
+                case "progress-exception":
+                    throw new InvalidOperationException("Synthetic progress failure.");
+                default:
+                    break;
+            }
+        });
+        if (termination == "entry-cancellation")
+        {
+            cancellation.Cancel();
+        }
+
+        if (termination is "entry-cancellation" or "late-cancellation")
+        {
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                await experience.PrepareMergeSessionAsync(session, IcId, Draft(0x5), cancellation.Token, progress));
+        }
+        else if (termination == "progress-exception")
+        {
+            InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await experience.PrepareMergeSessionAsync(session, IcId, Draft(0x5), cancellation.Token, progress));
+            Assert.Equal("Synthetic progress failure.", failure.Message);
+        }
+        else
+        {
+            GeneralAuthoringSessionPreparation result = await experience.PrepareMergeSessionAsync(
+                session, IcId, Draft(0x5), cancellation.Token, progress);
+            if (termination == "accepted")
+            {
+                AssertAccepted(result, session, 0x5);
+            }
+            else if (termination == "snapshot-mismatch")
+            {
+                AssertSuperseded(result);
+            }
+            else
+            {
+                Assert.False(result.Succeeded);
+                Assert.Null(result.AcceptedSession);
+                Assert.Null(result.Readiness);
+                _ = Assert.Single(result.Issues);
+            }
+        }
+
+        Assert.True(session.SetSlotFile(MappingId, null, null).Succeeded);
+        AuthoringSlotState cleared = Assert.Single(session.CurrentSnapshot!.Slots);
+        Assert.Equal(AuthoringSlotLifecycle.Empty, cleared.Lifecycle);
+        Assert.Null(cleared.SelectedPath);
+        Assert.Null(cleared.FileStamp);
+        Assert.Null(cleared.AcceptedByteArray);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        Assert.False(previous.TryGetTarget(out _), "The terminated request retained its starting snapshot.");
+        GC.KeepAlive(session);
+    }
+
+    /// <summary>Old request cleanup must preserve ownership of a newer request still awaiting capture.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OlderTerminationDoesNotReleaseNewerPreparation(bool cancelOld)
+    {
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        GeneralAuthoringExperience experience = Experience(new Planner(), new Inspector());
+        AssertAccepted(await experience.PrepareMergeSessionAsync(session, IcId, Draft(0x3), CancellationToken.None),
+            session, 0x3);
+        using var cancellation = new CancellationTokenSource();
+        var oldGate = new ProgressGate(completedWork: 1, CancellationToken.None);
+        var newGate = new ProgressGate(completedWork: 1, CancellationToken.None);
+        Task<GeneralAuthoringSessionPreparation> old = Task.Run(async () =>
+            await experience.PrepareMergeSessionAsync(session, IcId, Draft(0x5), cancellation.Token, oldGate));
+        try
+        {
+            await oldGate.Reached.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+            Task<GeneralAuthoringSessionPreparation> newest = Task.Run(async () =>
+                await experience.PrepareMergeSessionAsync(session, IcId, Draft(0x4), CancellationToken.None, newGate));
+            await newGate.Reached.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+            if (cancelOld)
+            {
+                cancellation.Cancel();
+            }
+            oldGate.Release.SetResult();
+            if (cancelOld)
+            {
+                _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await old);
+            }
+            else
+            {
+                AssertSuperseded(await old);
+            }
+            newGate.Release.SetResult();
+            AssertAccepted(await newest, session, 0x4);
+        }
+        finally
+        {
+            _ = oldGate.Release.TrySetResult();
+            _ = newGate.Release.TrySetResult();
+        }
+    }
+
+    private static async ValueTask<WeakReference<ActiveSessionSnapshot>> PrepareSnapshotReferenceAsync(
+        AuthoringSessionState session)
+    {
+        GeneralAuthoringExperience experience = Experience(new Planner(), new Inspector());
+        GeneralAuthoringSessionPreparation accepted = await experience.PrepareMergeSessionAsync(
+            session, IcId, Draft(0x4), CancellationToken.None);
+        AssertAccepted(accepted, session, 0x4);
+        return new WeakReference<ActiveSessionSnapshot>(accepted.AcceptedSession!);
+    }
+
     /// <summary>The bug's late progress window cannot publish 0x5 over accepted 0x4.</summary>
     [Theory]
     [InlineData(false)]
@@ -597,6 +738,14 @@ public sealed class GeneralPreparationFreshnessTests
     private static GeneralAuthoringExperience Experience(Planner planner, Inspector inspector)
     {
         return new(planner, inspector, new UnusedRuntimeLeases(), new Clock());
+    }
+
+    private sealed class InlineProgress(Action<AuthoringInspectionProgress> report) : IProgress<AuthoringInspectionProgress>
+    {
+        public void Report(AuthoringInspectionProgress value)
+        {
+            report(value);
+        }
     }
 
     private sealed class ProgressGate(int completedWork, CancellationToken cancellationToken)

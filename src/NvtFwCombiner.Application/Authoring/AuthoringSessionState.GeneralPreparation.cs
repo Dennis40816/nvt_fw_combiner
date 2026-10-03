@@ -35,6 +35,19 @@ public sealed partial class AuthoringSessionState
         }
     }
 
+    /// <summary>Releases a terminated request without revoking a newer preparation.</summary>
+    internal void EndGeneralPreparation(GeneralPreparationLease lease)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        lock (_transitionLock)
+        {
+            if (ReferenceEquals(lease, _generalPreparationLease))
+            {
+                _generalPreparationLease = null;
+            }
+        }
+    }
+
     /// <summary>Rejects cancellation or supersession without touching accepted state.</summary>
     internal AuthoringSessionIssue? CheckGeneralPreparation(
         GeneralPreparationLease lease, CancellationToken cancellationToken)
