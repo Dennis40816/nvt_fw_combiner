@@ -223,7 +223,7 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
             exactLauncherPath,
             () => openEmbeddedResource(PayloadAdmissionResourceName),
             () => openEmbeddedResource(BootstrapResourceName));
-        ManagedAppVersion runningLauncherVersion = ManagedAppVersion.Parse(launcherVersion);
+        var runningLauncherVersion = ManagedAppVersion.Parse(launcherVersion);
 
         IUpdateSourceRegistry[] registries =
         [.. registryPaths.Select(UpdateSourceRegistryAdapterFactory.Create)];

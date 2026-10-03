@@ -137,7 +137,7 @@ public sealed partial class MainWindow
         while (!stopDrain.IsCancellationRequested)
         {
             Task[] admitted = CaptureWindowWork(viewModel);
-            Task batch = Task.WhenAll(admitted);
+            var batch = Task.WhenAll(admitted);
             try
             {
                 await batch.WaitAsync(stopDrain);

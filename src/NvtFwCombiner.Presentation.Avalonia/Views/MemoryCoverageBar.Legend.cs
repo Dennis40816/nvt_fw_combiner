@@ -121,7 +121,7 @@ public sealed partial class MemoryCoverageBar
             MemoryEndpointPanel[] peers = [.. _owner._positions.GetVisualDescendants().OfType<MemoryEndpointPanel>()
                 .OrderBy(static peer => peer._startFraction)];
             double[] widths = [.. peers.Select(peer => Math.Min(peer.Children[1].DesiredSize.Width, _owner._arrangedRailWidth))];
-            var lefts = new double[peers.Length];
+            double[] lefts = new double[peers.Length];
             double cursor = 0;
             for (int index = 0; index < peers.Length; index++)
             {

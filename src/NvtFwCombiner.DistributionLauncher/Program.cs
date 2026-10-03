@@ -30,7 +30,7 @@ internal static class Program
                 return ReleasePayloadExtraction.Execute(args);
             }
 
-            using ManagedDistributionLauncherHostServices host =
+            using var host =
                 ManagedDistributionLauncherHostServices.Create();
             ManagedDistributionLauncherHostResult result = host
                 .RunAsync(CancellationToken.None)

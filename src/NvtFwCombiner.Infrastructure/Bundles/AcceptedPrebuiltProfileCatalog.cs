@@ -33,7 +33,7 @@ internal sealed class AcceptedPrebuiltProfileCatalog
         ProfileBundlePackageTrustIndex index, out BuiltInProfileAdmissionRejectionReason? reason)
     {
         ArgumentNullException.ThrowIfNull(index);
-        ProfileBundleFileSnapshot? file = ProfileBundleFileSnapshot.TryReadPrebuilt(applicationRoot, out ProfileBundleCaptureFailure capture);
+        var file = ProfileBundleFileSnapshot.TryReadPrebuilt(applicationRoot, out ProfileBundleCaptureFailure capture);
         reason = capture switch
         {
             ProfileBundleCaptureFailure.None => null,
@@ -56,7 +56,7 @@ internal sealed class AcceptedPrebuiltProfileCatalog
             };
             return null;
         }
-        BuiltInProfileBuildAdmissionIdentity? identity = BuiltInProfileBuildAdmissionIdentity.TryRead(out BuildAdmissionIdentityFailure? failure);
+        var identity = BuiltInProfileBuildAdmissionIdentity.TryRead(out BuildAdmissionIdentityFailure? failure);
         if (identity is null) { reason = MapIdentityFailure(failure!); return null; }
         JsonElement trust = pack.Header.GetProperty("trustIndex");
         if (index.ActualSha256 != identity.TrustIndexSha256 || Text(trust, "sha256") != index.ActualSha256 ||

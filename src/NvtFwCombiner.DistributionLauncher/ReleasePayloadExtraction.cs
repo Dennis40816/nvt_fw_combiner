@@ -14,7 +14,7 @@ internal static class ReleasePayloadExtraction
 
     internal static int Execute(string[] args)
     {
-        Assembly assembly = Assembly.GetExecutingAssembly();
+        var assembly = Assembly.GetExecutingAssembly();
         return Execute(args, assembly.GetManifestResourceStream);
     }
 

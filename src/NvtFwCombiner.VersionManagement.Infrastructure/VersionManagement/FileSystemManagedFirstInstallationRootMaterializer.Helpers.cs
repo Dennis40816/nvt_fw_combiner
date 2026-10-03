@@ -172,7 +172,7 @@ public sealed partial class FileSystemManagedFirstInstallationRootMaterializer
             }
             if (attempt + 1 < maximumAttempts)
             {
-                TimeSpan delay = TimeSpan.FromMilliseconds(250);
+                var delay = TimeSpan.FromMilliseconds(250);
                 if (cleanupDelay is null)
                 {
                     await Task.Delay(delay, cancellationToken).ConfigureAwait(false);

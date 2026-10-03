@@ -507,7 +507,7 @@ public sealed class FileSystemManagedSetupRecoveryExecution :
         string versionPath = string.Join('/',
             FileSystemManagedVersionRepository.VersionsDirectoryName,
             version.ToString());
-        HashSet<string> remainingDirectories =
+        var remainingDirectories =
             snapshot!.Directories.Keys.ToHashSet(ManagedPathSafety.PathComparer);
         bool exactSkeleton = snapshot.Files.Count == 0 &&
             (remainingDirectories.SetEquals(

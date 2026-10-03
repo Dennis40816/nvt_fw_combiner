@@ -101,7 +101,7 @@ public sealed class RawBinaryEditorFileSession : IRawBinaryEditorFileSession
 
                 InvalidateAsciiSearchSnapshot();
                 _ = _editor.Load(bytes.Span);
-                RawBinaryEditorFileResult accepted = RawBinaryEditorFileResult.Success(fullPath, _editor.State);
+                var accepted = RawBinaryEditorFileResult.Success(fullPath, _editor.State);
                 Volatile.Write(ref _acceptedLoad, accepted);
                 return accepted;
             }

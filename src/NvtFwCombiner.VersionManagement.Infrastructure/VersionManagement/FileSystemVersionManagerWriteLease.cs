@@ -52,7 +52,7 @@ internal static class FileSystemVersionManagerWriteLease
             }
             catch (IOException exception) when (IsSharingViolation(exception))
             {
-                TimeSpan elapsed = TimeSpan.FromMilliseconds(Environment.TickCount64 - started);
+                var elapsed = TimeSpan.FromMilliseconds(Environment.TickCount64 - started);
                 if (elapsed >= waitTimeout)
                 {
                     return new(VersionManagerWriteLeaseIssue.Busy);
