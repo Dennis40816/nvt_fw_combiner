@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Text;
+using NvtFwCombiner.Platform.Processes;
 
 namespace NvtFwCombiner.Infrastructure.ExternalTools;
 
@@ -19,10 +20,53 @@ internal static class BoundedProcessOutputReader
     }
 
     /// <summary>
+    /// Windows redirected process pipes are synchronous handles: ReadAsync queues blocking reads on the thread pool.
+    /// Drain them on dedicated threads so a busy pool cannot consume the exit grace before a queued read observes EOF.
+    /// Each invocation owns two drains; the runner's existing capacity also bounds these threads, including detached
+    /// reads. On Windows, stop interrupts the in-flight pipe read and retains captured text. Other platforms use
+    /// the original ReadAsync path; work that does not honor stop still has bounded, detached invocation custody.
+    /// </summary>
+    internal static Task<BoundedProcessOutput> DrainProcessStreamAsync(TextReader reader, CancellationToken stopToken)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(reader);
+            return Task.Factory.StartNew(
+                () =>
+                {
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        return DrainAsync(reader, stopToken).GetAwaiter().GetResult();
+                    }
+
+                    using var readCancellation = new WindowsSynchronousReadCancellation();
+                    return DrainAsync(reader, readCancellation, stopToken).GetAwaiter().GetResult();
+                },
+                CancellationToken.None,
+                TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
+                TaskScheduler.Default);
+        }
+#pragma warning disable CA1031 // Startup faults must use the same output-read classification as drain faults.
+        catch (Exception exception)
+#pragma warning restore CA1031
+        {
+            return Task.FromException<BoundedProcessOutput>(exception);
+        }
+    }
+
+    /// <summary>
     /// Drains until end of stream or until <paramref name="stopToken"/> stops the drain. A stopped drain keeps the
     /// bounded text captured so far and reports that end of stream was not reached; it never throws for the stop.
     /// </summary>
-    internal static async Task<BoundedProcessOutput> DrainAsync(TextReader reader, CancellationToken stopToken)
+    internal static Task<BoundedProcessOutput> DrainAsync(TextReader reader, CancellationToken stopToken)
+    {
+        return DrainAsync(reader, readCancellation: null, stopToken);
+    }
+
+    private static async Task<BoundedProcessOutput> DrainAsync(
+        TextReader reader,
+        WindowsSynchronousReadCancellation? readCancellation,
+        CancellationToken stopToken)
     {
         ArgumentNullException.ThrowIfNull(reader);
 
@@ -40,11 +84,21 @@ internal static class BoundedProcessOutputReader
                 int read;
                 try
                 {
-                    read = await reader.ReadAsync(
-                        readBuffer.AsMemory(0, ReadBufferLength),
-                        stopToken).ConfigureAwait(false);
+                    stopToken.ThrowIfCancellationRequested();
+#pragma warning disable CA1849 // Dedicated process drains must not queue an async-over-sync pipe read on the pool.
+                    read = readCancellation is not null && OperatingSystem.IsWindows()
+                        ? readCancellation.Read(reader, readBuffer, ReadBufferLength, stopToken)
+                        : await reader.ReadAsync(
+                            readBuffer.AsMemory(0, ReadBufferLength),
+                            stopToken).ConfigureAwait(false);
+#pragma warning restore CA1849
                 }
                 catch (OperationCanceledException) when (stopToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (IOException exception) when (stopToken.IsCancellationRequested &&
+                    OperatingSystem.IsWindows() && (exception.HResult & 0xFFFF) == 995) // ERROR_OPERATION_ABORTED
                 {
                     break;
                 }

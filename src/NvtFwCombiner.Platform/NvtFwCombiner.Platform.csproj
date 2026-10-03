@@ -3,6 +3,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure" />
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
   </ItemGroup>
 </Project>

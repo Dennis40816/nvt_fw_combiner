@@ -10,6 +10,98 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 public sealed partial class LegacyCombinerPostbuildProcessorTests
 {
+    /// <summary>
+    /// A clean child closes both real pipes, but the async-over-sync read cannot run until after the exit grace.
+    /// The phase gate models a delayed thread-pool read without changing the test host's global thread pool.
+    /// The processor must accept the unchanged staged bytes when the runner drains independently of that queue.
+    /// </summary>
+    [Fact]
+    public async Task CleanExitWithDelayedAsyncPipeReadDoesNotRefuseStagedOutput()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("The modeled pool-starvation scenario requires synchronous Windows redirected pipes.");
+        }
+
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        string script = Path.Combine(workspace.Root, "clean-exit.cmd");
+        File.WriteAllText(script, "@echo drain-out\r\n@echo drain-err 1>&2\r\n@exit /b 0\r\n");
+        var readQueue = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var capacity = new ExternalProcessCapacity(1);
+        var systemRunner = new SystemExternalProcessRunner(ExternalProcessRunnerSeams.Production with
+        {
+            Capacity = capacity,
+            Drain = async (reader, stop) =>
+            {
+                // The runtime really supplies synchronous Windows pipe handles, rather than overlapped I/O.
+                Assert.False(Assert.IsType<FileStream>(Assert.IsType<StreamReader>(reader).BaseStream).IsAsync);
+                using var delayed = new DelayedAsyncPipeReader(reader, readQueue.Task);
+                return await ExternalProcessRunnerSeams.Production.Drain(delayed, stop).ConfigureAwait(false);
+            },
+            Observe = phase =>
+            {
+                if (phase == ExternalProcessRunnerPhase.OutputHeldAfterExit)
+                {
+                    // Let queued reads run only once the old runner has already latched the refusal.
+                    _ = readQueue.TrySetResult();
+                }
+            },
+        });
+        ExternalProcessResult? observed = null;
+        FakeProcessRunner runner = new(start => observed = systemRunner.RunAsync(
+                new ExternalProcessStartInfo(
+                    Path.Combine(Environment.SystemDirectory, "cmd.exe"), start.WorkingDirectory,
+                    ["/d", "/q", "/c", script], start.Timeout),
+                TestContext.Current.CancellationToken)
+            .AsTask().GetAwaiter().GetResult());
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.delayed-pipe-v1", "test_fw.bin");
+        var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
+        byte[] input = CreateFirmwareImage();
+        var request = new ExternalProcessorRequest(
+            "run-delayed-pipe", profile.ProcessorId, profile.ToolBindingId, input, [], selection,
+            protocolPlan: CompileProtocolPlan(profile, selection));
+        try
+        {
+            ExternalProcessorResult result = await workspace.CreateProcessor(sha256, runner)
+                .TransformAsync(request, TestContext.Current.CancellationToken);
+
+            Assert.NotNull(observed);
+            Assert.Equal(0, observed.ExitCode);
+            Assert.False(observed.TimedOut);
+            Assert.Equal("drain-out\r\n", observed.StandardOutput);
+            Assert.Equal("drain-err \r\n", observed.StandardError);
+            Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
+            Assert.Equal(ExternalProcessCleanup.Complete, observed.Cleanup);
+            Assert.Equal(input, result.OutputBytes.ToArray());
+            Assert.Empty(result.ChangedRanges);
+            Assert.Empty(result.Issues);
+            Assert.Equal(1, runner.RunCount);
+            _ = Assert.Single(result.ExecutedCommands);
+            Assert.Equal(0, capacity.InUse);
+        }
+        finally
+        {
+            _ = readQueue.TrySetResult();
+        }
+    }
+
+    /// <summary>Only asynchronous reads wait for the worker queue; synchronous reads use the real process pipe.</summary>
+    private sealed class DelayedAsyncPipeReader(TextReader reader, Task readQueue) : TextReader
+    {
+        public override int Read(char[] buffer, int index, int count)
+        {
+            Assert.False(Thread.CurrentThread.IsThreadPoolThread, "A blocking pipe drain must not occupy a pool worker.");
+            return reader.Read(buffer, index, count);
+        }
+
+        public override async ValueTask<int> ReadAsync(Memory<char> buffer, CancellationToken cancellationToken = default)
+        {
+            await readQueue.WaitAsync(cancellationToken).ConfigureAwait(false);
+            return await reader.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>Rejects the legacy executable's maximum-length argument before staging bytes.</summary>
     [Fact]
     public async Task ArgumentPathAtLegacyLimitFailsBeforeStagingOrLaunch()
@@ -187,6 +279,8 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
             Assert.False(result.Succeeded);
             Assert.Equal(expectedCode, Assert.Single(result.Issues).Code);
+            Assert.True(result.OutputBytes.IsEmpty);
+            Assert.Empty(result.ChangedRanges);
             Assert.Equal(1, runner.RunCount);
             _ = Assert.Single(result.ExecutedCommands);
         }

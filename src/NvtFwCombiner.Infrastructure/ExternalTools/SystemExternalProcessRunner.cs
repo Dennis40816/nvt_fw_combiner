@@ -278,7 +278,7 @@ internal sealed record ExternalProcessRunnerSeams(
     internal static ExternalProcessRunnerSeams Production { get; } = new(
         ExternalProcessCleanupTiming.Default,
         static process => process.Kill(entireProcessTree: true),
-        BoundedProcessOutputReader.DrainAsync,
+        BoundedProcessOutputReader.DrainProcessStreamAsync,
         static (process, cancellationToken) => process.WaitForExitAsync(cancellationToken),
         Observe: null,
         new ExternalProcessCapacity(ExternalProcessCapacity.DefaultLimit),

@@ -314,6 +314,32 @@ public sealed class SystemExternalProcessRunnerLifetimeTests
         Assert.Equal(ExternalProcessCleanup.OutputReadFailed, result.Cleanup);
     }
 
+    /// <summary>A production drain startup fault uses the existing output-read failure classification.</summary>
+    [Fact]
+    public async Task ReaderStartupFaultIsOutputReadFailed()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("This runner helper requires Windows cmd.exe.");
+        }
+
+        using var workspace = TempWorkspace.Create("nfc-runner-lifetime");
+        var capacity = new ExternalProcessCapacity(1);
+        var phases = new PhaseRecorder();
+        SystemExternalProcessRunner runner = CreateRunner(
+            Fast, KillTree, phases,
+            FirstReader(stop => ExternalProcessRunnerSeams.Production.Drain(null!, stop)), capacity);
+
+        ExternalProcessResult result = await runner.RunAsync(QuickExit(workspace.Root), TestToken)
+            .AsTask().WaitAsync(Watchdog, TestToken);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.False(result.TimedOut);
+        Assert.Equal(ExternalProcessCleanup.OutputReadFailed, result.Cleanup);
+        Assert.False(phases.HasReached(ExternalProcessRunnerPhase.Detached));
+        Assert.Equal(0, capacity.InUse);
+    }
+
     /// <summary>F-3 priority: caller cancellation wins over a reader fault.</summary>
     [Fact]
     public async Task ReaderFaultWithCancellationEndsCanceled()
@@ -507,6 +533,60 @@ public sealed class SystemExternalProcessRunnerLifetimeTests
         finally
         {
             KillById(pingPid);
+        }
+    }
+
+    /// <summary>A real orphan keeps the pipes open; reader stop preserves diagnostics and releases capacity.</summary>
+    [Fact]
+    public async Task OrphanHoldingOutputAfterExitStopsWithoutDetachingAndKeepsText()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Skip("This regression exercises synchronous Windows process pipes and CancelSynchronousIo.");
+        }
+
+        using var workspace = TempWorkspace.Create("nfc-runner-lifetime");
+        string pingPidFile = workspace.PathFor("stopped-orphan-pid.txt");
+        string innerPidFile = workspace.PathFor("stopped-inner-pid.txt");
+        string inner = WriteScript(
+            workspace,
+            "stopped-inner.ps1",
+            "Write-Output 'before-reader-stop'\r\n" +
+            $"$ping = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\\PING.EXE') -ArgumentList '-n {HelperLifetimeSeconds + 1} 127.0.0.94' -NoNewWindow -PassThru\r\n" +
+            $"Set-Content -LiteralPath '{pingPidFile}' -Value $ping.Id\r\n" +
+            $"Set-Content -LiteralPath '{innerPidFile}' -Value $PID");
+        string outer = WriteScript(
+            workspace,
+            "stopped-outer.cmd",
+            $"@\"{PowerShellPath()}\" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{inner}\"");
+        var phases = new PhaseRecorder();
+        var capacity = new ExternalProcessCapacity(1);
+        SystemExternalProcessRunner runner = CreateRunner(ExternalProcessCleanupTiming.Default, KillTree, phases, budget: capacity);
+        int pingPid = 0;
+        Task<ExternalProcessResult> run = runner.RunAsync(
+            CmdScript(Path.GetTempPath(), outer, TimeSpan.FromSeconds(60)), TestToken).AsTask();
+        try
+        {
+            pingPid = await ReadPidAsync(pingPidFile, run);
+            int innerPid = await ReadPidAsync(innerPidFile, run);
+            await SpinUntilAsync(() => HasExited(innerPid), Watchdog);
+            ExternalProcessResult result = await run.WaitAsync(Watchdog, TestToken);
+
+            Assert.False(HasExited(pingPid), "The real orphan must still hold the pipes when the run returns.");
+            Assert.False(result.TimedOut);
+            Assert.Equal(0, result.ExitCode);
+            Assert.Equal(ExternalProcessCleanup.OutputStreamHeldOpen, result.Cleanup);
+            Assert.True(phases.HasReached(ExternalProcessRunnerPhase.ReaderStopRequested));
+            Assert.Contains("before-reader-stop\r\n", result.StandardOutput, StringComparison.Ordinal);
+            Assert.False(phases.HasReached(ExternalProcessRunnerPhase.Detached));
+            Assert.True(phases.HasReached(ExternalProcessRunnerPhase.ResourcesReleased));
+            Assert.Equal(0, capacity.InUse);
+        }
+        finally
+        {
+            KillById(pingPid);
+            _ = await run.WaitAsync(Watchdog, TestToken);
+            _ = await phases.Reached(ExternalProcessRunnerPhase.ResourcesReleased).WaitAsync(Watchdog, TestToken);
         }
     }
 
@@ -1005,14 +1085,14 @@ public sealed class SystemExternalProcessRunnerLifetimeTests
         return clock.Elapsed;
     }
 
-    /// <summary>Replaces only the first drain the runner starts (standard output); standard error stays real.</summary>
+    /// <summary>Replaces only standard output; standard error uses the production drain.</summary>
     private static Func<TextReader, CancellationToken, Task<BoundedProcessOutput>> FirstReader(
         Func<CancellationToken, Task<BoundedProcessOutput>> first)
     {
         int calls = 0;
         return (reader, stopToken) => Interlocked.Increment(ref calls) == 1
             ? first(stopToken)
-            : BoundedProcessOutputReader.DrainAsync(reader, stopToken);
+            : ExternalProcessRunnerSeams.Production.Drain(reader, stopToken);
     }
 
     private static ExternalProcessStartInfo LongPing(string root, string address, TimeSpan timeout)
