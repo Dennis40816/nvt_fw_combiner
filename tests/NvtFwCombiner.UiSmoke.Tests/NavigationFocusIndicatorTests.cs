@@ -335,11 +335,13 @@ public sealed class NavigationFocusIndicatorTests
             Color selectedColor = Assert.IsType<ISolidColorBrush>(selectedBrushResource, exactMatch: false).Color;
             Color focusColor = Assert.IsType<ISolidColorBrush>(focusColorResource, exactMatch: false).Color;
             // The focus state above is final, but under load the last rendered frame can still be one
-            // composed before the ring was painted; pump a bounded number of frames until it shows.
+            // composed before the ring was painted; pump dispatcher/render work until its pixels show
+            // or the time deadline expires.
+            var renderWait = System.Diagnostics.Stopwatch.StartNew();
             int ringPixels = CountColorPixels(window, RingHaloRegion(window, home, outset: 3), focusColor, tolerance: 24);
-            for (int frame = 1; frame < 20 && ringPixels <= 20; frame++)
+            while (ringPixels <= 20 && renderWait.Elapsed < TimeSpan.FromSeconds(10))
             {
-                Thread.Sleep(25);
+                await Task.Delay(16, TestContext.Current.CancellationToken);
                 Dispatcher.UIThread.RunJobs();
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 Dispatcher.UIThread.RunJobs();
@@ -348,7 +350,11 @@ public sealed class NavigationFocusIndicatorTests
             int underlinePixels = CountColorPixels(window, underline, selectedColor, tolerance: 24);
             int gapPixels = CountColorPixels(window, gap, selectedColor, tolerance: 24) +
                 CountColorPixels(window, gap, focusColor, tolerance: 24);
-            Assert.True(ringPixels > 20, $"scale={scale}: expected a rendered focus ring around Home; found {ringPixels} matching pixels.");
+            Assert.True(
+                ringPixels > 20,
+                $"scale={scale}, dark={dark}: timed out waiting for a rendered focus ring around Home; " +
+                $"found {ringPixels} matching pixels after {renderWait.Elapsed}. " +
+                "The render deadline expired before ringPixels exceeded 20 despite pumping dispatcher/render work.");
             Assert.True(
                 underlinePixels > 20,
                 $"scale={scale}: expected a rendered selected underline on Home; found {underlinePixels} matching pixels.");

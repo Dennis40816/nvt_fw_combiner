@@ -152,7 +152,36 @@ public sealed class CtrlRamLaunchTests
             Assert.InRange(badgeCenter.X, 0, window.ClientSize.Width);
             Assert.InRange(badgeCenter.Y, 0, window.ClientSize.Height);
             window.MouseMove(badgeCenter, RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(350), TestContext.Current.CancellationToken);
+            var tooltipWait = System.Diagnostics.Stopwatch.StartNew();
+            while ((!warningBadge.IsPointerOver || !ToolTip.GetIsOpen(warningBadge)) &&
+                tooltipWait.Elapsed < TimeSpan.FromSeconds(5))
+            {
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            }
+            Assert.True(warningBadge.IsPointerOver && ToolTip.GetIsOpen(warningBadge),
+                "Timed out waiting for the pointer to enter the warning badge and its tooltip to open.");
+
+            // An open popup can still be fading in or awaiting its final layout.
+            bool TooltipIsPending()
+            {
+                return !warningBadge.IsPointerOver || !ToolTip.GetIsOpen(warningBadge) ||
+                    TopLevel.GetTopLevel(warningTip) is null || !warningTip.IsEffectivelyVisible || warningTip.Opacity < 1 ||
+                    !warningTip.IsMeasureValid || !warningTip.IsArrangeValid ||
+                    warningTip.Bounds.Width <= 0 || warningTip.Bounds.Height <= 0;
+            }
+            tooltipWait.Restart();
+            while (TooltipIsPending() && tooltipWait.Elapsed < TimeSpan.FromSeconds(5))
+            {
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+                Dispatcher.UIThread.RunJobs();
+                warningTip.UpdateLayout();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            }
+            Assert.False(TooltipIsPending(),
+                "Timed out waiting for the open warning tooltip to become fully visible and finish layout with nonempty bounds.");
+
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Assert.True(warningBadge.IsPointerOver);
@@ -163,9 +192,6 @@ public sealed class CtrlRamLaunchTests
                 .Select(block => block.Text ?? string.Empty)];
             Assert.Contains(normal.Title, tipText);
             Assert.Contains(normal.IssueCard!.Summary, tipText);
-            await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             string evidenceDirectory = Path.Combine(
                 Assert.IsType<string>(Environment.GetEnvironmentVariable("NFC_TEST_AREA_ROOT")),
                 "evidence", "v114-ctrlram-slot47");
@@ -177,7 +203,17 @@ public sealed class CtrlRamLaunchTests
             }
 
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(350), TestContext.Current.CancellationToken);
+            tooltipWait.Restart();
+            while ((warningBadge.IsPointerOver || ToolTip.GetIsOpen(warningBadge)) &&
+                tooltipWait.Elapsed < TimeSpan.FromSeconds(5))
+            {
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            }
+            Assert.True(!warningBadge.IsPointerOver && !ToolTip.GetIsOpen(warningBadge),
+                "Timed out waiting for the pointer to leave the warning badge and its tooltip to close.");
+
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Assert.False(warningBadge.IsPointerOver);

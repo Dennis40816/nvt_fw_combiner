@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -92,7 +93,13 @@ public sealed class AbMemoryLayoutControlTests
                 Assert.False(Bounds(rail).Contains(outside));
                 Assert.False(Bounds(openCard).Contains(outside));
                 window.MouseMove(outside, RawInputModifiers.None);
-                await Task.Delay(400, TestContext.Current.CancellationToken);
+                var closing = System.Diagnostics.Stopwatch.StartNew();
+                while (window.GetVisualDescendants().Any(control => control.Name is "MemoryLocalView" or "MemorySliceCard") &&
+                    closing.Elapsed < TimeSpan.FromSeconds(10))
+                {
+                    await Task.Delay(16, TestContext.Current.CancellationToken);
+                    Render();
+                }
                 Render();
                 AssertNoOverlay();
 
@@ -133,12 +140,26 @@ public sealed class AbMemoryLayoutControlTests
         {
             string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             if (string.IsNullOrWhiteSpace(directory)) { return; }
-            // Let the shared Fluent disclosure finish before preserving visual evidence.
-            for (int tick = 0; tick < 4; tick++)
+            Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+            Expander disclosure = Assert.Single(card.GetVisualDescendants().OfType<Expander>());
+            Control chevron = Assert.Single(disclosure.GetVisualDescendants().OfType<Control>(), control => control.Name == "ExpandCollapseChevron");
+            RotateTransform rotation = Assert.IsType<RotateTransform>(chevron.RenderTransform);
+            Border content = Assert.Single(disclosure.GetVisualDescendants().OfType<Border>(), control => control.Name == "ExpanderContent");
+            // Preserve the collapsed Fluent disclosure only after its chevron and layout reach their final state.
+            bool DisclosureAndLayoutAreSettled()
             {
-                await Task.Delay(80, TestContext.Current.CancellationToken);
+                return !disclosure.IsExpanded && rotation.Angle == 0 &&
+                    !rotation.IsAnimating(RotateTransform.AngleProperty) && !content.IsEffectivelyVisible && content.Bounds.Height == 0 &&
+                    card.IsMeasureValid && card.IsArrangeValid && card.Bounds.Width > 0 && card.Bounds.Height > 0;
+            }
+            var settling = System.Diagnostics.Stopwatch.StartNew();
+            while (!DisclosureAndLayoutAreSettled() && settling.Elapsed < TimeSpan.FromSeconds(10))
+            {
+                await Task.Delay(16, TestContext.Current.CancellationToken);
                 Render();
             }
+            Render();
+            Assert.True(DisclosureAndLayoutAreSettled(), "Fluent disclosure and card layout did not settle before capture.");
             _ = Directory.CreateDirectory(directory);
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);

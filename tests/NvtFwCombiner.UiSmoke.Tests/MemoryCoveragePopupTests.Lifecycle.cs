@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -217,8 +218,7 @@ public sealed partial class MemoryCoveragePopupTests
             Assert.Same(selected, card.DataContext);
             Capture(window, $"content-transit-{dark}-{above}");
             window.MouseMove(new Point(2, 2), RawInputModifiers.None);
-            await Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken);
-            Render();
+            await WaitForNoOverlay();
             AssertNoOverlay(window);
             window.MouseMove(BoundsInWindow(dpLegend, window).Center, RawInputModifiers.None);
             Render();
@@ -228,6 +228,19 @@ public sealed partial class MemoryCoveragePopupTests
             Assert.Same(slices[1], Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard")).DataContext);
         }
         finally { window.Close(); }
+
+        async Task WaitForNoOverlay()
+        {
+            Stopwatch elapsed = Stopwatch.StartNew();
+            Render();
+            while ((FindNamed<Border>(window, "MemoryLocalView") is not null ||
+                    FindNamed<Border>(window, "MemorySliceCard") is not null) &&
+                   elapsed.Elapsed < TimeSpan.FromSeconds(10))
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(10), TestContext.Current.CancellationToken);
+                Render();
+            }
+        }
     }
 
     private static MemoryCoverageSegmentViewModel[] TransitSlices()

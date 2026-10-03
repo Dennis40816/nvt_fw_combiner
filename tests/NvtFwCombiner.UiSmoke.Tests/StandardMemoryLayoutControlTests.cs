@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -83,11 +84,19 @@ public sealed class StandardMemoryLayoutControlTests
                     Border detailCard = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
                     Expander disclosure = Assert.Single(detailCard.GetVisualDescendants().OfType<Expander>());
                     Assert.False(disclosure.IsExpanded);
-                    disclosure.IsExpanded = true;
-                    Render();
-                    AssertCard();
-                    Assert.Contains(detailCard.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == shell.Text.MemoryAddressSpaceLabel && block.IsEffectivelyVisible);
-                    await SaveAsync(role, "-technical-expanded");
+                    TaskCompletionSource expanded = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                    void OnExpanded(object? sender, RoutedEventArgs args) { _ = expanded.TrySetResult(); }
+                    disclosure.Expanded += OnExpanded;
+                    try
+                    {
+                        disclosure.IsExpanded = true;
+                        Render();
+                        AssertCard();
+                        Assert.Contains(detailCard.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == shell.Text.MemoryAddressSpaceLabel && block.IsEffectivelyVisible);
+                        await SaveAsync(role, "-technical-expanded", expanded.Task);
+                        AssertCard();
+                    }
+                    finally { disclosure.Expanded -= OnExpanded; }
                 }
                 window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
                 window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
@@ -102,8 +111,16 @@ public sealed class StandardMemoryLayoutControlTests
                 Assert.False(Bounds(rail).Contains(outside));
                 Assert.False(Bounds(openCard).Contains(outside));
                 window.MouseMove(outside, RawInputModifiers.None);
-                await Task.Delay(400, TestContext.Current.CancellationToken);
+                var closing = System.Diagnostics.Stopwatch.StartNew();
                 Render();
+                while (window.GetVisualDescendants().Any(control => control.Name is "MemoryLocalView" or "MemorySliceCard") &&
+                    closing.Elapsed < TimeSpan.FromSeconds(5))
+                {
+                    await Task.Delay(10, TestContext.Current.CancellationToken);
+                    Render();
+                }
+                Assert.False(window.GetVisualDescendants().Any(control => control.Name is "MemoryLocalView" or "MemorySliceCard"),
+                    $"Timed out waiting for the {role} memory overlay to close after pointer exit.");
                 AssertNoOverlay();
 
                 void AssertCard()
@@ -142,15 +159,31 @@ public sealed class StandardMemoryLayoutControlTests
         {
             Assert.DoesNotContain(window.GetVisualDescendants(), control => control.Name is "MemoryLocalView" or "MemorySliceCard");
         }
-        async Task SaveAsync(MemoryContentRole role, string suffix = "")
+        async Task SaveAsync(MemoryContentRole role, string suffix = "", Task? expansionCompleted = null)
         {
             string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             if (string.IsNullOrWhiteSpace(directory)) { return; }
-            for (int tick = 0; tick < 4; tick++)
+            Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+            Expander disclosure = Assert.Single(card.GetVisualDescendants().OfType<Expander>());
+            Control content = Assert.IsType<Control>(disclosure.Content, exactMatch: false);
+            bool CaptureIsPending()
             {
-                await Task.Delay(80, TestContext.Current.CancellationToken);
+                return expansionCompleted is { IsCompleted: false } ||
+                    !card.IsMeasureValid || !card.IsArrangeValid ||
+                    !disclosure.IsMeasureValid || !disclosure.IsArrangeValid ||
+                    (disclosure.IsExpanded && (!content.IsEffectivelyVisible || !content.IsMeasureValid || !content.IsArrangeValid || content.Bounds.Height <= 0));
+            }
+            var wait = System.Diagnostics.Stopwatch.StartNew();
+            Render();
+            while (CaptureIsPending() && wait.Elapsed < TimeSpan.FromSeconds(5))
+            {
+                await Task.Delay(10, TestContext.Current.CancellationToken);
                 Render();
             }
+            Assert.False(CaptureIsPending(),
+                $"Timed out waiting for the {role}{suffix} memory card expansion and layout to settle before capture.");
+            if (expansionCompleted is not null) { await expansionCompleted; }
+            Assert.Equal(expansionCompleted is not null, disclosure.IsExpanded);
             _ = Directory.CreateDirectory(directory);
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
