@@ -46,8 +46,19 @@ public sealed partial class MemoryCoveragePopupTests
                 double handler = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
                 Render();
                 samples.Add((handler, Stopwatch.GetElapsedTime(started).TotalMilliseconds));
-                Assert.Same(slices[0], FindNamed<Border>(window, "MemorySliceCard")!.DataContext);
-                if (!reduced) { await Task.Delay(160, TestContext.Current.CancellationToken); Render(); }
+                Border card = Assert.IsType<Border>(FindNamed<Border>(window, "MemorySliceCard"));
+                Assert.Same(slices[0], card.DataContext);
+                var opening = Stopwatch.StartNew();
+                while ((card.Opacity != 1 || card.RenderTransform is { Value.IsIdentity: false }) && opening.Elapsed < TimeSpan.FromSeconds(10))
+                {
+                    await Task.Delay(16, TestContext.Current.CancellationToken);
+                    Render();
+                }
+                Assert.True(card.Opacity == 1 && (card.RenderTransform is null || card.RenderTransform.Value.IsIdentity),
+                    $"Card opening animation did not complete for sample {sample} (plain={plain}, width={width}, reduced={reduced}).");
+                // Keep a short post-opening observation window outside the handler/render measurements.
+                if (!reduced) { await Task.Delay(20, TestContext.Current.CancellationToken); }
+                Render();
             }
             string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
             if (!string.IsNullOrEmpty(directory))

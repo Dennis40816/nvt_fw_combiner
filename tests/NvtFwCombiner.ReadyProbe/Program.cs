@@ -166,6 +166,13 @@ if (lifetime.Outcome != InheritedManagedProcessLifetimeOutcome.Captured)
 {
     return 24;
 }
+string? processMarker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_PROCESS_MARKER");
+if (isManagedApplication && !string.IsNullOrWhiteSpace(processMarker))
+{
+    await File.WriteAllTextAsync(
+        processMarker,
+        Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+}
 if (quietBootstrap)
 {
     // Custody tests need a real gated process, not an interactive shell sharing runner stdio.

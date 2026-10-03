@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
@@ -49,7 +50,7 @@ public sealed class CtrlRamCascadeMemoryLayoutTests
             Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "Master");
             Assert.NotEmpty(shell.Replace.ReplaceCoverageSegments);
             Assert.Empty(shell.Reports.ReportHistoryEntries);
-            Capture(window, ic + "-cascade");
+            await CaptureAsync(window, ic + "-cascade");
             window.Width = 980;
             Render();
             MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), bar => bar.IsEffectivelyVisible);
@@ -73,7 +74,7 @@ public sealed class CtrlRamCascadeMemoryLayoutTests
             Border local = Assert.Single(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemoryLocalView");
             Assert.Contains(local.GetVisualDescendants().OfType<TextBlock>(), label => label.Text == "Cascade");
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
-            Capture(window, ic + "-cascade-narrow-hover");
+            await CaptureAsync(window, ic + "-cascade-narrow-hover");
         }
         finally { await CloseAndFlushAsync(window); }
     }
@@ -117,11 +118,40 @@ public sealed class CtrlRamCascadeMemoryLayoutTests
         }
     }
 
-    internal static void Capture(Window window, string name)
+    internal static async Task CaptureAsync(Window window, string name)
     {
         string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
         if (string.IsNullOrWhiteSpace(directory)) { return; }
-        for (int tick = 0; tick < 4; tick++) { Thread.Sleep(80); Render(); }
+        var elapsed = Stopwatch.StartNew();
+        while (true)
+        {
+            Render();
+            Dispatcher.UIThread.RunJobs();
+            // Reveal and rail-lift animations must finish with valid layout before capture.
+            string? pending = null;
+            foreach (Control control in window.GetVisualDescendants().OfType<Control>().Prepend(window)
+                .Where(control => control.IsEffectivelyVisible))
+            {
+                if (!control.IsMeasureValid || !control.IsArrangeValid)
+                {
+                    pending = $"layout is invalid for {control.GetType().Name}#{control.Name} (measure={control.IsMeasureValid}, arrange={control.IsArrangeValid})";
+                    break;
+                }
+                if (control.IsAnimating(Visual.RenderTransformProperty) || control.IsAnimating(Visual.OpacityProperty))
+                {
+                    pending = $"animation is active for {control.GetType().Name}#{control.Name} (transform={control.RenderTransform?.Value}, opacity={control.Opacity})";
+                    break;
+                }
+            }
+            if (pending is null)
+            {
+                Render();
+                break;
+            }
+            Assert.True(elapsed.Elapsed < TimeSpan.FromSeconds(10),
+                $"Capture '{name}' did not settle within 10 seconds: {pending}");
+            await Task.Delay(16, TestContext.Current.CancellationToken);
+        }
         _ = Directory.CreateDirectory(directory);
         using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
         Assert.NotNull(frame);

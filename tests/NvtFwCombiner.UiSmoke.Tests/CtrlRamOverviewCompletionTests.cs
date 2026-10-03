@@ -53,7 +53,7 @@ public sealed class CtrlRamOverviewCompletionTests
             Assert.Equal(WorkflowInspectionAttemptState.Succeeded, shell.Replace.Inspection.State);
             Assert.True(shell.Replace.CanBuildReplace);
             Assert.False(shell.Replace.HasMemoryLayoutDisplayError);
-            CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-overview");
+            await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, ic + "-single-overview");
             Assert.Contains(shell.Replace.CtrlRamOverview, section => section.ContentRole == MemoryContentRole.Tp);
             Assert.Contains(shell.Replace.CtrlRamOverview, section => section.ContentRole == MemoryContentRole.Dp);
             Assert.Equal(3, shell.Replace.CtrlRamOverview.Count);
@@ -81,7 +81,7 @@ public sealed class CtrlRamOverviewCompletionTests
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
             _ = CtrlRamMemoryLayoutTests.OpenLane(window, master);
-            CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-master-hover");
+            await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, ic + "-single-master-hover");
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
                 block.IsEffectivelyVisible && block.Text == "Master");
             foreach (MemoryContentRole role in new[] { MemoryContentRole.Dp, MemoryContentRole.Tp })
@@ -92,14 +92,14 @@ public sealed class CtrlRamOverviewCompletionTests
                 Assert.True(target.Focus(NavigationMethod.Tab));
                 Dispatcher.UIThread.RunJobs();
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-                CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-direct-" + role);
+                await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, ic + "-direct-" + role);
                 Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
                 Assert.Same(target.DataContext, card.DataContext);
                 Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryLocalView");
             }
             shell.SelectedLanguage = "Traditional Chinese";
             window.RequestedThemeVariant = ThemeVariant.Dark;
-            CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-overview-dark-zh");
+            await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, ic + "-single-overview-dark-zh");
             Assert.Equal(expectedDpTitles, shell.Replace.CtrlRamOverview
                 .Where(section => section.ContentRole == MemoryContentRole.Dp).Select(section => section.DisplayTitle));
             Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC");
@@ -108,7 +108,7 @@ public sealed class CtrlRamOverviewCompletionTests
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
             _ = CtrlRamMemoryLayoutTests.OpenLane(window, Assert.Single(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC"));
-            CtrlRamCascadeMemoryLayoutTests.Capture(window, ic + "-single-master-hover-dark-zh");
+            await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, ic + "-single-master-hover-dark-zh");
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
                 block.IsEffectivelyVisible && block.Text == "主 IC");
             Assert.True(shell.Replace.CanBuildReplace);

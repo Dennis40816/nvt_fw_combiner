@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
@@ -151,14 +152,18 @@ public sealed class CtrlRamMemoryLayoutTests
             Capture(window, "nt51927-hover60-collapsed.png");
             Control position = Positions(window)[selected ? 0 : 1];
             window.MouseMove(Center(position, window), RawInputModifiers.None);
-            await SettleAsync();
-            _ = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryLocalView");
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+            await SettleAsync(() =>
+            {
+                Border local = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryLocalView");
+                Assert.Equal(1, local.Opacity);
+                Assert.Equal(Matrix.Identity, local.RenderTransform?.Value ?? Matrix.Identity);
+                Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+            }, "Endpoint local view revealed without a slice card");
             Capture(window, "nt51927-hover60-master.png");
             Control leaf = LocalCells(window).Single(control => control.DataContext is MemoryCoverageSegmentViewModel
             segment && segment.CtrlRamRegionRole == role);
             window.MouseMove(Center(leaf, window), RawInputModifiers.None);
-            await SettleAsync();
+            await SettleAsync(() => AssertLiftIsNotClipped(leaf), $"{role} leaf final lift");
             Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
             Assert.Same(leaf.DataContext, card.DataContext);
             foreach (Control cell in LocalCells(window))
@@ -167,24 +172,34 @@ public sealed class CtrlRamMemoryLayoutTests
                 Assert.Equal(ReferenceEquals(cell, leaf), slice.Interaction.IsActive);
             }
             Assert.Equal(selected, Assert.IsType<MemoryCoverageSegmentViewModel>(leaf.DataContext).IsSelectedForWrite);
-            AssertLiftIsNotClipped(leaf);
             Capture(window, role == CtrlRamRegionRole.Mp ? "nt51927-hover60-master-mp.png" : "nt51927-master-normal-compact-gap.png");
             if (!selected) { Capture(window, $"nt51927-kept-slave-r-{role}.png"); }
             window.MouseMove(Center(card, window), RawInputModifiers.None);
-            await SettleAsync(400);
-            Assert.Same(card, Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard"));
+            // Keep the 400 ms scenario: crossing into the card must survive the close timer.
+            var cardObservation = Stopwatch.StartNew();
+            do
+            {
+                Render();
+                Assert.Same(card, Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard"));
+                if (cardObservation.ElapsedMilliseconds >= 400) { break; }
+                await Task.Delay(16, TestContext.Current.CancellationToken);
+            } while (true);
             window.MouseMove(new Point(20, 20), RawInputModifiers.None);
-            await SettleAsync(400);
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name is "MemoryLocalView" or "MemorySliceCard");
+            await SettleAsync(() =>
+                Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name is "MemoryLocalView" or "MemorySliceCard"),
+                "Local view and slice card dismissed after pointer exit");
 
             // Clicking an endpoint is not a pin: mouse-origin focus must not defeat exit dismissal.
             window.MouseMove(Center(position, window), RawInputModifiers.None);
             window.MouseDown(Center(position, window), MouseButton.Left);
             window.MouseUp(Center(position, window), MouseButton.Left);
-            await SettleAsync();
+            await SettleAsync(() =>
+                _ = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryLocalView"),
+                "Clicked endpoint local view opened");
             window.MouseMove(new Point(20, 20), RawInputModifiers.None);
-            await SettleAsync(400);
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name is "MemoryLocalView" or "MemorySliceCard");
+            await SettleAsync(() =>
+                Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name is "MemoryLocalView" or "MemorySliceCard"),
+                "Mouse-focused endpoint local view and slice card dismissed after pointer exit");
         }
         finally { await CloseAndFlushAsync(window); }
     }
@@ -213,18 +228,30 @@ public sealed class CtrlRamMemoryLayoutTests
                 control => control.Classes.Contains("memoryExplorerSlice") && ReferenceEquals(control.DataContext, legend.DataContext));
             Assert.DoesNotContain("railActive", legend.Classes);
             window.MouseMove(Center(rail, window), RawInputModifiers.None);
-            await SettleAsync();
-            Assert.Contains("railActive", legend.Classes);
+            await SettleAsync(() =>
+            {
+                Assert.Contains("railActive", legend.Classes);
+                Border showing = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
+                Assert.Equal(1, showing.Opacity);
+                Assert.Equal(Matrix.Identity, showing.RenderTransform?.Value ?? Matrix.Identity);
+            }, "TP firmware legend highlighted and slice card revealed");
             Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
             window.MouseMove(Center(card, window), RawInputModifiers.None);
-            await SettleAsync();
-            Assert.Contains("railActive", legend.Classes);
+            // This is a 220 ms persistence window, not an immediate-presence wait.
+            var legendObservation = Stopwatch.StartNew();
+            do
+            {
+                Render();
+                Assert.Contains("railActive", legend.Classes);
+                if (legendObservation.ElapsedMilliseconds >= 220) { break; }
+                await Task.Delay(16, TestContext.Current.CancellationToken);
+            } while (true);
             Control frame = Assert.IsType<StackPanel>(card.GetVisualParent());
             Assert.Contains(frame.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Line>(),
                 line => line.StartPoint != line.EndPoint);
             window.MouseMove(new Point(2, 2), RawInputModifiers.None);
-            await SettleAsync(500);
-            Assert.DoesNotContain("railActive", legend.Classes);
+            await SettleAsync(() => Assert.DoesNotContain("railActive", legend.Classes),
+                "TP firmware legend highlight cleared after pointer exit");
         }
         finally { await CloseAndFlushAsync(window); }
     }
@@ -289,15 +316,19 @@ public sealed class CtrlRamMemoryLayoutTests
                     double expectedWidth = strip.Bounds.Width * (segment.RangeEndExclusive!.Value - segment.RangeStart!.Value) / 31280d;
                     Assert.InRange(Math.Abs(cell.Bounds.Width - expectedWidth), 0, 1);
                 }
-                await SettleAsync();
-                Border activePosition = Assert.IsType<Border>(Positions(window)[index]);
-                Assert.Equal(default, activePosition.BorderThickness);
-                Assert.Equal(default, activePosition.BoxShadow);
-                Assert.Equal(Matrix.Identity, activePosition.RenderTransform?.Value ?? Matrix.Identity);
-                Assert.Equal(global::Avalonia.Media.Brushes.Transparent, activePosition.Background);
-                Point[] labelCenters = [.. Positions(window).Select(position =>
-                    Center(Assert.Single(position.GetVisualDescendants().OfType<TextBlock>()), window))];
-                Assert.All(labelCenters, center => Assert.InRange(Math.Abs(center.Y - labelCenters[0].Y), 0, 0.5));
+                await SettleAsync(() =>
+                {
+                    Assert.Equal(1, local.Opacity);
+                    Assert.Equal(Matrix.Identity, local.RenderTransform?.Value ?? Matrix.Identity);
+                    Border activePosition = Assert.IsType<Border>(Positions(window)[index]);
+                    Assert.Equal(default, activePosition.BorderThickness);
+                    Assert.Equal(default, activePosition.BoxShadow);
+                    Assert.Equal(Matrix.Identity, activePosition.RenderTransform?.Value ?? Matrix.Identity);
+                    Assert.Equal(global::Avalonia.Media.Brushes.Transparent, activePosition.Background);
+                    Point[] labelCenters = [.. Positions(window).Select(position =>
+                        Center(Assert.Single(position.GetVisualDescendants().OfType<TextBlock>()), window))];
+                    Assert.All(labelCenters, center => Assert.InRange(Math.Abs(center.Y - labelCenters[0].Y), 0, 0.5));
+                }, $"Endpoint {index} resting appearance and aligned labels");
                 Capture(window, $"nt51927-hover60-endpoint-{index}.png");
             }
             Capture(window, "nt51927-threechip-actual.png");
@@ -313,10 +344,13 @@ public sealed class CtrlRamMemoryLayoutTests
             Assert.Same(nfRight.DataContext, shown);
             Assert.False(shell.Replace.CtrlRamFocusLanes[0].Ranges[0].Interaction.IsActive);
             Assert.False(shell.Replace.CtrlRamFocusLanes[2].Ranges[0].Interaction.IsActive);
-            await Task.Delay(250, TestContext.Current.CancellationToken);
-            Render();
+            await SettleAsync(() =>
+            {
+                AssertLiftIsNotClipped(nfRight);
+                Assert.Equal(1, card.Opacity);
+                Assert.Equal(Matrix.Identity, card.RenderTransform?.Value ?? Matrix.Identity);
+            }, "Slave R NF card revealed with final lift");
             Capture(window, "nt51927-threechip-hover.png");
-            AssertLiftIsNotClipped(nfRight);
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             Render();
@@ -400,6 +434,7 @@ public sealed class CtrlRamMemoryLayoutTests
         string ic = shell.WorkflowSession.SelectedIc;
         string number = shell.WorkflowSession.SelectedNumber;
         (long?, long?, MemoryContentRole, bool)[] ranges = Ranges();
+        string[] actionNames = ["BrowseButton", "ClearButton"];
         try
         {
             foreach ((int width, int height) in new[] { (980, 640), (1180, 760), (1440, 900) })
@@ -410,44 +445,44 @@ public sealed class CtrlRamMemoryLayoutTests
                     window.Height = height;
                     window.RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light;
                     shell.SelectedLanguage = darkChinese ? "Traditional Chinese" : "English";
-                    Render();
-                    await Task.Delay(180, TestContext.Current.CancellationToken);
-                    Render();
-                    Assert.Equal(width, window.ClientSize.Width);
-                    Assert.Equal(height, window.ClientSize.Height);
-                    MemoryCoverageBar[] rails = [.. window.GetVisualDescendants().OfType<MemoryCoverageBar>()
-                        .Where(rail => rail.IsEffectivelyVisible)];
-                    Assert.NotEmpty(rails);
-                    foreach (MemoryCoverageBar rail in rails)
+                    await SettleAsync(() =>
                     {
-                        Point origin = rail.TranslatePoint(default, window)!.Value;
-                        Assert.True(rail.Bounds.Width > 0);
-                        Assert.InRange(origin.X, -1, window.ClientSize.Width - rail.Bounds.Width + 1);
-                        ItemsControl main = Assert.Single(rail.GetVisualDescendants().OfType<ItemsControl>(),
-                            control => control.Name == "MemoryMainRail");
-                        Assert.InRange(main.Bounds.Height, 33.5, 34.5);
-                        Panel legend = Assert.Single(rail.GetVisualDescendants().OfType<Panel>(), panel => panel.Name == "MemoryLegend");
-                        Assert.True(legend.IsEffectivelyVisible);
-                        Point legendOrigin = legend.TranslatePoint(default, rail)!.Value;
-                        Point mainOrigin = main.TranslatePoint(default, rail)!.Value;
-                        Assert.True(legendOrigin.Y >= 0);
-                        Assert.True(legendOrigin.Y >= mainOrigin.Y + main.Bounds.Height);
-                        Assert.InRange(Math.Abs(legendOrigin.X + legend.Bounds.Width - rail.Bounds.Width), 0, 0.5);
-                    }
-                    foreach (FirmwareSlotCard card in window.GetVisualDescendants().OfType<FirmwareSlotCard>()
-                        .Where(card => card.IsEffectivelyVisible))
-                    {
-                        Border surface = Assert.Single(card.GetVisualDescendants().OfType<Border>(),
-                            border => border.Classes.Contains("firmwareSlot"));
-                        foreach (string name in new[] { "BrowseButton", "ClearButton" })
+                        Assert.Equal(width, window.ClientSize.Width);
+                        Assert.Equal(height, window.ClientSize.Height);
+                        MemoryCoverageBar[] rails = [.. window.GetVisualDescendants().OfType<MemoryCoverageBar>()
+                            .Where(rail => rail.IsEffectivelyVisible)];
+                        Assert.NotEmpty(rails);
+                        foreach (MemoryCoverageBar rail in rails)
                         {
-                            Button action = card.FindControl<Button>(name)!;
-                            Point origin = action.TranslatePoint(default, surface)!.Value;
-                            Assert.InRange(Math.Abs(origin.Y + (action.Bounds.Height / 2) -
-                                (surface.Bounds.Height / 2)), 0, 0.5);
-                            Assert.InRange(origin.X, 0, surface.Bounds.Width - action.Bounds.Width);
+                            Point origin = rail.TranslatePoint(default, window)!.Value;
+                            Assert.True(rail.Bounds.Width > 0);
+                            Assert.InRange(origin.X, -1, window.ClientSize.Width - rail.Bounds.Width + 1);
+                            ItemsControl main = Assert.Single(rail.GetVisualDescendants().OfType<ItemsControl>(),
+                                control => control.Name == "MemoryMainRail");
+                            Assert.InRange(main.Bounds.Height, 33.5, 34.5);
+                            Panel legend = Assert.Single(rail.GetVisualDescendants().OfType<Panel>(), panel => panel.Name == "MemoryLegend");
+                            Assert.True(legend.IsEffectivelyVisible);
+                            Point legendOrigin = legend.TranslatePoint(default, rail)!.Value;
+                            Point mainOrigin = main.TranslatePoint(default, rail)!.Value;
+                            Assert.True(legendOrigin.Y >= 0);
+                            Assert.True(legendOrigin.Y >= mainOrigin.Y + main.Bounds.Height);
+                            Assert.InRange(Math.Abs(legendOrigin.X + legend.Bounds.Width - rail.Bounds.Width), 0, 0.5);
                         }
-                    }
+                        foreach (FirmwareSlotCard card in window.GetVisualDescendants().OfType<FirmwareSlotCard>()
+                            .Where(card => card.IsEffectivelyVisible))
+                        {
+                            Border surface = Assert.Single(card.GetVisualDescendants().OfType<Border>(),
+                                border => border.Classes.Contains("firmwareSlot"));
+                            foreach (string name in actionNames)
+                            {
+                                Button action = card.FindControl<Button>(name)!;
+                                Point origin = action.TranslatePoint(default, surface)!.Value;
+                                Assert.InRange(Math.Abs(origin.Y + (action.Bounds.Height / 2) -
+                                    (surface.Bounds.Height / 2)), 0, 0.5);
+                                Assert.InRange(origin.X, 0, surface.Bounds.Width - action.Bounds.Width);
+                            }
+                        }
+                    }, $"{scenario}: {width}x{height}, {(darkChinese ? "dark-zh" : "light-en")} viewport and rail layout");
                     Assert.Equal(ic, shell.WorkflowSession.SelectedIc);
                     Assert.Equal(number, shell.WorkflowSession.SelectedNumber);
                     Assert.Equal(ranges, Ranges());
@@ -480,14 +515,20 @@ public sealed class CtrlRamMemoryLayoutTests
             foreach (bool last in new[] { false, true })
             {
                 _ = OpenLane(window, lane);
-                await SettleAsync();
+                await SettleAsync(() =>
+                {
+                    Border local = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryLocalView");
+                    Assert.Equal(1, local.Opacity);
+                    Assert.Equal(Matrix.Identity, local.RenderTransform?.Value ?? Matrix.Identity);
+                    Assert.NotEmpty(LocalCells(window));
+                }, $"{lane.Title} local lane revealed before measuring its {(last ? "last" : "first")} edge");
                 Control[] cells = LocalCells(window);
                 Control target = last ? cells[^1] : cells[0];
                 Rect resting = target.Bounds;
                 Point center = target.TranslatePoint(new Point(resting.Width / 2, resting.Height / 2), window)!.Value;
                 window.MouseMove(center, RawInputModifiers.None);
-                await SettleAsync();
-                AssertLiftIsNotClipped(target);
+                await SettleAsync(() => AssertLiftIsNotClipped(target),
+                    $"{lane.Title} {(last ? "last" : "first")} edge final lift");
                 Assert.Equal(resting, target.Bounds);
                 shell.IsReducedMotionEnabled = true;
                 Render();
@@ -496,9 +537,9 @@ public sealed class CtrlRamMemoryLayoutTests
                 Assert.Equal(Matrix.Identity, target.RenderTransform?.Value ?? Matrix.Identity);
                 shell.IsReducedMotionEnabled = false;
                 window.MouseMove(new Point(20, 20), RawInputModifiers.None);
-                await Task.Delay(400, TestContext.Current.CancellationToken);
-                Render();
-                Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
+                await SettleAsync(() =>
+                    Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard"),
+                    $"{lane.Title} {(last ? "last" : "first")} edge slice card dismissed");
             }
         }
     }
@@ -579,10 +620,27 @@ public sealed class CtrlRamMemoryLayoutTests
         return control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
     }
 
-    private static async Task SettleAsync(int delayMilliseconds = 220)
+    private static async Task SettleAsync(Action assertState, string state)
     {
-        await Task.Delay(delayMilliseconds, TestContext.Current.CancellationToken);
-        Render();
+        var elapsed = Stopwatch.StartNew();
+        while (true)
+        {
+            TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+            Render();
+            try
+            {
+                assertState();
+                return;
+            }
+            catch (Xunit.Sdk.XunitException failure)
+            {
+                if (elapsed.Elapsed >= TimeSpan.FromSeconds(10))
+                {
+                    Assert.Fail($"Timed out waiting for {state}. Unfinished state: {failure.Message}");
+                }
+            }
+            await Task.Delay(16, TestContext.Current.CancellationToken);
+        }
     }
 
     private static void Capture(Window window, string name)

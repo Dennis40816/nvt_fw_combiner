@@ -211,6 +211,40 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         Assert.False(IsRunning(processId));
     }
 
+    private static async Task WaitForApplicationLifetimeExitAsync(
+        string statePath,
+        string marker,
+        ManagedProcessStartResult result)
+    {
+        int processId;
+        try
+        {
+            processId = await WaitForProcessMarkerAsync(marker);
+        }
+        catch (Xunit.Sdk.XunitException exception)
+        {
+            throw new Xunit.Sdk.XunitException(
+                $"Application child observation timed out: marker='{marker}', statePath='{statePath}', " +
+                $"outcome={result.Outcome}, exitCode={result.ExitCode}, " +
+                $"lifetime={ManagedProcessLifetimeLease.GetStatus(statePath, ManagedProcessLifetimeKind.Application)}. " +
+                exception.Message);
+        }
+
+        long deadline = Environment.TickCount64 + 10_000;
+        ManagedProcessLifetimeStatus status;
+        while ((status = ManagedProcessLifetimeLease.GetStatus(
+                   statePath,
+                   ManagedProcessLifetimeKind.Application)) != ManagedProcessLifetimeStatus.Exited &&
+               Environment.TickCount64 < deadline)
+        {
+            await Task.Delay(25, TestContext.Current.CancellationToken);
+        }
+        Assert.True(
+            status == ManagedProcessLifetimeStatus.Exited,
+            $"Application lifetime exit timed out: pid={processId}, marker='{marker}', " +
+            $"statePath='{statePath}', lifetime={status}, outcome={result.Outcome}, exitCode={result.ExitCode}.");
+    }
+
     private sealed class SlowThenRealTermination(TimeSpan delay) : IManagedProcessTermination
     {
         public ManagedProcessTerminationResult ConfirmExited(Process process)
@@ -249,12 +283,15 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         TimeSpan deadline,
         CancellationToken cancellationToken,
         bool expireAfterCreation = false,
-        Action? afterProcessCreation = null)
+        Action? afterProcessCreation = null,
+        string? processMarker = null)
     {
         string? previous = Environment.GetEnvironmentVariable(BehaviorEnvironment);
+        string? previousMarker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_PROCESS_MARKER");
         try
         {
             Environment.SetEnvironmentVariable(BehaviorEnvironment, behavior);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_PROCESS_MARKER", processMarker);
             using TestExecutableLaunchLease executableLease = ExecutableLease(managedRoot, version);
             using var expiry = new CancellationTokenSource();
             string statePath = Path.Combine(managedRoot, "state", "version-manager.v1.json");
@@ -272,6 +309,7 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         finally
         {
             Environment.SetEnvironmentVariable(BehaviorEnvironment, previous);
+            Environment.SetEnvironmentVariable("NVT_READY_PROBE_PROCESS_MARKER", previousMarker);
         }
     }
 
