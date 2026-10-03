@@ -266,6 +266,64 @@ public sealed class BoundedLocalReadStreamTests
         _ = Assert.ThrowsAny<OperationCanceledException>(() => bounded.Position);
     }
 
+    /// <summary>A cancelled per-read token before source access leaves the admitted stream usable.</summary>
+    [Fact]
+    public async Task PreCancelledReadLeavesStreamUsable()
+    {
+        using var perRead = new CancellationTokenSource();
+        perRead.Cancel();
+        using var source = new TestReadStream([1, 2, 3, 4]);
+        using var bounded = new BoundedLocalReadStream(source, 4, TestContext.Current.CancellationToken, 4);
+        byte[] buffer = new byte[4];
+
+        OperationCanceledException cancelled = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            bounded.ReadAsync(buffer.AsMemory(), perRead.Token).AsTask());
+
+        Assert.Equal(perRead.Token, cancelled.CancellationToken);
+        Assert.Empty(source.Requests);
+        Assert.Equal(0, bounded.Position);
+        Assert.Equal(4, await bounded.ReadAsync(buffer.AsMemory(), TestContext.Current.CancellationToken));
+        Assert.Equal([1, 2, 3, 4], buffer);
+        await bounded.CompleteAsync();
+        Assert.Equal(4, source.BytesRead);
+    }
+
+    /// <summary>Cancellation after source consumption permanently refuses retry and completion without reading a growing tail.</summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task PerReadCancellationAfterSourceConsumptionPreventsReuse(bool seekable, bool completeFirst)
+    {
+        using var perRead = new CancellationTokenSource();
+        using var source = new TestReadStream(
+            [1, 2, 3, 4, 5, 6], reportedLength: 4, seekable: seekable, onRead: perRead.Cancel);
+        using var bounded = new BoundedLocalReadStream(
+            source, 4, TestContext.Current.CancellationToken, seekable ? 4 : null);
+        byte[] buffer = new byte[4];
+
+        OperationCanceledException cancelled = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            bounded.ReadAsync(buffer.AsMemory(0, 2), perRead.Token).AsTask());
+
+        Assert.Equal(perRead.Token, cancelled.CancellationToken);
+        Assert.Equal(2, source.BytesRead);
+        OperationCanceledException refused = completeFirst
+            ? await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bounded.CompleteAsync().AsTask())
+            : await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                bounded.ReadAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken));
+        Assert.Same(cancelled, refused);
+        Assert.Same(cancelled, Assert.ThrowsAny<OperationCanceledException>(() => bounded.ReadByte()));
+        Assert.Same(cancelled, Assert.ThrowsAny<OperationCanceledException>(() => bounded.Position));
+        Assert.Same(cancelled, await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bounded.CompleteAsync().AsTask()));
+        if (seekable)
+        {
+            Assert.Same(cancelled, Assert.ThrowsAny<OperationCanceledException>(() => bounded.Seek(0, SeekOrigin.Begin)));
+        }
+        Assert.Equal(2, source.BytesRead);
+        Assert.Equal([2], source.Requests);
+    }
+
     /// <summary>Invalid admission and unreadable sources are refused before reading.</summary>
     [Fact]
     public void InvalidAdmissionIsRefused()

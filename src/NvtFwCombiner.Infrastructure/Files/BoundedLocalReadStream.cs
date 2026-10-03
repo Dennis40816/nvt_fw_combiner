@@ -17,7 +17,7 @@ internal sealed class BoundedLocalReadStream : Stream
     private long _position;
     private bool _endVerified;
     private bool _disposed;
-    private IOException? _failure;
+    private Exception? _failure;
 
     internal BoundedLocalReadStream(
         Stream source,
@@ -242,6 +242,11 @@ internal sealed class BoundedLocalReadStream : Stream
             _operationCancellation.ThrowIfCancellationRequested();
             cancellationToken.ThrowIfCancellationRequested();
             return read;
+        }
+        catch (OperationCanceledException exception)
+        {
+            _failure = exception;
+            throw;
         }
         catch (IOException exception)
         {

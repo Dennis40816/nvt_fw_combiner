@@ -43,12 +43,20 @@ public sealed class LocalFileStoreTests
         Assert.Same(observerFailure, thrown.InnerException);
         Assert.IsNotType<LocalFileReadException>(thrown);
         using var cancelled = new CancellationTokenSource();
-        cancelled.Cancel();
-        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => store.ReadTextAsync(
+        bool observerInvoked = false;
+        var observerCancellation = new OperationCanceledException(cancelled.Token);
+        OperationCanceledException cancellationThrown = await Assert.ThrowsAsync<OperationCanceledException>(() => store.ReadTextAsync(
             path,
             Math.Max(1, bytes.Length),
             cancelled.Token,
-            _ => throw new OperationCanceledException(cancelled.Token)).AsTask());
+            _ =>
+            {
+                observerInvoked = true;
+                cancelled.Cancel();
+                throw observerCancellation;
+            }).AsTask());
+        Assert.True(observerInvoked);
+        Assert.Same(observerCancellation, cancellationThrown);
     }
 
     /// <summary>The standalone report ceiling accepts exactly ten MiB.</summary>
