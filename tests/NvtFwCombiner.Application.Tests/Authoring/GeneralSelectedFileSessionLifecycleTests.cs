@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.Authoring;
@@ -8,6 +9,69 @@ namespace NvtFwCombiner.Application.Tests.Authoring;
 /// <summary>Verifies explicit selected-file inspection/rebind session transitions.</summary>
 public sealed class GeneralSelectedFileSessionLifecycleTests
 {
+    /// <summary>Reload of the same path rejects a late stamp without overwriting the newly accepted identity or ranges.</summary>
+    [Fact]
+    public async Task ReloadRejectsLateInspectionStampForSamePath()
+    {
+        const string path = @"C:\firmware\source.bin";
+        var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);
+        Activate(session);
+        Assert.True(session.SetDraft(Draft(length: 4)).Succeeded);
+        AuthoringSlotInspectionStartResult first = session.BeginSlotFileInspection("mapping-1", path);
+        var completion = new TaskCompletionSource<SelectedFileContentInspection>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var oldStamp = FileStamp.FromBytes([1, 2, 3, 4]);
+        var currentStamp = FileStamp.FromBytes([1, 2, 9, 4]);
+        var service = new GeneralSelectedFileInspectionService(new DelayedContentInspector(completion));
+        Task<GeneralSelectedFileInspectionResult> pending = service.InspectAsync(
+            "mapping-1", path, first.Snapshot!.AuthoringRevision,
+            TestContext.Current.CancellationToken).AsTask();
+        Assert.False(pending.IsCompleted);
+
+        AuthoringSlotInspectionStartResult reload = session.BeginSlotFileInspection("mapping-1", path);
+        Assert.True(reload.Succeeded);
+        Assert.Equal(first.Snapshot.AuthoringRevision.Next(), reload.Snapshot!.AuthoringRevision);
+        Assert.Empty(reload.Snapshot.DerivedPublications);
+        Assert.Null(Assert.Single(reload.Snapshot.Slots).FileStamp);
+        Assert.Equal(AuthoringSlotLifecycle.Checking, Assert.Single(reload.Snapshot.Slots).Lifecycle);
+        AuthoringSessionTransitionResult accepted = session.TryAcceptSlotFileInspection(
+            reload.Lease!, new GeneralSelectedFileInspection(
+                "mapping-1", reload.Snapshot.AuthoringRevision, path, currentStamp));
+        Assert.True(accepted.Succeeded);
+        ActiveSessionSnapshot beforeLateCompletion = session.CurrentSnapshot!;
+
+        completion.SetResult(new SelectedFileContentInspection(oldStamp));
+        GeneralSelectedFileInspectionResult late = await pending;
+        Assert.True(late.Succeeded);
+        AuthoringSessionTransitionResult rejected = session.TryAcceptSlotFileInspection(first.Lease!, late.Inspection!);
+
+        Assert.False(rejected.Succeeded);
+        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, rejected.Issue!.Code);
+        Assert.Same(beforeLateCompletion, session.CurrentSnapshot);
+        Assert.Equal(reload.Snapshot.AuthoringRevision, session.CurrentSnapshot!.AuthoringRevision);
+        Assert.Equal(currentStamp, Assert.Single(session.CurrentSnapshot.Slots).FileStamp);
+        GeneralMappingDraftRow row = Assert.Single(
+            Assert.IsType<GeneralMergeDraftState>(session.CurrentSnapshot.DraftState).Mappings.Rows);
+        Assert.Equal(currentStamp, row.Source.AcceptedFileStamp);
+        Assert.Equal(4, row.SourceRange.Length);
+        Assert.Equal(4, row.TargetRange.Length);
+    }
+
+    private sealed class DelayedContentInspector(TaskCompletionSource<SelectedFileContentInspection> completion)
+        : ISelectedFileContentInspector
+    {
+        public ValueTask<SelectedFileContentInspection> InspectAsync(
+            string selectedPath,
+            long maximumBytes,
+            CancellationToken cancellationToken,
+            SelectedFileContentInspectionMode mode = SelectedFileContentInspectionMode.CaptureBytes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Assert.Equal(SelectedFileContentInspectionMode.CaptureBytes, mode);
+            return new ValueTask<SelectedFileContentInspection>(completion.Task);
+        }
+    }
+
     /// <summary>One completion retains every terminal severity and publishes the batch once.</summary>
     [Fact]
     public void BatchInspectionRetainsTerminalHealthAtOneRevision()

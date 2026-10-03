@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Infrastructure.Tests.Files;
 
 /// <summary>Tests content-authoritative host-file inspection and hashing.</summary>
-public sealed class FileContentSnapshotInspectorTests
+public sealed partial class FileContentSnapshotInspectorTests
 {
     /// <summary>Inspection computes accepted length and SHA-256 from one selected file.</summary>
     [Fact]
@@ -28,8 +28,10 @@ public sealed class FileContentSnapshotInspectorTests
     }
 
     /// <summary>Inspection rejects a file above the caller-resolved ceiling before hashing it.</summary>
-    [Fact]
-    public async Task InspectAsyncRejectsFileAboveResolvedMaximum()
+    [Theory]
+    [InlineData(SelectedFileContentInspectionMode.IdentityOnly)]
+    [InlineData(SelectedFileContentInspectionMode.CaptureBytes)]
+    public async Task InspectAsyncRejectsFileAboveResolvedMaximum(SelectedFileContentInspectionMode mode)
     {
         using var workspace = TempWorkspace.Create();
         string path = workspace.Write("oversized.bin", [1, 2, 3, 4]);
@@ -40,10 +42,12 @@ public sealed class FileContentSnapshotInspectorTests
                 inspector.InspectAsync(
                     path,
                     maximumBytes: 3,
-                    TestContext.Current.CancellationToken).AsTask());
+                    TestContext.Current.CancellationToken,
+                    mode).AsTask());
 
         Assert.Equal(4, exception.ObservedBytes);
         Assert.Equal(3, exception.MaximumBytes);
+        Assert.False(exception.IsCaptureStorageLimit);
     }
 
     /// <summary>The fixed-workflow hard ceiling rejects a sparse oversized file before allocation.</summary>
@@ -113,8 +117,10 @@ public sealed class FileContentSnapshotInspectorTests
     }
 
     /// <summary>Same-size file mutation is visible even when host length does not change.</summary>
-    [Fact]
-    public async Task InspectAsyncDetectsSameSizeMutation()
+    [Theory]
+    [InlineData(SelectedFileContentInspectionMode.IdentityOnly)]
+    [InlineData(SelectedFileContentInspectionMode.CaptureBytes)]
+    public async Task InspectAsyncDetectsSameSizeMutation(SelectedFileContentInspectionMode mode)
     {
         using var workspace = TempWorkspace.Create();
         string path = workspace.Write("input.bin", [1, 2, 3, 4]);
@@ -122,7 +128,8 @@ public sealed class FileContentSnapshotInspectorTests
         SelectedFileContentInspection first = await inspector.InspectAsync(
             path,
             maximumBytes: int.MaxValue,
-            CancellationToken.None);
+            CancellationToken.None,
+            mode);
         await File.WriteAllBytesAsync(
             path,
             [1, 2, 9, 4],
@@ -131,15 +138,29 @@ public sealed class FileContentSnapshotInspectorTests
         SelectedFileContentInspection second = await inspector.InspectAsync(
             path,
             maximumBytes: int.MaxValue,
-            CancellationToken.None);
+            CancellationToken.None,
+            mode);
 
         Assert.Equal(first.FileStamp.AcceptedLength, second.FileStamp.AcceptedLength);
         Assert.NotEqual(first.FileStamp, second.FileStamp);
+        Assert.Equal(FileStamp.FromBytes([1, 2, 9, 4]), second.FileStamp);
+        if (mode == SelectedFileContentInspectionMode.CaptureBytes)
+        {
+            Assert.Equal([1, 2, 3, 4], first.AcceptedBytes!.Value.ToArray());
+            Assert.Equal([1, 2, 9, 4], second.AcceptedBytes!.Value.ToArray());
+        }
+        else
+        {
+            Assert.Null(first.AcceptedBytes);
+            Assert.Null(second.AcceptedBytes);
+        }
     }
 
     /// <summary>Inspection rejects a selected path outside its configured roots.</summary>
-    [Fact]
-    public async Task InspectAsyncRejectsPathOutsideAllowedRoot()
+    [Theory]
+    [InlineData(SelectedFileContentInspectionMode.IdentityOnly)]
+    [InlineData(SelectedFileContentInspectionMode.CaptureBytes)]
+    public async Task InspectAsyncRejectsPathOutsideAllowedRoot(SelectedFileContentInspectionMode mode)
     {
         using var workspace = TempWorkspace.Create();
         string allowed = Path.Combine(workspace.Root, "allowed");
@@ -157,6 +178,7 @@ public sealed class FileContentSnapshotInspectorTests
             inspector.InspectAsync(
                 path,
                 maximumBytes: int.MaxValue,
-                TestContext.Current.CancellationToken).AsTask());
+                TestContext.Current.CancellationToken,
+                mode).AsTask());
     }
 }
