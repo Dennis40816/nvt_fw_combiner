@@ -24,3 +24,20 @@ Evidence: headless probe output (full vs DP-only segment identities) kept in the
 (`temp/diag-dp-only-keep.txt`); the photo in the owner's report.
 Owner: unassigned; `1.2.9` item R44 (decision 212).
 Resolution: pending.
+
+R44 investigation (2026-10-03, base `8479dee8ee95dbcee9f38ecf4793e70858c9ff41`), scoped to NT51950/NT51951 with a saved
+Event Buffer Format configuration (the NT51919/29/32 families have no AB format policy, and without a saved configuration
+the admission returns `AB_FORMAT_CONFIGURATION_INVALID` first; neither case was checked here, and the [1.2.0] known issue
+in `CHANGELOG.md` is not reconciled): the current NT51950/NT51951
+authoring path requires both TP primary FWConfig values before selecting an exact format/map. A fresh NT51950
+DP-only selection, at either Single or Cascade, now produces `AB_FORMAT_PRIMARY_INVALID` and a non-geometric
+pending card; it does not reach `MemoryLayoutProjector.Project`. This was checked with synthetic inputs using
+both existing UI test hosts. `MergeWorkflowTests.AbMemoryCapacityComesFromDetectedFormat` explicitly requires
+no address geometry after DP-only selection, and `AbMergeAuthoringExperience.ResolveCapturedFormat` /
+`AbMergeFormatAdmission.Assess` own that prerequisite. The historical slices in `temp/diag-dp-only-keep.txt`
+therefore do not reproduce on this base. No production correction or execution-range change was made.
+Resolution remains pending: the commander/owner must reconcile decision 204 with the current format prerequisite,
+or identify an exact-capability pending case that still reproduces the split before a bounded R1 correction can
+be selected. Local checks: Application.Tests 1654 passed; UiSmoke class filters `MergeWorkflowTests`,
+`MemoryCoverageContentGroupingTests`, and `AbMemoryLayoutControlTests` 59 passed, no skips. The temporary
+diagnostic tests were removed; no firmware fixtures or expected bytes changed. Status stays open.
