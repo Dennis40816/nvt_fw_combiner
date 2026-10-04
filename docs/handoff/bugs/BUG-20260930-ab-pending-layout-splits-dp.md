@@ -1,6 +1,6 @@
 # BUG-20260930-ab-pending-layout-splits-dp: with only the DP selected, the AB layout splits adjacent DP ranges into numbered rows
 
-Status: open (owner decision 204; fix in 1.2.9, decision 212)
+Status: closed (not triggered on the current contract; owner decision 306, 2026-10-04)
 Severity: P3
 Found: 2026-09-30, owner photo of v1.1.15: NT51950 AB Code with only a 1024k DP_AB selected lists `DP AB #1` to
 `DP AB #5`, including `0x37000-0x3FFFF` / `0x40000-0x49FFF` and `0x77000-0x7FFFF` / `0x80000-0xFFFFF` as separate
@@ -23,7 +23,7 @@ own it.
 Evidence: headless probe output (full vs DP-only segment identities) kept in the test area
 (`temp/diag-dp-only-keep.txt`); the photo in the owner's report.
 Owner: unassigned; `1.2.9` item R44 (decision 212).
-Resolution: pending.
+Resolution: closed as not triggered (owner decision 306: keep the contract). For NT51950 and NT51951 with a saved Event Buffer Format configuration, the pending card with only the DP selected is the non-geometric `AB_FORMAT_PRIMARY_INVALID` card, so the split does not occur there; NT51919, NT51929 and NT51932 and the case without a saved configuration were not checked, and the known issue of `CHANGELOG.md` for 1.2.0 is not reconciled. The record reopens if an exact-capability pending case that splits adjacent ranges is reproduced.
 
 R44 investigation (2026-10-03, base `8479dee8ee95dbcee9f38ecf4793e70858c9ff41`), scoped to NT51950/NT51951 with a saved
 Event Buffer Format configuration (the NT51919/29/32 families have no AB format policy, and without a saved configuration
@@ -36,8 +36,4 @@ both existing UI test hosts. `MergeWorkflowTests.AbMemoryCapacityComesFromDetect
 no address geometry after DP-only selection, and `AbMergeAuthoringExperience.ResolveCapturedFormat` /
 `AbMergeFormatAdmission.Assess` own that prerequisite. The historical slices in `temp/diag-dp-only-keep.txt`
 therefore do not reproduce on this base. No production correction or execution-range change was made.
-Resolution remains pending: the commander/owner must reconcile decision 204 with the current format prerequisite,
-or identify an exact-capability pending case that still reproduces the split before a bounded R1 correction can
-be selected. Local checks: Application.Tests 1654 passed; UiSmoke class filters `MergeWorkflowTests`,
-`MemoryCoverageContentGroupingTests`, and `AbMemoryLayoutControlTests` 59 passed, no skips. The temporary
-diagnostic tests were removed; no firmware fixtures or expected bytes changed. Status stays open.
+Resolution (2026-10-04, owner decision 306): the commander and the owner reconciled decision 204 with the current format prerequisite by keeping the contract, and this record is closed as not triggered; the scope limits of the investigation above stay as they are.
