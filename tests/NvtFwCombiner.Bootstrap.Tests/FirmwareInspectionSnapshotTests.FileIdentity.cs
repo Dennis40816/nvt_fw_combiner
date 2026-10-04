@@ -555,8 +555,10 @@ public sealed partial class FirmwareInspectionSnapshotTests
         public ValueTask<SelectedFileContentInspection> InspectAsync(
             string selectedPath,
             long maximumBytes,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            SelectedFileContentInspectionMode mode = SelectedFileContentInspectionMode.CaptureBytes)
         {
+            Assert.Equal(SelectedFileContentInspectionMode.CaptureBytes, mode);
             return inspect(selectedPath, maximumBytes, cancellationToken);
         }
     }

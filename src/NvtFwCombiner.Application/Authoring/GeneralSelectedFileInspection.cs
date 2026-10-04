@@ -152,7 +152,7 @@ public sealed class GeneralSelectedFileInspectionService
         {
             issues.Add(new GeneralSelectedFileInspectionIssue(
                 GeneralAuthoringIssueCodes.FileSizeExceeded,
-                $"Selected General file is {exception.ObservedBytes} bytes, exceeding the resolved whole-file maximum {exception.MaximumBytes}.",
+                $"Selected General file is {exception.ObservedBytes} bytes, exceeding the {(exception.IsCaptureStorageLimit ? "capture storage limit" : "resolved whole-file maximum")} {exception.MaximumBytes}.",
                 definitionId));
             return null;
         }
