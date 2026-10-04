@@ -2,7 +2,7 @@
 
 ## 1. Status and purpose
 
-Status: P/A executed; C-F planned at `6f87c66fd` (2026-10-02); O25 decided (260); O24 open.
+Status: P/A executed; C-F planned at `6f87c66fd` (2026-10-02); O25 decided (260); O24 decided (300).
 Measured 2026-10-02; no split or execution evidence produced.
 Source commit: `d38f4e7c379bce1a908ad1b31d3b2356c58591d4` on `feature/1.2.11/r33-05-candidates`.
 Purpose: record the next R33-05 batches under O25 and retain the O24 coverage choice.
@@ -800,7 +800,7 @@ Infrastructure.Tests already uses Platform types in `VersionManagement/ProcessLa
 This transitive behavioral coverage supports deferring Platform's direct-reference gap.
 Process tests may cover behavior despite a reference gap; full-suite fallback/selector completion does not fill it.
 
-## 7. Decided O25 and remaining O24 question
+## 7. Decided O25 and O24
 
 **Decided (2026-10-02, board decision 260):** the commander schedules the splits without approval per split:
 `TrustedProfileBundleCatalogFactoryTests` first, then `VersionManagementExperienceTests`, each when no other
@@ -809,11 +809,11 @@ Classes holding Golden or firmware evidence are excluded; ask the firmware owner
 
 | Question | Options and recommendation |
 | --- | --- |
-| **O24:** Add real start-up tests for the desktop app and the launcher now and postpone the Platform library, or list all three gaps and pick versions later? | A (recommended): add Desktop and LauncherBootstrap start-up behavior tests now; postpone Platform. These two hosts have only build references, while Infrastructure.Tests already exercises Platform types. B: list all three gaps and pick versions later. Adding references alone does not establish behavior coverage. |
+| **O24:** Add real start-up tests for the desktop app and the launcher now and postpone the Platform library, or list all three gaps and pick versions later? | A (recommended): add Desktop and LauncherBootstrap start-up behavior tests now; postpone Platform. These two hosts have only build references, while Infrastructure.Tests already exercises Platform types. B: list all three gaps and pick versions later. Adding references alone does not establish behavior coverage. **Decided (2026-10-04, board decision 300):** behavioral tests for named startup and exit paths of these two hosts; the Platform library stays postponed. |
 
 ## 8. Limits
 
 Only this document is revised. No test/source move, test change, build, test, network operation or Git write.
 The source-method counts are not runtime discovery; timings, outcomes and E1-E7 equivalence remain unconfirmed.
 Static review covers the test declarations and relevant helper paths, not every transitive product implementation.
-O25 scheduling is decided under decision 260; O24 coverage and any serialization change remain undecided.
+O25 scheduling is decided under decision 260 and O24 coverage under decision 300; any serialization change remains undecided.
