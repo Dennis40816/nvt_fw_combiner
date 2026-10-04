@@ -11,6 +11,7 @@ public sealed partial class HexEditorSaveModal : UserControl
     public HexEditorSaveModal()
     {
         InitializeComponent();
+        ModalInitialFocus.Register(this, () => CloseButton);
     }
 
     private async void ConfirmHexEditorSaveButton_OnClick(object? sender, RoutedEventArgs e)

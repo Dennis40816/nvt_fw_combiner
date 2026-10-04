@@ -81,7 +81,8 @@ public sealed partial class RunReportsListTests
             {
                 Assert.Equal(json, shell.Reports.LoadedReportJson);
                 Assert.True(shell.Reports.IsReportModalOpen);
-                _ = Assert.IsType<NvtFwCombiner.Presentation.Avalonia.Views.ReportModal>(window.FocusManager!.GetFocusedElement());
+                Button close = Assert.IsType<Button>(window.FocusManager!.GetFocusedElement());
+                Assert.Same(shell.Reports.CloseReportCommand, close.Command);
                 shell.MessageCenter.OpenRunReportsCommand.Execute(null);
                 Render();
                 Assert.True(load.IsFocused);

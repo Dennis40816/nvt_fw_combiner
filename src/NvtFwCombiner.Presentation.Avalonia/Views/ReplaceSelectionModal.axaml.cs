@@ -11,6 +11,7 @@ public sealed partial class ReplaceSelectionModal : UserControl
     public ReplaceSelectionModal()
     {
         InitializeComponent();
+        ModalInitialFocus.Register(this, () => CloseButton);
     }
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)

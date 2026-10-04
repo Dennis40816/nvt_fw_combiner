@@ -1,6 +1,8 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.VisualTree;
 using System.Text;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -14,6 +16,33 @@ public sealed partial class ReportModal : UserControl
     public ReportModal()
     {
         InitializeComponent();
+        ModalInitialFocus.Register(this, () => CloseButton);
+    }
+
+    private void ReportModal_OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Tab || e.KeyModifiers is not (KeyModifiers.None or KeyModifiers.Shift) ||
+            e.Handled || !IsEffectivelyVisible ||
+            DataContext is not ReportPresentationViewModel { IsHistoryDeleteConfirmationOpen: false })
+        {
+            return;
+        }
+
+        // Use the visible Report tree, including only the selected tab's header and content.
+        Control[] stops = [.. ReportSurface.GetVisualDescendants().OfType<Control>().Where(control =>
+            control.Focusable && KeyboardNavigation.GetIsTabStop(control) &&
+            control.IsEffectivelyVisible && control.IsEffectivelyEnabled &&
+            control is not TabItem { IsSelected: false })];
+        if (stops.Length == 0)
+        {
+            return;
+        }
+
+        int current = Array.IndexOf(stops, TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement());
+        bool backwards = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+        int next = current < 0 ? (backwards ? stops.Length - 1 : 0)
+            : (current + (backwards ? -1 : 1) + stops.Length) % stops.Length;
+        e.Handled = stops[next].Focus(NavigationMethod.Tab, e.KeyModifiers);
     }
 
     private async void SaveReportButton_OnClick(object? sender, RoutedEventArgs e)

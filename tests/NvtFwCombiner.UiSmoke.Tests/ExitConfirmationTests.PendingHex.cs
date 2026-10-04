@@ -1,8 +1,13 @@
+using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.UiSmoke.Tests.ReportControlTestHost;
 
@@ -31,10 +36,31 @@ public sealed partial class ExitConfirmationTests
             Assert.False(shell.HexEditorWorkspace.HasDocument);
             shell.OpenSettingsCommand.Execute(null);
             Assert.True(shell.IsSettingsModalOpen);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
             window.Close();
             Dispatcher.UIThread.RunJobs();
             Assert.True(shell.Navigation.IsExitConfirmationOpen);
             Assert.True(shell.IsSettingsModalOpen);
+            NavigationClearConfirmationModal confirmation = Assert.Single(window.GetVisualDescendants()
+                .OfType<NavigationClearConfirmationModal>());
+            SettingsModal settings = Assert.Single(window.GetVisualDescendants().OfType<SettingsModal>());
+            Button cancel = confirmation.FindControl<Button>("CancelButton")!;
+            Button confirm = Assert.Single(confirmation.GetVisualDescendants().OfType<Button>(), button => button != cancel);
+            Assert.Same(cancel, window.FocusManager!.GetFocusedElement());
+            foreach (RawInputModifiers modifiers in new[] { RawInputModifiers.None, RawInputModifiers.Shift })
+            {
+                for (int step = 0; step < 6; step++)
+                {
+                    window.KeyPress(Key.Tab, modifiers, PhysicalKey.Tab, null);
+                    window.KeyRelease(Key.Tab, modifiers, PhysicalKey.Tab, null);
+                    Dispatcher.UIThread.RunJobs();
+                    Control focused = Assert.IsType<Control>(window.FocusManager.GetFocusedElement(), exactMatch: false);
+                    Assert.Same(step % 2 == 0 ? confirm : cancel, focused);
+                    Assert.Contains(confirmation, focused.GetVisualAncestors());
+                    Assert.DoesNotContain(settings, focused.GetVisualAncestors());
+                }
+            }
             shell.Navigation.CancelNavigationClearCommand.Execute(null);
             Assert.True(shell.IsSettingsModalOpen);
             Assert.True(window.IsEnabled);

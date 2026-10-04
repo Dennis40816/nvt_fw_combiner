@@ -9,5 +9,6 @@ public sealed partial class WorkflowContextSetupModal : UserControl
     public WorkflowContextSetupModal()
     {
         InitializeComponent();
+        ModalInitialFocus.Register(this, () => CancelButton);
     }
 }
