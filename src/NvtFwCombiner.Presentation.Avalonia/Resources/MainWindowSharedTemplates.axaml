@@ -495,7 +495,7 @@
     <views:SpaciousPanel>
       <StackPanel Spacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="{DynamicResource NfcSpace8}">
-        <StackPanel Spacing="3">
+        <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
           <TextBlock Classes="mutedText memoryInfoDescription" Text="{Binding MergeMemorySummary}" TextWrapping="Wrap" />
         </StackPanel>

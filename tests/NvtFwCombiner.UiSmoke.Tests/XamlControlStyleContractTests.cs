@@ -591,7 +591,7 @@ public sealed partial class XamlControlStyleContractTests
     [GeneratedRegex("<CornerRadius\\s+x:Key=\"(?<key>Nfc[A-Za-z]+)\">[^<]+</CornerRadius>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeCornerRadiusTokenDefinitionRegex();
 
-    [GeneratedRegex("<x:Double\\s+x:Key=\"(?<key>NfcSpace[0-9]+)\">(?<value>[^<]+)</x:Double>", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("<x:Double\\s+x:Key=\"(?<key>Nfc(?:Space[0-9]+|FieldSpacing|WorkflowGroupSpacing|WorkspaceColumnSpacing))\">(?<value>[^<]+)</x:Double>", RegexOptions.CultureInvariant)]
     private static partial Regex ThemeSpacingTokenDefinitionRegex();
 
     [GeneratedRegex("<x:Double\\s+x:Key=\"(?<key>NfcFontSize[0-9]+)\">(?<value>[^<]+)</x:Double>", RegexOptions.CultureInvariant)]

@@ -14,23 +14,35 @@ internal sealed class ForegroundLoadingState : ObservableObject
         nameof(Title), nameof(Detail), nameof(RetryLabel), nameof(CancelLabel),
         nameof(Progress), nameof(IsVisible), nameof(IsRunning), nameof(IsReducedMotionEnabled),
         nameof(HasDeterminateProgress), nameof(ProgressPercentLabel), nameof(ShouldAnimate),
-        nameof(CanRetry), nameof(CanCancel),
+        nameof(CanRetry), nameof(CanCancel), nameof(IsExpanded), nameof(IsCollapsed), nameof(CanCollapse),
     ];
     private ForegroundLoadingPhase _phase;
+    private ShellLanguage _language;
     internal ForegroundLoadingState(Func<Task>? retry = null, Func<Task>? cancel = null)
     {
         RetryCommand = retry is null ? null : new AsyncRelayCommand(retry);
         CancelCommand = cancel is null ? null : new AsyncRelayCommand(cancel);
+        CollapseCommand = new RelayCommand(Collapse, () => CanCollapse);
+        ExpandCommand = new RelayCommand(Expand, () => IsCollapsed);
     }
 
     public IAsyncRelayCommand? RetryCommand { get; }
     public IAsyncRelayCommand? CancelCommand { get; }
+    public IRelayCommand CollapseCommand { get; }
+    public IRelayCommand ExpandCommand { get; }
     public string Title { get; private set; } = string.Empty;
     public string Detail { get; private set; } = string.Empty;
     public string RetryLabel { get; private set; } = string.Empty;
     public string CancelLabel { get; private set; } = string.Empty;
+    public string InspectionStatusCollapseLabel => _language == ShellLanguage.ChineseTraditional
+        ? "收合檢查狀態" : "Collapse inspection status";
+    public string InspectionStatusOpenLabel => _language == ShellLanguage.ChineseTraditional
+        ? "開啟檢查狀態" : "Open inspection status";
     public double? Progress { get; private set; }
     public bool IsVisible => _phase != ForegroundLoadingPhase.Hidden;
+    public bool IsExpanded => IsVisible && !IsCollapsed;
+    public bool IsCollapsed { get; private set; }
+    public bool CanCollapse => _phase == ForegroundLoadingPhase.Failed && !IsCollapsed;
     public bool IsRunning => _phase == ForegroundLoadingPhase.Running;
     public bool IsReducedMotionEnabled { get; private set; }
     public bool HasDeterminateProgress => Progress.HasValue;
@@ -55,6 +67,7 @@ internal sealed class ForegroundLoadingState : ObservableObject
         Progress = progress;
         RetryLabel = string.Empty;
         CancelLabel = cancelLabel ?? string.Empty;
+        IsCollapsed = false;
         _phase = ForegroundLoadingPhase.Running;
         Publish(announce);
     }
@@ -87,6 +100,10 @@ internal sealed class ForegroundLoadingState : ObservableObject
         Progress = null;
         RetryLabel = retryLabel ?? string.Empty;
         CancelLabel = cancelLabel ?? string.Empty;
+        if (_phase != ForegroundLoadingPhase.Failed)
+        {
+            IsCollapsed = false;
+        }
         _phase = ForegroundLoadingPhase.Failed;
         Publish(announce);
     }
@@ -94,10 +111,18 @@ internal sealed class ForegroundLoadingState : ObservableObject
     public void Complete()
     {
         _phase = ForegroundLoadingPhase.Hidden;
+        IsCollapsed = false;
         RetryLabel = string.Empty;
         CancelLabel = string.Empty;
         Progress = null;
         Publish(announce: false);
+    }
+
+    internal void ApplyLanguage(ShellLanguage language)
+    {
+        _language = language;
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(InspectionStatusCollapseLabel)));
+        PresentationObserver.Invoke(() => OnPropertyChanged(nameof(InspectionStatusOpenLabel)));
     }
 
     public void SetReducedMotion(bool enabled)
@@ -105,6 +130,24 @@ internal sealed class ForegroundLoadingState : ObservableObject
         if (IsReducedMotionEnabled != enabled)
         {
             IsReducedMotionEnabled = enabled;
+            Publish(announce: false);
+        }
+    }
+
+    private void Collapse()
+    {
+        if (CanCollapse)
+        {
+            IsCollapsed = true;
+            Publish(announce: false);
+        }
+    }
+
+    private void Expand()
+    {
+        if (IsCollapsed)
+        {
+            IsCollapsed = false;
             Publish(announce: false);
         }
     }
@@ -135,6 +178,8 @@ internal sealed class ForegroundLoadingState : ObservableObject
         {
             PresentationObserver.Invoke(() => OnPropertyChanged(propertyName));
         }
+        PresentationObserver.Invoke(CollapseCommand.NotifyCanExecuteChanged);
+        PresentationObserver.Invoke(ExpandCommand.NotifyCanExecuteChanged);
         if (announce)
         {
             PresentationObserver.Invoke(() => OnPropertyChanged(nameof(AccessibleStatus)));

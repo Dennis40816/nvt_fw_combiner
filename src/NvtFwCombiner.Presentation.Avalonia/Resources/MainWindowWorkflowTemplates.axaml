@@ -40,8 +40,8 @@
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsNonCtrlRamStructuredReplaceModeSelected}">
-      <StackPanel Spacing="14">
-        <StackPanel Spacing="3">
+      <StackPanel Spacing="{DynamicResource NfcWorkflowGroupSpacing}">
+        <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
         </StackPanel>
@@ -57,7 +57,7 @@
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsCtrlRamReplaceModeSelected}">
       <StackPanel>
-        <StackPanel Spacing="3" Margin="0,0,0,16">
+        <StackPanel Spacing="{DynamicResource NfcFieldSpacing}" Margin="0,0,0,16">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.CtrlRamInputFilesDetail}" TextWrapping="Wrap" />
         </StackPanel>
@@ -82,7 +82,7 @@
         IsVisible="{Binding IsGeneralReplaceModeSelected}">
       <StackPanel Spacing="{DynamicResource NfcSpace16}">
         <Grid ColumnDefinitions="*" ColumnSpacing="{DynamicResource NfcSpace16}">
-          <StackPanel Spacing="3">
+          <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
             <TextBlock Classes="sectionTitle" Text="{Binding Text.GeneralReplaceMappingTitle}" />
             <TextBlock Classes="mutedText" Text="{Binding SelectedReplaceModeDescription}" TextWrapping="Wrap" />
           </StackPanel>
@@ -109,7 +109,7 @@
           </Border>
         </Grid>
 
-        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*" ColumnSpacing="14" RowSpacing="{DynamicResource NfcSpace8}">
+        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcWorkflowGroupSpacing}" RowSpacing="{DynamicResource NfcSpace8}">
           <TextBlock Classes="panelTitle" Text="{Binding Text.GeneralReplaceRuleBaseTitle}" />
           <TextBlock Grid.Column="1" Classes="panelTitle" Text="{Binding Text.ValidationTitle}" />
           <ContentControl
@@ -135,7 +135,7 @@
         <StackPanel Spacing="{DynamicResource NfcSpace12}">
           <StackPanel Spacing="10">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-              <StackPanel Spacing="3">
+              <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
                 <TextBlock Classes="sectionTitle" Text="{Binding Text.ExplicitMappingsTitle}" />
                 <TextBlock Classes="mutedText" Text="{Binding Text.GeneralReplaceMappingsDetail}" TextWrapping="Wrap" />
               </StackPanel>
@@ -177,8 +177,8 @@
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsNormalMergeModeSelected}">
-      <StackPanel Spacing="14">
-        <StackPanel Spacing="3">
+      <StackPanel Spacing="{DynamicResource NfcWorkflowGroupSpacing}">
+        <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.InputFilesTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding StandardMergeSupportSummary}" TextWrapping="Wrap" />
         </StackPanel>
@@ -194,8 +194,8 @@
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsGeneralMergeModeSelected}">
       <StackPanel Spacing="{DynamicResource NfcSpace16}">
-        <Grid ColumnDefinitions="*,180,120" ColumnSpacing="14">
-          <StackPanel Spacing="3">
+        <Grid ColumnDefinitions="*,180,120" ColumnSpacing="{DynamicResource NfcWorkflowGroupSpacing}">
+          <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
             <TextBlock Classes="sectionTitle" Text="{Binding Text.GeneralMergeMappingTitle}" />
             <TextBlock Classes="mutedText" Text="{Binding Text.GeneralMergeMappingDetail}" TextWrapping="Wrap" />
           </StackPanel>
@@ -219,7 +219,7 @@
 
         <StackPanel Spacing="10">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-            <StackPanel Spacing="3">
+            <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
               <TextBlock Classes="sectionTitle" Text="{Binding Text.ExplicitMappingsTitle}" />
               <TextBlock Classes="mutedText" Text="{Binding Text.GeneralMergeMappingsDetail}" TextWrapping="Wrap" />
             </StackPanel>
@@ -262,8 +262,8 @@
     <Border
         Classes="panelSurface roomyPanel"
         IsVisible="{Binding IsAbCodeMergeModeSelected}">
-      <StackPanel Spacing="14">
-        <StackPanel Spacing="3">
+      <StackPanel Spacing="{DynamicResource NfcWorkflowGroupSpacing}">
+        <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.AbCodeMergeTitle}" />
           <TextBlock Classes="mutedText" Text="{Binding Text.AbCodeMergeDetail}" TextWrapping="Wrap" />
         </StackPanel>
@@ -317,7 +317,7 @@
       </StackPanel>
       <StackPanel IsVisible="{Binding !HasMemoryLayoutDisplayError}" Spacing="{DynamicResource NfcSpace16}">
       <StackPanel Spacing="{DynamicResource NfcSpace8}">
-        <StackPanel Spacing="3">
+        <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
           <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
           <TextBlock Classes="mutedText memoryInfoDescription" IsVisible="{Binding !HasCtrlRamFocusLayout}" Text="{Binding ReplaceMemorySummary}" TextWrapping="Wrap" />
         </StackPanel>

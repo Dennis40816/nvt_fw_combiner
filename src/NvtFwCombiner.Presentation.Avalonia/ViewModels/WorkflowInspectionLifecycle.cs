@@ -326,6 +326,7 @@ internal sealed class WorkflowInspectionLifecycle
             return;
         }
         ShellTextResources text = _request!.Text;
+        Loading.ApplyLanguage(text.Language);
         if (State == WorkflowInspectionAttemptState.Failed)
         {
             Loading.Fail(

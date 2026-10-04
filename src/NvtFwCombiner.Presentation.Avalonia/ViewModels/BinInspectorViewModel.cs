@@ -56,7 +56,7 @@ internal sealed partial class BinInspectorViewModel : ObservableObject
     {
         get
         {
-            if (_selectedAddress is not long selected || !TryGetVisibleCell(selected, out HexViewportCell cell))
+            if (_selectedAddress is not long selected || !ViewportSnapshot.TryGetVisibleCell(selected, out HexViewportCell cell))
             {
                 return Text.BinInspectorNoByteSelectedLabel;
             }
@@ -227,22 +227,6 @@ internal sealed partial class BinInspectorViewModel : ObservableObject
             _selectedAddress);
         OnPropertyChanged(nameof(ViewportSnapshot));
         OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
-    }
-
-    private bool TryGetVisibleCell(long address, out HexViewportCell cell)
-    {
-        foreach (HexViewportRow row in ViewportSnapshot.Rows)
-        {
-            long index = address - row.Address;
-            if ((ulong)index < (ulong)row.Cells.Count)
-            {
-                cell = row.Cells[(int)index];
-                return true;
-            }
-        }
-
-        cell = default;
-        return false;
     }
 
     private static int CalculateRangeScrollMaximum(FirmwareBinInspectionStructure source)

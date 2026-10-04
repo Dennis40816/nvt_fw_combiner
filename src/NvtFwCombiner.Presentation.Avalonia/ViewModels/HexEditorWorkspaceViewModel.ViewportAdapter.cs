@@ -119,18 +119,7 @@ internal sealed partial class HexEditorWorkspaceViewModel
 
     internal bool TryGetViewportCell(long address, out HexViewportCell cell)
     {
-        foreach (HexViewportRow row in CurrentViewportSnapshot.Rows)
-        {
-            long index = address - row.Address;
-            if ((ulong)index < (ulong)row.Cells.Count)
-            {
-                cell = row.Cells[(int)index];
-                return true;
-            }
-        }
-
-        cell = default;
-        return false;
+        return CurrentViewportSnapshot.TryGetVisibleCell(address, out cell);
     }
 
     private bool TryGetViewportCell(string? address, out HexViewportCell cell)

@@ -73,8 +73,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ForegroundLoadingStatusTemplate", shell, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding Merge.Inspection.Loading}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding Replace.Inspection.Loading}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding Merge.Inspection.Loading.IsVisible}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding Replace.Inspection.Loading.IsVisible}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Merge.Inspection.Loading.IsExpanded}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Replace.Inspection.Loading.IsExpanded}\"", shell, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"ForegroundLoadingStatusTemplate\"", shared, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding ProgressPercentLabel}\"", loading, StringComparison.Ordinal);
         Assert.Contains("IsIndeterminate=\"{Binding ShouldAnimate}\"", loading, StringComparison.Ordinal);

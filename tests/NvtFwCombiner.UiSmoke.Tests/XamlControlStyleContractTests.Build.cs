@@ -149,7 +149,8 @@ public sealed partial class XamlControlStyleContractTests
         _ = ExtractStyle(styles, "Button.railAction:pointerover /template/ ContentPresenter#PART_ContentPresenter");
         _ = ExtractStyle(styles, "Button.railAction:pressed /template/ ContentPresenter#PART_ContentPresenter");
         Assert.Equal(2, shell.Split("Classes=\"railAction primaryRailAction buildRailAction\"", StringSplitOptions.None).Length - 1);
-        Assert.Equal(3, shell.Split("Classes.reducedMotion=\"{Binding IsReducedMotionEnabled}\"", StringSplitOptions.None).Length - 1);
+        // Three build/output actions and the two inspection disclosure entries.
+        Assert.Equal(5, shell.Split("Classes.reducedMotion=\"{Binding IsReducedMotionEnabled}\"", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("BuildActionTip", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildActionTip", replaceSelection, StringComparison.Ordinal);
         Assert.DoesNotContain("ToolTip.Tip=\"{Binding Text.BuildActionLabel}\"", shell, StringComparison.Ordinal);
