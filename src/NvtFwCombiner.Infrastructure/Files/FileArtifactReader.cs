@@ -28,4 +28,25 @@ public sealed class FileArtifactReader : IArtifactReader
         byte[] bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
         return bytes;
     }
+
+    /// <inheritdoc />
+    public async ValueTask<ArtifactReadLease> OpenReadLeaseAsync(
+        string artifactId,
+        string stagingRoot,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        string path = FileSystemPathGuard.ResolveExistingFileUnderRoots(artifactId, _allowedRoots);
+        await using var source = new FileStream(path, new FileStreamOptions
+        {
+            Mode = FileMode.Open,
+            Access = FileAccess.Read,
+            Share = FileShare.Read,
+            Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+            BufferSize = 1,
+        });
+        RegularFileGuard.RequireOpenHandle(source.SafeFileHandle, path);
+        return await FileArtifactReadLease.CreateAsync(
+            source, stagingRoot, cancellationToken, closeSourceAfterCopy: true).ConfigureAwait(false);
+    }
 }

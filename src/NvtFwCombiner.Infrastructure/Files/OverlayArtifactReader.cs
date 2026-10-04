@@ -41,4 +41,22 @@ public sealed class OverlayArtifactReader : IArtifactReader
                 $"No in-memory artifact is registered for '{artifactId}'."))
             : _fallback.ReadAsync(artifactId, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async ValueTask<ArtifactReadLease> OpenReadLeaseAsync(
+        string artifactId,
+        string stagingRoot,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_artifacts.TryGetValue(artifactId, out byte[]? bytes))
+        {
+            await using var source = new MemoryStream(bytes, writable: false);
+            return await FileArtifactReadLease.CreateAsync(source, stagingRoot, cancellationToken).ConfigureAwait(false);
+        }
+        return _fallback is null
+            ? throw new FileNotFoundException($"No in-memory artifact is registered for '{artifactId}'.")
+            : await _fallback.OpenReadLeaseAsync(artifactId, stagingRoot, cancellationToken).ConfigureAwait(false);
+    }
 }
