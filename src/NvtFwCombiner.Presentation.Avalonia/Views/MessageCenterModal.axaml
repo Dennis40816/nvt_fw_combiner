@@ -32,7 +32,7 @@
     <Grid RowDefinitions="90,*">
       <Border Classes="messageCenterHeader">
         <Grid Margin="32,0,24,0" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
-          <StackPanel VerticalAlignment="Center" Spacing="{DynamicResource NfcSpace4}">
+          <StackPanel VerticalAlignment="Center" Classes="messageCenterTitleDetail">
             <TextBlock Classes="modalTitle" FontSize="24" Text="{Binding Text.MessageCenterTitle}" />
             <TextBlock Classes="mutedText" Text="{Binding Text.MessageCenterTooltip}" />
           </StackPanel>
@@ -50,7 +50,7 @@
 
       <Grid x:Name="MessageCenterBody" Grid.Row="1" ColumnDefinitions="324,*">
         <Border x:Name="MessageCenterNavigationRail" Classes="messageCenterNavigationSurface">
-          <StackPanel Spacing="{DynamicResource NfcSpace12}">
+          <StackPanel Classes="messageCenterSection">
             <TextBlock Margin="12,0,0,8" Classes="sectionLabel" Text="{Binding Text.MessageCenterTitle}" />
             <RadioButton
                 Classes="messageCenterNavigationItem" GroupName="MessageCenterNavigation"
@@ -76,9 +76,9 @@
         </Border>
 
         <Grid x:Name="MessageCenterContent" Grid.Column="1" Margin="44,30,50,24">
-          <Grid IsVisible="{Binding IsRunReportsSelected}" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="20">
+          <Grid Classes="messageCenterPageGap runReportsPageGap" IsVisible="{Binding IsRunReportsSelected}" RowDefinitions="Auto,Auto,Auto,*">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-              <StackPanel Spacing="{DynamicResource NfcSpace4}">
+              <StackPanel Classes="messageCenterTitleDetail">
                 <TextBlock Classes="pageTitle" FontSize="28" FontWeight="SemiBold" Text="{Binding Text.RunReportsLabel}" />
                 <TextBlock Classes="pageSubtitle" FontSize="{DynamicResource NfcFontSize14}" Text="{Binding Text.RunReportsNewestFirst}" />
               </StackPanel>
@@ -105,11 +105,11 @@
 
           <Grid
               x:Name="SystemActivityRoot"
+              Classes="messageCenterPageGap"
               IsVisible="{Binding IsSystemInformationSelected}"
-              RowDefinitions="Auto,Auto,Auto,*,Auto"
-              RowSpacing="{DynamicResource NfcSpace16}">
+              RowDefinitions="Auto,Auto,Auto,*,Auto">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
-              <StackPanel Spacing="{DynamicResource NfcSpace4}">
+              <StackPanel Classes="messageCenterTitleDetail">
                 <TextBlock Classes="pageTitle" Text="{Binding Text.SystemActivityTitle}" />
                 <TextBlock Classes="pageSubtitle" Text="{Binding Text.SystemActivitySubtitle}" />
               </StackPanel>
@@ -149,7 +149,7 @@
                             <Border Classes="activityDot warning" IsVisible="{Binding IsWarning}" />
                             <Border Classes="activityDot error" IsVisible="{Binding IsError}" />
                           </Grid>
-                          <StackPanel Grid.Column="2" Spacing="{DynamicResource NfcSpace4}">
+                          <StackPanel Grid.Column="2" Classes="messageCenterTitleDetail">
                             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
                               <TextBlock Classes="bodyStrongText" Text="{Binding Title}" />
                               <TextBlock Classes="captionText" Text="{Binding Category}" VerticalAlignment="Center" />

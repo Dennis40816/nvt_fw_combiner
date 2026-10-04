@@ -1,4 +1,17 @@
 <Styles xmlns="https://github.com/avaloniaui">
+  <Style Selector="StackPanel.messageCenterSection">
+    <Setter Property="Spacing" Value="{DynamicResource NfcSpace12}" />
+  </Style>
+  <Style Selector="StackPanel.messageCenterTitleDetail">
+    <Setter Property="Spacing" Value="{DynamicResource NfcSpace4}" />
+  </Style>
+  <Style Selector="Grid.messageCenterPageGap">
+    <Setter Property="RowSpacing" Value="{DynamicResource NfcSpace16}" />
+  </Style>
+  <!-- Run Reports retains its wider page rhythm. -->
+  <Style Selector="Grid.messageCenterPageGap.runReportsPageGap">
+    <Setter Property="RowSpacing" Value="20" />
+  </Style>
   <Style Selector="Border.messageCenterHeader">
     <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
