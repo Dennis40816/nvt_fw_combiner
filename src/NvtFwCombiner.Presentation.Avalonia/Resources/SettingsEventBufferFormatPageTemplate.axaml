@@ -6,8 +6,20 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
   <DataTemplate x:Key="SettingsEventBufferFormatPageTemplate" DataType="vm:MainWindowViewModel">
-    <Grid x:Name="EventBufferFormatPageRoot" Margin="36,20,36,32" RowDefinitions="Auto,*,Auto" RowSpacing="28">
+    <Grid x:Name="EventBufferFormatPageRoot" Margin="36,20,36,32" RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource NfcEventBufferPageGap}">
+      <Grid.Resources>
+        <x:Double x:Key="NfcEventBufferSectionSpacing">20</x:Double>
+        <Thickness x:Key="NfcEventBufferSectionDividerMargin">0,20,0,0</Thickness>
+        <x:Double x:Key="NfcEventBufferPageGap">28</x:Double>
+        <Thickness x:Key="NfcEventBufferPageActionsPadding">0,28,0,0</Thickness>
+      </Grid.Resources>
       <Grid.Styles>
+        <Style Selector="StackPanel.eventBufferTitleDetail">
+          <Setter Property="Spacing" Value="{DynamicResource NfcSpace8}" />
+        </Style>
+        <Style Selector="StackPanel.eventBufferTitleDetail.compact">
+          <Setter Property="Spacing" Value="{DynamicResource NfcSpace4}" />
+        </Style>
         <Style Selector="TextBox">
           <Setter Property="Height" Value="44" />
           <Setter Property="VerticalAlignment" Value="Center" />
@@ -32,7 +44,7 @@
           <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
       </Grid.Styles>
-      <StackPanel Grid.Row="0" Spacing="{DynamicResource NfcSpace8}">
+      <StackPanel Grid.Row="0" Classes="eventBufferTitleDetail">
         <StackPanel Orientation="Horizontal" Spacing="6">
           <TextBlock Classes="supportingText" Text="{Binding Text.EventBufferFormatNavigationLabel}" />
           <TextBlock Classes="supportingText" Text="/" />
@@ -48,11 +60,11 @@
               Content="{Binding Text.EventBufferFormatReloadLabel}" />
         </Grid>
         <TextBlock Classes="pageSubtitle" Text="{Binding Text.EventBufferFormatSubtitle}" TextWrapping="Wrap" />
-        <Border Margin="0,20,0,0" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" />
+        <Border Margin="{DynamicResource NfcEventBufferSectionDividerMargin}" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,0,0,1" />
       </StackPanel>
 
       <ScrollViewer Grid.Row="1" Classes="contentScrollSurface" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-      <StackPanel Spacing="20">
+      <StackPanel Spacing="{DynamicResource NfcEventBufferSectionSpacing}">
         <TextBlock
             AutomationProperties.LiveSetting="Polite"
             Classes="supportingText"
@@ -70,7 +82,7 @@
         <ItemsControl IsEnabled="{Binding !Settings.IsEventBufferFormatBusy}" ItemsSource="{Binding Settings.EventBufferFormatRows}">
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="vm:EventBufferFormatDraftRowViewModel">
-              <StackPanel Spacing="20">
+              <StackPanel Spacing="{DynamicResource NfcEventBufferSectionSpacing}">
               <Border Padding="12,6,12,24" BorderBrush="{DynamicResource NfcBorderBrush}" BorderThickness="0,0,0,1">
                 <Grid ColumnDefinitions="1.05*,1.15*,1.7*,.85*" ColumnSpacing="20">
                   <ComboBox
@@ -158,7 +170,7 @@
           KeyboardNavigation.TabNavigation="Cycle" AutomationProperties.Name="{Binding Text.EventBufferFormatDiscardConfirmationTitle}"
           Classes="statusNotice warning" IsVisible="{Binding Settings.IsEventBufferFormatCloseConfirmationOpen}">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
-          <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <StackPanel Classes="eventBufferTitleDetail compact">
             <TextBlock Classes="sectionTitle" Text="{Binding Text.EventBufferFormatDiscardConfirmationTitle}" />
             <TextBlock Classes="supportingText" Text="{Binding Text.EventBufferFormatDiscardConfirmationDetail}" TextWrapping="Wrap" />
           </StackPanel>
@@ -169,7 +181,7 @@
         </Grid>
       </Border>
 
-      <Border Grid.Row="2" Padding="0,28,0,0" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,0">
+      <Border Grid.Row="2" Padding="{DynamicResource NfcEventBufferPageActionsPadding}" BorderBrush="{DynamicResource NfcDividerBrush}" BorderThickness="0,1,0,0">
         <Border.Styles>
           <Style Selector="Button">
             <Setter Property="Height" Value="48" />
