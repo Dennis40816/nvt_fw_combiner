@@ -2,11 +2,16 @@
 
 Status: active owner roadmap; release-closure checkpoint 2026-09-01; subsequent owner allocation amendments are recorded below.
 
-Current evidence checkpoint, 2026-09-30: **`v1.2.0` is published** at
-`3a73620c81107e5e2fea736e3e21f50259718ba0`; see the
-[release closure](../handoff/1.2.x.md#released-v120--2026-09-30). Its product
+Current evidence checkpoint, 2026-10-05: **`v1.2.1` is the latest published
+release** (2026-10-01; [release closure](../handoff/1.2.x.md#released-v121--2026-10-01)).
+`v1.2.0` was published on 2026-09-30 at `3a73620c81107e5e2fea736e3e21f50259718ba0`
+([release closure](../handoff/1.2.x.md#released-v120--2026-09-30)); its product
 source is that of `v1.1.15` (decision 206). `1.1.x` is retired and frozen
-(decisions 200 and 215); `1.2.1` and later work is on the `1.2.x` trunk. The
+(decisions 200 and 215); `1.2.1` and later work is on the `1.2.x` trunk, which
+already carries finished work for later versions. The
+[status ledger of 2026-10-05](../handoff/1.2.x-status-2026-10-05.md) records where each
+planned item stands (merged, on a branch, in a pull request, waiting for the owner or
+for an R3 review). The
 [2026-09-30 allocation](#owner-allocation-after-the-120-release--2026-09-30), the
 table below and the [1.2.x allocation](../handoff/1.1.14/1.2.x-allocation.md) own the
 allocation, and the [`1.2.x` board](../handoff/1.2.x.md) owns its detail.
@@ -58,7 +63,8 @@ Earlier dated checkpoints below remain history, not open release gates.
   four fact columns in a full-width firmware info area, the WS-FLOW F1
   output-directory anchor, and typed input roles and labels (B-04(a), B-05, N-01).
 - **`1.2.9`** (decisions 181, 189, 204, 212, 226 and 227): Memory Layout design A, the
-  DP-only AB layout fix, the redesigned highlight of a selected small slice (R53) and the
+  DP-only AB layout fix (R44; marked not triggered by decision 306 on 2026-10-04, so no
+  fix is planned unless a case is reproduced), the redesigned highlight of a selected small slice (R53) and the
   explicit CtrlRAM Replace layout-context maps that delete the fallback (A-13).
 - **`1.2.10`** (decisions 189, 196, 205 and 212): the Memory Layout legend's
   non-colour cue in the High Contrast acceptance, and the hideable inspection panel.
@@ -431,7 +437,7 @@ protected review/CI and candidate publication gates remain required.
 | `1.2.6` | **Launcher update and release pipeline** (decision 188): the compiled-in locator with Registry-redirected Catalog/package sourcing over file/UNC, with no new HTTPS reader (the required Catalog/package HTTPS with one authentication, F14, is `1.2.13` work); the A1b field recheck of the `1.2.1` publisher-trust disposition, ahead of the intranet-transport work; Launcher self-update and recovery; the old-client bridge only where an actual incompatibility is found; delta update (R04-02) is not built: the `1.2.1` R04-01 go/no-go was no-go (decision 232); release workflow R-5 after the comparator, with the R-4 re-run recovery and R-6 CI-setup sharing scheduled here. The managed-start residual windows N1-N4 are fixed here with C01-2 and R05-02 (decision 218). |
 | `1.2.7` | **First-entry, page flow and modal interaction** (with the example-Golden drop-down of decision 183): IC/context lifetime, invalidation, Cancel/Back, custom-option density, modal exits and the modal keyboard contract, using approved previews. Decision 212 adds selected files that change on disk (decision 203), four fact columns in a full-width firmware info area (decision 207, meaning confirmed first) and the WS-FLOW F1 output-directory anchor (decision 181). Otherwise do not reopen completed slot/Memory Layout styling. |
 | `1.2.8` | **Report, typed state and user text**: physical-section grouping and historical replay compatibility (preserve completed Changes cards/navigation), F09/F10/F12 and the text findings. |
-| `1.2.9` | **Shared visual and typography**: F11 semantic typography, theme, tooltip and spacing roles, and the memory detail visuals, including Memory Layout design A (decisions 181 and 189), the DP-only AB layout fix (decisions 204 and 212) and the selected-slice highlight redesign (R53, decision 226), approved on a real-screen preview first. |
+| `1.2.9` | **Shared visual and typography**: F11 semantic typography, theme, tooltip and spacing roles, and the memory detail visuals, including Memory Layout design A (decisions 181 and 189), the DP-only AB layout fix (decisions 204 and 212; not triggered, decision 306) and the selected-slice highlight redesign (R53, decision 226), approved on a real-screen preview first. |
 | `1.2.10` | **Native accessibility and notifications**: DPI, high contrast, screen reader, System activity and toasts, with Report and Message Center visual and interaction consistency (decision 173); the high-contrast acceptance includes the Memory Layout legend's non-colour cue (decisions 189 and 196), and the inspection panel becomes hideable (decisions 205 and 212). |
 | `1.2.11` | **CI closure and test structure**: shared Release build and UiSmoke partition, T4b required-check activation after the shadow window, .NET lane regrouping, split pilots and mechanical splits, the CI core-shard H2 (decision 181), and the closure of the Avalonia off-session / headless stall (R34, decision 295). |
 | `1.2.12` | **Conditional performance and cleanup**: F14/F15 and CtrlRAM cold first-open only with demonstrated value; the F13 helper; documentation reconciliation (R25-03 to R25-05) and proven-unused cleanup against a remeasured analyzer baseline. Home startup optimization stays delivered in `1.1.12`; do not claim a new ten-minute result. R25-01/02 move to `1.2.13` (decision 188). A native first-readable measurement of Memory Layout card opening decides whether that needs work (decisions 189 and 219). |
