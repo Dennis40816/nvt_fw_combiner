@@ -11,6 +11,9 @@
     Background="{DynamicResource NfcModalScrimBrush}">
   <UserControl.Styles>
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MessageCenterStyles.axaml" />
+    <Style Selector="TextBlock.exportFailureStatus">
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
     <Style Selector="Button.reportLoad /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
     </Style>
@@ -170,12 +173,14 @@
             </Grid>
 
             <Grid Grid.Row="4" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
-              <TextBlock Classes="captionText" Text="{Binding Text.SessionActivityNotice}" VerticalAlignment="Center" />
-              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace12}">
-                <TextBlock Classes="infoText" AutomationProperties.LiveSetting="Polite" Text="{Binding ExportStatus}" VerticalAlignment="Center" />
-                <Button Classes="semanticAction secondary" AutomationProperties.Name="{Binding Text.RefreshDiagnosticsLabel}"
-                    Command="{Binding RefreshCommand}" Content="{Binding RefreshActionLabel}" />
-              </StackPanel>
+              <Grid ColumnDefinitions="Auto,*">
+                <TextBlock Classes="captionText" Text="{Binding Text.SessionActivityNotice}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="infoText" Classes.exportFailureStatus="{Binding HasExportFailure}"
+                    AutomationProperties.LiveSetting="Polite" Text="{Binding ExportStatus}"
+                    TextAlignment="Right" HorizontalAlignment="Right" VerticalAlignment="Center" />
+              </Grid>
+              <Button Grid.Column="1" Classes="semanticAction secondary" AutomationProperties.Name="{Binding Text.RefreshDiagnosticsLabel}"
+                  Command="{Binding RefreshCommand}" Content="{Binding RefreshActionLabel}" />
             </Grid>
           </Grid>
         </Grid>

@@ -16,13 +16,13 @@ public sealed partial class XamlControlStyleContractTests
 {
     /// <summary>Real AB facts fill the existing four/two cells while identity stays stable and actions remain card-centered.</summary>
     [AvaloniaTheory]
-    [InlineData(1362, false, false)]
-    [InlineData(1362, true, true)]
-    [InlineData(1050, false, true)]
-    [InlineData(1050, true, false)]
-    [InlineData(620, false, false)]
-    [InlineData(620, true, true)]
-    public void AbDpFactsUseExistingResponsiveGeometry(double width, bool dark, bool chinese)
+    [InlineData(1362, false, false, 4)]
+    [InlineData(1362, true, true, 4)]
+    [InlineData(1050, false, true, 3)]
+    [InlineData(1050, true, false, 3)]
+    [InlineData(620, false, false, 2)]
+    [InlineData(620, true, true, 2)]
+    public void AbDpFactsUseExistingResponsiveGeometry(double width, bool dark, bool chinese, int expectedColumns)
     {
         ShellLanguage language = chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English;
         ShellTextResources text = ShellTextResources.For(language);
@@ -44,7 +44,7 @@ public sealed partial class XamlControlStyleContractTests
             ItemsControl primary = card.FindControl<ItemsControl>("PrimaryFirmwareFactsHost")!;
             UniformGrid grid = Assert.Single(primary.GetVisualDescendants().OfType<UniformGrid>());
             Control[] cells = [.. grid.Children];
-            Assert.Equal(width < 820 ? 2 : 3, grid.Columns);
+            Assert.Equal(expectedColumns, grid.Columns);
             Assert.Equal(4, cells.Length);
             for (int index = 0; index < cells.Length; index++)
             {
@@ -60,8 +60,15 @@ public sealed partial class XamlControlStyleContractTests
                 Assert.True(cell.Bounds.Width > 0);
             }
             Assert.Equal(cells[0].Bounds.Y, cells[1].Bounds.Y);
-            Assert.Equal(cells[0].Bounds.X, cells[grid.Columns].Bounds.X);
-            Assert.True(cells[grid.Columns].Bounds.Y > cells[0].Bounds.Y);
+            if (cells.Length > grid.Columns)
+            {
+                Assert.Equal(cells[0].Bounds.X, cells[grid.Columns].Bounds.X);
+                Assert.True(cells[grid.Columns].Bounds.Y > cells[0].Bounds.Y);
+            }
+            else
+            {
+                Assert.All(cells, cell => Assert.Equal(cells[0].Bounds.Y, cell.Bounds.Y));
+            }
 
             StackPanel identity = card.FindControl<StackPanel>("SlotIdentity")!;
             StackPanel actions = card.FindControl<StackPanel>("SlotActions")!;
@@ -102,7 +109,7 @@ public sealed partial class XamlControlStyleContractTests
                 StackPanel oldActions = oldCard.FindControl<StackPanel>("SlotActions")!;
                 Assert.InRange(Math.Abs((oldSurface.Bounds.Height / 2) -
                     oldActions.TranslatePoint(default, oldSurface)!.Value.Y - (oldActions.Bounds.Height / 2)), 0, 0.5);
-                Assert.Equal(cells[0].Bounds.Height, height - oldCard.Bounds.Height);
+                Assert.Equal(cells.Length > grid.Columns ? cells[0].Bounds.Height : 0, height - oldCard.Bounds.Height);
             }
             finally
             {

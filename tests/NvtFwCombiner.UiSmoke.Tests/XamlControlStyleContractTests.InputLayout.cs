@@ -156,11 +156,11 @@ public sealed partial class XamlControlStyleContractTests
             FirmwareSlotCard.FormatBrowseActionLabel(browseLabel, slotTitle));
     }
 
-    /// <summary>Wide cards keep title and badge together, with three equal fact columns underneath.</summary>
+    /// <summary>Wide cards keep title and badge together, with three or four equal fact columns underneath.</summary>
     [AvaloniaTheory]
-    [InlineData(900)]
-    [InlineData(1180)]
-    public void FirmwareSlotCardKeepsApprovedThreeColumnGeometry(double width)
+    [InlineData(900, 3)]
+    [InlineData(1180, 4)]
+    public void FirmwareSlotCardKeepsApprovedResponsiveFactGeometry(double width, int expectedColumns)
     {
         var slot = new FirmwareSlotViewModel(
             "dp",
@@ -224,12 +224,13 @@ public sealed partial class XamlControlStyleContractTests
         Assert.InRange(Math.Abs(titleCenter - stateCenter), 0, 0.5);
         UniformGrid factGrid = Assert.Single(
             primaryFacts.GetVisualDescendants().OfType<UniformGrid>());
+        Assert.Equal(expectedColumns, factGrid.Columns);
         Control[] factCells = [.. factGrid.Children.OfType<Control>()];
         Assert.Equal(4, factCells.Length);
         Assert.All(factCells, cell =>
-            Assert.InRange(Math.Abs(cell.Bounds.Width - (factGrid.Bounds.Width / 3)), 0, 0.5));
+            Assert.InRange(Math.Abs(cell.Bounds.Width - (factGrid.Bounds.Width / expectedColumns)), 0, 0.5));
         Assert.InRange(
-            Math.Abs(factCells.Take(3).Sum(static cell => cell.Bounds.Width) - factGrid.Bounds.Width),
+            Math.Abs(factCells.Take(expectedColumns).Sum(static cell => cell.Bounds.Width) - factGrid.Bounds.Width),
             0,
             2);
         Assert.Equal(88, browse.MinWidth);

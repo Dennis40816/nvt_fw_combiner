@@ -71,7 +71,7 @@ internal sealed partial class ShellTextResources
             NoActiveDiagnosticsLabel = Pick("No active system diagnostics.", "目前沒有系統診斷問題。"),
             OpenReportHistoryLabel = Pick("Open report history", "開啟報告記錄"),
             DiagnosticsExportedLabel = Pick("Diagnostics exported.", "診斷已匯出。"),
-            DiagnosticsExportFailedLabel = Pick("Diagnostics could not be exported.", "無法匯出診斷。"),
+            DiagnosticsExportFailedLabel = Pick("Diagnostics could not be exported. Try again or choose another location.", "無法匯出診斷。請重試或改選儲存位置。"),
             RefreshingDiagnosticsLabel = Pick("Refreshing system diagnostics.", "正在重新整理系統診斷。"),
             SystemActivityTitle = Pick("System activity", "系統活動"),
             SystemActivitySubtitle = Pick(
