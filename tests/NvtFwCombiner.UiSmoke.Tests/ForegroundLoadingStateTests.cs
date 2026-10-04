@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -8,6 +9,132 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Behavioral coverage for reusable foreground operation state.</summary>
 public sealed class ForegroundLoadingStateTests
 {
+    /// <summary>Each localized disclosure notification isolates observer failures from the inspection attempt.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LanguageObserverFailuresDoNotFailInspection(bool chinese)
+    {
+        var inspection = new WorkflowInspectionLifecycle();
+        var properties = new List<string?>();
+        inspection.Loading.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(ForegroundLoadingState.InspectionStatusCollapseLabel) or
+                nameof(ForegroundLoadingState.InspectionStatusOpenLabel))
+            {
+                properties.Add(args.PropertyName);
+                throw new InvalidOperationException("language observer failed");
+            }
+        };
+
+        WorkflowInspectionAttemptState result = await inspection.StartAsync(
+            ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English),
+            static (_, _, _) => Task.FromResult(new WorkflowInspectionOperationResult(true)),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(WorkflowInspectionAttemptState.Succeeded, result);
+        Assert.Equal(WorkflowInspectionAttemptState.Succeeded, inspection.State);
+        Assert.Equal(
+            [nameof(ForegroundLoadingState.InspectionStatusCollapseLabel), nameof(ForegroundLoadingState.InspectionStatusOpenLabel)],
+            properties);
+        Assert.Equal(chinese ? "收合檢查狀態" : "Collapse inspection status", inspection.Loading.InspectionStatusCollapseLabel);
+        Assert.Equal(chinese ? "開啟檢查狀態" : "Open inspection status", inspection.Loading.InspectionStatusOpenLabel);
+    }
+
+    /// <summary>Disclosure retains the complete failure, original commands and live-region status without executing work.</summary>
+    [Fact]
+    public async Task CollapsingFailureOnlyChangesItsPresentation()
+    {
+        int retries = 0;
+        int cancellations = 0;
+        var state = new ForegroundLoadingState(
+            () => { retries++; return Task.CompletedTask; },
+            () => { cancellations++; return Task.CompletedTask; });
+        var other = new ForegroundLoadingState();
+        state.Fail("Inspection unavailable", "IOException: selected input could not be read.", "Retry", "Cancel");
+        other.Fail("Inspection unavailable", "Another page's diagnostic.", "Retry");
+        (string, string, string, string, double?, string) failure =
+            (state.Title, state.Detail, state.RetryLabel, state.CancelLabel, state.Progress, state.AccessibleStatus);
+        IAsyncRelayCommand? retry = state.RetryCommand;
+        IAsyncRelayCommand? cancel = state.CancelCommand;
+        var properties = new List<string?>();
+        state.PropertyChanged += (_, args) => properties.Add(args.PropertyName);
+
+        state.CollapseCommand.Execute(null);
+
+        Assert.True(state.IsVisible);
+        Assert.True(state.IsCollapsed);
+        Assert.False(state.IsExpanded);
+        Assert.False(state.CanCollapse);
+        Assert.True(state.CanRetry);
+        Assert.True(state.CanCancel);
+        Assert.True(state.ExpandCommand.CanExecute(null));
+        Assert.False(state.CollapseCommand.CanExecute(null));
+        Assert.True(other.IsExpanded);
+        Assert.False(other.IsCollapsed);
+        Assert.Equal(failure, (state.Title, state.Detail, state.RetryLabel, state.CancelLabel, state.Progress, state.AccessibleStatus));
+        Assert.Same(retry, state.RetryCommand);
+        Assert.Same(cancel, state.CancelCommand);
+        Assert.Equal(0, retries);
+        Assert.Equal(0, cancellations);
+        Assert.Contains(nameof(ForegroundLoadingState.IsExpanded), properties);
+        Assert.Contains(nameof(ForegroundLoadingState.IsCollapsed), properties);
+        Assert.Contains(nameof(ForegroundLoadingState.CanCollapse), properties);
+        Assert.DoesNotContain(nameof(ForegroundLoadingState.AccessibleStatus), properties);
+
+        state.ExpandCommand.Execute(null);
+
+        Assert.True(state.IsExpanded);
+        Assert.False(state.IsCollapsed);
+        Assert.Equal(failure, (state.Title, state.Detail, state.RetryLabel, state.CancelLabel, state.Progress, state.AccessibleStatus));
+        Assert.DoesNotContain(nameof(ForegroundLoadingState.AccessibleStatus), properties);
+        state.CollapseCommand.Execute(null);
+        await state.RetryCommand!.ExecuteAsync(null);
+        Assert.Equal(1, retries);
+        Assert.Equal(0, cancellations);
+    }
+
+    /// <summary>Failure re-projection retains disclosure; a running, completed or new attempt resets it.</summary>
+    [Fact]
+    public void DisclosureSurvivesTextRefreshAndResetsWithTheOriginalLifecycle()
+    {
+        var state = new ForegroundLoadingState();
+        Assert.False(state.CollapseCommand.CanExecute(null));
+        state.CollapseCommand.Execute(null);
+        Assert.False(state.IsCollapsed);
+        state.Begin("Inspecting selected files", "Checking input.", cancelLabel: "Cancel");
+        state.CollapseCommand.Execute(null);
+        Assert.True(state.IsExpanded);
+        Assert.False(state.IsCollapsed);
+        Assert.False(state.CollapseCommand.CanExecute(null));
+
+        state.Fail("Inspection unavailable", "Read failed.", "Retry");
+        state.CollapseCommand.Execute(null);
+        state.Fail("檢查目前無法完成", "讀取失敗。", "重試");
+        state.SetReducedMotion(true);
+        Assert.True(state.IsCollapsed);
+        Assert.Equal("讀取失敗。", state.Detail);
+        Assert.Equal("重試", state.RetryLabel);
+
+        state.Begin("正在檢查所選檔案", "再次嘗試。", cancelLabel: "取消檢查");
+        Assert.True(state.IsExpanded);
+        Assert.False(state.IsCollapsed);
+        Assert.False(state.ExpandCommand.CanExecute(null));
+        Assert.True(state.CanCancel);
+        state.Fail("檢查目前無法完成", "再次讀取失敗。", "重試");
+        Assert.True(state.IsExpanded);
+        state.CollapseCommand.Execute(null);
+        state.Complete();
+        Assert.False(state.IsVisible);
+        Assert.False(state.IsExpanded);
+        Assert.False(state.IsCollapsed);
+        Assert.False(state.CanCollapse);
+        Assert.False(state.ExpandCommand.CanExecute(null));
+        state.Fail("Inspection unavailable", "A later attempt failed.", "Retry");
+        Assert.True(state.IsExpanded);
+        Assert.False(state.IsCollapsed);
+    }
+
     /// <summary>Unknown progress remains indeterminate and reduced motion suppresses animation without hiding status.</summary>
     [Fact]
     public void LoadingStateDistinguishesUnknownProgressAndReducedMotion()

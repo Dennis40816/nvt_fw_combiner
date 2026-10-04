@@ -10,8 +10,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
 
     internal void BeginBundleDestinationEdit()
     {
-        if (!IsOpen || !CanEditBundleDestination || IsBundleDestinationEditing) { return; }
-        _nameEditReverted = false;
+        if (!BeginNameEdit(IsOpen && CanEditBundleDestination, IsBundleDestinationEditing)) { return; }
         IsBundleDestinationEditing = true;
         OnPropertyChanged(nameof(IsBundleDestinationEditing));
         NotifyValidation();
@@ -20,10 +19,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     internal void CompleteBundleDestinationEdit()
     {
         if (!IsBundleDestinationEditing) { return; }
-        _nameEditReverted = !IsEditedNameAcceptable(OutputNameField.Folder);
-        if (_nameEditReverted) { BundleFolderName = _acceptedBundleFolderName; }
-        else { _acceptedBundleFolderName = BundleFolderName; }
-        IsBundleDestinationEditing = false;
+        (BundleFolderName, IsBundleDestinationEditing) = CompleteNameEdit(OutputNameField.Folder, BundleFolderName, ref _acceptedBundleFolderName);
         OnPropertyChanged(nameof(BundleFolderName));
         OnPropertyChanged(nameof(IsBundleDestinationEditing));
         _ = RefreshValidation();
@@ -31,8 +27,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
 
     internal void BeginOutputFileNameEdit()
     {
-        if (!CanEditOutputFileName || IsOutputFileNameEditing) { return; }
-        _nameEditReverted = false;
+        if (!BeginNameEdit(CanEditOutputFileName, IsOutputFileNameEditing)) { return; }
         IsOutputFileNameEditing = true;
         OnPropertyChanged(nameof(IsOutputFileNameEditing));
         NotifyValidation();
@@ -41,10 +36,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     internal void CompleteOutputFileNameEdit()
     {
         if (!IsOutputFileNameEditing) { return; }
-        _nameEditReverted = !IsEditedNameAcceptable(OutputNameField.Primary);
-        if (_nameEditReverted) { OutputFileName = _acceptedOutputFileName; }
-        else { _acceptedOutputFileName = OutputFileName; }
-        IsOutputFileNameEditing = false;
+        (OutputFileName, IsOutputFileNameEditing) = CompleteNameEdit(OutputNameField.Primary, OutputFileName, ref _acceptedOutputFileName);
         OnPropertyChanged(nameof(IsOutputFileNameEditing));
         OnPropertyChanged(nameof(OutputFileName));
         OnPropertyChanged(nameof(OutputFileNameUsesAutomaticName));
@@ -60,6 +52,19 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
         _ = RefreshValidation();
         OnPropertyChanged(nameof(OutputFileName));
         OnPropertyChanged(nameof(OutputFileNameUsesAutomaticName));
+    }
+
+    private bool BeginNameEdit(bool canEdit, bool isEditing)
+    {
+        if (!canEdit || isEditing) { return false; }
+        _nameEditReverted = false;
+        return true;
+    }
+
+    private (string Name, bool Editing) CompleteNameEdit(OutputNameField field, string name, ref string accepted)
+    {
+        _nameEditReverted = !IsEditedNameAcceptable(field);
+        return (_nameEditReverted ? accepted : accepted = name, false);
     }
 
     private bool IsEditedNameAcceptable(OutputNameField field)

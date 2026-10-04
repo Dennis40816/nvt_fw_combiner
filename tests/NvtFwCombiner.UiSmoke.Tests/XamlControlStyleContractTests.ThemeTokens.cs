@@ -60,7 +60,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.All(
             shadowDefinitions.GroupBy(static definition => definition.Groups["key"].Value, StringComparer.Ordinal),
             static definitions => Assert.Equal(2, definitions.Count()));
-        Assert.Equal(6, spacingDefinitions.Length);
+        Assert.Equal(9, spacingDefinitions.Length);
         Assert.Equal(6, fontSizeDefinitions.Length);
         Assert.Equal(2, fontFamilyDefinitions.Length);
         Assert.Equal(colorDefinitions.Length, tokens.Split("<SolidColorBrush", StringSplitOptions.None).Length - 1);
@@ -136,6 +136,7 @@ public sealed partial class XamlControlStyleContractTests
             "Resources/MainWindowReportPanels.axaml",
             "Resources/MainWindowReportTemplates.axaml",
             "Resources/MainWindowSharedTemplates.axaml",
+            "Resources/MainWindowWorkflowTemplates.axaml",
             "Resources/MainWindowShellPanels.axaml",
             "Views/FirmwareSlotCard.axaml",
             "Views/GeneralMappingRow.axaml",
@@ -200,6 +201,78 @@ public sealed partial class XamlControlStyleContractTests
             static content => Assert.False(
                 RawCommonFontSizePattern.IsMatch(content),
                 "Common font-size literals must use the shared NfcFontSize tokens."));
+    }
+
+    /// <summary>Shares workflow spacing by role without changing approved values or unrelated spacing.</summary>
+    [Fact]
+    public void WorkflowSpacingRolesPreserveApprovedGeometry()
+    {
+        Match[] spacingDefinitions = ReadThemeSpacingTokenDefinitions();
+        foreach ((string key, string value) in new[]
+                 {
+                     ("NfcFieldSpacing", "3"),
+                     ("NfcWorkflowGroupSpacing", "14"),
+                     ("NfcWorkspaceColumnSpacing", "18"),
+                 })
+        {
+            Match definition = Assert.Single(spacingDefinitions, definition =>
+                StringComparer.Ordinal.Equals(key, definition.Groups["key"].Value));
+            Assert.Equal(value, definition.Groups["value"].Value);
+        }
+
+        foreach ((string path, int fields, int groups, int columns) in new[]
+                 {
+                     ("MainWindow.axaml", 3, 0, 2),
+                     ("Resources/MainWindowWorkflowTemplates.axaml", 9, 5, 0),
+                     ("Resources/MainWindowSharedTemplates.axaml", 1, 0, 0),
+                 })
+        {
+            var document = XDocument.Parse(ReadPresentationFile(path));
+            XElement[] fieldCallers = [.. document.Descendants().Where(element =>
+                (string?)element.Attribute("Spacing") == "{DynamicResource NfcFieldSpacing}")];
+            Assert.Equal(fields, fieldCallers.Length);
+            Assert.All(fieldCallers, static element =>
+            {
+                Assert.Equal("StackPanel", element.Name.LocalName);
+                Assert.Contains(element.Elements(), static child =>
+                    child.Name.LocalName == "TextBlock" &&
+                    (HasClass(child, "fieldLabel") || HasClass(child, "sectionTitle")));
+            });
+            XAttribute[] groupCallers = [.. document.Descendants().Attributes().Where(attribute =>
+                attribute.Value == "{DynamicResource NfcWorkflowGroupSpacing}")];
+            Assert.Equal(groups, groupCallers.Length);
+            Assert.All(groupCallers, static attribute => Assert.Equal(
+                attribute.Parent!.Name.LocalName == "Grid" ? "ColumnSpacing" : "Spacing",
+                attribute.Name.LocalName));
+            XElement[] workspaceCallers = [.. document.Descendants().Where(element =>
+                (string?)element.Attribute("ColumnSpacing") == "{DynamicResource NfcWorkspaceColumnSpacing}")];
+            Assert.Equal(columns, workspaceCallers.Length);
+            Assert.All(workspaceCallers, static element =>
+            {
+                Assert.Equal("Grid", element.Name.LocalName);
+                Assert.Equal("1.15*,430", (string?)element.Attribute("ColumnDefinitions"));
+            });
+        }
+
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var workflow = XDocument.Parse(ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml"));
+        XElement legend = Assert.Single(workflow.Descendants(), element =>
+            (string?)element.Attribute(x + "Name") == "ReplaceCoverageStateLegend");
+        Assert.Equal("14", (string?)legend.Attribute("Spacing"));
+        var shared = XDocument.Parse(ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml"));
+        XElement regionCard = Assert.Single(shared.Descendants(), element =>
+            (string?)element.Attribute(x + "Key") == "MemoryCoverageRegionCardTemplate");
+        XElement preservationDetails = Assert.Single(regionCard.Descendants(), element =>
+            element.Name.LocalName == "DataTemplate" &&
+            (string?)element.Attribute("DataType") == "vm:DiffDlmPreservationDetailViewModel");
+        Assert.Equal("3", (string?)Assert.Single(preservationDetails.Elements()).Attribute("Spacing"));
+        foreach (string key in new[] { "ReplaceMemoryMapRowTemplate", "MergeMemoryMapRowTemplate" })
+        {
+            XElement template = Assert.Single(shared.Descendants(), element =>
+                (string?)element.Attribute(x + "Key") == key);
+            XElement grid = Assert.Single(template.Descendants(), element => element.Name.LocalName == "Grid");
+            Assert.Equal("3", (string?)grid.Attribute("RowSpacing"));
+        }
     }
 
     /// <summary>Keeps the three Home preview headings on their shared semantic visual role.</summary>

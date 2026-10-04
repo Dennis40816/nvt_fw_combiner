@@ -7,13 +7,7 @@ public sealed partial class MainWindow
 {
     private async void BuildMergeButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel ||
-            !await OpenMergeBuildSettingsAsync(viewModel))
-        {
-            return;
-        }
-
-        CaptureOutputDeliveryReturnFocus(viewModel, sender);
+        await OpenBuildSettingsAsync(sender, OpenMergeBuildSettingsAsync);
     }
 
     internal static async Task<bool> OpenMergeBuildSettingsAsync(MainWindowViewModel viewModel)
@@ -30,13 +24,16 @@ public sealed partial class MainWindow
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel ||
-            !await OpenReplaceBuildSettingsAsync(viewModel.Replace))
-        {
-            return;
-        }
+        await OpenBuildSettingsAsync(sender, static viewModel => OpenReplaceBuildSettingsAsync(viewModel.Replace));
+    }
 
-        CaptureOutputDeliveryReturnFocus(viewModel, sender);
+    private async Task OpenBuildSettingsAsync(
+        object? sender, Func<MainWindowViewModel, Task<bool>> openSettings)
+    {
+        if (DataContext is MainWindowViewModel viewModel && await openSettings(viewModel))
+        {
+            CaptureOutputDeliveryReturnFocus(viewModel, sender);
+        }
     }
 
     internal static async Task<bool> OpenReplaceBuildSettingsAsync(ReplacePresentationViewModel viewModel)

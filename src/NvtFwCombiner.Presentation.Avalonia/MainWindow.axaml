@@ -183,7 +183,7 @@
             IsVisible="{Binding IsReplaceVisible}">
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:ReplacePresentationViewModel">
-              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="{DynamicResource NfcWorkspaceColumnSpacing}" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
           <StackPanel Spacing="{DynamicResource NfcSpace16}" Container.Name="ReplaceContent" Container.Sizing="Width">
             <StackPanel.Styles>
               <Style Selector="Grid.replaceHeaderActions">
@@ -217,7 +217,7 @@
                   ColumnDefinitions="Auto,Auto"
                   ColumnSpacing="{DynamicResource NfcSpace12}"
                   VerticalAlignment="Center">
-                <StackPanel Spacing="3">
+                <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <Grid ColumnDefinitions="158,Auto" ColumnSpacing="6">
                     <ComboBox
@@ -250,7 +250,7 @@
                         ToolTip.Tip="{Binding SelectedReplaceModeEvidenceTooltip}" />
                   </Grid>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="3">
+                <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcFieldSpacing}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.TargetsLabel}" />
                   <Button
                       Classes="summaryChip"
@@ -292,7 +292,7 @@
             IsVisible="{Binding IsMergeVisible}">
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:MergePresentationViewModel">
-              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="{DynamicResource NfcWorkspaceColumnSpacing}" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
             <Grid
                 x:Name="MergePageHeader"
@@ -306,7 +306,7 @@
                   Grid.Column="1"
                   ColumnDefinitions="170"
                   VerticalAlignment="Center">
-                <StackPanel Spacing="3" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
+                <StackPanel Spacing="{DynamicResource NfcFieldSpacing}" ToolTip.Tip="{Binding Text.MergeModeTooltip}">
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.ModeLabel}" />
                   <ComboBox
                       MinHeight="32"
@@ -352,18 +352,78 @@
         IsVisible="{Binding IsCompositionActionRailVisible}"
         Orientation="Vertical"
         Spacing="{DynamicResource NfcSpace8}">
-        <ContentControl
-            Width="310"
-            Padding="12,10"
-            Content="{Binding Merge.Inspection.Loading}"
-            ContentTemplate="{StaticResource ForegroundLoadingStatusTemplate}"
-            IsVisible="{Binding Merge.Inspection.Loading.IsVisible}" />
-        <ContentControl
-            Width="310"
-            Padding="12,10"
-            Content="{Binding Replace.Inspection.Loading}"
-            ContentTemplate="{StaticResource ForegroundLoadingStatusTemplate}"
-            IsVisible="{Binding Replace.Inspection.Loading.IsVisible}" />
+        <Grid IsVisible="{Binding IsMergeVisible}">
+          <ContentControl
+              x:Name="MergeInspectionStatusCard"
+              Width="310"
+              Padding="12,10"
+              Focusable="True"
+              KeyboardNavigation.IsTabStop="False"
+              AutomationProperties.Name="{Binding Merge.Inspection.Loading.AccessibleStatus}"
+              behaviors:FocusOnRevealBehavior.IsEnabled="{Binding Merge.Inspection.Loading.CanRetry}"
+              Content="{Binding Merge.Inspection.Loading}"
+              ContentTemplate="{StaticResource ForegroundLoadingStatusTemplate}"
+              IsVisible="{Binding Merge.Inspection.Loading.IsExpanded}" />
+          <Button
+              x:Name="MergeInspectionCollapseButton"
+              Margin="12,10"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Bottom"
+              Classes="semanticAction secondary"
+              AutomationProperties.Name="{Binding Merge.Inspection.Loading.InspectionStatusCollapseLabel}"
+              Command="{Binding Merge.Inspection.Loading.CollapseCommand}"
+              Content="{Binding Merge.Inspection.Loading.InspectionStatusCollapseLabel}"
+              IsVisible="{Binding Merge.Inspection.Loading.CanCollapse}" />
+          <Button
+              x:Name="MergeInspectionReopenButton"
+              Width="44"
+              Classes="railAction"
+              Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
+              AutomationProperties.Name="{Binding Merge.Inspection.Loading.InspectionStatusOpenLabel}"
+              AutomationProperties.HelpText="{Binding Merge.Inspection.Loading.AccessibleStatus}"
+              behaviors:FocusOnRevealBehavior.IsEnabled="True"
+              Command="{Binding Merge.Inspection.Loading.ExpandCommand}"
+              IsVisible="{Binding Merge.Inspection.Loading.IsCollapsed}"
+              ToolTip.Tip="{Binding Merge.Inspection.Loading.InspectionStatusOpenLabel}">
+            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="!" />
+          </Button>
+        </Grid>
+        <Grid IsVisible="{Binding IsReplaceVisible}">
+          <ContentControl
+              x:Name="ReplaceInspectionStatusCard"
+              Width="310"
+              Padding="12,10"
+              Focusable="True"
+              KeyboardNavigation.IsTabStop="False"
+              AutomationProperties.Name="{Binding Replace.Inspection.Loading.AccessibleStatus}"
+              behaviors:FocusOnRevealBehavior.IsEnabled="{Binding Replace.Inspection.Loading.CanRetry}"
+              Content="{Binding Replace.Inspection.Loading}"
+              ContentTemplate="{StaticResource ForegroundLoadingStatusTemplate}"
+              IsVisible="{Binding Replace.Inspection.Loading.IsExpanded}" />
+          <Button
+              x:Name="ReplaceInspectionCollapseButton"
+              Margin="12,10"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Bottom"
+              Classes="semanticAction secondary"
+              AutomationProperties.Name="{Binding Replace.Inspection.Loading.InspectionStatusCollapseLabel}"
+              Command="{Binding Replace.Inspection.Loading.CollapseCommand}"
+              Content="{Binding Replace.Inspection.Loading.InspectionStatusCollapseLabel}"
+              IsVisible="{Binding Replace.Inspection.Loading.CanCollapse}" />
+          <Button
+              x:Name="ReplaceInspectionReopenButton"
+              Width="44"
+              Classes="railAction"
+              Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
+              AutomationProperties.Name="{Binding Replace.Inspection.Loading.InspectionStatusOpenLabel}"
+              AutomationProperties.HelpText="{Binding Replace.Inspection.Loading.AccessibleStatus}"
+              behaviors:FocusOnRevealBehavior.IsEnabled="True"
+              Command="{Binding Replace.Inspection.Loading.ExpandCommand}"
+              IsVisible="{Binding Replace.Inspection.Loading.IsCollapsed}"
+              ToolTip.Tip="{Binding Replace.Inspection.Loading.InspectionStatusOpenLabel}">
+            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="!" />
+          </Button>
+        </Grid>
         <Button
             Classes="railAction outputRailAction"
             Classes.reducedMotion="{Binding IsReducedMotionEnabled}"

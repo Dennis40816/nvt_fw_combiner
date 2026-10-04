@@ -316,11 +316,7 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
-            if (MayPublishWindow)
-            {
-                IsSourceChecking = false;
-                IsVersionBusy = false;
-            }
+            CompleteSourceBusy();
         }
     }
 
@@ -516,11 +512,7 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
-            if (MayPublishWindow)
-            {
-                IsSourceChecking = false;
-                IsVersionBusy = false;
-            }
+            CompleteSourceBusy();
         }
     }
 
@@ -556,11 +548,16 @@ internal sealed partial class SettingsViewModel
         }
         finally
         {
-            if (MayPublishWindow)
-            {
-                IsSourceChecking = false;
-                IsVersionBusy = false;
-            }
+            CompleteSourceBusy();
+        }
+    }
+
+    private void CompleteSourceBusy()
+    {
+        if (MayPublishWindow)
+        {
+            IsSourceChecking = false;
+            IsVersionBusy = false;
         }
     }
 

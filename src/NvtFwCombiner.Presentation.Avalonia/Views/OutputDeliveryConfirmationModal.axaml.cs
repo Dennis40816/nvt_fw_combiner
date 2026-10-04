@@ -162,16 +162,7 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         }
 
         viewModel.BeginOutputFileNameEdit();
-        Dispatcher.UIThread.Post(
-            () =>
-            {
-                if (viewModel.IsOutputFileNameEditing)
-                {
-                    _ = OutputFileNameInput.Focus(NavigationMethod.Tab);
-                    OutputFileNameInput.SelectAll();
-                }
-            },
-            DispatcherPriority.Input);
+        FocusNameInput(OutputFileNameInput, () => viewModel.IsOutputFileNameEditing);
     }
 
     private void AdditionalOutputFileNameInput_OnTextChanged(object? sender, TextChangedEventArgs e)
@@ -186,26 +177,19 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
     {
         if (DataContext is not OutputDeliveryConfirmationViewModel viewModel) { return; }
         viewModel.BeginAdditionalOutputFileNameEdit();
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (!viewModel.IsAdditionalOutputFileNameEditing) { return; }
-            _ = AdditionalOutputFileNameInput.Focus(NavigationMethod.Tab);
-            AdditionalOutputFileNameInput.SelectAll();
-        }, DispatcherPriority.Input);
+        FocusNameInput(AdditionalOutputFileNameInput, () => viewModel.IsAdditionalOutputFileNameEditing);
     }
 
     private void CompleteAdditionalOutputFileNameEditButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not OutputDeliveryConfirmationViewModel viewModel) { return; }
         viewModel.CompleteAdditionalOutputFileNameEdit();
-        Dispatcher.UIThread.Post(() => _ = EditAdditionalOutputFileNameButton.Focus(NavigationMethod.Tab), DispatcherPriority.Input);
+        FocusEditButton(EditAdditionalOutputFileNameButton);
     }
 
     private void AdditionalOutputFileNameInput_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter) { return; }
-        CompleteAdditionalOutputFileNameEditButton_OnClick(sender, e);
-        e.Handled = true;
+        CompleteNameEditOnEnter(sender, e, CompleteAdditionalOutputFileNameEditButton_OnClick);
     }
 
     private void EditBundleDestinationButton_OnClick(object? sender, RoutedEventArgs e)
@@ -216,37 +200,24 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         }
 
         viewModel.BeginBundleDestinationEdit();
-        Dispatcher.UIThread.Post(
-            () =>
-            {
-                if (viewModel.IsBundleDestinationEditing)
-                {
-                    _ = FolderNameInput.Focus(NavigationMethod.Tab);
-                    FolderNameInput.SelectAll();
-                }
-            },
-            DispatcherPriority.Input);
+        FocusNameInput(FolderNameInput, () => viewModel.IsBundleDestinationEditing);
     }
 
     private void CompleteOutputFileNameEditButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not OutputDeliveryConfirmationViewModel viewModel) { return; }
         viewModel.CompleteOutputFileNameEdit();
-        Dispatcher.UIThread.Post(() => _ = EditOutputFileNameButton.Focus(NavigationMethod.Tab), DispatcherPriority.Input);
+        FocusEditButton(EditOutputFileNameButton);
     }
 
     private void OutputFileNameInput_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter) { return; }
-        CompleteOutputFileNameEditButton_OnClick(sender, e);
-        e.Handled = true;
+        CompleteNameEditOnEnter(sender, e, CompleteOutputFileNameEditButton_OnClick);
     }
 
     private void FolderNameInput_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter) { return; }
-        CompleteBundleDestinationEditButton_OnClick(sender, e);
-        e.Handled = true;
+        CompleteNameEditOnEnter(sender, e, CompleteBundleDestinationEditButton_OnClick);
     }
 
     private void CompleteBundleDestinationEditButton_OnClick(object? sender, RoutedEventArgs e)
@@ -257,9 +228,33 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         }
 
         viewModel.CompleteBundleDestinationEdit();
+        FocusEditButton(EditBundleDestinationButton);
+    }
+
+    private static void FocusNameInput(TextBox input, Func<bool> isEditing)
+    {
         Dispatcher.UIThread.Post(
-            () => _ = EditBundleDestinationButton.Focus(NavigationMethod.Tab),
+            () =>
+            {
+                if (isEditing())
+                {
+                    _ = input.Focus(NavigationMethod.Tab);
+                    input.SelectAll();
+                }
+            },
             DispatcherPriority.Input);
+    }
+
+    private static void FocusEditButton(Button button)
+    {
+        Dispatcher.UIThread.Post(() => _ = button.Focus(NavigationMethod.Tab), DispatcherPriority.Input);
+    }
+
+    private static void CompleteNameEditOnEnter(object? sender, KeyEventArgs e, EventHandler<RoutedEventArgs> completeEdit)
+    {
+        if (e.Key != Key.Enter) { return; }
+        completeEdit(sender, e);
+        e.Handled = true;
     }
 
     private async void ChooseParentButton_OnClick(object? sender, RoutedEventArgs e)

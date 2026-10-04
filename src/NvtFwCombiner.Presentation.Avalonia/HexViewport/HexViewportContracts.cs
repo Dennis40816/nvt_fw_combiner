@@ -350,6 +350,22 @@ internal sealed class HexViewportSnapshot
 
     public int DecorationVersion { get; }
 
+    public bool TryGetVisibleCell(long address, out HexViewportCell cell)
+    {
+        foreach (HexViewportRow row in Rows)
+        {
+            long index = address - row.Address;
+            if ((ulong)index < (ulong)row.Cells.Count)
+            {
+                cell = row.Cells[(int)index];
+                return true;
+            }
+        }
+
+        cell = default;
+        return false;
+    }
+
     public HexViewportSnapshot WithSelectedAddress(long? selectedAddress)
     {
         if (selectedAddress is long selected)

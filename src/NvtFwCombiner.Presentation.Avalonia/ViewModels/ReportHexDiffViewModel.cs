@@ -109,7 +109,7 @@ internal sealed partial class ReportHexDiffViewModel : ObservableObject
     {
         get
         {
-            if (_selectedByteAddress is not long selected || !TryGetVisibleCell(selected, out HexViewportCell cell))
+            if (_selectedByteAddress is not long selected || !ViewportSnapshot.TryGetVisibleCell(selected, out HexViewportCell cell))
             {
                 return T(_language, "No Hex Diff byte selected.", "尚未選取 Hex Diff 位元組。");
             }
@@ -385,22 +385,6 @@ internal sealed partial class ReportHexDiffViewModel : ObservableObject
         ViewportSnapshot = ViewportSnapshot.WithSelectedAddress(selected);
         OnPropertyChanged(nameof(ViewportSnapshot));
         OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
-    }
-
-    private bool TryGetVisibleCell(long address, out HexViewportCell cell)
-    {
-        foreach (HexViewportRow row in ViewportSnapshot.Rows)
-        {
-            long index = address - row.Address;
-            if ((ulong)index < (ulong)row.Cells.Count)
-            {
-                cell = row.Cells[(int)index];
-                return true;
-            }
-        }
-
-        cell = default;
-        return false;
     }
 
     private static string T(ShellLanguage language, string english, string traditionalChinese)

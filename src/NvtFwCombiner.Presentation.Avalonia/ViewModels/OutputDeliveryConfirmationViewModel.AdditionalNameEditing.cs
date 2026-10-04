@@ -12,8 +12,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
 
     internal void BeginAdditionalOutputFileNameEdit()
     {
-        if (!CanEditAdditionalOutputFileName || IsAdditionalOutputFileNameEditing) { return; }
-        _nameEditReverted = false;
+        if (!BeginNameEdit(CanEditAdditionalOutputFileName, IsAdditionalOutputFileNameEditing)) { return; }
         IsAdditionalOutputFileNameEditing = true;
         NotifyAdditionalName();
     }
@@ -31,10 +30,7 @@ internal sealed partial class OutputDeliveryConfirmationViewModel
     internal void CompleteAdditionalOutputFileNameEdit()
     {
         if (!IsAdditionalOutputFileNameEditing) { return; }
-        _nameEditReverted = !IsEditedNameAcceptable(OutputNameField.Additional);
-        if (_nameEditReverted) { AdditionalOutputFileName = _acceptedAdditionalOutputFileName; }
-        else { _acceptedAdditionalOutputFileName = AdditionalOutputFileName; }
-        IsAdditionalOutputFileNameEditing = false;
+        (AdditionalOutputFileName, IsAdditionalOutputFileNameEditing) = CompleteNameEdit(OutputNameField.Additional, AdditionalOutputFileName, ref _acceptedAdditionalOutputFileName);
         _ = RefreshValidation();
         NotifyAdditionalName();
     }
