@@ -9,6 +9,7 @@ public sealed partial class BuildCompletedModal : UserControl
     public BuildCompletedModal()
     {
         InitializeComponent();
+        ModalInitialFocus.Register(this, () => CloseButton);
     }
 
 }

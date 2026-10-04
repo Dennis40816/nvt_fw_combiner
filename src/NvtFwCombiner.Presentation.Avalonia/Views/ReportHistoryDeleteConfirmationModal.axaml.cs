@@ -117,6 +117,16 @@ public sealed partial class ReportHistoryDeleteConfirmationModal : UserControl
 
     private void Confirmation_OnKeyDown(object? sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Tab && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Shift && IsEffectivelyVisible &&
+            DataContext is ReportPresentationViewModel { IsHistoryDeleteConfirmationOpen: true })
+        {
+            bool focusDelete = CancelButton.IsFocused ||
+                (!DeleteButton.IsFocused && e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            _ = (focusDelete ? DeleteButton : CancelButton).Focus(NavigationMethod.Tab, e.KeyModifiers);
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Escape && DataContext is ReportPresentationViewModel viewModel)
         {
             viewModel.CancelReportHistoryDeletionCommand.Execute(null);

@@ -9,5 +9,6 @@ public sealed partial class FirmwareNumberMismatchModal : UserControl
     public FirmwareNumberMismatchModal()
     {
         InitializeComponent();
+        ModalInitialFocus.Register(this, () => CancelButton);
     }
 }

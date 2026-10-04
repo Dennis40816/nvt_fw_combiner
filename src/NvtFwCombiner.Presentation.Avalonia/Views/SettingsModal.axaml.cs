@@ -48,6 +48,8 @@ public sealed partial class SettingsModal : UserControl
     {
         _owningTopLevel = TopLevel.GetTopLevel(this);
         ObserveSettings();
+        // Recover before default Tab navigation when removal leaves no modal descendant focused.
+        _owningTopLevel?.AddHandler(KeyDownEvent, SettingsModal_OnTabKeyDown, RoutingStrategies.Tunnel);
         // A removed chip can leave no focused descendant to bubble Escape through this modal.
         _owningTopLevel?.AddHandler(KeyDownEvent, SettingsModal_OnKeyDown, RoutingStrategies.Bubble);
         if (IsOpen)
@@ -58,6 +60,7 @@ public sealed partial class SettingsModal : UserControl
 
     private void SettingsModal_OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
+        _owningTopLevel?.RemoveHandler(KeyDownEvent, SettingsModal_OnTabKeyDown);
         _owningTopLevel?.RemoveHandler(KeyDownEvent, SettingsModal_OnKeyDown);
         _owningTopLevel = null;
         _settings?.InvalidateUpdateSourceBrowse();
@@ -291,6 +294,30 @@ public sealed partial class SettingsModal : UserControl
         {
             viewModel.CloseSettingsCommand.Execute(null);
         }
+        e.Handled = true;
+    }
+
+    private void SettingsModal_OnTabKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (!IsOpen || e.Key != Key.Tab || (e.KeyModifiers & ~KeyModifiers.Shift) != KeyModifiers.None ||
+            DataContext is MainWindowViewModel { CanRestoreSettingsFocus: false })
+        {
+            return;
+        }
+
+        if (_owningTopLevel?.FocusManager?.GetFocusedElement() is Control
+            { IsEffectivelyVisible: true, IsEffectivelyEnabled: true } focused && this.IsVisualAncestorOf(focused))
+        {
+            return;
+        }
+
+        IEnumerable<Control> controls = this.GetVisualDescendants().OfType<Control>().Where(control =>
+            control.Focusable && KeyboardNavigation.GetIsTabStop(control) &&
+            control.IsEffectivelyVisible && control.IsEffectivelyEnabled);
+        Control? target = e.KeyModifiers.HasFlag(KeyModifiers.Shift)
+            ? controls.LastOrDefault()
+            : controls.FirstOrDefault();
+        _ = target?.Focus(NavigationMethod.Tab, e.KeyModifiers);
         e.Handled = true;
     }
 

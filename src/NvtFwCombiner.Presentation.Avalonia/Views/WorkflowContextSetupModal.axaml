@@ -4,6 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:WorkflowSessionPresentationViewModel"
+    IsVisible="{Binding IsWorkflowContextModalOpen}"
+    KeyboardNavigation.TabNavigation="Cycle"
     Background="{DynamicResource NfcModalScrimBrush}">
   <Border
       Classes="modalSurface"
@@ -51,7 +53,7 @@
       </Border>
 
       <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-        <Button Classes="semanticAction secondary" Command="{Binding CancelWorkflowContextCommand}" Content="{Binding Text.CloseLabel}" />
+        <Button x:Name="CancelButton" Classes="semanticAction secondary" Command="{Binding CancelWorkflowContextCommand}" Content="{Binding Text.CloseLabel}" />
         <Button Classes="semanticAction primary" Command="{Binding ConfirmWorkflowContextCommand}" Content="{Binding Text.OpenLabel}" />
       </StackPanel>
     </Grid>

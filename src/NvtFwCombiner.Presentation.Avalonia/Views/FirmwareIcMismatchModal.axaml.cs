@@ -9,5 +9,6 @@ public sealed partial class FirmwareIcMismatchModal : UserControl
     public FirmwareIcMismatchModal()
     {
         InitializeComponent();
+        ModalInitialFocus.Register(this, () => KeepCurrentButton);
     }
 }

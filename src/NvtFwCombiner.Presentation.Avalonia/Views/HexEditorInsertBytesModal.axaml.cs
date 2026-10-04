@@ -9,5 +9,6 @@ public sealed partial class HexEditorInsertBytesModal : UserControl
     public HexEditorInsertBytesModal()
     {
         InitializeComponent();
+        ModalInitialFocus.Register(this, () => CloseButton);
     }
 }

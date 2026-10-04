@@ -5,8 +5,9 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
     x:DataType="vm:ReportPresentationViewModel"
-    Focusable="True"
+    Focusable="{Binding !IsHistoryDeleteConfirmationOpen}"
     KeyboardNavigation.TabNavigation="Cycle"
+    KeyDown="ReportModal_OnKeyDown"
     Background="{DynamicResource NfcReportModalScrimBrush}">
   <UserControl.KeyBindings>
     <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding ClearReportHistoryCommand}" />
@@ -26,6 +27,7 @@
   </UserControl.Resources>
   <Grid>
   <Border
+      x:Name="ReportSurface"
       IsEnabled="{Binding !IsHistoryDeleteConfirmationOpen}"
       Classes="surface"
       MaxWidth="1500"
@@ -58,6 +60,7 @@
 
       <StackPanel Grid.Row="4" Margin="16,14,16,14" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
+            x:Name="CloseButton"
             Classes="semanticAction secondary"
             Command="{Binding CloseReportCommand}"
             Content="{Binding Text.CloseLabel}" />

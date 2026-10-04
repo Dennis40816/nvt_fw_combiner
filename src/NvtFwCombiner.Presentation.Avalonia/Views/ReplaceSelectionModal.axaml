@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:ReplacePresentationViewModel"
+    KeyboardNavigation.TabNavigation="Cycle"
     Background="{DynamicResource NfcModalScrimBrush}">
   <UserControl.Resources>
     <ResourceDictionary>
@@ -74,6 +75,7 @@
 
       <StackPanel Grid.Row="3" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
+            x:Name="CloseButton"
             Classes="semanticAction secondary"
             Command="{Binding CloseReplaceSelectionCommand}"
             Content="{Binding Text.CloseLabel}" />

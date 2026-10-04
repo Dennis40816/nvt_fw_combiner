@@ -5,6 +5,7 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:MainWindowViewModel"
     AutomationProperties.Name="{Binding Text.BuildCompletedTitle}"
+    KeyboardNavigation.TabNavigation="Cycle"
     Background="{DynamicResource NfcModalScrimBrush}">
   <Border
       Classes="modalSurface"
@@ -64,6 +65,7 @@
             Command="{Binding BuildResult.RevealOutputCommand}"
             Content="{Binding Text.BuildCompletedOpenFolderLabel}" />
         <Button
+            x:Name="CloseButton"
             Classes="semanticAction primary"
             AutomationProperties.Name="{Binding Text.BuildCompletedOkLabel}"
             Command="{Binding BuildResult.CloseCommand}"
