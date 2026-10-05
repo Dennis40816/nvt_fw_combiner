@@ -795,6 +795,73 @@ version's folder stays for rollback.
 Rollback: point the Git helper entry back at the seventh version's folder and
 tell the commander; nothing else changes.
 
+### A6c. Optional `issues: write` switch (ninth version; decision 319)
+
+The ninth version adds the optional switch `-IncludeIssuesWrite` to the token
+helper and the `gh` wrapper (board decision 319). Without it a token requests
+exactly the A1 set as before; with it the one token also requests
+`issues: write`, and the helper refuses a reply that lacks it. Only the NFH
+project passes the switch, and only after its App has Issues read and write;
+NFC's own Git helper entry and wrapper calls do not change, and the manifest
+for a new App (`NfcG0.Common.ps1`) keeps the A1 set without `issues`. It
+changes four files of the eighth version; every other file keeps its hash.
+
+| File | SHA-256 (ninth version, LF repository bytes) |
+| --- | --- |
+| `nfc-app-token-helper.ps1` | `1437ea92bd5018b0d2029aa321936ac77df916f33d7623c246e1c386405ce304` |
+| `Invoke-NfcGh.ps1` | `ecf8ff29fdfd737cbf25e80a4d29b173f56577099492da4a0130b6723ba14adc` |
+| `README.md` | `f9f58bc2d1942d31767ebe410410650a4b48e38495892d798e4376fde42d8b36` |
+| `tests/NfcG0.Tests.ps1` | `4479d0dfbe509fec30bf5dba60cb5b23d5ff71122bd035acd6b5dc29fc8ef1e2` |
+
+The installed folder is named after the reviewed head, as
+`%USERPROFILE%\.nfc\G0\scripts-<first 12 characters of the head>` (the eighth
+version is `scripts-36754c99fc81`). Use the head of the pull request that the
+owner approved, not the merge commit; a different folder name is only a name,
+and the hashes above decide whether the copy is right.
+
+1. **owner → owner** (or the commander on the owner's instruction). After the
+   pull request is merged, export the folder from the approved head with
+   `git archive`, which writes the repository bytes; a copy from a worktree has
+   CRLF line endings in the `.ps1` files and other hashes:
+
+   ```powershell
+   $head = '<approved head, 40 characters>'
+   $dst = "$env:USERPROFILE\.nfc\G0\scripts-$($head.Substring(0, 12))"
+   $tar = "$env:TEMP\g0-$($head.Substring(0, 12)).tar"
+   git -C <repository> archive --format=tar -o $tar $head docs/handoff/1.1.13/g0-scripts
+   New-Item -ItemType Directory -Path $dst | Out-Null
+   tar -xf $tar -C $dst --strip-components=4
+   ```
+
+   Compare the four files with the hashes above (`Get-FileHash -Algorithm SHA256 <file>`).
+   Compare `Set-NfcRulesets.ps1`, `rulesets/RS-1a-to-1k.json`, `rulesets/RS-2.json`
+   and `rulesets/RS-3.json` with the R41 table of
+   [C1a](#c1a-r41-approval-scope-trial-apply-and-rollback-2026-10-01) (R41 changed
+   them after the eighth version was installed), and every other file with the
+   inventory table above. Keep the eighth version's folder for rollback.
+2. **owner → owner.** In the new folder run
+   `pwsh -NoProfile -File tests/Invoke-NfcG0Tests.ps1`; it must exit with 0
+   and report no failed test.
+3. **owner → owner.** Point each repository's Git helper entry at the new
+   folder's helper with the same options as before, and tell each project's
+   commander the new wrapper path. For NFC the options stay exactly as they are
+   (no `-IncludeWorkflowsWrite`, no `-IncludeIssuesWrite`). For NFH the Git
+   entry needs no new switch either: Git pushes need no `issues` permission;
+   NFH passes `-IncludeIssuesWrite` only among the wrapper options of the `gh`
+   calls that label, comment on or close an issue.
+4. **agent → App.** Each commander compares the installed copy with the
+   hashes and runs one read-only wrapper call without the switch. The NFH
+   commander then labels or comments on a test issue with the switch; a 403
+   there means the NFH App or its installation has not granted Issues write.
+
+| Message or symptom | State | What you do |
+| --- | --- | --- |
+| "NFC gh wrapper failed" with `-IncludeIssuesWrite` only | Usually GitHub refused `issues` because the App or its installation lacks Issues write, or the helper refused a reply without `issues: write`; then no token was issued. The same message also appears when `gh` failed after it started, so whether the issue changed is unknown | Look at the issue on GitHub before retrying. If it did not change, grant Issues read and write in that App's settings and accept it on the installation, or stop using the switch |
+| `gh` reports an unknown flag `-IncludeIssuesWrite` | The switch came after the `gh` command, or the old wrapper is installed | Put the switch among the wrapper options before the `gh` command; check the installed hashes |
+
+Rollback: point the Git helper entry and the wrapper path back at the eighth
+version's folder and tell the commander; nothing else changes.
+
 ### A7. Agent commit identity
 
 - [ ] **owner → none.** Set, at the repository scope, `user.name` =

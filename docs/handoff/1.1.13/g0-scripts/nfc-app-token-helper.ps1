@@ -9,6 +9,8 @@ param(
     [Parameter(Mandatory)][string]$DpapiPath,
     # Adds workflows: write to the fixed A1 set for this one token; never implied.
     [switch]$IncludeWorkflowsWrite,
+    # Adds issues: write to the fixed A1 set for this one token; never implied; independent of -IncludeWorkflowsWrite.
+    [switch]$IncludeIssuesWrite,
     [Parameter(ValueFromRemainingArguments)][string[]]$GitArguments
 )
 
@@ -17,9 +19,10 @@ $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/NfcG0.Common.ps1"
 
 function New-NfcTokenPermissionSet {
-    param([switch]$IncludeWorkflowsWrite)
+    param([switch]$IncludeWorkflowsWrite, [switch]$IncludeIssuesWrite)
     $permissions = @{ metadata = 'read'; contents = 'write'; pull_requests = 'write'; checks = 'read'; statuses = 'read'; actions = 'read' }
     if ($IncludeWorkflowsWrite) { $permissions['workflows'] = 'write' }
+    if ($IncludeIssuesWrite) { $permissions['issues'] = 'write' }
     return $permissions
 }
 
@@ -49,6 +52,12 @@ function Request-NfcInstallationToken {
                 throw 'Installation token lacks the requested workflows permission.'
             }
         }
+        if ($Permissions.ContainsKey('issues')) {
+            $granted = $reply.permissions.PSObject.Properties['issues']
+            if (-not $granted -or $granted.Value -cne 'write') {
+                throw 'Installation token lacks the requested issues permission.'
+            }
+        }
         return $reply.token
     } finally {
         $reply = $null
@@ -57,7 +66,7 @@ function Request-NfcInstallationToken {
 
 function Get-NfcInstallationToken {
     param([string]$Owner, [string]$Repo, [string]$ClientId, [long]$InstallationId, [string]$DpapiPath,
-          [switch]$IncludeWorkflowsWrite)
+          [switch]$IncludeWorkflowsWrite, [switch]$IncludeIssuesWrite)
     $cipher = $null; $plain = $null; $pem = $null; $rsa = $null; $jwt = $null
     try {
         if ($Owner -cnotmatch '^[A-Za-z0-9-]+\z' -or $Repo -cnotmatch '^[A-Za-z0-9_.-]+\z' -or
@@ -70,7 +79,7 @@ function Get-NfcInstallationToken {
         $rsa.ImportFromPem($pem)
         $jwt = New-NfcJwt -Rsa $rsa -ClientId $ClientId
         return Request-NfcInstallationToken -Owner $Owner -Repo $Repo -InstallationId $InstallationId -Jwt $jwt `
-            -Permissions (New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$IncludeWorkflowsWrite)
+            -Permissions (New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$IncludeWorkflowsWrite -IncludeIssuesWrite:$IncludeIssuesWrite)
     } finally {
         if ($rsa) { $rsa.Dispose() }
         if ($cipher) { [Array]::Clear($cipher, 0, $cipher.Length) }
@@ -90,7 +99,7 @@ try {
     }
     if (Test-NfcRecordingPolicy) { throw 'Recording policy is enabled.' }
     $token = Get-NfcInstallationToken -Owner $Owner -Repo $Repo -ClientId $ClientId `
-        -InstallationId $InstallationId -DpapiPath $DpapiPath -IncludeWorkflowsWrite:$IncludeWorkflowsWrite
+        -InstallationId $InstallationId -DpapiPath $DpapiPath -IncludeWorkflowsWrite:$IncludeWorkflowsWrite -IncludeIssuesWrite:$IncludeIssuesWrite
     if ($Mode -eq 'git') {
         [Console]::Out.Write("username=x-access-token`npassword=$token`n`n")
     } else {
