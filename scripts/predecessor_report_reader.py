@@ -256,6 +256,16 @@ def _list_rows(report: Mapping[str, Any]) -> list[dict[str, Any]]:
 def _check_list_input(report: Mapping[str, Any], rows: list[dict[str, Any]]) -> None:
     """Projection admission only; cannot validate execution or release authority."""
     from scripts import predecessor_validation as validation
+    from scripts.v0916_parity_certification import load_json_reject_duplicates
+
+    try:
+        from jsonschema import Draft202012Validator
+    except ImportError as error:
+        raise ReportReaderError("report schema validation requires jsonschema") from error
+    schema_path = Path(__file__).resolve().parents[1] / "docs/contracts/predecessor-comparison-report-v1.schema.json"
+    schema = load_json_reject_duplicates(schema_path.read_bytes())
+    if not Draft202012Validator(schema).is_valid(report):
+        raise ReportReaderError("comparison result violates report schema")
 
     if (report["schemaVersion"] != "1.0" or report["kind"] != "predecessor-comparison-report"
             or report["certification"] != "none" or report["terminal"] is not False

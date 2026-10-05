@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import sys
 import tempfile
 from unittest.mock import patch
 
@@ -24,6 +25,16 @@ def result(name="rolling-equal"):
 def seal(report):
     report["deterministicSha256"] = validation.deterministic_report_sha256(report)
     return report
+
+
+def formal_result(name="rolling-equal"):
+    report = result(name)
+    report["formal"] = True
+    if report["mode"] == "rolling":
+        report["publishedInventory"] = {"rawSha256": "a" * 64, "factsSha256": "b" * 64}
+    else:
+        report["milestone"] = "1.2.0-release-approval"
+    return seal(report)
 
 
 def test_equal_diagnostic_list_keeps_scenario_identity_and_does_not_claim_record():
@@ -48,11 +59,10 @@ def test_difference_list_preserves_recorded_disposition_and_exact_observed_bound
     assert "ec2b005e0231cae92f436be7599103db0550d17b40d64cd93d91a70c0056b0e2" in text
 
 
-def test_invalid_cause_is_kept_without_local_paths_or_unknown_payloads():
+def test_invalid_cause_is_kept_without_local_paths():
     report = result()
     row = report["scenarios"][0]
     row.update(outcome="invalid", failureCode="PREDECESSOR_REPORT_INVALID")
-    row["firmwarePreview"] = "PRIVATE-BYTE-PREVIEW"
     report["gate"] = {"result": "blocked", "failures": [{
         "code": "PREDECESSOR_REPORT_INVALID", "subject": row["scenarioId"],
         "detail": 'range audit refused "C:\\private folder\\output.bin" and /private/tmp/output.bin',
@@ -62,8 +72,20 @@ def test_invalid_cause_is_kept_without_local_paths_or_unknown_payloads():
     assert "range audit refused" in text
     assert "PREDECESSOR_REPORT_INVALID" in text
     assert "private" not in text
-    assert "PRIVATE-BYTE-PREVIEW" not in text
     assert "[local path omitted]" in text
+
+
+def test_unknown_result_payload_is_refused():
+    report = result()
+    report["scenarios"][0]["firmwarePreview"] = "PRIVATE-BYTE-PREVIEW"
+    with pytest.raises(reader.ReportReaderError, match="report schema"):
+        reader.render_owner_list(seal(report))
+
+
+def test_schema_validator_unavailable_refuses_owner_list():
+    with patch.dict(sys.modules, {"jsonschema": None}):
+        with pytest.raises(reader.ReportReaderError, match="requires jsonschema"):
+            reader.render_owner_list(result())
 
 
 def test_gaps_are_not_equal_and_keep_version_specific_approval_reason():
@@ -72,12 +94,31 @@ def test_gaps_are_not_equal_and_keep_version_specific_approval_reason():
         notCovered=[{"routeId": "route-debt", "reason": "debt-set", "evidenceKind": "contract-only"},
                     {"routeId": "route-accepted", "reason": "accepted-gap", "evidenceKind": "missing"},
                     {"routeId": "route-pending", "reason": "pending-gap", "evidenceKind": "missing"}])
+    report["gate"] = {"result": "blocked", "failures": [{
+        "code": "PREDECESSOR_COVERAGE_UNDISPOSED", "subject": "route-pending",
+        "detail": "pending gap needs this release's owner approval",
+    }]}
     text = reader.render_owner_list(seal(report))
+    assert "result: blocked" in text
     assert "無 canonical 認證案例" in text
     assert "待本版 owner 核准" in text
     assert "本版已列為 accepted gap" in text
     for route in ("route-debt", "route-accepted", "route-pending"):
         assert route in text
+
+
+@pytest.mark.parametrize("pending", ["count", "route", "both"])
+def test_clear_gate_with_pending_gap_is_refused_even_with_resealed_digest(pending):
+    report = result()
+    assert reader.render_owner_list(report)
+    if pending in {"count", "both"}:
+        report["coverage"]["pendingAcceptedGaps"] = 1
+    if pending in {"route", "both"}:
+        report["coverage"].update(universe=2, notCovered=[{
+            "routeId": "route-pending", "reason": "pending-gap", "evidenceKind": "missing",
+        }])
+    with pytest.raises(reader.ReportReaderError, match="report schema"):
+        reader.render_owner_list(seal(report))
 
 
 def test_both_reject_is_an_acceptance_difference_with_each_sides_cause():
@@ -87,6 +128,8 @@ def test_both_reject_is_an_acceptance_difference_with_each_sides_cause():
     for name in ("baseline", "candidate"):
         row[name].update(status="rejected", output=None, stoppedAt="preview",
                          issues=[{"severity": "error", "code": f"input.{name}.invalid", "source": "report"}])
+        row[name]["processes"] = row[name]["processes"][:1]
+        row[name]["processes"][0]["exitCode"] = 1
     text = reader.render_owner_list(seal(report))
     assert "both-reject（兩側均拒絕輸入）" in text
     assert "input.baseline.invalid" in text and "input.candidate.invalid" in text
@@ -121,8 +164,12 @@ def test_candidate_policy_lists_published_routes_outside_historical_mode_without
 def test_precursor_only_and_truncated_ranges_are_visible_without_inventing_full_bounds():
     report = result("rolling-declared")
     row = report["scenarios"][0]
-    row["precursorComparison"], row["comparison"] = row["comparison"], None
-    row["precursorComparison"].update(rangeCount=33, rangesTruncated=True)
+    for name in ("baseline", "candidate"):
+        row[name]["precursor"] = copy.deepcopy(row[name]["output"])
+    row["precursorComparison"] = validation.range_projection([
+        {"start": index * 2, "endExclusive": index * 2 + 1} for index in range(33)
+    ])
+    row["comparison"] = None
     text = reader.render_owner_list(seal(report))
     assert "precursor output-image [0, 1)" in text
     assert "僅列出結果保留的前段範圍" in text
@@ -149,12 +196,40 @@ def test_sorting_is_stable_and_markdown_text_cannot_add_rows():
 
 
 def test_formal_projection_never_promotes_a_blocked_result_to_report_of_record():
-    report = result("rolling-undeclared")
-    report["formal"] = True
-    text = reader.render_owner_list(seal(report))
+    text = reader.render_owner_list(formal_result("rolling-undeclared"))
     assert "formal result" in text
     assert "blocked" in text
     assert "此清單不核發 report of record" in text
+
+
+@pytest.mark.parametrize("name", ["rolling-equal", "rolling-undeclared", "v0916-consistent"])
+def test_formal_results_with_schema_prerequisites_remain_displayable(name):
+    assert "formal result" in reader.render_owner_list(formal_result(name))
+
+
+@pytest.mark.parametrize("name,member", [
+    ("rolling-equal", "publishedInventory"),
+    ("rolling-undeclared", "publishedInventory"),
+    ("rolling-equal", "declarationSha256"),
+    ("v0916-consistent", "milestone"),
+])
+def test_formal_results_without_required_evidence_are_refused(name, member):
+    report = formal_result(name)
+    assert reader.render_owner_list(report)
+    report[member] = None
+    with pytest.raises(reader.ReportReaderError, match="report schema"):
+        reader.render_owner_list(seal(report))
+
+
+@pytest.mark.parametrize("name", ["rolling-equal", "v0916-consistent"])
+@pytest.mark.parametrize("settings_file", ["event-buffer-format.v1.json", "toolchain-runtime.v1.json"])
+@pytest.mark.parametrize("observation", ["sha256Before", "sha256After"])
+def test_formal_results_with_present_user_settings_are_refused(name, settings_file, observation):
+    report = formal_result(name)
+    assert reader.render_owner_list(report)
+    report["environment"]["perUserSettings"][settings_file][observation] = "c" * 64
+    with pytest.raises(reader.ReportReaderError, match="report schema"):
+        reader.render_owner_list(seal(report))
 
 
 def test_full_declared_bounds_require_the_exact_result_bound_document():
