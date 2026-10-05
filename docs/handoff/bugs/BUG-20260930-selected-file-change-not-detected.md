@@ -14,9 +14,10 @@ Build and Preview use those bytes. A file renamed, moved, modified or deleted af
 with its old path, and Build uses the old content, until a re-inspection runs: another file selected in the same
 workflow (the loaded Merge or Replace slots of that workflow are re-read), an IC, Number or mode change, the AB same-TP or dummy-DP switch, or a
 catalog republication. A re-inspection of a missing path fails the slot; a replaced file is inspected again.
-Expected: owner decision 203: when a selected file changes on disk, NFC shows a toast and unselects the file; at
-minimum the check runs when Build starts (the path still resolves to the same length and SHA-256 as the accepted
-snapshot), and it may also run earlier (a watcher or on focus).
+Expected: owner decision 203: when a selected file changes on disk, NFC shows a toast and unselects the file; the
+check runs when Build starts (the path still resolves to the same length and SHA-256 as the accepted snapshot).
+Owner decision 311 (2026-10-05) settles the rest: there is no continuous watcher and no polling (decision 229
+stands); the per-run stamp refusal of R02-03 and the toast of R43 carry the reminder.
 Evidence: the code paths above; no test covers a file changed after selection.
 Owner: unassigned; `1.2.7` item R43 (decision 212).
 Resolution: pending.
