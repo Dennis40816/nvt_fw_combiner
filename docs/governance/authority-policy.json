@@ -13,7 +13,7 @@
   "entries": [
     {
       "id": "firmware",
-      "description": "Profiles, every fixture and Golden file, reference code, the CRC worker, the Golden tests, the firmware-semantic source owners confirmed by the firmware owner (board decision 111) and the command-line handlers that forward output-deciding choices (board decision 245).",
+      "description": "Profiles, every fixture and Golden file, reference code, the CRC worker, the Golden tests, the firmware-semantic source owners confirmed by the firmware owner (board decision 111) the command-line handlers that forward output-deciding choices (board decision 245) and the General authoring session state that adopts an accepted mapping (owner decision of 2026-10-05 for R02 slice P2).",
       "floor": "R3",
       "roles": ["firmware-owner"],
       "patterns": [
@@ -41,7 +41,11 @@
         "src/NvtFwCombiner.Cli/AbMergeCliCommandHandler.Dummy.cs",
         "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs",
         "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs",
-        "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.Choices.cs"
+        "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.Choices.cs",
+        "src/NvtFwCombiner.Application/Authoring/AuthoringSessionState.cs",
+        "src/NvtFwCombiner.Application/Authoring/AuthoringSessionState.GeneralPreparation.cs",
+        "src/NvtFwCombiner.Application/Authoring/AuthoringSessionState.SelectedFileInspection.cs",
+        "src/NvtFwCombiner.Application/Authoring/GeneralAuthoringExperience.cs"
       ]
     },
     {

@@ -27,6 +27,10 @@
 /src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs @Dennis40816
 /src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs @Dennis40816
 /src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.Choices.cs @Dennis40816
+/src/NvtFwCombiner.Application/Authoring/AuthoringSessionState.cs @Dennis40816
+/src/NvtFwCombiner.Application/Authoring/AuthoringSessionState.GeneralPreparation.cs @Dennis40816
+/src/NvtFwCombiner.Application/Authoring/AuthoringSessionState.SelectedFileInspection.cs @Dennis40816
+/src/NvtFwCombiner.Application/Authoring/GeneralAuthoringExperience.cs @Dennis40816
 # contracts (R3)
 /docs/contracts/** @Dennis40816
 # external-tools (R3)
