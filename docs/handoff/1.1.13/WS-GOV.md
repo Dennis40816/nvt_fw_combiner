@@ -1400,3 +1400,30 @@ Recorded by the commander; decision 246.
   `governance / authority` run from before the record, and merged (`d8d852f0f`) after a description edit reran
   that event. W1 itself worked: the record submissions, an `incomplete` trial record (failed as intended) and the
   owner's approval each started a `pull_request_review` run.
+
+## G0 ninth version installation (2026-10-05)
+
+Recorded by the commander; the sections above are kept as recorded.
+
+- Subject: the ninth helper and wrapper version (G0 owner checklist A6c, board decision 319): the optional
+  `-IncludeIssuesWrite` switch. It was reviewed on #569 at the exact head `7fc130b91` (fresh read-only Codex session,
+  accept after one accept-with-changes round, no P0 or P1). The owner approved it, and it was merged into `1.2.x` as
+  `60e3f28e9`.
+- Step 1 (commander, on the owner's instruction relayed by the Commander session at 2026-10-05 20:00): the twelve
+  files under `docs/handoff/1.1.13/g0-scripts/` were exported from `7fc130b91` with `git archive` into the new folder
+  `scripts-7fc130b9157c` beside the eighth version's `scripts-36754c99fc81`, which stays for rollback. Every file
+  matches its checklist hash: the four changed files the A6c table, the ruleset script and three templates the R41
+  table of C1a, and the other four the inventory table.
+- Step 2 (commander, as part of the installation the owner asked for through the Commander session; A6c assigns
+  this step to the owner): in the new folder the isolated runner passed 81/81 (Pester 3.4.0, fake secrets).
+- Step 3 (the commander ran it on the owner's explicit approval in the NFC session, 2026-10-06): A6c assigns this
+  step to the owner. As for the eighth version, the owner approved that the commander runs it. The owner answered
+  「切到第九版 (Recommended)」 when asked whether to repoint NFC's helper to the ninth version. The four A6c hashes were
+  checked again. The folder name was then replaced in the repository's one Git helper entry and nothing else
+  changed: the empty first entry and `useHttpPath` were kept, no switch was added, and the entry was read back. The
+  NFH project repoints its own entries; the path was sent to the Commander session for NFH, and NFH confirmed with a
+  test issue in the NFH repository that the switch lets it label, comment on and close issues, and that the token gets 403 without it.
+- Step 4 (commander): `git push --dry-run` through the new helper authenticated ("Everything up-to-date"). A
+  read-only wrapper call of `repos/<owner>/<repo>/contents/docs/handoff/1.1.14/1.2.x-allocation.md?ref=1.2.x` (raw)
+  returned bytes identical to the trunk blob, with the Traditional Chinese intact. `gh alias list` stopped with exit
+  code 64 and the refusal message before any token was requested.
