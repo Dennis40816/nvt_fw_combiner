@@ -261,13 +261,13 @@ Repository paths are relative to the fixed HEAD; external refers to this assessm
 | Evidence/argument | path:line |
 | --- | --- |
 | E01 Scheduling authority and weights | `docs/handoff/1.1.14/1.2.x-allocation.md:13`；`docs/handoff/1.1.14/1.2.x-allocation.md:51`；`docs/handoff/1.1.12.md:1059` |
-| E02 Existing capabilities/six review revisions | `evidence/1.2.1/R03-01.md:26`；`evidence/1.2.1/R03-01.md:140`；`evidence/1.2.1/R03-01.review.md:62` |
+| E02 Existing capabilities/six review revisions | `evidence/1.2.1/R03-01.md:32`；`evidence/1.2.1/R03-01.md:156`；`evidence/1.2.1/R03-01.review.md:62` |
 | E03 R-3 integrated, not exempt from approval | `docs/handoff/1.1.13/DESIGN-release-workflow-cleanup.md:17`；`docs/handoff/1.1.12.md:1012` |
 | E04 Source relocation, existing trust, compiled-in locator | `docs/adr/0053-fixed-update-source-registry.md:96–98`；`docs/adr/0053-fixed-update-source-registry.md:125–139`；`src/NvtFwCombiner.Bootstrap/UpdateSourceRegistryLocator.cs:7` |
 | E05 Entry classification/zero remote calls | `docs/adr/0062-first-run-managed-setup.md:74`；`docs/adr/0062-first-run-managed-setup.md:138` |
 | E06 Cold fault and deferral | `docs/handoff/bugs/BUG-20260928-b2-joint-recovery-entry-health-unavailable.md:44`；`docs/handoff/1.1.12.md:969`；`src/NvtFwCombiner.VersionManagement.Application/VersionManagement/ManagedLauncherEntry.cs:528` |
-| E07 Setup and existing materializer | `docs/adr/0062-first-run-managed-setup.md:336`；`docs/adr/0056-rollback-safe-launcher-self-update.md:170`；`evidence/1.2.1/R03-01.md:27` |
-| E08 Three recovery authorities | `evidence/1.2.1/R03-01.md:30`；`src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.Recovery.cs:5`；`src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherBootstrapCoordinator.ActiveAttemptRecovery.cs:23` |
+| E07 Setup and existing materializer | `docs/adr/0062-first-run-managed-setup.md:336`；`docs/adr/0056-rollback-safe-launcher-self-update.md:170`；`evidence/1.2.1/R03-01.md:33` |
+| E08 Three recovery authorities | `evidence/1.2.1/R03-01.md:36`；`src/NvtFwCombiner.VersionManagement.Application/VersionManagement/VersionManagementExperience.Recovery.cs:5`；`src/NvtFwCombiner.VersionManagement.Application/VersionManagement/LauncherBootstrapCoordinator.ActiveAttemptRecovery.cs:23` |
 | E09 Existing self-update/failure/deletion rules | `docs/adr/0056-rollback-safe-launcher-self-update.md:40`；`docs/adr/0056-rollback-safe-launcher-self-update.md:119`；`docs/adr/0056-rollback-safe-launcher-self-update.md:184` |
 | E10 Compatibility and actual manual boundary | `docs/adr/0056-rollback-safe-launcher-self-update.md:96`；`docs/handoff/1.1.14/1.2.x-inventory.md:183`；`docs/ci/release-package.md:435` |
 | E11 Hotfix/bridge/Root updates are conditional proposals only | `docs/architecture/launcher-update-proposal-20260923.md:70`；`docs/architecture/launcher-update-proposal-20260923.md:75`；`docs/adr/0056-rollback-safe-launcher-self-update.md:28` |

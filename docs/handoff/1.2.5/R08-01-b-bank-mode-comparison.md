@@ -391,7 +391,7 @@ identify separate checked locations, not firmware data. Inspection/count results
 | D235 | `docs/handoff/1.2.x.md:385,393,396,400,404` | Shared-definition migration, six bank re-pins, graph check and output evidence |
 | D238 | `docs/handoff/1.2.x.md:425,427,429,430,432,434` | Unknown Header-copy facts and mandatory limits |
 | R07 | `docs/handoff/1.2.1/R07-01.md:11,15,24,26,27,28,29,35,75,79,88,93,95,97` | Legacy/candidate identities, six argv shapes, replacement and evidence boundaries |
-| R31 | `docs/handoff/1.2.1/R31-01.md:18,39,47,48,58,59,60,61,69,70,71,75,116,123,131,139,147,159` | Header fields, copy windows, CRC coverage and owner questions |
+| R31 | `docs/handoff/1.2.1/R31-01.md:20,44,52,53,64,65,66,67,76,77,78,82,126,133,141,149,157,169` | Header fields, copy windows, CRC coverage and owner questions |
 | P19 | `profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51919-ab-merge.json:4,6,99,116,266,268,271,274` | NT51919 profile and R operations |
 | P29 | `profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51929-ab-merge.json:4,6,128,185,393,411,429,447,465,475` | NT51929 clone, fields, order and no processor |
 | P32 | `profiles/built-in/nt51919-nt51929-nt51932-ab-merge/profiles/nt51932-ab-merge.json:4,6,90,98,248,250,253,256` | NT51932 profile and R operations |

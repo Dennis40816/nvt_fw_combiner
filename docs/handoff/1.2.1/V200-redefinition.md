@@ -136,7 +136,7 @@ All relative paths below refer to the pinned repo above; each `path:line` identi
 | Evidence | Sampled path:line |
 | --- | --- |
 | E01 1.2.1 scope, independent assessment | `docs/handoff/1.1.14/1.2.x-allocation.md:68`;`docs/handoff/1.1.12.md:1020` |
-| E02 Original Launcher theme and GO | `docs/architecture/nfc_roadmap.md:382`;`docs/architecture/nfc_roadmap.md:960`;`evidence/1.2.1/R03-launcher-plan.md:55` |
+| E02 Original Launcher theme and GO | `docs/architecture/nfc_roadmap.md:382`;`docs/architecture/nfc_roadmap.md:960`;`evidence/1.2.1/R03-launcher-plan.md:63` |
 | E03 Current 2.x terminal obligation | `docs/handoff/1.1.12.md:373`;`docs/adr/0033-ci-owned-stable-release-promotion.md:68`;`docs/ci/release-package.md:326` |
 | E04 Rationale, execution sets of 64 and 117 | `docs/adr/0057-v0916-black-box-parity-certification.md:12`;`docs/adr/0057-v0916-black-box-parity-certification.md:78`;`docs/adr/0057-v0916-black-box-parity-certification.md:190` |
 | E05 Historical 27 and current drift | `docs/handoff/1.1.12.md:377`;`docs/adr/0057-v0916-black-box-parity-certification.md:94`;`docs/adr/0078-predecessor-comparison-for-1x-releases.md:28` |
@@ -156,7 +156,7 @@ All relative paths below refer to the pinned repo above; each `path:line` identi
 | E20 1.2.2, bounded waiver and pending interfaces | `docs/handoff/1.1.14/1.2.x-allocation.md:98`;`docs/handoff/1.1.12.md:1068`;`docs/contracts/predecessor-comparison-v1.md:466` |
 | E21 General release gates/R-4/R-6 | `docs/adr/0033-ci-owned-stable-release-promotion.md:61`;`AGENTS.md:193`;`docs/handoff/1.1.12.md:1110` |
 | E22 O index (not board decisions) | `docs/handoff/1.1.14/1.2.x-inventory.md:462`;`docs/handoff/1.1.14/1.2.x-inventory.md:479`;`docs/handoff/1.1.14/1.2.x-inventory.md:491` |
-| E23 R03 status, Q8 version placement and rejected Q9 recommendation | `evidence/1.2.1/R03-launcher-plan.md:5`;`evidence/1.2.1/R03-launcher-plan.md:197`;`evidence/1.2.1/R03-launcher-plan.md:198` |
+| E23 R03 status, Q8 version placement and rejected Q9 recommendation | `evidence/1.2.1/R03-launcher-plan.md:7`;`evidence/1.2.1/R03-launcher-plan.md:221`;`evidence/1.2.1/R03-launcher-plan.md:222` |
 | E24 Current 2.x execution boundary (static) | `scripts/release_promotion_policy.py:159`;`.github/workflows/release.yml:837`;`.github/workflows/release.yml:422` |
 | E25 Existing themes/closure for subsequent versions | `docs/architecture/nfc_roadmap.md:371`;`docs/architecture/nfc_roadmap.md:868`;`docs/handoff/1.1.14/1.2.x-allocation.md:189` |
 | E26 Retirement requirements and R3 roles | `docs/handoff/1.1.13/DESIGN-release-workflow-cleanup.md:177`;`docs/handoff/1.1.13/DESIGN-release-workflow-cleanup.md:189`;`AGENTS.md:186` |
