@@ -8,10 +8,10 @@
 
 - **評估日期：** 2026-10-01。
 - **評估者：** Claude Fable 5.1，依任務指定為 A1a 獨立 security evaluator；本回合工具未另回報可驗證的 reasoning-effort 設定。獨立交叉審查：Codex `gpt-6-astra`（原稿 reject；修訂版 2 reject、範圍收窄；修訂版 3 reject、僅餘一項 P1；修訂版 4 accept-with-changes，其唯一 P2（R4-P2-1）已同日原地補正、待確認）。
-- **風險分類：** A1a 為 **M/R3** publisher-trust security disposition（`docs/handoff/1.1.14/1.2.x-allocation.md:88`；`docs/handoff/1.2.1/R03-launcher-plan.md:86`）。本文是 owner 作 decision 188 Q4 最終接受的證據，不是接受本身；唯讀審查不執行產品測試，與判定屬 R3 不矛盾。
+- **風險分類：** A1a 為 **M/R3** publisher-trust security disposition（`docs/handoff/1.1.14/1.2.x-allocation.md:88`；`docs/handoff/1.2.1/R03-launcher-plan.md:100`）。本文是 owner 作 decision 188 Q4 最終接受的證據，不是接受本身；唯讀審查不執行產品測試，與判定屬 R3 不矛盾。
 - **固定來源：** `<worktrees>/e121b`，detached HEAD `d5770e52ee6da60bc26747588cc8951a67b7cc7a`；評估起始 `git -C <worktree> rev-parse HEAD` 為此值，`git status --short` 無輸出。
 - **輸入：** owner 部署事實 `evidence/1.2.1/A1a-facts.md`（2026-10-01 四輪 AskUserQuestion 回答）與問卷 `evidence/1.2.1/A1a-questionnaire.md`。owner 回答在本文中視為陳述事實；未回答處列為未知，不以推測補值。
-- **驗收依據：** board decision 188 Q3／Q4／Q8（`docs/handoff/1.2.x.md:71–77`、`:83–86`）；accepted plan 的 F17／F18／F19／F20（`docs/handoff/1.2.1/R03-launcher-plan.md:43–46`）、D1／D6／D7（`:63`、`:68`、`:69`、`:73`）、A1a／A1b／A7（`:86–88`）、Q4（`:193`）；accepted R06-01 契約報告修訂版 2 的 §4.2–§4.4、D7 有界限制表、A1–A9 定義與「A1a 的完成輸出」（`evidence/1.2.1/R05-R06-C01.md:94–101`、`:120–128`、`:134–138`、`:206–216`），及其審查確認（`evidence/1.2.1/R05-R06-C01.review.md:115–121`）。
+- **驗收依據：** board decision 188 Q3／Q4／Q8（`docs/handoff/1.2.x.md:71–77`、`:83–86`）；accepted plan 的 F17／F18／F19／F20（`docs/handoff/1.2.1/R03-launcher-plan.md:51–54`）、D1／D6／D7（`:73`、`:78`、`:79`、`:83`）、A1a／A1b／A7（`:100–102`）、Q4（`:217`）；accepted R06-01 契約報告修訂版 2 的 §4.2–§4.4、D7 有界限制表、A1–A9 定義與「A1a 的完成輸出」（`evidence/1.2.1/R05-R06-C01.md:94–101`、`:120–128`、`:134–138`、`:206–216`），及其審查確認（`evidence/1.2.1/R05-R06-C01.review.md:115–121`）。
 - **方法：** 唯讀靜態核對。對 A1–A9 每項 owner 事實，對照 ADR 0053／0056／0062／0066、`update-source-registry-v1`、`release-manifest-v1`、locator／reader／editor 原始碼，判「接受／不接受／未知」；以攻擊者能力矩陣比較 Case A／B；依 plan `:86` 與 R06-01 `:216` 作條件式 disposition。只用 `git -C … rev-parse`／`status --short`、`sed`／`grep` 定位 `path:line`。
 - **排除：** 未建置、未執行測試或 verifier、未連網、未讀 credentials／DPAPI／`.git/config`、未探測任何 share／GPO／稽核／SMB／client；不修改 repository、ADR、契約或 production；不設計 Case B 的簽章方案。Windows SMB／Kerberos／NTLM／磁碟映射／session 與 ticket 的一般行為標示為一般知識，不是 repository 或現場證據。
 

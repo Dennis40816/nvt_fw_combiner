@@ -227,7 +227,7 @@ Keep topic-local helpers local. Reuse `VersionManagementExperienceTestFactory`, 
 Helpers have no collection; nested test-double state remains per instance.
 
 **S6 / S7.** No `evidenceRefs` pin or Markdown hyperlink to these source files was found.
-`docs/handoff/1.2.1/R03-01.md:120` cites TransactionTests, DeleteRecoveryTransactionTests and
+`docs/handoff/1.2.1/R03-01.md:132` cites TransactionTests, DeleteRecoveryTransactionTests and
 LauncherRecoveryFenceTests at :428, :9 and :9 in the dated 2026-09-29 evaluation; keep their paths and class.
 Put the collection attribute on each class's root file only, as in the pilot; add no attribute or summary
 to these three residual files, preserving the cited line numbers.
@@ -388,8 +388,8 @@ The original attribute set is `none` at every declaration location in the file t
 
 | Reference | Pin / handling |
 | --- | --- |
-| `docs/handoff/1.2.1/R10-01.md:70,214` | C1:18-90 citations; keep path, class and these lines |
-| `docs/handoff/1.2.1/R13-01.md:355` | Historical class timing; no source pin |
+| `docs/handoff/1.2.1/R10-01.md:84,254` | C1:18-90 citations; keep path, class and these lines |
+| `docs/handoff/1.2.1/R13-01.md:389` | Historical class timing; no source pin |
 | `docs/governance/change-records/AB-116-PRIMARY-DISCOVERY-09.json:16-17` | C2/C3 historical mutablePaths; retain |
 | `docs/governance/change-records/CONFIG-116-FORMAT-06.json:17` | C2 historical mutablePaths; retain |
 | `docs/governance/change-records/FULL-IMAGE-METADATA-CORE-110-01.json:20` | C9 historical mutablePaths; retain |
@@ -620,11 +620,11 @@ No fixture or DisableParallelization argument is added.
 
 | Reference | Pin / handling |
 | --- | --- |
-| `docs/handoff/1.2.1/R10-01.md:212` | E15:20,86 citations; preserve file/class and these lines |
+| `docs/handoff/1.2.1/R10-01.md:252` | E15:20,86 citations; preserve file/class and these lines |
 | `docs/handoff/1.2.4/R54-retirement-plan.md:58` | E10/E13:8 citations; preserve paths/classes/lines |
 | `tests/scripts/test_verify_orchestration.py:6574,6625` | Synthetic old FQN for shape test; no reader/selector |
 | `docs/handoff/1.1.12/WS-PERF.md:131` | Historical filename glob; not a live selector; retain |
-| `docs/handoff/1.2.1/R13-01.md:344` | Historical class timing; retain |
+| `docs/handoff/1.2.1/R13-01.md:378` | Historical class timing; retain |
 | `docs/governance/change-records/DP-ENVELOPE-1110-C-01.json:47` | E19 historical mutablePaths; no synchronization needed |
 | `docs/governance/change-records/DP-ENVELOPE-1110-FOUNDATION-01.json:42` | E19 historical mutablePaths; no synchronization needed |
 | `docs/governance/change-records/FULL-IMAGE-METADATA-CORE-110-01.json:22` | E5 historical mutablePaths; no synchronization needed |
@@ -732,7 +732,7 @@ Original attributes are `none` at every F0-F11 declaration line. No fixture/Disa
 | Reference | Pin / handling |
 | --- | --- |
 | `docs/handoff/1.2.4/R54-retirement-plan.md:54` | F0:61,398 citations; keep path/class and cited lines |
-| `docs/handoff/1.2.1/R13-01.md:348,409` | Historical class timing/hotspot; retain |
+| `docs/handoff/1.2.1/R13-01.md:382,447` | Historical class timing/hotspot; retain |
 | `docs/governance/change-records/DP-ENVELOPE-1110-FOUNDATION-01.json:39` | F10 historical mutablePaths; no synchronization needed |
 
 F0 extraction starts at :561, after both citations; preserve its prefix and put collection membership
