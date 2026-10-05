@@ -416,6 +416,11 @@ question is resolved by retaining existing bytes and recording an Excel erratum.
 Release preparation is now authorized. Exact-head firmware-owner evidence,
 protected review/CI and candidate publication gates remain required.
 
+From 2026-10-06 to 2026-10-18, NVT Core work comes first ([board decision 322](../handoff/1.2.x.md)). The
+`1.2.x` targets below pause during that time, except urgent fixes. The next `1.2.x` patch adopts the Core modules
+with zero difference (decision 323). Some targets overlap with the Core modules, for example the launcher, the
+shared visuals and the Message Center. Their scope and order are reviewed when the pause ends.
+
 | Target | Bounded outcome and dependency |
 | --- | --- |
 | `1.1.6` | **Urgent NT51950/NT51951 partial-family AB correction + editable Desay Settings**: auto-detect the approved Desay markers, Desay TP B at `0x4A000`, public NT51950 partial-family **2 IC** TP B at `0x8A000`; update all coupled offsets, processors and allowed writes. Add required FWConfig/TPA-TPB format admission, the non-blocking DP AB size warning (`0x100000` bytes), and minimal effective-format/output disclosure. Settings supports adding/removing/editing supported-format marker values and separate ID/name lookup through one validated file-backed owner, with safe persistence, invalid-edit feedback and apply/reload invalidation. Include impacted Dummy DP, Memory Layout, Report and family regressions, exact write-range audit and required independent Golden evidence. Carry already-committed UI fixes forward without redesign. |
