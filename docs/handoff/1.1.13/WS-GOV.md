@@ -1414,12 +1414,15 @@ Recorded by the commander; the sections above are kept as recorded.
   `scripts-7fc130b9157c` beside the eighth version's `scripts-36754c99fc81`, which stays for rollback. Every file
   matches its checklist hash: the four changed files the A6c table, the ruleset script and three templates the R41
   table of C1a, and the other four the inventory table.
-- Step 2 (commander): in the new folder the isolated runner passed 81/81 (Pester 3.4.0, fake secrets).
-- Step 3 (commander, on the owner's explicit approval in the NFC session, 2026-10-06): the four A6c hashes were
+- Step 2 (commander, as part of the installation the owner asked for through the Commander session; A6c assigns
+  this step to the owner): in the new folder the isolated runner passed 81/81 (Pester 3.4.0, fake secrets).
+- Step 3 (the commander ran it on the owner's explicit approval in the NFC session, 2026-10-06): A6c assigns this
+  step to the owner. As for the eighth version, the owner approved that the commander runs it. The owner answered
+  「切到第九版 (Recommended)」 when asked whether to repoint NFC's helper to the ninth version. The four A6c hashes were
   checked again. The folder name was then replaced in the repository's one Git helper entry and nothing else
   changed: the empty first entry and `useHttpPath` were kept, no switch was added, and the entry was read back. The
   NFH project repoints its own entries; the path was sent to the Commander session for NFH, and NFH confirmed with a
-  test issue (https://github.com/Dennis40816/nvt-freeform-helper/issues/37) that the switch lets it label, comment on and close issues, and that the token gets 403 without it.
+  test issue in the NFH repository that the switch lets it label, comment on and close issues, and that the token gets 403 without it.
 - Step 4 (commander): `git push --dry-run` through the new helper authenticated ("Everything up-to-date"). A
   read-only wrapper call of `repos/<owner>/<repo>/contents/docs/handoff/1.1.14/1.2.x-allocation.md?ref=1.2.x` (raw)
   returned bytes identical to the trunk blob, with the Traditional Chinese intact. `gh alias list` stopped with exit
