@@ -36,28 +36,30 @@ Open: baseline execution, DP edit, compiled write-range comparison and final che
 
 Next: capture baseline compiled operations and execute existing certified AB Golden tests, then apply the declaration-only change.
 
-### 2026-09-29 宣告與範圍盤點
+<a id="2026-09-29-宣告與範圍盤點"></a>
+
+### 2026-09-29 declaration and range inventory
 
 State: local
 
-下表所有區間的 address space 均為 `flash`，採 `[start, endExclusive)`；每一列 alignment 前後皆為 `1`。原有 region 的範圍與 writeConstraint 全部保留。新增 DP image 只將既有 CMI 與相鄰 protected leaves 分組；其 `explicit-range` 延續原 bank 的容器限制，children 仍逐一限制寫入。
+All ranges in the tables below use the `flash` address space and `[start, endExclusive)` notation; alignment remains `1` in every row, before and after. All existing region ranges and writeConstraint values are preserved. The added DP images only group existing CMI fields and adjacent protected leaves; their `explicit-range` retains the original bank container constraint, and each child still constrains writes individually.
 
-三張 Desay map 共用原 `opaque-container-tail`；依 decision 192 改為 `dp-container-tail`，`flash [0x80000,0x100000)` 仍為 `forbidden`。950 merge 1024k 與 951 merge 1024k 則是各 `0x80000` 的 A/B banks，不使用該 tail 宣告。
+The three Desay maps share the original `opaque-container-tail`; decision 192 changes it to `dp-container-tail`, while `flash [0x80000,0x100000)` remains `forbidden`. The 950 merge 1024k and 951 merge 1024k maps instead have A/B banks of `0x80000` each and do not use that tail declaration.
 
 #### `nt51950-ab-desay-single-1024k`
 
-| Region：前 → 後 | flash range | owner/kind：前 → 後 | parentRegionId：前 → 後 | writeConstraint：前 → 後 |
+| Region: before → after | flash range | owner/kind: before → after | parentRegionId: before → after | writeConstraint: before → after |
 | --- | --- | --- | --- | --- |
 | ab-image | `[0x0,0x100000)` | system/image | — | explicit-range |
 | a-bank | `[0x0,0x40000)` | system/image | ab-image | explicit-range |
-| 新增 → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
+| Added → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
 | a-opaque-before-cmi → a-dp-before-cmi | `[0x0,0x5016)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-cmi-dp-version | `[0x5016,0x5019)` | dp/command | a-bank → a-dp-before-tp | explicit-range |
 | a-opaque-after-cmi-before-tp → a-dp-after-cmi-before-tp | `[0x5019,0xA000)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-tp-code | `[0xA000,0x37000)` | tp/code | a-bank | explicit-range |
 | a-opaque-after-tp → a-dp-after-tp | `[0x37000,0x40000)` | unknown/unmapped → dp/image | a-bank | forbidden |
 | b-bank | `[0x40000,0x80000)` | system/image | ab-image | explicit-range |
-| 新增 → b-dp-before-tp | `[0x40000,0x4A000)` | — → dp/image | — → b-bank | — → explicit-range |
+| Added → b-dp-before-tp | `[0x40000,0x4A000)` | — → dp/image | — → b-bank | — → explicit-range |
 | b-opaque-before-cmi → b-dp-before-cmi | `[0x40000,0x45016)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
 | b-cmi-dp-version | `[0x45016,0x45019)` | dp/command | b-bank → b-dp-before-tp | explicit-range |
 | b-opaque-after-cmi-before-tp → b-dp-after-cmi-before-tp | `[0x45019,0x4A000)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
@@ -67,18 +69,18 @@ State: local
 
 #### `nt51950-ab-desay-cascade-1024k`
 
-| Region：前 → 後 | flash range | owner/kind：前 → 後 | parentRegionId：前 → 後 | writeConstraint：前 → 後 |
+| Region: before → after | flash range | owner/kind: before → after | parentRegionId: before → after | writeConstraint: before → after |
 | --- | --- | --- | --- | --- |
 | ab-image | `[0x0,0x100000)` | system/image | — | explicit-range |
 | a-bank | `[0x0,0x40000)` | system/image | ab-image | explicit-range |
-| 新增 → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
+| Added → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
 | a-opaque-before-cmi → a-dp-before-cmi | `[0x0,0x5016)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-cmi-dp-version | `[0x5016,0x5019)` | dp/command | a-bank → a-dp-before-tp | explicit-range |
 | a-opaque-after-cmi-before-tp → a-dp-after-cmi-before-tp | `[0x5019,0xA000)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-tp-code | `[0xA000,0x37000)` | tp/code | a-bank | explicit-range |
 | a-opaque-after-tp → a-dp-after-tp | `[0x37000,0x40000)` | unknown/unmapped → dp/image | a-bank | forbidden |
 | b-bank | `[0x40000,0x80000)` | system/image | ab-image | explicit-range |
-| 新增 → b-dp-before-tp | `[0x40000,0x4A000)` | — → dp/image | — → b-bank | — → explicit-range |
+| Added → b-dp-before-tp | `[0x40000,0x4A000)` | — → dp/image | — → b-bank | — → explicit-range |
 | b-opaque-before-cmi → b-dp-before-cmi | `[0x40000,0x45016)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
 | b-cmi-dp-version | `[0x45016,0x45019)` | dp/command | b-bank → b-dp-before-tp | explicit-range |
 | b-opaque-after-cmi-before-tp → b-dp-after-cmi-before-tp | `[0x45019,0x4A000)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
@@ -88,18 +90,18 @@ State: local
 
 #### `nt51951-ab-desay-1024k`
 
-| Region：前 → 後 | flash range | owner/kind：前 → 後 | parentRegionId：前 → 後 | writeConstraint：前 → 後 |
+| Region: before → after | flash range | owner/kind: before → after | parentRegionId: before → after | writeConstraint: before → after |
 | --- | --- | --- | --- | --- |
 | ab-image | `[0x0,0x100000)` | system/image | — | explicit-range |
 | a-bank | `[0x0,0x40000)` | system/image | ab-image | explicit-range |
-| 新增 → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
+| Added → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
 | a-opaque-before-cmi → a-dp-before-cmi | `[0x0,0x5016)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-cmi-dp-version | `[0x5016,0x5019)` | dp/command | a-bank → a-dp-before-tp | explicit-range |
 | a-opaque-after-cmi-before-tp → a-dp-after-cmi-before-tp | `[0x5019,0xA000)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-tp-code | `[0xA000,0x37000)` | tp/code | a-bank | explicit-range |
 | a-opaque-after-tp → a-dp-after-tp | `[0x37000,0x40000)` | unknown/unmapped → dp/image | a-bank | forbidden |
 | b-bank | `[0x40000,0x80000)` | system/image | ab-image | explicit-range |
-| 新增 → b-dp-before-tp | `[0x40000,0x4A000)` | — → dp/image | — → b-bank | — → explicit-range |
+| Added → b-dp-before-tp | `[0x40000,0x4A000)` | — → dp/image | — → b-bank | — → explicit-range |
 | b-opaque-before-cmi → b-dp-before-cmi | `[0x40000,0x45016)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
 | b-cmi-dp-version | `[0x45016,0x45019)` | dp/command | b-bank → b-dp-before-tp | explicit-range |
 | b-opaque-after-cmi-before-tp → b-dp-after-cmi-before-tp | `[0x45019,0x4A000)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
@@ -109,38 +111,38 @@ State: local
 
 #### `nt51950-ab-merge-512k`
 
-| Region：前 → 後 | flash range | owner/kind：前 → 後 | parentRegionId：前 → 後 | writeConstraint：前 → 後 |
+| Region: before → after | flash range | owner/kind: before → after | parentRegionId: before → after | writeConstraint: before → after |
 | --- | --- | --- | --- | --- |
 | ab-image | `[0x0,0x80000)` | system/image | — | explicit-range |
 | a-bank | `[0x0,0x40000)` | system/image | ab-image | explicit-range |
 | a-opaque-before-tp → a-dp-before-tp | `[0x0,0xA000)` | unknown/unmapped → dp/image | a-bank | forbidden |
 | a-tp-code | `[0xA000,0x37000)` | tp/code | a-bank | explicit-range |
-| 新增 → a-dp-after-tp | `[0x37000,0x40000)` | — → dp/image | — → a-bank | — → explicit-range |
+| Added → a-dp-after-tp | `[0x37000,0x40000)` | — → dp/image | — → a-bank | — → explicit-range |
 | a-opaque-after-tp-before-cmi → a-dp-after-tp-before-cmi | `[0x37000,0x3B016)` | unknown/unmapped → dp/data | a-bank → a-dp-after-tp | forbidden |
 | a-cmi-dp-version | `[0x3B016,0x3B019)` | dp/command | a-bank → a-dp-after-tp | explicit-range |
 | a-opaque-after-cmi → a-dp-after-cmi | `[0x3B019,0x40000)` | unknown/unmapped → dp/data | a-bank → a-dp-after-tp | forbidden |
 | b-bank | `[0x40000,0x80000)` | system/image | ab-image | explicit-range |
 | b-opaque-before-tp → b-dp-before-tp | `[0x40000,0x4A000)` | unknown/unmapped → dp/image | b-bank | forbidden |
 | b-tp-code | `[0x4A000,0x77000)` | tp/code | b-bank | explicit-range |
-| 新增 → b-dp-after-tp | `[0x77000,0x80000)` | — → dp/image | — → b-bank | — → explicit-range |
+| Added → b-dp-after-tp | `[0x77000,0x80000)` | — → dp/image | — → b-bank | — → explicit-range |
 | b-opaque-after-tp-before-cmi → b-dp-after-tp-before-cmi | `[0x77000,0x7B016)` | unknown/unmapped → dp/data | b-bank → b-dp-after-tp | forbidden |
 | b-cmi-dp-version | `[0x7B016,0x7B019)` | dp/command | b-bank → b-dp-after-tp | explicit-range |
 | b-opaque-after-cmi → b-dp-after-cmi | `[0x7B019,0x80000)` | unknown/unmapped → dp/data | b-bank → b-dp-after-tp | forbidden |
 
 #### `nt51950-ab-merge-1024k`
 
-| Region：前 → 後 | flash range | owner/kind：前 → 後 | parentRegionId：前 → 後 | writeConstraint：前 → 後 |
+| Region: before → after | flash range | owner/kind: before → after | parentRegionId: before → after | writeConstraint: before → after |
 | --- | --- | --- | --- | --- |
 | ab-image | `[0x0,0x100000)` | system/image | — | explicit-range |
 | a-bank | `[0x0,0x80000)` | system/image | ab-image | explicit-range |
-| 新增 → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
+| Added → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
 | a-opaque-before-cmi → a-dp-before-cmi | `[0x0,0x5016)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-cmi-dp-version | `[0x5016,0x5019)` | dp/command | a-bank → a-dp-before-tp | explicit-range |
 | a-opaque-after-cmi-before-tp → a-dp-after-cmi-before-tp | `[0x5019,0xA000)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-tp-code | `[0xA000,0x37000)` | tp/code | a-bank | explicit-range |
 | a-opaque-after-tp → a-dp-after-tp | `[0x37000,0x80000)` | unknown/unmapped → dp/image | a-bank | forbidden |
 | b-bank | `[0x80000,0x100000)` | system/image | ab-image | explicit-range |
-| 新增 → b-dp-before-tp | `[0x80000,0x8A000)` | — → dp/image | — → b-bank | — → explicit-range |
+| Added → b-dp-before-tp | `[0x80000,0x8A000)` | — → dp/image | — → b-bank | — → explicit-range |
 | b-opaque-before-cmi → b-dp-before-cmi | `[0x80000,0x85016)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
 | b-cmi-dp-version | `[0x85016,0x85019)` | dp/command | b-bank → b-dp-before-tp | explicit-range |
 | b-opaque-after-cmi-before-tp → b-dp-after-cmi-before-tp | `[0x85019,0x8A000)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
@@ -149,55 +151,57 @@ State: local
 
 #### `nt51951-ab-merge-1024k`
 
-| Region：前 → 後 | flash range | owner/kind：前 → 後 | parentRegionId：前 → 後 | writeConstraint：前 → 後 |
+| Region: before → after | flash range | owner/kind: before → after | parentRegionId: before → after | writeConstraint: before → after |
 | --- | --- | --- | --- | --- |
 | ab-image | `[0x0,0x100000)` | system/image | — | explicit-range |
 | a-bank | `[0x0,0x80000)` | system/image | ab-image | explicit-range |
-| 新增 → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
+| Added → a-dp-before-tp | `[0x0,0xA000)` | — → dp/image | — → a-bank | — → explicit-range |
 | a-opaque-before-cmi → a-dp-before-cmi | `[0x0,0x5016)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-cmi-dp-version | `[0x5016,0x5019)` | dp/command | a-bank → a-dp-before-tp | explicit-range |
 | a-opaque-after-cmi-before-tp → a-dp-after-cmi-before-tp | `[0x5019,0xA000)` | unknown/unmapped → dp/data | a-bank → a-dp-before-tp | forbidden |
 | a-tp-code | `[0xA000,0x37000)` | tp/code | a-bank | explicit-range |
 | a-opaque-after-tp → a-dp-after-tp | `[0x37000,0x80000)` | unknown/unmapped → dp/image | a-bank | forbidden |
 | b-bank | `[0x80000,0x100000)` | system/image | ab-image | explicit-range |
-| 新增 → b-dp-before-tp | `[0x80000,0x8A000)` | — → dp/image | — → b-bank | — → explicit-range |
+| Added → b-dp-before-tp | `[0x80000,0x8A000)` | — → dp/image | — → b-bank | — → explicit-range |
 | b-opaque-before-cmi → b-dp-before-cmi | `[0x80000,0x85016)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
 | b-cmi-dp-version | `[0x85016,0x85019)` | dp/command | b-bank → b-dp-before-tp | explicit-range |
 | b-opaque-after-cmi-before-tp → b-dp-after-cmi-before-tp | `[0x85019,0x8A000)` | unknown/unmapped → dp/data | b-bank → b-dp-before-tp | forbidden |
 | b-tp-code | `[0x8A000,0xB7000)` | tp/code | b-bank | explicit-range |
 | b-opaque-after-tp → b-dp-after-tp | `[0xB7000,0x100000)` | unknown/unmapped → dp/image | b-bank | forbidden |
 
-Evidence: `before-write-audit.json` 與第一輪 `after-write-audit.json` 的 12 組 compiled initializer、ordered operation、source/target range、DeclaredWriteRanges、overlap、fill/patch 及 external processor invocation 逐項相同。不是僅比較 family 中的 TP 常數。
+Evidence: The 12 sets of compiled initializers, ordered operations, source/target ranges, DeclaredWriteRanges, overlap, fill/patch and external processor invocations in `before-write-audit.json` and the first `after-write-audit.json` are identical item by item. This comparison is not limited to the TP constants in the family.
 
-Open: capability definition 的 hash 鏈尚在同步；本次初步 narrow run 失敗為舊 identity pins，不是輸出或範圍差異。最終 Golden、ProfileContract、structure-only 與 fixed-head review 待完成。
+Open: the capability definition hash chain is still being synchronized; failures in this initial narrow run are due to old identity pins, not output or range differences. Final Golden, ProfileContract, structure-only and fixed-head review remain pending.
 
-Next: 完成必要 pin 同步並重跑受影響窄測試。
+Next: finish the necessary pin synchronization and rerun the affected narrow tests.
 
-### 2026-09-29 執行與寫入證據
+<a id="2026-09-29-執行與寫入證據"></a>
 
-State: verified（列明的窄測試與 audit；尚未整合／發布）
+### 2026-09-29 execution and write evidence
 
-Evidence: 新增宣告檢查先在基準失敗 6/6（仍是 unknown/unmapped），修改後通過 6/6。原有 AB GoldenRegression 的 32 項 baseline 測試通過；加上 6 個 write-audit cases，baseline 共 38 pass，另有上述 6 個預期 red。最終 AB/profile/catalog filter 為 169/169 pass、0 skipped。
+State: verified (the listed narrow tests and audit; not yet integrated or published)
+
+Evidence: The added declaration checks first failed 6/6 on the baseline (still unknown/unmapped), then passed 6/6 after the change. The 32 existing AB GoldenRegression baseline tests passed; with 6 write-audit cases added, the baseline had 38 passes, plus the 6 expected red results above. The final AB/profile/catalog filter had 169/169 passes and 0 skipped.
 
 #### Owner-certified Golden
 
-| Canonical case | Bytes | 完整輸出 SHA-256（before = after = expected） | 結果 |
+| Canonical case | Bytes | Complete output SHA-256 (before = after = expected) | Result |
 | --- | --- | --- | --- |
-| `nt51950-ab-boe-d82t80` | 524288 | `d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650` | 完整 bytes 相同；輸入無缺件 |
-| `nt51950-ab-hiway-d82t80` | 524288 | `4a292cd9615c58079b8994af8060af92562eaa92a55bc24bacc5ec5234e23b30` | 完整 bytes 相同；輸入無缺件 |
-| `nt51950-ab-osd-d03t02-20260924` | 1048576 | `71de58a5f9a2ca2cb0d51789794af64586435b09e4ca61d176b6cd41b4990136` | 完整 bytes 相同；輸入無缺件 |
+| `nt51950-ab-boe-d82t80` | 524288 | `d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650` | Complete bytes identical; no missing inputs |
+| `nt51950-ab-hiway-d82t80` | 524288 | `4a292cd9615c58079b8994af8060af92562eaa92a55bc24bacc5ec5234e23b30` | Complete bytes identical; no missing inputs |
+| `nt51950-ab-osd-d03t02-20260924` | 1048576 | `71de58a5f9a2ca2cb0d51789794af64586435b09e4ca61d176b6cd41b4990136` | Complete bytes identical; no missing inputs |
 
-三個 direct cases 分別由既有 `Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync`（BOE、Hiway）及 `Nt51950OsdPublicHostMatchesOwnerCertifiedGoldenAsync`（OSD）執行；兩側都執行實際 packaged Combiner。OSD 的完整 1 MiB 輸出包含超過 512 KiB layout template 的 preserved source envelope，沒有縮短比較範圍。NT51951 的 BOE／Hiway 兩筆為 fact-scoped workflow aliases，並非兩個獨立 direct Goldens；現有 alias-resolution 檢查通過。不變更任何 case manifest、BIN、expected hash、difference contract、owner approval 或 evidence rank。
+The three direct cases are executed by the existing `Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync` (BOE, Hiway) and `Nt51950OsdPublicHostMatchesOwnerCertifiedGoldenAsync` (OSD); both sides execute the actual packaged Combiner. The complete 1 MiB OSD output includes the preserved source envelope beyond the 512 KiB layout template, without narrowing the comparison range. The two NT51951 BOE/Hiway records are fact-scoped workflow aliases, not two independent direct Goldens; the existing alias-resolution checks pass. No case manifest, BIN, expected hash, difference contract, owner approval or evidence rank is changed.
 
 #### Planned write-range audit
 
-同一 `CompiledWritesRemainTpOnlyAfterDpInitialization` 測試，在基準 production source 與修改後 source 各編譯六張 map，逐張執行 normal／dummy DP。比對完整 initializer 及 ordered operation 的 sequence、kind、source/target address spaces/ranges、DeclaredWriteRanges、overlap、fill/patch、external invocation（含 processor allowed read/write ranges 與 staged artifact ranges）的 JSON projection；12/12 完全相同。Profile 的 operation／processor／input 定義另以結構 diff 證明未變；既有 candidate 測試檢查 scalar relocation addend。這不是僅從 family JSON 抄錄 TP 常數。
+The same `CompiledWritesRemainTpOnlyAfterDpInitialization` test compiles all six maps against both the baseline production source and the modified source, exercising normal/dummy DP for each map. It compares the JSON projection of the complete initializer and ordered operations: sequence, kind, source/target address spaces/ranges, DeclaredWriteRanges, overlap, fill/patch and external invocation (including processor allowed read/write ranges and staged artifact ranges); all 12/12 are identical. A separate structural diff proves that the profile operation/processor/input definitions are unchanged; the existing candidate tests check the scalar relocation addend. This is not merely a transcription of TP constants from family JSON.
 
-Normal 保留整張 DP seed 複製到 `output-image` 的初始化；dummy 保留原 blank initializer 並省去該 copy。初始化後，`output-image` 的寫入都位於原 TP 區段。`ab-combiner-work` 是 host staging address space，不能把整個 staged container 誤當成 processor 的允許寫入區。
+Normal mode preserves initialization by copying the entire DP seed into `output-image`; dummy mode preserves the original blank initializer and omits that copy. After initialization, all writes to `output-image` are within the original TP sections. `ab-combiner-work` is a host staging address space; the entire staged container must not be mistaken for the processor's allowed write range.
 
-Before/after audit artifact SHA-256 均為 `dd4dd547444f821b6f657105e52487b5bf582fc7e48a5fe8da634e92cbf384d3`。
+The before/after audit artifacts both have SHA-256 `dd4dd547444f821b6f657105e52487b5bf582fc7e48a5fe8da634e92cbf384d3`.
 
-| Map | A TP：output-image | B TP：output-image | Processor allowed writes：ab-combiner-work（逐一相同） | Normal / dummy operations |
+| Map | A TP: output-image | B TP: output-image | Processor allowed writes: ab-combiner-work (each identical) | Normal / dummy operations |
 | --- | --- | --- | --- | --- |
 | `nt51950-ab-desay-cascade-1024k` | `[0xA000,0x37000)` | `[0x4A000,0x77000)` | `[0x4A100,0x4A104); [0x4A110,0x4A114); [0x4A130,0x4A134)` | 10 / 9 |
 | `nt51950-ab-desay-single-1024k` | `[0xA000,0x37000)` | `[0x4A000,0x77000)` | `[0x4A100,0x4A104); [0x4A110,0x4A114); [0x4A130,0x4A134)` | 10 / 9 |
@@ -206,25 +210,29 @@ Before/after audit artifact SHA-256 均為 `dd4dd547444f821b6f657105e52487b5bf58
 | `nt51951-ab-desay-1024k` | `[0xA000,0x37000)` | `[0x4A000,0x77000)` | `[0x4A100,0x4A104); [0x4A110,0x4A114); [0x4A130,0x4A134)` | 10 / 9 |
 | `nt51951-ab-merge-1024k` | `[0xA000,0x37000)` | `[0x8A000,0xB7000)` | `[0x8A100,0x8A104); [0x8A110,0x8A114); [0x8A130,0x8A134)` | 10 / 9 |
 
-TP source ranges 均為 `tp-a-input [0xA000,0x37000)` 與 `tp-b-work [0xA000,0x37000)`。B relocation 在 `tp-b-work [0xA120,0xA124)`；postbuild 的三次四-byte import 分別寫回 `output-image` 中與上表 processor allowed writes 相同的範圍。Normal DP copy 寫入 `output-image [0,capacity)`；staging copy 寫入 A/B banks 對應的 `ab-combiner-work` 範圍。這些範圍、順序與來源前後都相同。
+All TP source ranges are `tp-a-input [0xA000,0x37000)` and `tp-b-work [0xA000,0x37000)`. B relocation is at `tp-b-work [0xA120,0xA124)`; the three four-byte postbuild imports write back into `output-image` at the same respective ranges as the processor allowed writes in the table above. The normal DP copy writes to `output-image [0,capacity)`; staging copies write to the `ab-combiner-work` ranges corresponding to the A/B banks. These ranges, order and sources are all identical before and after.
 
-#### Hash 與附帶 identity pins
+<a id="hash-與附帶-identity-pins"></a>
 
-- Family `0.7.2` → `0.7.3`；bundle `1.1.13-tp-svn.1` → `1.1.15-dp-regions.1`；五份 composition profile 只更新 family version/hash，profileVersion 與所有 operational declarations 不變。
-- Family SHA-256 `059947a9ef4f536feab0be71769a3a5578e6dfac459ea876e1619d078c95ff8d`；bundle entry-array hash `74c20ce3f1d53ca343995e1b757e0785cb842fe926e0799140d6d8251f137c49` 由既有 `AbBundleSourceHashTests`／`ProfileBundleEntryArrayHasher` 重算，沒有手編 hash algorithm。
-- Catalog identity 的 owner 是 `CanonicalDynamicRouteInventory`，其既有 producer 重算 3 個 AB Merge／4 個 AB CtrlRAM fingerprints；policy 與 canonical manifest 的 `routeEvidence` 只同步這七組 pins，所有其他 JSON fields 完全相同。這是現有 hash chain 的必要機械更新，沒有 support promotion。
-- `scripts/sync_derived.py --write --only reviewed-source-pins` 同步 loader、package、smoke 與 Python fixture pins；再次 check 為 0 files changed。`CanonicalCatalogSnapshotDigest` 的 catalog/dynamic-routes digests 同步；所有 section lengths 與其他 sections 保持不變。
-- 衍生 pin surfaces 擴充 admission：`docs/contracts/canonical-capability-policy-v1.json`、`testdata/golden/canonical/manifest.json`、既有 loader/package/smoke pins 與其相關測試。Disposition 全部為 `reuse`，無新 policy/validator 語意；因現有 path authority 分類，未來 integration 另保留 `release-owner` gate。
+#### Hash and associated identity pins
 
-Open: structure-only verifier、Python pin tests 及獨立 fixed-head review 尚待收尾。任何 Golden bytes／write ranges 差異、需改 planner/executor/validator/schema 語意、reference/owner 範圍矛盾或預算用盡皆立即停止；目前未觸發。
+- Family `0.7.2` → `0.7.3`; bundle `1.1.13-tp-svn.1` → `1.1.15-dp-regions.1`; the five composition profiles update only the family version/hash, leaving profileVersion and all operational declarations unchanged.
+- Family SHA-256 `059947a9ef4f536feab0be71769a3a5578e6dfac459ea876e1619d078c95ff8d`; bundle entry-array hash `74c20ce3f1d53ca343995e1b757e0785cb842fe926e0799140d6d8251f137c49` is recalculated by the existing `AbBundleSourceHashTests`/`ProfileBundleEntryArrayHasher`, without a manually written hash algorithm.
+- The catalog identity owner is `CanonicalDynamicRouteInventory`; its existing producer recalculates 3 AB Merge and 4 AB CtrlRAM fingerprints. The policy and the canonical manifest's `routeEvidence` synchronize only these seven sets of pins; all other JSON fields are identical. This is a necessary mechanical update to the existing hash chain, with no support promotion.
+- `scripts/sync_derived.py --write --only reviewed-source-pins` synchronizes loader, package, smoke and Python fixture pins; a subsequent check reports 0 files changed. The catalog/dynamic-routes digests in `CanonicalCatalogSnapshotDigest` are synchronized; all section lengths and other sections remain unchanged.
+- Derived pin surfaces extend the admission: `docs/contracts/canonical-capability-policy-v1.json`, `testdata/golden/canonical/manifest.json`, the existing loader/package/smoke pins and their related tests. All dispositions are `reuse`, with no new policy/validator semantics; under the existing path authority classification, future integration retains an additional `release-owner` gate.
 
-Next: 完成尚待檢查、凍結 commit，再由 fresh-session read-only reviewer 檢查該 exact head。
+Open: the structure-only verifier, Python pin tests and independent fixed-head review still need to be completed. Any Golden bytes/write ranges difference, need to change planner/executor/validator/schema semantics, reference/owner range contradiction or exhausted budget requires an immediate stop; none has been triggered so far.
 
-### 2026-09-29 R3 P3-4／P3-5 測試 checkpoint
+Next: complete the pending checks, freeze the commit, then have a fresh-session read-only reviewer inspect that exact head.
 
-State: verified（本機測試補強；未整合、未發布）。`Nt51950AbDpRegionTests` 的 write audit 現在以 invariant-culture 十進位字串納入 `ScalarTransform.Addend`，並 pin 六張 map 的 normal／dummy 共 12 筆 UTF-8 JSON SHA-256。以下每格皆為 **before `6429bfb2c` = after `84ad3fdd9`**；依 map 與模式逐鍵比對為 12/12 相同，沒有差異才寫入斷言。base 尚無此測試檔，所以在一次性 detached worktree 暫放相同投影測試，僅將 bundle trust hash 換成 base 已提交的值，未提交該暫存檔。
+<a id="2026-09-29-r3-p3-4p3-5-測試-checkpoint"></a>
 
-| Map | Normal：before = after SHA-256 | Dummy：before = after SHA-256 |
+### 2026-09-29 R3 P3-4/P3-5 test checkpoint
+
+State: verified (local test strengthening; not integrated or published). The write audit in `Nt51950AbDpRegionTests` now includes `ScalarTransform.Addend` as an invariant-culture decimal string and pins 12 UTF-8 JSON SHA-256 values for normal/dummy modes across six maps. Every cell below is **before `6429bfb2c` = after `84ad3fdd9`**; comparison by map and mode key found 12/12 identical, and assertions were added only after confirming no differences. The base did not yet have this test file, so the same projection test was temporarily placed in a one-off detached worktree, changing only the bundle trust hash to the value committed in the base; that temporary file was not committed.
+
+| Map | Normal: before = after SHA-256 | Dummy: before = after SHA-256 |
 | --- | --- | --- |
 | `nt51950-ab-desay-single-1024k` | `d144b4266f2f9ef71c37f6b7d0062cbfa06a4659264e3cbf546d06450683915d` | `ebf76760ba08a89df319353e299778275a3de1c721349d3f1b32d0c561870bcd` |
 | `nt51950-ab-desay-cascade-1024k` | `fc0a3197028ba1f97968e28989997fd2e24d4fd8b42372344cd5024c5a10e60c` | `4239e04831afeb17f3690665baade0e98e74103295b736193bbf01a6596ec9ab` |
@@ -233,58 +241,60 @@ State: verified（本機測試補強；未整合、未發布）。`Nt51950AbDpRe
 | `nt51950-ab-merge-1024k` | `0ea9b1bf4de754b9b8a8ad25eb462681e5347ba0a9ce9828142f0319bb5ab020` | `38977c70a3804b1f5536537957ee4984310080893975bad42f8dd9fc847ad087` |
 | `nt51951-ab-merge-1024k` | `abe450e52fb6f2f49822f227ff084c68c39d679e383f38450d9c01d81cd762a5` | `12b5fb9250b2dd2b9ca382d562e8c0d95c12e26e9fdb571837732d5b8d249c58` |
 
-P3-4 在三張 Desay map 的 region 層鎖定 `dp-container-tail` 的 `Owner=Dp`、`Kind=Image`。現有測試直接編譯 profile candidate，而 `MemoryLayoutProjector.Project` 需要另外建立帶 exact capability 的已接受 authoring session；因此採審查任務允許的 region 層斷言。Projector 的 `ClassifyContent` 依 `Owner=Dp` 將其投影為 `ContentRole=Dp`；dummy mode 的初始 disposition 隨之由 `Resolved` 成為 `Blank`，UI 顯示動作與標籤相同。
+P3-4 locks `Owner=Dp` and `Kind=Image` for `dp-container-tail` at the region level in the three Desay maps. The existing tests compile profile candidates directly, whereas `MemoryLayoutProjector.Project` requires a separately created accepted authoring session with the exact capability; the region-level assertions allowed by the review task are therefore used. The projector's `ClassifyContent` projects it as `ContentRole=Dp` based on `Owner=Dp`; the initial disposition in dummy mode consequently changes from `Resolved` to `Blank`, while UI display actions and labels remain the same.
 
-命令：兩側均先載入 user-level `NFC_TEST_AREA_ROOT`，確認既有 `temp`，設定 `TEMP`、`TMP`、`TMPDIR` 指向該處及 `DOTNET_CLI_UI_LANGUAGE=en`。base 執行 `dotnet test tests/NvtFwCombiner.Bootstrap.Tests --filter FullyQualifiedName~Nt51950AbDpRegionTests.CompiledWritesRemainTpOnlyAfterDpInitialization --logger 'console;verbosity=detailed'`（6/6 pass）；after 產生 SHA 時執行 `dotnet test tests/NvtFwCombiner.Bootstrap.Tests --no-restore --filter FullyQualifiedName~Nt51950AbDpRegionTests --logger 'console;verbosity=detailed'`（13/13 pass）。加入 pin 後執行 `dotnet test tests/NvtFwCombiner.Bootstrap.Tests --no-restore --filter FullyQualifiedName~Nt51950AbDpRegionTests`：13/13 pass，0 failed/skipped。
+Commands: both sides first load user-level `NFC_TEST_AREA_ROOT`, confirm the existing `temp`, set `TEMP`, `TMP`, `TMPDIR` to that location and set `DOTNET_CLI_UI_LANGUAGE=en`. The base runs `dotnet test tests/NvtFwCombiner.Bootstrap.Tests --filter FullyQualifiedName~Nt51950AbDpRegionTests.CompiledWritesRemainTpOnlyAfterDpInitialization --logger 'console;verbosity=detailed'` (6/6 pass); the after source runs `dotnet test tests/NvtFwCombiner.Bootstrap.Tests --no-restore --filter FullyQualifiedName~Nt51950AbDpRegionTests --logger 'console;verbosity=detailed'` when producing the SHA values (13/13 pass). After adding the pins, `dotnet test tests/NvtFwCombiner.Bootstrap.Tests --no-restore --filter FullyQualifiedName~Nt51950AbDpRegionTests` runs: 13/13 pass, 0 failed/skipped.
 
-### 2026-09-29 本機凍結 checkpoint
+<a id="2026-09-29-本機凍結-checkpoint"></a>
 
-State: verified（本機 patch；本 checkpoint 隨同 commit，未整合、未發布）
+### 2026-09-29 local freeze checkpoint
+
+State: verified (local patch; this checkpoint is included in the commit, not integrated or published)
 
 Evidence:
 
-| 檢查 | 實際結果 |
+| Check | Actual result |
 | --- | --- |
-| `dotnet test tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj` | 484 passed，0 failed/skipped |
-| Bootstrap 窄測試（下列 exact filter） | 169 passed，0 failed/skipped |
-| `dotnet test tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj` | 15 passed，0 failed/skipped；AB direct Golden 在 Bootstrap 另有實際執行證據 |
-| `dotnet test tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj --no-build --filter FullyQualifiedName~AbBundleSourceHashTests` | 2 passed；現有 hash owner 讀取修改後 source bytes |
+| `dotnet test tests/NvtFwCombiner.ProfileContract.Tests/NvtFwCombiner.ProfileContract.Tests.csproj` | 484 passed, 0 failed/skipped |
+| Bootstrap narrow tests (exact filter below) | 169 passed, 0 failed/skipped |
+| `dotnet test tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj` | 15 passed, 0 failed/skipped; separate evidence of actual AB direct Golden execution is in Bootstrap |
+| `dotnet test tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj --no-build --filter FullyQualifiedName~AbBundleSourceHashTests` | 2 passed; the existing hash owner reads the modified source bytes |
 | `dotnet test tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj --filter FullyQualifiedName~BuiltInV2BundlePinsHaveOneOwner` | 1 passed |
-| `python -m pytest tests/scripts/test_release_package_policy.py tests/scripts/test_release_smoke_policy.py tests/scripts/test_sync_derived.py -q` | 第一輪 161 passed／2 failed；2 個 RID lockfile 環境失敗於下述重查通過 |
-| `python -m pytest tests/scripts/test_release_package_policy.py -q -k 'distribution_launcher_committed_rid_locks_preserve_package_identities or distribution_launcher_rid_restore_keeps_invocation_locks_immutable'` | 2 passed，87 deselected；合計 163 個 distinct cases 已通過，非第二次全檔重跑 |
-| `python scripts/verify.py --structure-only` | PASS；structure lane 與 Polytail fast checks 通過 |
-| `python scripts/sync_derived.py` | PASS；0 files changed |
+| `python -m pytest tests/scripts/test_release_package_policy.py tests/scripts/test_release_smoke_policy.py tests/scripts/test_sync_derived.py -q` | First run: 161 passed/2 failed; the 2 RID lockfile environment failures passed the recheck below |
+| `python -m pytest tests/scripts/test_release_package_policy.py -q -k 'distribution_launcher_committed_rid_locks_preserve_package_identities or distribution_launcher_rid_restore_keeps_invocation_locks_immutable'` | 2 passed, 87 deselected; a total of 163 distinct cases passed, not a second full-file rerun |
+| `python scripts/verify.py --structure-only` | PASS; structure lane and Polytail fast checks passed |
+| `python scripts/sync_derived.py` | PASS; 0 files changed |
 | `git diff --check` | PASS |
-| JSON semantic diff／隱私與所有權檢查 | 五份 profile 除 family version/hash 外完全相同；policy/Golden inventory 除七組 fingerprints 外完全相同；無 BIN、schema、planner、executor、validator 語意或 commander board 修改 |
+| JSON semantic diff/privacy and ownership checks | The five profiles are identical except for family version/hash; policy/Golden inventory are identical except for seven sets of fingerprints; no changes to BINs, schema, planner, executor, validator semantics or the commander board |
 
-所有 tests/verifier shell 都先讀取 user-level `NFC_TEST_AREA_ROOT`，驗證既有 `temp`，並明確設定 `TEMP`、`TMP`、`TMPDIR`。沒有執行 `--all`。
+Every tests/verifier shell first reads user-level `NFC_TEST_AREA_ROOT`, verifies the existing `temp`, and explicitly sets `TEMP`, `TMP`, `TMPDIR`. `--all` was not run.
 
-Bootstrap command 的 exact filter：
+Exact filter for the Bootstrap command:
 
 ```text
 dotnet test tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj --no-restore --filter 'FullyQualifiedName~Nt51950AbDpRegionTests|FullyQualifiedName~AbMergeGoldenRegressionTests|FullyQualifiedName~Nt51950AbMergeCandidateProfileTests|FullyQualifiedName~Nt51951AbMergeCandidateProfileTests|FullyQualifiedName~AbMergeFormatVariantProfileTests|FullyQualifiedName~AbMergeAuthoringDefinitionTests|FullyQualifiedName~AbDummyDpCompilationTests|FullyQualifiedName~CanonicalSourceProjectionBuiltInBundleTests|FullyQualifiedName~CanonicalCatalogSnapshotDigestTests|FullyQualifiedName~CanonicalCapabilityCatalogMigrationTests'
 ```
 
-各 .NET command 另使用 TRX logger 與固定 test-area evidence directory；實際紀錄以以下 SHA-256 封存。Baseline 與 final production source 分別是指定 base 與本 checkpoint 所在 commit；baseline 新增 characterization tests 沒有改 production source。
+Each .NET command also uses a TRX logger and a fixed test-area evidence directory; the actual records are archived with the SHA-256 values below. The baseline and final production sources are the specified base and the commit containing this checkpoint, respectively; adding characterization tests to the baseline did not change production source.
 
-環境失敗分類：本機無 RID 的 restore 暫時移除了 14 份 lockfile 的 `net10.0/win-x64` entries；第一個 Python check 因此缺少該 key，第二個 check 的測試期間又觀察到 writer 將 lockfiles 恢復。確認非 RID dependency graph 不變後，只恢復本 runtime 產生的 lockfile edits；環境固定後，兩個原失敗 cases 單獨通過。沒有改 lockfiles、放寬 assertion、略過失敗或重跑完整 suite。
+Environment failure classification: a local restore without a RID temporarily removed the `net10.0/win-x64` entries from 14 lockfiles; the first Python check therefore lacked that key, and the second check observed the writer restoring the lockfiles during its test. After confirming that the non-RID dependency graph was unchanged, only lockfile edits generated by this runtime were restored; once the environment was fixed, the two previously failing cases passed individually. No lockfiles were changed, assertions relaxed, failures skipped or complete suite rerun.
 
-Scoped Polytail / requirement trace：decision 192 → family graph／existing compiler → 六張 DP coverage、CMI parent 與 12 組 compiled write audits；同一批 expected bytes → 三個直接 Golden baseline/final executions；hash closure → 既有 hasher、dynamic inventory、derived sync 與 pin tests。無新增 runtime semantic path、fallback、support declaration 或額外 infrastructure。主要 writer 的 local review 為 `PASS-WITH-HUMAN-GATE`；此紀錄不取代 commit 後的 fresh-session independent review。
+Scoped Polytail / requirement trace: decision 192 → family graph/existing compiler → DP coverage and CMI parents across six maps, and 12 sets of compiled write audits; the same expected bytes → three direct Golden baseline/final executions; hash closure → existing hasher, dynamic inventory, derived sync and pin tests. No new runtime semantic path, fallback, support declaration or additional infrastructure. The primary writer's local review is `PASS-WITH-HUMAN-GATE`; this record does not replace the fresh-session independent review after the commit.
 
 Open:
 
-- 本機 firmware 實作與指定驗證無剩餘失敗；未觸發任一停止條件，3 小時預算未用盡。
-- 沒有 NT51951 standalone direct AB Golden；兩筆 workflow aliases 維持原證據範圍。這不是本次缺少輸入，也不宣告新的 certified case。
-- 本機 commit 後的 independent fixed-head review 記錄於 owner 指定的詳細報告，綁定 exact commit SHA；在其完成前不宣稱 R3 review closure。
-- 未來任何 integration／push 仍需 exact-head review 與 owner last-push approval，依目前 path policy 命名 `firmware-owner`、`release-owner`。本任務沒有 push／PR／GitHub write 權限，也不宣稱 integration-ready 或 release-ready。
+- The local firmware implementation and specified verification have no remaining failures; no stop condition was triggered, and the 3-hour budget was not exhausted.
+- There is no NT51951 standalone direct AB Golden; the two workflow aliases retain their original evidence scope. This is not a missing-input issue for this task and does not declare a new certified case.
+- The independent fixed-head review after the local commit is recorded in the detailed report specified by the owner, bound to the exact commit SHA; R3 review closure is not claimed before it is completed.
+- Any future integration/push still requires exact-head review and owner last-push approval naming `firmware-owner` and `release-owner` under the current path policy. This task has no push/PR/GitHub write authority and does not claim integration-ready or release-ready status.
 
-Golden 覆蓋範圍（2026-09-29 審查 P2 補正）：
-- 三個 owner 認證的 direct Golden（BOE、Hiway、OSD）全部走 `nt51950-ab-merge-512k`。
-- 其餘五張 map 沒有 direct Golden：Desay single、Desay cascade 與 951 Desay 1024k、950 merge 1024k、951 merge 1024k。
-- 這五張 map 的證據是：12/12 compiled-plan 前後相同（6 maps × normal／dummy）、Python reference 與 dummy 測試。
-- 可見變化：三張 Desay map 的 container tail 在 AB merge 的 Memory Layout 由 Unmapped（Neutral）改為 DP；dummy 模式的 disposition 由 Resolved 改為 Blank，畫面呈現相同。
+Golden coverage (2026-09-29 review P2 correction):
+- All three owner-certified direct Goldens (BOE, Hiway, OSD) use `nt51950-ab-merge-512k`.
+- The other five maps have no direct Golden: Desay single, Desay cascade and 951 Desay 1024k, 950 merge 1024k, and 951 merge 1024k.
+- Evidence for these five maps consists of: 12/12 identical compiled plans before and after (6 maps × normal/dummy), Python reference and dummy tests.
+- Visible change: the container tail in the three Desay maps changes from Unmapped (Neutral) to DP in AB merge Memory Layout; the disposition in dummy mode changes from Resolved to Blank, with the same screen presentation.
 
-Next: 完成本機 commit，交由 fresh-session read-only reviewer 檢查該 exact head，將 review 與 commit SHA 寫入指定詳細報告後交回 commander；不繼續其他 backlog。
+Next: complete the local commit, have a fresh-session read-only reviewer inspect that exact head, record the review and commit SHA in the specified detailed report, then hand back to the commander; do not continue with other backlog work.
 
 #### Evidence artifact identities
 
