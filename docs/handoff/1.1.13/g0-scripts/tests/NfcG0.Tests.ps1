@@ -138,6 +138,7 @@ Describe 'NFC G0 pure functions' {
         $m.default_permissions.contents | Should Be 'write'
         $m.default_permissions.actions | Should Be 'read'
         $m.default_permissions.Contains('workflows') | Should Be $false
+        $m.default_permissions.Contains('issues') | Should Be $false
     }
 
     It 'validates state and parses only a valid callback' {
@@ -1028,7 +1029,7 @@ Describe 'NFC G0 token permission set' {
         }
     }
 
-    It 'requests the A1 manifest set without workflows by default' {
+    It 'requests the A1 manifest set without workflows or issues by default' {
         $default = New-NfcTokenPermissionSet
         (($default.Keys | Sort-Object) -join ',') | Should BeExactly 'actions,checks,contents,metadata,pull_requests,statuses'
         $manifest = New-NfcManifest -Owner 'example-owner' -Repo 'example-repo' -AppName 'nfc-agent-example' -Port 49152
@@ -1038,6 +1039,9 @@ Describe 'NFC G0 token permission set' {
         }
         $default.ContainsKey('workflows') | Should Be $false
         (New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$false).ContainsKey('workflows') | Should Be $false
+        $default.ContainsKey('issues') | Should Be $false
+        $manifest.default_permissions.Contains('issues') | Should Be $false
+        (New-NfcTokenPermissionSet -IncludeIssuesWrite:$false).ContainsKey('issues') | Should Be $false
     }
 
     It 'adds only workflows write when explicitly asked and never carries it into a later default' {
@@ -1045,10 +1049,33 @@ Describe 'NFC G0 token permission set' {
         $default = New-NfcTokenPermissionSet
         $with.Count | Should Be ($default.Count + 1)
         ($with['workflows'] -ceq 'write') | Should Be $true
+        $with.ContainsKey('issues') | Should Be $false
         foreach ($key in $default.Keys) { ($with[$key] -ceq $default[$key]) | Should Be $true }
         $with['contents'] = 'admin'
         (New-NfcTokenPermissionSet).ContainsKey('workflows') | Should Be $false
         ((New-NfcTokenPermissionSet)['contents'] -ceq 'write') | Should Be $true
+    }
+
+    It 'adds only issues write when explicitly asked and never carries it into a later default' {
+        $with = New-NfcTokenPermissionSet -IncludeIssuesWrite
+        $default = New-NfcTokenPermissionSet
+        (($with.Keys | Sort-Object) -join ',') | Should BeExactly 'actions,checks,contents,issues,metadata,pull_requests,statuses'
+        $with.Count | Should Be ($default.Count + 1)
+        ($with['issues'] -ceq 'write') | Should Be $true
+        foreach ($key in $default.Keys) { ($with[$key] -ceq $default[$key]) | Should Be $true }
+        $with['contents'] = 'admin'
+        (New-NfcTokenPermissionSet).ContainsKey('issues') | Should Be $false
+        ((New-NfcTokenPermissionSet)['contents'] -ceq 'write') | Should Be $true
+    }
+
+    It 'adds only workflows and issues write when both switches are explicitly given' {
+        $with = New-NfcTokenPermissionSet -IncludeWorkflowsWrite -IncludeIssuesWrite
+        $default = New-NfcTokenPermissionSet
+        (($with.Keys | Sort-Object) -join ',') | Should BeExactly 'actions,checks,contents,issues,metadata,pull_requests,statuses,workflows'
+        $with.Count | Should Be ($default.Count + 2)
+        ($with['workflows'] -ceq 'write') | Should Be $true
+        ($with['issues'] -ceq 'write') | Should Be $true
+        foreach ($key in $default.Keys) { ($with[$key] -ceq $default[$key]) | Should Be $true }
     }
 
     It 'builds every token request from the one permission function' {
@@ -1066,7 +1093,7 @@ Describe 'NFC G0 token permission set' {
         $calls = @($get.FindAll({ param($node) $node -is [Management.Automation.Language.CommandAst] -and
             $node.GetCommandName() -eq 'New-NfcTokenPermissionSet' }, $true))
         $calls.Count | Should Be 1
-        $calls[0].Extent.Text | Should BeExactly 'New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$IncludeWorkflowsWrite'
+        $calls[0].Extent.Text | Should BeExactly 'New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$IncludeWorkflowsWrite -IncludeIssuesWrite:$IncludeIssuesWrite'
     }
 
     It 'sends a fake request limited to one repository with exactly the chosen permissions' {
@@ -1074,9 +1101,9 @@ Describe 'NFC G0 token permission set' {
             $global:NfcTokenRequests.Add(@{ Uri = "$Uri"; Method = "$Method"; Body = $Body; Redirect = $MaximumRedirection })
             return $global:NfcFakeReply
         }
-        foreach ($include in @($false, $true)) {
+        foreach ($include in @(@($false, $false), @($true, $false), @($false, $true), @($true, $true))) {
             $global:NfcTokenRequests = [Collections.Generic.List[object]]::new()
-            $permissions = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$include
+            $permissions = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:($include[0]) -IncludeIssuesWrite:($include[1])
             $global:NfcFakeReply = New-NfcFakeTokenReply -Permissions $permissions
             $token = Request-NfcInstallationToken -Owner owner -Repo repo -InstallationId 7 -Jwt 'FAKE.JWT.VALUE' -Permissions $permissions
             $token | Should BeExactly 'FAKE_INSTALLATION_TOKEN'
@@ -1089,7 +1116,8 @@ Describe 'NFC G0 token permission set' {
             (($body.Keys | Sort-Object) -join ',') | Should BeExactly 'permissions,repositories'
             (@($body.repositories) -join ',') | Should BeExactly 'repo'
             $expected = 'actions=read,checks=read,contents=write,metadata=read,pull_requests=write,statuses=read'
-            if ($include) { $expected += ',workflows=write' }
+            if ($include[1]) { $expected = $expected.Replace('metadata=read', 'issues=write,metadata=read') }
+            if ($include[0]) { $expected += ',workflows=write' }
             ((@($body.permissions.Keys | Sort-Object) | ForEach-Object { "$_=$($body.permissions[$_])" }) -join ',') | Should BeExactly $expected
         }
     }
@@ -1133,6 +1161,24 @@ Describe 'NFC G0 token permission set' {
         }
     }
 
+    It 'rejects missing, read-only or unrequested issues permissions in fake replies' {
+        $default = New-NfcTokenPermissionSet
+        $with = New-NfcTokenPermissionSet -IncludeIssuesWrite
+        $issuesRead = New-NfcTokenPermissionSet -IncludeIssuesWrite
+        $issuesRead['issues'] = 'read'
+        $cases = @(
+            @{ Requested = $with; Granted = $default; Message = 'Installation token lacks the requested issues permission.' },
+            @{ Requested = $with; Granted = $issuesRead; Message = 'Installation token permissions differ from the requested set.' },
+            @{ Requested = $default; Granted = $with; Message = 'Installation token permissions differ from the requested set.' }
+        )
+        Mock Invoke-RestMethod { return $global:NfcFakeReply }
+        foreach ($case in $cases) {
+            $global:NfcFakeReply = New-NfcFakeTokenReply -Permissions $case.Granted
+            (Get-NfcThrownMessage { Request-NfcInstallationToken -Owner owner -Repo repo -InstallationId 7 -Jwt 'FAKE.JWT.VALUE' -Permissions $case.Requested }) |
+                Should BeExactly $case.Message
+        }
+    }
+
     It 'checks the configured owner and repository to the end before reading the key file' {
         $source = Get-Content -LiteralPath "$PSScriptRoot/../nfc-app-token-helper.ps1" -Raw
         $tokens = $null; $errors = $null
@@ -1151,12 +1197,12 @@ Describe 'NFC G0 token permission set' {
 
     It 'accepts a fake reply that omits a requested base permission, as the reviewed version did' {
         # Established handling: the reply may be narrower than the request, never wider or at another level;
-        # only a requested workflows permission must be present. A missing base permission makes the call
+        # requested workflows and issues permissions must be present. A missing base permission makes the call
         # that needs it fail at GitHub, and the owner compares the App's permissions with A1.
         Mock Invoke-RestMethod { return $global:NfcFakeReply }
-        foreach ($include in @($false, $true)) {
-            $requested = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$include
-            $narrower = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$include
+        foreach ($include in @(@($false, $false), @($true, $false), @($false, $true), @($true, $true))) {
+            $requested = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:($include[0]) -IncludeIssuesWrite:($include[1])
+            $narrower = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:($include[0]) -IncludeIssuesWrite:($include[1])
             $narrower.Remove('actions')
             $global:NfcFakeReply = New-NfcFakeTokenReply -Permissions $narrower
             (Request-NfcInstallationToken -Owner owner -Repo repo -InstallationId 7 -Jwt 'FAKE.JWT.VALUE' -Permissions $requested) | Should BeExactly 'FAKE_INSTALLATION_TOKEN'
@@ -1172,8 +1218,9 @@ function Invoke-NfcFakeTokenSource {
     $definition = $ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-NfcInstallationToken' }, $true)[0]
     $replacement = @'
 function Get-NfcInstallationToken {
-    param([string]$Owner, [string]$Repo, [string]$ClientId, [long]$InstallationId, [string]$DpapiPath, [switch]$IncludeWorkflowsWrite)
-    $set = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$IncludeWorkflowsWrite
+    param([string]$Owner, [string]$Repo, [string]$ClientId, [long]$InstallationId, [string]$DpapiPath,
+          [switch]$IncludeWorkflowsWrite, [switch]$IncludeIssuesWrite)
+    $set = New-NfcTokenPermissionSet -IncludeWorkflowsWrite:$IncludeWorkflowsWrite -IncludeIssuesWrite:$IncludeIssuesWrite
     [IO.File]::WriteAllText($env:NFC_TEST_MARKER, ((@($set.Keys | Sort-Object) | ForEach-Object { "$_=$($set[$_])" }) -join ','))
     return 'FAKE_TOKEN_67890'
 }
@@ -1192,7 +1239,7 @@ function Get-NfcInstallationToken {
     return $result
 }
 
-Describe 'NFC G0 helper workflows switch with a fake token source' {
+Describe 'NFC G0 helper workflows and issues switches with a fake token source' {
     It 'passes the explicit switch to the token request in token and Git modes, and only then' {
         $default = 'actions=read,checks=read,contents=write,metadata=read,pull_requests=write,statuses=read'
         $common = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '1',
@@ -1219,23 +1266,46 @@ Describe 'NFC G0 helper workflows switch with a fake token source' {
         $result.Marker | Should BeExactly "$default,workflows=write"
     }
 
-    It 'keeps the exact-repository Git scope and store and erase no-ops with the switch' {
-        $common = @('-Mode', 'git', '-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '1',
-            '-DpapiPath', (Join-Path $TestDrive 'nonexistent.dpapi'), '-IncludeWorkflowsWrite')
-        $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments ($common + @('get')) -StandardInput "protocol=https`nhost=github.com`npath=owner/repo`n`n"
-        $result.Output | Should BeExactly "username=x-access-token`npassword=FAKE_TOKEN_67890`n`n"
-        foreach ($request in @("protocol=https`nhost=github.com`npath=other/repo.git`n`n",
-            "protocol=https`nhost=github.com`n`n", "protocol=https`nhost=evil.example`npath=owner/repo.git`n`n")) {
-            $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments ($common + @('get')) -StandardInput $request
+    It 'passes the issues switch independently and with workflows in token and Git modes' {
+        $common = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '1',
+            '-DpapiPath', (Join-Path $TestDrive 'nonexistent.dpapi'))
+        $inScope = "capability[]=authtype`nprotocol=https`nhost=github.com`npath=owner/repo.git`n`n"
+        $issues = 'actions=read,checks=read,contents=write,issues=write,metadata=read,pull_requests=write,statuses=read'
+        $cases = @(
+            @{ Switches = @('-IncludeIssuesWrite'); Expected = $issues },
+            @{ Switches = @('-IncludeWorkflowsWrite', '-IncludeIssuesWrite'); Expected = "$issues,workflows=write" }
+        )
+        foreach ($case in $cases) {
+            $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments (@('-Mode', 'token') + $common + $case.Switches)
             $result.ExitCode | Should Be 0
-            $result.Output | Should BeExactly ''
-            ($null -eq $result.Marker) | Should Be $true
+            $result.Output | Should BeExactly 'FAKE_TOKEN_67890'
+            $result.Marker | Should BeExactly $case.Expected
+            $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments (@('-Mode', 'git') + $common + $case.Switches + @('get')) -StandardInput $inScope
+            $result.ExitCode | Should Be 0
+            $result.Output | Should BeExactly "username=x-access-token`npassword=FAKE_TOKEN_67890`n`n"
+            $result.Marker | Should BeExactly $case.Expected
         }
-        foreach ($action in @('store', 'erase')) {
-            $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments ($common + @($action)) -StandardInput "protocol=https`nhost=github.com`npath=owner/repo.git`n`n"
-            $result.ExitCode | Should Be 0
-            $result.Output | Should BeExactly ''
-            ($null -eq $result.Marker) | Should Be $true
+    }
+
+    It 'keeps the exact-repository Git scope and store and erase no-ops with each switch or both' {
+        $common = @('-Mode', 'git', '-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '1',
+            '-DpapiPath', (Join-Path $TestDrive 'nonexistent.dpapi'))
+        foreach ($switches in @(@('-IncludeWorkflowsWrite'), @('-IncludeIssuesWrite'), @('-IncludeWorkflowsWrite', '-IncludeIssuesWrite'))) {
+            $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments ($common + $switches + @('get')) -StandardInput "protocol=https`nhost=github.com`npath=owner/repo`n`n"
+            $result.Output | Should BeExactly "username=x-access-token`npassword=FAKE_TOKEN_67890`n`n"
+            foreach ($request in @("protocol=https`nhost=github.com`npath=other/repo.git`n`n",
+                "protocol=https`nhost=github.com`n`n", "protocol=https`nhost=evil.example`npath=owner/repo.git`n`n")) {
+                $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments ($common + $switches + @('get')) -StandardInput $request
+                $result.ExitCode | Should Be 0
+                $result.Output | Should BeExactly ''
+                ($null -eq $result.Marker) | Should Be $true
+            }
+            foreach ($action in @('store', 'erase')) {
+                $result = Invoke-NfcFakeTokenSource -WorkDir $TestDrive -Arguments ($common + $switches + @($action)) -StandardInput "protocol=https`nhost=github.com`npath=owner/repo.git`n`n"
+                $result.ExitCode | Should Be 0
+                $result.Output | Should BeExactly ''
+                ($null -eq $result.Marker) | Should Be $true
+            }
         }
     }
 }
@@ -1270,6 +1340,7 @@ Describe 'NFC G0 gh wrapper argument handling' {
                 $parsed.InstallationId | Should BeExactly '7'
                 $parsed.DpapiPath | Should BeExactly 'C:\fake\app-key.dpapi'
                 $parsed.IncludeWorkflowsWrite | Should Be $false
+                $parsed.IncludeIssuesWrite | Should Be $false
                 (Test-NfcThrows { Assert-NfcGhRepository -GhArguments $parsed.GhArguments -Owner owner -Repo repo -EnvironmentRepo $null }) | Should Be $false
             }
         }
@@ -1328,6 +1399,29 @@ Describe 'NFC G0 gh wrapper argument handling' {
         $parsed.IncludeWorkflowsWrite | Should Be $false
         $message = Get-NfcThrownMessage { Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('-IncludeWorkflowsWrite', '-IncludeWorkflowsWrite', 'pr')) -ScriptPath $script:NfcWrapperPath }
         $message | Should Match 'more than once'
+    }
+
+    It 'sets the issues switch only when given among the wrapper options' {
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('-IncludeIssuesWrite', '--', 'pr', 'list')) -ScriptPath $script:NfcWrapperPath
+        $parsed.IncludeIssuesWrite | Should Be $true
+        $parsed.IncludeWorkflowsWrite | Should Be $false
+        ($parsed.GhArguments -join ' ') | Should BeExactly 'pr list'
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('-includeissueswrite', 'pr', 'list')) -ScriptPath $script:NfcWrapperPath
+        $parsed.IncludeIssuesWrite | Should Be $true
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('pr', 'list', '-IncludeIssuesWrite')) -ScriptPath $script:NfcWrapperPath
+        $parsed.IncludeIssuesWrite | Should Be $false
+        ($parsed.GhArguments -join ' ') | Should BeExactly 'pr list -IncludeIssuesWrite'
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('--', '-IncludeIssuesWrite', 'pr')) -ScriptPath $script:NfcWrapperPath
+        $parsed.IncludeIssuesWrite | Should Be $false
+        ($parsed.GhArguments -join ' ') | Should BeExactly '-IncludeIssuesWrite pr'
+        foreach ($duplicate in @('-IncludeIssuesWrite', '-includeissueswrite')) {
+            (Get-NfcThrownMessage { Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('-IncludeIssuesWrite', $duplicate, 'pr')) -ScriptPath $script:NfcWrapperPath }) |
+                Should BeExactly 'Wrapper option -IncludeIssuesWrite is given more than once.'
+        }
+        $parsed = Split-NfcGhCommandLine -CommandLine ($script:NfcWrapperPrefix + @('-IncludeIssuesWrite', '-IncludeWorkflowsWrite', 'pr', 'list')) -ScriptPath $script:NfcWrapperPath
+        $parsed.IncludeIssuesWrite | Should Be $true
+        $parsed.IncludeWorkflowsWrite | Should Be $true
+        ($parsed.GhArguments -join ' ') | Should BeExactly 'pr list'
     }
 
     It 'refuses malformed wrapper options and other launch forms with clear messages' {
@@ -1470,6 +1564,30 @@ Describe 'NFC G0 gh wrapper process with a fake helper and a fake gh' {
         $result.ExitCode | Should Be 0
         (ConvertTo-NfcArgumentJson $result.GhArguments) | Should BeExactly (ConvertTo-NfcArgumentJson $gh)
         $result.HelperArguments | Should BeExactly ((@('-Mode', 'token') + $options) -join "`n")
+    }
+
+    It 'asks for issues only among wrapper options and passes workflows before issues when both are requested' {
+        New-NfcFakeWrapperDirectory -WorkDir $TestDrive
+        $options = @('-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'unused')
+        $gh = @('issue', 'view', '1', '--repo', 'owner/repo')
+        $cases = @(
+            @{ Switches = @('-IncludeIssuesWrite'); Helper = @('-IncludeIssuesWrite') },
+            @{ Switches = @('-IncludeWorkflowsWrite', '-IncludeIssuesWrite'); Helper = @('-IncludeWorkflowsWrite', '-IncludeIssuesWrite') },
+            @{ Switches = @('-IncludeIssuesWrite', '-IncludeWorkflowsWrite'); Helper = @('-IncludeWorkflowsWrite', '-IncludeIssuesWrite') }
+        )
+        foreach ($case in $cases) {
+            $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Arguments ($options + $case.Switches + @('--') + $gh)
+            if ($result.ExitCode -ne 0) { throw "Fake wrapper failed: $($result.Error)" }
+            (ConvertTo-NfcArgumentJson $result.GhArguments) | Should BeExactly (ConvertTo-NfcArgumentJson $gh)
+            $result.HelperArguments | Should BeExactly ((@('-Mode', 'token') + $options + $case.Helper) -join "`n")
+        }
+        $gh = @('issue', 'list', '-IncludeIssuesWrite')
+        foreach ($separator in @(@(), @('--'))) {
+            $result = Invoke-NfcFakeWrapper -WorkDir $TestDrive -Arguments ($options + $separator + $gh)
+            $result.ExitCode | Should Be 0
+            (ConvertTo-NfcArgumentJson $result.GhArguments) | Should BeExactly (ConvertTo-NfcArgumentJson $gh)
+            $result.HelperArguments | Should BeExactly ((@('-Mode', 'token') + $options) -join "`n")
+        }
     }
 
     It 'stops another repository before starting the helper or gh' {

@@ -1,6 +1,6 @@
 #Requires -Version 7.4
 # Usage: pwsh -NoProfile -File <this file> -Owner OWNER -Repo REPO -ClientId CLIENT_ID -InstallationId ID
-#            -DpapiPath PATH [-IncludeWorkflowsWrite] [--] <gh arguments>
+#            -DpapiPath PATH [-IncludeWorkflowsWrite] [-IncludeIssuesWrite] [--] <gh arguments>
 # There is deliberately no param block. PowerShell would bind gh options such as --repo to the
 # wrapper's own parameters and split arguments such as --head=owner:branch, so the wrapper reads
 # its own process command line and passes the gh arguments to gh exactly as given.
@@ -29,7 +29,7 @@ function Split-NfcGhCommandLine {
     if (-not [string]::Equals($full, $ScriptPath, [StringComparison]::OrdinalIgnoreCase)) { throw $launch }
     $start = $i + 2
     $valueOptions = @('Owner', 'Repo', 'ClientId', 'InstallationId', 'DpapiPath')
-    $parsed = @{ IncludeWorkflowsWrite = $false }
+    $parsed = @{ IncludeWorkflowsWrite = $false; IncludeIssuesWrite = $false }
     $i = $start
     while ($i -lt $CommandLine.Count) {
         $arg = $CommandLine[$i]
@@ -39,6 +39,12 @@ function Split-NfcGhCommandLine {
         if ($name -eq 'IncludeWorkflowsWrite') {
             if ($parsed.IncludeWorkflowsWrite) { throw 'Wrapper option -IncludeWorkflowsWrite is given more than once.' }
             $parsed.IncludeWorkflowsWrite = $true
+            $i++
+            continue
+        }
+        if ($name -eq 'IncludeIssuesWrite') {
+            if ($parsed.IncludeIssuesWrite) { throw 'Wrapper option -IncludeIssuesWrite is given more than once.' }
+            $parsed.IncludeIssuesWrite = $true
             $i++
             continue
         }
@@ -155,6 +161,7 @@ try {
         '-Mode', 'token', '-Owner', $Owner, '-Repo', $Repo, '-ClientId', $ClientId,
         '-InstallationId', $InstallationId, '-DpapiPath', $DpapiPath)
     if ($parsed.IncludeWorkflowsWrite) { $helperArguments += '-IncludeWorkflowsWrite' }
+    if ($parsed.IncludeIssuesWrite) { $helperArguments += '-IncludeIssuesWrite' }
     foreach ($arg in $helperArguments) {
         [void]$helper.ArgumentList.Add($arg)
     }
