@@ -67,9 +67,9 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
     DistributionLauncher, which reference Avalonia packages, and Desktop, which uses Avalonia through
     Presentation.Avalonia.
   - The Bootstrap is the trust anchor. LauncherBootstrap references no package, and an architecture test
-    forbids one. A Core package in VersionManagement.Infrastructure, which it references, would still reach
-    the Bootstrap transitively. A Core package therefore enters the
-    Bootstrap's package closure only in the launcher adoption pull request. That pull request names the
+    forbids one. A Core package in any project it reaches through project references, for example
+    VersionManagement.Infrastructure or Platform, would still reach the Bootstrap. A Core package therefore
+    enters the Bootstrap's package closure only in the launcher adoption pull request. That pull request names the
     closure change, and the owner approves it. The owner allows the Bootstrap to change (open point 5).
 - NFC's Application ports stay. Their Infrastructure adapters delegate to Core. An adoption deletes NFC's
   duplicate implementation, not the port.
@@ -89,8 +89,9 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
   their current sources.
 - NFC pins each Core package to an exact version (`[x]`) and updates its lock files in the same pull request
   (decision 324). Decision 323 requires locked restore in CI. Today `scripts/verify.py` restores the solution
-  without `--locked-mode` and then restores the lock-file projections. Locked restore is a separate R3 pull
-  request before the first package commit.
+  without `--locked-mode` and then restores the lock-file projections. `scripts/package.ps1` restores the
+  Desktop project without `--locked-mode`. Its launcher restores already use it. Locked restore for these two
+  paths is a separate R3 pull request before the first package commit.
 - Commander's rule: a rollback reverts the vendor commit together with its pins and lock files.
 - Core keeps a proprietary license with an explicit grant for the named tools. NFC's
   `THIRD_PARTY_NOTICES.md` lists Core's terms and version (decision 324). That change is R3 with the release
@@ -152,7 +153,8 @@ Answers are added below as dated updates. They do not rewrite the decisions abov
 
 - An authority-policy entry for `vendor/nuget` before the first package commit.
 - The package-closure allowlist test before the first adoption merges.
-- Locked restore in `scripts/verify.py` and `scripts/package.ps1` before the first package commit.
+- Locked restore for the solution restore in `scripts/verify.py` and the Desktop restore in
+  `scripts/package.ps1` before the first package commit.
 - The amendment of ADR 0081 and ADR 0006 before the process runner adoption.
 - The first adoption pull request links this ADR.
 
