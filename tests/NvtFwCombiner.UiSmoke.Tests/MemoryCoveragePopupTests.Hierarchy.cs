@@ -150,7 +150,7 @@ public sealed partial class MemoryCoveragePopupTests
             Render();
             Border local = FindNamed<Border>(window, "MemoryLocalView")!;
             Assert.True(BoundsInWindow(local, window).Top >= legendBounds.Bottom);
-            Capture(window, "legend-connector-focus");
+            Capture(window, $"legend-connector-focus-{width}");
             Control localFrame = (Control)local.GetVisualParent()!;
             Rect localFrameBounds = BoundsInWindow(localFrame, window);
             Rect localBounds = BoundsInWindow(local, window);
@@ -181,7 +181,7 @@ public sealed partial class MemoryCoveragePopupTests
                 "The card stem starts at its rail slice, above the legend.");
             Assert.True(cardStems.Max(static stem => stem.Bottom) >= legendBounds.Bottom,
                 "The card stem crosses the legend to reach its card.");
-            Capture(window, "legend-connector-card");
+            Capture(window, $"legend-connector-card-{width}");
             Assert.False(first.Interaction.IsActive);
             Assert.False(legend.Children[1].Focus(NavigationMethod.Tab));
             Assert.True(MainTarget(bar, 1).Focus(NavigationMethod.Tab));
