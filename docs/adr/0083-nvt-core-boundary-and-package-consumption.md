@@ -2,7 +2,7 @@
 
 - Status: Accepted. The owner decided the boundary and the package choice in board decisions 322 to 326. Rules
   marked "commander's rule" implement those decisions and apply until the owner changes them. The owner answered
-  open points 1 to 4 in decision 328. Open point 5 is not decided.
+  all five open points in decision 328.
 - Date: 2026-10-06
 - Owners: the owner decides. The NFC commander session implements and records dated updates here.
 - Supersedes: None
@@ -63,10 +63,12 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
     `TimeProvider`.
   - Platform, the Infrastructure projects and the non-Avalonia hosts, for example Launcher, may reference
     `Nvt.Core`.
-  - Only the projects with Avalonia package references today may reference `Nvt.Core.Avalonia`:
-    Presentation.Avalonia, Desktop and DistributionLauncher.
-  - LauncherBootstrap references no Core package. An architecture test forbids any package reference there,
-    and the installed Bootstrap stays unchanged (open point 5).
+  - Only the projects that use Avalonia today may reference `Nvt.Core.Avalonia`: Presentation.Avalonia and
+    DistributionLauncher, which reference Avalonia packages, and Desktop, which uses Avalonia through
+    Presentation.Avalonia.
+  - LauncherBootstrap references no package today, and an architecture test forbids one. The launcher
+    adoption may add `Nvt.Core` there and update that test, because no installed Bootstrap needs protection
+    (open point 5).
 - NFC's Application ports stay. Their Infrastructure adapters delegate to Core. An adoption deletes NFC's
   duplicate implementation, not the port.
 - Today the architecture tests check project references. Two tests also pin package references:
@@ -114,8 +116,8 @@ The commander's assessment, not stated in the decisions:
 
 ## Open points
 
-The owner answered points 1 to 4 on 2026-10-06 (see Dated updates). Point 5 is still open. The status ledger
-lists them in section 4.
+The owner answered all five points on 2026-10-06 (see Dated updates). The status ledger lists them in
+section 4.
 
 1. The authority floor and roles for `vendor/nuget`.
 2. Whether strict manifest schema validation stays in NFC while Core receives validated facts.
@@ -151,8 +153,8 @@ Answers are added below as dated updates. They do not rewrite the decisions abov
 
 ### 2026-10-06: open points 1 to 5 (decision 328)
 
-The owner answered on 2026-10-06 09:0x, relayed by the Commander session. Each answer accepts the
-recommendation.
+The owner answered on 2026-10-06 09:0x, relayed by the Commander session. The owner corrected answer 5 in a
+second message.
 
 1. `vendor/nuget` authority: the highest level. Each commit of Core package files and `SOURCE.md` is R3, and
    the owner approves it on GitHub. Changes to the authority policy and CODEOWNERS for this path are
@@ -163,5 +165,9 @@ recommendation.
    its wording.
 4. Shell: this move covers only navigation history and the existing page host interface. Product pages,
    firmware guards and startup preload stay in NFC. A larger shell move needs its own brief.
-5. Installed Bootstrap: not answered. Until the owner answers, the installed Bootstrap's bytes and protocol 1
-   stay unchanged. No work that replaces or migrates it starts.
+5. Installed Bootstrap: the owner said 「目前沒有人安裝，不用擔心」 (nobody has installed it yet, no need to
+   worry). On 2026-10-06 no user has an installed Bootstrap. The launcher adoption may therefore change the
+   Bootstrap directly. It need not keep the old Bootstrap's bytes or protocol 1, and need not prove that an old
+   Bootstrap starts the new launcher.
+   - This rule depends on that premise. Once any user installs a release with the Bootstrap, compatibility
+     with the installed Bootstrap is required again, and a dated update here records the change.
