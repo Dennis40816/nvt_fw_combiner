@@ -1683,6 +1683,209 @@ Describe 'NFC G0 gh wrapper process with a fake helper and a fake gh' {
     }
 }
 
+function Invoke-NfcFakeOpenPr {
+    param([string]$WorkDir, [string[]]$Arguments, [string]$Scenario = 'match',
+          [string]$Author = 'app/nfc-agent-dennis40816', [switch]$RealProcess)
+    $source = Get-Content -LiteralPath "$PSScriptRoot/../open-pr.ps1" -Raw
+    $fake = @'
+function Invoke-NfcPrWrapper {
+    param([string[]]$Arguments)
+    [IO.File]::AppendAllText($env:NFC_TEST_PR_CALLS, (ConvertTo-Json -InputObject $Arguments -Compress) + "`n")
+    $command = $Arguments[([Array]::IndexOf($Arguments, '--') + 2)]
+    $scenario = $env:NFC_TEST_PR_SCENARIO
+    if ($command -eq 'create') {
+        if ($scenario -eq 'create-fail') { return @{ ExitCode = 1; Output = 'fake create output'; Error = 'fake gh create failed' } }
+        if ($scenario -eq 'no-url') { return @{ ExitCode = 0; Output = 'fake missing PR URL'; Error = '' } }
+        return @{ ExitCode = 0; Output = "Creating pull request...`nhttps://github.com/owner/repo/pull/42`n"; Error = '' }
+    }
+    if ($command -eq 'close') {
+        if ($scenario -eq 'close-fail') { return @{ ExitCode = 1; Output = ''; Error = 'fake gh close failed' } }
+        return @{ ExitCode = 0; Output = 'Closed pull request'; Error = '' }
+    }
+    if ($command -ne 'view') { throw "Unexpected fake command: $command" }
+    if ($scenario -eq 'view-throws') { throw 'fake view process failed' }
+    if ($scenario -eq 'view-fail') { return @{ ExitCode = 1; Output = ''; Error = 'fake gh view failed' } }
+    $reply = @{ author = @{ login = $env:NFC_TEST_PR_AUTHOR }; url = 'https://github.com/owner/repo/pull/42'; number = 42 }
+    if ($scenario -eq 'no-author') { $reply.Remove('author') }
+    if ($scenario -eq 'blank-author') { $reply.author.login = ' ' }
+    if ($scenario -eq 'invalid-author') { $reply.author.login = @('fake', 'author') }
+    if ($scenario -eq 'other-number') { $reply.number = 99 }
+    if ($scenario -eq 'other-url') { $reply.url = 'https://github.com/owner/repo/pull/99' }
+    $output = if ($scenario -eq 'bad-json') { 'not JSON' } else { $reply | ConvertTo-Json -Depth 4 -Compress }
+    return @{ ExitCode = 0; Output = $output; Error = '' }
+}
+'@
+    $tokens = $null; $errors = $null
+    $ast = [Management.Automation.Language.Parser]::ParseInput($source, [ref]$tokens, [ref]$errors)
+    if ($errors.Count -gt 0) { throw 'open-pr.ps1 has parse errors.' }
+    $definitions = @($ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+        $node.Name -eq 'Invoke-NfcPrWrapper' }, $true))
+    if ($definitions.Count -ne 1) { throw 'The open-pr wrapper call seam is missing or duplicated.' }
+    if (-not $RealProcess) {
+        $definition = $definitions[0]
+        $source = $source.Substring(0, $definition.Extent.StartOffset) + $fake + $source.Substring($definition.Extent.EndOffset)
+    }
+    $scriptPath = Join-Path $WorkDir 'open-pr.ps1'
+    [IO.File]::WriteAllText($scriptPath, $source)
+    # This sibling is always fake, even if a test accidentally reaches the real process seam.
+    $wrapper = $fake + @'
+
+$result = Invoke-NfcPrWrapper -Arguments ([Environment]::GetCommandLineArgs() | Select-Object -Skip 1)
+[Console]::Out.Write($result.Output)
+[Console]::Error.Write($result.Error)
+exit $result.ExitCode
+'@
+    [IO.File]::WriteAllText((Join-Path $WorkDir 'Invoke-NfcGh.ps1'), $wrapper)
+    [IO.File]::WriteAllText((Join-Path $WorkDir 'body file.md'), 'fake PR body')
+    $calls = Join-Path $WorkDir 'pr-calls.jsonl'
+    if (Test-Path -LiteralPath $calls) { Remove-Item -LiteralPath $calls }
+    $result = Invoke-NfcTestProcess -Arguments (@('-NoProfile', '-File', $scriptPath) + $Arguments) `
+        -Environment @{ NFC_TEST_PR_CALLS = $calls; NFC_TEST_PR_SCENARIO = $Scenario; NFC_TEST_PR_AUTHOR = $Author }
+    $result.Calls = @()
+    if (Test-Path -LiteralPath $calls) {
+        $result.Calls = @(Get-Content -LiteralPath $calls | ForEach-Object { ,($_ | ConvertFrom-Json) })
+    }
+    return $result
+}
+
+Describe 'NFC G0 open PR as the App' {
+    BeforeAll {
+        $script:NfcOpenPrArguments = @('-Repo', 'owner/repo', '-Base', '1.2.x', '-Head', 'feature/1.2.5/test',
+            '-Title', 'fix: test "quoted" title', '-BodyFile', (Join-Path $TestDrive 'body file.md'),
+            '-ClientId', 'Iv1.fake', '-InstallationId', '7', '-DpapiPath', 'unused fake path')
+        $script:NfcOpenPrPrefix = @('-NoProfile', '-File', (Join-Path $TestDrive 'Invoke-NfcGh.ps1'),
+            '-Owner', 'owner', '-Repo', 'repo', '-ClientId', 'Iv1.fake', '-InstallationId', '7',
+            '-DpapiPath', 'unused fake path', '--')
+    }
+
+    It 'rejects missing required options with 64 before any wrapper call' {
+        for ($i = 0; $i -lt $script:NfcOpenPrArguments.Count; $i += 2) {
+            $arguments = @($script:NfcOpenPrArguments[0..($script:NfcOpenPrArguments.Count - 1)] |
+                Select-Object -Index (@(0..($script:NfcOpenPrArguments.Count - 1)) | Where-Object { $_ -notin @($i, ($i + 1)) }))
+            $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $arguments
+            $result.ExitCode | Should Be 64
+            $result.Calls.Count | Should Be 0
+            $result.Error | Should Match 'usage error'
+            $result.Output | Should BeExactly ''
+        }
+    }
+
+    It 'validates all values, unknown and duplicate options before any wrapper call' {
+        $cases = @(
+            @{ Index = 1; Value = 'owner' }, @{ Index = 1; Value = 'owner/repo/extra' },
+            @{ Index = 1; Value = 'owner/rep ' }, @{ Index = 1; Value = "owner/rep`n" },
+            @{ Index = 1; Value = "$([char]0x212A)owner/repo" }, @{ Index = 1; Value = "owner/rep$([char]0x212A)" },
+            @{ Index = 3; Value = ' ' }, @{ Index = 5; Value = "branch`n" },
+            @{ Index = 7; Value = '' }, @{ Index = 7; Value = ' ' }, @{ Index = 7; Value = '-Release' },
+            @{ Index = 9; Value = (Join-Path $TestDrive 'missing.md') }, @{ Index = 9; Value = $TestDrive },
+            @{ Index = 11; Value = ' ' }, @{ Index = 11; Value = '-client' },
+            @{ Index = 13; Value = '0' }, @{ Index = 13; Value = '-1' }, @{ Index = 13; Value = '01' },
+            @{ Index = 13; Value = '1234567890123456789' }, @{ Index = 13; Value = "7`n" },
+            @{ Index = 15; Value = ' ' }, @{ Index = 15; Value = "fake`npath" }
+        )
+        foreach ($case in $cases) {
+            $arguments = [string[]]$script:NfcOpenPrArguments.Clone()
+            $arguments[$case.Index] = $case.Value
+            $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $arguments
+            $result.ExitCode | Should Be 64
+            $result.Calls.Count | Should Be 0
+        }
+        foreach ($extra in @(@('-Unknown', 'value'), @('-Repo', 'owner/repo'), @('-Draft', '-Draft'),
+            @('-ExpectedAuthor', ''), @('-ExpectedAuthor', ' '), @('-ExpectedAuthor', "app/fake`n"), @('-Title'))) {
+            $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments ($script:NfcOpenPrArguments + $extra)
+            $result.ExitCode | Should Be 64
+            $result.Calls.Count | Should Be 0
+        }
+    }
+
+    It 'passes exactly the create and view arguments without extra permissions and prints the URL last' {
+        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments
+        $result.ExitCode | Should Be 0
+        $result.Calls.Count | Should Be 2
+        ($result.Calls[0] -join "`n") | Should BeExactly (($script:NfcOpenPrPrefix + @('pr', 'create',
+            '--repo', 'owner/repo', '--base', '1.2.x', '--head', 'feature/1.2.5/test', '--title', 'fix: test "quoted" title',
+            '--body-file', (Join-Path $TestDrive 'body file.md'))) -join "`n")
+        ($result.Calls[1] -join "`n") | Should BeExactly (($script:NfcOpenPrPrefix +
+            @('pr', 'view', '42', '--repo', 'owner/repo', '--json', 'author,url,number')) -join "`n")
+        ($result.Output.TrimEnd() -split "`r?`n")[-1] | Should BeExactly 'https://github.com/owner/repo/pull/42'
+        $result.Error | Should BeExactly ''
+    }
+
+    It 'adds draft only to create when requested and allows an explicit expected author' {
+        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Author 'app/fake-agent' `
+            -Arguments ($script:NfcOpenPrArguments + @('-Draft', '-ExpectedAuthor', 'app/fake-agent'))
+        $result.ExitCode | Should Be 0
+        $result.Calls[0][-1] | Should BeExactly '--draft'
+        ($result.Calls[1] -contains '--draft') | Should Be $false
+        (($result.Calls | ForEach-Object { $_ }) -match '^-Include(Workflows|Issues)Write$').Count | Should Be 0
+    }
+
+    It 'closes a wrong author including a case-only mismatch and reports both authors and URL' {
+        foreach ($author in @('owner', 'app/NFC-agent-dennis40816')) {
+            $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -Author $author
+            $result.ExitCode | Should Be 1
+            $result.Calls.Count | Should Be 3
+            ($result.Calls[2][0..($script:NfcOpenPrPrefix.Count + 5)] -join "`n") | Should BeExactly (($script:NfcOpenPrPrefix +
+                @('pr', 'close', '42', '--repo', 'owner/repo', '--comment')) -join "`n")
+            $reason = $result.Calls[2][-1]
+            $reason | Should Match ([regex]::Escape('app/nfc-agent-dennis40816'))
+            $reason | Should Match ([regex]::Escape($author))
+            $reason | Should Match 'https://github.com/owner/repo/pull/42'
+            $result.Error | Should Match ([regex]::Escape($reason))
+            $result.Output | Should BeExactly ''
+        }
+    }
+
+    It 'closes when the author cannot be read or the readback identifies a different PR' {
+        foreach ($scenario in @('view-fail', 'view-throws', 'bad-json', 'no-author', 'blank-author',
+            'invalid-author', 'other-number', 'other-url')) {
+            $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -Scenario $scenario
+            $result.ExitCode | Should Be 1
+            $result.Calls.Count | Should Be 3
+            $result.Calls[2][$script:NfcOpenPrPrefix.Count + 1] | Should BeExactly 'close'
+            $result.Calls[2][$script:NfcOpenPrPrefix.Count + 2] | Should BeExactly '42'
+            $result.Error | Should Match 'app/nfc-agent-dennis40816'
+            $result.Error | Should Match 'unreadable'
+            $result.Error | Should Match 'https://github.com/owner/repo/pull/42'
+        }
+    }
+
+    It 'prints gh create failure and never views or closes a PR' {
+        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -Scenario 'create-fail'
+        $result.ExitCode | Should Be 1
+        $result.Calls.Count | Should Be 1
+        $result.Error | Should Match 'fake gh create failed'
+        $result.Error | Should Match 'fake create output'
+    }
+
+    It 'fails explicitly when create returns no PR URL' {
+        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -Scenario 'no-url'
+        $result.ExitCode | Should Be 1
+        $result.Calls.Count | Should Be 1
+        $result.Error | Should Match 'URL'
+    }
+
+    It 'reports a failed close without claiming success' {
+        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -Scenario 'close-fail' -Author 'owner'
+        $result.ExitCode | Should Be 1
+        $result.Calls.Count | Should Be 3
+        $result.Error | Should Match 'fake gh close failed'
+        $result.Error | Should Match 'owner'
+        $result.Error | Should Match 'https://github.com/owner/repo/pull/42'
+    }
+
+    It 'starts the sibling fake wrapper in its own no-profile process with a fully qualified path' {
+        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -RealProcess
+        $result.ExitCode | Should Be 0
+        $result.Calls.Count | Should Be 2
+        foreach ($call in $result.Calls) {
+            ($call[0..2] -join "`n") | Should BeExactly (($script:NfcOpenPrPrefix[0..2]) -join "`n")
+            [IO.Path]::IsPathFullyQualified($call[2]) | Should Be $true
+        }
+        $result.Output.TrimEnd() | Should BeExactly 'https://github.com/owner/repo/pull/42'
+    }
+}
+
 Describe 'NFC G0 isolated test runner' {
     It 'accepts only Pester 3.4.0, returns 2 without a valid executed test, 1 for a failed test or block and 0 only for a passing run' {
         $runner = "$PSScriptRoot/Invoke-NfcG0Tests.ps1"
