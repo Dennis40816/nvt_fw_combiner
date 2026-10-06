@@ -534,7 +534,7 @@ class CiDotnetRetryTests(unittest.TestCase):
                 stack.enter_context(patch.object(MODULE, name, return_value=value))
             for name in (
                 "require_logged_sdk_version",
-                "run_solution_restore_preserving_lock_projections",
+                "run_locked_solution_restore",
                 "cleanup_dotnet_batch",
             ):
                 stack.enter_context(patch.object(MODULE, name))

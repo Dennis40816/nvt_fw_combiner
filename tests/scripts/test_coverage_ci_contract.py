@@ -314,10 +314,10 @@ class CoverageCiContractTests(unittest.TestCase):
             1, post_restore_plan.count('"--evaluated-source-ownership-only"')
         )
         self.assertEqual(
-            1, build_owner.count("run_solution_restore_preserving_lock_projections(")
+            1, build_owner.count("run_locked_solution_restore(")
         )
         self.assertLess(
-            build_owner.index("run_solution_restore_preserving_lock_projections("),
+            build_owner.index("run_locked_solution_restore("),
             build_owner.index("run_dotnet_commands("),
         )
 
