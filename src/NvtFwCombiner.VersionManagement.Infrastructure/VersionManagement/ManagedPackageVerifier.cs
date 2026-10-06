@@ -475,7 +475,7 @@ internal static class ManagedPackageVerifier
             !string.Equals(manifest.Version, version.ToString(), StringComparison.Ordinal) ||
             !string.Equals(manifest.SourceTag, $"v{version}", StringComparison.Ordinal) ||
             !string.Equals(manifest.RuntimeIdentifier, "win-x64", StringComparison.Ordinal) ||
-            !string.Equals(manifest.LicenseSpdx, "MIT", StringComparison.Ordinal) ||
+            !IsAcceptedLicense(manifest.LicenseSpdx) ||
             !IsLowerHex(manifest.SourceCommit, 40) ||
             !IsLowerHex(manifest.ProcessorBundleSha256, 64) ||
             !IsLowerHex(manifest.EmbeddedProfileCatalogSha256, 64) ||
@@ -512,6 +512,15 @@ internal static class ManagedPackageVerifier
             "SHA256SUMS.txt",
         };
         return expectedArchive.SetEquals(archivePaths);
+    }
+
+    /// <summary>
+    /// Accepts the two exact release licenses. Releases declare MIT until the license switch.
+    /// Installed verifiers also accept the later proprietary license.
+    /// </summary>
+    internal static bool IsAcceptedLicense(string? licenseSpdx)
+    {
+        return licenseSpdx is "MIT" or "LicenseRef-Proprietary";
     }
 
     private static bool ValidateLauncherContract(ReleaseManifestDocument manifest)
