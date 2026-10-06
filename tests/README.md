@@ -75,7 +75,7 @@ three-worker cap and UI-exclusive-first ordering. Historical measurements and
 the earlier rejected-four-worker probe below retain their original meaning.
 
 The local implementation finishes derived-data checking and the existing
-SDK/restore with tracked lock projections restored before starting one `--jobs`
+SDK check and locked solution restore before starting one `--jobs`
 pool. Its first lane runs post-restore checks/build followed by coverage under
 one deadline. Structure postchecks may overlap this lane; script modules and
 the CRC worker wait for successful build readiness without waiting for structure.

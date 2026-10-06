@@ -34,6 +34,33 @@
     <NuGetAuditMode>all</NuGetAuditMode>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
+  <!--
+    Locked restore. The committed lock files of exactly these projects carry a net10.0/win-x64 target,
+    because the packaging restores use -r win-x64. NuGet sets ExcludeRestorePackageImports only while it
+    evaluates projects for restore, so this runtime reaches restore and never build or publish. A plain
+    solution restore then matches the lock files in locked mode, and library projects stay RID-agnostic.
+    Keep this list equal to the lock files that carry the target.
+  -->
+  <PropertyGroup Condition="'$(ExcludeRestorePackageImports)' == 'true' and (
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Application' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Bootstrap' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Cli' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Contracts' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Desktop' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.DistributionLauncher' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Domain' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Infrastructure' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Launcher' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.LauncherBootstrap' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Platform' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.PrebuiltProfileCatalogGenerator' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Presentation.Avalonia' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Profiles' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.ReadyProbe' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.VersionManagement.Application' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.VersionManagement.Infrastructure')">
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
     <IsPackable>false</IsPackable>
   </PropertyGroup>
