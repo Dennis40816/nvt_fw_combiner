@@ -114,6 +114,10 @@ try {
         throw 'Exact Launcher source snapshot is not clean.'
     }
 
+    $Python = (Get-Command python -ErrorAction Stop).Source
+    & $Python -B (Join-Path $RepoRoot 'scripts/fetch_core_packages.py') --manifest (Join-Path $RepoRoot 'core-packages.json')
+    if ($LASTEXITCODE -ne 0) { throw 'Core package download or verification failed before restore.' }
+
     $RepositoryDotNet = Join-Path $InvocationRepoRoot '.dotnet/dotnet.exe'
     $DotNet = if (Test-Path -LiteralPath $RepositoryDotNet -PathType Leaf) {
         $RepositoryDotNet

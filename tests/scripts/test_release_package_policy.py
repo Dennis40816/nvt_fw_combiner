@@ -813,6 +813,11 @@ def initialize_minimal_launcher_package_repository(
     script_path = repository_root / "scripts" / "package-distribution-launcher.ps1"
     script_path.parent.mkdir(parents=True)
     shutil.copy2(LAUNCHER_PACKAGE_SCRIPT, script_path)
+    # The Core package fetch succeeds without a network; these tests reach restore and cleanup.
+    (repository_root / "scripts" / "fetch_core_packages.py").write_text(
+        "import sys\nsys.exit(0)\n",
+        encoding="utf-8",
+    )
     if stopper_fails:
         (repository_root / "scripts" / "stop-idle-build-workers.ps1").write_text(
             "throw 'Injected stopper failure.'\n",
@@ -1318,8 +1323,12 @@ foreach ($Path in @(('a' * 141), (('a' * 139) + [char]0xd83d + [char]0xde00))) {
 
     @unittest.skipUnless(POWERSHELL, "PowerShell is required for package fetch tests")
     def test_core_fetch_precedes_every_restore_and_failure_stops_packaging(self) -> None:
-        source = PACKAGE_SCRIPT.read_text(encoding="utf-8")
-        fetch_pattern = re.compile(r"(?m)^& \$Python -B .*fetch_core_packages\.py.*$")
+        for script in (PACKAGE_SCRIPT, LAUNCHER_PACKAGE_SCRIPT):
+            with self.subTest(script=script.name):
+                self._assert_core_fetch_precedes_restores(script.read_text(encoding="utf-8"))
+
+    def _assert_core_fetch_precedes_restores(self, source: str) -> None:
+        fetch_pattern = re.compile(r"(?m)^[ \t]*& \$Python -B .*fetch_core_packages\.py.*$")
         fetches = list(fetch_pattern.finditer(source))
         self.assertEqual(len(fetches), 1, "packaging must fetch Core packages once")
         fetch = fetches[0]
