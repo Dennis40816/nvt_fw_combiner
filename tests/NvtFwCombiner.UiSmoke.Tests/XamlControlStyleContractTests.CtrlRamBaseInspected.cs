@@ -122,7 +122,7 @@ public sealed partial class XamlControlStyleContractTests
                 string themeName = useDarkTheme ? "dark" : "light";
                 using FileStream output = File.Create(
                     Path.Combine(outputDirectory, $"ctrlram-base-inspected-{themeName}.png"));
-                frame.Save(output);
+                frame.SavePng(output);
             }
         }
         finally

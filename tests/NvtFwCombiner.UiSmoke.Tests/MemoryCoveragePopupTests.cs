@@ -1086,7 +1086,7 @@ public sealed partial class MemoryCoveragePopupTests
         _ = Directory.CreateDirectory(directory);
         using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
         Assert.NotNull(frame);
-        frame.Save(Path.Combine(directory, $"memory-popup-{state}.png"));
+        frame.SavePng(Path.Combine(directory, $"memory-popup-{state}.png"));
     }
 
     private static void Render()

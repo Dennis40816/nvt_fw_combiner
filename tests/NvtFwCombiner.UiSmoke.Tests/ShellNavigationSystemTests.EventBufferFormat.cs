@@ -70,7 +70,7 @@ public sealed partial class ShellNavigationSystemTests
                 _ = Directory.CreateDirectory(outputDirectory);
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(outputDirectory, "event-buffer-tp-slot-info-light-en.png"));
+                frame.SavePng(Path.Combine(outputDirectory, "event-buffer-tp-slot-info-light-en.png"));
             }
         }
         finally

@@ -303,7 +303,7 @@ public sealed class ReportChangesLayoutTests
         _ = Directory.CreateDirectory(outputDirectory);
         using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
         Assert.NotNull(frame);
-        frame.Save(Path.Combine(outputDirectory, fileName));
+        frame.SavePng(Path.Combine(outputDirectory, fileName));
     }
 
     private static void Render()

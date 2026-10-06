@@ -182,7 +182,7 @@ public sealed partial class XamlControlStyleContractTests
                     outputDirectory,
                     $"nfc-memory-ctrlram-golden-{railWidth:F0}-{themeName}-{languageName}.png");
                 await using FileStream output = File.Create(outputPath);
-                frame.Save(output);
+                frame.SavePng(output);
             }
         }
         finally

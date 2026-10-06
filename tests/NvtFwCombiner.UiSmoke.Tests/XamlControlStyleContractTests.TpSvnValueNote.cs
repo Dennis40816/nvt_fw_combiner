@@ -91,7 +91,7 @@ public sealed partial class XamlControlStyleContractTests
                 _ = Directory.CreateDirectory(captureDir);
                 using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(captureDir, $"tpsvn-{captureStage}-{width}.png"));
+                frame.SavePng(Path.Combine(captureDir, $"tpsvn-{captureStage}-{width}.png"));
             }
             Grid valueRow = Assert.IsType<Grid>(value.Parent);
             double noteSpacing = Assert.IsType<double>(host.FindResource("NfcSpace8"));
@@ -267,7 +267,7 @@ public sealed partial class XamlControlStyleContractTests
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(captureDir, $"tpsvn-{captureStage}-tooltip.png"));
+                frame.SavePng(Path.Combine(captureDir, $"tpsvn-{captureStage}-tooltip.png"));
             }
         }
         finally

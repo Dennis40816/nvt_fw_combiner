@@ -79,7 +79,7 @@ public sealed class OutputConfirmationWarningTests
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
                 string stage = Environment.GetEnvironmentVariable("NFC_VISUAL_STAGE") ?? "after";
-                frame.Save(Path.Combine(directory, $"nt51950-ab-osd-{stage}-{(chineseDark ? "dark-zh" : "light-en")}-confirmation.png"));
+                frame.SavePng(Path.Combine(directory, $"nt51950-ab-osd-{stage}-{(chineseDark ? "dark-zh" : "light-en")}-confirmation.png"));
             }
             OutputConfirmationWarningRow warning = Assert.Single(vm.WarningRows);
             Assert.Equal("DP AB Code", warning.Role);
@@ -170,7 +170,7 @@ public sealed class OutputConfirmationWarningTests
                 _ = Directory.CreateDirectory(directory);
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, $"output-warnings-{hasWarnings}-{(chineseDark ? "dark-zh" : "light-en")}.png"));
+                frame.SavePng(Path.Combine(directory, $"output-warnings-{hasWarnings}-{(chineseDark ? "dark-zh" : "light-en")}.png"));
             }
 
             vm.CancelCommand.Execute(null);

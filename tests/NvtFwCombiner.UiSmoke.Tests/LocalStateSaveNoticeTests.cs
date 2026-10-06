@@ -514,7 +514,7 @@ public sealed class LocalStateSaveNoticeTests
             _ = Directory.CreateDirectory(outputDirectory);
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
-            frame.Save(System.IO.Path.Combine(outputDirectory, $"f08-save-failure-{theme}-{language}-{state}.png"));
+            frame.SavePng(System.IO.Path.Combine(outputDirectory, $"f08-save-failure-{theme}-{language}-{state}.png"));
         }
     }
 
@@ -1012,7 +1012,7 @@ public sealed class LocalStateSaveNoticeTests
         _ = Directory.CreateDirectory(outputDirectory);
         using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
         Assert.NotNull(frame);
-        frame.Save(System.IO.Path.Combine(outputDirectory, fileName));
+        frame.SavePng(System.IO.Path.Combine(outputDirectory, fileName));
     }
 
     /// <summary>The laid-out text of a text block, not its stretched arrange slot.</summary>

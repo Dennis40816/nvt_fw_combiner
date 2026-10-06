@@ -207,7 +207,7 @@ public sealed partial class XamlControlStyleContractTests
                     outputDirectory,
                     $"settings-version-reference-1584x997-{themeName}.png");
                 await using FileStream output = File.Create(outputPath);
-                frame.Save(output);
+                frame.SavePng(output);
             }
         }
         finally

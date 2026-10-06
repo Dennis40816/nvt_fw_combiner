@@ -92,7 +92,7 @@ public sealed partial class MergeWorkflowTests
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(visualDirectory, bundle ? "additional-name-dark.png" : "additional-name-light.png"));
+                frame.SavePng(Path.Combine(visualDirectory, bundle ? "additional-name-dark.png" : "additional-name-light.png"));
             }
         }
         finally

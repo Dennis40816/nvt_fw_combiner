@@ -144,7 +144,7 @@ public sealed class AbDummyDpControlTests
             _ = Directory.CreateDirectory(directory);
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
-            frame.Save(Path.Combine(directory, $"dummy-{width}-{height}-{dark}-{chinese}-{state}.png"));
+            frame.SavePng(Path.Combine(directory, $"dummy-{width}-{height}-{dark}-{chinese}-{state}.png"));
         }
     }
 

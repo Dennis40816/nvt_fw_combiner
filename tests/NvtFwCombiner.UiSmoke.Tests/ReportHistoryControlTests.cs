@@ -63,7 +63,7 @@ public sealed partial class ReportHistoryControlTests
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, "dp-warning-report-history-after-light-en.png"));
+                frame.SavePng(Path.Combine(directory, "dp-warning-report-history-after-light-en.png"));
             }
             await shell.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(entry);
             Dispatcher.UIThread.RunJobs();
@@ -73,7 +73,7 @@ public sealed partial class ReportHistoryControlTests
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, "dp-warning-report-review-after-light-en.png"));
+                frame.SavePng(Path.Combine(directory, "dp-warning-report-review-after-light-en.png"));
             }
         }
         finally
@@ -216,7 +216,7 @@ public sealed partial class ReportHistoryControlTests
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(outputDirectory, $"history-row-{width}-{dark}-{chinese}.png"));
+                frame.SavePng(Path.Combine(outputDirectory, $"history-row-{width}-{dark}-{chinese}.png"));
             }
             Grid rowContent = Assert.IsType<Grid>(card.Content);
             Assert.True(Math.Abs(issueCenter.Y - trashCenter.Y) <= 0.5,

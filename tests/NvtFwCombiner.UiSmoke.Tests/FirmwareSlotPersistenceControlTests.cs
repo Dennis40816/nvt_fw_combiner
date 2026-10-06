@@ -81,7 +81,7 @@ public sealed class FirmwareSlotPersistenceControlTests
                             _ = Directory.CreateDirectory(directory);
                             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                             Assert.NotNull(frame);
-                            frame.Save(Path.Combine(directory, $"input-column-{(ab ? "ab" : "standard")}-{dark}-{chinese}.png"));
+                            frame.SavePng(Path.Combine(directory, $"input-column-{(ab ? "ab" : "standard")}-{dark}-{chinese}.png"));
                         }
                         foreach ((string peer, string peerPath) in inputs.Where(input => input.SlotId != id))
                         {

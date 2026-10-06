@@ -174,7 +174,7 @@ internal class DesktopScreenshotCapture
 
     internal virtual void Encode(Bitmap bitmap, Stream stream)
     {
-        bitmap.Save(stream);
+        bitmap.Save(stream, PngBitmapEncoderOptions.Default);
     }
 
     internal virtual ValueTask PublishAsync(

@@ -72,6 +72,6 @@ public sealed class StartupFocusTests
         string root = Assert.IsType<string>(Environment.GetEnvironmentVariable("NFC_TEST_AREA_ROOT"));
         string directory = Path.Combine(root, "evidence", "f114-startfocus");
         _ = Directory.CreateDirectory(directory);
-        frame.Save(Path.Combine(directory, $"{name}.png"));
+        frame.SavePng(Path.Combine(directory, $"{name}.png"));
     }
 }

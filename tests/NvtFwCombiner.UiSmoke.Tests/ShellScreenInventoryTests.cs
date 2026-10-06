@@ -290,7 +290,7 @@ public sealed class ShellScreenInventoryTests
         if (!string.IsNullOrWhiteSpace(directory))
         {
             _ = Directory.CreateDirectory(directory);
-            frame.Save(Path.Combine(directory, $"inventory-{surface}-{(dark ? "dark" : "light")}-{(chinese ? "zh-TW" : "en")}.png"));
+            frame.SavePng(Path.Combine(directory, $"inventory-{surface}-{(dark ? "dark" : "light")}-{(chinese ? "zh-TW" : "en")}.png"));
         }
     }
 }

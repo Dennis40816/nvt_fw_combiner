@@ -103,7 +103,7 @@ public sealed class MemoryCoverageLegendTests
         _ = Directory.CreateDirectory(directory);
         using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
         Assert.NotNull(frame);
-        frame.Save(Path.Combine(directory, name));
+        frame.SavePng(Path.Combine(directory, name));
     }
 
     /// <summary>Real NT51928 inputs keep exact DP/TP/LDC facts across workflows and relocalization.</summary>
@@ -178,7 +178,7 @@ public sealed class MemoryCoverageLegendTests
             {
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, $"nt51928-legend-{replace}-{darkChinese}.png"));
+                frame.SavePng(Path.Combine(directory, $"nt51928-legend-{replace}-{darkChinese}.png"));
             }
             // Clearing an input must publish current facts, not retain stale legend targets.
             await shell.WorkflowSession.ClearSlotFileAsync(selectedInputs[^1].Item1, TestContext.Current.CancellationToken);

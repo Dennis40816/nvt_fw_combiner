@@ -72,7 +72,7 @@ public sealed partial class XamlControlStyleContractTests
                     await using FileStream output = File.Create(Path.Combine(
                         outputDirectory,
                         $"system-activity-compact-980x640-{themeName}-{languageName}.png"));
-                    frame.Save(output);
+                    frame.SavePng(output);
                 }
             }
             finally
@@ -146,7 +146,7 @@ public sealed partial class XamlControlStyleContractTests
                     outputDirectory,
                     $"system-activity-reference-1536x864-{themeName}.png");
                 await using FileStream output = File.Create(outputPath);
-                frame.Save(output);
+                frame.SavePng(output);
             }
         }
         finally

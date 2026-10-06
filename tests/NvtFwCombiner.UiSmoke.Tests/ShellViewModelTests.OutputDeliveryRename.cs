@@ -213,7 +213,7 @@ public sealed partial class FirmwareInspectionSlotTests
                 Dispatcher.UIThread.RunJobs();
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, chinese ? "bundle-primary-rename-zh.png" : "bundle-primary-rename.png"));
+                frame.SavePng(Path.Combine(directory, chinese ? "bundle-primary-rename-zh.png" : "bundle-primary-rename.png"));
                 _ = disclosure.Focus();
                 window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
                 window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
@@ -221,7 +221,7 @@ public sealed partial class FirmwareInspectionSlotTests
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 using Avalonia.Media.Imaging.Bitmap? expandedFrame = window.GetLastRenderedFrame();
                 Assert.NotNull(expandedFrame);
-                expandedFrame.Save(Path.Combine(directory, chinese ? "bundle-expanded-zh.png" : "bundle-expanded.png"));
+                expandedFrame.SavePng(Path.Combine(directory, chinese ? "bundle-expanded-zh.png" : "bundle-expanded.png"));
             }
             viewModel.OutputDelivery.CancelCommand.Execute(null);
             Assert.False(viewModel.OutputDelivery.IsOpen);

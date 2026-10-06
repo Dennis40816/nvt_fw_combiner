@@ -272,7 +272,7 @@ public sealed partial class XamlControlStyleContractTests
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
             await using FileStream stream = File.Create(Path.Combine(directory, $"settings-version-{name}.png"));
-            frame.Save(stream);
+            frame.SavePng(stream);
         }
     }
 }

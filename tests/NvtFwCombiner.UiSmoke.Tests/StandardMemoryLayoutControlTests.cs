@@ -188,7 +188,7 @@ public sealed class StandardMemoryLayoutControlTests
             using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
             Assert.NotNull(frame);
             Assert.Equal(new PixelSize(width, height), frame.PixelSize);
-            frame.Save(Path.Combine(directory, $"standard-memory-{width}-{height}-{dark}-{chinese}-{role}{suffix}.png"));
+            frame.SavePng(Path.Combine(directory, $"standard-memory-{width}-{height}-{dark}-{chinese}-{role}{suffix}.png"));
         }
     }
 
