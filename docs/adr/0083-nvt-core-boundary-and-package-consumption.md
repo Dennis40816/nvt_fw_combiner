@@ -180,3 +180,21 @@ second message.
    Bootstrap starts the new launcher.
    - This rule depends on that premise. Once any user installs a release with the Bootstrap, compatibility
      with the installed Bootstrap is required again, and a dated update here records the change.
+
+### 2026-10-06: locked restore
+
+This update records the follow-up work for locked restore. Both restores named in the package contract now
+use `--locked-mode`.
+
+1. Solution restore: `scripts/verify.py` now runs one `dotnet restore NvtFwCombiner.slnx --locked-mode`. It
+   first checks the inventory of 27 lock files. The plain restore and the restoration of the lock-file
+   projections are removed.
+2. How the solution restore stays locked: 17 committed lock files carry a `net10.0/win-x64` target, because
+   the packaging restores use `-r win-x64`. `Directory.Build.props` declares `win-x64` for exactly those 17
+   projects. It does so only while NuGet evaluates projects for restore, so build and publish never see it.
+   A plain solution restore then matches all 27 lock files byte for byte. The Release build output of
+   Desktop and Cli did not change.
+3. Desktop restore: `scripts/package.ps1` now restores the Desktop project with `--locked-mode`. Its
+   `-r win-x64` restore needed a `win-x64` target in the Desktop and Presentation.Avalonia lock files. A
+   restore added that target to both files, with the 8 native-asset packages that the net10.0 target
+   already pins. No package version changed. ReadyToRun adds no lock entry.
