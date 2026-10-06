@@ -66,15 +66,18 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
   - Only the projects that use Avalonia today may reference `Nvt.Core.Avalonia`: Presentation.Avalonia and
     DistributionLauncher, which reference Avalonia packages, and Desktop, which uses Avalonia through
     Presentation.Avalonia.
-  - LauncherBootstrap references no package, and an architecture test forbids one. The Bootstrap is the
-    trust anchor. The launcher adoption may change the Bootstrap (open point 5), but adding any package to it
-    needs its own owner decision.
+  - The Bootstrap is the trust anchor. LauncherBootstrap references no package, and an architecture test
+    forbids one. A Core package in VersionManagement.Infrastructure, which it references, would still reach
+    the Bootstrap transitively. A Core package therefore enters the
+    Bootstrap's package closure only in the launcher adoption pull request. That pull request names the
+    closure change, and the owner approves it. The owner allows the Bootstrap to change (open point 5).
 - NFC's Application ports stay. Their Infrastructure adapters delegate to Core. An adoption deletes NFC's
   duplicate implementation, not the port.
-- Today the architecture tests check project references. Two tests also pin package references:
+- Today the architecture tests check project references. Two tests also pin direct package references:
   DistributionLauncher has exactly four Avalonia packages, and LauncherBootstrap has none. A test that allows
-  Core package references per project is a follow-up before the first adoption merges. An adoption that adds
-  a Core package to DistributionLauncher also updates its pinned list.
+  Core packages per project is a follow-up before the first adoption merges. It checks each project's whole
+  package closure from its lock file, not only its direct references. An adoption that adds a Core package to
+  DistributionLauncher also updates its pinned list.
 
 ### Package contract
 
@@ -85,7 +88,9 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
 - NuGet source mapping restricts the Core packages to `vendor/nuget` (decision 324). Other packages keep
   their current sources.
 - NFC pins each Core package to an exact version (`[x]`) and updates its lock files in the same pull request
-  (decision 324). CI restores in locked mode (decision 323).
+  (decision 324). Decision 323 requires locked restore in CI. Today `scripts/verify.py` restores the solution
+  without `--locked-mode` and then restores the lock-file projections. Locked restore is a separate R3 pull
+  request before the first package commit.
 - Commander's rule: a rollback reverts the vendor commit together with its pins and lock files.
 - Core keeps a proprietary license with an explicit grant for the named tools. NFC's
   `THIRD_PARTY_NOTICES.md` lists Core's terms and version (decision 324). That change is R3 with the release
@@ -132,7 +137,8 @@ Answers are added below as dated updates. They do not rewrite the decisions abov
 ### Positive
 
 - One implementation of each shared mechanism, reviewed once.
-- Builds stay reproducible and work offline, because the packages live in the repository.
+- Core packages restore without a network or a publishing account, because they live in the repository.
+  Other packages still come from nuget.org.
 - NFC's users see no change, because every adoption proves zero difference.
 
 ### Negative
@@ -145,7 +151,8 @@ Answers are added below as dated updates. They do not rewrite the decisions abov
 ### Follow-up
 
 - An authority-policy entry for `vendor/nuget` before the first package commit.
-- The package-reference allowlist test before the first adoption merges.
+- The package-closure allowlist test before the first adoption merges.
+- Locked restore in `scripts/verify.py` and `scripts/package.ps1` before the first package commit.
 - The amendment of ADR 0081 and ADR 0006 before the process runner adoption.
 - The first adoption pull request links this ADR.
 
