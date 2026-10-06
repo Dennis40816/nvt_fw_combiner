@@ -32,8 +32,7 @@ the `Nvt.Core` and `Nvt.Core.Avalonia` packages.
 - Domain, Contracts, Profiles and the Application projects reference no Core package.
 - Platform, the Infrastructure projects and the non-Avalonia hosts may reference `Nvt.Core`.
 - Only Presentation.Avalonia, Desktop and DistributionLauncher may reference `Nvt.Core.Avalonia`.
-- LauncherBootstrap references no package today. The launcher adoption may add `Nvt.Core` (ADR 0083, open
-  point 5).
+- LauncherBootstrap references no package. Adding one needs its own owner decision (ADR 0083).
 
 ## Architecture-test examples
 

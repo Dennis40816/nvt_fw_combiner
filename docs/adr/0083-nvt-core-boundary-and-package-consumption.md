@@ -66,9 +66,9 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
   - Only the projects that use Avalonia today may reference `Nvt.Core.Avalonia`: Presentation.Avalonia and
     DistributionLauncher, which reference Avalonia packages, and Desktop, which uses Avalonia through
     Presentation.Avalonia.
-  - LauncherBootstrap references no package today, and an architecture test forbids one. The launcher
-    adoption may add `Nvt.Core` there and update that test, because no installed Bootstrap needs protection
-    (open point 5).
+  - LauncherBootstrap references no package, and an architecture test forbids one. The Bootstrap is the
+    trust anchor. The launcher adoption may change the Bootstrap (open point 5), but adding any package to it
+    needs its own owner decision.
 - NFC's Application ports stay. Their Infrastructure adapters delegate to Core. An adoption deletes NFC's
   duplicate implementation, not the port.
 - Today the architecture tests check project references. Two tests also pin package references:
