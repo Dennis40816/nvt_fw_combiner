@@ -69,6 +69,9 @@
 /scripts/signing_policy.py @Dennis40816
 /scripts/smoke-release.ps1 @Dennis40816
 /scripts/deploy-update-source.ps1 @Dennis40816
+# core-packages (R3)
+/core-packages.json @Dennis40816
+/scripts/fetch_core_packages.py @Dennis40816
 # release-approval-policy (R3)
 /scripts/release_promotion_policy.py @Dennis40816
 # approval-authority (R3)

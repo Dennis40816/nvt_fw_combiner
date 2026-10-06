@@ -125,6 +125,13 @@
       ]
     },
     {
+      "id": "core-packages",
+      "description": "The Core package manifest and Core's shared download script are the highest authority level (board decisions 328 and 330).",
+      "floor": "R3",
+      "roles": ["release-owner", "governance-owner"],
+      "patterns": ["core-packages.json", "scripts/fetch_core_packages.py"]
+    },
+    {
       "id": "release-approval-policy",
       "description": "The release promotion policy, which also encodes the release approval policy (board decision 102).",
       "floor": "R3",

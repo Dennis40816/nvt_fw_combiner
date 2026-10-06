@@ -208,3 +208,25 @@ The owner decided on 2026-10-06, relayed by the Commander session:
   glyph differences once.
 - After it, each adoption proves zero difference on 12.1.1 (decision 323), with stable dedicated capture
   harnesses.
+
+### 2026-10-06: Core packages are downloaded at build time (decision 330)
+
+The owner decided on 2026-10-06 11:5x, relayed by the Commander session. The owner said
+「應該說這個 bin 是顯式放進來還是用連結形式編譯時再下載可以討論」 and chose
+「A：建置時才下載 (Recommended)」.
+
+NFC commits no Core binaries. It commits only `core-packages.json` and Core's shared
+`scripts/fetch_core_packages.py`. The manifest records each package's version through its Release tag and
+asset name, and pins its SHA-256. Core's script downloads each package from Core's public Release into the
+untracked `artifacts/core-packages/` folder before restore. It checks each package's hash.
+
+This replaces the `vendor/nuget` part of the package contract in decision 324. Source mapping restricts
+`Nvt.Core` and `Nvt.Core.*` to `core-packages`. Other packages keep nuget.org. Exact `[x]` pins, lock files
+and locked restore stay.
+
+The owner holds Core's copyright. This choice gives the owner's consent to download Core from its public
+Release at build time and integrate it into NFC. Core adds explicit license text in its next version.
+
+The manifest and the shared script are R3 with `release-owner` and `governance-owner`, under decision 328.
+This pull request adds only the delivery mechanism. The first module adoption pull request adds the pins,
+lock entries, `THIRD_PARTY_NOTICES.md` and the release license copy.

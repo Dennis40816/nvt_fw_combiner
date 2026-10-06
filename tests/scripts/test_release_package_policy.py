@@ -1316,6 +1316,54 @@ foreach ($Path in @(('a' * 141), (('a' * 139) + [char]0xd83d + [char]0xde00))) {
         self.assertIn("$application.Responding", smoke_script)
         self.assertIn("$application.Dispose()", smoke_script)
 
+    @unittest.skipUnless(POWERSHELL, "PowerShell is required for package fetch tests")
+    def test_core_fetch_precedes_every_restore_and_failure_stops_packaging(self) -> None:
+        source = PACKAGE_SCRIPT.read_text(encoding="utf-8")
+        fetch_pattern = re.compile(r"(?m)^& \$Python -B .*fetch_core_packages\.py.*$")
+        fetches = list(fetch_pattern.finditer(source))
+        self.assertEqual(len(fetches), 1, "packaging must fetch Core packages once")
+        fetch = fetches[0]
+        restores = list(re.finditer(r"(?m)^\s*& \$DotNet restore\b", source))
+        self.assertTrue(restores)
+        for restore in restores:
+            self.assertLess(fetch.start(), restore.start())
+        # Execute the actual fetch and guard statements without release staging.
+        end = source.index("\n\n", fetch.start())
+        fetch_and_guard = source[fetch.start():end]
+        for exit_code in (0, 1, 2):
+            with self.subTest(exit_code=exit_code):
+                expected_arguments = ["-B", str(ROOT / "scripts/fetch_core_packages.py"),
+                                      "--manifest", str(ROOT / "core-packages.json")]
+                probe = (
+                    "import sys; assert sys.dont_write_bytecode; "
+                    f"assert sys.argv[1:] == {expected_arguments!r}; "
+                    "print('core-packages: fixture diagnostic', file=sys.stderr); "
+                    f"sys.exit({exit_code})"
+                )
+                wrapper = (
+                    "Set-StrictMode -Version Latest\n$ErrorActionPreference = 'Stop'\n"
+                    + "$FixturePython = '" + sys.executable.replace("'", "''") + "'\n"
+                    + "$RepoRoot = '" + str(ROOT).replace("'", "''") + "'\n"
+                    + "function Invoke-FetchFixture {\n    & $FixturePython -B -c '"
+                    + probe.replace("'", "''") + "' @args\n}\n"
+                    + "$Python = 'Invoke-FetchFixture'\n"
+                    + fetch_and_guard + "\nWrite-Output 'RESTORE_REACHED'\n"
+                )
+                result = subprocess.run(
+                    [str(POWERSHELL), "-NoProfile", "-NonInteractive", "-Command", wrapper],
+                    cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                    check=False, timeout=30,
+                )
+                output = result.stdout + result.stderr
+                self.assertIn("core-packages: fixture diagnostic", output)
+                if exit_code == 0:
+                    self.assertEqual(result.returncode, 0, output)
+                    self.assertIn("RESTORE_REACHED", output)
+                else:
+                    self.assertNotEqual(result.returncode, 0, output)
+                    self.assertNotIn("RESTORE_REACHED", output)
+                    self.assertIn("Core package download or verification failed", output)
+
     def test_distribution_metadata_uses_non_personal_owner_identity(self) -> None:
         distribution_metadata_paths = (
             ROOT / "LICENSE",

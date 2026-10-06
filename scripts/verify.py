@@ -2841,6 +2841,12 @@ def run_locked_solution_restore(
 
     solution_package_lock_paths(repository_root, solution)
     run(
+        [sys.executable, "-B", str(repository_root / "scripts/fetch_core_packages.py"),
+         "--manifest", str(repository_root / "core-packages.json")],
+        environment=environment,
+        log_path=log_path,
+    )
+    run(
         [dotnet, "restore", str(solution), "--locked-mode"],
         environment=environment,
         log_path=log_path,

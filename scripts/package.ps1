@@ -1489,6 +1489,9 @@ else {
 }
 $Python = (Get-Command python -ErrorAction Stop).Source
 
+& $Python -B (Join-Path $RepoRoot 'scripts/fetch_core_packages.py') --manifest (Join-Path $RepoRoot 'core-packages.json')
+if ($LASTEXITCODE -ne 0) { throw 'Core package download or verification failed before restore.' }
+
 Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $LauncherPublish, $WorkerBuild, $WorkerDist | Out-Null
 
