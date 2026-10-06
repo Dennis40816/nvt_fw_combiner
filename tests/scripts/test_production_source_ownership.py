@@ -311,7 +311,7 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
         root = Path(self.temporary_directory.name)
         analyzer = (
             root
-            / ".packages/avalonia/12.0.5/analyzers/dotnet/cs"
+            / ".packages/avalonia/12.1.1/analyzers/dotnet/cs"
             / "Avalonia.Generators.dll"
         )
         analyzer.parent.mkdir(parents=True)
@@ -320,7 +320,7 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
             "Identity": str(analyzer),
             "FullPath": str(analyzer),
             "NuGetPackageId": "Avalonia",
-            "NuGetPackageVersion": "12.0.5",
+            "NuGetPackageVersion": "12.1.1",
         }
         errors: list[str] = []
 
@@ -340,9 +340,9 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
     ) -> None:
         base = Path(self.temporary_directory.name)
         repository_root = base / "repository"
-        linked_version = repository_root / ".packages/avalonia/12.0.5"
+        linked_version = repository_root / ".packages/avalonia/12.1.1"
         linked_version.parent.mkdir(parents=True)
-        external_version = base / "external/avalonia/12.0.5"
+        external_version = base / "external/avalonia/12.1.1"
         analyzer = external_version / "analyzers/dotnet/cs" / "Avalonia.Generators.dll"
         analyzer.parent.mkdir(parents=True)
         analyzer.write_bytes(b"external generator")
@@ -366,7 +366,7 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
                             linked_version / analyzer.relative_to(external_version)
                         ),
                         "NuGetPackageId": "Avalonia",
-                        "NuGetPackageVersion": "12.0.5",
+                        "NuGetPackageVersion": "12.1.1",
                     }
                 ],
             },

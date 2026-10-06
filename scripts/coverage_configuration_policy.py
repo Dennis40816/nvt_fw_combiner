@@ -30,22 +30,22 @@ APPROVED_PACKAGE_ANALYZERS = frozenset(
     for package, version, relative_path in (
         (
             "Avalonia",
-            "12.0.5",
+            "12.1.1",
             "analyzers/dotnet/cs/Avalonia.Analyzers.CSharp.dll",
         ),
         (
             "Avalonia",
-            "12.0.5",
+            "12.1.1",
             "analyzers/dotnet/cs/Avalonia.Analyzers.CodeFixes.CSharp.dll",
         ),
         (
             "Avalonia",
-            "12.0.5",
+            "12.1.1",
             "analyzers/dotnet/cs/Avalonia.Analyzers.VisualBasic.dll",
         ),
         (
             "Avalonia",
-            "12.0.5",
+            "12.1.1",
             "analyzers/dotnet/cs/Avalonia.Generators.dll",
         ),
         (
