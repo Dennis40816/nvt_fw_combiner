@@ -1,9 +1,10 @@
 #Requires -Version 7.4
 # Usage: pwsh -NoProfile -File <this file> -Repo OWNER/REPO -Base BASE -Head HEAD -Title TITLE
-#        -BodyFile FILE -ClientId CLIENT_ID -InstallationId ID -DpapiPath PATH [-Draft] [-ExpectedAuthor LOGIN]
+#        -BodyFile FILE -ClientId CLIENT_ID -InstallationId ID -DpapiPath PATH [-Draft]
 # Parse options ourselves so every usage error, including missing or unknown options, exits with 64.
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$expectedAuthor = 'app/nfc-agent-dennis40816'
 
 function Split-NfcPrArguments {
     param([AllowEmptyString()][AllowEmptyCollection()][string[]]$Arguments)
@@ -11,7 +12,7 @@ function Split-NfcPrArguments {
     $options = @{}
     for ($i = 0; $i -lt $Arguments.Count; $i++) {
         $name = $Arguments[$i] -replace '^-', ''
-        if (-not $Arguments[$i].StartsWith('-') -or $name -notin ($required + @('Draft', 'ExpectedAuthor'))) {
+        if (-not $Arguments[$i].StartsWith('-') -or $name -notin ($required + @('Draft'))) {
             throw "Unknown option '$($Arguments[$i])'."
         }
         if ($options.ContainsKey($name)) { throw "Option -$name is given more than once." }
@@ -36,10 +37,6 @@ function Split-NfcPrArguments {
     if (-not [IO.File]::Exists($options.BodyFile)) { throw 'Option -BodyFile must name an existing file.' }
     $options.BodyFile = [IO.Path]::GetFullPath($options.BodyFile)
     if (-not $options.ContainsKey('Draft')) { $options.Draft = $false }
-    if (-not $options.ContainsKey('ExpectedAuthor')) { $options.ExpectedAuthor = 'app/nfc-agent-dennis40816' }
-    if ($options.ExpectedAuthor -cnotmatch '^(?:app/)?[A-Za-z0-9-]+(?:\[bot\])?\z') {
-        throw 'Option -ExpectedAuthor must be a GitHub author login.'
-    }
     return $options
 }
 
@@ -52,6 +49,9 @@ function Invoke-NfcPrWrapper {
     $psi.CreateNoWindow = $true
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
+    foreach ($name in @('GH_HOST', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN')) {
+        [void]$psi.Environment.Remove($name)
+    }
     foreach ($argument in $Arguments) { [void]$psi.ArgumentList.Add($argument) }
     $process = [Diagnostics.Process]::Start($psi)
     try {
@@ -62,7 +62,12 @@ function Invoke-NfcPrWrapper {
     } finally { $process.Dispose() }
 }
 
-try { $options = Split-NfcPrArguments -Arguments $args }
+try {
+    $options = Split-NfcPrArguments -Arguments $args
+    if ($null -ne $env:GH_HOST -and -not [string]::Equals($env:GH_HOST, 'github.com', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'GH_HOST must be github.com when set.'
+    }
+}
 catch {
     [Console]::Error.WriteLine("NFC open-pr usage error: $($_.Exception.Message)")
     exit 64
@@ -100,11 +105,11 @@ try {
             }
         }
     } catch { $actual = '<unreadable>' }
-    if ([string]::Equals($actual, $options.ExpectedAuthor, [StringComparison]::Ordinal)) {
+    if ([string]::Equals($actual, $expectedAuthor, [StringComparison]::Ordinal)) {
         [Console]::Out.WriteLine($url)
         exit 0
     }
-    $reason = "PR author verification failed: expected '$($options.ExpectedAuthor)', actual '$actual'; $url. Closing this pull request."
+    $reason = "PR author verification failed: expected '$expectedAuthor', actual '$actual'; $url. Closing this pull request."
     [Console]::Error.WriteLine($reason)
     $closed = Invoke-NfcPrWrapper -Arguments ($prefix + @('pr', 'close', $number, '--repo', $options.Repo, '--comment', $reason))
     if ($closed.ExitCode -ne 0) {

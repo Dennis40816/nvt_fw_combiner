@@ -1685,11 +1685,16 @@ Describe 'NFC G0 gh wrapper process with a fake helper and a fake gh' {
 
 function Invoke-NfcFakeOpenPr {
     param([string]$WorkDir, [string[]]$Arguments, [string]$Scenario = 'match',
-          [string]$Author = 'app/nfc-agent-dennis40816', [switch]$RealProcess)
+          [string]$Author = 'app/nfc-agent-dennis40816', [switch]$RealProcess, [hashtable]$Environment = @{})
     $source = Get-Content -LiteralPath "$PSScriptRoot/../open-pr.ps1" -Raw
     $fake = @'
 function Invoke-NfcPrWrapper {
     param([string[]]$Arguments)
+    if ($env:NFC_TEST_PR_CHECK_HOST_ENV -eq '1') {
+        foreach ($name in @('GH_HOST', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN')) {
+            if (Test-Path "Env:$name") { throw "Unexpected wrapper environment variable: $name" }
+        }
+    }
     [IO.File]::AppendAllText($env:NFC_TEST_PR_CALLS, (ConvertTo-Json -InputObject $Arguments -Compress) + "`n")
     $command = $Arguments[([Array]::IndexOf($Arguments, '--') + 2)]
     $scenario = $env:NFC_TEST_PR_SCENARIO
@@ -1739,8 +1744,10 @@ exit $result.ExitCode
     [IO.File]::WriteAllText((Join-Path $WorkDir 'body file.md'), 'fake PR body')
     $calls = Join-Path $WorkDir 'pr-calls.jsonl'
     if (Test-Path -LiteralPath $calls) { Remove-Item -LiteralPath $calls }
+    $processEnvironment = @{ NFC_TEST_PR_CALLS = $calls; NFC_TEST_PR_SCENARIO = $Scenario; NFC_TEST_PR_AUTHOR = $Author }
+    foreach ($key in $Environment.Keys) { $processEnvironment[$key] = $Environment[$key] }
     $result = Invoke-NfcTestProcess -Arguments (@('-NoProfile', '-File', $scriptPath) + $Arguments) `
-        -Environment @{ NFC_TEST_PR_CALLS = $calls; NFC_TEST_PR_SCENARIO = $Scenario; NFC_TEST_PR_AUTHOR = $Author }
+        -Environment $processEnvironment
     $result.Calls = @()
     if (Test-Path -LiteralPath $calls) {
         $result.Calls = @(Get-Content -LiteralPath $calls | ForEach-Object { ,($_ | ConvertFrom-Json) })
@@ -1811,9 +1818,41 @@ Describe 'NFC G0 open PR as the App' {
         $result.Error | Should BeExactly ''
     }
 
-    It 'adds draft only to create when requested and allows an explicit expected author' {
-        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Author 'app/fake-agent' `
-            -Arguments ($script:NfcOpenPrArguments + @('-Draft', '-ExpectedAuthor', 'app/fake-agent'))
+    It 'rejects ExpectedAuthor as an unknown option with 64 before any wrapper call' {
+        foreach ($author in @('app/nfc-agent-dennis40816', 'app/fake-agent')) {
+            $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive `
+                -Arguments ($script:NfcOpenPrArguments + @('-ExpectedAuthor', $author))
+            $result.ExitCode | Should Be 64
+            $result.Calls.Count | Should Be 0
+            $result.Error | Should Match 'usage error: Unknown option'
+            $result.Error | Should Match ([regex]::Escape('-ExpectedAuthor'))
+            $result.Output | Should BeExactly ''
+        }
+    }
+
+    It 'rejects a non-GitHub.com GH_HOST with 64 before any wrapper call' {
+        foreach ($hostName in @('enterprise.example', 'github.com.example', 'https://github.com', ' github.com', 'github.com ')) {
+            $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments `
+                -Environment @{ GH_HOST = $hostName }
+            $result.ExitCode | Should Be 64
+            $result.Calls.Count | Should Be 0
+            $result.Error | Should Match 'usage error: GH_HOST'
+            $result.Output | Should BeExactly ''
+        }
+    }
+
+    It 'removes host and enterprise credential variables from the wrapper process environment' {
+        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -RealProcess `
+            -Environment @{ GH_HOST = 'GiThUb.CoM'; GH_ENTERPRISE_TOKEN = 'fake enterprise value';
+                GITHUB_ENTERPRISE_TOKEN = 'another fake enterprise value'; NFC_TEST_PR_CHECK_HOST_ENV = '1' }
+        $result.ExitCode | Should Be 0
+        $result.Calls.Count | Should Be 2
+        $result.Error | Should BeExactly ''
+        $result.Output.TrimEnd() | Should BeExactly 'https://github.com/owner/repo/pull/42'
+    }
+
+    It 'adds draft only to create when requested' {
+        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments ($script:NfcOpenPrArguments + @('-Draft'))
         $result.ExitCode | Should Be 0
         $result.Calls[0][-1] | Should BeExactly '--draft'
         ($result.Calls[1] -contains '--draft') | Should Be $false
@@ -1821,7 +1860,7 @@ Describe 'NFC G0 open PR as the App' {
     }
 
     It 'closes a wrong author including a case-only mismatch and reports both authors and URL' {
-        foreach ($author in @('owner', 'app/NFC-agent-dennis40816')) {
+        foreach ($author in @('owner', 'app/fake-agent', 'app/NFC-agent-dennis40816')) {
             $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -Author $author
             $result.ExitCode | Should Be 1
             $result.Calls.Count | Should Be 3

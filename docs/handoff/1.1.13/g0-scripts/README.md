@@ -138,9 +138,12 @@ Replace the placeholders, then run this line from the installed scripts director
 pwsh -NoProfile -File .\open-pr.ps1 -Repo OWNER/REPO -Base 1.2.x -Head feature/1.2.5/TOPIC -Title 'fix: describe the change' -BodyFile .\pr-body.md -ClientId '<client-id>' -InstallationId '<installation-id>' -DpapiPath '<dpapi-path>'
 ```
 
-Add `-Draft` for a draft pull request. `-ExpectedAuthor` defaults to the NFC App
-login; set it explicitly for another App. The script uses the wrapper's default
-six permissions. It exits with 64 for a usage error, 0 after verifying the author
+Add `-Draft` for a draft pull request. The script always verifies the exact NFC
+App login `app/nfc-agent-dennis40816`. It rejects `GH_HOST` values other than
+`github.com` (ignoring case) before calling the wrapper and removes `GH_HOST`,
+`GH_ENTERPRISE_TOKEN` and `GITHUB_ENTERPRISE_TOKEN` from the wrapper process
+environment. The script uses the wrapper's default six permissions. It exits
+with 64 for a usage error, 0 after verifying the author
 (the URL is the last output line), or 1 for a failure. An author mismatch or
 unreadable author triggers a close with the reason as a comment. If closing
 fails, close the pull request manually before retrying.
