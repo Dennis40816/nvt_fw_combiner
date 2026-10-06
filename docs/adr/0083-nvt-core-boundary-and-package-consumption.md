@@ -1,8 +1,8 @@
 # ADR 0083: NVT Core boundary and package consumption
 
 - Status: Accepted. The owner decided the boundary and the package choice in board decisions 322 to 326. Rules
-  marked "commander's rule" implement those decisions and apply until the owner changes them. The items in
-  "Open points" are not decided.
+  marked "commander's rule" implement those decisions and apply until the owner changes them. The owner answered
+  open points 1 to 4 in decision 328. Open point 5 is not decided.
 - Date: 2026-10-06
 - Owners: the owner decides. The NFC commander session implements and records dated updates here.
 - Supersedes: None
@@ -43,8 +43,8 @@ Core owns generic mechanisms. NFC's module list is in decision 322: the launcher
 verification, activation, recovery and rollback), the message center, the shell with navigation and
 workspace, report lists, shared locale and accessibility strings, the process runner, the path guard with
 bounded reads and hashes, the clock and the startup trace. The NVT CORE session moves NFC's theme, focus
-behaviors, JSON persistence and loading surface. How much of the shell moves now is still open (open
-point 4).
+behaviors, JSON persistence and loading surface. The shell move covers only navigation history and the existing
+page host interface for now (decision 328).
 
 NFC keeps firmware writing, CRC, profiles and NFC's product identity (decision 322). NFU's atomic output never
 replaces NFC's hardened firmware writer (decision 322). Commander's rule: NFC also keeps its output policy and
@@ -56,18 +56,23 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
 - NFC depends on Core packages. Core never depends on NFC or on any other tool.
 - The Core skeleton targets `Nvt.Core` at net8.0 with the base class library only, and `Nvt.Core.Avalonia`
   at net10.0 with Avalonia 12.0.5.
-- Commander's rule, following `docs/architecture/dependency-rules.md`:
+- Commander's rule, extending `docs/architecture/dependency-rules.md`. This ADR is the normative source for
+  Core package references. That file points here.
   - Domain, Contracts, Profiles and the Application projects never reference a Core package. The Application
     projects include `VersionManagement.Application`. They may use the base class library, for example
     `TimeProvider`.
-  - Platform, the Infrastructure projects and the non-Avalonia hosts may reference `Nvt.Core`.
-  - Only the projects that already use Avalonia may reference `Nvt.Core.Avalonia`: Presentation.Avalonia,
-    Desktop, Launcher, LauncherBootstrap and DistributionLauncher.
+  - Platform, the Infrastructure projects and the non-Avalonia hosts, for example Launcher, may reference
+    `Nvt.Core`.
+  - Only the projects with Avalonia package references today may reference `Nvt.Core.Avalonia`:
+    Presentation.Avalonia, Desktop and DistributionLauncher.
+  - LauncherBootstrap references no Core package. An architecture test forbids any package reference there,
+    and the installed Bootstrap stays unchanged (open point 5).
 - NFC's Application ports stay. Their Infrastructure adapters delegate to Core. An adoption deletes NFC's
   duplicate implementation, not the port.
-- Today the architecture tests check project references, and one test pins the launcher bootstrap's exact
-  package references. A test that allows Core package references per project is a follow-up before the first
-  adoption merges. The launcher adoption also updates the pinned package list.
+- Today the architecture tests check project references. Two tests also pin package references:
+  DistributionLauncher has exactly four Avalonia packages, and LauncherBootstrap has none. A test that allows
+  Core package references per project is a follow-up before the first adoption merges. An adoption that adds
+  a Core package to DistributionLauncher also updates its pinned list.
 
 ### Package contract
 
@@ -109,7 +114,8 @@ The commander's assessment, not stated in the decisions:
 
 ## Open points
 
-These points wait for the owner. The status ledger lists them in section 4.
+The owner answered points 1 to 4 on 2026-10-06 (see Dated updates). Point 5 is still open. The status ledger
+lists them in section 4.
 
 1. The authority floor and roles for `vendor/nuget`.
 2. Whether strict manifest schema validation stays in NFC while Core receives validated facts.
@@ -143,4 +149,19 @@ Answers are added below as dated updates. They do not rewrite the decisions abov
 
 ## Dated updates
 
-None yet.
+### 2026-10-06: open points 1 to 5 (decision 328)
+
+The owner answered on 2026-10-06 09:0x, relayed by the Commander session. Each answer accepts the
+recommendation.
+
+1. `vendor/nuget` authority: the highest level. Each commit of Core package files and `SOURCE.md` is R3, and
+   the owner approves it on GitHub. Changes to the authority policy and CODEOWNERS for this path are
+   governance changes that the owner also approves.
+2. Manifest schema: strict JSON schema validation stays in NFC. Core receives validated results and checks
+   identity and limits again. Core has no path that accepts a manifest by default.
+3. Message center: the display mechanism and its lifecycle move to Core. NFC keeps its XAML template and
+   its wording.
+4. Shell: this move covers only navigation history and the existing page host interface. Product pages,
+   firmware guards and startup preload stay in NFC. A larger shell move needs its own brief.
+5. Installed Bootstrap: not answered. Until the owner answers, the installed Bootstrap's bytes and protocol 1
+   stay unchanged. No work that replaces or migrates it starts.
