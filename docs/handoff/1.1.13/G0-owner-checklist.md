@@ -862,6 +862,40 @@ and the hashes above decide whether the copy is right.
 Rollback: point the Git helper entry and the wrapper path back at the eighth
 version's folder and tell the commander; nothing else changes.
 
+### A6d. `open-pr.ps1` (tenth version; owner proposal 2026-10-06)
+
+The tenth version adds `open-pr.ps1`. It opens a pull request through the
+installed `Invoke-NfcGh.ps1` and closes it unless its author is exactly
+`app/nfc-agent-dennis40816`, the login that `gh pr view --json author` reports
+for the App. The owner asked for it on 2026-10-06: 「或許開 PR 要有標準
+script? 確保不用錯帳號」. The helper, the wrapper and every other file keep the
+ninth version's hashes. It changes or adds three files:
+
+| File | SHA-256 (tenth version, LF repository bytes) |
+| --- | --- |
+| `open-pr.ps1` | `2a0c2f3f4ebeb07af4c6d0b7fec72cf110e4541bf1364a27dabf06b977fd15e0` |
+| `README.md` | `d9b64d69413888fa287dbd029c568337234a3505d8ad18a4dd57d475ce77e23f` |
+| `tests/NfcG0.Tests.ps1` | `6cb8128fbb9dde6e8ac3b144763b54917e458b938ec8e151e8b2c801526ccc7f` |
+
+1. **owner → owner** (or the commander on the owner's instruction). After the
+   pull request is merged, export the folder from the approved head exactly as
+   in [A6c](#a6c-optional-issues-write-switch-ninth-version-decision-319)
+   step 1. Compare the three files with the hashes above, and every other file
+   with the ninth version's hashes and the inventory tables above. Keep the
+   ninth version's folder for rollback.
+2. **owner → owner.** In the new folder run
+   `pwsh -NoProfile -File tests/Invoke-NfcG0Tests.ps1`; it must exit with 0
+   and report no failed test.
+3. **owner → owner.** Point each repository's Git helper entry at the new
+   folder's helper with the same options as before, and tell each project's
+   commander the new folder.
+4. **agent → App.** The next pull request of each commander is opened with
+   the installed `open-pr.ps1`. It must print the pull request URL as its last
+   line and exit with 0.
+
+Rollback: point the Git helper entry and the wrapper path back at the ninth
+version's folder and tell the commander; nothing else changes.
+
 ### A7. Agent commit identity
 
 - [ ] **owner → none.** Set, at the repository scope, `user.name` =
