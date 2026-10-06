@@ -73,7 +73,7 @@ public sealed partial class XamlControlStyleContractTests
                 _ = Directory.CreateDirectory(directory);
                 using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, $"information-card-{width}.png"));
+                frame.SavePng(Path.Combine(directory, $"information-card-{width}.png"));
             }
         }
         finally

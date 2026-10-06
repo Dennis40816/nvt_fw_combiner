@@ -161,7 +161,7 @@ public sealed class CtrlRamSelectorLayoutTests
             if (!string.IsNullOrWhiteSpace(imageDirectory))
             {
                 _ = Directory.CreateDirectory(imageDirectory);
-                frame.Save(Path.Combine(imageDirectory, $"ctrlram-selector-{width}-{height}-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}-{(selected ? "selected" : "empty")}.png"));
+                frame.SavePng(Path.Combine(imageDirectory, $"ctrlram-selector-{width}-{height}-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}-{(selected ? "selected" : "empty")}.png"));
             }
             foreach (SpaciousPanel group in groups)
             {
@@ -294,7 +294,7 @@ public sealed class CtrlRamSelectorLayoutTests
                 {
                     using Avalonia.Media.Imaging.Bitmap? expandedFrame = window.GetLastRenderedFrame();
                     Assert.NotNull(expandedFrame);
-                    expandedFrame.Save(Path.Combine(imageDirectory, $"fw-details-{width}-{height}-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}-expanded.png"));
+                    expandedFrame.SavePng(Path.Combine(imageDirectory, $"fw-details-{width}-{height}-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}-expanded.png"));
                 }
                 Assert.True(disclosure.Focus(NavigationMethod.Tab));
                 window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");

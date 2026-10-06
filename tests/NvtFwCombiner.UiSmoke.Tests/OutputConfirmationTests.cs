@@ -378,7 +378,7 @@ public sealed class OutputConfirmationTests
                 _ = Directory.CreateDirectory(outputDirectory);
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(outputDirectory, $"output-confirmation-{(bundle ? "bundle" : "loose")}-{(additional ? "extra" : "single")}-{(chineseDark ? "dark-zh" : "light-en")}{(oversizedTp ? "-cascade" : "")}{(customAlias ? $"-{rawA:X2}-{rawB:X2}" : "")}.png"));
+                frame.SavePng(Path.Combine(outputDirectory, $"output-confirmation-{(bundle ? "bundle" : "loose")}-{(additional ? "extra" : "single")}-{(chineseDark ? "dark-zh" : "light-en")}{(oversizedTp ? "-cascade" : "")}{(customAlias ? $"-{rawA:X2}-{rawB:X2}" : "")}.png"));
             }
         }
         finally { window.Close(); }

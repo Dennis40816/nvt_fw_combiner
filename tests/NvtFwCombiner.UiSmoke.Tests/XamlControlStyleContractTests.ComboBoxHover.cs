@@ -124,7 +124,7 @@ public sealed partial class XamlControlStyleContractTests
                 string themeName = useDarkTheme ? "dark" : "light";
                 using FileStream output = File.Create(
                     Path.Combine(outputDirectory, $"dropdown-option-a-{themeName}.png"));
-                frame.Save(output);
+                frame.SavePng(output);
             }
 
             Point selectedPoint = Assert.IsType<Point>(selectedItem.TranslatePoint(

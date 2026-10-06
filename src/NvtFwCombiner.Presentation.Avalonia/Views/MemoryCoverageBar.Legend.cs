@@ -52,7 +52,6 @@ public sealed partial class MemoryCoverageBar
 
     private void InitializeOverview()
     {
-        Grid.SetIsSharedSizeScope(_legend, true);
         _header.Children.Add(new WrapPanel { Name = "MemoryOverviewTitle", Children = { _heading, _capacity } });
         _heading.Margin = new Thickness(0, 0, 8, 0);
         _addresses.Children.Add(_startAddress);
@@ -167,7 +166,8 @@ public sealed partial class MemoryCoverageBar
                 Margin = new Thickness(0, 0, 0, 2),
             };
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
-            row.ColumnDefinitions[2].SharedSizeGroup = "LegendAddress";
+            // No shared size group: Avalonia 12.1 applies groups set on code-built columns, which 12.0.5 ignored.
+            // Each address column fits its own range, as on 12.0.5.
             Control marker = new ContentControl { Content = slice, ContentTemplate = markerTemplate, VerticalAlignment = VerticalAlignment.Center };
             if (slice.DisplayParts.Any(part => part.FillRole != slice.FillRole || part.UsesKeptPattern != slice.UsesKeptPattern))
             {

@@ -69,7 +69,7 @@ public sealed partial class XamlControlStyleContractTests
             if (!string.IsNullOrWhiteSpace(visualOutput))
             {
                 _ = Directory.CreateDirectory(visualOutput);
-                frame.Save(Path.Combine(visualOutput, $"event-buffer-format-{width}x{height}-{(useDarkTheme ? "dark" : "light")}-{(traditionalChinese ? "zh-Hant" : "en")}.png"));
+                frame.SavePng(Path.Combine(visualOutput, $"event-buffer-format-{width}x{height}-{(useDarkTheme ? "dark" : "light")}-{(traditionalChinese ? "zh-Hant" : "en")}.png"));
             }
 
             Assert.Equal(new Size(width, height), window.Bounds.Size);
@@ -205,7 +205,7 @@ public sealed partial class XamlControlStyleContractTests
             {
                 using Avalonia.Media.Imaging.Bitmap? confirmationFrame = window.GetLastRenderedFrame();
                 Assert.NotNull(confirmationFrame);
-                confirmationFrame.Save(Path.Combine(visualOutput,
+                confirmationFrame.SavePng(Path.Combine(visualOutput,
                     $"config-confirmation-{width}x{height}-{(useDarkTheme ? "dark" : "light")}-{(traditionalChinese ? "zh-Hant" : "en")}.png"));
             }
             foreach (Button expected in new[] { discardClose, keepEditing, discardClose, keepEditing })

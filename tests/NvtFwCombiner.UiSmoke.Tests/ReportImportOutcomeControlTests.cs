@@ -70,7 +70,7 @@ public sealed class ReportImportOutcomeControlTests
                 _ = Directory.CreateDirectory(directory);
                 using global::Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, $"unknown-report-{dark}-{chinese}.png"));
+                frame.SavePng(Path.Combine(directory, $"unknown-report-{dark}-{chinese}.png"));
             }
             TabControl tabs = Assert.Single(window.GetVisualDescendants().OfType<TabControl>(),
                 item => item.Classes.Contains("reportTabs"));

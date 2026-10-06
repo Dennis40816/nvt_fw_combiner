@@ -169,7 +169,7 @@ public sealed class MemoryCoverageExplorerTests
         _ = Directory.CreateDirectory(directory);
         using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
         Assert.NotNull(frame);
-        frame.Save(Path.Combine(directory, $"{name}.png"));
+        frame.SavePng(Path.Combine(directory, $"{name}.png"));
     }
 
     private static void Render()

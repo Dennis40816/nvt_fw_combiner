@@ -327,7 +327,7 @@ public sealed partial class XamlControlStyleContractTests
             {
                 _ = Directory.CreateDirectory(imageDirectory);
                 using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
-                frame?.Save(Path.Combine(imageDirectory, $"firmware-slot-additional-facts-{width}.png"));
+                frame?.SavePng(Path.Combine(imageDirectory, $"firmware-slot-additional-facts-{width}.png"));
             }
 
             ItemsControl primary = Assert.IsType<ItemsControl>(
@@ -470,7 +470,7 @@ public sealed partial class XamlControlStyleContractTests
                     outputDirectory,
                     $"nfc-slot-selector-{slotName}-{width:F0}-{themeName}.png");
                 await using FileStream output = File.Create(outputPath);
-                frame.Save(output);
+                frame.SavePng(output);
             }
         }
         finally

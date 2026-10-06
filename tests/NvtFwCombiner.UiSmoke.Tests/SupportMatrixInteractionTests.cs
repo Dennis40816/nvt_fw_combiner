@@ -255,7 +255,7 @@ public sealed class SupportMatrixInteractionTests
         if (!string.IsNullOrWhiteSpace(directory))
         {
             _ = Directory.CreateDirectory(directory);
-            frame.Save(Path.Combine(directory, $"support-matrix-{state}.png"));
+            frame.SavePng(Path.Combine(directory, $"support-matrix-{state}.png"));
         }
     }
 }

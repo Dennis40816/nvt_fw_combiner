@@ -55,7 +55,7 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
 
 - NFC depends on Core packages. Core never depends on NFC or on any other tool.
 - The Core skeleton targets `Nvt.Core` at net8.0 with the base class library only, and `Nvt.Core.Avalonia`
-  at net10.0 with Avalonia 12.0.5.
+  at net10.0 with Avalonia 12.1.1 (12.0.5 until decision 329).
 - Commander's rule, extending `docs/architecture/dependency-rules.md`. This ADR is the normative source for
   Core package references. That file points here.
   - Domain, Contracts, Profiles and the Application projects never reference a Core package. The Application
@@ -198,3 +198,13 @@ use `--locked-mode`.
    `-r win-x64` restore needed a `win-x64` target in the Desktop and Presentation.Avalonia lock files. A
    restore added that target to both files, with the 8 native-asset packages that the net10.0 target
    already pins. No package version changed. ReadyToRun adds no lock entry.
+
+### 2026-10-06: Avalonia 12.1.1 (decision 329)
+
+The owner decided on 2026-10-06, relayed by the Commander session:
+- `Nvt.Core.Avalonia` targets Avalonia 12.1.1 instead of 12.0.5.
+- NFC moves to 12.1.1 in one upgrade pull request before it adopts `Nvt.Core.Avalonia`. That pull request is
+  the only time NFC's screen baseline changes because of an Avalonia upgrade. The owner approves its remaining
+  glyph differences once.
+- After it, each adoption proves zero difference on 12.1.1 (decision 323), with stable dedicated capture
+  harnesses.

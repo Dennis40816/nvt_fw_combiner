@@ -93,7 +93,7 @@ public sealed partial class RunReportsListTests
                 _ = Directory.CreateDirectory(directory);
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(directory, $"run-reports-{width}-{height}-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}.png"));
+                frame.SavePng(Path.Combine(directory, $"run-reports-{width}-{height}-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}.png"));
             }
             ReportHistoryEntryViewModel entry = Assert.Single(shell.Reports.ReportHistoryEntries);
             _ = row.Focus();

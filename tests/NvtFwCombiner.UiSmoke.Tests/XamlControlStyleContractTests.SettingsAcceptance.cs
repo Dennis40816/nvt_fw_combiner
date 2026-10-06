@@ -94,7 +94,7 @@ public sealed partial class XamlControlStyleContractTests
                     await using FileStream output = File.Create(Path.Combine(
                         outputDirectory,
                         $"settings-preferences-compact-980x640-zh-tw-{variant.Name}.png"));
-                    frame.Save(output);
+                    frame.SavePng(output);
                 }
             }
             finally

@@ -199,7 +199,7 @@ public sealed class CtrlRamLaunchTests
             using (Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame())
             {
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(evidenceDirectory, "main-window-normal-warning.png"));
+                frame.SavePng(Path.Combine(evidenceDirectory, "main-window-normal-warning.png"));
             }
 
             window.MouseMove(new Point(4, 4), RawInputModifiers.None);

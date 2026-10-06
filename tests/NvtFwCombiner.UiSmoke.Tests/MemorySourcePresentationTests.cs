@@ -215,7 +215,7 @@ public sealed class MemorySourcePresentationTests
             {
                 _ = Directory.CreateDirectory(destination);
                 using FileStream stream = File.Create(Path.Combine(destination, $"memory-source-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}.png"));
-                frame.Save(stream);
+                frame.SavePng(stream);
             }
         }
         finally { window.Close(); }
@@ -272,7 +272,7 @@ public sealed class MemorySourcePresentationTests
             {
                 _ = Directory.CreateDirectory(destination);
                 using FileStream stream = File.Create(Path.Combine(destination, $"memory-plan-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}.png"));
-                frame.Save(stream);
+                frame.SavePng(stream);
             }
         }
         finally { window.Close(); }

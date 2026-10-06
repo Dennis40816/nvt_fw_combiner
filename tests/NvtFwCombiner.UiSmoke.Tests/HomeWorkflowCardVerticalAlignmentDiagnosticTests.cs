@@ -138,7 +138,7 @@ public sealed class HomeWorkflowCardVerticalAlignmentDiagnosticTests
                 _ = Directory.CreateDirectory(outputDirectory);
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(outputDirectory, "home-workflow-inter-1180x760.png"));
+                frame.SavePng(Path.Combine(outputDirectory, "home-workflow-inter-1180x760.png"));
             }
         }
         finally

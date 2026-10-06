@@ -127,7 +127,7 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             if (output is not null)
             {
                 _ = Directory.CreateDirectory(output);
-                frame.Save(Path.Combine(output, $"ab-info-layout-a-only-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
+                frame.SavePng(Path.Combine(output, $"ab-info-layout-a-only-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
             }
             PressSpace(window);
             Assert.False(viewModel.Replace.IsViewingCtrlRamBankB);
@@ -157,7 +157,7 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             Assert.NotNull(bothFrame);
             if (output is not null)
             {
-                bothFrame.Save(Path.Combine(output, $"ab-info-layout-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
+                bothFrame.SavePng(Path.Combine(output, $"ab-info-layout-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
             }
             viewModel.Replace.ReplaceBaseSlot.IsAdditionalFirmwareFactsExpanded = true;
             Assert.Contains(viewModel.Replace.ReplaceBaseSlot.AdditionalFirmwareFacts, static fact => fact.Label == "DPA Version");
@@ -169,7 +169,7 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             Assert.NotNull(detailsFrame);
             if (output is not null)
             {
-                detailsFrame.Save(Path.Combine(output, $"ab-info-details-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
+                detailsFrame.SavePng(Path.Combine(output, $"ab-info-details-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
             }
             _ = CtrlRamMemoryLayoutTests.OpenLane(window, viewModel.Replace.CtrlRamFocusLanes[0]);
             Control nfCell = window.GetVisualDescendants().OfType<Control>().First(static control =>
@@ -209,7 +209,7 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             Assert.NotNull(hoverFrame);
             if (output is not null)
             {
-                hoverFrame.Save(Path.Combine(output, $"ab-focus-hover-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
+                hoverFrame.SavePng(Path.Combine(output, $"ab-focus-hover-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
             }
             await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.B);
             AssertNfSourceNames();
@@ -346,7 +346,7 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
             if (output is not null)
             {
                 _ = Directory.CreateDirectory(output);
-                frame.Save(Path.Combine(output, $"ab-ctrlram-980x720-{(dark ? "dark" : "light")}-{(chinese ? "zh-tw" : "en")}.png"));
+                frame.SavePng(Path.Combine(output, $"ab-ctrlram-980x720-{(dark ? "dark" : "light")}-{(chinese ? "zh-tw" : "en")}.png"));
             }
         }
         finally

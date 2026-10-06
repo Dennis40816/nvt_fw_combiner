@@ -172,7 +172,7 @@ public sealed class OutputDeliveryReferenceTests(ShellViewModelTestHostFixture f
                 await using FileStream output = File.Create(Path.Combine(
                     outputDirectory,
                     $"build-settings-a3-t2-980x720-{themeName}-{languageName}.png"));
-                frame.Save(output);
+                frame.SavePng(output);
             }
 
             sourcesToggle.IsChecked = true;

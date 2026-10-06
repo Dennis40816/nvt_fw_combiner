@@ -203,7 +203,7 @@ public sealed partial class FirmwareInspectionSlotTests
                 _ = Directory.CreateDirectory(renderDirectory);
                 using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                 Assert.NotNull(frame);
-                frame.Save(Path.Combine(renderDirectory, $"name-recovered-{bundle}-{chineseDark}.png"));
+                frame.SavePng(Path.Combine(renderDirectory, $"name-recovered-{bundle}-{chineseDark}.png"));
             }
         }
         finally { window.Close(); }
@@ -342,7 +342,7 @@ public sealed partial class FirmwareInspectionSlotTests
                     _ = Directory.CreateDirectory(renderDirectory);
                     using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
                     Assert.NotNull(frame);
-                    frame.Save(Path.Combine(renderDirectory, $"name-error-{chineseDark}-{expanded}-{width}-{(offset == 0 ? "top" : "bottom")}.png"));
+                    frame.SavePng(Path.Combine(renderDirectory, $"name-error-{chineseDark}-{expanded}-{width}-{(offset == 0 ? "top" : "bottom")}.png"));
                 }
 
                 Point origin = warning.TranslatePoint(default, window)!.Value;

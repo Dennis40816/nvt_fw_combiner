@@ -97,7 +97,7 @@ public sealed partial class XamlControlStyleContractTests
         if (Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR") is { Length: > 0 } directory)
         {
             _ = Directory.CreateDirectory(directory);
-            frame.Save(Path.Combine(directory, $"toolchain-{state}.png"));
+            frame.SavePng(Path.Combine(directory, $"toolchain-{state}.png"));
         }
     }
 }

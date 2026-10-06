@@ -223,7 +223,7 @@ public sealed class ReleaseExampleScreenshots
             string name = captureWarningPopup
                 ? $"{exampleId}-{stage}-{(chineseDark ? "dark-zh" : "light-en")}-{state}.png"
                 : $"{exampleId}-{state}.png";
-            frame.Save(Path.Combine(outputDirectory, name));
+            frame.SavePng(Path.Combine(outputDirectory, name));
         }
     }
 

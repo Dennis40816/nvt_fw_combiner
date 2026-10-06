@@ -77,7 +77,7 @@ public sealed partial class XamlControlStyleContractTests
             if (directory is not null)
             {
                 _ = Directory.CreateDirectory(directory);
-                frame.Save(Path.Combine(directory,
+                frame.SavePng(Path.Combine(directory,
                     $"standard-{(isBase ? "base" : "tp")}-event-info-{(chineseDark ? "zh-dark" : "en-light")}.png"));
             }
         }
@@ -177,7 +177,7 @@ public sealed partial class XamlControlStyleContractTests
             if (directory is not null)
             {
                 _ = Directory.CreateDirectory(directory);
-                frame.Save(Path.Combine(directory, $"info-card-{(dark ? "dark-zh" : "light-en")}.png"));
+                frame.SavePng(Path.Combine(directory, $"info-card-{(dark ? "dark-zh" : "light-en")}.png"));
             }
         }
         finally

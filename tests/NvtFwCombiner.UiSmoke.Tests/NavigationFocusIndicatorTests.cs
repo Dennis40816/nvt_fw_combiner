@@ -405,7 +405,7 @@ public sealed class NavigationFocusIndicatorTests
                 "evidence",
                 "nav-focus-underline");
         _ = Directory.CreateDirectory(directory);
-        frame.Save(Path.Combine(directory, $"{name}-{(dark ? "dark" : "light")}.png"));
+        frame.SavePng(Path.Combine(directory, $"{name}-{(dark ? "dark" : "light")}.png"));
     }
 
     /// <summary>The dedicated sibling Border (see MainWindow.axaml) that draws a nav tab's selected

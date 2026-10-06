@@ -243,7 +243,7 @@ public sealed partial class XamlControlStyleContractTests
                 string themeName = useDarkTheme ? "dark" : "light";
                 using FileStream output = File.Create(
                     Path.Combine(outputDirectory, $"scroll-surface-{themeName}-class-{explicitClass}.png"));
-                frame.Save(output);
+                frame.SavePng(output);
             }
         }
         finally

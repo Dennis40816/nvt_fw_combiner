@@ -183,7 +183,7 @@ public sealed partial class XamlControlStyleContractTests
         using Avalonia.Media.Imaging.WriteableBitmap? frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         _ = Directory.CreateDirectory(destination);
-        frame.Save(Path.Combine(destination, $"{state}-production-render.png"));
+        frame.SavePng(Path.Combine(destination, $"{state}-production-render.png"));
     }
 
     /// <summary>Issue badges use the IC-details card hierarchy without changing slot geometry or readiness.</summary>

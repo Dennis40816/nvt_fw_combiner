@@ -59,7 +59,7 @@ public sealed partial class VersionManagementSettingsTests
             _ = Directory.CreateDirectory(outputDirectory);
             using Avalonia.Media.Imaging.WriteableBitmap? frame = window.CaptureRenderedFrame();
             Assert.NotNull(frame);
-            frame.Save(Path.Combine(outputDirectory, $"w6a-settings-{imageName}.png"));
+            frame.SavePng(Path.Combine(outputDirectory, $"w6a-settings-{imageName}.png"));
         }
         Assert.True(notice.IsVisible);
         Assert.InRange(notice.Bounds.Width, 558, 562);
