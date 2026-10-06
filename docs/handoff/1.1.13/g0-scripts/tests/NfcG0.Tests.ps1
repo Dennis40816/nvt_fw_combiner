@@ -1691,9 +1691,10 @@ function Invoke-NfcFakeOpenPr {
 function Invoke-NfcPrWrapper {
     param([string[]]$Arguments)
     if ($env:NFC_TEST_PR_CHECK_HOST_ENV -eq '1') {
-        foreach ($name in @('GH_HOST', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN')) {
+        foreach ($name in @('GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN')) {
             if (Test-Path "Env:$name") { throw "Unexpected wrapper environment variable: $name" }
         }
+        if ($env:GH_HOST -cne 'github.com') { throw "The wrapper GH_HOST is not github.com: '$env:GH_HOST'" }
     }
     [IO.File]::AppendAllText($env:NFC_TEST_PR_CALLS, (ConvertTo-Json -InputObject $Arguments -Compress) + "`n")
     $command = $Arguments[([Array]::IndexOf($Arguments, '--') + 2)]
@@ -1841,7 +1842,7 @@ Describe 'NFC G0 open PR as the App' {
         }
     }
 
-    It 'removes host and enterprise credential variables from the wrapper process environment' {
+    It 'pins GH_HOST to github.com and removes enterprise credential variables in the wrapper process' {
         $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -RealProcess `
             -Environment @{ GH_HOST = 'GiThUb.CoM'; GH_ENTERPRISE_TOKEN = 'fake enterprise value';
                 GITHUB_ENTERPRISE_TOKEN = 'another fake enterprise value'; NFC_TEST_PR_CHECK_HOST_ENV = '1' }
@@ -1849,6 +1850,14 @@ Describe 'NFC G0 open PR as the App' {
         $result.Calls.Count | Should Be 2
         $result.Error | Should BeExactly ''
         $result.Output.TrimEnd() | Should BeExactly 'https://github.com/owner/repo/pull/42'
+    }
+
+    It 'pins GH_HOST to github.com in the wrapper process when no host is inherited' {
+        $result = Invoke-NfcFakeOpenPr -WorkDir $TestDrive -Arguments $script:NfcOpenPrArguments -RealProcess `
+            -Environment @{ NFC_TEST_PR_CHECK_HOST_ENV = '1' }
+        $result.ExitCode | Should Be 0
+        $result.Calls.Count | Should Be 2
+        $result.Error | Should BeExactly ''
     }
 
     It 'adds draft only to create when requested' {

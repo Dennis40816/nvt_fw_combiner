@@ -49,9 +49,11 @@ function Invoke-NfcPrWrapper {
     $psi.CreateNoWindow = $true
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
-    foreach ($name in @('GH_HOST', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN')) {
+    # gh picks its default host from its own login state; pin github.com so the wrapper's token is the one used.
+    foreach ($name in @('GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN')) {
         [void]$psi.Environment.Remove($name)
     }
+    $psi.Environment['GH_HOST'] = 'github.com'
     foreach ($argument in $Arguments) { [void]$psi.ArgumentList.Add($argument) }
     $process = [Diagnostics.Process]::Start($psi)
     try {

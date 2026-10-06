@@ -140,9 +140,9 @@ pwsh -NoProfile -File .\open-pr.ps1 -Repo OWNER/REPO -Base 1.2.x -Head feature/1
 
 Add `-Draft` for a draft pull request. The script always verifies the exact NFC
 App login `app/nfc-agent-dennis40816`. It rejects `GH_HOST` values other than
-`github.com` (ignoring case) before calling the wrapper and removes `GH_HOST`,
-`GH_ENTERPRISE_TOKEN` and `GITHUB_ENTERPRISE_TOKEN` from the wrapper process
-environment. The script uses the wrapper's default six permissions. It exits
+`github.com` (ignoring case) before calling the wrapper. It starts the wrapper
+with `GH_HOST=github.com` and without `GH_ENTERPRISE_TOKEN` and
+`GITHUB_ENTERPRISE_TOKEN`. The script uses the wrapper's default six permissions. It exits
 with 64 for a usage error, 0 after verifying the author
 (the URL is the last output line), or 1 for a failure. An author mismatch or
 unreadable author triggers a close with the reason as a comment. If closing
