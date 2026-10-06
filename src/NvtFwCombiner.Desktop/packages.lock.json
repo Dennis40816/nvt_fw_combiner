@@ -311,10 +311,10 @@
       },
       "Avalonia.Native": {
         "type": "Transitive",
-        "resolved": "12.0.5",
-        "contentHash": "m6qn0UGMI/b4cFfJ8id8sPYLotc7szhZdexPCKY+kIvGlx6Ln0VjNejRMiJDZ4S91q6nbKJL/YmfPd8UruTNjQ==",
+        "resolved": "12.1.1",
+        "contentHash": "jbgCUIhgQGD7d9mLN1oe4J8EpzDa0aY9PS77PZuRUDcNyr/V+vFNdyYXSJs3imrm0NOzTsCcFtK2NSXGDmJ1dw==",
         "dependencies": {
-          "Avalonia": "12.0.5"
+          "Avalonia": "12.1.1"
         }
       },
       "HarfBuzzSharp.NativeAssets.Linux": {
