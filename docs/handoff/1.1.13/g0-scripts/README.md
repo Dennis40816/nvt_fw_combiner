@@ -13,6 +13,7 @@ Run on **Windows with PowerShell 7.4 or later** (`pwsh`). Before opening the App
 | `Set-NfcRulesets.ps1`, `rulesets/*.json` | owner → owner through authenticated `gh` | Back up, inspect, approve, and apply rulesets; restore only this transaction's changes if needed. |
 | `nfc-app-token-helper.ps1` | agent → App, after owner installation | Read the DPAPI copy, request a repository-scoped installation token, and answer a matching Git credential `get` request. |
 | `Invoke-NfcGh.ps1` | agent → App, after owner installation | Run one `gh` subprocess with an installation token in that subprocess's environment. |
+| `open-pr.ps1` | agent → App, after owner installation | Open a pull request through the wrapper, verify its author, and close it if the author does not match or cannot be read. |
 | `NfcG0.Common.ps1`, `tests/` | no GitHub identity | Shared functions and offline tests with fake secrets. Run them with `pwsh -NoProfile -File tests/Invoke-NfcG0Tests.ps1`, which starts the suite in its own process without GitHub, Git credential or Bitwarden variables and with the test-area temp folder; the suite stops if such a variable is present. The runner supports only Pester 3.4.0, whose failure count includes setup, cleanup and block failures; any other requested version exits with 2. It exits with 0 only when Pester 3.4.0 ran at least one test and none failed, 1 when a test or block failed, and 2 when the run itself failed (another, missing or unloadable Pester version, no valid result, or no executed test). |
 
 The same-Windows-user separation in decision 65 is **a rule, not a technical security boundary**. A process under that user may technically access the DPAPI file, an unlocked vault, the owner's browser session, Git settings, or the helper. These scripts cannot enforce isolation between such processes.
@@ -126,6 +127,26 @@ For `gh`, the agent invokes the owner-installed wrapper as its own process: `pws
 Before it requests a token, the wrapper also refuses common repository options early: it stops with exit code 64 and a message naming `OWNER/REPO` when a `--repo`/`-R` value or `GH_REPO` names anything other than exactly `OWNER/REPO`, when a group of short options contains `-R`, or when its own options are missing, repeated, unknown or malformed. It also refuses, with exit code 64, `gh` arguments that do not start with the `gh` command (global options such as `--help=false` before it), and `gh alias` and `gh extension` (and `ext`, `extensions`) as that command, because alias shell commands and extensions run as children of `gh` with the token. This is an early refusal of common options, not a limit on what `gh` does. It does not inspect `gh api repos/OTHER/...` paths, GraphQL queries, `gh repo` positional repository arguments or the repository `gh` derives from the working directory; `GH_HOST` or any other API host or URL selection; or an alias or extension that already exists and is invoked by its own name, other child processes, and whichever `pwsh` or `gh` executable `PATH` selects. The installation token authorizes this one repository only, but that does not prove that each request targets it, and a request to another host may use a different login. The wrapper therefore does not technically guarantee the App identity or the destination host of a call. Use it only with a trusted `pwsh` and `gh` installation, only against GitHub.com (no `GH_HOST` or enterprise host), with no untrusted `gh` alias or extension, and only for authorized commands. The wrapper starts the helper as a separate `pwsh -NoProfile -File` subprocess, privately captures its token and exit status, and supplies `GH_TOKEN` only to a single `gh` subprocess. It does not set the parent process environment. It reads `gh` stdout and stderr as raw bytes, replaces each occurrence of the exact token bytes, and writes the bytes unchanged otherwise, so text in any encoding (such as Traditional Chinese) and binary output pass through whatever the console code page is. This redaction only catches the token printed verbatim by accident. A command can still print it transformed: `--jq` can read environment variables (for example `env.GH_TOKEN` piped through a filter), and an alias, extension or browser setting (`GH_BROWSER`, `gh config set browser`) runs a child process with the token. The wrapper is therefore no defense against a deliberate command; use it only for authorized commands. Its own error messages do not include the token. A child process started by `gh` may inherit `GH_TOKEN`; do not enable debug or recording output that exposes credentials. For example, after owner setup the agent may use the wrapper to run `gh api /installation/repositories` for checklist D3a.
 
 The owner sets the bot commit identity and performs the remaining checklist steps A7–A8 and D1–D7. These scripts do not auto-approve pull requests, create releases, invoke bypass, change account login, or perform the checklist's remote write validation.
+
+## Open a pull request
+
+The owner installs a verified copy of `open-pr.ps1` next to `Invoke-NfcGh.ps1`.
+Use the same ClientId, InstallationId and DpapiPath values as for `Invoke-NfcGh.ps1`.
+Replace the placeholders, then run this line from the installed scripts directory:
+
+```powershell
+pwsh -NoProfile -File .\open-pr.ps1 -Repo OWNER/REPO -Base 1.2.x -Head feature/1.2.5/TOPIC -Title 'fix: describe the change' -BodyFile .\pr-body.md -ClientId '<client-id>' -InstallationId '<installation-id>' -DpapiPath '<dpapi-path>'
+```
+
+Add `-Draft` for a draft pull request. The script always verifies the exact NFC
+App login `app/nfc-agent-dennis40816`. It rejects `GH_HOST` values other than
+`github.com` (ignoring case) before calling the wrapper. It starts the wrapper
+with `GH_HOST=github.com` and without `GH_ENTERPRISE_TOKEN` and
+`GITHUB_ENTERPRISE_TOKEN`. The script uses the wrapper's default six permissions. It exits
+with 64 for a usage error, 0 after verifying the author
+(the URL is the last output line), or 1 for a failure. An author mismatch or
+unreadable author triggers a close with the reason as a comment. If closing
+fails, close the pull request manually before retrying.
 
 ## Recovery and revocation
 
