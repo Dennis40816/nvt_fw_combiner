@@ -81,6 +81,7 @@ SCRIPT_ROLES = {
         {"release-owner"},
     ),
     "release_promotion_policy.py": {"release-owner", "governance-owner"},
+    "fetch_core_packages.py": {"release-owner", "governance-owner"},
     **dict.fromkeys(
         [
             "verify.py",
@@ -169,6 +170,28 @@ def codeowner_pattern_errors(content: str, policy_bytes: bytes) -> list[str]:
 
 
 class AuthorityPolicyTests(unittest.TestCase):
+    def test_core_package_delivery_requires_release_and_governance_owners(self) -> None:
+        for path in ("core-packages.json", "scripts/fetch_core_packages.py"):
+            with self.subTest(path=path):
+                result = POLICY.classify(path, case_sensitive=True)
+                self.assertEqual(result.floor, "R3")
+                self.assertEqual(result.roles, {"release-owner", "governance-owner"})
+                self.assertFalse(result.unclassified)
+
+        matches = {
+            entry.id for entry in POLICY.entries
+            if entry.matches("scripts/fetch_core_packages.py", case_sensitive=True)
+        }
+        self.assertEqual(matches, {"core-packages", "repository-tooling"})
+        reversed_policy = type(POLICY)(
+            entries=tuple(reversed(POLICY.entries)),
+            principals=POLICY.principals, reviewers=POLICY.reviewers,
+        )
+        for path in ("core-packages.json", "scripts/fetch_core_packages.py"):
+            self.assertEqual(POLICY.classify(path), reversed_policy.classify(path))
+        ordinary = POLICY.classify("scripts/ordinary_tool.py", case_sensitive=True)
+        self.assertEqual((ordinary.floor, ordinary.roles), ("R2", frozenset()))
+
     def test_every_tracked_path_is_classified(self) -> None:
         unclassified = [path for path in TRACKED if POLICY.classify(path).unclassified]
         self.assertEqual(unclassified, [])

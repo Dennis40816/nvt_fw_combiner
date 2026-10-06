@@ -50,6 +50,8 @@ appropriate real-platform evidence; no version or date is committed here.
 
 ## Fixed test area
 
+Run `python -B scripts/fetch_core_packages.py` before a manual `dotnet restore`.
+
 Create one absolute test root outside the repository once and persist it as the
 user-level `NFC_TEST_AREA_ROOT`. On Windows the canonical local root is
 `D:\NvtFwCombiner-TestArea` when that drive is available:

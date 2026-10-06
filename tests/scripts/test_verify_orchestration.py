@@ -3543,7 +3543,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             collect_coverage.call_args.args[1],
         )
 
-    def test_locked_solution_restore_checks_inventory_then_runs_locked_mode(
+    def test_locked_solution_restore_checks_inventory_then_fetches_before_restore(
         self,
     ) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -3560,10 +3560,19 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     repository_root=root,
                     solution=solution,
                 )
-            execute.assert_called_once_with(
-                ["dotnet", "restore", str(solution), "--locked-mode"],
-                environment={"PATH": "test"},
-                log_path=None,
+            self.assertEqual(
+                execute.call_args_list,
+                [
+                    call(
+                        [sys.executable, "-B", str(root / "scripts/fetch_core_packages.py"),
+                         "--manifest", str(root / "core-packages.json")],
+                        environment={"PATH": "test"}, log_path=None,
+                    ),
+                    call(
+                        ["dotnet", "restore", str(solution), "--locked-mode"],
+                        environment={"PATH": "test"}, log_path=None,
+                    ),
+                ],
             )
 
             lock.unlink()
@@ -3580,6 +3589,35 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     solution=solution,
                 )
             execute.assert_not_called()
+
+    def test_core_fetch_failure_stops_restore_and_keeps_its_diagnostic(self) -> None:
+        for exit_code in (1, 2):
+            with self.subTest(exit_code=exit_code), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                _, solution = self.create_solution_lock_fixture(root, b'{"version":2}')
+                fetch_script = root / "scripts/fetch_core_packages.py"
+                fetch_script.parent.mkdir()
+                fetch_script.write_text(
+                    "import sys\nprint('core-packages: verification failed', file=sys.stderr)\n"
+                    f"sys.exit({exit_code})\n", encoding="utf-8",
+                )
+                log = root / "restore.log"
+                actual_run = MODULE.run
+
+                def execute_fetch(command: list[str], **kwargs: object) -> None:
+                    self.assertNotEqual(command[0], "dotnet", "restore ran after fetch failure")
+                    actual_run(command, **kwargs)
+
+                with patch.object(MODULE, "run", side_effect=execute_fetch) as execute:
+                    with self.assertRaises(subprocess.CalledProcessError) as failure:
+                        MODULE.run_locked_solution_restore(
+                            "dotnet", environment=os.environ.copy(), log_path=log,
+                            repository_root=root, solution=solution,
+                        )
+                self.assertEqual(failure.exception.returncode, exit_code)
+                execute.assert_called_once()
+                self.assertEqual(execute.call_args.args[0][0:2], [sys.executable, "-B"])
+                self.assertIn("core-packages: verification failed", log.read_text(encoding="utf-8"))
 
     def test_solution_locks_include_only_the_exact_declared_generator(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
