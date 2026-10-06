@@ -1497,7 +1497,7 @@ $LauncherProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Launcher/NvtFwCombiner
 $IncludeManagedLauncher = -not $AllowPrerelease
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
 try {
-    & $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true
+    & $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true --locked-mode
     if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed before clean publish.' }
 
     & $DotNet clean $AppProject -c Release -r win-x64

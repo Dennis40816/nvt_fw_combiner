@@ -1294,7 +1294,7 @@ foreach ($Path in @(('a' * 141), (('a' * 139) + [char]0xd83d + [char]0xde00))) {
         smoke_script = SMOKE_SCRIPT.read_text(encoding="utf-8")
 
         restore_index = package_script.index(
-            "& $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true"
+            "& $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true --locked-mode\n"
         )
         clean_index = package_script.index(
             "& $DotNet clean $AppProject -c Release -r win-x64"

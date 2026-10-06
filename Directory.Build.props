@@ -46,6 +46,7 @@
       '$(MSBuildProjectName)' == 'NvtFwCombiner.Bootstrap' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.Cli' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.Contracts' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Desktop' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.DistributionLauncher' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.Domain' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.Infrastructure' or
@@ -53,6 +54,7 @@
       '$(MSBuildProjectName)' == 'NvtFwCombiner.LauncherBootstrap' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.Platform' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.PrebuiltProfileCatalogGenerator' or
+      '$(MSBuildProjectName)' == 'NvtFwCombiner.Presentation.Avalonia' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.Profiles' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.ReadyProbe' or
       '$(MSBuildProjectName)' == 'NvtFwCombiner.VersionManagement.Application' or
