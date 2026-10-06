@@ -29,3 +29,15 @@ class CorePackageDeliveryTests(unittest.TestCase):
             },
             {"nuget.org": ["*"], "core-packages": ["Nvt.Core", "Nvt.Core.*"]},
         )
+
+    def test_bootstrap_scripts_fetch_core_packages_before_restore(self) -> None:
+        for name in ("bootstrap.ps1", "bootstrap.sh"):
+            with self.subTest(script=name):
+                source = (ROOT / "scripts" / name).read_text(encoding="utf-8")
+                fetch = source.find("fetch_core_packages.py")
+                restore = source.find("dotnet restore")
+                self.assertGreaterEqual(fetch, 0, "the bootstrap script must fetch Core packages")
+                self.assertLess(fetch, restore, "the fetch must come before the restore")
+        powershell = (ROOT / "scripts" / "bootstrap.ps1").read_text(encoding="utf-8")
+        self.assertIn("if ($LASTEXITCODE -ne 0) { throw 'Core package download or verification failed", powershell)
+        self.assertIn("set -euo pipefail", (ROOT / "scripts" / "bootstrap.sh").read_text(encoding="utf-8"))
