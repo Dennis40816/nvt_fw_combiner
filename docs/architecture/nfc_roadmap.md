@@ -1069,7 +1069,7 @@ Decision 188 (2026-09-29) decides its necessity: the main case adopts neither th
 proposal's external locator nor its signed Registry; they apply only if a later
 owner choice selects the external-configuration or signed-Registry case.
 
-Current allocation (decision 188): the `1.2.1` A1a publisher-trust disposition,
+Superseded 2026-10-07: now [`1.3.x` board](../handoff/1.3.x.md) item 15 (OLD-LAUNCH); the version numbers below are historical. Historical allocation (decision 188): the `1.2.1` A1a publisher-trust disposition,
 the `1.2.6` A1b field recheck and the `1.2.13` A2/A7 closure; the separate
 `1.5.0` slot is retired. The main case keeps controlled ACL trust without
 independent publisher signing unless A1a/A1b require the signed-Registry case.
@@ -1088,7 +1088,7 @@ Catalog/Registry activation.
 
 ## Work package: conditional Catalog and Registry activation
 
-Current allocation (decision 188): the `1.2.13` A3 controlled preproduction
+Superseded 2026-10-07: now [`1.3.x` board](../handoff/1.3.x.md) item 15 (OLD-LAUNCH); the version numbers below are historical. Historical allocation (decision 188): the `1.2.13` A3 controlled preproduction
 validation, followed by the separately approved production GO and activation
 read-back in `1.2.13` A7; the separate `1.5.1` slot and the `2.0.0` activation
 boundary are retired.
@@ -1101,7 +1101,7 @@ evidence or replace protected publication with an agent-side path.
 
 ## Work package: download minimization and Installer refinements
 
-Current allocation (decision 188): the necessary fault corrections are decided
+Superseded 2026-10-07: now [`1.3.x` board](../handoff/1.3.x.md) item 15 (OLD-LAUNCH); the version numbers below are historical. Historical allocation (decision 188): the necessary fault corrections are decided
 in `1.2.1` (R05-01, C01-1), fixed with narrow acceptance in `1.2.6` (R05-02,
 C01-2) and rerun on the final candidate in `1.2.13` (A4-A6). Delta transfer
 (R04-02) is not built: the `1.2.1` R04-01 go/no-go was no-go (decision 232). The separate
@@ -1115,7 +1115,7 @@ improvement claim; later-discovered unrelated work needs a new allocation.
 
 ## Work package: General Merge authoring
 
-Current allocation: `1.3.1` (decision 224).
+Superseded 2026-10-07: now [`1.3.x` board](../handoff/1.3.x.md) item 22 (GM-AUTH); the version numbers below are historical. Historical allocation: `1.3.1` (decision 224).
 
 Complete the retained General Merge authoring scope through the existing
 typed mappings, profile compiler and shared planner/executor. Define the
@@ -1135,7 +1135,7 @@ Replace engine; this does not reopen the retired DP Replace experience.
 
 ## Work package: saved and customized rule authoring
 
-Current allocation: `1.3.2` (decisions 224 and 230).
+Superseded 2026-10-07: now [`1.3.x` board](../handoff/1.3.x.md) item 23 (RULES); the version numbers below are historical. Historical allocation: `1.3.2` (decisions 224 and 230).
 
 After the General authoring contracts are settled, complete saved/customized
 rule authoring, persistence, import and validation through the existing typed
@@ -1146,7 +1146,7 @@ implementation.
 
 ## Work package: CLI completion and deterministic UI automation
 
-Current allocation: `1.2.3`, before the remaining broad UI acceptance.
+Superseded 2026-10-07: now [`1.3.x` board](../handoff/1.3.x.md) item 12 (OLD-TEST); the version numbers below are historical. Historical allocation: `1.2.3`, before the remaining broad UI acceptance.
 
 Complete the command-line surface after inventorying the already-shipped CLI
 commands and Desktop launch options. Extend existing owners rather than adding
@@ -1174,7 +1174,8 @@ automation only for behavior that genuinely requires native interaction.
 ### IC family / rule-authoring UI
 
 Historical owner decision on 2026-09-05 deferred this feature to `1.3.0`.
-The current sequence assigns the maintainer UI to `1.3.3`, after General
+The 2026-10-07 version-line decision moved the maintainer UI to [`1.3.x` board](../handoff/1.3.x.md) item 24 (IC-UI), after items 22 and 23.
+The earlier sequence assigned it to `1.3.3`, after General
 Merge authoring and saved/custom user rules in `1.3.1`-`1.3.2` (decisions 224 and 230). This schedules
 the maintenance feature, not an already-approved screen specification.
 
