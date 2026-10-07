@@ -18,6 +18,10 @@ with the contract's codes and never raises for a finding.
 from __future__ import annotations
 
 import re
+import copy
+import hashlib
+from datetime import datetime
+from pathlib import PurePath
 from typing import Any, Iterable, Mapping, NamedTuple, Sequence
 
 try:
@@ -31,6 +35,7 @@ try:
         validate_report_sequence,
         validate_report_projection_against_compiled_authority,
         validate_semantic_report_ranges,
+        _contained,
     )
 except ModuleNotFoundError as error:
     if error.name != "scripts":
@@ -47,6 +52,7 @@ except ModuleNotFoundError as error:
         validate_report_sequence,
         validate_report_projection_against_compiled_authority,
         validate_semantic_report_ranges,
+        _contained,
     )
 
 
@@ -63,6 +69,11 @@ COVERAGE_ENTRY_KINDS = frozenset({"accepted-gap", "input-revision", "scenario-re
 # Stages before a Standard Merge precursor exists; a side stopped at one has none.
 PRECURSOR_STAGES = frozenset({"precursor-preview", "precursor-build"})
 PROCESS_FAILURE_ISSUE_CODES = frozenset({"external-tool.process.failed", "external-tool.process.start-failed"})
+# 1.2.x board decision 261: the address spaces a report uses without declaring a capacity, and the
+# address space whose changed ranges a report lists as output differences.
+WORK_ADDRESS_SPACES = frozenset({"ab-combiner-work", "tp-b-work"})
+V0916_WORK_ADDRESS_SPACES = frozenset({"a-bank-work", "b-bank-work"})
+OUTPUT_ADDRESS_SPACE = "output-image"
 # The codes of the shared execution failures (contract section "Shared
 # execution"; the report schema's scenarioFailureCode): an executor, the
 # environment, a staged input, a process, or a report or per-side safety check.
@@ -112,6 +123,10 @@ class SideProcessEvidence(NamedTuple):
     output: Mapping[str, Any] | None
     failures: Sequence[Failure]
     settings_present: bool
+    # The external tool files the comparator staged and hash-checked for this process, and the
+    # temporary directory it created for it; an executed command is held to both.
+    staged_tools: Sequence[str] = ()
+    temporary_directory: str | None = None
 
 
 class SideVerdict(NamedTuple):
@@ -139,9 +154,121 @@ def execution_mode_failures(contract: Mapping[str, Any], mode: str) -> list[Fail
 
 
 def executor_compiler_host_failures(compiler_host: Mapping[str, Any]) -> list[Failure]:
-    """The current builder cannot apply compiler-host pinning."""
-    return ([_failure("EXECUTOR_INVALID", "compilerHost", "in-effect compiler-host pinning is not implemented by this builder")]
-            if compiler_host.get("status") == "in-effect" else [])
+    """Admit closed compiler-host settings and the comparator-only runtime pin approved by decisions 275 and 277."""
+    if compiler_host.get("status") != "in-effect":
+        return []
+    required = compiler_host.get("requiredRuntime")
+    arguments = compiler_host.get("extraBuildArguments")
+    if (isinstance(required, Mapping) and isinstance(arguments, list)
+            and [argument for argument in arguments if isinstance(argument, str)
+                 and argument.startswith("-p:RuntimeFrameworkVersion=")]
+            != ["-p:RuntimeFrameworkVersion=" + str(required.get("version"))]):
+        return [_failure("EXECUTOR_INVALID", "compilerHost", "RuntimeFrameworkVersion must equal requiredRuntime.version")]
+    expected = {
+        "status": "in-effect", "boardDecisions": ["1.1.12 board decision 79", "1.2.x board decision 275", "1.2.x board decision 277"],
+        "requiredRuntime": {"framework": "Microsoft.NETCore.App", "version": "10.0.11", "architecture": "x64"},
+        "environmentVariables": {"DOTNET_ROLL_FORWARD": "Disable"},
+        "extraBuildArguments": ["-p:UseSharedCompilation=false", "-nodeReuse:false", "-p:RuntimeFrameworkVersion=10.0.11"],
+        "missingRuntimePolicy": "refuse",
+        "verification": {"kind": "embedded-portable-pdb", "scope": "first-party-cli-project-graph",
+                         "runtimeVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"},
+    }
+    return ([] if dict(compiler_host) == expected else
+            [_failure("EXECUTOR_INVALID", "compilerHost", "incomplete or unsupported compiler-host settings")])
+
+
+BASELINE_EXECUTOR_V2_PATH = "docs/contracts/v0916-baseline-executor-v2.json"
+
+
+def baseline_executor_binding_failures(baseline: Mapping[str, Any], raw: bytes | None = None) -> list[Failure]:
+    """Check the amendment's closed activation and, when supplied, raw bytes."""
+    if baseline.get("status") != "in-effect":
+        return []
+    binding = baseline.get("contract")
+    valid = (set(baseline) == {"status", "boardDecisions", "contract"}
+             and baseline.get("boardDecisions") == ["1.1.12 board decision 63", "1.1.12 board decision 79",
+                                                     "1.2.x board decision 275", "1.2.x board decision 277"]
+             and isinstance(binding, Mapping) and set(binding) == {"path", "size", "sha256"}
+             and binding.get("path") == BASELINE_EXECUTOR_V2_PATH
+             and type(binding.get("size")) is int and binding["size"] > 0
+             and isinstance(binding.get("sha256"), str) and re.fullmatch(r"[0-9a-f]{64}", binding["sha256"]))
+    if not valid:
+        return [_failure("SOURCE_MISMATCH", "baselineExecutor", "incomplete baseline executor contract binding")]
+    if raw is not None and (len(raw), hashlib.sha256(raw).hexdigest()) != (binding["size"], binding["sha256"]):
+        return [_failure("SOURCE_MISMATCH", binding["path"], "baseline executor contract bytes differ from binding")]
+    return []
+
+
+def v0916_executor_contract_failures(record: Mapping[str, Any]) -> list[Failure]:
+    """Closed v2 structure and cross-member rules, before materialization."""
+    def closed(value: Any, keys: set[str]) -> bool:
+        return isinstance(value, Mapping) and set(value) == keys
+
+    def path_valid(value: Any) -> bool:
+        return (isinstance(value, str) and bool(value) and not any(char in value for char in "\\:")
+                and all(part not in ("", ".", "..") for part in value.split("/")))
+
+    def artifact(value: Any, extra: set[str] = frozenset()) -> bool:
+        return (closed(value, {"path", "size", "sha256"} | extra) and path_valid(value["path"])
+                and type(value["size"]) is int and value["size"] > 0
+                and isinstance(value["sha256"], str) and bool(re.fullmatch(r"[0-9a-f]{64}", value["sha256"])))
+
+    try:
+        keys = {"schemaVersion", "kind", "certification", "terminal", "materialization", "platform", "source",
+                "toolchain", "lockFiles", "externalTools", "restore", "build", "compilerHost", "lockFileRewrites",
+                "lockFileDiff", "managedAssemblies", "cliAssembly", "runtimeClosure", "v1Relation"}
+        valid = (set(record) == keys and record["schemaVersion"] == "2.0"
+                 and record["kind"] == "exact-tag-source-built-cli" and record["certification"] == "none"
+                 and record["terminal"] is False and record["materialization"] == "fresh-detached-git-worktree"
+                 and record["platform"] == "windows-x64" and record["source"]["cleanTreeRequired"] is True
+                 and closed(record["source"], {"tag", "tagObject", "peeledCommit", "sourceTree", "cleanTreeRequired"})
+                 and all(isinstance(record["source"][key], str) and re.fullmatch(r"[0-9a-f]{40}", record["source"][key])
+                         for key in ("tagObject", "peeledCommit", "sourceTree"))
+                 and closed(record["toolchain"], {"resolvedSdkVersion", "globalJson"})
+                 and artifact(record["toolchain"]["globalJson"]) and record["toolchain"]["globalJson"]["path"] == "global.json"
+                 and record["source"]["tag"] == "v0.9.16" and record["toolchain"]["resolvedSdkVersion"] == "10.0.303"
+                 and record["compilerHost"]["status"] == "in-effect"
+                 and not executor_compiler_host_failures(record["compilerHost"]))
+        for member in ("lockFiles", "externalTools", "lockFileRewrites", "managedAssemblies"):
+            items = record[member]
+            extra = {"explanationClasses"} if member == "lockFileRewrites" else set()
+            valid = (valid and isinstance(items, list) and len(items) == 7
+                     and all(artifact(row, extra) for row in items) and len({row["path"] for row in items}) == 7)
+        for row in record["lockFileRewrites"]:
+            explanations = row["explanationClasses"]
+            valid = valid and isinstance(explanations, list) and len(explanations) in (2, 3)
+            valid = valid and set(explanations) in (
+                {"add-empty-win-x64-target", "windows-nuget-serialization"},
+                {"add-empty-win-x64-target", "windows-nuget-serialization", "refresh-first-party-project-ranges"})
+            valid = valid and len(set(explanations)) == len(explanations)
+        project = "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj"
+        commands = {"restore": ["dotnet", "restore", project, "--force-evaluate", "--runtime", "win-x64"],
+                    "build": ["dotnet", "build", project, "--configuration", "Release", "--runtime", "win-x64",
+                              "--self-contained", "true", "--no-restore", "-p:ContinuousIntegrationBuild=true",
+                              "-p:PathMap={sourceRoot}=/_/src"]}
+        valid = valid and all(record[action] == {"workingDirectory": ".", "arguments": arguments}
+                              for action, arguments in commands.items())
+        valid = valid and {row["path"] for row in record["lockFiles"]} == {row["path"] for row in record["lockFileRewrites"]}
+        diff = record["lockFileDiff"]
+        valid = valid and closed(diff, {"format", "text", "size", "sha256"}) and type(diff["size"]) is int and diff["size"] > 0
+        diff_bytes = diff["text"].encode("utf-8")
+        valid = valid and diff["format"] == "unified-diff-lf" and b"\r" not in diff_bytes
+        valid = valid and (len(diff_bytes), hashlib.sha256(diff_bytes).hexdigest()) == (diff["size"], diff["sha256"])
+        relation = record["v1Relation"]
+        valid = (valid and closed(relation, {"contract", "relation", "differingFiles"}) and artifact(relation["contract"])
+                 and relation["contract"]["path"] == "docs/contracts/v0916-baseline-executor-v1.json"
+                 and relation["relation"] == "identical-runtime-closure" and relation["differingFiles"] == [])
+        closure = record["runtimeClosure"]
+        root = "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64"
+        valid = (valid and closed(closure, {"root", "fileCount", "totalSize", "sha256"}) and closure["root"] == root
+                 and all(type(closure[key]) is int and closure[key] > 0 for key in ("fileCount", "totalSize"))
+                 and isinstance(closure["sha256"], str) and bool(re.fullmatch(r"[0-9a-f]{64}", closure["sha256"]))
+                 and artifact(record["cliAssembly"]) and record["cliAssembly"]["path"] == root + "/NvtFwCombiner.Cli.exe"
+                 and closure["totalSize"] >= record["cliAssembly"]["size"])
+        valid = valid and all(row["path"].endswith(".dll") and "/" not in row["path"] for row in record["managedAssemblies"])
+        return [] if valid else [_failure("EXECUTOR_INVALID", "baselineExecutor", "invalid v2 executor contract")]
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return [_failure("EXECUTOR_INVALID", "baselineExecutor", "incomplete v2 executor contract")]
 
 
 def executor_tag_failures(
@@ -212,6 +339,52 @@ def executor_sdk_failures(version: str) -> list[Failure]:
     return []
 
 
+def baseline_identity_failures(
+    rebuilt: Mapping[str, Any], own_report: Any, *, baseline_version: str,
+) -> list[Failure]:
+    """Compare a rolling rebuild with the release's own candidate.executor.
+
+    The tag is assigned after the candidate report; its null tagObject is
+    admitted, but a recorded non-null tag must be the rebuilt tag object.
+    No CLI profile, compilation fingerprint or output identity identifies
+    the program. The caller supplies the already measured 1.x Executor.
+    """
+    candidate = own_report.get("candidate") if isinstance(own_report, Mapping) else None
+    recorded = candidate.get("executor") if isinstance(candidate, Mapping) else None
+    if not isinstance(recorded, Mapping):
+        return [_failure("BASELINE_IDENTITY_MISSING", "candidate.executor", "baseline own report records no executor identity")]
+
+    def compare(expected: Any, observed: Any, path: str) -> list[Failure]:
+        if observed is None:
+            return [_failure("BASELINE_IDENTITY_MISSING", path, "recorded identity value is missing")]
+        if isinstance(expected, Mapping) and isinstance(observed, Mapping):
+            failures = []
+            for member, value in expected.items():
+                failures.extend(compare(value, observed.get(member), f"{path}.{member}"))
+            if set(observed) - set(expected):
+                failures.append(_failure("BASELINE_IDENTITY_MISMATCH", path, "recorded identity has unexpected members"))
+            return failures
+        if type(observed) is not type(expected) or observed != expected:
+            return [_failure("BASELINE_IDENTITY_MISMATCH", path, "rebuilt and recorded identity values differ")]
+        return []
+
+    failures = compare({key: value for key, value in rebuilt.items() if key != "tagObject"},
+                       {key: value for key, value in recorded.items() if key != "tagObject"}, "candidate.executor")
+    if "tagObject" not in recorded:
+        failures.append(_failure("BASELINE_IDENTITY_MISSING", "candidate.executor.tagObject", "recorded tag member is missing"))
+    elif recorded["tagObject"] is not None and recorded["tagObject"] != rebuilt["tagObject"]:
+        failures.append(_failure("BASELINE_IDENTITY_MISMATCH", "candidate.executor.tagObject", "recorded tag differs from baseline tag"))
+    if candidate.get("version") is None:
+        failures.append(_failure("BASELINE_IDENTITY_MISSING", "candidate.version", "recorded candidate version is missing"))
+    elif candidate["version"] != baseline_version:
+        failures.append(_failure("BASELINE_IDENTITY_MISMATCH", "candidate.version", "recorded version differs from baseline version"))
+    if (own_report.get("schemaVersion") != "1.0" or own_report.get("kind") != "predecessor-comparison-report"
+            or own_report.get("mode") not in ("rolling", "v0916-1x")
+            or own_report.get("certification") != "none" or own_report.get("terminal") is not False):
+        failures.append(_failure("BASELINE_IDENTITY_MISMATCH", "baseline-report", "not a non-terminal predecessor report"))
+    return failures
+
+
 def executor_closure_failures(expected: Mapping[str, str], observed: Mapping[str, str | None]) -> list[Failure]:
     if dict(expected) != dict(observed):
         return [_failure("EXECUTOR_INVALID", "closure", "execution closure changed or disappeared")]
@@ -232,13 +405,132 @@ def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
                 or reported["addressSpaceId"] != captured.get("expectedReportAddressSpaceId")):
             return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
     reported_output = evidence.context["output"]
-    if _identity(reported_output) != _identity(evidence.output):
+    # A Preview, or a run that stops before it writes, describes the output it would write with
+    # `Committed: false` and leaves no file; only a file identity can agree or disagree with a capture.
+    described_only = (evidence.output is None and reported_output is not None
+                      and reported_output["committed"] is False)
+    if not described_only and _identity(reported_output) != _identity(evidence.output):
         return [_failure("REPORT_INVALID", subject, "report output differs from capture")]
     if evidence.output is not None and (
         reported_output["committed"] is not True or any(issue["severity"] == "error" for issue in evidence.issues)
     ):
         return [_failure("REPORT_INVALID", subject, "output is uncommitted or has an error issue")]
+    return _executed_command_failures(evidence)
+
+
+def _executed_command_failures(evidence: SideProcessEvidence) -> list[Failure]:
+    """Each executed command ran a staged, hash-checked external tool below the process's own temporary directory.
+
+    The reader has already held the command's file arguments to its working directory. The path text alone is
+    not trusted: the executable must be one of the files the comparator staged from the executor's commit and
+    checked by hash before and after the process.
+    """
+    assert evidence.context is not None
+    subject = evidence.process["stage"]
+    tools = {PurePath(path) for path in evidence.staged_tools}
+    temporary = None if evidence.temporary_directory is None else PurePath(evidence.temporary_directory)
+    for command in evidence.context["executedCommands"]:
+        if PurePath(command["executablePath"]) not in tools:
+            return [_failure("REPORT_INVALID", subject, "executed command is not a staged external tool")]
+        working = PurePath(command["workingDirectory"])
+        if temporary is None or working == temporary or not working.is_relative_to(temporary):
+            return [_failure("REPORT_INVALID", subject, "executed command worked outside the process temporary directory")]
     return []
+
+
+def _declared_work_ranges(
+    authority: Mapping[str, Any], *, v0916_executor: bool = False,
+) -> dict[str, list[tuple[int, int]]]:
+    """The ranges a Preview declares in each work address space; a report gives no capacity for them."""
+    spaces = WORK_ADDRESS_SPACES | (V0916_WORK_ADDRESS_SPACES if v0916_executor else frozenset())
+    declared: dict[str, list[tuple[int, int]]] = {space: [] for space in sorted(spaces)}
+    for operation in authority["compiledOperations"]:
+        target = operation.get("targetSpaceId")
+        rows = [(operation.get("sourceSpaceId"), operation.get("sourceRange")), (target, operation.get("targetRange"))]
+        processor = operation.get("processor") or {}
+        rows += [(target, row) for member in ("allowedReadRanges", "allowedWriteRanges") for row in processor.get(member, [])]
+        for space, row in rows:
+            if (space in declared and isinstance(row, Mapping)
+                    and type(row.get("start")) is int and type(row.get("endExclusive")) is int):
+                declared[space].append((row["start"], row["endExclusive"]))
+    return declared
+
+
+def _processor_write_audit_failures(
+    stage: str, projection: Mapping[str, Any], context: Mapping[str, Any], authority: Mapping[str, Any],
+    *, declared_work_ranges: Mapping[str, Sequence[tuple[int, int]]] | None = None,
+    v0916_executor: bool = False,
+) -> list[Failure]:
+    """Decision 261 output audit; decision 271 audits later compiled uses of a work space.
+
+    The shared range check has already validated all present named ranges. Work-space
+    results may only be read inside one allowed write range, and may never be overwritten.
+    Decision 278 admits the exact ab-combiner-work B bank read for the v0.9.16 executor only.
+    Unknown operation semantics or missing read authority refuse instead of guessing.
+    """
+
+    def allowed(operation: Mapping[str, Any]) -> list[tuple[int, int]]:
+        return [(row["start"], row["endExclusive"]) for row in operation["processor"]["allowedWriteRanges"]]
+
+    def inside(row: Mapping[str, int], spans: Sequence[tuple[int, int]]) -> bool:
+        return any(_contained((row["start"], row["endExclusive"]), span) for span in spans)
+
+    output_spans = [span for operation in authority["compiledOperations"]
+                    if operation.get("processor") and operation["targetSpaceId"] == OUTPUT_ADDRESS_SPACE
+                    for span in allowed(operation)]
+    differences = context["outputDifferenceRanges"]
+    if any(row["start"] < 0 or row["endExclusive"] <= row["start"] or not inside(row, output_spans) for row in differences):
+        return [_failure("REPORT_INVALID", stage, "output difference outside every write range the Preview allows")]
+    mutations = {row["operationId"]: row for row in projection["compiledMutations"]}
+    for operation in projection["compiledOperations"]:
+        mutation = mutations.get(operation["operationId"])
+        if (operation.get("processor") and mutation is not None and mutation["changedByteCount"] == 0
+                and mutation["beforeSha256"] != mutation["afterSha256"]):
+            return [_failure("REPORT_INVALID", stage, "zero processor changed-byte count has differing hashes")]
+    operations = authority["compiledOperations"]
+    for index, operation in enumerate(operations):
+        space = operation["targetSpaceId"]
+        if not operation.get("processor") or space not in (declared_work_ranges or {}):
+            continue
+        if operation["kind"] != "RunExternalProcessor":
+            return [_failure("REPORT_INVALID", stage, "unknown work-space processor operation kind")]
+        for later in operations[index + 1:]:
+            kind = later["kind"]
+            if kind not in {"CopyRange", "ReplaceRange", "TransformScalar", "FillRange", "PatchScalar", "RunExternalProcessor"}:
+                return [_failure("REPORT_INVALID", stage, "unknown later operation kind in work-space processor audit")]
+            if later["targetSpaceId"] == space:
+                return [_failure("REPORT_INVALID", stage, "later operation writes the processor work address space")]
+            source_space, source = later.get("sourceSpaceId"), later.get("sourceRange")
+            if (kind in {"CopyRange", "ReplaceRange", "TransformScalar"} and (not source_space or source is None)
+                    or (source_space is None) != (source is None)):
+                return [_failure("REPORT_INVALID", stage, "later operation has no named read range")]
+            if (source_space == space and not inside(source, allowed(operation))
+                    and not (v0916_executor and space == "ab-combiner-work"
+                             and (source["start"], source["endExclusive"]) == (262144, 524288))):
+                return [_failure("REPORT_INVALID", stage, "later work-space read outside every processor allowed write range")]
+            if kind == "RunExternalProcessor" and not later.get("processor"):
+                return [_failure("REPORT_INVALID", stage, "later processor has no declared ranges")]
+    for operation in projection["compiledOperations"]:
+        if not operation.get("processor") or mutations.get(operation["operationId"], {}).get("changedByteCount", 0) == 0:
+            continue
+        if operation["targetSpaceId"] in (declared_work_ranges or {}):
+            continue
+        if (operation["targetSpaceId"] != OUTPUT_ADDRESS_SPACE
+                or not any(inside(row, allowed(operation)) for row in differences)):
+            return [_failure("REPORT_INVALID", stage, "processor changed bytes without a listed output difference")]
+    return []
+
+
+def _mutations_in_operation_order(projection: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Give each mutation row the sequence its own report declares for the operation it names.
+
+    A written mutation row names its operation and carries no sequence. The ADR 0057 order check
+    then compares an operation sequence (a profile value such as 100) with a list position; with
+    the declared sequence it compares the order of the operations, which is the contract's rule.
+    A mutation of an operation the report does not declare gets no sequence and fails that check.
+    """
+    sequences = {row.get("operationId"): row.get("sequence") for row in projection["compiledOperations"]}
+    return [{**row, "sequence": sequences.get(row.get("operationId"))} for row in projection["compiledMutations"]]
 
 
 def report_input_binding(
@@ -261,6 +553,18 @@ def report_input_binding(
     return {"expectedReportAddressSpaceId": address_space, "expectedReportArtifactId": address_space}
 
 
+def report_ordered_inputs(workflow_id: str, rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Staged inputs in the order the CLI's report lists them, numbered from 0.
+
+    A CtrlRAM Replace CLI sorts its bindings by slot id (ordinal) whatever the order of its
+    arguments, so its report lists `reference-base` first and the replacements by name. A reviewed
+    binding may name them in another order; the capture is compared with the report by position,
+    so the staging follows the CLI. A Merge report keeps the binding order.
+    """
+    ordered = sorted(rows, key=lambda row: row["slotId"]) if workflow_id == "ctrlram-replace" else list(rows)
+    return [{**row, "order": order} for order, row in enumerate(ordered)]
+
+
 def v0916_milestone_failures(*, formal: bool, milestone: str | None) -> list[Failure]:
     """A formal v0.9.16 comparison must identify its milestone."""
     return ([_failure("INPUT_INVALID", "milestone", "formal comparison requires a milestone")]
@@ -278,6 +582,7 @@ def side_execution_verdict(
     processes: Sequence[SideProcessEvidence], *, capacities: Mapping[str, int],
     capacities_by_stage: Mapping[str, Mapping[str, int]] | None = None,
     complete: bool = True,
+    v0916_executor: bool = False,
 ) -> SideVerdict:
     """Shared side classification; ADR 0057 safety owners remain unchanged.
 
@@ -294,6 +599,7 @@ def side_execution_verdict(
     if stages != expected_stages[:len(stages)]:
         return SideVerdict("invalid", stages[-1], [_failure("REPORT_INVALID", "side", "invalid Preview/Build process order")])
     authority: Mapping[str, Any] | None = None
+    preview_output: Mapping[str, Any] | None = None
     for index, evidence in enumerate(processes):
         process = evidence.process
         stage = process["stage"]
@@ -316,18 +622,44 @@ def side_execution_verdict(
         projection = evidence.projection
         if stage.endswith("preview"):
             authority = projection
+            preview_output = evidence.context["output"]
         if authority is None:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "no same-side Preview authority")])
         try:
+            has_skipped = any(row.get("status") == "skipped" for row in projection["compiledOperations"])
+            skipped_rejection = (
+                has_skipped and process["exitCode"] != 0
+                and any(issue["severity"] == "error" for issue in evidence.issues)
+                and all(row.get("status") == "skipped" for row in projection["compiledOperations"])
+                and not projection["compiledMutations"] and not evidence.context["executedCommands"]
+                and not any(row["executedCommands"] for row in projection["compiledOperations"])
+                and not evidence.context["outputDifferenceRanges"] and evidence.output is None
+                and (evidence.context["output"] is None or evidence.context["output"]["committed"] is False)
+            )
+            if has_skipped and not skipped_rejection:
+                # A missing condition grants no range exemption, even for unexecuted rows.
+                declared = _declared_work_ranges(authority, v0916_executor=v0916_executor)
+                validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities),
+                                                declared_overlap=True, declared_work_ranges=declared,
+                                                audited_processor_writes=True)
+                return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Skipped operations do not satisfy no-write typed rejection conditions")])
             validate_report_sequence(
                 authority_operations=authority["compiledOperations"],
                 observed_operations=projection["compiledOperations"],
-                observed_mutations=projection["compiledMutations"],
+                observed_mutations=_mutations_in_operation_order(projection),
             )
-            validate_report_projection_against_compiled_authority(projection, authority)
-            validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities))
+            validate_report_projection_against_compiled_authority(projection, authority, skipped_rejection=skipped_rejection)
+            declared = _declared_work_ranges(authority, v0916_executor=v0916_executor)
+            validate_semantic_report_ranges(projection, (capacities_by_stage or {}).get(stage, capacities),
+                                            declared_overlap=True, declared_work_ranges=declared,
+                                            audited_processor_writes=True, skipped_rejection=skipped_rejection)
+            audit = ([] if skipped_rejection else
+                     _processor_write_audit_failures(stage, projection, evidence.context, authority,
+                                                    declared_work_ranges=declared, v0916_executor=v0916_executor))
         except (ParityError, KeyError, TypeError, ValueError) as error:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, str(error))])
+        if audit:
+            return SideVerdict("invalid", stage, audit)
         if stage.endswith("build") and (
             projection["compilationFingerprint"] is None
             or projection["compilationFingerprint"] != authority["compilationFingerprint"]
@@ -336,6 +668,10 @@ def side_execution_verdict(
         failures = _side_capture_failures(evidence)
         if failures:
             return SideVerdict("invalid", stage, failures)
+        if (stage.endswith("build") and evidence.output is not None
+                and preview_output is not None and evidence.context["output"] is not None
+                and _identity(preview_output) != _identity(evidence.context["output"])):
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Build output size or hash differs from Preview prediction")])
         if process["exitCode"] != 0:
             if evidence.output is None and any(issue["severity"] == "error" for issue in evidence.issues):
                 if index != len(processes) - 1:
@@ -344,6 +680,8 @@ def side_execution_verdict(
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "nonzero exit is not a typed rejection")])
         if any(issue["severity"] == "error" for issue in evidence.issues):
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful process has error issue")])
+        if stage.endswith("preview") and preview_output is None:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "successful Preview has no output prediction")])
         if stage.endswith("build") and evidence.output is None:
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "successful Build has no captured output")])
     if not complete:
@@ -768,6 +1106,100 @@ def stable_tag_version(tag: str) -> tuple[int, int, int] | None:
     return None if match is None else tuple(map(int, match.groups()))
 
 
+def published_inventory_failures(inventory: Any) -> list[Failure]:
+    """Validate the producer's complete offline inventory, without acquiring releases."""
+    def invalid(detail: str) -> list[Failure]:
+        return [_failure("BASELINE_INVALID", "publishedInventory", detail)]
+
+    def utc_time(value: Any) -> tuple[int, str]:
+        match = None if not isinstance(value, str) else re.fullmatch(
+            r"([0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-9]{2})(?:\.([0-9]+))?"
+            r"([Zz]|[+-](?:0[0-9]|1[0-9]|2[0-3]):[0-5][0-9])", value
+        )
+        if match is None:
+            raise ValueError("publication and collection times must be RFC 3339 date-time strings")
+        # Compare the fraction exactly: datetime otherwise truncates it to microseconds.
+        local = datetime.fromisoformat(match[1].upper())
+        offset = match[3]
+        offset_seconds = 0 if offset.upper() == "Z" else (
+            (int(offset[1:3]) * 60 + int(offset[4:6])) * 60 * (1 if offset[0] == "+" else -1))
+        seconds = local.toordinal() * 86400 + local.hour * 3600 + local.minute * 60 + local.second - offset_seconds
+        return seconds, (match[2] or "").rstrip("0")
+
+    root_members = {"schemaVersion", "kind", "repository", "collectedAtUtc", "complete", "pagesRead", "releases"}
+    row_members = {"id", "tag", "publishedAtUtc", "draft", "prerelease", "complete"}
+    if not isinstance(inventory, dict) or set(inventory) != root_members:
+        return invalid("inventory has missing or unknown members")
+    if (inventory["schemaVersion"] != "1.0" or inventory["kind"] != "predecessor-published-release-inventory"
+            or inventory["repository"] != "Dennis40816/nvt_fw_combiner" or inventory["complete"] is not True
+            or type(inventory["pagesRead"]) is not int or inventory["pagesRead"] < 1
+            or not isinstance(inventory["releases"], list)):
+        return invalid("inventory identity, completeness or pagination is invalid")
+    ids, tags = set(), set()
+    try:
+        collected = utc_time(inventory["collectedAtUtc"])
+        for row in inventory["releases"]:
+            if not isinstance(row, dict) or set(row) != row_members:
+                return invalid("release has missing or unknown members")
+            if (type(row["id"]) is not int or row["id"] < 1 or not isinstance(row["tag"], str)
+                    or stable_tag_version(row["tag"]) is None or row["draft"] is not False
+                    or row["prerelease"] is not False or row["complete"] is not True):
+                return invalid("release is not a complete published stable release")
+            if row["id"] in ids or row["tag"] in tags:
+                return invalid("duplicate release id or tag")
+            if utc_time(row["publishedAtUtc"]) > collected:
+                return invalid("release publication is later than inventory collection")
+            ids.add(row["id"])
+            tags.add(row["tag"])
+    except (TypeError, ValueError):
+        return invalid("publication or collection time is invalid")
+    return []
+
+
+def published_inventory_identity(payload: bytes, inventory: Mapping[str, Any]) -> dict[str, str]:
+    """Bind file bytes and numerically ordered publication facts independently."""
+    return {"rawSha256": hashlib.sha256(payload).hexdigest(),
+            "factsSha256": canonical_json_sha256({"repository": inventory["repository"],
+                "releases": sorted(inventory["releases"], key=lambda row: stable_tag_version(row["tag"]))})}
+
+
+def deterministic_digest_projection(report: Mapping[str, Any]) -> dict[str, Any]:
+    """Remove only the contract's named run-specific members; preserve nulls and order."""
+    value = copy.deepcopy(dict(report))
+    value.pop("deterministicSha256", None)
+    if "environment" in value:
+        value["environment"].pop("temporaryRootLength", None)
+    for collection in ("scenarios", "routes"):
+        for row in value.get(collection, []):
+            for name in ("baseline", "candidate"):
+                side = row.get(name)
+                if side is None:
+                    continue
+                for process in side.get("processes", []):
+                    process.pop("stdoutSha256", None)
+                    process.pop("stderrSha256", None)
+                    if process.get("report") is not None:
+                        process["report"].pop("size", None)
+                        process["report"].pop("sha256", None)
+    for failures in (value.get("gate", {}).get("failures", []), value.get("failures", [])):
+        for failure in failures:
+            failure.pop("detail", None)
+    if value.get("publishedInventory") is not None:
+        value["publishedInventory"].pop("rawSha256", None)
+    return value
+
+
+def deterministic_report_sha256(report: Mapping[str, Any]) -> str:
+    return canonical_json_sha256(deterministic_digest_projection(report))
+
+
+def deterministic_digest_failures(report: Mapping[str, Any]) -> list[Failure]:
+    """Builders validate before adding the digest; completed reports verify it here."""
+    if "deterministicSha256" in report and report["deterministicSha256"] != deterministic_report_sha256(report):
+        return [_failure("REPORT_INVALID", "deterministicSha256", "digest differs from the named projection")]
+    return []
+
+
 def formal_interface_failures(
     contract: Mapping[str, Any], *, formal: bool, amendment: Mapping[str, Any] | None = None,
 ) -> list[Failure]:
@@ -827,13 +1259,15 @@ def execution_capacities(evidence: SideProcessEvidence) -> dict[str, int]:
     """Input sizes are captured; output bounds come from bytes or the typed Preview.
 
     Build is still checked against that same side's Preview before its ranges.
-    Preview has no output artifact, so its compiled target extent is its bound.
+    Preview has no output artifact, so its compiled target extent in `output-image` is its bound;
+    a target in another address space never sets it.
     """
     capacities = {reported["addressSpaceId"]: captured["size"]
                   for reported, captured in zip((evidence.context or {}).get("orderedInputs", []), evidence.inputs)}
-    capacities["output-image"] = (evidence.output or {}).get("size", max(
+    capacities[OUTPUT_ADDRESS_SPACE] = (evidence.output or {}).get("size", max(
         (operation["targetRange"]["endExclusive"] for operation in
-         (evidence.projection or {}).get("compiledOperations", []) if operation.get("targetRange") is not None), default=0))
+         (evidence.projection or {}).get("compiledOperations", [])
+         if operation.get("targetRange") is not None and operation.get("targetSpaceId") == OUTPUT_ADDRESS_SPACE), default=0))
     return capacities
 
 
@@ -1205,6 +1639,7 @@ class SourceAuthority(NamedTuple):
     ledger_sha256: str | None = None
     declaration_sha256: str | None = None
     amendment_sha256: str | None = None
+    published_inventory: Mapping[str, str] | None = None
 
 
 def source_binding_failures(report: Mapping[str, Any], authority: SourceAuthority) -> list[Failure]:
@@ -1229,6 +1664,10 @@ def source_binding_failures(report: Mapping[str, Any], authority: SourceAuthorit
         failures.append(_failure("SOURCE_MISMATCH", "contracts", "report binds other contract identities"))
     if report["mode"] == "rolling":
         bound = (("ledgerSha256", authority.ledger_sha256), ("declarationSha256", authority.declaration_sha256))
+        if report.get("publishedInventory") != authority.published_inventory:
+            failures.append(_failure("SOURCE_MISMATCH", "publishedInventory", "report binds another inventory"))
+        if report["formal"] and report.get("publishedInventory") is None:
+            failures.append(_failure("BASELINE_INVALID", "publishedInventory", "formal run requires publication inventory"))
     else:
         bound = (("amendmentSha256", authority.amendment_sha256),)
     for member, expected in bound:
@@ -1292,6 +1731,7 @@ def rolling_report_failures(
         )
     )
     failures.extend(source_binding_failures(report, authority))
+    failures.extend(deterministic_digest_failures(report))
     return failures
 
 
@@ -1724,6 +2164,7 @@ def v0916_report_failures(
     """A v0.9.16 1.x report covers each plan route once with its proof, row, evidence, summary and result."""
 
     failures = v0916_milestone_failures(formal=report.get("formal", False), milestone=report.get("milestone"))
+    failures.extend(deterministic_digest_failures(report))
     if authority is not None:
         failures.extend(source_binding_failures(report, authority))
     if plan is not None and report["planBinding"] != v0916_plan_binding(plan):

@@ -9,6 +9,16 @@
   ],
   "$defs": {
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "deterministicDigest": { "$ref": "#/$defs/sha256", "description": "deterministicSha256 is the RFC 8785 SHA-256 of the report after removing only the members listed below. All other members, values and array order are retained. Excluded members remain required and validated run evidence; exclusion does not relax any execution or report check. Excluded paths: /deterministicSha256, /environment/temporaryRootLength, /scenarios/*/baseline/processes/*/stdoutSha256, /scenarios/*/baseline/processes/*/stderrSha256, /scenarios/*/baseline/processes/*/report/size, /scenarios/*/baseline/processes/*/report/sha256, /scenarios/*/candidate/processes/*/stdoutSha256, /scenarios/*/candidate/processes/*/stderrSha256, /scenarios/*/candidate/processes/*/report/size, /scenarios/*/candidate/processes/*/report/sha256, /routes/*/baseline/processes/*/stdoutSha256, /routes/*/baseline/processes/*/stderrSha256, /routes/*/baseline/processes/*/report/size, /routes/*/baseline/processes/*/report/sha256, /routes/*/candidate/processes/*/stdoutSha256, /routes/*/candidate/processes/*/stderrSha256, /routes/*/candidate/processes/*/report/size, /routes/*/candidate/processes/*/report/sha256, /gate/failures/*/detail, /failures/*/detail, /publishedInventory/rawSha256" },
+    "publishedInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rawSha256", "factsSha256"],
+      "properties": {
+        "rawSha256": { "$ref": "#/$defs/sha256", "description": "Run-specific evidence; validated but excluded from deterministicSha256 at this named location only." },
+        "factsSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
     "gitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
     "stableTag": { "type": "string", "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
@@ -50,7 +60,7 @@
     "executorIdentity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["authorityTrees", "cliSha256", "commit", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"],
+      "required": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"],
       "properties": {
         "authorityTrees": {
           "type": "object",
@@ -69,7 +79,10 @@
         "resolvedSdkVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
         "runtimeClosureSha256": { "$ref": "#/$defs/sha256" },
         "tagObject": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/gitSha" }] },
-        "tree": { "$ref": "#/$defs/gitSha" }
+        "tree": { "$ref": "#/$defs/gitSha" },
+        "compilerHost": {
+          "$ref": "#/$defs/compilerHostIdentity"
+        }
       }
     },
     "taggedExecutorIdentity": {
@@ -102,7 +115,7 @@
       "required": ["policy", "temporaryRootLength", "perUserSettings"],
       "properties": {
         "policy": { "const": "per-user-settings-absent-before-and-after" },
-        "temporaryRootLength": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "temporaryRootLength": { "type": "integer", "minimum": 1, "maximum": 64, "description": "Run-specific evidence; validated but excluded from deterministicSha256 at this named location only." },
         "perUserSettings": {
           "type": "object",
           "additionalProperties": false,
@@ -146,8 +159,8 @@
       "additionalProperties": false,
       "required": ["size", "sha256", "readerVersion", "unknownMembers"],
       "properties": {
-        "size": { "type": "integer", "minimum": 1 },
-        "sha256": { "$ref": "#/$defs/sha256" },
+        "size": { "type": "integer", "minimum": 1, "description": "Run-specific evidence; validated but excluded from deterministicSha256 at this named location only." },
+        "sha256": { "$ref": "#/$defs/sha256", "description": "Run-specific evidence; validated but excluded from deterministicSha256 at this named location only." },
         "readerVersion": { "enum": ["cli-1x-v1", "cli-v0916-v1"] },
         "unknownMembers": {
           "type": "array",
@@ -164,8 +177,8 @@
         "stage": { "$ref": "#/$defs/stage" },
         "exitCode": { "type": ["integer", "null"] },
         "timedOut": { "type": "boolean" },
-        "stdoutSha256": { "$ref": "#/$defs/sha256" },
-        "stderrSha256": { "$ref": "#/$defs/sha256" },
+        "stdoutSha256": { "$ref": "#/$defs/sha256", "description": "Run-specific evidence; validated but excluded from deterministicSha256 at this named location only." },
+        "stderrSha256": { "$ref": "#/$defs/sha256", "description": "Run-specific evidence; validated but excluded from deterministicSha256 at this named location only." },
         "inputsUnchanged": { "type": "boolean" },
         "report": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/capturedReport" }] }
       },
@@ -438,6 +451,8 @@
     },
     "rollingFailureCode": {
       "enum": [
+        "PREDECESSOR_BASELINE_IDENTITY_MISMATCH",
+        "PREDECESSOR_BASELINE_IDENTITY_MISSING",
         "PREDECESSOR_BASELINE_INVALID",
         "PREDECESSOR_CONTRACT_PENDING",
         "PREDECESSOR_COVERAGE_INCOMPLETE",
@@ -482,7 +497,7 @@
             "properties": {
               "code": { "$ref": "#/$defs/rollingFailureCode" },
               "subject": { "type": "string", "minLength": 1 },
-              "detail": { "type": "string" }
+              "detail": { "type": "string", "description": "Run-specific evidence; validated but excluded from deterministicSha256 at this named location only." }
             }
           }
         }
@@ -563,6 +578,7 @@
         "baseline",
         "ledgerSha256",
         "declarationSha256",
+        "publishedInventory",
         "environment",
         "scenarios",
         "coverage",
@@ -589,17 +605,19 @@
           }
         },
         "ledgerSha256": { "$ref": "#/$defs/sha256" },
+        "baselineIdentityReportSha256": { "$ref": "#/$defs/sha256", "description": "Present only after opt-in baseline identity comparison succeeds; SHA-256 of the exact own-report bytes read, retained in deterministicSha256. Absence makes no self-report comparison claim." },
         "declarationSha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha256" }] },
+        "publishedInventory": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/publishedInventory" }] },
         "environment": { "$ref": "#/$defs/environment" },
         "scenarios": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/scenarioResult" } },
         "coverage": { "$ref": "#/$defs/coverage" },
         "gate": { "$ref": "#/$defs/rollingGate" },
-        "deterministicSha256": { "$ref": "#/$defs/sha256" }
+        "deterministicSha256": { "$ref": "#/$defs/deterministicDigest" }
       },
       "allOf": [
         {
           "if": { "properties": { "formal": { "const": true } }, "required": ["formal"] },
-          "then": { "properties": { "environment": { "$ref": "#/$defs/formalEnvironment" } } }
+          "then": { "properties": { "environment": { "$ref": "#/$defs/formalEnvironment" }, "publishedInventory": { "$ref": "#/$defs/publishedInventory" } } }
         },
         {
           "if": {
@@ -892,11 +910,11 @@
             "properties": {
               "code": { "$ref": "#/$defs/v0916FailureCode" },
               "subject": { "type": "string", "minLength": 1 },
-              "detail": { "type": "string" }
+              "detail": { "type": "string", "description": "Run-specific evidence; validated but excluded from deterministicSha256 at this named location only." }
             }
           }
         },
-        "deterministicSha256": { "$ref": "#/$defs/sha256" }
+        "deterministicSha256": { "$ref": "#/$defs/deterministicDigest" }
       },
       "allOf": [
         {
@@ -941,6 +959,29 @@
           }
         }
       ]
+    },
+    "compilerHostIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtimeVersion",
+        "compilerVersion",
+        "verifiedAssemblyCount"
+      ],
+      "properties": {
+        "runtimeVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compilerVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifiedAssemblyCount": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
     }
   }
 }

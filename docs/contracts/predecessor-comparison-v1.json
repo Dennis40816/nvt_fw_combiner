@@ -11,7 +11,8 @@
         "tagPattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
         "annotatedTagRequired": true,
         "peeledCommitAncestorOfCandidate": true,
-        "publishedReleaseVerifiedBy": "release-workflow"
+        "publishedReleaseVerifiedBy": "commander-github-app-inventory",
+        "inventorySchema": "docs/contracts/predecessor-published-release-inventory-v1.schema.json"
       },
       "inputAuthority": {
         "kind": "active-canonical-golden-at-candidate-commit",
@@ -53,6 +54,7 @@
     "materialization": "fresh-detached-git-worktree",
     "cleanTreeRequired": true,
     "forbiddenPreRestorePathSegments": ["bin", "obj"],
+    "restorePackageFolder": ".packages",
     "sdkSource": "global.json",
     "restore": {
       "workingDirectory": ".",
@@ -63,8 +65,23 @@
       "arguments": ["dotnet", "build", "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj", "--configuration", "Release", "--runtime", "win-x64", "--self-contained", "true", "--no-restore", "-m:1", "-p:ContinuousIntegrationBuild=true", "-p:PathMap={sourceRoot}=/_/src"]
     },
     "compilerHost": {
-      "status": "pending-executor-record",
-      "boardDecisions": ["1.1.12 board decision 79"]
+      "status": "in-effect",
+      "boardDecisions": ["1.1.12 board decision 79", "1.2.x board decision 275", "1.2.x board decision 277"],
+      "requiredRuntime": {
+        "framework": "Microsoft.NETCore.App",
+        "version": "10.0.11",
+        "architecture": "x64"
+      },
+      "environmentVariables": {
+        "DOTNET_ROLL_FORWARD": "Disable"
+      },
+      "extraBuildArguments": ["-p:UseSharedCompilation=false", "-nodeReuse:false", "-p:RuntimeFrameworkVersion=10.0.11"],
+      "missingRuntimePolicy": "refuse",
+      "verification": {
+        "kind": "embedded-portable-pdb",
+        "scope": "first-party-cli-project-graph",
+        "runtimeVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"
+      }
     },
     "cliAssembly": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe",
     "runtimeClosureRoot": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
@@ -78,8 +95,29 @@
       "digest": "jcs-sha256"
     },
     "identityPinnedInAdvance": false,
+    "baselineIdentityComparison": {
+      "status": "opt-in",
+      "mode": "rolling",
+      "option": "--baseline-report",
+      "recordedIdentityPath": "/candidate/executor",
+      "comparedMembers": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tree"],
+      "tagObjectRule": "null-or-rebuilt-tag-object",
+      "missing": "PREDECESSOR_BASELINE_IDENTITY_MISSING",
+      "mismatch": "PREDECESSOR_BASELINE_IDENTITY_MISMATCH",
+      "v0916": {
+        "status": "not-implemented",
+        "reason": "The v0.9.16 CLI report records no program identity also produced by its rebuild; executor v2 pins are not that program's own report."
+      }
+    },
     "authorityTrees": ["external-tools", "profiles", "src", "tools/crc-worker"],
-    "recordedIdentity": ["authorityTrees", "cliSha256", "commit", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
+    "externalToolStaging": {
+      "tree": "external-tools",
+      "bytes": "git-blob-at-executor-commit",
+      "destination": "beside-staged-runtime-closure",
+      "custody": "execution-closure",
+      "directoryAlwaysCreated": true
+    },
+    "recordedIdentity": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
   },
   "environment": {
     "perProcessTemporaryDirectories": true,
@@ -91,16 +129,54 @@
     "customSettingsRuns": "diagnostic-only"
   },
   "perSideSafety": {
-    "owner": "scripts/v0916_parity_certification.py",
+    "owner": ["scripts/v0916_parity_certification.py", "scripts/predecessor_validation.py"],
     "authorityProducer": "typed-preview-of-the-same-executor-and-staged-inputs",
-    "checks": ["validate_report_sequence", "validate_report_projection_against_compiled_authority", "validate_semantic_report_ranges"],
-    "readerMayRelaxChecks": false
+    "checks": ["validate_report_sequence", "validate_report_projection_against_compiled_authority", "validate_semantic_report_ranges", "_executed_command_failures", "_processor_write_audit_failures"],
+    "readerMayRelaxChecks": false,
+    "writtenReportRules": {
+      "boardDecision": "1.2.x board decision 261",
+      "executedCommands": {
+        "executable": "staged-hash-checked-external-tool",
+        "workingDirectory": "below-process-temporary-directory",
+        "fileArguments": "working-directory-or-below",
+        "repeatedCommand": "kept-in-order"
+      },
+      "workAddressSpaces": ["ab-combiner-work", "tp-b-work"],
+      "v0916ExecutorWorkAddressSpaces": ["a-bank-work", "b-bank-work"],
+      "v0916ExecutorWorkAddressSpacesDecision": "1.2.x board decision 273",
+      "workAddressSpaceRanges": "inside-same-side-preview-declared-ranges",
+      "processorWriteAudit": {
+        "source": "output-difference-ranges",
+        "contentPreviewsRead": false,
+        "addressSpace": "output-image",
+        "rule": "each-range-inside-one-preview-allowed-write-range",
+        "changedProcessorWithoutListedRange": "refused",
+        "workAddressSpaceAudit": {
+          "boardDecision": "1.2.x board decision 271",
+          "source": "compiled-operations-in-preview-order",
+          "laterReads": "each-range-inside-one-processor-allowed-write-range",
+          "laterWrites": "refused",
+          "unclassifiableOperation": "refused"
+        }
+      },
+      "previewBuildOutput": {
+        "boardDecision": "1.2.x board decision 274",
+        "when": "both-preview-and-build-describe-output",
+        "rule": "same-size-and-sha256-on-the-same-side",
+        "mismatch": "PREDECESSOR_REPORT_INVALID"
+      }
+    }
   },
   "typedRejection": {
     "reportRequired": true,
     "nonzeroExitRequired": true,
     "errorIssueRequired": true,
-    "processFailureIssueCodes": ["external-tool.process.failed", "external-tool.process.start-failed"]
+    "processFailureIssueCodes": ["external-tool.process.failed", "external-tool.process.start-failed"],
+    "skippedOperations": {
+      "boardDecision": "1.2.x board decision 272",
+      "conditions": ["nonzero-exit", "report-error-issue", "all-operations-skipped", "no-mutation-command-or-output-difference", "no-output-file"],
+      "operationThatRan": "invalid"
+    }
   },
   "interfaces": {
     "declarationSchema": {
@@ -126,12 +202,37 @@
     "sizeMismatch": "bytes-beyond-the-shorter-output-differ",
     "reportedRangeLimit": 32,
     "rangeListDigest": "jcs-sha256",
+    "deterministicDigestExcludedPaths": [
+      "/deterministicSha256",
+      "/environment/temporaryRootLength",
+      "/scenarios/*/baseline/processes/*/stdoutSha256",
+      "/scenarios/*/baseline/processes/*/stderrSha256",
+      "/scenarios/*/baseline/processes/*/report/size",
+      "/scenarios/*/baseline/processes/*/report/sha256",
+      "/scenarios/*/candidate/processes/*/stdoutSha256",
+      "/scenarios/*/candidate/processes/*/stderrSha256",
+      "/scenarios/*/candidate/processes/*/report/size",
+      "/scenarios/*/candidate/processes/*/report/sha256",
+      "/routes/*/baseline/processes/*/stdoutSha256",
+      "/routes/*/baseline/processes/*/stderrSha256",
+      "/routes/*/baseline/processes/*/report/size",
+      "/routes/*/baseline/processes/*/report/sha256",
+      "/routes/*/candidate/processes/*/stdoutSha256",
+      "/routes/*/candidate/processes/*/stderrSha256",
+      "/routes/*/candidate/processes/*/report/size",
+      "/routes/*/candidate/processes/*/report/sha256",
+      "/gate/failures/*/detail",
+      "/failures/*/detail",
+      "/publishedInventory/rawSha256"
+    ],
     "precursorBaseCompared": true
   },
   "declarationEntryKinds": ["accepted-gap", "baseline-rejects", "both-reject", "byte-difference", "candidate-rejects", "input-revision", "scenario-retired"],
   "attributionMechanisms": ["derived-field", "precursor-carried", "stopped-write-preserved-bytes", "writes-different-bytes"],
   "failureCodes": [
     {"code": "PREDECESSOR_AMENDMENT_MISMATCH", "modes": ["v0916-1x"], "meaning": "The amendment's plan binding differs from the plan, an amendment row is not reproduced exactly, or the v0.9.16 baseline executor is not in effect."},
+    {"code": "PREDECESSOR_BASELINE_IDENTITY_MISMATCH", "modes": ["rolling"], "meaning": "Opt-in baseline identity comparison differs from the baseline release's own predecessor report candidate.executor, version or report family."},
+    {"code": "PREDECESSOR_BASELINE_IDENTITY_MISSING", "modes": ["rolling"], "meaning": "Opt-in baseline identity comparison has no readable duplicate-free own report, or a required recorded candidate identity value is missing or null (except tagObject)."},
     {"code": "PREDECESSOR_BASELINE_INVALID", "modes": ["rolling", "v0916-1x"], "meaning": "The baseline is not the mode's baseline: the declared previous published stable release as an annotated ancestor tag, or the plan's v0.9.16 tag object and peeled commit."},
     {"code": "PREDECESSOR_CONTRACT_PENDING", "modes": ["rolling", "v0916-1x"], "meaning": "A formal run was requested while an interface this contract marks proposed or pending is not in effect: a proposed schema, the report reader, the compiler-host pinning or the v0.9.16 baseline executor."},
     {"code": "PREDECESSOR_COVERAGE_INCOMPLETE", "modes": ["rolling"], "meaning": "A universe route whose active route evidence names a case has no active scenario for that case."},

@@ -23,7 +23,7 @@ records below are in effect, and P-3 runs it for 1.1.13.
 | File | Content | Owner of the semantics it uses |
 | --- | --- | --- |
 | `scripts/predecessor_validation.py` (new) | the single semantic validator: pure functions over JSON and computed values, no process or Git access | the P-1 contracts |
-| `scripts/predecessor_report_reader.py` (new, reader record) | versioned CLI report reader: raw report to the normalized projection, format only | ADR 0057 normalizers |
+| `scripts/predecessor_report_reader.py` (new, report reader) | versioned CLI report reader: raw report to the normalized projection, format only | ADR 0057 normalizers |
 | `scripts/predecessor_comparison.py` (new) | CLI entry, Git authority, executors, staging, process runner, side results, byte comparison, report assembly, gate | ADR 0057 primitives, the validator, the reader |
 | `scripts/v0916_parity_certification.py` (additive only) | public entry points, no behavior change on the terminal path | ADR 0057 |
 
@@ -157,7 +157,7 @@ reproduces each fixture byte for byte. Adding `jsonschema` to CI would change
 
 | Record | Risk | Paths | Authority and review |
 | --- | --- | --- | --- |
-| `PREDECESSOR-EXECUTOR-1113-01` | R3, kind release | `docs/contracts/v0916-baseline-executor-v2.{json,schema.json,md}`; the executor sections of `predecessor-comparison-v1.{json,schema.json,md}` (compiler host pinned) and of the amendment (`baselineExecutor` in effect); contract tests | decisions 63 and 79; exact-head release-owner attestation (release authority), the P-0.5 lock-file diff and closure as evidence |
+| `PREDECESSOR-EXECUTOR-1113-01` | R3, firmware and release authority | `docs/contracts/v0916-baseline-executor-v2.{json,schema.json,md}`; the executor sections of `predecessor-comparison-v1.{json,schema.json,md}` (compiler host pinned) and of the amendment (`baselineExecutor` in effect); contract tests | decisions 63 and 79; exact-head firmware-owner and release-owner approval (firmware and release authority), the P-0.5 lock-file diff and closure as evidence |
 | `PREDECESSOR-REPORT-READER-1113-01` | R2, kind release | `scripts/predecessor_report_reader.py`; the reader rules in `predecessor-comparison-v1.{json,md}`; the report and declaration schemas from proposed to in effect, with the P-0.5 revisions; reader tests with payload-free raw-report fixtures | P-0.5 findings: issue severities, stderr-only codes, v0.9.16 without `MapId`, 1.x `AbMergeFormat` and `SourceEnvelope`; from the stage 1 review, `transitive: null` for a transitive route whose proof cannot run (the proposed report schema still requires a proof object on every transitive route) |
 | `PREDECESSOR-VALIDATION-1113-01` (stage 1) | R2, kind release | `scripts/predecessor_validation.py`; the public names in `scripts/v0916_parity_certification.py`; tests `test_predecessor_validation.py` and the migrated `test_predecessor_comparison_contracts.py` and `test_v0916_parity_1x_amendment.py` | independent exact-head review; ADR 0057 tests unchanged |
 | `PREDECESSOR-COMPARATOR-1113-01` (stages 2 and 3) | R2, kind release | `scripts/predecessor_comparison.py`; the behavior-identical factorings in `scripts/v0916_parity_certification.py`; `tests/scripts/test_predecessor_comparison.py`; the report fixtures and their rows in `PredecessorComparisonSchemaContractTests.cs`; each path listed only once it exists in that batch's diff | independent exact-head review; ADR 0057 tests unchanged |
@@ -165,7 +165,7 @@ reproduces each fixture byte for byte. Adding `jsonschema` to CI would change
 Each record lists exactly the paths its own batch changes, so no record names
 a file a later stage creates. Order: P-1 (merged) -> stage 1, its own batch
 -> the reader and comparator records as one batch with disjoint paths (the
-commander agreed) -> the executor record (R3), before P-3's first formal
+commander agreed) -> the executor contract activation (R3), before P-3's first formal
 run. A formal run needs all four. The executor and reader contract edits
 touch `predecessor-comparison-v1.*` in different batches, so they are
 sequential.

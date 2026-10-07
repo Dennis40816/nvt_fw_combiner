@@ -160,16 +160,32 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         self.assertEqual(candidate["runtimeClosure"]["root"], executor["runtimeClosureRoot"])
         self.assertEqual(sorted(candidate["source"]["authorityTrees"]), executor["authorityTrees"])
         self.assertTrue(all(item["path"].endswith("/packages.lock.json") for item in candidate["lockFiles"]))
-        self.assertEqual("pending-executor-record", executor["compilerHost"]["status"])
+        self.assertEqual("in-effect", executor["compilerHost"]["status"])
 
     def test_per_side_safety_names_the_shared_owners(self) -> None:
         safety = self.contract["perSideSafety"]
-        self.assertEqual("scripts/v0916_parity_certification.py", safety["owner"])
+        owners = {"scripts/v0916_parity_certification.py": MODULE,
+                  "scripts/predecessor_validation.py": validation}
+        self.assertEqual(list(owners), safety["owner"])
         self.assertIn("validate_report_projection_against_compiled_authority", safety["checks"])
         for name in safety["checks"]:
             with self.subTest(check=name):
-                self.assertTrue(callable(getattr(MODULE, name, None)))
+                owner = validation if name in ("_executed_command_failures", "_processor_write_audit_failures") else MODULE
+                self.assertTrue(callable(getattr(owner, name, None)))
+        self.assertIn("_executed_command_failures", safety["checks"])
+        self.assertIn("_processor_write_audit_failures", safety["checks"])
         self.assertFalse(safety["readerMayRelaxChecks"])
+        rules = safety["writtenReportRules"]
+        self.assertEqual(sorted(validation.WORK_ADDRESS_SPACES), rules["workAddressSpaces"])
+        self.assertEqual(sorted(validation.V0916_WORK_ADDRESS_SPACES), rules["v0916ExecutorWorkAddressSpaces"])
+        self.assertEqual(validation.OUTPUT_ADDRESS_SPACE, rules["processorWriteAudit"]["addressSpace"])
+        self.assertIs(False, rules["processorWriteAudit"]["contentPreviewsRead"])
+        schema = load_json(CONTRACTS / "predecessor-comparison-v1.schema.json")
+        for member in ("owner", "checks"):
+            self.assertEqual(safety[member], schema["properties"]["perSideSafety"]["properties"][member]["const"])
+        self.assertEqual(rules, schema["properties"]["perSideSafety"]["properties"]["writtenReportRules"]["const"])
+        self.assertEqual(self.contract["typedRejection"]["skippedOperations"],
+                         schema["properties"]["typedRejection"]["properties"]["skippedOperations"]["const"])
         for name in ("declarationSchema", "reportSchema", "reportReader"):
             self.assertEqual("in-effect", self.contract["interfaces"][name]["status"])
         self.assertEqual(sorted(reader.READER_VERSIONS.values()), self.contract["interfaces"]["reportReader"]["readerVersions"])
@@ -182,10 +198,24 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         declaration_schema = load_json(CONTRACTS / "predecessor-comparison-declaration-v1.schema.json")
         self.assertEqual(self.contract["typedRejection"]["processFailureIssueCodes"], declaration_schema["$defs"]["processFailureIssueCode"]["enum"])
 
-    def test_reader_activation_leaves_formal_execution_records_pending(self) -> None:
-        self.assertEqual("pending-executor-record", self.contract["executor"]["compilerHost"]["status"])
+    def test_decision_278_is_indexed_without_reclassifying_saved_invalid_rehearsal(self) -> None:
+        board = (ROOT / "docs/handoff/1.2.x.md").read_text(encoding="utf-8")
+        self.assertTrue("\n278. **Predecessor comparator:" in board, "decision 278 must be indexed on the board")
+        decision = board.split("\n278. ", 1)[1].split("\n\n", 1)[0]
+        for member in ("ab-combiner-work", "[262144, 524288)", "v0.9.16", "273"):
+            self.assertIn(member, decision)
+        handoff = (ROOT / "docs/handoff/1.2.2/README.md").read_text(encoding="utf-8")
+        pending = handoff.split("## Before reports of record", 1)[1].split("## Rehearsal findings", 1)[0]
+        self.assertIn("Decision 278", pending)
+        self.assertNotIn("Resolve the pending", pending)
+        history = handoff.split("## Rehearsal findings", 1)[1]
+        self.assertIn("35 routes `consistent`, 2 `invalid`, 27 not covered", history)
+        self.assertIn("saved invalid results", history)
+
+    def test_all_execution_interfaces_are_in_effect(self) -> None:
+        self.assertEqual("in-effect", self.contract["executor"]["compilerHost"]["status"])
         amendment = load_json(CONTRACTS / "v0916-parity-1x-amendment-v1.json")
-        self.assertEqual("pending-executor-record", amendment["baselineExecutor"]["status"])
+        self.assertEqual("in-effect", amendment["baselineExecutor"]["status"])
         pending = next(row for row in self.contract["failureCodes"] if row["code"] == "PREDECESSOR_CONTRACT_PENDING")
         self.assertIn("compiler-host pinning", pending["meaning"])
         self.assertIn("v0.9.16 baseline executor", pending["meaning"])

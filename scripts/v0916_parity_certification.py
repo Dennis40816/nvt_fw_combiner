@@ -3255,7 +3255,9 @@ def _valid_mutation(mutation: Mapping[str, Any], operations: Sequence[Mapping[st
     return True
 
 
-def validate_report_projection_against_compiled_authority(projection: Mapping[str, Any], authority: Mapping[str, Any]) -> None:
+def validate_report_projection_against_compiled_authority(
+    projection: Mapping[str, Any], authority: Mapping[str, Any], *, skipped_rejection: bool = False,
+) -> None:
     operations = projection.get("compiledOperations")
     expected = authority.get("compiledOperations")
     mutations = projection.get("compiledMutations")
@@ -3263,18 +3265,33 @@ def validate_report_projection_against_compiled_authority(projection: Mapping[st
         _fail("PARITY_PROVENANCE_INVALID")
     if projection.get("compilationFingerprint") is not None and projection.get("compilationFingerprint") != authority.get("compilationFingerprint"):
         _fail("PARITY_PROVENANCE_INVALID")
-    if operations != expected or len({row.get("operationId") for row in operations}) != len(operations):
+    # Comparator decision 272: a rejected run performed no operation. The caller
+    # proves the exit, issue, capture and no-write conditions before opting in.
+    comparable = operations
+    if skipped_rejection:
+        if mutations or any(row.get("status") != "skipped" or row.get("executedCommands") != [] for row in operations):
+            _fail("PARITY_PROVENANCE_INVALID")
+        if len(operations) != len(expected) or any(row.get("status") not in ("succeeded", "skipped") for row in expected):
+            _fail("PARITY_PROVENANCE_INVALID")
+        # Status and executed commands describe execution, not compiled write
+        # authority. A skipped Build carries neither successful status nor the
+        # commands its successful Preview ran; all other fields remain exact.
+        comparable = [{**row, "status": prior["status"], "executedCommands": prior["executedCommands"]}
+                      for row, prior in zip(operations, expected)]
+    if comparable != expected or len({row.get("operationId") for row in operations}) != len(operations):
         _fail("PARITY_PROVENANCE_INVALID")
     for operation in operations:
-        if operation.get("status") != "succeeded" or not operation.get("reason"):
+        if operation.get("status") != ("skipped" if skipped_rejection else "succeeded") or not operation.get("reason"):
             _fail("PARITY_PROVENANCE_INVALID")
         processor = operation.get("processor")
         commands = operation.get("executedCommands")
         if processor is None:
             if commands != []:
                 _fail("PARITY_PROVENANCE_INVALID")
-        elif not isinstance(commands, list) or not commands or [row.get("sequence") for row in commands] != list(range(len(commands))):
+        elif not skipped_rejection and (not isinstance(commands, list) or not commands or [row.get("sequence") for row in commands] != list(range(len(commands)))):
             _fail("PARITY_PROVENANCE_INVALID")
+    if skipped_rejection:
+        return
     if len({row.get("operationId") for row in mutations}) != len(mutations) or any(not _valid_mutation(row, operations) for row in mutations):
         _fail("PARITY_PROVENANCE_INVALID")
     if projection.get("compilationFingerprint") is not None:
@@ -3313,11 +3330,32 @@ def build_independent_report_validation(*, route_id: str, capability_fingerprint
     }
 
 
-def _range(value: Mapping[str, Any], *, expected_space: str, capacities: Mapping[str, int]) -> tuple[int, int]:
-    if not isinstance(value, dict) or value.get("addressSpace") != expected_space or expected_space not in capacities:
+def _range(
+    value: Mapping[str, Any], *, expected_space: str, capacities: Mapping[str, int],
+    declared: Mapping[str, Sequence[tuple[int, int]]] | None = None,
+    unexecuted: bool = False,
+) -> tuple[int, int]:
+    """A half-open range inside its address space's capacity.
+
+    `declared` is the 1.x comparator's opt-in for an address space without a measured capacity:
+    the range must lie inside one range the authority declared in that space.
+    `unexecuted` keeps intrinsic format checks but applies no capacity or work-space authority.
+    """
+    work = declared is not None and expected_space not in capacities and expected_space in declared
+    if (not isinstance(value, dict) or value.get("addressSpace") != expected_space
+            or (not unexecuted and expected_space not in capacities and not work)):
         _fail("PARITY_REPORT_RANGE_INVALID")
     start, end = value.get("start"), value.get("endExclusive")
-    if not isinstance(start, int) or isinstance(start, bool) or not isinstance(end, int) or isinstance(end, bool) or start < 0 or end <= start or end > 2**63 - 1 or end > capacities[expected_space]:
+    if not isinstance(start, int) or isinstance(start, bool) or not isinstance(end, int) or isinstance(end, bool) or start < 0 or end <= start or end > 2**63 - 1:
+        _fail("PARITY_REPORT_RANGE_INVALID")
+    if unexecuted:
+        if not isinstance(expected_space, str) or not expected_space:
+            _fail("PARITY_REPORT_RANGE_INVALID")
+        return start, end
+    if work:
+        if not any(_contained((start, end), row) for row in declared[expected_space]):
+            _fail("PARITY_REPORT_RANGE_INVALID")
+    elif end > capacities[expected_space]:
         _fail("PARITY_REPORT_RANGE_INVALID")
     return start, end
 
@@ -3331,37 +3369,117 @@ def _non_overlapping(ranges: Sequence[tuple[int, int]]) -> bool:
     return all(left[1] <= right[0] for left, right in zip(ordered, ordered[1:]))
 
 
-def validate_semantic_report_ranges(projection: Mapping[str, Any], capacities: Mapping[str, int]) -> None:
+def _invalid_declared_overlap(
+    operation: Mapping[str, Any], target: tuple[int, int], earlier: Sequence[tuple[int, int]],
+) -> bool:
+    """Keep target overlap authority; full cover applies only to compiler-validated non-processors."""
+    overlaps = any(target[0] < row[1] and row[0] < target[1] for row in earlier)
+    if operation.get("overlapPolicy") != "ReplaceExisting":
+        return overlaps
+    # RuntimeReferenceReplace validates version-edit PatchScalar and mapping
+    # ReplaceRange before appending RunExternalProcessor and seeding the image
+    # with ImageInitialization.Reference. Preserve the processor's earlier-target
+    # overlap rule; it need not have every allowed write covered by an operation.
+    # GetProfileOverlapError's non-processor full-cover kinds are CopyRange,
+    # ReplaceRange, PatchScalar and TransformScalar; FillRange is refused.
+    if operation.get("kind") == "RunExternalProcessor":
+        return not overlaps
+    return (not overlaps or operation.get("kind") not in {
+        "CopyRange", "ReplaceRange", "PatchScalar", "TransformScalar",
+    } or not any(_contained(target, row) for row in earlier))
+
+
+def validate_semantic_report_ranges(
+    projection: Mapping[str, Any], capacities: Mapping[str, int], *, declared_overlap: bool = False,
+    declared_work_ranges: Mapping[str, Sequence[tuple[int, int]]] | None = None,
+    audited_processor_writes: bool = False,
+    skipped_rejection: bool = False,
+) -> None:
+    """Check every report range; the keyword options are the 1.x comparator's opt-ins.
+
+    By default (the terminal path, unchanged) no two operation targets may intersect. A written
+    report overlays ranges on purpose: an operation whose overlap policy is `ReplaceExisting`
+    writes over an earlier target. With `declared_overlap`, targets are compared inside their own
+    address space, in strictly increasing integer sequence order, and such an operation must
+    overlap an earlier target. CopyRange, ReplaceRange, PatchScalar and TransformScalar also
+    require full cover by one earlier target. RunExternalProcessor requires overlap only;
+    every other kind with ReplaceExisting is refused. Other policies must not overlap targets,
+    even where a processor's allowed writes are disjoint. Allowed writes keep their own audit.
+
+    `declared_work_ranges` names the address spaces without a measured capacity and the ranges
+    the authority declared in each; a range in such a space must lie inside one of them.
+
+    A written mutation row of an external processor is its whole operation target. With
+    `audited_processor_writes` the caller audits the processor's changed ranges against the
+    allowed write ranges itself, and the row is held to its operation target only.
+
+    Decision 272's `skipped_rejection` is opt-in only after the caller proves all five
+    no-write rejection conditions. Unexecuted rows carry no range or overlap authority;
+    their known operation kinds, skipped status, strictly increasing sequences and intrinsic
+    named half-open range format remain checked.
+    """
     try:
         operations = projection["compiledOperations"]
         mutations = projection["compiledMutations"]
         target_ranges: list[tuple[int, int]] = []
+        targets_by_space: dict[str, list[tuple[int, int]]] = {}
         by_id: dict[str, tuple[Mapping[str, Any], tuple[int, int]]] = {}
+        previous_sequence: int | None = None
+        if skipped_rejection and mutations:
+            _fail("PARITY_REPORT_RANGE_INVALID")
         for operation in operations:
-            target = _range(operation["targetRange"], expected_space=operation["targetSpaceId"], capacities=capacities)
+            if declared_overlap or skipped_rejection:
+                sequence = operation.get("sequence")
+                if type(sequence) is not int or (previous_sequence is not None and sequence <= previous_sequence):
+                    _fail("PARITY_REPORT_RANGE_INVALID")
+                previous_sequence = sequence
+            if skipped_rejection:
+                if (operation.get("kind") not in {
+                    "CopyRange", "ReplaceRange", "FillRange", "PatchScalar", "RunExternalProcessor", "TransformScalar",
+                } or operation.get("status") != "skipped" or operation.get("executedCommands") != []):
+                    _fail("PARITY_REPORT_RANGE_INVALID")
+                _range(operation["targetRange"], expected_space=operation["targetSpaceId"],
+                       capacities=capacities, unexecuted=True)
+                source = operation.get("sourceRange")
+                if (source is None) != (operation.get("sourceSpaceId") is None):
+                    _fail("PARITY_REPORT_RANGE_INVALID")
+                if source is not None:
+                    _range(source, expected_space=operation["sourceSpaceId"], capacities=capacities, unexecuted=True)
+                processor = operation.get("processor")
+                if processor:
+                    for field in ("allowedReadRanges", "allowedWriteRanges"):
+                        for row in processor[field]:
+                            _range(row, expected_space=operation["targetSpaceId"], capacities=capacities, unexecuted=True)
+                continue
+            target = _range(operation["targetRange"], expected_space=operation["targetSpaceId"], capacities=capacities, declared=declared_work_ranges)
             target_ranges.append(target)
+            earlier = targets_by_space.setdefault(operation["targetSpaceId"], [])
             source = operation.get("sourceRange")
             if source is not None:
-                source_range = _range(source, expected_space=operation["sourceSpaceId"], capacities=capacities)
+                source_range = _range(source, expected_space=operation["sourceSpaceId"], capacities=capacities, declared=declared_work_ranges)
                 if operation.get("kind") == "CopyRange" and source_range[1] - source_range[0] != target[1] - target[0]:
                     _fail("PARITY_REPORT_RANGE_INVALID")
             by_id[operation["operationId"]] = (operation, target)
             processor = operation.get("processor")
             if processor:
                 for field in ("allowedReadRanges", "allowedWriteRanges"):
-                    admitted = [_range(row, expected_space=operation["targetSpaceId"], capacities=capacities) for row in processor[field]]
+                    admitted = [_range(row, expected_space=operation["targetSpaceId"], capacities=capacities, declared=declared_work_ranges) for row in processor[field]]
                     if not _non_overlapping(admitted) or any(not _contained(row, target) for row in admitted):
                         _fail("PARITY_REPORT_RANGE_INVALID")
-        if not _non_overlapping(target_ranges):
+            if declared_overlap:
+                if _invalid_declared_overlap(operation, target, earlier):
+                    _fail("PARITY_REPORT_RANGE_INVALID")
+                earlier.append(target)
+        if not declared_overlap and not _non_overlapping(target_ranges):
             _fail("PARITY_REPORT_RANGE_INVALID")
         for mutation in mutations:
             operation, target = by_id[mutation["operationId"]]
-            outcome = _range(mutation["targetRange"], expected_space=mutation["targetSpaceId"], capacities=capacities)
+            outcome = _range(mutation["targetRange"], expected_space=mutation["targetSpaceId"], capacities=capacities, declared=declared_work_ranges)
             if mutation["targetSpaceId"] != operation["targetSpaceId"] or not _contained(outcome, target) or mutation["changedByteCount"] > outcome[1] - outcome[0]:
                 _fail("PARITY_REPORT_RANGE_INVALID")
             processor = operation.get("processor")
-            if processor:
-                allowed = [_range(row, expected_space=operation["targetSpaceId"], capacities=capacities) for row in processor["allowedWriteRanges"]]
+            if processor and not audited_processor_writes:
+                allowed = [_range(row, expected_space=operation["targetSpaceId"], capacities=capacities, declared=declared_work_ranges) for row in processor["allowedWriteRanges"]]
                 if not any(_contained(outcome, row) for row in allowed):
                     _fail("PARITY_REPORT_RANGE_INVALID")
     except ParityError:
@@ -3412,7 +3530,62 @@ def _pascal_range(raw: Mapping[str, Any], space: str | None) -> dict[str, Any] |
     return {"addressSpace": space, "start": raw["Start"], "endExclusive": raw["EndExclusive"]}
 
 
-def _normalize_raw_operation(raw: Mapping[str, Any]) -> dict[str, Any]:
+def _written_command(sequence: int, command: Mapping[str, Any]) -> dict[str, Any]:
+    """One executed command in the shape a CLI writes (1.2.x board decision 261).
+
+    The executable lies below a directory named `external-tools` and is identified from that
+    component; every absolute argument lies in the working directory or below it; no path steps
+    back with `..`. An argument that is not an absolute path is a plain token: one that could
+    name a file elsewhere (a path separator, a drive colon, `.` or `..`, a reserved device name,
+    a leading `@` or any `%`) is refused. Arguments must be a list of strings. Whether the
+    executable is a tool the caller staged is the caller's check.
+    """
+    executable = Path(command["ExecutablePath"])
+    working = Path(command["WorkingDirectory"])
+    arguments = command["Arguments"]
+    if not isinstance(arguments, list) or any(not isinstance(value, str) for value in arguments):
+        _fail("PARITY_PROVENANCE_INVALID")
+    argument_paths = [Path(value) for value in arguments if Path(value).is_absolute()]
+    tokens = [value for value in arguments if not Path(value).is_absolute()]
+    # Inspect attached option values as well as bare tokens. These prefixes
+    # carry no file authority and cannot hide a device or parent traversal.
+    option_values = [re.sub(r"^(?:--[^=:]+[=:]|/[^:]+:|-[^-])", "", value, count=1) for value in tokens]
+    parents = executable.parts[:-1]
+    if (not arguments or not executable.is_absolute() or not working.is_absolute() or "external-tools" not in parents
+            or any(".." in path.parts for path in (executable, working, *argument_paths))
+            or any(not path.is_relative_to(working) for path in argument_paths)
+            or any(value in (".", "..") or value.startswith("@") or "%" in value
+                   or any(mark in value for mark in ("/", "\\", ":"))
+                   for value in tokens)
+            or any(".." in re.split(r"[/\\]", value)
+                   or re.fullmatch(r"CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[0-9¹²³]|LPT[0-9¹²³]",
+                                   value.split(".", 1)[0].rstrip(" "), re.IGNORECASE)
+                   for value in option_values)):
+        _fail("PARITY_PROVENANCE_INVALID")
+    index = len(parents) - 1 - parents[::-1].index("external-tools")
+    package_root = Path(*executable.parts[:index])
+    tokens = []
+    for argument in arguments:
+        normalized = argument.replace("\\", "/")
+        normalized = normalized.replace(str(working).replace("\\", "/"), "{staging}")
+        normalized = normalized.replace(str(package_root).replace("\\", "/"), "{package}")
+        tokens.append(normalized)
+    return {
+        "sequence": sequence,
+        "executablePackagePath": PurePosixPath(*executable.parts[index:]).as_posix(),
+        "workingDirectoryKind": "host-created-staging", "argumentCount": len(arguments),
+        "canonicalArgumentsSha256": _sha256(json.dumps(tokens, ensure_ascii=False, separators=(",", ":")).encode("utf-8")),
+    }
+
+
+def _normalize_raw_operation(raw: Mapping[str, Any], *, written_commands: bool = False) -> dict[str, Any]:
+    """Project one raw operation row; `written_commands` is the 1.x comparator's opt-in.
+
+    By default (the terminal path, unchanged) an executable stands directly in `external-tools`,
+    absolute arguments stand directly in the working directory and no command repeats. With
+    `written_commands` each command follows `_written_command`, and a repeated command keeps its
+    place in the sequence.
+    """
     required = {
         "OperationId", "Sequence", "Kind", "Status", "SourceSpaceId", "SourceRange",
         "TargetSpaceId", "TargetRange", "OverlapPolicy", "ProcessorId", "ToolBindingId",
@@ -3436,13 +3609,19 @@ def _normalize_raw_operation(raw: Mapping[str, Any]) -> dict[str, Any]:
         if raw["ToolBindingId"] is not None or raw["ProcessorAllowedReadRanges"] or raw["ProcessorAllowedWriteRanges"] or commands:
             _fail("PARITY_PROVENANCE_INVALID")
         return result
-    if not isinstance(commands, list) or not commands:
+    # Written comparator reports also describe processors that never ran. Their
+    # empty command list carries no execution authority; decision 272 is checked
+    # by the per-side caller. The terminal normalizer keeps its default refusal.
+    if not isinstance(commands, list) or (not commands and not (written_commands and result["status"] == "skipped")):
         _fail("PARITY_PROVENANCE_INVALID")
     result["processor"] = {
         "processorId": raw["ProcessorId"], "toolBindingId": raw["ToolBindingId"],
         "allowedReadRanges": [_pascal_range(row, target_space) for row in raw["ProcessorAllowedReadRanges"]],
         "allowedWriteRanges": [_pascal_range(row, target_space) for row in raw["ProcessorAllowedWriteRanges"]],
     }
+    if written_commands:
+        result["executedCommands"] = [_written_command(sequence, command) for sequence, command in enumerate(commands)]
+        return result
     seen_commands: set[tuple[str, str, tuple[str, ...]]] = set()
     for sequence, command in enumerate(commands):
         executable = Path(command["ExecutablePath"])
