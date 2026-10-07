@@ -105,7 +105,7 @@ internal sealed partial class UiLaunchOptions
           --overwrite-capture                 Atomically replace an existing capture.
         Value options accept --name value and --name=value.
         Capture requires an existing parent folder, its real path, and a .png filename.
-        Capture persists nothing and uses saved appearance preferences.
+        Capture persists nothing; omitted appearance options use saved preferences.
         Strict request refusal applies only with --capture or --help.
         Capture exits: 0 committed PNG; 1 load/draw/save failure; 64 refused request;
         70 unexpected exception, cancellation or the 300-second capture deadline.

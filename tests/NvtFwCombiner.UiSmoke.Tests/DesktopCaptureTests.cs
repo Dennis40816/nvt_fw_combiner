@@ -27,9 +27,6 @@ public sealed partial class DesktopCaptureTests
     /// <summary>Every later-slice option remains unknown, even without input preload.</summary>
     [Theory]
     [InlineData("--report-tab")]
-    [InlineData("--theme")]
-    [InlineData("--language")]
-    [InlineData("--motion")]
     [InlineData("--window-size")]
     [InlineData("--ldc")]
     [InlineData("--ab-dp-mode")]

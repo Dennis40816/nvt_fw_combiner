@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Nvt.Core.RuntimeQuery;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -14,7 +15,8 @@ internal sealed partial class DesktopLaunchCoordinator
         Persistence = new(options.CapturePath is not null);
         CaptureSession = new(window, options, trace, services, preloadSession, confirmedClose);
         Context = new(window, viewModel, options, services, Persistence);
-        RuntimeQuery = new(window, viewModel, preloadSession, services.SupportMatrix);
+        Appearance = new(viewModel, Persistence, () => window.ClosePhase == WindowClosePhase.Open);
+        RuntimeQuery = new(window, viewModel, preloadSession, services.SupportMatrix, Appearance);
         ConfigureReportTabs(Context);
         ConfigureAppearance(Context);
         ConfigureWorkflowState(Context);
@@ -48,6 +50,7 @@ internal sealed partial class DesktopLaunchCoordinator
     }
 
     internal CapturePersistenceScope Persistence { get; }
+    internal LaunchAppearanceSession Appearance { get; }
     internal DesktopLaunchContext Context { get; }
     internal DesktopCaptureSession CaptureSession { get; }
     // Immutable query wiring; the referenced window/view-model facts are guarded by the UI thread.
@@ -74,7 +77,8 @@ internal sealed partial class DesktopLaunchCoordinator
         Func<ShellOptionalPreloadWork, Task> runOptionalStages,
         ShellOptionalPreloadWork work, CancellationToken cancellationToken)
     {
-        return Context.Options.CapturePath is null && !Context.HasBeforeNavigation &&
+        return (Context.Options.StartupCommands.Count == 0 || Context.Options.Issues.Count > 0) &&
+            Context.Options.CapturePath is null && !Context.HasBeforeNavigation &&
             !Context.HasAfterTargetPublication
             ? runOptionalStages(work)
             : RunDispatchedOptionalsAsync(runOptionalStages, work, cancellationToken);
@@ -85,6 +89,28 @@ internal sealed partial class DesktopLaunchCoordinator
         ShellOptionalPreloadWork work, CancellationToken cancellationToken)
     {
         bool capture = Context.Options.CapturePath is not null;
+        // Required catalog/input startup and the managed ready notification are complete at this seam.
+        if (Context.Options.StartupCommands.Count > 0 && Context.Options.Issues.Count == 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<RuntimeQueryStartupCallResult> results =
+                await RuntimeQuery.Router.ExecuteStartupPhaseAsync(Context.Options.StartupCommands,
+                    RuntimeQueryStartupPhase.AfterStartup);
+            if (results.FirstOrDefault(static result => !result.Response.Ok) is { } failed)
+            {
+                if (!capture)
+                {
+                    // Close revokes the appearance owner; unexpected failures use the existing interactive startup guard.
+                    if (Context.Window.ClosePhase == WindowClosePhase.Open)
+                    {
+                        throw new DesktopCaptureFailureException("appearance", failed.Response.Error!.Message);
+                    }
+                    return;
+                }
+                CaptureSession.CompleteCapture(1, "appearance", failed.Response.Error!.Message);
+                return;
+            }
+        }
         if (Context.HasBeforeNavigation)
         {
             Action navigate = work.ApplyLaunchPage;

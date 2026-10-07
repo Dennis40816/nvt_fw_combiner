@@ -8,7 +8,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
-/// <summary>One window's read-only product commands. Owns no UI state or transport.</summary>
+/// <summary>One window's product commands, routed through Core without owning transport.</summary>
 internal sealed class DesktopRuntimeQuery
 {
     // Immutable references; all reads of their mutable presentation facts require the UI thread.
@@ -19,7 +19,7 @@ internal sealed class DesktopRuntimeQuery
     private readonly Func<RuntimeQueryRequest?, string, CancellationToken, Task<RuntimeQueryResponseEnvelope>> _execute;
 
     internal DesktopRuntimeQuery(MainWindow window, MainWindowViewModel viewModel,
-        ShellPreloadSession preload, ICanonicalSupportMatrixQuery supportMatrix)
+        ShellPreloadSession preload, ICanonicalSupportMatrixQuery supportMatrix, LaunchAppearanceSession? appearance = null)
     {
         _window = window;
         _viewModel = viewModel;
@@ -29,8 +29,9 @@ internal sealed class DesktopRuntimeQuery
         [
             ArgumentlessReadOnlyCommand("state", ReadState),
             ArgumentlessReadOnlyCommand("catalog.list", ReadCatalog),
+            .. AppearanceLaunchCommands.Create(appearance ?? window.LaunchCoordinator.Appearance),
         ]);
-        // This slice has only read-only commands. Retain all arguments, including confirm, for validation.
+        // These commands only read or change UI state. Retain all arguments, including confirm, for validation.
         Router = new(Commands, requireConfirmation: false);
         _execute = RuntimeQueryUiThread.Wrap(
             (request, version, _) => Router.ExecuteAsync(request, version),

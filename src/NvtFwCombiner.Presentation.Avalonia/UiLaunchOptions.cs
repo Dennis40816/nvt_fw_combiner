@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Ports;
+using Nvt.Core.RuntimeQuery;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -17,7 +18,8 @@ internal sealed partial class UiLaunchOptions
         AbMergeLaunchRequest? abMerge = null,
         StandardMergeLaunchRequest? standardMerge = null,
         bool scriptedRequest = false,
-        LaunchParseState? parsed = null)
+        LaunchParseState? parsed = null,
+        IReadOnlyList<RuntimeQueryStartupCall>? startupCommands = null)
     {
         Page = page;
         OpenSettings = openSettings;
@@ -28,6 +30,7 @@ internal sealed partial class UiLaunchOptions
         AbMerge = abMerge;
         StandardMerge = standardMerge;
         IsScriptedRequest = scriptedRequest;
+        StartupCommands = startupCommands ?? [];
         InitializeCapture(parsed);
         InitializeReportTabs(parsed);
         InitializeAppearance(parsed);
@@ -67,6 +70,8 @@ internal sealed partial class UiLaunchOptions
     public bool HasStartupInputs => CtrlRam is not null || AbMerge is not null || StandardMerge is not null;
 
     internal bool HasStartupReportStage => Issues.Count > 0 || !string.IsNullOrWhiteSpace(ReportPath) || OpenReport;
+
+    internal IReadOnlyList<RuntimeQueryStartupCall> StartupCommands { get; }
 
     /// <summary>Parses UI shell startup arguments; capture validation requires the supplied local-file port.</summary>
     public static UiLaunchOptions Parse(IReadOnlyList<string> args, ILocalFileStore? files = null,
@@ -144,6 +149,13 @@ internal sealed partial class UiLaunchOptions
             unknownArguments.Add(argument);
         }
 
+        // UI parsing precedes Core. Give Core the original token boundaries, then remove only its
+        // consumed occurrences from UI's unknown tokens. In particular, a consumed --page must not
+        // make a later positional token look like the missing value of an earlier --theme.
+        RuntimeQueryStartupParseResult startup = AppearanceLaunchCommands.Parse(args);
+        RemoveCoreArguments(args, startup.RemainingArguments, unknownArguments);
+        issues.AddRange(startup.Issues.Select(static issue => issue.Message));
+
         if (!string.IsNullOrWhiteSpace(reportPath))
         {
             try
@@ -189,7 +201,7 @@ internal sealed partial class UiLaunchOptions
         return new UiLaunchOptions(parsed.AbMerge is not null || parsed.StandardMerge is not null
                 ? ShellPage.Merge : parsed.CtrlRam is not null ? ShellPage.Replace : parsed.Page,
             parsed.OpenSettings, NormalizeBlank(parsed.ReportPath), parsed.OpenReport, issues,
-            parsed.CtrlRam, parsed.AbMerge, parsed.StandardMerge, scriptedRequest, parsed);
+            parsed.CtrlRam, parsed.AbMerge, parsed.StandardMerge, scriptedRequest, parsed, startup.Calls);
     }
 
     private static void ParseLegacyWorkflowInputs(LaunchParseState parsed)
@@ -209,6 +221,22 @@ internal sealed partial class UiLaunchOptions
         parsed.CtrlRam = isAbMerge || isStandardMerge ? null : ParseCtrlRamRequest(
             parsed.InputOptions, parsed.CtrlRamInputs, parsed.Page, parsed.OpenSettings, parsed.ReportPath, parsed.OpenReport,
             parsed.UnknownArguments, parsed.Issues);
+    }
+
+    private static void RemoveCoreArguments(IReadOnlyList<string> original, IReadOnlyList<string> remaining,
+        List<string> unknown)
+    {
+        // Local synchronous parse state only. Counts project Core's consumption; they never parse values.
+        var consumed = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (string argument in original) { consumed[argument] = consumed.GetValueOrDefault(argument) + 1; }
+        foreach (string argument in remaining) { consumed[argument]--; }
+        _ = unknown.RemoveAll(argument =>
+        {
+            int count = consumed.GetValueOrDefault(argument);
+            if (count == 0) { return false; }
+            consumed[argument] = count - 1;
+            return true;
+        });
     }
 
     static partial void ConsumeCaptureToken(LaunchParseState parsed, IReadOnlyList<string> args, ref int index, ref bool consumed);
