@@ -38,7 +38,7 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(verify.is_confidential_reference_path(path))
 
-    def test_tracked_confidential_file_fails_until_deleted(self) -> None:
+    def test_tracked_confidential_file_fails_until_removed_from_index(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
@@ -50,6 +50,10 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "held privately"):
                     verify.verify_confidential_reference_paths()
                 source.unlink()
+                # The structure check reads the Git index, so an unstaged deletion is still refused.
+                with self.assertRaisesRegex(RuntimeError, "held privately"):
+                    verify.verify_confidential_reference_paths()
+                subprocess.run(["git", "rm", "--cached", "--quiet", "docs/references/example.xlsx"], cwd=root, check=True)
                 verify.verify_confidential_reference_paths()
 
     def test_git_inventory_failure_is_not_a_pass(self) -> None:
