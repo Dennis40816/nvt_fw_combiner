@@ -982,7 +982,8 @@ acceptance):
 Keep the detailed boundaries in the linked `1.1.4` remaining-queue table and
 existing UI handoffs. This defers feature work, not any mandatory safety,
 Golden or packaging validation for an earlier actual release. The independent
-Golden evidence work below is now allocated to `1.4.0`, separately from UI.
+Golden evidence work below was allocated to `1.4.0`, separately from UI; since 2026-10-07 it is
+[`1.3.x` board](../handoff/1.3.x.md) item 26 (EVID).
 
 Supply independent expected output for the retained input-only canonical
 cases, then re-review the fact-scoped aliases that depend on them. Reconcile
@@ -999,7 +1000,8 @@ it does not authorize generating expectations from the implementation.
 
 ## Work package: IC and firmware-evidence intake
 
-Allocate the retained new-IC/firmware-evidence/capability intake to `1.4.1`, including
+Since 2026-10-07 this intake is [`1.3.x` board](../handoff/1.3.x.md) item 27 (IC-EVID); it was allocated to `1.4.1`.
+The retained new-IC/firmware-evidence/capability intake includes
 NT51950 AB `1 IC`/`Cascade`, selector-free NT51951 AB, Perfect-family and
 `ldc-tp-only` evidence tracks. Inventory each track's existing implementation,
 actual evidence gap and profile-owned contract before choosing its bounded
@@ -1088,7 +1090,7 @@ Catalog/Registry activation.
 
 ## Work package: conditional Catalog and Registry activation
 
-Superseded 2026-10-07: now [`1.3.x` board](../handoff/1.3.x.md) item 15 (OLD-LAUNCH); the version numbers below are historical. Historical allocation (decision 188): the `1.2.13` A3 controlled preproduction
+Superseded 2026-10-07: now [`1.3.x` board](../handoff/1.3.x.md) item 15 (OLD-LAUNCH, its A3 gate); the version numbers below are historical. Historical allocation (decision 188): the `1.2.13` A3 controlled preproduction
 validation, followed by the separately approved production GO and activation
 read-back in `1.2.13` A7; the separate `1.5.1` slot and the `2.0.0` activation
 boundary are retired.
@@ -1122,7 +1124,7 @@ typed mappings, profile compiler and shared planner/executor. Define the
 bounded authoring gaps and acceptance from the current implementation before
 coding; do not rebuild already-complete execution infrastructure.
 Preserve profile-owned access, overlap, range, validation and integrity rules.
-Saved/custom rule persistence is a separate `1.3.2` outcome.
+Saved/custom rule persistence is a separate outcome, [`1.3.x` board](../handoff/1.3.x.md) item 23 (RULES); it was `1.3.2`.
 
 ## Work package: General Replace authoring — retired
 
@@ -1255,7 +1257,10 @@ release.
 
 ### Historical tracker reconciliation
 
-| Retained issue | Current allocation and reconciliation boundary |
+Versions `1.2.2` to `1.4.1` named in this table are superseded by the 2026-10-07 version-line decision. The work
+follows the [`1.3.x` board](../handoff/1.3.x.md); the version numbers below are historical.
+
+| Retained issue | Historical allocation and reconciliation boundary |
 | --- | --- |
 | [#380 preload evidence/release](https://github.com/Dennis40816/nvt_fw_combiner/issues/380) | Preserve completed `1.1.3`/`1.1.5` CI/performance history; Home startup/catalog-ready optimization is now `1.1.12`, provenance reconciliation remains `1.2.12`, and conditional CtrlRAM cold first-open/F14/F15 follow-up remains `1.2.12`. Do not restore its old five-minute CI target or re-release `0.10.5`. |
 | [#291 theme audit](https://github.com/Dennis40816/nvt_fw_combiner/issues/291) | Remaining existing-surface theme and native-accessibility audit belongs to `1.2.9`/`1.2.10` (decision 175); preserve shipped `1.1.4` corrections and their evidence. |
