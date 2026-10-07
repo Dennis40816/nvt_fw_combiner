@@ -260,8 +260,8 @@ When this topic comes up again, search this file first for:
 
 The short answer to preserve:
 
-- NT51926 now has two inspected postbuild versions. The 2026-07-05 base aligns with `postbuild-nt51926-fw1.4.1` (`0x32F50` header copy), not the current `2.0.0` catalog target (`0x32A70`).
-- NT51930 now has two inspected postbuild versions. The current Standard Merge golden aligns with `postbuild-nt51930-fw1.4.0` header-copy length `0x100`, not the current `2.0.0` catalog length `0x200` plus second header-only command.
+- `postbuild-nt51926-fw1.4.1` supplies private evidence for the NT51926 postbuild review.
+- `postbuild-nt51930-fw1.4.0` supplies private evidence for the NT51930 postbuild review.
 - Current postbuild catalog matches inspected `2.0.0` BAT evidence, but not necessarily the version of every golden sample.
 - NT51926 is no longer just a copy-header initialization question; it is a postbuild-version selection/evidence question.
 - NT51927 single has direct owner-output evidence. The 2-chip and 3-chip exact routes are closed through full-reference-SHA V1/V2 and expected-derived replacement/CRC classification; both remain support-neutral and make no independent owner-output claim.

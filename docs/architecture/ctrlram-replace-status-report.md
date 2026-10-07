@@ -242,25 +242,25 @@ outputs match the corresponding NT51927 hashes for single
 
 Report verification gate: committed golden-backed self-replacement tests inspect the generated Replace report, not only the final output bytes. DP self-replacement must leave `OutputDifferences` empty. A CtrlRAM case whose evidence claims zero replacement-payload drift may emit only accepted `PostbuildCrcHeader` rows. An expected-derived CtrlRAM case may additionally emit accepted `DeclaredReplacement` rows only when every row traces to an explicit compiled mapping and an evidence-declared half-open range. Every case forbids `Unexpected` rows and `report.output-difference.unexpected`; a second self-replacement from the postbuild-clean output must return to an empty difference table.
 
-The 2026-07-05 NT51927 synthetic sentinel run replaced every selected 2-chip and 3-chip CtrlRAM slot with non-golden byte patterns. The 2-chip branch stayed within the existing declarations. The 3-chip branch exposed additional CRC-only main-header word writes at `[0x22C,0x230)`, `[0x29C,0x2A0)`, and `[0x2AC,0x2B0)` that self-replacement did not necessarily surface. These ranges align with the `mmap-nt51927-fw1.4.1` cascade header CRC offsets and descriptor/header CRC-word rule below, so the allowed-write catalog declares them only for the 3-chip/cascade branch. This remains R3 firmware evidence and requires firmware-owner review before production-support promotion.
+`mmap-nt51927-fw1.4.1` supplies private evidence for reviewing cascade write authority.
 
 NT51930 Standard Merge golden cross-check:
 
 - `postbuild-nt51930-fw1.4.0` supplies the historical header-copy command shape.
-- `postbuild-nt51930-fw2.0.0` derives `HEADER_SZ = 0x200` from `mmap-nt51930-fw2.0.0` and runs both a merge command and a second header-only command.
+- `postbuild-nt51930-fw2.0.0` and `mmap-nt51930-fw2.0.0` supply private evidence for reviewing an alternative postbuild layout.
 - In the current 51930 golden output, comparing `[0x7000,0x7200)` to `[0x28FB0,0x291B0)` gives 1 differing byte for the first `0x100`, but 40 differing bytes for `0x200`. This supports treating the golden as 1.4.0-era evidence.
 
 No-overlay/header-copy size cross-check:
 
-| IC family | Matching reference | Header-copy size conclusion |
+| IC family | Manifest ID | Evidence purpose |
 | --- | --- | --- |
-| NT51920 | `postbuild-nt51920-fw1.3.1` | `0x100`; golden header table also reports `0x100`. |
-| NT51923 | `postbuild-nt51923-fw1.4.1` | `0x100`; golden header table also reports `0x100`. |
-| NT51926 | `postbuild-nt51926-fw1.4.1` and `postbuild-nt51926-fw2.0.0` | Size remains `0x100`; mismatch is target address/codebase, not size. |
-| NT51929 / NT51932 | `postbuild-nt51932-fw2.0.0` | `0x200`; this is the 2.0.0 NT-based header size. |
-| NT51930 | `postbuild-nt51930-fw1.4.0`; `postbuild-nt51930-fw2.0.0` evidence-only | The one runtime interval `[1.0.0,infinity)` continues to use the 1.4.0-sourced shape (`0x100`). The inspected 2.0.0 shape (`0x200`) is retained for traceability and cannot create a production boundary. |
-| NT51931 | `postbuild-nt51931-fw1.3.0` | `0x100`; two supplied BAT versions disagree on mode. Registered Combiner 1.13.0/51931-based is selected after full-byte equality with the hash-only 1.2.0.4/51930-based control. The 1.2.0.4 executable is not packaged or routed. |
-| NT51950 / NT51951 | `postbuild-nt51950-fw2.0.0` | `0x200`; this is the 2.0.0 NT-based header size. |
+| NT51920 | `postbuild-nt51920-fw1.3.1` | Private evidence for postbuild layout review. |
+| NT51923 | `postbuild-nt51923-fw1.4.1` | Private evidence for postbuild layout review. |
+| NT51926 | `postbuild-nt51926-fw1.4.1` and `postbuild-nt51926-fw2.0.0` | Private evidence for postbuild layout review. |
+| NT51929 / NT51932 | `postbuild-nt51932-fw2.0.0` | Private evidence for postbuild layout review. |
+| NT51930 | `postbuild-nt51930-fw1.4.0`; `postbuild-nt51930-fw2.0.0` evidence-only | Private evidence for postbuild layout review. |
+| NT51931 | `postbuild-nt51931-fw1.3.0` | Private evidence for postbuild layout review. |
+| NT51950 / NT51951 | `postbuild-nt51950-fw2.0.0` | Private evidence for postbuild layout review. |
 
 Current conclusion: for normal/NT-based no-overlay postbuild, the size data is consistent when matched to the selected runtime profile. Common FW selects only between multiple effective profile intervals; it is not required for an IC with one runtime profile. Auto mode may keep the empty `map.txt` staging model for this no-overlay category and must still fail closed for overlay-enabled or unclassified firmware.
 
@@ -308,19 +308,18 @@ TP Overview evidence notes:
 
 NT51927 flash-header cross-check:
 
-- `flashmap-2026-07-25` records `0x00200` Common Header, `0x00220` Flash Header, `0x1E230` Master header copy, `0x27230` Slave R header copy, `0x30230` Slave L header copy, and `0x32DC0` Header backup.
-- `mmap-nt51927-fw1.4.1` records cascade header CRC offsets.
+- `flashmap-2026-07-25` supplies private evidence for header-layout review.
+- `mmap-nt51927-fw1.4.1` supplies private evidence for cascade integrity review.
 - Observed changed words align with 16-byte descriptor CRC positions (`descriptor + 0x0C`), including split 3-chip diff ranges where one byte in a 4-byte word happened to match.
 - Synthetic sentinel replacement confirmed the real Combiner 1.13.0 path can update additional 3-chip main-header CRC words that self-replacement did not necessarily surface.
 
 ### 4. NT51931 corrected command evidence and exact-case candidate
 
-Current private evidence for NT51931 identifies the reviewed `1.3.0` shape:
+Private evidence used for NT51931 postbuild review:
 
 - `mmap-nt51931-fw1.3.0`
 - `postbuild-nt51931-fw1.3.0`
 
-The final reviewed command shape used the 51930-based mode.
 
 That mode paired with Combiner 1.13.0 access-violates before mutation:
 
@@ -332,7 +331,6 @@ STDERR=<empty>
 DiffBytes=0
 ```
 
-The earlier private evidence used the 51931-based mode.
 
 The owner-selected 2026-07-19 experiment retained the final `0x17C00`
 DiffDLM input and every other argv token, while comparing these two pairings:

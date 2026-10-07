@@ -38,7 +38,7 @@ $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     sha256 = 'a3ad08440076fb6b8b840ba64a6fbe0ccadb4345530ba1db09ab0b4f0fa671d4'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenAllowlistSha256 = '4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87'
+$ApprovedCanonicalGoldenAllowlistSha256 = 'c2a169b5b8650ee11e1040476ae01dcf09d2c115e36b80136e43c416381fc852'
 $CanonicalGoldenPackagePrefix = 'reference/golden'
 $CanonicalGoldenAllowlistPackagePath = 'reference/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -454,7 +454,7 @@ function Assert-CanonicalGoldenReference {
         }
         $ProjectionFiles[$RepositoryPath] = $File
     }
-    if ($ProjectionFiles.Count -ne 216 -or
+    if ($ProjectionFiles.Count -ne 215 -or
         [string]$ProjectionFiles['testdata/golden/canonical/README.md'].packagePath -cne $CanonicalReadmePackagePath -or
         [string]$ProjectionFiles['testdata/golden/release-canonical-v1.json'].packagePath -cne $CanonicalGoldenAllowlistPackagePath) {
         throw 'Release package canonical Golden projection file mapping differs from the approved scope.'
@@ -470,6 +470,7 @@ function Assert-CanonicalGoldenReference {
     [void]$UsedProjectionSources.Add('testdata/golden/release-canonical-v1.json')
     $ExpectedArtifacts = @{}
     $ArtifactDeclarationCount = 0
+    $PrivateReferenceCount = 0
     $DirectInputEvidenceCount = 0
     foreach ($ApprovedCase in $Allowlist.cases) {
         $CaseId = [string]$ApprovedCase.caseId
@@ -539,7 +540,10 @@ function Assert-CanonicalGoldenReference {
         foreach ($ApprovedArtifact in $ApprovedCase.artifacts) {
             $ArtifactId = [string]$ApprovedArtifact.artifactId
             $CanonicalArtifact = $CanonicalArtifacts[$ArtifactId]
+            $Storage = if ($null -ne $CanonicalArtifact -and $CanonicalArtifact.PSObject.Properties.Name -contains 'storage') { [string]$CanonicalArtifact.storage } else { '' }
+            $ApprovedStorage = if ($ApprovedArtifact.PSObject.Properties.Name -contains 'storage') { [string]$ApprovedArtifact.storage } else { '' }
             if ($null -eq $CanonicalArtifact -or
+                $Storage -cne $ApprovedStorage -or
                 [string]$CanonicalArtifact.role -cne [string]$ApprovedArtifact.role -or
                 [string]$CanonicalArtifact.path -cne [string]$ApprovedArtifact.path -or
                 [long]$CanonicalArtifact.size -ne [long]$ApprovedArtifact.size -or
@@ -547,6 +551,14 @@ function Assert-CanonicalGoldenReference {
                 throw "Release package canonical artifact '$CaseId/$ArtifactId' differs from the approved declaration."
             }
             $ArtifactDeclarationCount++
+            if ($ApprovedArtifact.PSObject.Properties.Name -contains 'storage') {
+                if ($ApprovedStorage -cne 'private-reference' -or [string]$ApprovedArtifact.role -cne 'provenance' -or
+                    $ProjectionFiles.ContainsKey("testdata/golden/canonical/$($ApprovedArtifact.path)")) {
+                    throw 'Private canonical provenance must remain outside the package projection.'
+                }
+                $PrivateReferenceCount++
+                continue
+            }
             $ArtifactRelativePath = [string]$ApprovedArtifact.path
             if ($ExpectedArtifacts.ContainsKey($ArtifactRelativePath)) {
                 $Existing = $ExpectedArtifacts[$ArtifactRelativePath]
@@ -595,7 +607,8 @@ function Assert-CanonicalGoldenReference {
     if ($SelectedCases.Count -ne 40 -or
         $DirectInputEvidenceCount -ne 3 -or
         $ArtifactDeclarationCount -ne 177 -or
-        $ExpectedArtifacts.Count -ne 174) {
+        $PrivateReferenceCount -ne 1 -or
+        $ExpectedArtifacts.Count -ne 173) {
         throw 'Release package canonical Golden counts differ from the approved scope.'
     }
 

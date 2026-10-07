@@ -159,7 +159,7 @@ public static class CanonicalGoldenTestData
 
             foreach (JsonElement artifact in goldenCase.GetProperty("artifacts").EnumerateArray())
             {
-                _ = ValidatedArtifactPath(artifact, root);
+                ValidateArtifact(artifact, root);
             }
 
             _ = directEvidence
@@ -461,6 +461,15 @@ public static class CanonicalGoldenTestData
 
     private static string ValidatedArtifactPath(JsonElement artifact, string root)
     {
+        if (IsPrivateReference(artifact))
+        {
+            string privatePath = ConfidentialReferenceTestData.ResolveVerifiedPath(
+                artifact.GetProperty("sha256").GetString()!);
+            return new FileInfo(privatePath).Length != artifact.GetProperty("size").GetInt64()
+                ? throw new InvalidDataException("Private canonical artifact size drift.")
+                : privatePath;
+        }
+
         string path = RepositoryPaths.ManifestPath(root, artifact);
         var file = new FileInfo(path);
         if (file.Length != artifact.GetProperty("size").GetInt64())
@@ -512,12 +521,42 @@ public static class CanonicalGoldenTestData
 
     private static JsonObject ProjectArtifact(JsonElement artifact, string root)
     {
-        _ = ValidatedArtifactPath(artifact, root);
+        ValidateArtifact(artifact, root);
         return new JsonObject
         {
             ["path"] = artifact.GetProperty("path").GetString(),
             ["size"] = artifact.GetProperty("size").GetInt64(),
             ["sha256"] = artifact.GetProperty("sha256").GetString(),
         };
+    }
+
+    /// <summary>Identifies the additive, provenance-only private storage disposition.</summary>
+    public static bool IsPrivateReference(JsonElement artifact)
+    {
+        if (!artifact.TryGetProperty("storage", out JsonElement storage))
+        {
+            return false;
+        }
+
+        if (storage.ValueKind != JsonValueKind.String || storage.GetString() != "private-reference" ||
+            artifact.GetProperty("role").GetString() != "provenance")
+        {
+            throw new InvalidDataException("Private storage is permitted only for provenance artifacts.");
+        }
+
+        string? hash = artifact.GetProperty("sha256").GetString();
+        return artifact.GetProperty("size").GetInt64() < 0 || hash is null || hash.Length != 64 ||
+            !hash.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'))
+            ? throw new InvalidDataException("Private canonical artifact has invalid integrity metadata.")
+            : true;
+    }
+
+    private static void ValidateArtifact(JsonElement artifact, string root)
+    {
+        _ = RepositoryPaths.ManifestPath(root, artifact);
+        if (!IsPrivateReference(artifact) || ConfidentialReferenceTestData.IsConfigured)
+        {
+            _ = ValidatedArtifactPath(artifact, root);
+        }
     }
 }

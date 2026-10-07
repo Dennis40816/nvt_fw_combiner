@@ -16,7 +16,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
     private const string OwnerExpectedSha256 = "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd";
     private const string CurrentOutputSha256 = "0e59a2fbaab16979745b3543564b18f49c9d4eb7912bdea2e61383e31e662566";
     private const string RegisteredCombinerSha256 = "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf";
-    private const string PostbuildBatSha256 = "9b570db204df0849f9962f09f9800e6e442a86d38d6dacd0988b32e18f0a514f";
+    private const string PostbuildBatSha256 = "946a84c12a3479c110b006bdcfb2ba7a65804037f5e0d92e9d6c53786fc49781";
     private const int Capacity = 0x40000;
     private const int NfStart = 0x1FC00;
     private const int NfMaximumLength = 0x1F90;

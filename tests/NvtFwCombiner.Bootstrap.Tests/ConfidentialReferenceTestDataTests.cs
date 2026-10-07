@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -7,6 +8,48 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Checks private evidence lookup with independent synthetic data.</summary>
 public sealed class ConfidentialReferenceTestDataTests
 {
+    /// <summary>Private-held provenance stays readable as public identity metadata.</summary>
+    [Fact]
+    public void PrivateHeldCanonicalProvenanceRetainsPublicIntegrityIdentity()
+    {
+        JsonElement artifact = PrivateHeldArtifact();
+        using var manifest = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
+            "docs", "references", "confidential-references.json")));
+        JsonElement entry = manifest.RootElement.GetProperty("entries").EnumerateArray().Single(
+            static item => item.GetProperty("id").GetString() == "golden-provenance-nt51951-ctrlram-fw2.0.0");
+
+        Assert.Equal(entry.GetProperty("sha256").GetString(), artifact.GetProperty("sha256").GetString());
+        Assert.Equal(entry.GetProperty("sizeBytes").GetInt64(), artifact.GetProperty("size").GetInt64());
+    }
+
+    /// <summary>Private Golden bytes are checked only when their inventory is configured.</summary>
+    [Fact]
+    public void PrivateHeldCanonicalProvenanceMatchesPinnedBytes()
+    {
+        if (!ConfidentialReferenceTestData.IsConfigured)
+        {
+            Assert.Skip("confidential golden not executed");
+        }
+
+        JsonElement artifact = PrivateHeldArtifact();
+        string path = CanonicalGoldenTestData.ArtifactPath(artifact);
+        Assert.Equal(artifact.GetProperty("size").GetInt64(), new FileInfo(path).Length);
+        Assert.Equal(artifact.GetProperty("sha256").GetString(),
+            Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path))));
+    }
+
+    /// <summary>Private storage cannot remove an input or expected output from execution.</summary>
+    [Theory]
+    [InlineData("input", "private-reference")]
+    [InlineData("expected", "private-reference")]
+    [InlineData("provenance", "unknown")]
+    public void PrivateStorageRejectsUnapprovedRolesAndDispositions(string role, string storage)
+    {
+        using var artifact = JsonDocument.Parse(JsonSerializer.Serialize(new { role, storage }));
+        _ = Assert.Throws<InvalidDataException>(() =>
+            CanonicalGoldenTestData.IsPrivateReference(artifact.RootElement));
+    }
+
     /// <summary>A matching inventory identity returns verified bytes.</summary>
     [Fact]
     public void MatchingInventoryDigestReturnsVerifiedBytes()
@@ -47,5 +90,29 @@ public sealed class ConfidentialReferenceTestDataTests
 
         _ = Assert.Throws<InvalidOperationException>(() =>
             ConfidentialReferenceTestData.ReadVerifiedBytes(digest, workspace.Root));
+    }
+
+    private static JsonElement PrivateHeldArtifact()
+    {
+        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(
+            CanonicalGoldenTestData.Root, "manifest.json")));
+        foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.PathFromRelative(
+                CanonicalGoldenTestData.Root, entry.GetProperty("manifestPath").GetString()!)));
+            if (!document.RootElement.TryGetProperty("artifacts", out JsonElement artifacts) ||
+                !artifacts.EnumerateArray().Any(CanonicalGoldenTestData.IsPrivateReference))
+            {
+                continue;
+            }
+
+            JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+                document.RootElement.GetProperty("workflow").GetString()!,
+                document.RootElement.GetProperty("caseId").GetString()!);
+            return goldenCase.GetProperty("artifacts").EnumerateArray()
+                .Single(CanonicalGoldenTestData.IsPrivateReference).Clone();
+        }
+
+        throw new InvalidDataException("Private-held canonical provenance was not declared.");
     }
 }

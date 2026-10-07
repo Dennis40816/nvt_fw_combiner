@@ -9,6 +9,7 @@ import unittest
 from copy import deepcopy
 from pathlib import Path
 from types import ModuleType
+from unittest.mock import patch
 
 VALIDATOR_PATH = (
     Path(__file__).resolve().parents[2] / "scripts" / "canonical_golden_validation.py"
@@ -31,6 +32,75 @@ REPOSITORY_ROOT = VALIDATOR_PATH.parents[1]
 
 
 class CanonicalGoldenValidationTests(unittest.TestCase):
+    def declare_private_provenance(self) -> dict[str, object]:
+        path = self.case_directory / "provenance/synthetic.dat"
+        path.write_bytes(b"synthetic private provenance")
+        artifact = self.artifact(
+            "private-provenance", "provenance", path,
+            "testdata/golden/legacy/provenance/synthetic.dat",
+        )
+        artifact["storage"] = "private-reference"
+        self.case_manifest["artifacts"].append(artifact)
+        path.unlink()
+        self.rewrite_case()
+        return artifact
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_private_provenance_accepts_identity_without_public_file(self) -> None:
+        self.declare_private_provenance()
+        self.assertEqual([], self.validate())
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_private_provenance_rejects_returned_public_payload(self) -> None:
+        artifact = self.declare_private_provenance()
+        (self.canonical / artifact["path"]).write_bytes(b"synthetic private provenance")
+        self.assertTrue(any("undeclared" in error for error in self.validate()))
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_private_storage_cannot_hide_inputs_or_expected_outputs(self) -> None:
+        for artifact in self.case_manifest["artifacts"]:
+            artifact["storage"] = "private-reference"
+        self.rewrite_case()
+        self.assertTrue(any("only for provenance" in error for error in self.validate()))
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_private_provenance_requires_valid_integrity_metadata(self) -> None:
+        artifact = self.declare_private_provenance()
+        artifact["sha256"] = "invalid"
+        artifact["size"] = -1
+        self.rewrite_case()
+        errors = self.validate()
+        self.assertTrue(any("invalid sha256" in error for error in errors))
+        self.assertTrue(any("non-negative integer" in error for error in errors))
+
+    def test_configured_private_provenance_verifies_digest_and_size(self) -> None:
+        artifact = self.declare_private_provenance()
+        root = self.root / "private-assets"
+        references = root / "nfc/references"
+        references.mkdir(parents=True)
+        payload = references / "synthetic.dat"
+        payload.write_bytes(b"synthetic private provenance")
+        (references / "SHA256SUMS").write_text(
+            f"{artifact['sha256']}  synthetic.dat\n", encoding="utf-8"
+        )
+        with patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": str(root)}):
+            self.assertEqual([], self.validate())
+            payload.write_bytes(b"drifted")
+            errors = self.validate()
+            self.assertTrue(any("SHA-256 mismatch" in error for error in errors))
+            self.assertTrue(any("size mismatch" in error for error in errors))
+
+    def test_configured_private_provenance_rejects_path_escape(self) -> None:
+        artifact = self.declare_private_provenance()
+        root = self.root / "private-assets"
+        references = root / "nfc/references"
+        references.mkdir(parents=True)
+        (references / "SHA256SUMS").write_text(
+            f"{artifact['sha256']}  ../outside.dat\n", encoding="utf-8"
+        )
+        with patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": str(root)}):
+            self.assertTrue(any("not a normalized confined path" in error for error in self.validate()))
+
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary_directory.name)

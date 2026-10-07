@@ -6,6 +6,9 @@ Each entry has a unique stable descriptive `id`, `sizeBytes`, lowercase `sha256`
 and `kind`. Entries carry no original file names or paths. Identical content may
 have multiple descriptive ids; SHA-256 identifies the private bytes.
 
+For the removal migration, size and digest identify the exact pre-removal Git
+blob bytes. Checkout line-ending conversion is excluded from that identity.
+
 The private repository `nvt-private-assets` resolves SHA-256 through
 `nfc/references/SHA256SUMS`. `NVT_PRIVATE_ASSETS` identifies its checkout for
 confidential Golden tests. Those tests verify the resolved bytes before use;

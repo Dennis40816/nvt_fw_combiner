@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -67,3 +69,45 @@ def test_public_confidential_manifest_is_a_reference_package_entry() -> None:
     assert "'docs/references/confidential-references.json'" in PACKAGE_SOURCE
     reference_list = PACKAGE_SOURCE.split("$ReferenceFiles = @(", 1)[1].split("\n    )", 1)[0]
     assert ".xlsx" not in reference_list
+
+
+@pytest.mark.parametrize("mode", ["unset", "matching", "drifted", "escape", "input"])
+def test_private_provenance_package_verification(tmp_path: Path, mode: str) -> None:
+    shell = shutil.which("pwsh")
+    if shell is None:
+        pytest.skip("PowerShell is unavailable")
+    root = tmp_path / "private-assets"
+    references = root / "nfc" / "references"
+    references.mkdir(parents=True)
+    payload = b"synthetic private provenance"
+    digest = hashlib.sha256(payload).hexdigest()
+    (references / "synthetic.dat").write_bytes(b"drifted" if mode == "drifted" else payload)
+    relative = "../outside.dat" if mode == "escape" else "synthetic.dat"
+    (references / "SHA256SUMS").write_text(f"{digest}  {relative}\n", encoding="utf-8")
+    artifact = {
+        "storage": "private-reference",
+        "role": "input" if mode == "input" else "provenance",
+        "size": len(payload),
+        "sha256": digest,
+    }
+    start = PACKAGE_SOURCE.index("function Assert-SafeCanonicalGoldenPath {")
+    end = PACKAGE_SOURCE.index("function Get-DeclaredCanonicalGoldenPaths {", start)
+    script = "\n".join([
+        "$ErrorActionPreference = 'Stop'",
+        "Set-StrictMode -Version Latest",
+        "function Get-LowerSha256 { param([string]$Path) (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }",
+        PACKAGE_SOURCE[start:end],
+        "$Artifact = $env:NFC_PRIVATE_TEST_ARTIFACT | ConvertFrom-Json",
+        "Assert-PrivateCanonicalReference -Artifact $Artifact",
+    ])
+    env = os.environ.copy()
+    env["NVT_PRIVATE_ASSETS"] = "" if mode == "unset" else str(root)
+    env["NFC_PRIVATE_TEST_ARTIFACT"] = json.dumps(artifact)
+    result = subprocess.run([shell, "-NoProfile", "-Command", script], env=env,
+                            capture_output=True, text=True, encoding="utf-8",
+                            errors="replace", check=False)
+    if mode in {"unset", "matching"}:
+        assert result.returncode == 0, result.stderr
+    else:
+        assert result.returncode != 0
+        assert {"drifted": "bytes drifted", "escape": "Unsafe canonical", "input": "hash-pinned provenance"}[mode] in result.stderr

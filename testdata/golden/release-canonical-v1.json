@@ -885,7 +885,7 @@
     {
       "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
       "manifestPath": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/case.json",
-      "manifestSha256": "04b38a6bbf20918b98d259e0b6486b7724036c69a0d30017a314406958ce8c24",
+      "manifestSha256": "791db849995424ab57c24cffd966f2aa3b9c7d92da1000d0028a869082d3a242",
       "workflow": "ctrlram-replace",
       "testDispositionKind": "allowed-byte-difference",
       "directGolden": true,
@@ -952,7 +952,8 @@
           "role": "provenance",
           "path": "NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/provenance/51950_PostbuildSetup.bat",
           "size": 5676,
-          "sha256": "676b2e0d4178731034a0e8b118e9ad514b9beadf7094c5f9a6ee56ea784318a0"
+          "sha256": "676b2e0d4178731034a0e8b118e9ad514b9beadf7094c5f9a6ee56ea784318a0",
+          "storage": "private-reference"
         },
         {
           "artifactId": "diffnfmerge-config-reference",

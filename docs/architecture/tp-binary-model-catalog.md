@@ -18,8 +18,8 @@ migrated into target selectors, profiles, processors, or family relationships.
 Evidence sources, identified by IDs in the
 [public confidential reference manifest](../references/confidential-references.json):
 
-- `flashmap-2026-07-25` TP Overview rows;
-- `tddi-flash-header-sheet` named header worksheets;
+- `flashmap-2026-07-25` for flash-layout review;
+- `tddi-flash-header-sheet` for header-layout review;
 - documented owner aliases already recorded in hash-pinned
   `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.
 

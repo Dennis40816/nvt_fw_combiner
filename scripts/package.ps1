@@ -102,7 +102,7 @@ $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 $CanonicalGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87'
+$ApprovedCanonicalGoldenReleaseAllowlistSha256 = 'c2a169b5b8650ee11e1040476ae01dcf09d2c115e36b80136e43c416381fc852'
 
 try {
 if (-not $PolicyDryRunSentinel) {
@@ -1155,7 +1155,7 @@ function Invoke-ExternalToolPolicyDryRun {
         Write-Host 'Prebuilt catalog package policy dry-run passed: missing, damaged, oversized, stale, and extra pack rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
         Write-Host 'Retired support publication policy package dry-run passed: no parallel publicationPolicy payload entered staging or manifest.'
-        Write-Host 'Canonical golden package policy dry-run passed: 25 direct Goldens, three owner-certified input-only evidence cases, twelve self-contained aliases, 177 declarations, and 174 unique artifact paths selected.'
+        Write-Host 'Canonical golden package policy dry-run passed: 25 direct Goldens, three owner-certified input-only evidence cases, twelve self-contained aliases, 177 declarations, 173 public artifact paths, and one private reference selected.'
         Write-Host 'Canonical golden package policy identity, direct/input/alias drift, retired-IC, and strict-type rejection passed.'
         Write-Host 'Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8.'
     }
@@ -1219,6 +1219,44 @@ function Add-GoldenManifestEntryPath {
     Assert-SafeCanonicalGoldenPath -RelativePath $ManifestRelativePath
 
     [void]$Paths.Add("$GoldenRootRelative/$ManifestRelativePath")
+}
+
+function Assert-PrivateCanonicalReference {
+    param([Parameter(Mandatory = $true)]$Artifact)
+
+    if ([string]$Artifact.storage -cne 'private-reference' -or
+        [string]$Artifact.role -cne 'provenance' -or
+        [string]$Artifact.sha256 -cnotmatch '^[0-9a-f]{64}$' -or [long]$Artifact.size -lt 0) {
+        throw 'Private canonical storage requires hash-pinned provenance.'
+    }
+    if ([string]::IsNullOrWhiteSpace($env:NVT_PRIVATE_ASSETS)) { return }
+
+    $Root = [IO.Path]::GetFullPath((Join-Path $env:NVT_PRIVATE_ASSETS 'nfc/references'))
+    $InventoryPath = Join-Path $Root 'SHA256SUMS'
+    foreach ($Path in @($Root, $InventoryPath)) {
+        if ((Get-Item -LiteralPath $Path).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw 'Private reference inventory contains a reparse point.'
+        }
+    }
+    $Prefix = [string]$Artifact.sha256 + '  '
+    $Match = @(Get-Content -LiteralPath $InventoryPath | Where-Object {
+        $_.StartsWith($Prefix, [StringComparison]::Ordinal)
+    } | Select-Object -First 1)
+    if ($Match.Count -ne 1) { throw 'SHA-256 was not found in the private reference inventory.' }
+    $RelativePath = $Match[0].Substring($Prefix.Length)
+    Assert-SafeCanonicalGoldenPath -RelativePath $RelativePath
+    $Path = $Root
+    foreach ($Segment in $RelativePath.Split('/')) {
+        $Path = Join-Path $Path $Segment
+        if ((Get-Item -LiteralPath $Path).Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw 'Private reference path contains a reparse point.'
+        }
+    }
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf) -or
+        (Get-Item -LiteralPath $Path).Length -ne [long]$Artifact.size -or
+        (Get-LowerSha256 -Path $Path) -cne [string]$Artifact.sha256) {
+        throw 'Private canonical reference bytes drifted.'
+    }
 }
 
 function Get-DeclaredCanonicalGoldenPaths {
@@ -1299,6 +1337,7 @@ function Get-DeclaredCanonicalGoldenPaths {
     $SelectedCaseIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $SelectedCaseFacts = @{}
     $ArtifactDeclarationCount = 0
+    $PrivateReferenceCount = 0
     $DirectInputEvidenceCount = 0
 
     foreach ($CaseEntry in $Manifest.cases) {
@@ -1366,7 +1405,10 @@ function Get-DeclaredCanonicalGoldenPaths {
             }
             foreach ($Artifact in $Case.artifacts) {
                 $ApprovedArtifact = @($ApprovedCase.artifacts | Where-Object { $_.artifactId -ceq $Artifact.artifactId })
+                $Storage = if ($Artifact.PSObject.Properties.Name -contains 'storage') { [string]$Artifact.storage } else { '' }
+                $ApprovedStorage = if ($ApprovedArtifact.Count -eq 1 -and $ApprovedArtifact[0].PSObject.Properties.Name -contains 'storage') { [string]$ApprovedArtifact[0].storage } else { '' }
                 if ($ApprovedArtifact.Count -ne 1 -or
+                    $Storage -cne $ApprovedStorage -or
                     [string]$ApprovedArtifact[0].role -cne [string]$Artifact.role -or
                     [string]$ApprovedArtifact[0].path -cne [string]$Artifact.path -or
                     [long]$ApprovedArtifact[0].size -ne [long]$Artifact.size -or
@@ -1374,6 +1416,11 @@ function Get-DeclaredCanonicalGoldenPaths {
                     throw "Canonical artifact '$CaseId/$($Artifact.artifactId)' differs from the explicit release allowlist."
                 }
                 $ArtifactDeclarationCount++
+                if ($Artifact.PSObject.Properties.Name -contains 'storage') {
+                    Assert-PrivateCanonicalReference -Artifact $Artifact
+                    $PrivateReferenceCount++
+                    continue
+                }
                 Add-GoldenManifestEntryPath -Paths $Paths -GoldenRootRelative $GoldenRootRelative -Entry $Artifact
                 $ArtifactPath = Join-Path $GoldenRoot ([string]$Artifact.path)
                 if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf) -or
@@ -1410,8 +1457,8 @@ function Get-DeclaredCanonicalGoldenPaths {
             throw "Canonical alias '$($ApprovedCase.caseId)' does not select its exact same-workflow direct evidence source '$SourceCaseId'."
         }
     }
-    if ($SelectedCases.Count -ne 40 -or $DirectInputEvidenceCount -ne 3 -or $ArtifactDeclarationCount -ne 177 -or $Paths.Count -ne 215) {
-        throw 'Canonical golden package projection differs from 40 cases, three input-evidence cases, 177 declarations, or 174 unique artifacts.'
+    if ($SelectedCases.Count -ne 40 -or $DirectInputEvidenceCount -ne 3 -or $ArtifactDeclarationCount -ne 177 -or $PrivateReferenceCount -ne 1 -or $Paths.Count -ne 214) {
+        throw 'Canonical golden package projection differs from 40 cases, three input-evidence cases, 177 declarations, 173 public artifacts, or one private reference.'
     }
 
     $CaseIds = [string[]]@($SelectedCaseIds)
@@ -1427,7 +1474,9 @@ function Get-DeclaredCanonicalGoldenPaths {
             throw "Canonical case '$CaseId' has an unexpected case manifest location."
         }
         $CaseFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-        foreach ($SourceRelativePath in @([string]$Case.manifestPath) + @($Case.artifacts | ForEach-Object { [string]$_.path })) {
+        foreach ($SourceRelativePath in @([string]$Case.manifestPath) + @($Case.artifacts | Where-Object {
+            $_.PSObject.Properties.Name -notcontains 'storage'
+        } | ForEach-Object { [string]$_.path })) {
             if (-not $SourceRelativePath.StartsWith("$CaseRoot/", [StringComparison]::Ordinal)) {
                 throw "Canonical case '$CaseId' has a file outside its case directory."
             }
@@ -1457,7 +1506,7 @@ function Get-DeclaredCanonicalGoldenPaths {
         if (-not $Destinations.Add($File.packagePath)) { throw "Canonical Golden package path collision: $($File.packagePath)" }
         $PackageFiles.Add($File)
     }
-    if ($PackageFiles.Count -ne 216) { throw 'Canonical Golden package projection file count differs from the approved scope.' }
+    if ($PackageFiles.Count -ne 215) { throw 'Canonical Golden package projection file count differs from the approved scope.' }
     $script:CanonicalGoldenPackageFiles = @($PackageFiles | Sort-Object packagePath)
     Assert-PackageRelativePathLength -RelativePaths @($script:CanonicalGoldenPackageFiles | ForEach-Object { $_.packagePath })
     Assert-PackageRelativePathLength -RelativePaths @('reference/golden/manifest.json')

@@ -336,7 +336,7 @@ gen_flash_bin_v2/
 ab_code_combiner/
 ```
 
-CI 必須拒絕未核准的頂層 snapshot、任何 `.ts/.tsx/.js`、firmware BIN、cache、venv 或 build output。Confidential FlashMap, postbuild, and memory-map evidence is identified by IDs in `docs/references/confidential-references.json` for review; approved runtime binaries belong under `external-tools/` and are pinned by manifest。
+CI rejects unapproved top-level snapshots, `.ts/.tsx/.js` files, firmware BINs, caches, virtual environments, and build outputs. Confidential FlashMap, postbuild, and memory-map evidence is identified by IDs in `docs/references/confidential-references.json` for review; approved runtime binaries belong under `external-tools/` and are pinned by manifest.
 
 ### 2.6 外部規範來源
 

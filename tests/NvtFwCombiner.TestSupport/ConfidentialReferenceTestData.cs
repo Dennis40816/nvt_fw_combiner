@@ -22,6 +22,25 @@ public static class ConfidentialReferenceTestData
     /// <summary>Reads from an explicit root for isolated inventory tests.</summary>
     public static byte[] ReadVerifiedBytes(string sha256, string privateAssetsRoot)
     {
+        return ReadVerifiedReference(sha256, privateAssetsRoot).Bytes;
+    }
+
+    /// <summary>Resolves a private reference only after validating its complete bytes.</summary>
+    public static string ResolveVerifiedPath(string sha256)
+    {
+        string root = Environment.GetEnvironmentVariable(PrivateAssetsEnvironmentVariable)
+            ?? throw new InvalidOperationException($"{PrivateAssetsEnvironmentVariable} is not set.");
+        return ResolveVerifiedPath(sha256, root);
+    }
+
+    /// <summary>Resolves from an explicit root for isolated inventory tests.</summary>
+    public static string ResolveVerifiedPath(string sha256, string privateAssetsRoot)
+    {
+        return ReadVerifiedReference(sha256, privateAssetsRoot).Path;
+    }
+
+    private static (string Path, byte[] Bytes) ReadVerifiedReference(string sha256, string privateAssetsRoot)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(sha256);
         ArgumentException.ThrowIfNullOrWhiteSpace(privateAssetsRoot);
         if (sha256.Length != 64 || !sha256.All(Uri.IsHexDigit))
@@ -64,7 +83,7 @@ public static class ConfidentialReferenceTestData
         byte[] bytes = File.ReadAllBytes(path);
         string actual = Convert.ToHexStringLower(SHA256.HashData(bytes));
         return string.Equals(actual, sha256, StringComparison.OrdinalIgnoreCase)
-            ? bytes
+            ? (path, bytes)
             : throw new InvalidDataException("Private reference SHA-256 drift.");
     }
 }

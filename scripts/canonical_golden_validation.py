@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -1020,6 +1021,34 @@ def _case_directory(
     return PurePosixPath(ic, workflow, variant, topology, case_id)
 
 
+def _read_private_reference(sha256: str, errors: list[str]) -> bytes | None:
+    """Resolve private provenance by digest without exposing its source bytes."""
+    configured_root = os.environ.get("NVT_PRIVATE_ASSETS", "").strip()
+    if not configured_root:
+        return None
+    root = Path(configured_root) / "nfc/references"
+    inventory = _read_confined_file(root / "SHA256SUMS", root, "private reference inventory", errors)
+    if inventory is None:
+        return None
+    try:
+        lines = inventory.decode("utf-8").splitlines()
+    except UnicodeDecodeError:
+        errors.append("private reference inventory must be UTF-8")
+        return None
+    for line in lines:
+        if line[:66] != sha256 + "  ":
+            continue
+        relative_path = _relative_path(line[66:], "private reference path", errors)
+        if relative_path is None:
+            return None
+        payload = _read_confined_file(root / Path(relative_path), root, "private reference", errors)
+        if payload is not None and hashlib.sha256(payload).hexdigest() != sha256:
+            errors.append("private reference SHA-256 mismatch")
+        return payload
+    errors.append("SHA-256 was not found in the private reference inventory")
+    return None
+
+
 def _validate_artifact(
     canonical_root: Path,
     case_directory: PurePosixPath,
@@ -1068,35 +1097,36 @@ def _validate_artifact(
     # A single direct case may bind one immutable physical payload to multiple
     # logical argv roles (for example AB TPA and TPB). The case-directory check
     # above still prevents a different case from reaching across case roots.
-    declared_files.add(relative_path)
-    payload = _read_confined_file(
-        canonical_root / Path(relative_path),
-        canonical_root,
-        f"canonical artifact {relative_path}",
-        errors,
-    )
-    if payload is None:
+    private_reference = "storage" in artifact
+    if private_reference and (
+        artifact["storage"] != "private-reference" or role != "provenance"
+    ):
+        errors.append(f"{label} private storage is permitted only for provenance artifacts")
         return
     expected_size = artifact.get("size")
     if type(expected_size) is not int or expected_size < 0:
         errors.append(f"{label} size must be a non-negative integer: {expected_size}")
-    elif expected_size != len(payload):
-        errors.append(
-            f"canonical artifact size mismatch for {relative_path}: "
-            f"expected {expected_size}, actual {len(payload)}"
-        )
     expected_sha = artifact.get("sha256")
-    actual_sha = hashlib.sha256(payload).hexdigest()
     if (
         not isinstance(expected_sha, str)
         or SHA256_PATTERN.fullmatch(expected_sha) is None
     ):
         errors.append(f"{label} has invalid sha256: {expected_sha}")
-    elif expected_sha != actual_sha:
-        errors.append(
-            f"canonical artifact SHA-256 mismatch for {relative_path}: "
-            f"expected {expected_sha}, actual {actual_sha}"
+    payload = None
+    if private_reference:
+        if isinstance(expected_sha, str) and SHA256_PATTERN.fullmatch(expected_sha):
+            payload = _read_private_reference(expected_sha, errors)
+    else:
+        declared_files.add(relative_path)
+        payload = _read_confined_file(
+            canonical_root / Path(relative_path), canonical_root,
+            f"canonical artifact {relative_path}", errors,
         )
+    if payload is not None:
+        if type(expected_size) is int and expected_size != len(payload):
+            errors.append(f"canonical artifact size mismatch for {relative_path}")
+        if expected_sha != hashlib.sha256(payload).hexdigest():
+            errors.append(f"canonical artifact SHA-256 mismatch for {relative_path}")
     legacy_paths = artifact.get("legacyPaths")
     if legacy_paths is None and approved_intake_source:
         source_path = _relative_path(
@@ -1662,7 +1692,12 @@ def validate_canonical_release_allowlist(
             if not isinstance(release_artifact, dict):
                 errors.append(f"{artifact_label} must be an object")
                 continue
-            if set(release_artifact) != {"artifactId", "role", "path", "size", "sha256"}:
+            expected_fields = {"artifactId", "role", "path", "size", "sha256"}
+            if "storage" in release_artifact:
+                expected_fields.add("storage")
+                if release_artifact["storage"] != "private-reference" or release_artifact.get("role") != "provenance":
+                    errors.append(f"{artifact_label} private storage is permitted only for provenance artifacts")
+            if set(release_artifact) != expected_fields:
                 errors.append(f"{artifact_label} fields must match the closed artifact contract")
             artifact_id = _required_string(
                 release_artifact, "artifactId", artifact_label, errors
@@ -1678,7 +1713,7 @@ def validate_canonical_release_allowlist(
                     f"{artifact_label} is not declared by canonical case {case_id}"
                 )
                 continue
-            for field in ("role", "path", "size", "sha256"):
+            for field in ("role", "path", "size", "sha256", "storage"):
                 if release_artifact.get(field) != canonical_artifact.get(field):
                     errors.append(
                         f"{artifact_label}.{field} differs from canonical case {case_id}"
