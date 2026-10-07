@@ -27,10 +27,11 @@ internal sealed class DesktopRuntimeQuery
         _supportMatrix = supportMatrix;
         Commands = Array.AsReadOnly<RuntimeQueryCommand>(
         [
-            new("state", RuntimeQueryCommandRisk.ReadOnly, ReadStateAsync),
-            new("catalog.list", RuntimeQueryCommandRisk.ReadOnly, ReadCatalogAsync),
+            ArgumentlessReadOnlyCommand("state", ReadState),
+            ArgumentlessReadOnlyCommand("catalog.list", ReadCatalog),
         ]);
-        Router = new(Commands, requireConfirmation: true);
+        // This slice has only read-only commands. Retain all arguments, including confirm, for validation.
+        Router = new(Commands, requireConfirmation: false);
         _execute = RuntimeQueryUiThread.Wrap(
             (request, version, _) => Router.ExecuteAsync(request, version),
             static (_, _) => new("IPC_ERROR", "The UI dispatcher is unavailable."));
@@ -45,44 +46,52 @@ internal sealed class DesktopRuntimeQuery
         return _execute(request, expectedVersion, cancellationToken);
     }
 
-    private Task<RuntimeQueryResponseEnvelope> ReadStateAsync(IReadOnlyDictionary<string, string>? arguments)
+    private static RuntimeQueryCommand ArgumentlessReadOnlyCommand(string name,
+        Func<RuntimeQueryResponseEnvelope> read)
     {
-        Dispatcher.UIThread.VerifyAccess();
-        string? workflowMode = _viewModel.SelectedPage switch
+        return new(name, RuntimeQueryCommandRisk.ReadOnly, arguments =>
         {
-            ShellPage.Merge => _viewModel.Merge.SelectedMergeMode,
-            ShellPage.Replace => _viewModel.Replace.SelectedReplaceMode,
-            ShellPage.Home or ShellPage.HexEditor => null,
-            _ => throw new InvalidOperationException("Unknown shell page."),
-        };
-        var state = new DesktopRuntimeQueryState(
-            _viewModel.SelectedPage.ToString(), workflowMode,
-            _preload.Stages.All(static stage => stage.State is ShellPreloadStageState.Succeeded or
-                ShellPreloadStageState.Failed or ShellPreloadStageState.Skipped or ShellPreloadStageState.Cancelled),
-            _viewModel.RunSession.IsRunInProgress, _window.ClosePhase.ToString());
-        return Task.FromResult(RuntimeQueryResponseEnvelope.Success(JsonSerializer.SerializeToElement(
-            state, DesktopRuntimeQueryJsonContext.Default.DesktopRuntimeQueryState)));
+            Dispatcher.UIThread.VerifyAccess();
+            return Task.FromResult(arguments is { Count: > 0 }
+                ? RuntimeQueryResponseEnvelope.Failure("INVALID_ARGUMENTS", "This command accepts no arguments.")
+                : read());
+        });
     }
 
-    private Task<RuntimeQueryResponseEnvelope> ReadCatalogAsync(IReadOnlyDictionary<string, string>? arguments)
+    private RuntimeQueryResponseEnvelope ReadState()
     {
-        Dispatcher.UIThread.VerifyAccess();
-        WorkflowContextSetupViewModel setup = _viewModel.WorkflowSession.WorkflowContextSetup;
+        var state = new DesktopRuntimeQueryState(
+            _viewModel.SelectedPage.ToString(), _viewModel.WorkflowSession.ActiveInspectionContext?.Mode,
+            _preload.IsSettled,
+            _viewModel.RunSession.IsRunInProgress, _window.ClosePhase.ToString());
+        return RuntimeQueryResponseEnvelope.Success(JsonSerializer.SerializeToElement(
+            state, DesktopRuntimeQueryJsonContext.Default.DesktopRuntimeQueryState));
+    }
+
+    private RuntimeQueryResponseEnvelope ReadCatalog()
+    {
+        WorkflowContextSetupViewModel? setup = _viewModel.WorkflowSession.IsWorkflowContextModalOpen
+            ? _viewModel.WorkflowSession.WorkflowContextSetup
+            : null;
+        CanonicalSupportMatrixQueryResult result = _supportMatrix.Query();
         var catalog = new DesktopRuntimeQueryCatalog(
-            [.. setup.IcChoices],
-            [.. setup.NumberChoices.Select(static choice => new DesktopRuntimeQueryNumberChoice(
+            result.State, result.IsStale, [.. result.ReloadIssues],
+            [.. setup?.IcChoices ?? []],
+            [.. (setup?.NumberChoices ?? []).Select(static choice => new DesktopRuntimeQueryNumberChoice(
                 choice.Token, choice.DisplayLabel))],
-            [.. (_supportMatrix.Query().Matrix?.Rows ?? [])
+            [.. (result.Matrix?.Rows ?? [])
                 .Select(static row => row.Identity.WorkflowId).Distinct(StringComparer.Ordinal)]);
-        return Task.FromResult(RuntimeQueryResponseEnvelope.Success(JsonSerializer.SerializeToElement(
-            catalog, DesktopRuntimeQueryJsonContext.Default.DesktopRuntimeQueryCatalog)));
+        return RuntimeQueryResponseEnvelope.Success(JsonSerializer.SerializeToElement(
+            catalog, DesktopRuntimeQueryJsonContext.Default.DesktopRuntimeQueryCatalog));
     }
 }
 
 internal sealed record DesktopRuntimeQueryState(string Page, string? WorkflowMode,
     bool StartupPreloadFinished, bool IsRunInProgress, string ClosePhase);
 
-internal sealed record DesktopRuntimeQueryCatalog(string[] IcChoices,
+internal sealed record DesktopRuntimeQueryCatalog(
+    [property: JsonConverter(typeof(JsonStringEnumConverter<CanonicalSupportMatrixCatalogState>))]
+    CanonicalSupportMatrixCatalogState State, bool IsStale, CapabilityCatalogIssue[] ReloadIssues, string[] IcChoices,
     DesktopRuntimeQueryNumberChoice[] NumberChoices, string[] WorkflowModes);
 
 internal sealed record DesktopRuntimeQueryNumberChoice(string Token, string DisplayLabel);

@@ -116,6 +116,10 @@ internal sealed class ShellPreloadSession : ObservableObject, IDisposable
     }
 
     internal ReadOnlyObservableCollection<ShellPreloadStageSnapshot> Stages { get; }
+    /// <summary>Whether every stage has a settled result; pending, running and blocked stages remain unfinished.</summary>
+    internal bool IsSettled => SnapshotStages().All(static stage => stage.State is
+        ShellPreloadStageState.Succeeded or ShellPreloadStageState.Failed or
+        ShellPreloadStageState.Skipped or ShellPreloadStageState.Cancelled);
     internal ShellPreloadStageSnapshot CatalogStage => Stage(CatalogStageId);
     internal ShellPreloadStageSnapshot? SummaryStage => _optionalWork is null ? null :
         SnapshotStages().FirstOrDefault(static stage => !stage.IsRequired && stage.State is
