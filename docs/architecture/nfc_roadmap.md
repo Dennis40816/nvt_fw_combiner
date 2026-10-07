@@ -34,7 +34,8 @@ Those rows stay as history.
 
 Lines:
 
-- `1.2.x` takes Core-free hotfixes only. `1.2.2` is cut from `v1.2.1` and ships as usual (decision 337). The
+- `1.2.x` takes Core-free hotfixes only, until `v1.3.0` is published; later Core-free fixes take the next `1.3.x`
+  customer version. `1.2.2` is cut from `v1.2.1` and ships as usual (decision 337). The
   comparison report of record still gates `1.2.2` and every later release (decisions 249 to 251 and 337); only the
   old `1.2.2` row's content allocation is superseded. `1.2.2` also carries license bridge step 1 (#574, decision 342)
   and the comparator tooling for its own report (decision 343).
