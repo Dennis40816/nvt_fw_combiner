@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from xml.sax.saxutils import escape
@@ -57,13 +58,24 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
                          "global.json", "VERSION", ".editorconfig"):
                 shutil.copy2(ROOT / name, root / name)
             project = root / "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
-            # The copy has no nuget.config, so restore from the folder the repository's own
-            # restore filled (nuget.config's globalPackagesFolder); it also holds the Core packages.
+            # The copy has no nuget.config. nuget.org has no Core packages, and this lane may
+            # run without a repository restore, so always add a verified Core feed: the
+            # repository's fetched one when it verifies offline, otherwise a fresh fetch here.
+            core_feed = ROOT / "artifacts/core-packages"
+            fetch = [sys.executable, "-B", str(ROOT / "scripts/fetch_core_packages.py"),
+                     "--manifest", str(ROOT / "core-packages.json")]
+            if subprocess.run([*fetch, "--offline"], capture_output=True).returncode != 0:
+                core_feed = root / "core-packages"
+                fetched = subprocess.run([*fetch, "--dest", str(core_feed)], capture_output=True, text=True,
+                                         encoding="utf-8", errors="replace", timeout=240)
+                self.assertEqual(0, fetched.returncode, fetched.stdout + fetched.stderr)
+            # Other packages come from the folder the repository's own restore filled
+            # (nuget.config's globalPackagesFolder) or a package cache, else nuget.org.
             repository_packages = ROOT / ".packages"
             cache = Path(os.environ.get("NUGET_PACKAGES") or (
                 repository_packages if repository_packages.is_dir() else Path.home() / ".nuget/packages"))
-            # Without any package folder, locked restore uses the default feeds.
-            sources = ["--source", str(cache)] if cache.is_dir() else []
+            sources = ["--source", str(cache) if cache.is_dir() else "https://api.nuget.org/v3/index.json",
+                       "--source", str(core_feed)]
 
             def run(*args):
                 # The telemetry collector can outlive dotnet and lock its working

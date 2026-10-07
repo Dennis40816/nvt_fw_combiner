@@ -238,7 +238,7 @@ internal sealed class CatalogProbeCopy : IDisposable
         // The copy has no nuget.config, so restore from the folder the repository's own restore
         // filled (nuget.config's globalPackagesFolder); it also holds the Core packages.
         string repositoryPackages = RepositoryPaths.FromRepositoryRoot(".packages");
-        string cache = Environment.GetEnvironmentVariable("NUGET_PACKAGES") ??
+        string cache = Environment.GetEnvironmentVariable("NUGET_PACKAGES") is { Length: > 0 } configured ? configured :
             (Directory.Exists(repositoryPackages) ? repositoryPackages :
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages"));
         // Without any package folder, locked restore uses the default feeds.
