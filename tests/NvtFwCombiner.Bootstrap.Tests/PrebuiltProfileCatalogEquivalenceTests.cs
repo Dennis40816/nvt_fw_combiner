@@ -235,9 +235,13 @@ internal sealed class CatalogProbeCopy : IDisposable
         index["bundles"]!.AsArray().Single(b => b!["bundleDirectory"]!.GetValue<string>() == directoryName)!["contentHash"] = hash;
         File.WriteAllText(indexPath, index.ToJsonString());
         string project = Path.Combine(root, "tests/NvtFwCombiner.CatalogProbe/NvtFwCombiner.CatalogProbe.csproj");
+        // The copy has no nuget.config, so restore from the folder the repository's own restore
+        // filled (nuget.config's globalPackagesFolder); it also holds the Core packages.
+        string repositoryPackages = RepositoryPaths.FromRepositoryRoot(".packages");
         string cache = Environment.GetEnvironmentVariable("NUGET_PACKAGES") ??
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
-        // A CI test job has no package cache; locked restore then uses the configured feeds.
+            (Directory.Exists(repositoryPackages) ? repositoryPackages :
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages"));
+        // Without any package folder, locked restore uses the default feeds.
         string[] sources = Directory.Exists(cache) ? ["--source", cache] : [];
         foreach (string dependency in Directory.GetFiles(root, "*.csproj", SearchOption.AllDirectories))
         {

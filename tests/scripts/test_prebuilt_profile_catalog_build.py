@@ -57,8 +57,12 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
                          "global.json", "VERSION", ".editorconfig"):
                 shutil.copy2(ROOT / name, root / name)
             project = root / "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
-            cache = Path(os.environ.get("NUGET_PACKAGES", str(Path.home() / ".nuget/packages")))
-            # A CI test job has no package cache; locked restore then uses the configured feeds.
+            # The copy has no nuget.config, so restore from the folder the repository's own
+            # restore filled (nuget.config's globalPackagesFolder); it also holds the Core packages.
+            repository_packages = ROOT / ".packages"
+            cache = Path(os.environ.get("NUGET_PACKAGES") or (
+                repository_packages if repository_packages.is_dir() else Path.home() / ".nuget/packages"))
+            # Without any package folder, locked restore uses the default feeds.
             sources = ["--source", str(cache)] if cache.is_dir() else []
 
             def run(*args):
