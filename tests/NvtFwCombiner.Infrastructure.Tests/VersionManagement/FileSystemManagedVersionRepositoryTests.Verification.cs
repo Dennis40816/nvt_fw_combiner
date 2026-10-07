@@ -48,6 +48,50 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.True(managed.HasSupportedManagedLauncher);
     }
 
+    /// <summary>An installed verifier admits a managed release that declares the future proprietary license.</summary>
+    [Fact]
+    public async Task ProprietaryLicenseManagedReleaseIsAdmittedByManagedVerifier()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        UpdateCatalogVersionSnapshot package = CreatePackage(
+            sourceRoot,
+            "1.3.0",
+            includeManagedLauncher: true,
+            mutateManifest: static manifest => manifest["licenseSpdx"] = "LicenseRef-Proprietary");
+
+        ManagedPackageVerificationResult verified = await new FileSystemManagedVersionRepository()
+            .VerifyPackageAsync(sourceRoot, package, TestContext.Current.CancellationToken);
+
+        Assert.True(verified.IsVerified, verified.Issue.ToString());
+        Assert.True(verified.HasSupportedManagedLauncher);
+    }
+
+    /// <summary>A release license outside the exact two-value rule fails closed as invalid payload.</summary>
+    [Theory]
+    [InlineData("Proprietary")]
+    [InlineData("mit")]
+    [InlineData(" MIT")]
+    [InlineData("LicenseRef-proprietary")]
+    [InlineData("")]
+    [InlineData(null)]
+    public async Task OtherReleaseLicenseFailsManagedVerification(string? license)
+    {
+        using var workspace = TempWorkspace.Create();
+        string sourceRoot = workspace.PathFor("source");
+        UpdateCatalogVersionSnapshot package = CreatePackage(
+            sourceRoot,
+            "1.3.0",
+            includeManagedLauncher: true,
+            mutateManifest: manifest => manifest["licenseSpdx"] = license);
+
+        ManagedPackageVerificationResult result = await new FileSystemManagedVersionRepository()
+            .VerifyPackageAsync(sourceRoot, package, TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsVerified);
+        Assert.Equal(ManagedVersionInstallIssue.InvalidPayload, result.Issue);
+    }
+
     /// <summary>A manual-only release is intentionally not a managed Version install candidate.</summary>
     [Fact]
     public async Task ManualOnlyReleaseManifestFailsClosedFromManagedVersionVerification()
