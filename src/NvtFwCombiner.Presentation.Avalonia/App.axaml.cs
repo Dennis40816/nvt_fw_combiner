@@ -48,6 +48,8 @@ public sealed partial class App : global::Avalonia.Application
     /// <summary>Creates the desktop main window when the framework lifetime is ready.</summary>
     public override void OnFrameworkInitializationCompleted()
     {
+        Nvt.Core.Avalonia.Threading.UiThread.RegisterRunningDispatcher(
+            global::Avalonia.Threading.Dispatcher.UIThread);
         StartupTrace.Mark("framework-initialization.started");
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
