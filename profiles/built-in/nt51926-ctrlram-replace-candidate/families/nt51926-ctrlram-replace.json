@@ -1,11 +1,15 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51926-ctrlram-replace",
-  "familyVersion": "0.7.1",
+  "familyVersion": "0.7.2",
   "members": [
     {
       "memberId": "NT51926",
       "displayName": "NT51926"
+    },
+    {
+      "memberId": "NT51925",
+      "displayName": "NT51925"
     }
   ],
   "capabilities": [],
@@ -712,6 +716,116 @@
       "evidenceRefs": [
         "gen-flash-bin-v2-51926-golden",
         "general-replace-v2-candidate-parity"
+      ]
+    },
+    {
+      "mapId": "nt51925-ctrlram-fw141-tp-work-240k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51925"
+        ],
+        "modeIds": [
+          "ctrlram-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 245760
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51926-ctrlram-fw141-tp-work"
+      ],
+      "metadataSetIds": [
+        "nt51926-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
+      ],
+      "evidenceRefs": [
+        "nt51925-restore-option-a-pending-owner-evidence"
+      ]
+    },
+    {
+      "mapId": "nt51925-ctrlram-fw141-full-flash-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51925"
+        ],
+        "modeIds": [
+          "ctrlram-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51926-ctrlram-fw141-tp-work",
+        "nt51926-full-flash-tail"
+      ],
+      "metadataSetIds": [
+        "nt51926-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
+      ],
+      "evidenceRefs": [
+        "nt51925-restore-option-a-pending-owner-evidence"
+      ]
+    },
+    {
+      "mapId": "nt51925-ctrlram-fw200-tp-work-240k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51925"
+        ],
+        "modeIds": [
+          "ctrlram-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 245760
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51926-ctrlram-fw200-tp-work"
+      ],
+      "metadataSetIds": [
+        "nt51926-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
+      ],
+      "evidenceRefs": [
+        "nt51925-restore-option-a-pending-owner-evidence"
+      ]
+    },
+    {
+      "mapId": "nt51925-ctrlram-fw200-full-flash-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51925"
+        ],
+        "modeIds": [
+          "ctrlram-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51926-ctrlram-fw200-tp-work",
+        "nt51926-full-flash-tail"
+      ],
+      "metadataSetIds": [
+        "nt51926-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
+      ],
+      "evidenceRefs": [
+        "nt51925-restore-option-a-pending-owner-evidence"
       ]
     }
   ],

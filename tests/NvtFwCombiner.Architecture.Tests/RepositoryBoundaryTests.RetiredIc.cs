@@ -6,7 +6,7 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void RetiredIcCapabilitiesStayOutsideProductionOwners()
     {
-        string[] retiredIds = ["51920", "51925", "51930", "51931"];
+        string[] retiredIds = ["51920", "51930", "51931"];
         string[] productionOwners =
         [
             "src/NvtFwCombiner.Domain/Composition/ExperienceIds.cs",

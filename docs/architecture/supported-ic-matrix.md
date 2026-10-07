@@ -1,5 +1,32 @@
 # Supported IC / Workflow Matrix
 
+## Proposed NT51925 restoration for NFC 1.2.2 (2026-10-07)
+
+[Proposed ADR 0083](../adr/0083-restore-nt51925-standard-merge-and-ctrlram-replace.md)
+records the owner's request and the local option A preparation. Active policy
+catalog `1.24.0` adds nine NT51925 exact routes to the existing 85-route catalog:
+one Standard Merge and eight CtrlRAM Replace routes (two Common FW contracts,
+Single/Cascade, TP-work/full-Flash capacities). These new routes are
+`Available`, `Candidate` and `ContractOnly`; none declares supported firmware
+or Golden parity. NT51920, NT51930 and NT51931 remain retired. NT51925 has no AB
+Merge, General Merge, General Replace or DP Replace registration.
+
+| NT51925 prepared workflow | Declared geometry / applicability | Execution and evidence gate |
+| --- | --- | --- |
+| Standard Merge | Shared TP `[0,0x3C000)`, forbidden zero gap `[0x3C000,0x3E000)`, DP `[0x3E000,0x40000)` in `flash`; same contract for Common FW 1.4.1 and 2.0.0; no topology selector | Compilable declaration and inspection metadata; Standard exact route resolution, authoring-session admission and Build remain closed. At least one single-chip direct Golden is required. |
+| CtrlRAM Replace | Borrowed NT51926 contracts: `[1.0.0,2.0.0)` / `[2.0.0,+infinity)`, Single / generic Cascade, `0x3C000` TP-work / `0x40000` full Flash | Existing runtime-reference candidate execution is available; complete independent Golden for each FW/topology, exact write-range audit and owner R3 approval remain pending. |
+
+Official NT51925 map/mmap, postbuild BATs, actual FW/topologies and any differences
+from NT51926 must be supplied before support promotion. The `925&926` workbook
+proves limited header facts only. The CASE instructions are
+[Standard Merge](../../testdata/golden/owner-handoff/standard-merge/nt51925/CASE.md)
+and [CtrlRAM Replace](../../testdata/golden/owner-handoff/ctrlram-replace/nt51925/CASE.md).
+The existing canonical policy remains the in-app Support Matrix source; no UI
+support table or IC-specific semantic branch is added. The dated support and
+retirement statements below describe the prior scope; this candidate preparation
+is their NT51925-only exception, pending approval.
+
+
 This document separates exact-route publication from evidence kind and release
 readiness. Catalog `1.17.0` retains the 2026-08-25 owner decision: all 64 exact
 Standard Merge, AB Merge, and CtrlRAM Replace routes are `Supported` and

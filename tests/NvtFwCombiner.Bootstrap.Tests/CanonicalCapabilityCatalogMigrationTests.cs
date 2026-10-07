@@ -540,7 +540,6 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     /// <summary>Retired ICs resolve to the same stable unsupported result and cannot compile through migration adapters.</summary>
     [Theory]
     [InlineData("NT51920")]
-    [InlineData("NT51925")]
     [InlineData("NT51930")]
     [InlineData("NT51931")]
     public void RetiredIcRoutesFailClosed(string icId)

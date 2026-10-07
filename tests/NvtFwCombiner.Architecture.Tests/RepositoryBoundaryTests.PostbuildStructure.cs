@@ -12,10 +12,10 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("\"schemaVersion\": \"2.3\"", catalog, StringComparison.Ordinal);
         Assert.Contains("\"diffDlmPolicies\":", catalog, StringComparison.Ordinal);
-        Assert.Equal(11, catalog.Split("\"effectiveCommonFwVersion\":", StringSplitOptions.None).Length - 1);
-        Assert.Equal(11, catalog.Split("\"planSelectors\":", StringSplitOptions.None).Length - 1);
+        Assert.Equal(13, catalog.Split("\"effectiveCommonFwVersion\":", StringSplitOptions.None).Length - 1);
+        Assert.Equal(13, catalog.Split("\"planSelectors\":", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("\"branchRules\":", catalog, StringComparison.Ordinal);
-        Assert.Equal(11, catalog.Split("\"processorId\":", StringSplitOptions.None).Length - 1);
+        Assert.Equal(13, catalog.Split("\"processorId\":", StringSplitOptions.None).Length - 1);
         Assert.Contains("NT51917", catalog, StringComparison.Ordinal);
         Assert.Contains("NT51951", catalog, StringComparison.Ordinal);
         Assert.Contains("ExpectedSha256", loader, StringComparison.Ordinal);

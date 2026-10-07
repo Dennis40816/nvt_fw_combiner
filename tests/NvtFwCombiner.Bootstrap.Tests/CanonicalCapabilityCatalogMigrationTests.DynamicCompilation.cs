@@ -358,6 +358,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         {
             ["NT51917"] = "nt51927-standard-merge-256k",
             ["NT51923"] = "nt51923-standard-merge-256k",
+            ["NT51925"] = "nt51925-standard-merge-256k",
             ["NT51926"] = "nt51926-standard-merge-256k",
             ["NT51927"] = "nt51927-standard-merge-256k",
             ["NT51928"] = "nt51928-standard-merge-512k",
@@ -366,11 +367,11 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         };
 
         Assert.True(reload.Succeeded);
-        Assert.Equal(54, ctrlRamRoutes.Length);
+        Assert.Equal(62, ctrlRamRoutes.Length);
         Assert.Equal(10, bankRoutes.Length);
-        Assert.Equal(44, legacyRoutes.Length);
+        Assert.Equal(52, legacyRoutes.Length);
         Assert.Equal(10, reportless.Length);
-        Assert.Equal(34, reportful.Length);
+        Assert.Equal(42, reportful.Length);
         Assert.Equal(
             ctrlRamRoutes.Select(static route => route.Identity.RouteId)
                 .Order(StringComparer.Ordinal),
@@ -395,6 +396,16 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         HashSet<string> legacyRouteIds = [.. legacyRoutes.Select(static route => route.Identity.RouteId)];
         Assert.All(policyRoutes.Where(route => legacyRouteIds.Contains(route.Identity.RouteId)), route =>
         {
+            if (route.Identity.IcId == "NT51925")
+            {
+                // Catalog 1.24.0 records a proposed restoration, without inheriting old certification decisions.
+                Assert.EndsWith("-authoring-nt51925-preparation-v1", route.Authoring.DecisionId, StringComparison.Ordinal);
+                Assert.EndsWith("-publication-nt51925-preparation-v1", route.Publication.DecisionId, StringComparison.Ordinal);
+                Assert.EndsWith("-evidence-nt51925-preparation-v1", route.Evidence.DecisionId, StringComparison.Ordinal);
+                Assert.Equal(CapabilityPublicationStatus.Candidate, route.Publication.Value);
+                Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
+                return;
+            }
             // Catalog 1.12.0 adds display-only context to these ten routes.
             bool hasAddedContext = route.Identity.IcId is "NT51919" or "NT51950" or "NT51951";
             Assert.EndsWith(hasAddedContext ? "-authoring-v4" : "-authoring-v3", route.Authoring.DecisionId, StringComparison.Ordinal);

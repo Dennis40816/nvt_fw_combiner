@@ -19,7 +19,7 @@ public sealed partial class RepositoryBoundaryTests
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(trustIndexPath));
         JsonElement root = document.RootElement;
         Assert.Equal("1.5", root.GetProperty("schemaVersion").GetString());
-        Assert.Equal("1.1.10.7", root.GetProperty("trustIndexVersion").GetString());
+        Assert.Equal("1.2.2-nt51925.1", root.GetProperty("trustIndexVersion").GetString());
 
         JsonElement[] ctrlRamRegistrations =
         [
@@ -29,12 +29,13 @@ public sealed partial class RepositoryBoundaryTests
                 .Where(static registration =>
                     registration.GetProperty("workflowId").GetString() == "ctrlram-replace"),
         ];
-        Assert.Equal(25, ctrlRamRegistrations.Length);
+        Assert.Equal(29, ctrlRamRegistrations.Length);
 
         var expectedByIc = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["NT51917"] = "nt51927-standard-merge-256k",
             ["NT51923"] = "nt51923-standard-merge-256k",
+            ["NT51925"] = "nt51925-standard-merge-256k",
             ["NT51926"] = "nt51926-standard-merge-256k",
             ["NT51927"] = "nt51927-standard-merge-256k",
             ["NT51928"] = "nt51928-standard-merge-512k",
@@ -58,7 +59,7 @@ public sealed partial class RepositoryBoundaryTests
             }
         }
         Assert.Equal(
-            19,
+            23,
             ctrlRamRegistrations.Count(static registration =>
                 registration.TryGetProperty("reportMetadataMapId", out _)));
         Assert.Equal(
@@ -242,7 +243,7 @@ public sealed partial class RepositoryBoundaryTests
         });
 
         Assert.Equal(
-            52,
+            57,
             bundles.Sum(static bundle =>
                 bundle.GetProperty("runtimeRegistrations").GetArrayLength()));
         JsonElement abBundle = Assert.Single(bundles, static bundle =>

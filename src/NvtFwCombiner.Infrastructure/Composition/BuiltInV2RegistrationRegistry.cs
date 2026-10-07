@@ -369,7 +369,7 @@ internal sealed class BuiltInV2Registration
             return;
         }
 
-        V2CompositionPlanCompileResult compilation = CompileExecutable(
+        V2CompositionPlanCompileResult compilation = CompileDeclaration(
             requestedCapacity,
             effectiveTopology,
             selectedInputSlotIds,
@@ -423,7 +423,7 @@ internal sealed class BuiltInV2Registration
                         : null;
                 compilation = summary?.CompiledComposition is not null
                     ? summary
-                    : CompileExecutable(requestedCapacity, effectiveTopology, null, []);
+                    : CompileDeclaration(requestedCapacity, effectiveTopology, null, []);
                 if (effectiveTopology is null && compilation.CompiledComposition is not null)
                 {
                     compiled.Add((requestedCapacity, compilation));
@@ -585,11 +585,11 @@ internal sealed class BuiltInV2Registration
             return representative is null
                 ? V2CompositionPlanCompileResult.Failed([new CompositionIssue(BuiltInV2Bundle.CompilationFailed,
                     $"The built-in V2 {ProfileLabel} for {IcId} has no declared maps.")])
-                : CompileExecutable(representative.CapacityBytes, HeadlessRouteSelection.CreateTopologySelection(
+                : CompileDeclaration(representative.CapacityBytes, HeadlessRouteSelection.CreateTopologySelection(
                     representative.Applicability.TopologyRequirement, representative.MapId));
         }
         return TryAdmitStandardSummaryRequest(out long? mapCapacity, out IReadOnlyList<CompositionIssue> issues)
-            ? CompileExecutable(mapCapacity)
+            ? CompileDeclaration(mapCapacity)
             : V2CompositionPlanCompileResult.Failed(issues);
     }
 
@@ -621,7 +621,7 @@ internal sealed class BuiltInV2Registration
             summaryCapacity == mapCapacity;
     }
 
-    private V2CompositionPlanCompileResult CompileExecutable(
+    private V2CompositionPlanCompileResult CompileDeclaration(
         long? requestedMapCapacity,
         TopologySelection? requestedTopology = null,
         IReadOnlyCollection<string>? selectedInputSlotIds = null,
@@ -637,13 +637,15 @@ internal sealed class BuiltInV2Registration
                 $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.",
                 selectedInputSlotIds,
                 resolutionArtifacts)
-            : _bundle.CompileExecutable(
+            // Authoring and metadata retain the compiler's candidate artifact unchanged.
+            // Application owns execution admission; this projection never promotes eligibility.
+            : _bundle.Compile(
                 ProfileId,
                 ProfileVersion,
                 IcId,
                 WorkflowId,
                 requestedMapCapacity,
-                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.",
+                requestedTopology: null,
                 resolutionArtifacts ?? [],
                 selectedInputSlotIds);
     }

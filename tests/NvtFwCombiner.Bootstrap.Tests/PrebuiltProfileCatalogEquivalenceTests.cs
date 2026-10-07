@@ -167,9 +167,9 @@ public sealed class PrebuiltProfileCatalogEquivalenceTests
     internal static void AssertPinned(JsonNode result)
     {
         Assert.True(result["loaded"]!.GetValue<bool>(), result.ToJsonString());
-        // The published catalog snapshot pinned by CanonicalCatalogSnapshotDigestTests (decision 192/195 DP declaration identities).
-        Assert.Equal("adf144922d409b48b3ef76a263f57c957337c3c4b4ecefd3b65137e18bbca730", result["publication"]!["sha256"]!.GetValue<string>());
-        Assert.Equal(493864, result["publication"]!["text"]!.GetValue<string>().Length);
+        // The published catalog snapshot includes the proposed NT51925 candidate declarations.
+        Assert.Equal("761d31c66c1e06d83f212ae3d00063c17450c4f0f4f47d86cce7e752df25cbf8", result["publication"]!["sha256"]!.GetValue<string>());
+        Assert.Equal(544300, result["publication"]!["text"]!.GetValue<string>().Length);
         Assert.Equal(7, result["publication"]!["sections"]!.AsArray().Count);
     }
 }

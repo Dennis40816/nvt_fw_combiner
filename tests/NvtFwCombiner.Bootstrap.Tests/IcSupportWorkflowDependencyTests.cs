@@ -74,7 +74,7 @@ public sealed class CanonicalCapabilityDependencyTests
             Assert.Contains(icId, ctrlRamReplaceIcIds);
         }
 
-        Assert.Equal(10, ctrlRamReplaceIcIds.Count);
+        Assert.Equal(11, ctrlRamReplaceIcIds.Count);
     }
 
     /// <summary>Retired DP Replace has no authorable member or exact route.</summary>

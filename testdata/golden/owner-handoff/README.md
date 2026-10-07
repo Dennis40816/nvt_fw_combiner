@@ -1,5 +1,18 @@
 # Owner Golden Handoff
 
+## NT51925 proposed restoration intake (2026-10-07)
+
+The new exception to the historical closed intake below is NT51925 under
+[Proposed ADR 0083](../../../docs/adr/0083-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+Official map/mmap, version-specific postbuild scripts, declared FW/topologies,
+NT51926 differences and independent Golden cases remain pending. Use
+[`standard-merge/nt51925/CASE.md`](standard-merge/nt51925/CASE.md) and
+[`ctrlram-replace/nt51925/CASE.md`](ctrlram-replace/nt51925/CASE.md).
+The new CtrlRAM cases use same-run physical Postbuild inputs and complete final
+expected FlashCode, not the historical `base.bin` request. No BIN or support
+certification is added by this preparation. The other ICs retired by ADR 0042
+remain excluded. The following closed-intake statements describe the earlier batch.
+
 目前沒有待 owner 補資料或補決策的 input gate。歷史缺項摘要保留於
 [`0718-missing-owner-evidence/README_請先看.md`](0718-missing-owner-evidence/README_請先看.md)，
 但不再是目前收件清單。

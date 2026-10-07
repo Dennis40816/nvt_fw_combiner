@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51923-nt51926-shared-facts",
-  "bundleVersion": "1.1.13-tp-svn.1",
+  "bundleVersion": "1.2.2-nt51925.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "e4e99efe60873f07ee230033aea175bb054bab9bab1a7730db6c57b85552b94c",
+  "contentHash": "13e98b20282f253f7616ad29d95c4c80f28b33b63a77969781c4e1cf222a03e3",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -18,7 +18,7 @@
       "kind": "firmware-family",
       "path": "families/nt51923-nt51926.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "f7594c8678d5d1b16ffb27cca72267f0d2654d264f3390dc9b8dcb2950334173"
+      "contentHash": "f67780664bc7d19d42f0605da31a97ce3ea8847bc245e8e98b95580e5bec34b8"
     }
   ]
 }

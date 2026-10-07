@@ -585,7 +585,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.All(entries, entry =>
             Assert.True(IsSha256Literal(entry.GetProperty("contentHash").GetString()!)));
         Assert.Equal(
-            27,
+            28,
             entries.Sum(static entry => entry.GetProperty("runtimeRegistrations")
                 .EnumerateArray()
                 .Count(static registration => registration.GetProperty("workflowId").GetString() != "ctrlram-replace")));

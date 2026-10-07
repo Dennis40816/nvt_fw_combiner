@@ -23,6 +23,9 @@ public sealed class CanonicalFormalRouteRuntimeClosureTests
         IReadOnlyList<CanonicalFormalRouteRuntimeFixture> fixtures =
             CanonicalFormalRouteRuntimeFixtureCatalog.Create();
 
+        Assert.Equal(9, NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load().Routes
+            .Count(static route => route.Identity.IcId == "NT51925" && route.Publication.Value == CapabilityPublicationStatus.Candidate));
+        Assert.DoesNotContain(fixtures, static fixture => fixture.Policy.Identity.IcId == "NT51925");
         Assert.Equal(74, fixtures.Count);
         Assert.Equal(74, fixtures.Select(static fixture => fixture.RouteId)
             .Distinct(StringComparer.Ordinal).Count());

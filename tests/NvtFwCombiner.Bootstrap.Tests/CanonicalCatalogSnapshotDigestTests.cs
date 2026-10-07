@@ -25,21 +25,24 @@ public sealed class CanonicalCatalogSnapshotDigestTests
     // publication/evidence decisions and all other sections remain unchanged.
     // Decision 195 moves only the two 1024k B CMI ranges; its shared bundle
     // identity re-pins the same sections and seven routes without length changes.
+    // Proposed ADR 0083 adds nine NT51925 Candidate/ContractOnly declarations
+    // and shared-family identities. Re-pinned from the production catalog probe;
+    // existing firmware byte contracts and Golden expectations are unchanged.
     // A change here is a published catalog change and needs its own review.
     private const string PinnedSha256 =
-        "adf144922d409b48b3ef76a263f57c957337c3c4b4ecefd3b65137e18bbca730";
-    private const int PinnedLength = 493_864;
+        "761d31c66c1e06d83f212ae3d00063c17450c4f0f4f47d86cce7e752df25cbf8";
+    private const int PinnedLength = 544_300;
     private const int SequentialReloads = 5;
     private const int ConcurrentLoads = 4;
 
     private static readonly (string Name, int Length, string Sha256)[] PinnedSections =
     [
-        ("catalog", 341, "55d92f891dafcc70cbf96291806e636c0e75a27d8d5eaa6027b796a584141225"),
-        ("static-routes", 108_496, "bd79eb2c64579f10aa1c7cbccd519d66151cbcdf0e5ab6f25f72e8727e4daf01"),
-        ("dynamic-routes", 248_943, "6f011ee5895f66defe0a37eceb7b7fca2ad2508050e123503aba2ae1083cbb53"),
-        ("full-image-plans", 106_364, "3052ae411884f7c44713a18286360b2d4f1d410bf0c4bc97ab2c3f3c9dea2df9"),
-        ("disclosure", 18_861, "c5f8148381d38b36373194f60de8a6450df680f910394a9dc257ad32ac32fe2f"),
-        ("selector", 10_835, "41e00a86903342faa9c1a739234d06a3bf9f1423cba74b24ad83a0da1ac89d55"),
+        ("catalog", 341, "370d4ed621756492da125087a7b94c0b82c104cbdcb87fef974d3bab33834ae2"),
+        ("static-routes", 124_342, "e11bc2b69ca0a8d3a55aae6b703e1328100874a9a1a07ad87d0a4294c05e8fbd"),
+        ("dynamic-routes", 274_431, "87448baef1f0c07926ac6d1552cbd9ef70088bb04c0281800832988e555d7258"),
+        ("full-image-plans", 113_518, "be2c9c33acfb6184c43c06b4feeb5e957fde721b282b4c73c2c7a25117baad95"),
+        ("disclosure", 20_002, "dcd5a7655b7ea02a8ee601093ac02f449a3b7509828ef5dd8f94ae76f7bba8de"),
+        ("selector", 11_642, "5bdbc27ac9ba3b60337a34e6f204ac02ae7fbda9c82e5642ba8b6353168b0e14"),
         ("certification", 24, "eb0edc192f3394a161de752c7d53cef86dd32bf94e352929b9f715db1efd5353"),
     ];
 

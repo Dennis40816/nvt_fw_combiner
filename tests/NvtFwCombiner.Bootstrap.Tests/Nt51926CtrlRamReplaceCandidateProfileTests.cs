@@ -177,10 +177,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompiledComposition second = CompileCandidate([.. referenceBase]);
 
         Assert.Equal(
-            "aa75a657648b0a464dc6eb613be7e4beb3c236defa9151bf5081c398815b645a",
+            "4864ef4ec41f815c5adb5789b4a811ab8b3f08f925d1162a558874f1684d6c66",
             first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "37cc85180c67c53651591de12ec17ad06b98402522ff884a19b3ee73257c705d",
+            "f76bd427bd49648983674df3fd8397c1c04cd761a1190612a1f895b66ec08a29",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint,

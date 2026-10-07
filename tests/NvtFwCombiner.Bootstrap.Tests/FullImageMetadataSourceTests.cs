@@ -16,7 +16,7 @@ public sealed class FullImageMetadataSourceTests
 {
     /// <summary>Remove only admitted additions/pins and recover the exact frozen source bytes from cae71c04.</summary>
     [Theory]
-    [InlineData("profiles/built-in/nt51923-nt51926-shared-facts/families/nt51923-nt51926.json", "1.3.0", "1.3.2", "78eae90596d03721f887492dfd85c70481f68646a87fe7c08165ce9d281a1072")]
+    [InlineData("profiles/built-in/nt51923-nt51926-shared-facts/families/nt51923-nt51926.json", "1.3.0", "1.3.3", "78eae90596d03721f887492dfd85c70481f68646a87fe7c08165ce9d281a1072")]
     [InlineData("profiles/built-in/nt51917-nt51927-shared-facts/families/nt51927.json", "1.4.0", "1.4.2", "f6b87ff1b5c4ecbe4df9299ea2d10fc6d568d6d02d528a1119b5369465db2134")]
     [InlineData("profiles/built-in/nt51919-nt51929-nt51932-shared-facts/families/nt51929-nt51932.json", "1.3.0", "1.4.0", "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617")]
     [InlineData("profiles/built-in/nt51928-standard-merge/families/nt51927-nt51928-v1.5.json", "1.5.0", "1.5.2", "538392be2e910627afe0283f947cb63f5e285e97a1d44dd50ea1f6985c177b20")]
@@ -24,6 +24,12 @@ public sealed class FullImageMetadataSourceTests
     public void CanonicalFactsRecoverFrozenPreMigrationBytes(string sourcePath, string oldVersion, string newVersion, string baselineHash)
     {
         string raw = File.ReadAllText(RepositoryPaths.FromRepositoryRoot(sourcePath));
+        // Proposed ADR 0083 appends only a new member/map/view; remove that preparation
+        // before recovering the unchanged, independently frozen NT51923/NT51926 facts.
+        raw = Regex.Replace(raw, ",\\n    \\{\\n      \"memberId\": \"NT51925\",.*?\\n    \\}",
+            string.Empty, RegexOptions.Singleline | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        raw = Regex.Replace(raw, ",\\n    \\{\\n      \"mapId\": \"nt51925-standard-merge-256k\",.*?\\n    \\}",
+            string.Empty, RegexOptions.Singleline | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
         int views = raw.IndexOf(",\n  \"fullImageMetadataViews\":", StringComparison.Ordinal);
         Assert.True(views > 0);
         string prior = raw[..views] + "\n}\n";

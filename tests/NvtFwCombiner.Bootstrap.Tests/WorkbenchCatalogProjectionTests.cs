@@ -14,7 +14,7 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         IReadOnlyList<string> icIds = BootstrapTestHost.Canonical.Projection.GetIcIds();
 
-        Assert.Equal(10, icIds.Count);
+        Assert.Equal(11, icIds.Count);
         Assert.Equal(icIds.Order(StringComparer.Ordinal), icIds);
         Assert.Equal("NT51950", BootstrapTestHost.Canonical.Projection.DefaultIcId);
         Assert.Equal(
@@ -60,7 +60,6 @@ public sealed class WorkbenchCatalogProjectionTests
     /// <summary>Retired ICs are absent from every production selector and compiled profile summary.</summary>
     [Theory]
     [InlineData("NT51920")]
-    [InlineData("NT51925")]
     [InlineData("NT51930")]
     [InlineData("NT51931")]
     public void RetiredIcIdsAreNotProjectedByWorkbenchCatalogs(string icId)
@@ -88,9 +87,9 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
         CapabilityCatalogSummary settings = BootstrapTestHost.Canonical.Projection.GetCatalogSummary();
-        Assert.Equal(10, settings.CatalogIcCount);
+        Assert.Equal(11, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(10, settings.CtrlRamReplaceAvailableIcCount);
+        Assert.Equal(11, settings.CtrlRamReplaceAvailableIcCount);
     }
 
     private static void AssertStandardMergeProfileSummaries(
@@ -98,13 +97,23 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51917", "NT51919", "NT51923", "NT51925", "NT51926", "NT51927", "NT51928",
                 "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
         foreach (CapabilityProfileSummary summary in summaries)
         {
+            if (summary.IcId == "NT51925")
+            {
+                Assert.True(summary.DeclarationReady);
+                Assert.True(summary.CompileSucceeded);
+                Assert.False(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(summary.IcId, null,
+                    out CompiledComposition? candidate, out IReadOnlyList<CompositionIssue> candidateIssues));
+                Assert.Null(candidate);
+                Assert.Contains(candidateIssues, static issue => issue.Code == CapabilityCatalogIssueCodes.ExecutionUnavailable);
+                continue;
+            }
             long? dpLength = summary.IcId is "NT51950" or "NT51951" ? 0x40000 : null;
             Assert.True(
                 BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(

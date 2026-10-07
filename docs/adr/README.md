@@ -35,3 +35,7 @@ Toolchain configuration publication is recorded in
 [ADR 0073](0073-toolchain-runtime-selection.md); its separately admitted
 executable-trust and deployment work must not be mistaken for completed
 configuration-only evidence.
+
+The proposed NT51925-only restoration of Standard Merge and CtrlRAM Replace is
+recorded in [ADR 0083](0083-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+Its R3 owner approval and independent firmware/Golden evidence remain pending.

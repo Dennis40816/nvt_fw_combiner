@@ -54,6 +54,7 @@ public sealed class ProfilesCliCommandTests
             "nt51917-standard-merge-gen-flash-alias  ic=NT51917  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             "nt51919-standard-merge-gen-flash-alias  ic=NT51919  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             "nt51923-standard-merge-gen-flash  ic=NT51923  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
+            "nt51925-standard-merge-gen-flash  ic=NT51925  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             "nt51926-standard-merge-gen-flash  ic=NT51926  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             "nt51927-standard-merge-gen-flash  ic=NT51927  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             "nt51928-standard-merge-gen-flash  ic=NT51928  inputs=dp-input, tp-input  default-output={ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
