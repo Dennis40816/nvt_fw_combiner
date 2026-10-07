@@ -36,9 +36,10 @@ Lines:
 
 - `1.2.x` takes Core-free hotfixes only. `1.2.2` is cut from `v1.2.1` and ships as usual (decision 337). The
   comparison report of record still gates `1.2.2` and every later release (decisions 249 to 251 and 337); only the
-  old `1.2.2` row's content allocation is superseded.
+  old `1.2.2` row's content allocation is superseded. `1.2.2` also carries license bridge step 1 (#574, decision 342)
+  and the comparator tooling for its own report (decision 343).
 - `1.3.0` is the release branch cut from the `1.3.x` trunk at `6b3390e72`. It holds the 214 unreleased `1.2.x`
-  trunk commits, license bridge step 1 (#574), the items the board lists for it, and `1.2.2` merged back. It has
+  trunk commits, license bridge step 1 (#574, also in `1.2.2` by decision 342), the items the board lists for it, and `1.2.2` merged back. It has
   no Core and stays MIT. NFC supports NT51925 from `1.3.0` on (decision 340).
 - After `1.3.0`, the `1.3.x` trunk takes features and Core adoption together, in the board's handoff order
   (decision 335). The trunk stays releasable: Core adoption pull requests are small and start with zero visible
