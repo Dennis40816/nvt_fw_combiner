@@ -1,7 +1,7 @@
 # NT51925 Standard Merge Handoff
 
 Status: awaiting owner evidence for the proposed NFC 1.2.2 restoration in
-[ADR 0083](../../../../../docs/adr/0083-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+[ADR 0084](../../../../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
 The prepared option A profile is `nt51925-standard-merge-gen-flash` version
 `0.1.0`, using NT51926 shared geometry. It is a candidate, not approved support
 or Golden-certified output. Declaration and inspection metadata are prepared;

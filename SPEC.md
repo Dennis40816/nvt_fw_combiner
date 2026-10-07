@@ -31,7 +31,7 @@
 ## 0.1 Current owner priority
 
 NT51925 local preparation amendment (owner request, 2026-10-07):
-[Proposed ADR 0083](docs/adr/0083-restore-nt51925-standard-merge-and-ctrlram-replace.md)
+[Proposed ADR 0084](docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md)
 prepares Standard Merge and CtrlRAM Replace in NFC 1.2.2 from v1.2.1, with core
 integration targeted at 1.3.0 and 1.2.x becoming a correction line afterwards.
 NT51925 remains Candidate/Contract Only pending official map/mmap, per-version

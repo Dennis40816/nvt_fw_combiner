@@ -1,7 +1,7 @@
 # NT51925 CtrlRAM Replace Handoff
 
 Status: awaiting owner evidence for the proposed NFC 1.2.2 restoration in
-[ADR 0083](../../../../../docs/adr/0083-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+[ADR 0084](../../../../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
 The four prepared option A profiles are
 `nt51925-ctrlram-replace-fw141-runtime-single`,
 `nt51925-ctrlram-replace-fw141-runtime-cascade`,

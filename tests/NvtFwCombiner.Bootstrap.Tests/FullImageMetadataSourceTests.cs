@@ -24,7 +24,7 @@ public sealed class FullImageMetadataSourceTests
     public void CanonicalFactsRecoverFrozenPreMigrationBytes(string sourcePath, string oldVersion, string newVersion, string baselineHash)
     {
         string raw = File.ReadAllText(RepositoryPaths.FromRepositoryRoot(sourcePath));
-        // Proposed ADR 0083 appends only a new member/map/view; remove that preparation
+        // Proposed ADR 0084 appends only a new member/map/view; remove that preparation
         // before recovering the unchanged, independently frozen NT51923/NT51926 facts.
         raw = Regex.Replace(raw, ",\\n    \\{\\n      \"memberId\": \"NT51925\",.*?\\n    \\}",
             string.Empty, RegexOptions.Singleline | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));

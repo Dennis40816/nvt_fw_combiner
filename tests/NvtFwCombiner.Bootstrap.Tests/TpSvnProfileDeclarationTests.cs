@@ -33,7 +33,7 @@ public sealed class TpSvnProfileDeclarationTests
         ["NT51951"] = 0x2D330,
     };
 
-    /// <summary>Decision 45: NT51926 variants; NT51925 borrows these positions pending Proposed ADR 0083.</summary>
+    /// <summary>Decision 45: NT51926 variants; NT51925 borrows these positions pending Proposed ADR 0084.</summary>
     private static readonly Dictionary<string, long> VersionedHeaderCopyStampByMap = new(StringComparer.Ordinal)
     {
         ["nt51925-ctrlram-fw141-tp-work-240k"] = 0x32F74,

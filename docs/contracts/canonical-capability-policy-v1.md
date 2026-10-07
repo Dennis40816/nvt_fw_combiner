@@ -4,7 +4,7 @@
 
 ## NT51925 preparation amendment (catalog 1.24.0)
 
-The 2026-10-07 owner request, recorded in Proposed ADR 0083, adds nine exact
+The 2026-10-07 owner request, recorded in Proposed ADR 0084, adds nine exact
 NT51925 Standard Merge/CtrlRAM Replace routes as Available/Candidate/Contract
 Only. It supplies local preparation authority, not support or Golden approval.
 Standard declaration/metadata are published, while its authoring, exact

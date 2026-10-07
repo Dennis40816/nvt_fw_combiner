@@ -3,7 +3,7 @@
   "bundleId": "nt51923-standard-merge-family",
   "bundleVersion": "1.2.2-nt51925.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "064f508fb49fa9e852f92dc2a64c70d51152923b0e992bbf941a1d06c8a9c027",
+  "contentHash": "b0c519919fc1037d51a23a4d3755a0affb9be10dfb6d5aa0954977b528a07e4b",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -46,7 +46,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51925-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "d37895fb9105eaa5020633aa58478e07df1c2182ab0cb6af9c3d0aa154260ed7"
+      "contentHash": "49b272b17d7fced224deac8aea70844ae7ab8392ee8fd62c18432dc1ed5ff439"
     }
   ]
 }

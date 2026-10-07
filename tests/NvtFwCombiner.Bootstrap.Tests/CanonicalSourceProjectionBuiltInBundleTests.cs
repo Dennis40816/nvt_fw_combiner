@@ -7,7 +7,7 @@ public sealed class CanonicalSourceProjectionBuiltInBundleTests
 {
     /// <summary>Each source bundle must satisfy its exact manifest, schema, and projection contract.</summary>
     [Theory]
-    [InlineData("nt51923-standard-merge", "064f508fb49fa9e852f92dc2a64c70d51152923b0e992bbf941a1d06c8a9c027")]
+    [InlineData("nt51923-standard-merge", "b0c519919fc1037d51a23a4d3755a0affb9be10dfb6d5aa0954977b528a07e4b")]
     [InlineData("nt51927-standard-merge", "59b51e5357fd7567315c6cc85289e2d5d78783e6ed027c421409c4a7f8cc6584")]
     [InlineData("nt51928-standard-merge", "0a511dbcfac0cfb6dcfc1a6faf5fe5818b6d0f6b3e267d6531c518c2917e949e")]
     [InlineData("nt51929-standard-merge", "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011")]

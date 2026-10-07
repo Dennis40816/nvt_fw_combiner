@@ -85,7 +85,7 @@ NT51950|ctrlram-replace|2-ic|nt51950-ab-merge-1024k
 NT51951|ctrlram-replace|1-ic|nt51951-ab-merge-1024k
 NT51951|ctrlram-replace|2-ic|nt51951-ab-merge-1024k
 
-# Proposed ADR 0083: nine NT51925 Candidate/ContractOnly declarations; owner evidence pending.
+# Proposed ADR 0084: nine NT51925 Candidate/ContractOnly declarations; owner evidence pending.
 NT51925|standard-merge|selector-free|nt51925-standard-merge-256k
 NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw141-tp-work-240k
 NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw141-full-flash-256k

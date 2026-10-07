@@ -3,7 +3,7 @@
   "bundleId": "nt51926-ctrlram-replace-candidate",
   "bundleVersion": "1.2.2-nt51925.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "6b7b80d44c7fe27133bda0d16b2c6e095d6d945f4b5cf3404e5418cf19d0b85d",
+  "contentHash": "272172184ce9e2d88030317136e567fed00274ce49fd18615cb29edc3d627f7c",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -74,28 +74,28 @@
       "kind": "composition-profile",
       "path": "profiles/nt51925-ctrlram-replace-fw141-runtime-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "d0451a4ebebf777254fe85d0ec23e2184f7c30955ed36fae7ab2d6f753e79667"
+      "contentHash": "427d991653ba2839be485af7dd4b3ba58e95def544c4d3dc3f5f0b856b48be26"
     },
     {
       "entryId": "nt51925-ctrlram-replace-fw141-runtime-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51925-ctrlram-replace-fw141-runtime-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "c1db964495f189686bf6a87d3530e7c72d201fb3234f87b3e2a87f8154c89725"
+      "contentHash": "355f674edd54cbb8dcbc74943457ca5d7d33f07dff26d3b9115e3e753c4dba4f"
     },
     {
       "entryId": "nt51925-ctrlram-replace-fw200-runtime-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51925-ctrlram-replace-fw200-runtime-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "39b77060da04f41df86d0227f832630d6cb126d211ac2936d05d8de09b27bc12"
+      "contentHash": "91564d5457d0fb3d6aaa005eae421220d3c979541845c4fdf17f196beffe119d"
     },
     {
       "entryId": "nt51925-ctrlram-replace-fw200-runtime-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51925-ctrlram-replace-fw200-runtime-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "a0ed1ed2c2d22de19b60739f75c34e851899f21e0b8ff3ef8bba8e2657b802f5"
+      "contentHash": "29998c282c433ef444a3ab7b8ea95cd59bcc8b674c814798de761de3b2c13d3c"
     }
   ]
 }

@@ -3,7 +3,7 @@
 ## NT51925 proposed restoration intake (2026-10-07)
 
 The new exception to the historical closed intake below is NT51925 under
-[Proposed ADR 0083](../../../docs/adr/0083-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+[Proposed ADR 0084](../../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
 Official map/mmap, version-specific postbuild scripts, declared FW/topologies,
 NT51926 differences and independent Golden cases remain pending. Use
 [`standard-merge/nt51925/CASE.md`](standard-merge/nt51925/CASE.md) and

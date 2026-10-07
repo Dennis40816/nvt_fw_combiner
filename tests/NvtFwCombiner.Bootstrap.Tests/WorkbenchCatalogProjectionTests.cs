@@ -97,23 +97,13 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51923", "NT51925", "NT51926", "NT51927", "NT51928",
+                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
                 "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
         foreach (CapabilityProfileSummary summary in summaries)
         {
-            if (summary.IcId == "NT51925")
-            {
-                Assert.True(summary.DeclarationReady);
-                Assert.True(summary.CompileSucceeded);
-                Assert.False(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(summary.IcId, null,
-                    out CompiledComposition? candidate, out IReadOnlyList<CompositionIssue> candidateIssues));
-                Assert.Null(candidate);
-                Assert.Contains(candidateIssues, static issue => issue.Code == CapabilityCatalogIssueCodes.ExecutionUnavailable);
-                continue;
-            }
             long? dpLength = summary.IcId is "NT51950" or "NT51951" ? 0x40000 : null;
             Assert.True(
                 BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(

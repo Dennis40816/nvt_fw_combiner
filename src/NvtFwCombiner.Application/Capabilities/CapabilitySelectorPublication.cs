@@ -158,7 +158,8 @@ public sealed class CapabilitySelectorPublication
         CapabilityRouteIdentity[] authorableIdentities =
         [
             .. capabilities
-                .Where(static capability => IsAuthorable(capability.Authoring))
+                .Where(static capability =>
+                    IsAuthorable(capability.Authoring) && capability.ExecutionAdmitted)
                 .Select(static capability => capability.Identity)
                 .Concat(dynamicRoutes
                     .Where(static route => IsAuthorable(route.Authoring))

@@ -10,7 +10,7 @@ trusted loader.
 
 ## NT51925 local candidate preparation
 
-[Proposed ADR 0083](../../docs/adr/0083-restore-nt51925-standard-merge-and-ctrlram-replace.md)
+[Proposed ADR 0084](../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md)
 adds NT51925 members/maps to the existing NT51926 shared facts and five
 `executable-candidate` profiles inside `nt51923-standard-merge` and
 `nt51926-ctrlram-replace-candidate`. The only runtime registrations are Standard

@@ -627,7 +627,7 @@ public sealed partial class ReplaceCliCommandTests
               "parentBinding": {
                 "bundleId": "nt51926-ctrlram-replace-candidate",
                 "bundleVersion": "1.2.2-nt51925.1",
-                "bundleContentHash": "6b7b80d44c7fe27133bda0d16b2c6e095d6d945f4b5cf3404e5418cf19d0b85d",
+                "bundleContentHash": "272172184ce9e2d88030317136e567fed00274ce49fd18615cb29edc3d627f7c",
                 "profileId": "nt51926-general-replace-dp-single-candidate",
                 "profileVersion": "0.1.0",
                 "profileContentHash": "241f58fb08d8761af370c53293b14931fd8a44a069c04ca15a65f1afa75e6925",

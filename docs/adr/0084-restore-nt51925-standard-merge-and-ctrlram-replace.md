@@ -1,4 +1,4 @@
-# ADR 0083: Restore NT51925 for Standard Merge and CtrlRAM Replace
+# ADR 0084: Restore NT51925 for Standard Merge and CtrlRAM Replace
 
 - Status: Proposed
 - Date: 2026-10-07

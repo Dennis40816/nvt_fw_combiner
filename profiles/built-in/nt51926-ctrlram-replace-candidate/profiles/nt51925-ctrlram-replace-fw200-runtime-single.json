@@ -24,7 +24,7 @@
       {
         "blockerId": "nt51925-r3-owner-approval",
         "kind": "human-review",
-        "reason": "Proposed ADR 0083 awaits firmware-owner R3 approval and exact write-range audit.",
+        "reason": "Proposed ADR 0084 awaits firmware-owner R3 approval and exact write-range audit.",
         "evidenceRefs": [
           "nt51925-restore-option-a-pending-owner-evidence"
         ]

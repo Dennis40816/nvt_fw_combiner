@@ -2,7 +2,7 @@
 
 ## Proposed NT51925 restoration for NFC 1.2.2 (2026-10-07)
 
-[Proposed ADR 0083](../adr/0083-restore-nt51925-standard-merge-and-ctrlram-replace.md)
+[Proposed ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md)
 records the owner's request and the local option A preparation. Active policy
 catalog `1.24.0` adds nine NT51925 exact routes to the existing 85-route catalog:
 one Standard Merge and eight CtrlRAM Replace routes (two Common FW contracts,

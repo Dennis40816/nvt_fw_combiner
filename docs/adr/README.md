@@ -37,5 +37,5 @@ executable-trust and deployment work must not be mistaken for completed
 configuration-only evidence.
 
 The proposed NT51925-only restoration of Standard Merge and CtrlRAM Replace is
-recorded in [ADR 0083](0083-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+recorded in [ADR 0084](0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
 Its R3 owner approval and independent firmware/Golden evidence remain pending.

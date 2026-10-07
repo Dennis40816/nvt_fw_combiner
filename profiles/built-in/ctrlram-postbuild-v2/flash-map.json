@@ -1367,8 +1367,8 @@
       "fullFlashCapacities": [
         262144
       ],
-      "baseShapeEvidence": "Proposed ADR 0083 option A; borrowed NT51926 TP/full capacities, pending official NT51925 map and Golden.",
-      "evidence": "No NT51925 TP Overview entry; official map/mmap pending under Proposed ADR 0083.",
+      "baseShapeEvidence": "Proposed ADR 0084 option A; borrowed NT51926 TP/full capacities, pending official NT51925 map and Golden.",
+      "evidence": "No NT51925 TP Overview entry; official map/mmap pending under Proposed ADR 0084.",
       "regions": [
         {
           "regionId": "normal",
