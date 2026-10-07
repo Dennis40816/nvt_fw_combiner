@@ -2,7 +2,11 @@
 
 Status: active owner roadmap; release-closure checkpoint 2026-09-01; subsequent owner allocation amendments are recorded below.
 
-Current evidence checkpoint, 2026-10-05: **`v1.2.1` is the latest published
+Since the 2026-10-07 [version-line decision](#owner-version-line-decision--2026-10-07), the current trunk is `1.3.x`
+and the [`1.3.x` board](../handoff/1.3.x.md) owns allocation and status. The paragraph below is the dated
+2026-10-05 checkpoint, kept as history.
+
+Dated evidence checkpoint, 2026-10-05: **`v1.2.1` is the latest published
 release** (2026-10-01; [release closure](../handoff/1.2.x.md#released-v121--2026-10-01)).
 `v1.2.0` was published on 2026-09-30 at `3a73620c81107e5e2fea736e3e21f50259718ba0`
 ([release closure](../handoff/1.2.x.md#released-v120--2026-09-30)); its product
