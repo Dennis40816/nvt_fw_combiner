@@ -94,6 +94,8 @@ public sealed class SupportMatrixInteractionTests
             Expander details = Assert.Single(surface.GetVisualDescendants().OfType<Expander>(), e => e.Name == "SupportMatrixCatalogDetails");
             Assert.False(details.IsExpanded);
             Capture(window, $"{width}-{height}-{(darkChinese ? "dark-zh" : "light-en")}-layout");
+            bool lastRowInitiallyOutsideViewport =
+                Bounds(last, window).Bottom > Bounds(vertical, window).Bottom + 0.5;
             foreach (Border cell in new[] { last, first })
             {
                 cell.BringIntoView();
@@ -140,7 +142,8 @@ public sealed class SupportMatrixInteractionTests
                     Assert.Equal(width < 1000, horizontal.Offset.X > 0.5);
                     Assert.InRange(Math.Abs(Bounds(icHeaders[^1], window).Left - fixedIcLeft), 0, 0.5);
                     Assert.InRange(Math.Abs(Bounds(icHeaders[^1], window).Top - cellBounds.Top), 0, 0.5);
-                    if (vertical.Extent.Height > vertical.Viewport.Height)
+                    // Trailing content may overflow while the last row already fits.
+                    if (lastRowInitiallyOutsideViewport)
                     {
                         Assert.True(vertical.Offset.Y > 0);
                     }

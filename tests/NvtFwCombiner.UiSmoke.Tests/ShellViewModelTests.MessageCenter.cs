@@ -673,7 +673,7 @@ public sealed partial class ShellNavigationSystemTests
             "1.5.0",
             new string('a', 64),
             new ResolutionToken(token),
-            []);
+            [], new CapabilityCatalogSummary(0, 0, 0));
     }
 
 }

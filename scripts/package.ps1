@@ -254,7 +254,7 @@ $MaximumPackageBytes = 134217728
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = 'a3ad08440076fb6b8b840ba64a6fbe0ccadb4345530ba1db09ab0b4f0fa671d4'
+    sha256 = 'b75cc3dd8df33114cb48f078f5806a2945ed840b356bcd47ff644acbecb26df6'
 }
 
 $ApprovedCanonicalCapabilityPolicyPackagePath =
@@ -1275,7 +1275,9 @@ function Get-DeclaredCanonicalGoldenPaths {
     }
 
     $ApprovedCases = @{}
-    $RetiredIcTokens = @('51920', '51925', '51930', '51931')
+    # NT51925 has candidate profiles but no owner-approved Golden publication yet.
+    $RetiredIcTokens = @('51920', '51930', '51931')
+    $UnapprovedGoldenIcTokens = @('51925')
     foreach ($ApprovedCase in $ReleaseAllowlist.cases) {
         $ApprovedCaseId = [string]$ApprovedCase.caseId
         if ([string]::IsNullOrWhiteSpace($ApprovedCaseId) -or $ApprovedCases.ContainsKey($ApprovedCaseId)) {
@@ -1283,10 +1285,13 @@ function Get-DeclaredCanonicalGoldenPaths {
         }
         $PublicationFields = @($ApprovedCaseId, [string]$ApprovedCase.manifestPath) +
             @($ApprovedCase.artifacts | ForEach-Object { [string]$_.path })
-        foreach ($RetiredIcToken in $RetiredIcTokens) {
+        foreach ($RetiredIcToken in @($RetiredIcTokens + $UnapprovedGoldenIcTokens)) {
             if (@($PublicationFields | Where-Object {
                 $_.IndexOf($RetiredIcToken, [StringComparison]::OrdinalIgnoreCase) -ge 0
             }).Count -ne 0) {
+                if ($UnapprovedGoldenIcTokens -contains $RetiredIcToken) {
+                    throw "Canonical golden release allowlist cannot publish NT$RetiredIcToken before owner Golden approval."
+                }
                 throw "Canonical golden release allowlist cannot publish retired IC NT$RetiredIcToken."
             }
         }

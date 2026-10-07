@@ -33,9 +33,13 @@ public sealed class TpSvnProfileDeclarationTests
         ["NT51951"] = 0x2D330,
     };
 
-    /// <summary>Decision 45: NT51926 per declared firmware-version variant.</summary>
-    private static readonly Dictionary<string, long> Nt51926HeaderCopyStampByMap = new(StringComparer.Ordinal)
+    /// <summary>Decision 45: NT51926 variants; NT51925 borrows these positions pending Proposed ADR 0084.</summary>
+    private static readonly Dictionary<string, long> VersionedHeaderCopyStampByMap = new(StringComparer.Ordinal)
     {
+        ["nt51925-ctrlram-fw141-tp-work-240k"] = 0x32F74,
+        ["nt51925-ctrlram-fw141-full-flash-256k"] = 0x32F74,
+        ["nt51925-ctrlram-fw200-tp-work-240k"] = 0x32A94,
+        ["nt51925-ctrlram-fw200-full-flash-256k"] = 0x32A94,
         ["nt51926-ctrlram-fw141-tp-work-240k"] = 0x32F74,
         ["nt51926-ctrlram-fw141-full-flash-256k"] = 0x32F74,
         ["nt51926-ctrlram-fw200-tp-work-240k"] = 0x32A94,
@@ -47,6 +51,7 @@ public sealed class TpSvnProfileDeclarationTests
     {
         ["NT51917"] = 0x24,
         ["NT51923"] = 0x24,
+        ["NT51925"] = 0x24, // Prepared option A, pending official owner evidence.
         ["NT51926"] = 0x24,
         ["NT51927"] = 0x24,
         ["NT51928"] = 0x24,
@@ -76,22 +81,22 @@ public sealed class TpSvnProfileDeclarationTests
             Assert.Same(canonical, resolved.StructureDefinition.Definition);
             foreach (string member in map.Applicability.MemberIds)
             {
-                long expected = member == "NT51926"
-                    ? Nt51926HeaderCopyStampByMap[map.MapId]
+                long expected = member is "NT51925" or "NT51926"
+                    ? VersionedHeaderCopyStampByMap[map.MapId]
                     : HeaderCopyStampByIc[member];
                 Assert.Equal(new FirmwareAddressedRange("flash", new ByteRange(expected, 4)),
                     resolved.LocatorOutcome.ResolvedRange);
                 _ = covered.Add(member);
             }
 
-            if (map.Applicability.MemberIds.Contains("NT51926", StringComparer.Ordinal))
+            if (map.Applicability.MemberIds.Any(static member => member is "NT51925" or "NT51926"))
             {
                 _ = nt51926Maps.Add(map.MapId);
             }
         }
 
         Assert.Equal(MainStampByIc.Keys.Order(StringComparer.Ordinal), covered);
-        Assert.Equal(Nt51926HeaderCopyStampByMap.Keys.Order(StringComparer.Ordinal), nt51926Maps);
+        Assert.Equal(VersionedHeaderCopyStampByMap.Keys.Order(StringComparer.Ordinal), nt51926Maps);
     }
 
     /// <summary>
@@ -207,7 +212,7 @@ public sealed class TpSvnProfileDeclarationTests
             }
         }
 
-        Assert.Equal(26, displayBindings);
+        Assert.Equal(27, displayBindings);
         foreach (string path in Directory.EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
                      .Where(static path => path.Contains($"{Path.DirectorySeparatorChar}families{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
         {

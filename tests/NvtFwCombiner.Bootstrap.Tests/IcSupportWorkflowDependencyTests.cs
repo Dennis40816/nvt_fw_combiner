@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -22,15 +23,25 @@ public sealed class CanonicalCapabilityDependencyTests
         }
     }
 
-    /// <summary>Flash-map rows must be reachable through the IC support catalog instead of becoming hidden IC facts.</summary>
+    /// <summary>Flash-map rows have canonical routes, including explicit blocked candidate routes.</summary>
     [Fact]
     public void FlashMapProfilesHaveCanonicalRows()
     {
         HashSet<string> supportedIcIds = [.. BootstrapTestHost.Canonical.Projection.GetIcIds()];
+        HashSet<string> declaredIcIds = [.. BuiltInCanonicalCapabilityPolicy.Load().Routes
+            .Select(static route => route.Identity.IcId)];
 
         foreach (string icId in BuiltInTpFlashMapCatalog.IcIds)
         {
-            Assert.Contains(icId, supportedIcIds);
+            Assert.Contains(icId, declaredIcIds);
+            if (icId == "NT51925")
+            {
+                Assert.DoesNotContain(icId, supportedIcIds);
+            }
+            else
+            {
+                Assert.Contains(icId, supportedIcIds);
+            }
         }
     }
 
@@ -57,7 +68,7 @@ public sealed class CanonicalCapabilityDependencyTests
     }
 
     /// <summary>
-    /// Every production postbuild profile must be exposed through CtrlRAM Replace support.
+    /// Every production postbuild profile has an authorable or explicitly blocked CtrlRAM Replace route.
     /// </summary>
     [Fact]
     public void PostbuildProfilesHaveCtrlRamReplaceSupportOrExplicitBlockedRows()
@@ -66,15 +77,24 @@ public sealed class CanonicalCapabilityDependencyTests
         [
             .. GetAuthorableIcIds(ExperienceIds.CtrlRamReplace),
         ];
+        CanonicalCapabilityPolicyRoute[] declaredRoutes =
+        [
+            .. BuiltInCanonicalCapabilityPolicy.Load().Routes.Where(static route =>
+                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace),
+        ];
+        HashSet<string> declaredIcIds = [.. declaredRoutes.Select(static route => route.Identity.IcId)];
 
         foreach (string icId in LegacyCombinerPostbuildCatalog.All
                      .Select(profile => profile.IcId)
                      .Distinct(StringComparer.Ordinal))
         {
-            Assert.Contains(icId, ctrlRamReplaceIcIds);
+            Assert.Contains(icId, declaredIcIds);
         }
 
         Assert.Equal(10, ctrlRamReplaceIcIds.Count);
+        Assert.DoesNotContain("NT51925", ctrlRamReplaceIcIds);
+        Assert.All(declaredRoutes.Where(static route => route.Identity.IcId == "NT51925"),
+            static route => Assert.Equal(CapabilityAuthoringAvailability.Unavailable, route.Authoring.Value));
     }
 
     /// <summary>Retired DP Replace has no authorable member or exact route.</summary>

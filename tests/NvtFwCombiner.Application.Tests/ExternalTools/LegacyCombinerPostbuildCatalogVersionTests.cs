@@ -67,6 +67,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
 
     /// <summary>Readable versions below the owner-defined 1.0.0 minimum fail for every profile count.</summary>
     [Theory]
+    [InlineData("NT51925")]
     [InlineData("NT51926")]
     public void CommonFwBelowMinimumIsRejected(string icId)
     {
@@ -82,14 +83,18 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
 
     /// <summary>Multiple runtime intervals require valid metadata because the command profile differs.</summary>
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("1.0")]
-    [InlineData("not-a-version")]
-    public void MultipleRuntimeProfilesRejectMissingOrMalformedCommonFw(string? commonFwVersion)
+    [InlineData("NT51925", null)]
+    [InlineData("NT51925", "")]
+    [InlineData("NT51925", "1.0")]
+    [InlineData("NT51925", "not-a-version")]
+    [InlineData("NT51926", null)]
+    [InlineData("NT51926", "")]
+    [InlineData("NT51926", "1.0")]
+    [InlineData("NT51926", "not-a-version")]
+    public void MultipleRuntimeProfilesRejectMissingOrMalformedCommonFw(string icId, string? commonFwVersion)
     {
         Assert.False(LegacyCombinerPostbuildCatalog.TrySelectProfileForCommonFwVersion(
-            "NT51926",
+            icId,
             commonFwVersion,
             out LegacyCombinerPostbuildProfile? profile,
             out string? issue));
@@ -101,24 +106,32 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     }
 
     /// <summary>Duplicate runtime IC rows must form unique ordered intervals beginning at 1.0.0.</summary>
-    [Fact]
-    public void DuplicateRuntimeProfilesExposeCompleteEffectiveIntervals()
+    [Theory]
+    [InlineData("NT51925")]
+    [InlineData("NT51926")]
+    public void DuplicateRuntimeProfilesExposeCompleteEffectiveIntervals(string icId)
     {
         IGrouping<string, LegacyCombinerPostbuildProfile> duplicate = Assert.Single(
             LegacyCombinerPostbuildCatalog.All
                 .GroupBy(static profile => profile.IcId, StringComparer.Ordinal),
-            static group => group.Count() > 1);
+            group => group.Key == icId);
         LegacyCombinerPostbuildProfile[] profiles =
         [
             .. duplicate.OrderBy(static profile => profile.EffectiveCommonFwVersion),
         ];
 
-        Assert.Equal("NT51926", duplicate.Key);
+        Assert.Equal(icId, duplicate.Key);
         Assert.Equal(
             [new LegacyCombinerCommonFwVersion(1, 0, 0), new LegacyCombinerCommonFwVersion(2, 0, 0)],
             profiles.Select(static profile => profile.EffectiveCommonFwVersion));
-        Assert.Same(profiles[0], Select("NT51926", "1.255.255"));
-        Assert.Same(profiles[1], Select("NT51926", "2.0.0"));
+        foreach (string version in new[] { "1.0.0", "1.4.0", "1.4.1", "1.255.255" })
+        {
+            Assert.Same(profiles[0], Select(icId, version));
+        }
+        foreach (string version in new[] { "2.0.0", "2.0.1", "3.0.0", "255.255.255" })
+        {
+            Assert.Same(profiles[1], Select(icId, version));
+        }
     }
 
     private static LegacyCombinerPostbuildProfile Select(string icId, string? commonFwVersion)

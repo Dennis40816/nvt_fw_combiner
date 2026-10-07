@@ -368,6 +368,19 @@ public sealed partial class AuthoringInputSlotInspectionTests
             availability.PrimaryBlocker);
     }
 
+    /// <summary>No selected workflow is a selection blocker without an invented route identity.</summary>
+    [Fact]
+    public void UnselectedWorkflowBuildAvailabilityRequiresAvailableRouteSelection()
+    {
+        CapabilityActionAvailability availability = ActiveSessionBuildBlockerResolver.ResolveWorkflowSelectionPending();
+        Assert.False(availability.IsAvailable);
+        CapabilityActionBlocker blocker = Assert.Single(availability.Blockers);
+        Assert.Equal(CapabilityActionReadinessIssueCodes.InputPending, blocker.Code);
+        Assert.Equal(CapabilityReadinessDimension.Input, blocker.Dimension);
+        Assert.Equal("workflow", blocker.SubjectId);
+        Assert.Equal(CapabilityReadinessNextAction.SelectAvailableRoute, blocker.NextAction);
+    }
+
     /// <summary>Compiled sessions project each canonical slot state into shared action readiness.</summary>
     [Theory]
     [InlineData(ResolvedChildReadiness.Blocked, AuthoringSlotLifecycle.Selected,

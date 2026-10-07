@@ -113,7 +113,9 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
         Assert.True(viewModel.IsMergeVisible);
-        Assert.Equal(TestProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
+        Assert.Equal(
+            TestProjection.GetIcIds().Where(static icId => icId != "NT51925"),
+            viewModel.WorkflowSession.IcChoices);
     }
 
     /// <summary>The consolidated IC detail exposes family, runtime, evidence, and support without badge-only meaning.</summary>

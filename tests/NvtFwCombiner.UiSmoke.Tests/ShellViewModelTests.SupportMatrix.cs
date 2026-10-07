@@ -17,8 +17,8 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.Settings.IsSupportMatrixOpen);
         Assert.False(viewModel.Settings.IsOverviewSelected);
-        Assert.Equal(85, viewModel.Settings.SupportMatrix.Rows.Count);
-        Assert.Equal("85 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
+        Assert.Equal(94, viewModel.Settings.SupportMatrix.Rows.Count);
+        Assert.Equal("94 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
         Assert.Equal("Current", viewModel.Settings.SupportMatrix.CatalogStateLabel);
         Assert.False(viewModel.Settings.SupportMatrix.HasStatusNotice);
         Assert.Equal(5, viewModel.Settings.SupportMatrix.WorkflowColumns.Count);
@@ -28,7 +28,15 @@ public sealed partial class ShellNavigationSystemTests
         Assert.DoesNotContain(
             viewModel.Settings.SupportMatrix.Rows,
             static row => row.WorkflowId == ExperienceIds.DpReplace);
-        Assert.Equal(10, viewModel.Settings.SupportMatrix.IcRows.Count);
+        Assert.Equal(11, viewModel.Settings.SupportMatrix.IcRows.Count);
+        SupportMatrixIcRowViewModel nt51925 = Assert.Single(
+            viewModel.Settings.SupportMatrix.IcRows, static row => row.IcId == "NT51925");
+        Assert.Equal(SupportMatrixCellStatus.Blocked,
+            nt51925.Cells.Single(static cell => cell.WorkflowLabel == "Standard Merge").Status);
+        Assert.Equal(SupportMatrixCellStatus.Blocked,
+            nt51925.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").Status);
+        Assert.All(nt51925.Cells.Where(static cell => cell.WorkflowLabel is not ("Standard Merge" or "CtrlRAM Replace")),
+            static cell => Assert.Equal(SupportMatrixCellStatus.NotDeclared, cell.Status));
         SupportMatrixIcRowViewModel nt51929 = Assert.Single(
             viewModel.Settings.SupportMatrix.IcRows,
             static row => row.IcId == "NT51929");
@@ -293,12 +301,22 @@ public sealed partial class ShellNavigationSystemTests
     private static CanonicalSupportMatrixSnapshot Matrix(
         IEnumerable<CanonicalSupportMatrixRow> rows)
     {
+        CanonicalSupportMatrixRow[] suppliedRows = [.. rows];
+        CanonicalSupportMatrixRow[] availableRows = [.. suppliedRows.Where(static row =>
+            row.Authoring.Value == CapabilityAuthoringAvailability.Available &&
+            row.ExecutionState != CanonicalSupportMatrixExecutionState.Unavailable)];
         return new CanonicalSupportMatrixSnapshot(
             "test-catalog",
             "1.0.0",
             new string('f', 64),
             new ResolutionToken("test-catalog:1"),
-            rows);
+            suppliedRows,
+            new CapabilityCatalogSummary(
+                availableRows.Select(static row => row.Identity.IcId).Distinct().Count(),
+                availableRows.Where(static row => row.Identity.WorkflowId == ExperienceIds.StandardMerge)
+                    .Select(static row => row.Identity.IcId).Distinct().Count(),
+                availableRows.Where(static row => row.Identity.WorkflowId == ExperienceIds.CtrlRamReplace)
+                    .Select(static row => row.Identity.IcId).Distinct().Count()));
     }
 
     private static CanonicalSupportMatrixRow Row(

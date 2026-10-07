@@ -14,10 +14,10 @@ public sealed class BuiltInPostbuildProfileCatalogTests
     [Fact]
     public void LoadReadsEveryRuntimeBuiltInProfile()
     {
-        Assert.Equal(11, BuiltInPostbuildProfileCatalog.All.Count);
+        Assert.Equal(13, BuiltInPostbuildProfileCatalog.All.Count);
         Assert.DoesNotContain(
             BuiltInPostbuildProfileCatalog.All,
-            profile => profile.IcId is "NT51920" or "NT51925" or "NT51930" or "NT51931");
+            profile => profile.IcId is "NT51920" or "NT51930" or "NT51931");
     }
 
     /// <summary>A catalog byte change cannot pass under the release-pinned hash.</summary>
@@ -38,7 +38,7 @@ public sealed class BuiltInPostbuildProfileCatalogTests
         byte[] lfBytes = Encoding.UTF8.GetBytes(lfText);
         byte[] crlfBytes = Encoding.UTF8.GetBytes(lfText.Replace("\n", "\r\n", StringComparison.Ordinal));
 
-        Assert.Equal(11, BuiltInPostbuildProfileCatalog.Load(crlfBytes, Hash(lfBytes)).Count);
+        Assert.Equal(13, BuiltInPostbuildProfileCatalog.Load(crlfBytes, Hash(lfBytes)).Count);
     }
 
     /// <summary>Canonical repository bytes do not create document-sized hash-normalization buffers.</summary>

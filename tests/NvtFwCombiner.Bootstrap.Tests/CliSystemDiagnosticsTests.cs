@@ -15,7 +15,7 @@ public sealed class CliSystemDiagnosticsTests
     {
         using var output = new StringWriter();
         SystemInformationService service = CreateService(CanonicalSupportMatrixCatalogState.Current,
-            new CanonicalSupportMatrixSnapshot("test", "1", new string('a', 64), new ResolutionToken("test"), []),
+            new CanonicalSupportMatrixSnapshot("test", "1", new string('a', 64), new ResolutionToken("test"), [], new CapabilityCatalogSummary(0, 0, 0)),
             new AdmissionStatus());
         int exit = await CliApplication.RunDoctorAsync(service, output, TestContext.Current.CancellationToken);
         Assert.Equal(0, exit);
@@ -81,7 +81,7 @@ public sealed class CliSystemDiagnosticsTests
                 "1.5.0",
                 new string('a', 64),
                 new ResolutionToken("catalog:cli-lkg"),
-                []));
+                [], new CapabilityCatalogSummary(0, 0, 0)));
 
         int exitCode = await CliApplication.RunDoctorAsync(
             service,

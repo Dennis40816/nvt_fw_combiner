@@ -341,7 +341,7 @@ public sealed class SystemInformationServiceTests
             "1.5.0",
             new string('a', 64),
             new ResolutionToken("catalog:test"),
-            []);
+            [], new CapabilityCatalogSummary(0, 0, 0));
     }
 
     private sealed class StubCatalog(params CanonicalSupportMatrixQueryResult[] results) :

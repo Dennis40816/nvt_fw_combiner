@@ -39,6 +39,7 @@ internal static class BuiltInV2BundlePreload
         [
             "nt51923-ctrlram-replace-candidate",
             "nt51917-ctrlram-replace-alias-candidate",
+            "nt51925-ctrlram-replace-candidate",
             "nt51926-ctrlram-replace-candidate",
             "nt51927-ctrlram-replace-candidate",
             "nt51928-ctrlram-replace-candidate",
@@ -52,6 +53,7 @@ internal static class BuiltInV2BundlePreload
             "nt51917-nt51927-shared-facts",
             "nt51923-nt51926-shared-facts",
             "nt51923-standard-merge",
+            "nt51925-standard-merge-candidate",
             "nt51928-standard-merge",
             "nt51929-standard-merge",
             "nt51950-ab-merge",

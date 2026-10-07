@@ -15,7 +15,7 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
     [Fact]
     public void LoadReadsEveryBuiltInProfile()
     {
-        Assert.Equal(10, BuiltInTpFlashMapCatalog.IcIds.Count);
+        Assert.Equal(11, BuiltInTpFlashMapCatalog.IcIds.Count);
         Assert.Equal(BuiltInTpFlashMapCatalog.IcIds.Count, BuiltInTpFlashMapCatalog.IcIds.Distinct().Count());
     }
 
@@ -24,6 +24,7 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
     [InlineData("NT51917", 0x35000, 0x40000)]
     [InlineData("NT51919", 0x40000, 0x40000)]
     [InlineData("NT51923", 0x3C000, 0x40000)]
+    [InlineData("NT51925", 0x3C000, 0x40000)]
     [InlineData("NT51926", 0x3C000, 0x40000)]
     [InlineData("NT51927", 0x35000, 0x40000)]
     [InlineData("NT51928", 0x35000, 0x80000)]

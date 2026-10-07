@@ -127,6 +127,12 @@ public sealed class StandardMergeCompilationTests
     {
         foreach (string icId in BootstrapTestHost.Canonical.Projection.GetIcIds())
         {
+            if (icId == "NT51925")
+            {
+                Assert.False(BootstrapTestHost.Services.StandardMergeAuthoring.IsSupported(icId));
+                _ = Assert.Throws<InvalidOperationException>(() => BootstrapTestHost.Services.GeneralAuthoring.GetDefaultOutputLength(icId));
+                continue;
+            }
             Assert.True(
                 BootstrapTestHost.Services.StandardMergeAuthoring.IsSupported(icId),
                 $"Expected Standard Merge availability for selectable IC '{icId}'.");

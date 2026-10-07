@@ -1,6 +1,24 @@
 # Owner Golden Handoff
 
-目前沒有待 owner 補資料或補決策的 input gate。歷史缺項摘要保留於
+## NT51925 isolated candidate intake (2026-10-07)
+
+The new exception to the historical closed intake below is NT51925 under
+[Proposed ADR 0084](../../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+Owner decision 334 (2026-10-07) gives NT51925 its own map, family and candidate
+bundles; both workflows remain blocked before authoring snapshot, execution
+and Build. Official map/mmap, version-specific postbuild scripts, declared
+FW/topologies, differences from NT51923/NT51926 and independent Golden cases
+remain pending. Use
+[`standard-merge/nt51925/CASE.md`](standard-merge/nt51925/CASE.md) and
+[`ctrlram-replace/nt51925/CASE.md`](ctrlram-replace/nt51925/CASE.md).
+The new CtrlRAM cases use same-run physical Postbuild inputs and complete final
+expected FlashCode, not the historical `base.bin` request. No BIN, support or
+Golden certification is added by this preparation. A later family join requires
+the official NT51925 map proving identical facts and separate owner approval.
+The other ICs retired by ADR 0042 remain excluded. The following closed-intake
+statements describe the earlier batch.
+
+Earlier batch only: 目前沒有待 owner 補資料或補決策的 input gate。歷史缺項摘要保留於
 [`0718-missing-owner-evidence/README_請先看.md`](0718-missing-owner-evidence/README_請先看.md)，
 但不再是目前收件清單。
 
@@ -18,7 +36,7 @@ FlashCode 與命令／provenance 資訊。
 - 不要重傳已 hash-pinned 的工具或已存在的 golden。
 - Owner evidence intake 不會自動促成 runtime/support promotion。
 
-## Current Golden Evidence Status
+## Historical Golden Evidence Status (2026-07-18 batch)
 
 最後一批 owner golden 已在 2026-07-18 完成收件；目前沒有待 owner 補資料或補決策的
 input gate。當前 canonical Golden inventory 與 `ctrlram-replace` direct cases 是
