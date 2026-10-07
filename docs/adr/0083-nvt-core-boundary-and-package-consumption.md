@@ -230,3 +230,13 @@ Release at build time and integrate it into NFC. Core adds explicit license text
 The manifest and the shared script are R3 with `release-owner` and `governance-owner`, under decision 328.
 This pull request adds only the delivery mechanism. The first module adoption pull request adds the pins,
 lock entries, `THIRD_PARTY_NOTICES.md` and the release license copy.
+
+### 2026-10-07: first Core adoption targets 1.3.1
+
+The owner decided on 2026-10-07, relayed by the Commander session:
+- NFC's first Core adoption targets `1.3.1`, together with license bridge step 2 (decision 327).
+- The `1.2.x` line stays Core-free. It carries hotfixes only.
+- Core work lands first on `feature/1.3.1/core-integration`. That branch merges into the `1.3.x` trunk after the `1.3.0` release branch is cut.
+
+The [roadmap](../architecture/nfc_roadmap.md#owner-version-line-decision--2026-10-07) and the
+[`1.3.x` board](../handoff/1.3.x.md) record the version table.
