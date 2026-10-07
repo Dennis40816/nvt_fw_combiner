@@ -53,8 +53,8 @@ Version rules (decision 336):
 - Customer version numbers stay contiguous. The minor number goes up only after many features have accumulated.
 - The trunk gets one internal tag per handoff group when the whole group has merged (decision 341). It is an
   annotated SemVer prerelease tag, as [development tags](../governance/development-tags.md) requires. Internal tags get no Release and no Launcher delivery.
-- A customer who skipped versions can still update. The updater installs `1.3.0` first when the license bridge
-  needs it. Saved Rules and settings migrate from every customer version. The customer notes list every change
+- A customer who skipped versions can still update. The updater installs a required intermediate version first.
+  Since decision 342, `1.2.2` carries license bridge step 1, so the license bridge itself needs no `1.3.0`-first step. Saved Rules and settings migrate from every customer version. The customer notes list every change
   since the customer's version.
 - The first customer release with Core also does license bridge step 2 (decision 333). Its notes and a Launcher
   prompt tell users who never installed `1.3.0` to update to `1.3.0` first.
