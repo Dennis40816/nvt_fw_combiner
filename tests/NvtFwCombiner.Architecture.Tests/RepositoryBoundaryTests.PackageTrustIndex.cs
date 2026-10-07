@@ -222,7 +222,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal("built-in-profile-bundle-v2", root.GetProperty("trustAnchorBindingId").GetString());
 
         JsonElement[] bundles = [.. root.GetProperty("bundles").EnumerateArray()];
-        Assert.Equal(24, bundles.Length);
+        Assert.Equal(26, bundles.Length);
         Assert.Equal(
             bundles.Length,
             bundles.Select(static bundle => bundle.GetProperty("bundleDirectory").GetString())
@@ -274,7 +274,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Count(static registration =>
                     registration.TryGetProperty("mapVariantSetId", out _)));
         Assert.Equal(
-            8,
+            9,
             bundles.Sum(static bundle =>
                 bundle.TryGetProperty("metadataProviderFamilies", out JsonElement providers)
                     ? providers.GetArrayLength()

@@ -16,6 +16,17 @@ public static class ActiveSessionBuildBlockerResolver
         return ResolveBuildAvailability(session, workflowId, currentReadiness).PrimaryBlocker;
     }
 
+    /// <summary>Blocks Build until an authoring-available workflow has been selected.</summary>
+    public static CapabilityActionAvailability ResolveWorkflowSelectionPending()
+    {
+        return Availability(new CapabilityActionBlocker(
+            CapabilityActionReadinessIssueCodes.InputPending,
+            CapabilityReadinessDimension.Input,
+            "workflow",
+            "Select an available workflow before continuing.",
+            CapabilityReadinessNextAction.SelectAvailableRoute));
+    }
+
     /// <summary>Returns every canonical check-time Build blocker without creating a run or report.</summary>
     public static CapabilityActionAvailability ResolveBuildAvailability(
         ActiveSessionSnapshot? session,

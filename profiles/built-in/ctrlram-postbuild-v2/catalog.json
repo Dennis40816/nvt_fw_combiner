@@ -5551,7 +5551,7 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
-      "evidence": "Proposed ADR 0084 option A; borrowed NT51926 IC FlashMap postbuild/PostbuildSetup_51926_2.0.0.bat; official NT51925 postbuild pending."
+      "evidence": "Isolated NT51925 candidate using borrowed NT51926 IC FlashMap postbuild/PostbuildSetup_51926_2.0.0.bat values; official NT51925 postbuild pending."
     },
     {
       "processorId": "nfc.nt51925.ctrlram-postbuild-fw1.4.1",
@@ -5747,7 +5747,7 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
-      "evidence": "Proposed ADR 0084 option A; borrowed NT51926 IC FlashMap postbuild/PostbuildSetup_51926_1.4.1.bat; official NT51925 postbuild pending."
+      "evidence": "Isolated NT51925 candidate using borrowed NT51926 IC FlashMap postbuild/PostbuildSetup_51926_1.4.1.bat values; official NT51925 postbuild pending."
     }
   ]
 }

@@ -626,14 +626,14 @@ public sealed partial class ReplaceCliCommandTests
               "sourceExperienceId": "general-replace",
               "parentBinding": {
                 "bundleId": "nt51926-ctrlram-replace-candidate",
-                "bundleVersion": "1.2.2-nt51925.1",
-                "bundleContentHash": "272172184ce9e2d88030317136e567fed00274ce49fd18615cb29edc3d627f7c",
+                "bundleVersion": "1.1.13-tp-svn.1",
+                "bundleContentHash": "241d2059770c4a88c2ec20e582652832e3ea3d0e51a07711a6827707e53b8cfa",
                 "profileId": "nt51926-general-replace-dp-single-candidate",
                 "profileVersion": "0.1.0",
-                "profileContentHash": "241f58fb08d8761af370c53293b14931fd8a44a069c04ca15a65f1afa75e6925",
+                "profileContentHash": "61a14ef72e7e9ea6877ae96610fce1eba1f3f8a16f6657549ce50fc44900a500",
                 "familyId": "nt51926-ctrlram-replace",
-                "familyVersion": "0.7.2",
-                "familyContentHash": "a826d96595ca05801fa2cc780506713673b7e4a8a8ef7d2558c67c58d329a141",
+                "familyVersion": "0.7.1",
+                "familyContentHash": "ee315aa3f713ea0a7ea748bae6f3c8ee9aa60cda7cdf38adeef05cf9943ced0f",
                 "mapId": "nt51926-general-replace-full-flash-256k"
               },
               "promotion": {

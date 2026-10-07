@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51923-nt51926",
-  "familyVersion": "1.2.2",
+  "familyVersion": "1.2.1",
   "members": [
     {
       "memberId": "NT51923",
@@ -10,10 +10,6 @@
     {
       "memberId": "NT51926",
       "displayName": "NT51926"
-    },
-    {
-      "memberId": "NT51925",
-      "displayName": "NT51925"
     }
   ],
   "capabilities": [],
@@ -395,35 +391,6 @@
       ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51926-golden"
-      ]
-    },
-    {
-      "mapId": "nt51925-standard-merge-256k",
-      "addressSpaceId": "flash",
-      "applicability": {
-        "memberIds": [
-          "NT51925"
-        ],
-        "modeIds": [
-          "standard-merge"
-        ],
-        "topologyRequirement": {
-          "kind": "none"
-        },
-        "capacityBytes": 262144
-      },
-      "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [
-        "nt51923-nt51926-standard-merge-flash"
-      ],
-      "metadataSetIds": [
-        "nt51926-normal-tp-flash-header-metadata",
-        "firmware-config-general-parameters-metadata",
-        "dpcmi-metadata",
-        "tp-svn-metadata"
-      ],
-      "evidenceRefs": [
-        "nt51925-restore-option-a-pending-owner-evidence"
       ]
     }
   ],

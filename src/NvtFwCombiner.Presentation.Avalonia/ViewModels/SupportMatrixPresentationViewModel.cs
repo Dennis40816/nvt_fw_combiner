@@ -51,10 +51,13 @@ internal sealed class SupportMatrixPresentationViewModel(
     /// <summary>True when a failed reload retained an older coherent publication.</summary>
     public bool IsStale { get; private set; }
 
+    internal CapabilityCatalogSummary? AuthoringSummary { get; private set; }
+
     internal void Refresh(ShellTextResources text)
     {
         ArgumentNullException.ThrowIfNull(text);
         CanonicalSupportMatrixQueryResult result = _query.Query();
+        AuthoringSummary = result.Matrix?.AuthoringSummary;
         ReplaceItems(
             Rows,
             result.Matrix?.Rows.Select(row =>

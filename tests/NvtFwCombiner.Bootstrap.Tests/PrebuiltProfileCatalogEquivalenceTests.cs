@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Each compared subject is the real selected registry in a fresh process.</summary>
 public sealed class PrebuiltProfileCatalogEquivalenceTests
 {
-    /// <summary>All 24 selected bundles and the entire pinned publication must agree across sources.</summary>
+    /// <summary>All 26 selected bundles and the entire pinned publication must agree across sources.</summary>
     [Fact]
     public async Task SelectedSourcesPreserveAllDocumentsAndPinnedPublication()
     {
@@ -22,7 +22,7 @@ public sealed class PrebuiltProfileCatalogEquivalenceTests
         JsonNode second = await json.RunAsync();
         Assert.Equal("prebuilt", first["source"]!.GetValue<string>());
         Assert.Equal("json", second["source"]!.GetValue<string>());
-        Assert.Equal(24, first["bundles"]!.AsArray().Count);
+        Assert.Equal(26, first["bundles"]!.AsArray().Count);
         Assert.True(JsonNode.DeepEquals(first["bundles"], second["bundles"]));
         Assert.True(JsonNode.DeepEquals(first["publication"], second["publication"]));
         Assert.True(JsonNode.DeepEquals(first["parents"], second["parents"]));
@@ -168,8 +168,8 @@ public sealed class PrebuiltProfileCatalogEquivalenceTests
     {
         Assert.True(result["loaded"]!.GetValue<bool>(), result.ToJsonString());
         // The published catalog snapshot includes the proposed NT51925 candidate declarations.
-        Assert.Equal("0de1825d1b22014d1136fdfbaabc9bc76746bb4bd9e18624fc6d2b8c35615e42", result["publication"]!["sha256"]!.GetValue<string>());
-        Assert.Equal(544247, result["publication"]!["text"]!.GetValue<string>().Length);
+        Assert.Equal("7c52256e222778f119e03985a0c719481e932b579727abf3a1fba1f98b74c351", result["publication"]!["sha256"]!.GetValue<string>());
+        Assert.Equal(536741, result["publication"]!["text"]!.GetValue<string>().Length);
         Assert.Equal(7, result["publication"]!["sections"]!.AsArray().Count);
     }
 }

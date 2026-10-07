@@ -65,7 +65,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         Assert.Equal("built-in-profile-bundles", index.TrustIndexId);
         Assert.Equal("1.2.2-nt51925.1", index.TrustIndexVersion);
         Assert.Equal("built-in-profile-bundle-v2", index.TrustAnchorBindingId);
-        Assert.Equal(24, index.Bundles.Count);
+        Assert.Equal(26, index.Bundles.Count);
         Assert.Equal(
             57,
             index.Bundles.Sum(static bundle => bundle.RuntimeRegistrations.Count));
@@ -86,7 +86,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
                 .Where(static registration => registration.MapVariantSetId is not null)
                 .Select(static registration => registration.MapVariantSetId));
         Assert.Equal(
-            8,
+            9,
             index.Bundles.Sum(static bundle => bundle.MetadataProviderFamilies.Count));
         _ = Assert.Single(index.Bundles.SelectMany(static bundle => bundle.FamilyDisclosureFamilies));
         ProfileBundleRuntimeRegistration[] ctrlRam =

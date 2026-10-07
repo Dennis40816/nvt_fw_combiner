@@ -581,7 +581,7 @@ public sealed partial class RepositoryBoundaryTests
         [
             .. trustIndex.RootElement.GetProperty("bundles").EnumerateArray(),
         ];
-        Assert.Equal(24, entries.Length);
+        Assert.Equal(26, entries.Length);
         Assert.All(entries, entry =>
             Assert.True(IsSha256Literal(entry.GetProperty("contentHash").GetString()!)));
         Assert.Equal(

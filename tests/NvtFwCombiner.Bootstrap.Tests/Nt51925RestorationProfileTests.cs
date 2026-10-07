@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
@@ -11,7 +12,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Prepared NT51925 routes remain candidates until independent owner evidence is supplied.</summary>
 public sealed class Nt51925RestorationProfileTests
 {
-    /// <summary>Only the requested workflows have policy availability, without support or Golden promotion.</summary>
+    /// <summary>Only the requested workflows have blocked policy declarations, without support or Golden promotion.</summary>
     [Fact]
     public void OnlyStandardMergeAndCtrlRamReplaceAreDeclaredAsCandidates()
     {
@@ -24,11 +25,11 @@ public sealed class Nt51925RestorationProfileTests
             routes.Select(static route => route.Identity.WorkflowId).Distinct().Order(StringComparer.Ordinal));
         Assert.All(routes, static route =>
         {
-            Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
+            Assert.Equal(CapabilityAuthoringAvailability.Unavailable, route.Authoring.Value);
             Assert.Equal(CapabilityPublicationStatus.Candidate, route.Publication.Value);
             Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
         });
-        Assert.Contains("NT51925", BootstrapTestHost.Canonical.Projection.GetIcIds());
+        Assert.DoesNotContain("NT51925", BootstrapTestHost.Canonical.Projection.GetIcIds());
         Assert.DoesNotContain(BuiltInV2RegistrationRegistry.AbMerge, static row => row.IcId == "NT51925");
         Assert.False(BuiltInV2RegistrationRegistry.GeneralMergeByIc.ContainsKey("NT51925"));
         Assert.False(BuiltInV2RegistrationRegistry.GeneralReplaceByIc.ContainsKey("NT51925"));
@@ -58,7 +59,7 @@ public sealed class Nt51925RestorationProfileTests
 
     /// <summary>Standard declarations publish for inspection while Application execution remains closed.</summary>
     [Fact]
-    public void StandardCandidatePublishesTheSharedPlanWithoutExecutionPromotion()
+    public void StandardCandidatePublishesItsOwnPlanWithoutExecutionPromotion()
     {
         CapabilityResolutionResult prepared = BootstrapTestHost.Canonical.Catalog.ResolveUniqueRoute(
             "NT51925", ExperienceIds.StandardMerge, "selector-free");
@@ -66,7 +67,7 @@ public sealed class Nt51925RestorationProfileTests
             "NT51926", ExperienceIds.StandardMerge, "selector-free");
 
         Assert.False(prepared.Succeeded);
-        Assert.Equal(CapabilityCatalogIssueCodes.ExecutionUnavailable, prepared.Issue!.Code);
+        Assert.Equal(CapabilityCatalogIssueCodes.AuthoringUnavailable, prepared.Issue!.Code);
         Assert.True(existing.Succeeded);
         ResolvedCapability declaration = Assert.Single(BootstrapTestHost.Canonical.Catalog.GetCurrentSnapshot().Capabilities,
             static row => row.Identity.IcId == "NT51925" && row.Identity.WorkflowId == ExperienceIds.StandardMerge);
@@ -79,7 +80,7 @@ public sealed class Nt51925RestorationProfileTests
         Assert.False(BootstrapTestHost.Canonical.Catalog.HasAuthorableCapability("NT51925", ExperienceIds.StandardMerge));
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, declaration.CompiledComposition.Eligibility);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, existing.Capability.CompiledComposition.Eligibility);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate,
+        Assert.Equal(CompiledProfilePromotionStage.Compilable,
             declaration.CompiledComposition.V2Details.Provenance.Promotion.Stage);
         AssertSameBytePlan(existing.Capability.CompiledComposition.Plan, declaration.CompiledComposition.Plan);
         ArgumentException rejected = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
@@ -87,7 +88,7 @@ public sealed class Nt51925RestorationProfileTests
         Assert.Equal("compiledComposition", rejected.ParamName);
     }
 
-    /// <summary>Each declared capacity, Common FW version and topology retains the existing byte authority.</summary>
+    /// <summary>Each declared capacity, Common FW version and topology retains the provisional copied values.</summary>
     [Theory]
     [InlineData("141", 1, 0x3C000)]
     [InlineData("141", 1, 0x40000)]
@@ -97,23 +98,47 @@ public sealed class Nt51925RestorationProfileTests
     [InlineData("200", 1, 0x40000)]
     [InlineData("200", 2, 0x3C000)]
     [InlineData("200", 2, 0x40000)]
-    public void RuntimeCandidatesKeepTheNt51926BytePlan(string fw, int chipCount, int capacity)
+    public void RuntimeDeclarationsKeepCopiedValuesWithoutExecutionAdmission(string fw, int chipCount, int capacity)
     {
         CompiledComposition prepared = CompileRuntime("NT51925", "0.1.0", fw, chipCount, capacity);
         CompiledComposition existing = CompileRuntime("NT51926", "0.4.0", fw, chipCount, capacity);
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, prepared.Eligibility);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, existing.Eligibility);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, prepared.V2Details.Provenance.Promotion.Stage);
+        Assert.Equal(CompiledProfilePromotionStage.Compilable, prepared.V2Details.Provenance.Promotion.Stage);
         Assert.Equal(CompiledProfilePromotionStage.Supported, existing.V2Details.Provenance.Promotion.Stage);
         Assert.NotEmpty(prepared.V2Details.Provenance.Promotion.Blockers);
         AssertSameBytePlan(existing.Plan, prepared.Plan);
-        var request = new CompositionRunRequest("prepared-runtime", prepared,
+        ArgumentException rejected = Assert.Throws<ArgumentException>(() => new CompositionRunRequest("prepared-runtime", prepared,
             [new InputArtifactBinding("reference-base", "reference-base", "reference", "reference.bin", CompiledInputArtifactClass.ReferenceImage),
              new InputArtifactBinding("vn-source", "vn-source", "replacement", "replacement.bin", CompiledInputArtifactClass.CtrlRamReplacement)],
             "prepared.bin", new IcNumberSelection(chipCount == 1 ? IcNumberInputMode.SingleSelector : IcNumberInputMode.CascadeSelector,
-                [chipCount == 1 ? IcNumberSelectionTokens.SingleChip : IcNumberSelectionTokens.Cascade]), outputFileNameIsOverride: true);
-        Assert.Same(prepared, request.CompiledComposition);
+                [chipCount == 1 ? IcNumberSelectionTokens.SingleChip : IcNumberSelectionTokens.Cascade]), outputFileNameIsOverride: true));
+        Assert.Equal("compiledComposition", rejected.ParamName);
+
+        var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
+        var paths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionSlotIds.ReplaceBase] = "reference.bin",
+        };
+        var inputs = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            [CompositionSlotIds.ReplaceBase] = CreateRuntimeReference(fw, capacity),
+        };
+        CtrlRamAuthoringSessionPreparation authoring = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
+            session, "NT51925", chipCount == 1 ? IcNumberSelectionTokens.SingleChip : IcNumberSelectionTokens.Cascade,
+            paths, inputs);
+        Assert.False(authoring.Succeeded);
+        Assert.Null(authoring.AcceptedSession);
+        Assert.Null(session.CurrentSnapshot);
+        Assert.NotEmpty(authoring.Issues);
+
+        var identity = new CapabilityRouteIdentity("NT51925", ExperienceIds.CtrlRamReplace,
+            chipCount == 1 ? "1-ic" : "2-plus-ic",
+            $"nt51925-ctrlram-fw{fw}-{(capacity == 0x3C000 ? "tp-work-240k" : "full-flash-256k")}");
+        CapabilityRouteResolutionResult resolution = BootstrapTestHost.Canonical.Catalog.ResolveDynamicRoute(identity.RouteId);
+        Assert.False(resolution.Succeeded);
+        Assert.Equal(CapabilityCatalogIssueCodes.AuthoringUnavailable, resolution.Issue!.Code);
     }
 
     /// <summary>The restored declaration cannot resolve any unrequested workflow.</summary>
@@ -132,13 +157,9 @@ public sealed class Nt51925RestorationProfileTests
 
     private static CompiledComposition CompileRuntime(string ic, string profileVersion, string fw, int chipCount, int capacity)
     {
-        byte[] reference = new byte[capacity];
-        reference[0x3B000 + FirmwareConfigLayout.CommonFwMajorVersionOffset] = fw == "141" ? (byte)1 : (byte)2;
-        reference[0x3B000 + FirmwareConfigLayout.CommonFwMinorVersionOffset] = fw == "141" ? (byte)4 : (byte)0;
-        reference[0x3B000 + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = fw == "141" ? (byte)1 : (byte)0;
-        new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(reference, 0x3BFFC);
+        byte[] reference = CreateRuntimeReference(fw, capacity);
         string topology = chipCount == 1 ? "single" : "cascade";
-        V2CompositionPlanCompileResult result = BuiltInV2BundleRegistry.All["nt51926-ctrlram-replace-candidate"]
+        V2CompositionPlanCompileResult result = BuiltInV2BundleRegistry.All[$"{ic.ToLowerInvariant()}-ctrlram-replace-candidate"]
             .CompileRuntimeReferenceReplace(
                 $"{ic.ToLowerInvariant()}-ctrlram-replace-fw{fw}-runtime-{topology}", profileVersion, ic,
                 ExperienceIds.CtrlRamReplace,
@@ -153,6 +174,16 @@ public sealed class Nt51925RestorationProfileTests
                         reason: "Synthetic prefix replacement for shared byte-contract comparison.")]));
         Assert.True(result.IsCompiled, string.Join(Environment.NewLine, result.Issues.Select(static issue => issue.Message)));
         return Assert.IsType<CompiledComposition>(result.CompiledComposition);
+    }
+
+    private static byte[] CreateRuntimeReference(string fw, int capacity)
+    {
+        byte[] reference = new byte[capacity];
+        reference[0x3B000 + FirmwareConfigLayout.CommonFwMajorVersionOffset] = fw == "141" ? (byte)1 : (byte)2;
+        reference[0x3B000 + FirmwareConfigLayout.CommonFwMinorVersionOffset] = fw == "141" ? (byte)4 : (byte)0;
+        reference[0x3B000 + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = fw == "141" ? (byte)1 : (byte)0;
+        new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(reference, 0x3BFFC);
+        return reference;
     }
 
     private static void AssertSameBytePlan(CompositionPlan expected, CompositionPlan actual)

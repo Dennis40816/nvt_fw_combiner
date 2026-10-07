@@ -73,7 +73,7 @@ public sealed partial class MergeWorkflowTests
         Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
         Assert.False(TestProjection.GetSelectorPublication().IsWorkflowAuthorable(
             "NT51925", ExperienceIds.StandardMerge));
-        Assert.True(TestProjection.GetSelectorPublication().IsWorkflowAuthorable(
+        Assert.False(TestProjection.GetSelectorPublication().IsWorkflowAuthorable(
             "NT51925", ExperienceIds.CtrlRamReplace));
         viewModel.OpenSettingsCommand.Execute(null);
         viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
@@ -194,8 +194,8 @@ public sealed partial class MergeWorkflowTests
 
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
-        // NT51925 remains globally authorable for CtrlRAM while Standard promotion is pending.
-        Assert.Equal(TestProjection.GetIcIds().Where(static icId => icId != "NT51925"),
+        // NT51925 is blocked in both workflows and absent from ordinary authoring selectors.
+        Assert.Equal(TestProjection.GetIcIds(),
             viewModel.WorkflowSession.IcChoices);
     }
 

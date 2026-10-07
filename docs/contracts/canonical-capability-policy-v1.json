@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "catalogId": "canonical-capability-policy",
-  "catalogVersion": "1.24.0",
+  "catalogVersion": "1.25.0",
   "issuedOn": "2026-10-07",
   "routes": [
     {
@@ -387,25 +387,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51923-ctrlram-fw141-single-full-flash",
       "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-39-nt51923-ctrlram-fw141-single-full-flash",
-      "capabilityFingerprint": "64acb704b24e270ae084b3ffc633237a3ee34d923383dd768f219b98f0ed93f0",
+      "capabilityFingerprint": "bf1c79abfccb91b10c3dba4ebefb0703666a3cb5739c2d944e9abbe4ff81c1ac",
       "authoring": {
         "decisionId": "nt51923-ctrlram-replace-1-ic-nt51923-ctrlram-fw141-single-full-flash-authoring-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-39-nt51923-ctrlram-fw141-single-full-flash",
-        "capabilityFingerprint": "64acb704b24e270ae084b3ffc633237a3ee34d923383dd768f219b98f0ed93f0",
+        "capabilityFingerprint": "bf1c79abfccb91b10c3dba4ebefb0703666a3cb5739c2d944e9abbe4ff81c1ac",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51923-ctrlram-replace-1-ic-nt51923-ctrlram-fw141-single-full-flash-publication-v5",
         "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-39-nt51923-ctrlram-fw141-single-full-flash",
-        "capabilityFingerprint": "64acb704b24e270ae084b3ffc633237a3ee34d923383dd768f219b98f0ed93f0",
+        "capabilityFingerprint": "bf1c79abfccb91b10c3dba4ebefb0703666a3cb5739c2d944e9abbe4ff81c1ac",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51923-ctrlram-replace-1-ic-nt51923-ctrlram-fw141-single-full-flash-evidence-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-39-nt51923-ctrlram-fw141-single-full-flash",
-        "capabilityFingerprint": "64acb704b24e270ae084b3ffc633237a3ee34d923383dd768f219b98f0ed93f0",
+        "capabilityFingerprint": "bf1c79abfccb91b10c3dba4ebefb0703666a3cb5739c2d944e9abbe4ff81c1ac",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51923-fw141-single-auto-prj-662-20260717"
       }
@@ -416,25 +416,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51923-ctrlram-fw141-single-tp-work-240k",
       "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
-      "capabilityFingerprint": "b857f1d29b816492500d11a23c3ae4ece23f51c189ea274f830886fd89fd560d",
+      "capabilityFingerprint": "9b1cf67899c2f111de4131666bd503312c8d72b7973c64808856027b8a62d80e",
       "authoring": {
         "decisionId": "nt51923-ctrlram-replace-1-ic-nt51923-ctrlram-fw141-single-tp-work-240k-authoring-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
-        "capabilityFingerprint": "b857f1d29b816492500d11a23c3ae4ece23f51c189ea274f830886fd89fd560d",
+        "capabilityFingerprint": "9b1cf67899c2f111de4131666bd503312c8d72b7973c64808856027b8a62d80e",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51923-ctrlram-replace-1-ic-nt51923-ctrlram-fw141-single-tp-work-240k-publication-v5",
         "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
-        "capabilityFingerprint": "b857f1d29b816492500d11a23c3ae4ece23f51c189ea274f830886fd89fd560d",
+        "capabilityFingerprint": "9b1cf67899c2f111de4131666bd503312c8d72b7973c64808856027b8a62d80e",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51923-ctrlram-replace-1-ic-nt51923-ctrlram-fw141-single-tp-work-240k-evidence-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
-        "capabilityFingerprint": "b857f1d29b816492500d11a23c3ae4ece23f51c189ea274f830886fd89fd560d",
+        "capabilityFingerprint": "9b1cf67899c2f111de4131666bd503312c8d72b7973c64808856027b8a62d80e",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51923-fw141-single-auto-prj-662-20260717"
       }
@@ -445,25 +445,25 @@
       "icCountVariant": "2-plus-ic",
       "mapVariant": "nt51923-ctrlram-fw141-cascade3-full-flash",
       "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-41-nt51923-ctrlram-fw141-cascade3-full-flash",
-      "capabilityFingerprint": "5f71aac5121f06a776a61f009e2db6363cf47f89b6f08622a8d6e7af0cbecd48",
+      "capabilityFingerprint": "2b7c7a98a72d067cdbc7ad807e8a7cd16af4a6ef371f166ff145a9eedb849482",
       "authoring": {
         "decisionId": "nt51923-ctrlram-replace-2-plus-ic-nt51923-ctrlram-fw141-cascade3-full-flash-authoring-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-41-nt51923-ctrlram-fw141-cascade3-full-flash",
-        "capabilityFingerprint": "5f71aac5121f06a776a61f009e2db6363cf47f89b6f08622a8d6e7af0cbecd48",
+        "capabilityFingerprint": "2b7c7a98a72d067cdbc7ad807e8a7cd16af4a6ef371f166ff145a9eedb849482",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51923-ctrlram-replace-2-plus-ic-nt51923-ctrlram-fw141-cascade3-full-flash-publication-v5",
         "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-41-nt51923-ctrlram-fw141-cascade3-full-flash",
-        "capabilityFingerprint": "5f71aac5121f06a776a61f009e2db6363cf47f89b6f08622a8d6e7af0cbecd48",
+        "capabilityFingerprint": "2b7c7a98a72d067cdbc7ad807e8a7cd16af4a6ef371f166ff145a9eedb849482",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51923-ctrlram-replace-2-plus-ic-nt51923-ctrlram-fw141-cascade3-full-flash-evidence-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-41-nt51923-ctrlram-fw141-cascade3-full-flash",
-        "capabilityFingerprint": "5f71aac5121f06a776a61f009e2db6363cf47f89b6f08622a8d6e7af0cbecd48",
+        "capabilityFingerprint": "2b7c7a98a72d067cdbc7ad807e8a7cd16af4a6ef371f166ff145a9eedb849482",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51923-fw141-cascade3-auto-prj-734-20260717"
       }
@@ -474,25 +474,25 @@
       "icCountVariant": "2-plus-ic",
       "mapVariant": "nt51923-ctrlram-fw141-cascade3-tp-work-240k",
       "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
-      "capabilityFingerprint": "f05948c126e614409377c6553a9427b363332e62a82ad172a8d212639e4b59d6",
+      "capabilityFingerprint": "e3ee550b3e7f5409986195b52009d3f0aec2541f8aed0eb84b2416edec13c7b0",
       "authoring": {
         "decisionId": "nt51923-ctrlram-replace-2-plus-ic-nt51923-ctrlram-fw141-cascade3-tp-work-240k-authoring-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
-        "capabilityFingerprint": "f05948c126e614409377c6553a9427b363332e62a82ad172a8d212639e4b59d6",
+        "capabilityFingerprint": "e3ee550b3e7f5409986195b52009d3f0aec2541f8aed0eb84b2416edec13c7b0",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51923-ctrlram-replace-2-plus-ic-nt51923-ctrlram-fw141-cascade3-tp-work-240k-publication-v5",
         "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
-        "capabilityFingerprint": "f05948c126e614409377c6553a9427b363332e62a82ad172a8d212639e4b59d6",
+        "capabilityFingerprint": "e3ee550b3e7f5409986195b52009d3f0aec2541f8aed0eb84b2416edec13c7b0",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51923-ctrlram-replace-2-plus-ic-nt51923-ctrlram-fw141-cascade3-tp-work-240k-evidence-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
-        "capabilityFingerprint": "f05948c126e614409377c6553a9427b363332e62a82ad172a8d212639e4b59d6",
+        "capabilityFingerprint": "e3ee550b3e7f5409986195b52009d3f0aec2541f8aed0eb84b2416edec13c7b0",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51923-fw141-cascade3-auto-prj-734-20260717"
       }
@@ -503,25 +503,25 @@
       "icCountVariant": "not-applicable",
       "mapVariant": "generic",
       "routeId": "route-7-nt51923-13-general-merge-14-not-applicable-7-generic",
-      "capabilityFingerprint": "2c535bf8c9ede77f121341cb0281f588d16142311f8b3264947a7dd51a5a3a70",
+      "capabilityFingerprint": "fb60006e714c15d63c3f567cc1ae4a57e195b06f5de9361713d5b39641b4c35e",
       "authoring": {
         "decisionId": "nt51923-general-merge-not-applicable-generic-authoring-v1",
         "routeId": "route-7-nt51923-13-general-merge-14-not-applicable-7-generic",
-        "capabilityFingerprint": "2c535bf8c9ede77f121341cb0281f588d16142311f8b3264947a7dd51a5a3a70",
+        "capabilityFingerprint": "fb60006e714c15d63c3f567cc1ae4a57e195b06f5de9361713d5b39641b4c35e",
         "value": "available",
         "sourceReference": "ic-support:NT51923:general-merge"
       },
       "publication": {
         "decisionId": "nt51923-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51923-13-general-merge-14-not-applicable-7-generic",
-        "capabilityFingerprint": "2c535bf8c9ede77f121341cb0281f588d16142311f8b3264947a7dd51a5a3a70",
+        "capabilityFingerprint": "fb60006e714c15d63c3f567cc1ae4a57e195b06f5de9361713d5b39641b4c35e",
         "value": "internal",
         "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51923-general-merge-not-applicable-generic-evidence-v1",
         "routeId": "route-7-nt51923-13-general-merge-14-not-applicable-7-generic",
-        "capabilityFingerprint": "2c535bf8c9ede77f121341cb0281f588d16142311f8b3264947a7dd51a5a3a70",
+        "capabilityFingerprint": "fb60006e714c15d63c3f567cc1ae4a57e195b06f5de9361713d5b39641b4c35e",
         "value": "contract-only",
         "sourceReference": "built-in-v2-general-merge:nt51923-general-merge-logical-candidate@0.1.0"
       }
@@ -532,27 +532,288 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51923-standard-merge-256k",
       "routeId": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
-      "capabilityFingerprint": "17c48f0647aae23617c3b16c4868d1430728d7f14eae275fd02aee347f77697a",
+      "capabilityFingerprint": "c5e84d3c6fc703644d12eb790c0c9110c99b8f60f828ecdf4c4942b36370011c",
       "authoring": {
         "decisionId": "nt51923-standard-merge-selector-free-nt51923-standard-merge-256k-authoring-v3",
         "routeId": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
-        "capabilityFingerprint": "17c48f0647aae23617c3b16c4868d1430728d7f14eae275fd02aee347f77697a",
+        "capabilityFingerprint": "c5e84d3c6fc703644d12eb790c0c9110c99b8f60f828ecdf4c4942b36370011c",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51923-standard-merge-selector-free-nt51923-standard-merge-256k-publication-v5",
         "routeId": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
-        "capabilityFingerprint": "17c48f0647aae23617c3b16c4868d1430728d7f14eae275fd02aee347f77697a",
+        "capabilityFingerprint": "c5e84d3c6fc703644d12eb790c0c9110c99b8f60f828ecdf4c4942b36370011c",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51923-standard-merge-selector-free-nt51923-standard-merge-256k-evidence-v3",
         "routeId": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
-        "capabilityFingerprint": "17c48f0647aae23617c3b16c4868d1430728d7f14eae275fd02aee347f77697a",
+        "capabilityFingerprint": "c5e84d3c6fc703644d12eb790c0c9110c99b8f60f828ecdf4c4942b36370011c",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51923-gen-flash"
+      }
+    },
+    {
+      "icId": "NT51925",
+      "workflowId": "ctrlram-replace",
+      "icCountVariant": "1-ic",
+      "mapVariant": "nt51925-ctrlram-fw141-full-flash-256k",
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
+      "capabilityFingerprint": "97b28eb50278ba85c4798a3a04e281681683c801420a03985f74c00ee1f03dfd",
+      "authoring": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k-authoring-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
+        "capabilityFingerprint": "97b28eb50278ba85c4798a3a04e281681683c801420a03985f74c00ee1f03dfd",
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "publication": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k-publication-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
+        "capabilityFingerprint": "97b28eb50278ba85c4798a3a04e281681683c801420a03985f74c00ee1f03dfd",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "evidence": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k-evidence-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
+        "capabilityFingerprint": "97b28eb50278ba85c4798a3a04e281681683c801420a03985f74c00ee1f03dfd",
+        "value": "contract-only",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      }
+    },
+    {
+      "icId": "NT51925",
+      "workflowId": "ctrlram-replace",
+      "icCountVariant": "1-ic",
+      "mapVariant": "nt51925-ctrlram-fw141-tp-work-240k",
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
+      "capabilityFingerprint": "fe5af3cc68e66aeda86365c85de49da111283a4da33e53ddf7f13f2719533669",
+      "authoring": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k-authoring-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
+        "capabilityFingerprint": "fe5af3cc68e66aeda86365c85de49da111283a4da33e53ddf7f13f2719533669",
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "publication": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k-publication-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
+        "capabilityFingerprint": "fe5af3cc68e66aeda86365c85de49da111283a4da33e53ddf7f13f2719533669",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "evidence": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k-evidence-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
+        "capabilityFingerprint": "fe5af3cc68e66aeda86365c85de49da111283a4da33e53ddf7f13f2719533669",
+        "value": "contract-only",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      }
+    },
+    {
+      "icId": "NT51925",
+      "workflowId": "ctrlram-replace",
+      "icCountVariant": "1-ic",
+      "mapVariant": "nt51925-ctrlram-fw200-full-flash-256k",
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
+      "capabilityFingerprint": "8fb58ebda1ae2fbf5b95205e6355f756e07594252a5d0bf0ebe6335b31da2fad",
+      "authoring": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k-authoring-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
+        "capabilityFingerprint": "8fb58ebda1ae2fbf5b95205e6355f756e07594252a5d0bf0ebe6335b31da2fad",
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "publication": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k-publication-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
+        "capabilityFingerprint": "8fb58ebda1ae2fbf5b95205e6355f756e07594252a5d0bf0ebe6335b31da2fad",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "evidence": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k-evidence-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
+        "capabilityFingerprint": "8fb58ebda1ae2fbf5b95205e6355f756e07594252a5d0bf0ebe6335b31da2fad",
+        "value": "contract-only",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      }
+    },
+    {
+      "icId": "NT51925",
+      "workflowId": "ctrlram-replace",
+      "icCountVariant": "1-ic",
+      "mapVariant": "nt51925-ctrlram-fw200-tp-work-240k",
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
+      "capabilityFingerprint": "b5118049dca5e60a5cb9de67ef077e57adc62f0b51847de7b8bffd1631381301",
+      "authoring": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k-authoring-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
+        "capabilityFingerprint": "b5118049dca5e60a5cb9de67ef077e57adc62f0b51847de7b8bffd1631381301",
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "publication": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k-publication-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
+        "capabilityFingerprint": "b5118049dca5e60a5cb9de67ef077e57adc62f0b51847de7b8bffd1631381301",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "evidence": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k-evidence-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
+        "capabilityFingerprint": "b5118049dca5e60a5cb9de67ef077e57adc62f0b51847de7b8bffd1631381301",
+        "value": "contract-only",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      }
+    },
+    {
+      "icId": "NT51925",
+      "workflowId": "ctrlram-replace",
+      "icCountVariant": "2-plus-ic",
+      "mapVariant": "nt51925-ctrlram-fw141-full-flash-256k",
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
+      "capabilityFingerprint": "1ce736e172eab7a0837a9521e57c6f5a893e323fa104a4096ec84a52c53f52c1",
+      "authoring": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k-authoring-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
+        "capabilityFingerprint": "1ce736e172eab7a0837a9521e57c6f5a893e323fa104a4096ec84a52c53f52c1",
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "publication": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k-publication-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
+        "capabilityFingerprint": "1ce736e172eab7a0837a9521e57c6f5a893e323fa104a4096ec84a52c53f52c1",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "evidence": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k-evidence-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
+        "capabilityFingerprint": "1ce736e172eab7a0837a9521e57c6f5a893e323fa104a4096ec84a52c53f52c1",
+        "value": "contract-only",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      }
+    },
+    {
+      "icId": "NT51925",
+      "workflowId": "ctrlram-replace",
+      "icCountVariant": "2-plus-ic",
+      "mapVariant": "nt51925-ctrlram-fw141-tp-work-240k",
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
+      "capabilityFingerprint": "782f49468003c3c7453eba23a268612d1bb7dc79a60b162a147e4563e7b46f79",
+      "authoring": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k-authoring-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
+        "capabilityFingerprint": "782f49468003c3c7453eba23a268612d1bb7dc79a60b162a147e4563e7b46f79",
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "publication": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k-publication-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
+        "capabilityFingerprint": "782f49468003c3c7453eba23a268612d1bb7dc79a60b162a147e4563e7b46f79",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "evidence": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k-evidence-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
+        "capabilityFingerprint": "782f49468003c3c7453eba23a268612d1bb7dc79a60b162a147e4563e7b46f79",
+        "value": "contract-only",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      }
+    },
+    {
+      "icId": "NT51925",
+      "workflowId": "ctrlram-replace",
+      "icCountVariant": "2-plus-ic",
+      "mapVariant": "nt51925-ctrlram-fw200-full-flash-256k",
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
+      "capabilityFingerprint": "8d3b0ec0f6904d402bdbde40b9ec68c563e326e2390a5f176adde7e71df2e824",
+      "authoring": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k-authoring-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
+        "capabilityFingerprint": "8d3b0ec0f6904d402bdbde40b9ec68c563e326e2390a5f176adde7e71df2e824",
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "publication": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k-publication-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
+        "capabilityFingerprint": "8d3b0ec0f6904d402bdbde40b9ec68c563e326e2390a5f176adde7e71df2e824",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "evidence": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k-evidence-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
+        "capabilityFingerprint": "8d3b0ec0f6904d402bdbde40b9ec68c563e326e2390a5f176adde7e71df2e824",
+        "value": "contract-only",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      }
+    },
+    {
+      "icId": "NT51925",
+      "workflowId": "ctrlram-replace",
+      "icCountVariant": "2-plus-ic",
+      "mapVariant": "nt51925-ctrlram-fw200-tp-work-240k",
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
+      "capabilityFingerprint": "f50cfc7bf5d58d64f6fa0ffd87cbbfefb73bd52be4023b106062d97e95d399f0",
+      "authoring": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k-authoring-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
+        "capabilityFingerprint": "f50cfc7bf5d58d64f6fa0ffd87cbbfefb73bd52be4023b106062d97e95d399f0",
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "publication": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k-publication-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
+        "capabilityFingerprint": "f50cfc7bf5d58d64f6fa0ffd87cbbfefb73bd52be4023b106062d97e95d399f0",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "evidence": {
+        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k-evidence-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
+        "capabilityFingerprint": "f50cfc7bf5d58d64f6fa0ffd87cbbfefb73bd52be4023b106062d97e95d399f0",
+        "value": "contract-only",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      }
+    },
+    {
+      "icId": "NT51925",
+      "workflowId": "standard-merge",
+      "icCountVariant": "selector-free",
+      "mapVariant": "nt51925-standard-merge-256k",
+      "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k",
+      "capabilityFingerprint": "74b8c830f390f2ac95c227e2aa7c1a23c7cfe9e40ac54cbfe0f6f7de6d766d51",
+      "authoring": {
+        "decisionId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k-authoring-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k",
+        "capabilityFingerprint": "74b8c830f390f2ac95c227e2aa7c1a23c7cfe9e40ac54cbfe0f6f7de6d766d51",
+        "value": "unavailable",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "publication": {
+        "decisionId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k-publication-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k",
+        "capabilityFingerprint": "74b8c830f390f2ac95c227e2aa7c1a23c7cfe9e40ac54cbfe0f6f7de6d766d51",
+        "value": "candidate",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
+      },
+      "evidence": {
+        "decisionId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k-evidence-nt51925-isolation-v2",
+        "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k",
+        "capabilityFingerprint": "74b8c830f390f2ac95c227e2aa7c1a23c7cfe9e40ac54cbfe0f6f7de6d766d51",
+        "value": "contract-only",
+        "sourceReference": "owner-decision:2026-10-07:nt51925-isolated-candidate-pending-map-and-r3"
       }
     },
     {
@@ -561,25 +822,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51926-ctrlram-fw141-full-flash-256k",
       "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
-      "capabilityFingerprint": "c35d08ea326f080b7b92bac82584d3af4d90be48f4351fb6d2a9e2a8988cb51f",
+      "capabilityFingerprint": "ef39f5028f35d54f3fac6c352f761b33f462e468f52c171a668c0ca7da72037f",
       "authoring": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-full-flash-256k-authoring-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "c35d08ea326f080b7b92bac82584d3af4d90be48f4351fb6d2a9e2a8988cb51f",
+        "capabilityFingerprint": "ef39f5028f35d54f3fac6c352f761b33f462e468f52c171a668c0ca7da72037f",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-full-flash-256k-publication-v5",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "c35d08ea326f080b7b92bac82584d3af4d90be48f4351fb6d2a9e2a8988cb51f",
+        "capabilityFingerprint": "ef39f5028f35d54f3fac6c352f761b33f462e468f52c171a668c0ca7da72037f",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-full-flash-256k-evidence-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "c35d08ea326f080b7b92bac82584d3af4d90be48f4351fb6d2a9e2a8988cb51f",
+        "capabilityFingerprint": "ef39f5028f35d54f3fac6c352f761b33f462e468f52c171a668c0ca7da72037f",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51926-fw141-single-auto-prj-747-20260717"
       }
@@ -590,25 +851,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51926-ctrlram-fw141-tp-work-240k",
       "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-      "capabilityFingerprint": "ad9e4da8901641d827e638c33b4185918d083b30331ba6d1ae6c7204d27bafbf",
+      "capabilityFingerprint": "9779b16acaf35f97803dabb15ea9453532972a03261b4aad64eebbf2f9c3abf7",
       "authoring": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-tp-work-240k-authoring-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "ad9e4da8901641d827e638c33b4185918d083b30331ba6d1ae6c7204d27bafbf",
+        "capabilityFingerprint": "9779b16acaf35f97803dabb15ea9453532972a03261b4aad64eebbf2f9c3abf7",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-tp-work-240k-publication-v5",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "ad9e4da8901641d827e638c33b4185918d083b30331ba6d1ae6c7204d27bafbf",
+        "capabilityFingerprint": "9779b16acaf35f97803dabb15ea9453532972a03261b4aad64eebbf2f9c3abf7",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-tp-work-240k-evidence-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "ad9e4da8901641d827e638c33b4185918d083b30331ba6d1ae6c7204d27bafbf",
+        "capabilityFingerprint": "9779b16acaf35f97803dabb15ea9453532972a03261b4aad64eebbf2f9c3abf7",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51926-fw141-single-auto-prj-747-20260717"
       }
@@ -619,25 +880,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51926-ctrlram-fw200-full-flash-256k",
       "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
-      "capabilityFingerprint": "2c2ea9f30a7878006a908faa7806344c9d7a02d0e99dfeededf5de6d89043403",
+      "capabilityFingerprint": "a40614e3c02dbfc1d2b0e1a70cad141d3d7f939993802103532dcbfcc2e209fe",
       "authoring": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-full-flash-256k-authoring-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "2c2ea9f30a7878006a908faa7806344c9d7a02d0e99dfeededf5de6d89043403",
+        "capabilityFingerprint": "a40614e3c02dbfc1d2b0e1a70cad141d3d7f939993802103532dcbfcc2e209fe",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-full-flash-256k-publication-v5",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "2c2ea9f30a7878006a908faa7806344c9d7a02d0e99dfeededf5de6d89043403",
+        "capabilityFingerprint": "a40614e3c02dbfc1d2b0e1a70cad141d3d7f939993802103532dcbfcc2e209fe",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-full-flash-256k-evidence-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "2c2ea9f30a7878006a908faa7806344c9d7a02d0e99dfeededf5de6d89043403",
+        "capabilityFingerprint": "a40614e3c02dbfc1d2b0e1a70cad141d3d7f939993802103532dcbfcc2e209fe",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51926-fw200-single-auto-prj-597-20260718"
       }
@@ -648,25 +909,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51926-ctrlram-fw200-tp-work-240k",
       "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-      "capabilityFingerprint": "e6e17e92faf7645164d33cf38b3c0670aa65e323b14ee0336ca489c0e6fdf3b2",
+      "capabilityFingerprint": "8130d6f57768093f35002cceed11fe70b98051bcf57d36a078b77714111c4dce",
       "authoring": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-tp-work-240k-authoring-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "e6e17e92faf7645164d33cf38b3c0670aa65e323b14ee0336ca489c0e6fdf3b2",
+        "capabilityFingerprint": "8130d6f57768093f35002cceed11fe70b98051bcf57d36a078b77714111c4dce",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-tp-work-240k-publication-v5",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "e6e17e92faf7645164d33cf38b3c0670aa65e323b14ee0336ca489c0e6fdf3b2",
+        "capabilityFingerprint": "8130d6f57768093f35002cceed11fe70b98051bcf57d36a078b77714111c4dce",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-tp-work-240k-evidence-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "e6e17e92faf7645164d33cf38b3c0670aa65e323b14ee0336ca489c0e6fdf3b2",
+        "capabilityFingerprint": "8130d6f57768093f35002cceed11fe70b98051bcf57d36a078b77714111c4dce",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51926-fw200-single-auto-prj-597-20260718"
       }
@@ -677,25 +938,25 @@
       "icCountVariant": "2-plus-ic",
       "mapVariant": "nt51926-ctrlram-fw141-full-flash-256k",
       "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
-      "capabilityFingerprint": "803b14bdc5de80bd7c7179feac4345dd43e28c402487b75db911b5ddf1d5ad73",
+      "capabilityFingerprint": "42012edc1b7dfef590b1fbe6a96b7f5dfaa5c5a671382e16b8d466a82fc493e9",
       "authoring": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-full-flash-256k-authoring-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "803b14bdc5de80bd7c7179feac4345dd43e28c402487b75db911b5ddf1d5ad73",
+        "capabilityFingerprint": "42012edc1b7dfef590b1fbe6a96b7f5dfaa5c5a671382e16b8d466a82fc493e9",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-full-flash-256k-publication-v5",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "803b14bdc5de80bd7c7179feac4345dd43e28c402487b75db911b5ddf1d5ad73",
+        "capabilityFingerprint": "42012edc1b7dfef590b1fbe6a96b7f5dfaa5c5a671382e16b8d466a82fc493e9",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-full-flash-256k-evidence-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "803b14bdc5de80bd7c7179feac4345dd43e28c402487b75db911b5ddf1d5ad73",
+        "capabilityFingerprint": "42012edc1b7dfef590b1fbe6a96b7f5dfaa5c5a671382e16b8d466a82fc493e9",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51926-fw141-cascade2-auto-prj-597-20260717"
       }
@@ -706,25 +967,25 @@
       "icCountVariant": "2-plus-ic",
       "mapVariant": "nt51926-ctrlram-fw141-tp-work-240k",
       "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-      "capabilityFingerprint": "f58a1c7a53e7271cd41093abdaf20640f7bd4c3e8cb87676019ce4cc034a72a9",
+      "capabilityFingerprint": "153a1cde0f00d1acfb225c1340223e310f3f76f6e4b4d013cd9a2c4f4a39b331",
       "authoring": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-tp-work-240k-authoring-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "f58a1c7a53e7271cd41093abdaf20640f7bd4c3e8cb87676019ce4cc034a72a9",
+        "capabilityFingerprint": "153a1cde0f00d1acfb225c1340223e310f3f76f6e4b4d013cd9a2c4f4a39b331",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-tp-work-240k-publication-v5",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "f58a1c7a53e7271cd41093abdaf20640f7bd4c3e8cb87676019ce4cc034a72a9",
+        "capabilityFingerprint": "153a1cde0f00d1acfb225c1340223e310f3f76f6e4b4d013cd9a2c4f4a39b331",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-tp-work-240k-evidence-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "f58a1c7a53e7271cd41093abdaf20640f7bd4c3e8cb87676019ce4cc034a72a9",
+        "capabilityFingerprint": "153a1cde0f00d1acfb225c1340223e310f3f76f6e4b4d013cd9a2c4f4a39b331",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51926-fw141-cascade2-auto-prj-597-20260717"
       }
@@ -735,25 +996,25 @@
       "icCountVariant": "2-plus-ic",
       "mapVariant": "nt51926-ctrlram-fw200-full-flash-256k",
       "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
-      "capabilityFingerprint": "19e003889f88b23cfd716bbef1c8f243b183069673e98c7da7e79e3e36b61edc",
+      "capabilityFingerprint": "51450d385ab7aff2c1573932a90cf77468cf84480805ce17ff903d171add1e23",
       "authoring": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-full-flash-256k-authoring-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "19e003889f88b23cfd716bbef1c8f243b183069673e98c7da7e79e3e36b61edc",
+        "capabilityFingerprint": "51450d385ab7aff2c1573932a90cf77468cf84480805ce17ff903d171add1e23",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-full-flash-256k-publication-v5",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "19e003889f88b23cfd716bbef1c8f243b183069673e98c7da7e79e3e36b61edc",
+        "capabilityFingerprint": "51450d385ab7aff2c1573932a90cf77468cf84480805ce17ff903d171add1e23",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-full-flash-256k-evidence-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "19e003889f88b23cfd716bbef1c8f243b183069673e98c7da7e79e3e36b61edc",
+        "capabilityFingerprint": "51450d385ab7aff2c1573932a90cf77468cf84480805ce17ff903d171add1e23",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51926-fw200-cascade3-auto-prj-597-20260718"
       }
@@ -764,25 +1025,25 @@
       "icCountVariant": "2-plus-ic",
       "mapVariant": "nt51926-ctrlram-fw200-tp-work-240k",
       "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-      "capabilityFingerprint": "5ae3eb8a2da26f261e40bc7b3c819d35d9c9e0029e9c9f17658306afd9a66b2b",
+      "capabilityFingerprint": "5e47f59eee9fb01e30576ae6995d2d99065a1634353de1a1b8ccb67ab3ff5afa",
       "authoring": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-tp-work-240k-authoring-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "5ae3eb8a2da26f261e40bc7b3c819d35d9c9e0029e9c9f17658306afd9a66b2b",
+        "capabilityFingerprint": "5e47f59eee9fb01e30576ae6995d2d99065a1634353de1a1b8ccb67ab3ff5afa",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-tp-work-240k-publication-v5",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "5ae3eb8a2da26f261e40bc7b3c819d35d9c9e0029e9c9f17658306afd9a66b2b",
+        "capabilityFingerprint": "5e47f59eee9fb01e30576ae6995d2d99065a1634353de1a1b8ccb67ab3ff5afa",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-tp-work-240k-evidence-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "5ae3eb8a2da26f261e40bc7b3c819d35d9c9e0029e9c9f17658306afd9a66b2b",
+        "capabilityFingerprint": "5e47f59eee9fb01e30576ae6995d2d99065a1634353de1a1b8ccb67ab3ff5afa",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51926-fw200-cascade3-auto-prj-597-20260718"
       }
@@ -793,25 +1054,25 @@
       "icCountVariant": "not-applicable",
       "mapVariant": "generic",
       "routeId": "route-7-nt51926-13-general-merge-14-not-applicable-7-generic",
-      "capabilityFingerprint": "5781e3b96b0374930218b676decd5cd92bebadfa914c27a10f3f96a279ce9868",
+      "capabilityFingerprint": "abc94df24d01c20910de2686f18c4556585887b9b600963fe6fd64781b6e5a5f",
       "authoring": {
         "decisionId": "nt51926-general-merge-not-applicable-generic-authoring-v1",
         "routeId": "route-7-nt51926-13-general-merge-14-not-applicable-7-generic",
-        "capabilityFingerprint": "5781e3b96b0374930218b676decd5cd92bebadfa914c27a10f3f96a279ce9868",
+        "capabilityFingerprint": "abc94df24d01c20910de2686f18c4556585887b9b600963fe6fd64781b6e5a5f",
         "value": "available",
         "sourceReference": "ic-support:NT51926:general-merge"
       },
       "publication": {
         "decisionId": "nt51926-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51926-13-general-merge-14-not-applicable-7-generic",
-        "capabilityFingerprint": "5781e3b96b0374930218b676decd5cd92bebadfa914c27a10f3f96a279ce9868",
+        "capabilityFingerprint": "abc94df24d01c20910de2686f18c4556585887b9b600963fe6fd64781b6e5a5f",
         "value": "internal",
         "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-general-merge-not-applicable-generic-evidence-v1",
         "routeId": "route-7-nt51926-13-general-merge-14-not-applicable-7-generic",
-        "capabilityFingerprint": "5781e3b96b0374930218b676decd5cd92bebadfa914c27a10f3f96a279ce9868",
+        "capabilityFingerprint": "abc94df24d01c20910de2686f18c4556585887b9b600963fe6fd64781b6e5a5f",
         "value": "contract-only",
         "sourceReference": "built-in-v2-general-merge:nt51926-general-merge-logical-candidate@0.1.0"
       }
@@ -822,25 +1083,25 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51926-general-replace-full-flash-256k",
       "routeId": "route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k",
-      "capabilityFingerprint": "f70d0040515cec3643a46c2b2292f14fe0a427b5b6bca77e89219f80a70c01ac",
+      "capabilityFingerprint": "70ff4f85e2ca355ba36da103fee3f3e8d632a6a9149c17599e1ca77ba1215136",
       "authoring": {
         "decisionId": "nt51926-general-replace-1-ic-nt51926-general-replace-full-flash-256k-authoring-v1",
         "routeId": "route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k",
-        "capabilityFingerprint": "f70d0040515cec3643a46c2b2292f14fe0a427b5b6bca77e89219f80a70c01ac",
+        "capabilityFingerprint": "70ff4f85e2ca355ba36da103fee3f3e8d632a6a9149c17599e1ca77ba1215136",
         "value": "available",
         "sourceReference": "ic-support:NT51926:general-replace:unbound-exact-route"
       },
       "publication": {
         "decisionId": "nt51926-general-replace-1-ic-nt51926-general-replace-full-flash-256k-publication-v3",
         "routeId": "route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k",
-        "capabilityFingerprint": "f70d0040515cec3643a46c2b2292f14fe0a427b5b6bca77e89219f80a70c01ac",
+        "capabilityFingerprint": "70ff4f85e2ca355ba36da103fee3f3e8d632a6a9149c17599e1ca77ba1215136",
         "value": "internal",
         "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-general-replace-1-ic-nt51926-general-replace-full-flash-256k-evidence-v1",
         "routeId": "route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k",
-        "capabilityFingerprint": "f70d0040515cec3643a46c2b2292f14fe0a427b5b6bca77e89219f80a70c01ac",
+        "capabilityFingerprint": "70ff4f85e2ca355ba36da103fee3f3e8d632a6a9149c17599e1ca77ba1215136",
         "value": "contract-only",
         "sourceReference": "built-in-v2-general-replace:nt51926-general-replace-dp-single-candidate@0.1.0:nt51926-general-replace-full-flash-256k"
       }
@@ -851,25 +1112,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51926-standard-merge-256k",
       "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
-      "capabilityFingerprint": "cfea83c3fd2dbd75200527fc1fcbd21dee09aaabc4a93b0c484a941d084476e9",
+      "capabilityFingerprint": "de219d01d10cdc051b793c4f0462262fe88af22db06c1a1f11a37e05faecac35",
       "authoring": {
         "decisionId": "nt51926-standard-merge-selector-free-nt51926-standard-merge-256k-authoring-v3",
         "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
-        "capabilityFingerprint": "cfea83c3fd2dbd75200527fc1fcbd21dee09aaabc4a93b0c484a941d084476e9",
+        "capabilityFingerprint": "de219d01d10cdc051b793c4f0462262fe88af22db06c1a1f11a37e05faecac35",
         "value": "available",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "publication": {
         "decisionId": "nt51926-standard-merge-selector-free-nt51926-standard-merge-256k-publication-v5",
         "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
-        "capabilityFingerprint": "cfea83c3fd2dbd75200527fc1fcbd21dee09aaabc4a93b0c484a941d084476e9",
+        "capabilityFingerprint": "de219d01d10cdc051b793c4f0462262fe88af22db06c1a1f11a37e05faecac35",
         "value": "supported",
         "sourceReference": "owner-decision:2026-08-25:standard-ab-ctrlram-formal-support"
       },
       "evidence": {
         "decisionId": "nt51926-standard-merge-selector-free-nt51926-standard-merge-256k-evidence-v3",
         "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
-        "capabilityFingerprint": "cfea83c3fd2dbd75200527fc1fcbd21dee09aaabc4a93b0c484a941d084476e9",
+        "capabilityFingerprint": "de219d01d10cdc051b793c4f0462262fe88af22db06c1a1f11a37e05faecac35",
         "value": "direct-golden",
         "sourceReference": "canonical-golden:nt51926-gen-flash"
       }
@@ -2467,267 +2728,6 @@
         "capabilityFingerprint": "c636736c7d8d8899d295ccc3e4aca7089c5106965d623914f290fdb84349dfef",
         "value": "contract-only",
         "sourceReference": "docs/governance/change-records/CTRLRAM-AB-PARTIAL-FAMILY-1110-01.json"
-      }
-    },
-    {
-      "icId": "NT51925",
-      "workflowId": "ctrlram-replace",
-      "icCountVariant": "1-ic",
-      "mapVariant": "nt51925-ctrlram-fw141-full-flash-256k",
-      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
-      "capabilityFingerprint": "e6816c97252a9af8f95a9b92b055a9cf131ba2ff8360d85dacd5e98bebb58e9b",
-      "authoring": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k-authoring-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "e6816c97252a9af8f95a9b92b055a9cf131ba2ff8360d85dacd5e98bebb58e9b",
-        "value": "available",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "publication": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k-publication-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "e6816c97252a9af8f95a9b92b055a9cf131ba2ff8360d85dacd5e98bebb58e9b",
-        "value": "candidate",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "evidence": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k-evidence-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "e6816c97252a9af8f95a9b92b055a9cf131ba2ff8360d85dacd5e98bebb58e9b",
-        "value": "contract-only",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      }
-    },
-    {
-      "icId": "NT51925",
-      "workflowId": "ctrlram-replace",
-      "icCountVariant": "1-ic",
-      "mapVariant": "nt51925-ctrlram-fw141-tp-work-240k",
-      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
-      "capabilityFingerprint": "f9352d2cdba74b4f7ba3d5b9d341ab7c1ed699b86885c99d72d8e6cc7092cad6",
-      "authoring": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k-authoring-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "f9352d2cdba74b4f7ba3d5b9d341ab7c1ed699b86885c99d72d8e6cc7092cad6",
-        "value": "available",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "publication": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k-publication-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "f9352d2cdba74b4f7ba3d5b9d341ab7c1ed699b86885c99d72d8e6cc7092cad6",
-        "value": "candidate",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "evidence": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k-evidence-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "f9352d2cdba74b4f7ba3d5b9d341ab7c1ed699b86885c99d72d8e6cc7092cad6",
-        "value": "contract-only",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      }
-    },
-    {
-      "icId": "NT51925",
-      "workflowId": "ctrlram-replace",
-      "icCountVariant": "1-ic",
-      "mapVariant": "nt51925-ctrlram-fw200-full-flash-256k",
-      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
-      "capabilityFingerprint": "51f3a538a49caaa938d4b7d8f645ce2f684d01ba3c78e4111b3b36e077359777",
-      "authoring": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k-authoring-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "51f3a538a49caaa938d4b7d8f645ce2f684d01ba3c78e4111b3b36e077359777",
-        "value": "available",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "publication": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k-publication-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "51f3a538a49caaa938d4b7d8f645ce2f684d01ba3c78e4111b3b36e077359777",
-        "value": "candidate",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "evidence": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k-evidence-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "51f3a538a49caaa938d4b7d8f645ce2f684d01ba3c78e4111b3b36e077359777",
-        "value": "contract-only",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      }
-    },
-    {
-      "icId": "NT51925",
-      "workflowId": "ctrlram-replace",
-      "icCountVariant": "1-ic",
-      "mapVariant": "nt51925-ctrlram-fw200-tp-work-240k",
-      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
-      "capabilityFingerprint": "d0d662684a36c297d6d9bc835f32f141eed647a88f5053eb69629fc9e45f413d",
-      "authoring": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k-authoring-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "d0d662684a36c297d6d9bc835f32f141eed647a88f5053eb69629fc9e45f413d",
-        "value": "available",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "publication": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k-publication-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "d0d662684a36c297d6d9bc835f32f141eed647a88f5053eb69629fc9e45f413d",
-        "value": "candidate",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "evidence": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k-evidence-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "d0d662684a36c297d6d9bc835f32f141eed647a88f5053eb69629fc9e45f413d",
-        "value": "contract-only",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      }
-    },
-    {
-      "icId": "NT51925",
-      "workflowId": "ctrlram-replace",
-      "icCountVariant": "2-plus-ic",
-      "mapVariant": "nt51925-ctrlram-fw141-full-flash-256k",
-      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
-      "capabilityFingerprint": "60685269a0fb026bf1fe1f014c2f7615f9cc6374b54ff652f6df130eba2bf7d4",
-      "authoring": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k-authoring-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "60685269a0fb026bf1fe1f014c2f7615f9cc6374b54ff652f6df130eba2bf7d4",
-        "value": "available",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "publication": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k-publication-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "60685269a0fb026bf1fe1f014c2f7615f9cc6374b54ff652f6df130eba2bf7d4",
-        "value": "candidate",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "evidence": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k-evidence-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw141-full-flash-256k",
-        "capabilityFingerprint": "60685269a0fb026bf1fe1f014c2f7615f9cc6374b54ff652f6df130eba2bf7d4",
-        "value": "contract-only",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      }
-    },
-    {
-      "icId": "NT51925",
-      "workflowId": "ctrlram-replace",
-      "icCountVariant": "2-plus-ic",
-      "mapVariant": "nt51925-ctrlram-fw141-tp-work-240k",
-      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
-      "capabilityFingerprint": "a15f2f814e4e884ae737a2abf925197bf455fc2ba10295517d5b8a9006b05363",
-      "authoring": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k-authoring-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "a15f2f814e4e884ae737a2abf925197bf455fc2ba10295517d5b8a9006b05363",
-        "value": "available",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "publication": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k-publication-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "a15f2f814e4e884ae737a2abf925197bf455fc2ba10295517d5b8a9006b05363",
-        "value": "candidate",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "evidence": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k-evidence-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw141-tp-work-240k",
-        "capabilityFingerprint": "a15f2f814e4e884ae737a2abf925197bf455fc2ba10295517d5b8a9006b05363",
-        "value": "contract-only",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      }
-    },
-    {
-      "icId": "NT51925",
-      "workflowId": "ctrlram-replace",
-      "icCountVariant": "2-plus-ic",
-      "mapVariant": "nt51925-ctrlram-fw200-full-flash-256k",
-      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
-      "capabilityFingerprint": "3dd0b6342c37f83e8a34a5f44505637f6e16e49978930db6b1b80312717bbce6",
-      "authoring": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k-authoring-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "3dd0b6342c37f83e8a34a5f44505637f6e16e49978930db6b1b80312717bbce6",
-        "value": "available",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "publication": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k-publication-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "3dd0b6342c37f83e8a34a5f44505637f6e16e49978930db6b1b80312717bbce6",
-        "value": "candidate",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "evidence": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k-evidence-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-37-nt51925-ctrlram-fw200-full-flash-256k",
-        "capabilityFingerprint": "3dd0b6342c37f83e8a34a5f44505637f6e16e49978930db6b1b80312717bbce6",
-        "value": "contract-only",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      }
-    },
-    {
-      "icId": "NT51925",
-      "workflowId": "ctrlram-replace",
-      "icCountVariant": "2-plus-ic",
-      "mapVariant": "nt51925-ctrlram-fw200-tp-work-240k",
-      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
-      "capabilityFingerprint": "7efd94ce1588346728f6ffe8cada2f8cf28082e7e7407cd44f7894c7ecfdce98",
-      "authoring": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k-authoring-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "7efd94ce1588346728f6ffe8cada2f8cf28082e7e7407cd44f7894c7ecfdce98",
-        "value": "available",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "publication": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k-publication-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "7efd94ce1588346728f6ffe8cada2f8cf28082e7e7407cd44f7894c7ecfdce98",
-        "value": "candidate",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "evidence": {
-        "decisionId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k-evidence-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-34-nt51925-ctrlram-fw200-tp-work-240k",
-        "capabilityFingerprint": "7efd94ce1588346728f6ffe8cada2f8cf28082e7e7407cd44f7894c7ecfdce98",
-        "value": "contract-only",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      }
-    },
-    {
-      "icId": "NT51925",
-      "workflowId": "standard-merge",
-      "icCountVariant": "selector-free",
-      "mapVariant": "nt51925-standard-merge-256k",
-      "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k",
-      "capabilityFingerprint": "2bf257aff5cba281d0d8e1db51bf36fd350a8ead0e0fe6f6522a33a9122fbd33",
-      "authoring": {
-        "decisionId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k-authoring-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k",
-        "capabilityFingerprint": "2bf257aff5cba281d0d8e1db51bf36fd350a8ead0e0fe6f6522a33a9122fbd33",
-        "value": "available",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "publication": {
-        "decisionId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k-publication-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k",
-        "capabilityFingerprint": "2bf257aff5cba281d0d8e1db51bf36fd350a8ead0e0fe6f6522a33a9122fbd33",
-        "value": "candidate",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
-      },
-      "evidence": {
-        "decisionId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k-evidence-nt51925-preparation-v1",
-        "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k",
-        "capabilityFingerprint": "2bf257aff5cba281d0d8e1db51bf36fd350a8ead0e0fe6f6522a33a9122fbd33",
-        "value": "contract-only",
-        "sourceReference": "owner-request:2026-10-07:nt51925-local-preparation-pending-r3"
       }
     }
   ]

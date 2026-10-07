@@ -21,27 +21,27 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
                 CapabilityEvidenceStatus.ApprovedAlias),
             [("NT51923", "single", "nt51923-ctrlram-fw141-single-tp-work-240k")] = new(
                 "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
-                "b857f1d29b816492500d11a23c3ae4ece23f51c189ea274f830886fd89fd560d",
+                "9b1cf67899c2f111de4131666bd503312c8d72b7973c64808856027b8a62d80e",
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51923", "cascade", "nt51923-ctrlram-fw141-cascade3-tp-work-240k")] = new(
                 "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
-                "f05948c126e614409377c6553a9427b363332e62a82ad172a8d212639e4b59d6",
+                "e3ee550b3e7f5409986195b52009d3f0aec2541f8aed0eb84b2416edec13c7b0",
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51926", "single", "nt51926-ctrlram-fw141-tp-work-240k")] = new(
                 "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-                "ad9e4da8901641d827e638c33b4185918d083b30331ba6d1ae6c7204d27bafbf",
+                "9779b16acaf35f97803dabb15ea9453532972a03261b4aad64eebbf2f9c3abf7",
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51926", "single", "nt51926-ctrlram-fw200-tp-work-240k")] = new(
                 "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-                "e6e17e92faf7645164d33cf38b3c0670aa65e323b14ee0336ca489c0e6fdf3b2",
+                "8130d6f57768093f35002cceed11fe70b98051bcf57d36a078b77714111c4dce",
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51926", "cascade", "nt51926-ctrlram-fw141-tp-work-240k")] = new(
                 "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
-                "f58a1c7a53e7271cd41093abdaf20640f7bd4c3e8cb87676019ce4cc034a72a9",
+                "153a1cde0f00d1acfb225c1340223e310f3f76f6e4b4d013cd9a2c4f4a39b331",
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51926", "cascade", "nt51926-ctrlram-fw200-tp-work-240k")] = new(
                 "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
-                "5ae3eb8a2da26f261e40bc7b3c819d35d9c9e0029e9c9f17658306afd9a66b2b",
+                "5e47f59eee9fb01e30576ae6995d2d99065a1634353de1a1b8ccb67ab3ff5afa",
                 CapabilityEvidenceStatus.DirectGolden),
             [("NT51927", "single", "nt51927-ctrlram-fw141-single-tp-work-212k")] = new(
                 "route-7-nt51927-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",

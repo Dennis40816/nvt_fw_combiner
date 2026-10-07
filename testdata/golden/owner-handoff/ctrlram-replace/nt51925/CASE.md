@@ -2,14 +2,17 @@
 
 Status: awaiting owner evidence for the proposed NFC 1.2.2 restoration in
 [ADR 0084](../../../../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
-The four prepared option A profiles are
+The four isolated provisional profiles are
 `nt51925-ctrlram-replace-fw141-runtime-single`,
 `nt51925-ctrlram-replace-fw141-runtime-cascade`,
 `nt51925-ctrlram-replace-fw200-runtime-single` and
 `nt51925-ctrlram-replace-fw200-runtime-cascade`, each version `0.1.0`.
-They reuse NT51926 canonical geometry as executable candidates with
-Contract Only evidence. Existing runtime-reference candidate admission can
-execute them; it does not certify NT51925 or establish support approval.
+They belong to the NT51925-only `nt51925-ctrlram-replace-candidate` bundle.
+Copied numeric declarations are not NT51926 shared authority or independent
+NT51925 evidence. Policy is `Unavailable`/`Candidate`/`ContractOnly`.
+The profiles use the existing `compilable` stage; no authoring snapshot,
+exact executable resolution, execution or Build is admitted. The
+runtime-reference candidate exception used by other routes does not apply.
 
 ## Required cases
 
@@ -22,9 +25,9 @@ fw2.0.0/single/inputs/
 fw2.0.0/cascade/inputs/
 ```
 
-Declare the actual Cascade IC count in each case. The prepared typed choices
-are Single and generic Cascade, as in the borrowed NT51926 contract; exact
-counts and supported FW versions are awaiting owner confirmation. The 1.4.1
+Declare the actual Cascade IC count in each case. The provisional typed choices
+are Single and generic Cascade; exact counts and supported FW versions await
+owner confirmation. The 1.4.1
 contract provisionally applies to `[1.0.0,2.0.0)` and the 2.0.0 contract to
 `[2.0.0,+infinity)`. Metadata and filenames do not establish topology authority.
 
@@ -34,7 +37,7 @@ Keep the original technical filenames. Place actual physical same-run inputs
 under `inputs/`, complete official final output at `expected.bin` (or identify
 its original filename), and commands/provenance at `notes.txt`:
 
-| Input / output | Prepared option A size / consumed extent |
+| Input / output | Provisional declared size / consumed extent |
 | --- | --- |
 | Actual TP input | Conventional TP-work image: 245,760 bytes (`0x3C000`); full-Flash reference route: 262,144 bytes (`0x40000`). Record the actual physical input and its exact size. |
 | Actual DP Initial Code input used to produce final FlashCode | Conventional address-bearing container: 262,144 bytes (`0x40000`); consumed DP window `[0x3E000,0x40000)`. |
@@ -50,9 +53,9 @@ its original filename), and commands/provenance at `notes.txt`:
 The CtrlRAM sizes above are consumed prefixes, not required physical-file
 lengths. Supply the original files, including their actual tails; never slice
 replacements from final output or manufacture inputs to match these sizes.
-Runtime replacement uses the existing truncation/preserved-reference-tail
-contract. Any different official range or physical-input contract must be
-reviewed before option A promotion.
+The candidate declares truncation/preserved-reference-tail behavior. Any
+different official range or physical-input contract must be reviewed in the
+NT51925 profile owner before promotion.
 
 Follow [the current owner intake contract](../../README.md): do not create
 `base.bin` or ask the owner to export a pre-replacement base. The replay must
@@ -75,7 +78,7 @@ appropriate expected outputs before claiming parity for both capacities.
 - The official NT51925 TP flash map or mmap.
 - The postbuild `.bat` for each Common FW version, including 1.4.1 and 2.0.0.
 - The FW versions and topologies in use, including actual Cascade counts.
-- Whether NT51925 matches NT51926 or differs, and every differing fact.
+- Whether NT51925 matches NT51923/NT51926 or differs, and every differing fact.
 - Golden cases: Standard Merge at least one single; CtrlRAM Replace one for
   each FW version and each topology listed above.
 
@@ -83,6 +86,10 @@ No official NT51925 map/postbuild or Golden is currently supplied. The
 `925&926` workbook is normal-header evidence only. Official evidence,
 independent full-output comparisons, exact write-range audit and firmware-owner
 R3 approval remain required before support promotion or release.
+
+A later family join requires the official NT51925 map proving identical facts
+and separate owner approval. NT51923/NT51926 v1.2.1 identities and Saved Rules
+remain unchanged by this intake.
 
 Incoming BINs remain ignored by `*.bin`; only empty `inputs/.keep` placeholders
 are prepared. Do not add, copy or certify firmware payloads in this preparation.

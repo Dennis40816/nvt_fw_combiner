@@ -30,14 +30,19 @@
 
 ## 0.1 Current owner priority
 
-NT51925 local preparation amendment (owner request, 2026-10-07):
+NT51925 local preparation amendment (owner decision 334, 2026-10-07: 「我覺得是這樣 925 先獨立一張 map 確認完全一致才使用 perfect family」):
 [Proposed ADR 0084](docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md)
 prepares Standard Merge and CtrlRAM Replace in NFC 1.2.2 from v1.2.1, with core
 integration targeted at 1.3.0 and 1.2.x becoming a correction line afterwards.
-NT51925 remains Candidate/Contract Only pending official map/mmap, per-version
-postbuild, declared FW/topologies, differences, independent Golden and R3 owner
-approval. NT51920, NT51930 and NT51931 remain retired. This preparation does
-not accept the proposed ADR, promote support or declare a release.
+NT51925 owns a separate map, family and candidate bundles. NT51923 and NT51926
+retain their v1.2.1 identities and Saved Rules resolution. Both NT51925
+workflows remain Candidate/ContractOnly declarations, blocked before authoring
+snapshot, execution and Build. Copied numeric facts are provisional pending
+official NT51925 map/mmap, per-version postbuild, declared FW/topologies and
+differences, independent Golden and R3 owner approval. A later family join
+requires the official map proving identical facts and separate owner approval.
+NT51920, NT51930 and NT51931 remain retired. This preparation does not accept
+the proposed ADR, promote support or declare a release.
 
 
 The owner-approved `1.1.10` scope retires the dedicated `dp-replace`

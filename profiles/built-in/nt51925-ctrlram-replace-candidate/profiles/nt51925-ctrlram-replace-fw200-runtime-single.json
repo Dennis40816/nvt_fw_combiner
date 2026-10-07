@@ -3,14 +3,14 @@
   "profileId": "nt51925-ctrlram-replace-fw200-runtime-single",
   "profileVersion": "0.1.0",
   "promotion": {
-    "stage": "executable-candidate",
+    "stage": "compilable",
     "blockers": [
       {
         "blockerId": "nt51925-official-map-and-postbuild",
         "kind": "map",
-        "reason": "Official NT51925 map/mmap, per-version postbuild and declared versions/topologies remain pending; option A borrows the NT51926 contract.",
+        "reason": "Official NT51925 map/mmap, per-version postbuild and declared versions/topologies remain pending; isolated candidate borrows the NT51926 contract.",
         "evidenceRefs": [
-          "nt51925-restore-option-a-pending-owner-evidence"
+          "nt51925-isolated-candidate-pending-owner-evidence"
         ]
       },
       {
@@ -18,7 +18,7 @@
         "kind": "golden",
         "reason": "Independent NT51925 full-output Golden cases have not been supplied.",
         "evidenceRefs": [
-          "nt51925-restore-option-a-pending-owner-evidence"
+          "nt51925-isolated-candidate-pending-owner-evidence"
         ]
       },
       {
@@ -26,7 +26,7 @@
         "kind": "human-review",
         "reason": "Proposed ADR 0084 awaits firmware-owner R3 approval and exact write-range audit.",
         "evidenceRefs": [
-          "nt51925-restore-option-a-pending-owner-evidence"
+          "nt51925-isolated-candidate-pending-owner-evidence"
         ]
       }
     ]
@@ -45,9 +45,9 @@
     "kind": "runtime-reference-replace"
   },
   "mapBinding": {
-    "familyId": "nt51926-ctrlram-replace",
-    "familyVersion": "0.7.2",
-    "familyContentHash": "a826d96595ca05801fa2cc780506713673b7e4a8a8ef7d2558c67c58d329a141",
+    "familyId": "nt51925-ctrlram-replace",
+    "familyVersion": "0.1.0",
+    "familyContentHash": "4bb72b35bb9424767617c9ab5d681fcd5393bd2ba9e101bbfe57d87416cf0779",
     "mapIds": [
       "nt51925-ctrlram-fw200-tp-work-240k",
       "nt51925-ctrlram-fw200-full-flash-256k"
@@ -110,7 +110,7 @@
         "normalization": {
           "kind": "truncate-ctrlram",
           "warningIssueCode": "CTRLRAM_SIZE_WARNING",
-          "evidenceRef": "nt51925-restore-option-a-pending-owner-evidence"
+          "evidenceRef": "nt51925-isolated-candidate-pending-owner-evidence"
         }
       }
     }
@@ -251,62 +251,62 @@
     {
       "regionId": "normal-ctrlram",
       "access": "explicit-range",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Copy at most 0x2C00 bytes and preserve the reference tail when the immutable source is shorter."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Copy at most 0x2C00 bytes and preserve the reference tail when the immutable source is shorter."
     },
     {
       "regionId": "mp-ctrlram",
       "access": "explicit-range",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Copy at most 0x2400 bytes and preserve the reference tail when the immutable source is shorter."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Copy at most 0x2400 bytes and preserve the reference tail when the immutable source is shorter."
     },
     {
       "regionId": "vn-ctrlram-fw200",
       "access": "explicit-range",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Copy at most 0x149E bytes and preserve the reference tail when the immutable source is shorter."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Copy at most 0x149E bytes and preserve the reference tail when the immutable source is shorter."
     },
     {
       "regionId": "nf-ctrlram",
       "access": "explicit-range",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Copy at most 0x2DD0 bytes and preserve the reference tail when the immutable source is shorter."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Copy at most 0x2DD0 bytes and preserve the reference tail when the immutable source is shorter."
     },
     {
       "regionId": "fw-config-backup",
       "access": "hidden",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Only the declared Legacy Combiner processor may refresh the firmware-config backup."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may refresh the firmware-config backup."
     },
     {
       "regionId": "header-copy",
       "access": "hidden",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Only the declared Legacy Combiner processor may refresh the TP header copy."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may refresh the TP header copy."
     },
     {
       "regionId": "header-crc-18",
       "access": "hidden",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate ILM CRC 0."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate ILM CRC 0."
     },
     {
       "regionId": "header-crc-1c",
       "access": "hidden",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate this header CRC."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate this header CRC."
     },
     {
       "regionId": "header-crc-3c",
       "access": "hidden",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate this header CRC."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate this header CRC."
     },
     {
       "regionId": "header-crc-4c",
       "access": "hidden",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate CtrlRAM CRC."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate CtrlRAM CRC."
     },
     {
       "regionId": "header-crc-5c",
       "access": "hidden",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate MP CtrlRAM CRC."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate MP CtrlRAM CRC."
     },
     {
       "regionId": "header-crc-fc",
       "access": "hidden",
-      "reason": "Prepared NT51925 option A, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate this header CRC."
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate this header CRC."
     }
   ],
   "operations": [
@@ -314,7 +314,7 @@
       "operationId": "postbuild-single",
       "sequence": 2147483647,
       "overlapPolicy": "replace-existing",
-      "reason": "Prepared NT51925 option A: Refresh the exact NT51926 Common FW 2.0.0 single header and integrity fields after all runtime CtrlRAM mappings. Official NT51925 evidence remains pending.",
+      "reason": "Prepared isolated NT51925 candidate: Refresh the exact NT51926 Common FW 2.0.0 single header and integrity fields after all runtime CtrlRAM mappings. Official NT51925 evidence remains pending.",
       "kind": "run-processor",
       "processorStageId": "nt51925-fw200-single-runtime-combiner"
     }
@@ -350,7 +350,7 @@
       ],
       "stagedSourceBindings": [],
       "stagedArtifactBindings": [],
-      "evidenceRef": "nt51925-restore-option-a-pending-owner-evidence",
+      "evidenceRef": "nt51925-isolated-candidate-pending-owner-evidence",
       "failurePolicy": "fail-closed"
     }
   ],
@@ -361,6 +361,6 @@
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "nt51925-restore-option-a-pending-owner-evidence"
+    "nt51925-isolated-candidate-pending-owner-evidence"
   ]
 }

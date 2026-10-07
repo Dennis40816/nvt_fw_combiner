@@ -1361,13 +1361,13 @@
     },
     {
       "icId": "NT51925",
-      "overviewSource": "NT51925 option A preparation (borrowed NT51926)",
+      "overviewSource": "NT51925 isolated candidate (borrowed NT51926 values)",
       "firmwareConfigPrimaryStart": 139264,
       "tpPrefixLength": 245760,
       "fullFlashCapacities": [
         262144
       ],
-      "baseShapeEvidence": "Proposed ADR 0084 option A; borrowed NT51926 TP/full capacities, pending official NT51925 map and Golden.",
+      "baseShapeEvidence": "Isolated NT51925 candidate with borrowed NT51926 TP/full capacities; official NT51925 map and Golden cases remain pending.",
       "evidence": "No NT51925 TP Overview entry; official map/mmap pending under Proposed ADR 0084.",
       "regions": [
         {

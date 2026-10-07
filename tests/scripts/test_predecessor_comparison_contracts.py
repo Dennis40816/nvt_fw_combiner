@@ -320,11 +320,11 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         covered = {row["routeId"] for row in self.ledger["scenarios"]}
         debt = set(self.ledger["debtSet"]["routeIds"])
         pending = set(self.ledger["pendingAcceptedGaps"]["routeIds"])
-        self.assertEqual(83, len(self.universe))
+        self.assertEqual(74, len(self.universe))
         self.assertEqual(37, len(covered))
         self.assertEqual(26, len(debt & self.universe))
         self.assertEqual([], self.ledger["acceptedGaps"])
-        self.assertEqual(20, len(pending))
+        self.assertEqual(11, len(pending))
         self.assertEqual("awaiting-owner-approval", self.ledger["pendingAcceptedGaps"]["status"])
 
     def test_debt_exemption_is_not_inherited_by_successor_routes(self) -> None:
@@ -362,7 +362,7 @@ class PredecessorComparisonContractTests(unittest.TestCase):
             self.assertNotEqual([], validation.report_of_record_blockers(ledger))
 
     def test_pending_gap_approvals_block_every_report_of_record(self) -> None:
-        self.assertEqual(20, len(validation.report_of_record_blockers(self.ledger)))
+        self.assertEqual(11, len(validation.report_of_record_blockers(self.ledger)))
         approved = copy.deepcopy(self.ledger)
         approved["pendingAcceptedGaps"]["routeIds"] = []
         self.assertEqual([], validation.report_of_record_blockers(approved))

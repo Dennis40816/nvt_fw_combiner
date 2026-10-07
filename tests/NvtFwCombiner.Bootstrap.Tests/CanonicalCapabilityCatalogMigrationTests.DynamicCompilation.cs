@@ -398,10 +398,11 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         {
             if (route.Identity.IcId == "NT51925")
             {
-                // Catalog 1.24.0 records a proposed restoration, without inheriting old certification decisions.
-                Assert.EndsWith("-authoring-nt51925-preparation-v1", route.Authoring.DecisionId, StringComparison.Ordinal);
-                Assert.EndsWith("-publication-nt51925-preparation-v1", route.Publication.DecisionId, StringComparison.Ordinal);
-                Assert.EndsWith("-evidence-nt51925-preparation-v1", route.Evidence.DecisionId, StringComparison.Ordinal);
+                // Isolated NT51925 declarations remain blocked until owner evidence and approval.
+                Assert.EndsWith("-authoring-nt51925-isolation-v2", route.Authoring.DecisionId, StringComparison.Ordinal);
+                Assert.EndsWith("-publication-nt51925-isolation-v2", route.Publication.DecisionId, StringComparison.Ordinal);
+                Assert.EndsWith("-evidence-nt51925-isolation-v2", route.Evidence.DecisionId, StringComparison.Ordinal);
+                Assert.Equal(CapabilityAuthoringAvailability.Unavailable, route.Authoring.Value);
                 Assert.Equal(CapabilityPublicationStatus.Candidate, route.Publication.Value);
                 Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
                 return;
@@ -427,6 +428,13 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                 StringComparison.Ordinal)));
         Assert.All(reportful, route =>
         {
+            if (route.Identity.IcId == "NT51925")
+            {
+                Assert.Equal(CapabilityAuthoringAvailability.Unavailable, route.Authoring.Value);
+                Assert.Equal(CapabilityPublicationStatus.Candidate, route.Publication.Value);
+                Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
+                return;
+            }
             string[] reportBindings =
             [
                 .. route.CompilationContract.SemanticBindingIds.Where(

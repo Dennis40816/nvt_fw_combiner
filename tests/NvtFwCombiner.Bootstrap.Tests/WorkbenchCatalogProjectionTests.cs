@@ -14,7 +14,7 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         IReadOnlyList<string> icIds = BootstrapTestHost.Canonical.Projection.GetIcIds();
 
-        Assert.Equal(11, icIds.Count);
+        Assert.Equal(10, icIds.Count);
         Assert.Equal(icIds.Order(StringComparer.Ordinal), icIds);
         Assert.Equal("NT51950", BootstrapTestHost.Canonical.Projection.DefaultIcId);
         Assert.Equal(
@@ -87,9 +87,9 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
         CapabilityCatalogSummary settings = BootstrapTestHost.Canonical.Projection.GetCatalogSummary();
-        Assert.Equal(11, settings.CatalogIcCount);
+        Assert.Equal(10, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(11, settings.CtrlRamReplaceAvailableIcCount);
+        Assert.Equal(10, settings.CtrlRamReplaceAvailableIcCount);
     }
 
     private static void AssertStandardMergeProfileSummaries(

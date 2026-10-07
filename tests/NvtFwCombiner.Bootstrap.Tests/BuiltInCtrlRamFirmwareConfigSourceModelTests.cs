@@ -12,6 +12,7 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
     [
         "nt51917-ctrlram-replace-alias-candidate",
         "nt51923-ctrlram-replace-candidate",
+        "nt51925-ctrlram-replace-candidate",
         "nt51926-ctrlram-replace-candidate",
         "nt51927-ctrlram-replace-candidate",
         "nt51928-ctrlram-replace-candidate",
@@ -93,7 +94,7 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
         Assert.Equal(ExpectedCtrlRamMapTopologies, actualTopologies);
     }
 
-    /// <summary>Existing CtrlRAM profiles stay Supported; the four NT51925 preparations retain their blockers.</summary>
+    /// <summary>Existing CtrlRAM profiles stay Supported; the four isolated NT51925 candidates retain their blockers.</summary>
     [Fact]
     public void ExistingCtrlRamProfilesStaySupportedAndNt51925RemainsCandidate()
     {
@@ -126,7 +127,7 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
                     "nt51925-ctrlram-replace-fw141-runtime-single" or "nt51925-ctrlram-replace-fw141-runtime-cascade" or
                     "nt51925-ctrlram-replace-fw200-runtime-single" or "nt51925-ctrlram-replace-fw200-runtime-cascade")
                 {
-                    Assert.Equal("executable-candidate", promotion.GetProperty("stage").GetString());
+                    Assert.Equal("compilable", promotion.GetProperty("stage").GetString());
                     Assert.Equal(["golden", "human-review", "map"], promotion.GetProperty("blockers")
                         .EnumerateArray().Select(static blocker => blocker.GetProperty("kind").GetString()).Order(StringComparer.Ordinal));
                 }

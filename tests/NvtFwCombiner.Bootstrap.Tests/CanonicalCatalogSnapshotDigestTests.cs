@@ -25,26 +25,26 @@ public sealed class CanonicalCatalogSnapshotDigestTests
     // publication/evidence decisions and all other sections remain unchanged.
     // Decision 195 moves only the two 1024k B CMI ranges; its shared bundle
     // identity re-pins the same sections and seven routes without length changes.
-    // Proposed ADR 0084 adds nine NT51925 Candidate/ContractOnly declarations
-    // and shared-family identities. Re-pinned from the production catalog probe;
-    // existing firmware byte contracts and Golden expectations are unchanged.
-    // ADR 0084 reference renumbering re-pins the two affected bundle identities.
-    // Selector admission now excludes only the unadmitted NT51925 Standard route.
+    // Proposed ADR 0084 isolates nine NT51925 Candidate/ContractOnly declarations
+    // in their own maps, families and bundles. Re-pinned from the production
+    // catalog probe; existing NT51923/NT51926 identities and Golden expectations
+    // are restored to v1.2.1. All nine NT51925 routes are unavailable, and the
+    // selector excludes them from both workflows until owner evidence arrives.
     // A change here is a published catalog change and needs its own review.
     private const string PinnedSha256 =
-        "0de1825d1b22014d1136fdfbaabc9bc76746bb4bd9e18624fc6d2b8c35615e42";
-    private const int PinnedLength = 544_247;
+        "7c52256e222778f119e03985a0c719481e932b579727abf3a1fba1f98b74c351";
+    private const int PinnedLength = 536_741;
     private const int SequentialReloads = 5;
     private const int ConcurrentLoads = 4;
 
     private static readonly (string Name, int Length, string Sha256)[] PinnedSections =
     [
-        ("catalog", 341, "876fa6524a8580b34ba61359ced9e4ef4f5854e61ac1463c37f977d84679fb2d"),
-        ("static-routes", 124_342, "a40e0640969b930362d0320a68edeaab151529a7c6bc29f9fd58801496934f29"),
-        ("dynamic-routes", 274_431, "f130ccce99a9d2bc2393581952ace4bf3b259eb7a14873a72b571841f6bd5d01"),
-        ("full-image-plans", 113_518, "be2c9c33acfb6184c43c06b4feeb5e957fde721b282b4c73c2c7a25117baad95"),
+        ("catalog", 341, "b601d0f487cf34b3f6df5c2d68ddf6d52569a140794f1f56ae840bcd746e060b"),
+        ("static-routes", 124_414, "27529241b8e677d621597392886b22a57e175269bcf6942c6fa8726c704f6ede"),
+        ("dynamic-routes", 274_639, "3bd61174270ffc172e607563b848079e9f31e3c52fddc2b7bc897e9d9ac41109"),
+        ("full-image-plans", 106_364, "3052ae411884f7c44713a18286360b2d4f1d410bf0c4bc97ab2c3f3c9dea2df9"),
         ("disclosure", 20_002, "dcd5a7655b7ea02a8ee601093ac02f449a3b7509828ef5dd8f94ae76f7bba8de"),
-        ("selector", 11_589, "089dc0c953cd1e602c58abbed1189bd7014e175dee6f3a284c42206190403cc0"),
+        ("selector", 10_957, "260184aa3b48b10e6e3bf7883ddab6d7a25a5659930b27fe00a6c77f0a28aafe"),
         ("certification", 24, "eb0edc192f3394a161de752c7d53cef86dd32bf94e352929b9f715db1efd5353"),
     ];
 

@@ -102,8 +102,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     [Theory]
     [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "59b51e5357fd7567315c6cc85289e2d5d78783e6ed027c421409c4a7f8cc6584", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "b0c519919fc1037d51a23a4d3755a0affb9be10dfb6d5aa0954977b528a07e4b", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "b0c519919fc1037d51a23a4d3755a0affb9be10dfb6d5aa0954977b528a07e4b", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "26707141ccf58dc3da87e755f41b9851af44914c6a5b14e1dc81f7cd099dbbcd", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "26707141ccf58dc3da87e755f41b9851af44914c6a5b14e1dc81f7cd099dbbcd", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "59b51e5357fd7567315c6cc85289e2d5d78783e6ed027c421409c4a7f8cc6584", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "0a511dbcfac0cfb6dcfc1a6faf5fe5818b6d0f6b3e267d6531c518c2917e949e", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "b57bb9346535041d93d659f4173d0fdad659fe506e2d2b93fedb46af8e304011", "dp-input,tp-input", "DpFirmware,TpFirmware")]
@@ -294,7 +294,9 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             "nt51917-nt51927-shared-facts", "nt51919-nt51929-nt51932-ab-merge",
             "nt51919-nt51929-nt51932-general-merge-logical-candidate", "nt51919-nt51929-nt51932-shared-facts",
             "nt51923-ctrlram-replace-candidate", "nt51923-nt51926-general-merge-logical-candidate",
-            "nt51923-nt51926-shared-facts", "nt51923-standard-merge", "nt51926-ctrlram-replace-candidate",
+            "nt51923-nt51926-shared-facts", "nt51923-standard-merge",
+            "nt51925-ctrlram-replace-candidate", "nt51925-standard-merge-candidate",
+            "nt51926-ctrlram-replace-candidate",
             "nt51927-ctrlram-replace-candidate", "nt51927-standard-merge", "nt51928-ctrlram-replace-candidate",
             "nt51928-general-merge-logical-candidate", "nt51928-standard-merge", "nt51929-ctrlram-replace-candidate",
             "nt51929-standard-merge", "nt51932-ctrlram-replace-candidate", "nt51950-ab-merge",

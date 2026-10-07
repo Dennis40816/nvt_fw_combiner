@@ -1,24 +1,27 @@
 {
   "schemaVersion": "1.1",
-  "familyId": "nt51926-ctrlram-replace",
-  "familyVersion": "0.7.1",
+  "familyId": "nt51925-ctrlram-replace",
+  "familyVersion": "0.1.0",
   "members": [
     {
-      "memberId": "NT51926",
-      "displayName": "NT51926"
+      "memberId": "NT51925",
+      "displayName": "NT51925"
     }
   ],
   "capabilities": [],
   "regionSets": [
     {
-      "regionSetId": "nt51926-ctrlram-fw141-tp-work",
+      "regionSetId": "nt51925-ctrlram-fw141-tp-work",
       "addressSpaceId": "flash",
       "regions": [
         {
           "regionId": "flash-image",
           "owner": "system",
           "kind": "image",
-          "range": { "start": 0, "length": 245760 },
+          "range": {
+            "start": 0,
+            "length": 245760
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -27,7 +30,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 0, "length": 24 },
+          "range": {
+            "start": 0,
+            "length": 24
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -36,7 +42,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 24, "length": 4 },
+          "range": {
+            "start": 24,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -45,7 +54,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 28, "length": 4 },
+          "range": {
+            "start": 28,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -54,7 +66,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 32, "length": 28 },
+          "range": {
+            "start": 32,
+            "length": 28
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -63,7 +78,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 60, "length": 4 },
+          "range": {
+            "start": 60,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -72,7 +90,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 64, "length": 12 },
+          "range": {
+            "start": 64,
+            "length": 12
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -81,7 +102,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 76, "length": 4 },
+          "range": {
+            "start": 76,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -90,7 +114,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 80, "length": 12 },
+          "range": {
+            "start": 80,
+            "length": 12
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -99,7 +126,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 92, "length": 4 },
+          "range": {
+            "start": 92,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -108,7 +138,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 96, "length": 156 },
+          "range": {
+            "start": 96,
+            "length": 156
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -117,7 +150,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 252, "length": 4 },
+          "range": {
+            "start": 252,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -126,7 +162,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 256, "length": 139008 },
+          "range": {
+            "start": 256,
+            "length": 139008
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -135,7 +174,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "firmware-config",
-          "range": { "start": 139264, "length": 2048 },
+          "range": {
+            "start": 139264,
+            "length": 2048
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -144,7 +186,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 141312, "length": 11264 },
+          "range": {
+            "start": 141312,
+            "length": 11264
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -153,7 +198,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 152576, "length": 9216 },
+          "range": {
+            "start": 152576,
+            "length": 9216
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -162,7 +210,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 161792, "length": 10240 },
+          "range": {
+            "start": 161792,
+            "length": 10240
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -171,7 +222,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 172032, "length": 10240 },
+          "range": {
+            "start": 172032,
+            "length": 10240
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -180,7 +234,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 182272, "length": 11728 },
+          "range": {
+            "start": 182272,
+            "length": 11728
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -189,7 +246,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 194000, "length": 8192 },
+          "range": {
+            "start": 194000,
+            "length": 8192
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -198,7 +258,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 202192, "length": 5728 },
+          "range": {
+            "start": 202192,
+            "length": 5728
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -207,7 +270,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 207920, "length": 800 },
+          "range": {
+            "start": 207920,
+            "length": 800
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -216,7 +282,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 208720, "length": 256 },
+          "range": {
+            "start": 208720,
+            "length": 256
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -225,7 +294,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 208976, "length": 32688 },
+          "range": {
+            "start": 208976,
+            "length": 32688
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -234,7 +306,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "firmware-config",
-          "range": { "start": 241664, "length": 2048 },
+          "range": {
+            "start": 241664,
+            "length": 2048
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -243,7 +318,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 243712, "length": 2048 },
+          "range": {
+            "start": 243712,
+            "length": 2048
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
@@ -253,14 +331,17 @@
       ]
     },
     {
-      "regionSetId": "nt51926-ctrlram-fw200-tp-work",
+      "regionSetId": "nt51925-ctrlram-fw200-tp-work",
       "addressSpaceId": "flash",
       "regions": [
         {
           "regionId": "flash-image",
           "owner": "system",
           "kind": "image",
-          "range": { "start": 0, "length": 245760 },
+          "range": {
+            "start": 0,
+            "length": 245760
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -269,7 +350,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 0, "length": 24 },
+          "range": {
+            "start": 0,
+            "length": 24
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -278,7 +362,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 24, "length": 4 },
+          "range": {
+            "start": 24,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -287,7 +374,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 28, "length": 4 },
+          "range": {
+            "start": 28,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -296,7 +386,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 32, "length": 28 },
+          "range": {
+            "start": 32,
+            "length": 28
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -305,7 +398,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 60, "length": 4 },
+          "range": {
+            "start": 60,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -314,7 +410,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 64, "length": 12 },
+          "range": {
+            "start": 64,
+            "length": 12
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -323,7 +422,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 76, "length": 4 },
+          "range": {
+            "start": 76,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -332,7 +434,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 80, "length": 12 },
+          "range": {
+            "start": 80,
+            "length": 12
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -341,7 +446,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 92, "length": 4 },
+          "range": {
+            "start": 92,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -350,7 +458,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 96, "length": 156 },
+          "range": {
+            "start": 96,
+            "length": 156
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -359,7 +470,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 252, "length": 4 },
+          "range": {
+            "start": 252,
+            "length": 4
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -368,7 +482,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 256, "length": 139008 },
+          "range": {
+            "start": 256,
+            "length": 139008
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -377,7 +494,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "firmware-config",
-          "range": { "start": 139264, "length": 2048 },
+          "range": {
+            "start": 139264,
+            "length": 2048
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -386,7 +506,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 141312, "length": 11264 },
+          "range": {
+            "start": 141312,
+            "length": 11264
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -395,7 +518,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 152576, "length": 9216 },
+          "range": {
+            "start": 152576,
+            "length": 9216
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -404,7 +530,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 161792, "length": 10240 },
+          "range": {
+            "start": 161792,
+            "length": 10240
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -413,7 +542,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 172032, "length": 10240 },
+          "range": {
+            "start": 172032,
+            "length": 10240
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -422,7 +554,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 182272, "length": 11728 },
+          "range": {
+            "start": 182272,
+            "length": 11728
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -431,7 +566,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 194000, "length": 8192 },
+          "range": {
+            "start": 194000,
+            "length": 8192
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -440,7 +578,10 @@
           "parentRegionId": "flash-image",
           "owner": "tp",
           "kind": "ctrlram",
-          "range": { "start": 202192, "length": 5278 },
+          "range": {
+            "start": 202192,
+            "length": 5278
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -449,7 +590,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 207470, "length": 2 },
+          "range": {
+            "start": 207470,
+            "length": 2
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -458,7 +602,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "header",
-          "range": { "start": 207472, "length": 256 },
+          "range": {
+            "start": 207472,
+            "length": 256
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -467,7 +614,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 207728, "length": 33936 },
+          "range": {
+            "start": 207728,
+            "length": 33936
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -476,7 +626,10 @@
           "parentRegionId": "flash-image",
           "owner": "system",
           "kind": "firmware-config",
-          "range": { "start": 241664, "length": 1920 },
+          "range": {
+            "start": 241664,
+            "length": 1920
+          },
           "writeConstraint": "explicit-range",
           "alignment": 1
         },
@@ -485,7 +638,10 @@
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 243584, "length": 2176 },
+          "range": {
+            "start": 243584,
+            "length": 2176
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
@@ -495,14 +651,17 @@
       ]
     },
     {
-      "regionSetId": "nt51926-full-flash-tail",
+      "regionSetId": "nt51925-full-flash-tail",
       "addressSpaceId": "flash",
       "regions": [
         {
           "regionId": "full-flash-unmapped-gap",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 245760, "length": 8192 },
+          "range": {
+            "start": 245760,
+            "length": 8192
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -510,7 +669,10 @@
           "regionId": "full-flash-dp-code",
           "owner": "dp",
           "kind": "code",
-          "range": { "start": 253952, "length": 8192 },
+          "range": {
+            "start": 253952,
+            "length": 8192
+          },
           "writeConstraint": "forbidden",
           "alignment": 1
         }
@@ -518,37 +680,11 @@
       "evidenceRefs": [
         "gen-flash-bin-v2-51926-golden"
       ]
-    },
-    {
-      "regionSetId": "nt51926-general-replace-full-flash-tail",
-      "addressSpaceId": "flash",
-      "regions": [
-        {
-          "regionId": "general-replace-full-flash-unmapped-gap",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 245760, "length": 8192 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "general-replace-full-flash-dp-code",
-          "owner": "dp",
-          "kind": "code",
-          "range": { "start": 253952, "length": 8192 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        }
-      ],
-      "evidenceRefs": [
-        "gen-flash-bin-v2-51926-golden",
-        "general-replace-v2-candidate-parity"
-      ]
     }
   ],
   "metadataSets": [
     {
-      "metadataSetId": "nt51926-fwconfig-backup-locator",
+      "metadataSetId": "nt51925-fwconfig-backup-locator",
       "structures": [
         {
           "structureId": "nt51926-fwconfig-backup-envelope",
@@ -556,9 +692,15 @@
           "length": 4096,
           "locator": {
             "kind": "marker-relative",
-            "searchRange": { "addressSpaceId": "flash", "start": 0, "length": 245760 },
+            "searchRange": {
+              "addressSpaceId": "flash",
+              "start": 0,
+              "length": 245760
+            },
             "markerHex": "004e5654",
-            "selection": { "kind": "unique" },
+            "selection": {
+              "kind": "unique"
+            },
             "resultOffset": -4092,
             "allowedResultRegionId": "flash-image"
           },
@@ -586,7 +728,10 @@
             }
           ],
           "assertions": [
-            { "offset": 4092, "expectedHex": "004e5654" }
+            {
+              "offset": 4092,
+              "expectedHex": "004e5654"
+            }
           ]
         }
       ],
@@ -614,114 +759,126 @@
           }
         }
       ],
-      "evidenceRefs": ["owner-decision-2026-09-26-tp-svn-header-copy", "owner-decision-2026-09-25-tp-svn-location-encoding"]
+      "evidenceRefs": [
+        "owner-decision-2026-09-26-tp-svn-header-copy",
+        "owner-decision-2026-09-25-tp-svn-location-encoding"
+      ]
     }
   ],
   "imageMaps": [
     {
-      "mapId": "nt51926-ctrlram-fw141-tp-work-240k",
+      "mapId": "nt51925-ctrlram-fw141-tp-work-240k",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [ "NT51926" ],
-        "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "none" },
+        "memberIds": [
+          "NT51925"
+        ],
+        "modeIds": [
+          "ctrlram-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
         "capacityBytes": 245760
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51926-ctrlram-fw141-tp-work" ],
-      "metadataSetIds": [ "nt51926-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
+      "regionSetIds": [
+        "nt51925-ctrlram-fw141-tp-work"
+      ],
+      "metadataSetIds": [
+        "nt51925-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
+      ],
       "evidenceRefs": [
-        "nt51926-common-fw141-postbuild",
-        "nt51926-fwconfig-backup-golden"
+        "nt51925-isolated-candidate-pending-owner-evidence"
       ]
     },
     {
-      "mapId": "nt51926-ctrlram-fw141-full-flash-256k",
+      "mapId": "nt51925-ctrlram-fw141-full-flash-256k",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [ "NT51926" ],
-        "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "none" },
+        "memberIds": [
+          "NT51925"
+        ],
+        "modeIds": [
+          "ctrlram-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
         "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [
-        "nt51926-ctrlram-fw141-tp-work",
-        "nt51926-full-flash-tail"
+        "nt51925-ctrlram-fw141-tp-work",
+        "nt51925-full-flash-tail"
       ],
-      "metadataSetIds": [ "nt51926-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
+      "metadataSetIds": [
+        "nt51925-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
+      ],
       "evidenceRefs": [
-        "nt51926-common-fw141-postbuild",
-        "nt51926-fwconfig-backup-golden",
-        "gen-flash-bin-v2-51926-golden"
+        "nt51925-isolated-candidate-pending-owner-evidence"
       ]
     },
     {
-      "mapId": "nt51926-ctrlram-fw200-tp-work-240k",
+      "mapId": "nt51925-ctrlram-fw200-tp-work-240k",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [ "NT51926" ],
-        "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "none" },
+        "memberIds": [
+          "NT51925"
+        ],
+        "modeIds": [
+          "ctrlram-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
         "capacityBytes": 245760
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51926-ctrlram-fw200-tp-work" ],
-      "metadataSetIds": [ "nt51926-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
+      "regionSetIds": [
+        "nt51925-ctrlram-fw200-tp-work"
+      ],
+      "metadataSetIds": [
+        "nt51925-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
+      ],
       "evidenceRefs": [
-        "nt51926-fw200-owner-golden-20260718",
-        "nt51926-fwconfig-backup-golden"
+        "nt51925-isolated-candidate-pending-owner-evidence"
       ]
     },
     {
-      "mapId": "nt51926-ctrlram-fw200-full-flash-256k",
+      "mapId": "nt51925-ctrlram-fw200-full-flash-256k",
       "addressSpaceId": "flash",
       "applicability": {
-        "memberIds": [ "NT51926" ],
-        "modeIds": [ "ctrlram-replace" ],
-        "topologyRequirement": { "kind": "none" },
+        "memberIds": [
+          "NT51925"
+        ],
+        "modeIds": [
+          "ctrlram-replace"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
         "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [
-        "nt51926-ctrlram-fw200-tp-work",
-        "nt51926-full-flash-tail"
+        "nt51925-ctrlram-fw200-tp-work",
+        "nt51925-full-flash-tail"
       ],
-      "metadataSetIds": [ "nt51926-fwconfig-backup-locator", "tp-svn-header-copy-metadata" ],
-      "evidenceRefs": [
-        "nt51926-fw200-owner-golden-20260718",
-        "nt51926-fwconfig-backup-golden",
-        "gen-flash-bin-v2-51926-golden"
-      ]
-    },
-    {
-      "mapId": "nt51926-general-replace-full-flash-256k",
-      "addressSpaceId": "flash",
-      "applicability": {
-        "memberIds": [ "NT51926" ],
-        "modeIds": [ "general-replace" ],
-        "topologyRequirement": { "kind": "none" },
-        "capacityBytes": 262144
-      },
-      "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [
-        "nt51926-ctrlram-fw141-tp-work",
-        "nt51926-general-replace-full-flash-tail"
+      "metadataSetIds": [
+        "nt51925-fwconfig-backup-locator",
+        "tp-svn-header-copy-metadata"
       ],
-      "metadataSetIds": [],
       "evidenceRefs": [
-        "gen-flash-bin-v2-51926-golden",
-        "general-replace-v2-candidate-parity"
+        "nt51925-isolated-candidate-pending-owner-evidence"
       ]
     }
   ],
   "factAliases": [],
   "evidenceRefs": [
-    "nt51926-common-fw141-postbuild",
-    "nt51926-fw200-owner-golden-20260718",
-    "nt51926-fwconfig-backup-golden",
-    "gen-flash-bin-v2-51926-golden",
-    "owner-decision-2026-09-26-tp-svn-header-copy",
-    "owner-decision-2026-09-25-tp-svn-location-encoding"
+    "nt51925-isolated-candidate-pending-owner-evidence"
   ]
 }

@@ -2,21 +2,30 @@
 
 `canonical-capability-policy-v1.json` is the sole publication and evidence policy for exact compiled capability routes. Its normative structure is `canonical-capability-policy-v1.schema.json`.
 
-## NT51925 preparation amendment (catalog 1.24.0)
+## NT51925 isolation amendment (catalog 1.25.0)
 
-The 2026-10-07 owner request, recorded in Proposed ADR 0084, adds nine exact
-NT51925 Standard Merge/CtrlRAM Replace routes as Available/Candidate/Contract
-Only. It supplies local preparation authority, not support or Golden approval.
-Standard declaration/metadata are published, while its authoring, exact
-resolution and Build are blocked by existing execution admission. CtrlRAM uses
-the existing runtime-reference candidate execution rule.
-Existing publication/evidence decisions retain their values and provenance;
-only affected definition fingerprints are re-pinned from the existing inventory
-producers after shared declarations change. Existing Golden cases, expected
-bytes and difference bounds are unchanged. NT51925 has no other workflow
-registration. Official owner evidence, independent Golden and firmware-owner R3
-approval remain pending. The dated catalog 1.17.0 admission below is historical.
+Owner decision 334 (2026-10-07), recorded in Proposed ADR 0084,
+adds nine exact NT51925 Standard Merge/CtrlRAM Replace routes to the 85-route
+v1.2.1 catalog. All nine have `Unavailable` authoring, `Candidate`
+publication and `ContractOnly` evidence: one Standard route and eight CtrlRAM
+routes for two provisional FW contracts, Single/Cascade and TP-work/full-Flash
+capacities. Profiles use the existing `compilable` promotion stage. The policy
+permits blocked declarations, but no authoring snapshot, exact executable
+resolution, execution or Build. The runtime-reference candidate execution rule
+does not admit these NT51925 routes.
 
+NT51925 owns separate map, family and candidate bundles. No existing NT51923
+or NT51926 capability definition or decision is re-pinned; their v1.2.1
+identities and Saved Rules remain stable. Existing Golden cases, expected bytes
+and difference bounds are unchanged. The 94-route catalog has 85 Available and
+nine Unavailable authoring decisions; 63 Supported, 20 Candidate, ten Internal
+and one TestOnly publication decisions; and 26 DirectGolden, seven
+ApprovedAlias, four SyntheticOracle and 57 ContractOnly evidence decisions.
+NT51925 has no other workflow registration. Official NT51925 map/mmap,
+version-specific postbuild, declared versions/topologies, independent Golden
+and firmware-owner R3 approval remain pending. A later family join requires
+official proof of identical facts and separate owner approval. The dated
+catalog 1.17.0 admission below is historical.
 ## Historical active admission (catalog 1.17.0)
 
 Schema `1.1` and catalog `1.17.0` retire all 14 DP Replace policy routes.
