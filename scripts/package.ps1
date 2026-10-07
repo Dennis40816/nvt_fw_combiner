@@ -102,7 +102,7 @@ $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 $CanonicalGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenReleaseAllowlistSha256 = 'c2a169b5b8650ee11e1040476ae01dcf09d2c115e36b80136e43c416381fc852'
+$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '7527372086df3c9b410ce2de79b6461d5c8921083e68a62ceed7772c831f977e'
 
 try {
 if (-not $PolicyDryRunSentinel) {
@@ -1408,7 +1408,7 @@ function Get-DeclaredCanonicalGoldenPaths {
                 $Storage = if ($Artifact.PSObject.Properties.Name -contains 'storage') { [string]$Artifact.storage } else { '' }
                 $ApprovedStorage = if ($ApprovedArtifact.Count -eq 1 -and $ApprovedArtifact[0].PSObject.Properties.Name -contains 'storage') { [string]$ApprovedArtifact[0].storage } else { '' }
                 if ($ApprovedArtifact.Count -ne 1 -or
-                    $Storage -cne $ApprovedStorage -or
+                    ($Storage -cne '' -and $Storage -cne $ApprovedStorage) -or
                     [string]$ApprovedArtifact[0].role -cne [string]$Artifact.role -or
                     [string]$ApprovedArtifact[0].path -cne [string]$Artifact.path -or
                     [long]$ApprovedArtifact[0].size -ne [long]$Artifact.size -or
@@ -1416,8 +1416,8 @@ function Get-DeclaredCanonicalGoldenPaths {
                     throw "Canonical artifact '$CaseId/$($Artifact.artifactId)' differs from the explicit release allowlist."
                 }
                 $ArtifactDeclarationCount++
-                if ($Artifact.PSObject.Properties.Name -contains 'storage') {
-                    Assert-PrivateCanonicalReference -Artifact $Artifact
+                if ($ApprovedArtifact[0].PSObject.Properties.Name -contains 'storage') {
+                    Assert-PrivateCanonicalReference -Artifact $ApprovedArtifact[0]
                     $PrivateReferenceCount++
                     continue
                 }
@@ -1668,8 +1668,10 @@ Confidential reference source files, non-allowlisted private firmware, diagnosti
     $ReferenceFiles = @(
         'docs/references/verification-report.md',
         'docs/references/tddi-flash-header.md',
-        'docs/references/nvt-fwconfig-copy-validation.md',
-        'docs/references/confidential-references.json',
+        'docs/references/nvt-fwconfig-copy-validation.md'
+        if ([version]($SemanticVersion.Split('-')[0]) -ge [version]'1.2.1') {
+            'docs/references/confidential-references.json'
+        }
         'docs/architecture/ctrlram-postbuild-command-matrix.md',
         'docs/architecture/ctrlram-postbuild-investigation-reference.md',
         'docs/architecture/ctrlram-postbuild-original-pasteback.md',

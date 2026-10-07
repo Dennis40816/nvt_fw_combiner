@@ -38,7 +38,7 @@ $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     sha256 = 'a3ad08440076fb6b8b840ba64a6fbe0ccadb4345530ba1db09ab0b4f0fa671d4'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenAllowlistSha256 = 'c2a169b5b8650ee11e1040476ae01dcf09d2c115e36b80136e43c416381fc852'
+$ApprovedCanonicalGoldenAllowlistSha256 = '7527372086df3c9b410ce2de79b6461d5c8921083e68a62ceed7772c831f977e'
 $CanonicalGoldenPackagePrefix = 'reference/golden'
 $CanonicalGoldenAllowlistPackagePath = 'reference/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -543,7 +543,7 @@ function Assert-CanonicalGoldenReference {
             $Storage = if ($null -ne $CanonicalArtifact -and $CanonicalArtifact.PSObject.Properties.Name -contains 'storage') { [string]$CanonicalArtifact.storage } else { '' }
             $ApprovedStorage = if ($ApprovedArtifact.PSObject.Properties.Name -contains 'storage') { [string]$ApprovedArtifact.storage } else { '' }
             if ($null -eq $CanonicalArtifact -or
-                $Storage -cne $ApprovedStorage -or
+                ($Storage -cne '' -and $Storage -cne $ApprovedStorage) -or
                 [string]$CanonicalArtifact.role -cne [string]$ApprovedArtifact.role -or
                 [string]$CanonicalArtifact.path -cne [string]$ApprovedArtifact.path -or
                 [long]$CanonicalArtifact.size -ne [long]$ApprovedArtifact.size -or
@@ -862,7 +862,7 @@ try {
         $ProductVersion = Get-ReleaseProductVersion $manifest
         $RequiresCombinerRuntime = $ProductVersion -ge [version]'1.1.8'
         $RequiresPrebuiltCatalog = $ProductVersion -ge [version]'1.1.13'
-        if ($ProductVersion -ge [version]'1.2.5') {
+        if ($ProductVersion -ge [version]'1.2.1') {
             Assert-PublicReferenceInventory -Manifest $manifest
         }
     }

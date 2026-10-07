@@ -530,12 +530,22 @@ public static class CanonicalGoldenTestData
         };
     }
 
-    /// <summary>Identifies the additive, provenance-only private storage disposition.</summary>
+    /// <summary>Identifies private provenance from its disposition or the public confidential inventory.</summary>
     public static bool IsPrivateReference(JsonElement artifact)
     {
         if (!artifact.TryGetProperty("storage", out JsonElement storage))
         {
-            return false;
+            if (!artifact.TryGetProperty("role", out JsonElement role) || role.GetString() != "provenance")
+            {
+                return false;
+            }
+
+            using var inventory = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
+                "docs", "references", "confidential-references.json")));
+            return inventory.RootElement.GetProperty("entries").EnumerateArray().Any(entry =>
+                StringComparer.Ordinal.Equals(
+                    entry.GetProperty("sha256").GetString(), artifact.GetProperty("sha256").GetString()) &&
+                entry.GetProperty("sizeBytes").GetInt64() == artifact.GetProperty("size").GetInt64());
         }
 
         if (storage.ValueKind != JsonValueKind.String || storage.GetString() != "private-reference" ||

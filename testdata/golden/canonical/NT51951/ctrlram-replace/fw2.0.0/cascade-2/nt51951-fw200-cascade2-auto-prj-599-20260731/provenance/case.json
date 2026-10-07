@@ -178,8 +178,7 @@
         "testdata/golden/ctrlram-replace/fixtures/20260731/51950_Cascade_AUTO_PRJ-599/51950_PostbuildSetup.bat"
       ],
       "originalFileName": "51950_PostbuildSetup.bat",
-      "sourceRole": "owner-postbuild-command-reference; not executed by golden audit",
-      "storage": "private-reference"
+      "sourceRole": "owner-postbuild-command-reference; not executed by golden audit"
     },
     {
       "artifactId": "diffnfmerge-config-reference",

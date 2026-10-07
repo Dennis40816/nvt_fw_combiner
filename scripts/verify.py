@@ -1209,7 +1209,6 @@ def verify_confidential_reference_paths() -> None:
     blocked = sorted(
         path for path in tracked
         if path and is_confidential_reference_path(path)
-        and os.path.lexists(ROOT / path)
     )
     if blocked:
         raise RuntimeError(

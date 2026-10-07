@@ -45,6 +45,42 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.rewrite_case()
         return artifact
 
+    def declare_inventory_private_provenance(self) -> dict[str, object]:
+        artifact = self.declare_private_provenance()
+        del artifact["storage"]
+        self.rewrite_case()
+        inventory = self.root / "docs/references/confidential-references.json"
+        inventory.parent.mkdir(parents=True)
+        self.write_json(inventory, {"schemaVersion": 1, "entries": [{
+            "id": "synthetic-provenance", "kind": "postbuild-script",
+            "sha256": artifact["sha256"], "sizeBytes": artifact["size"],
+        }]})
+        return artifact
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_private_inventory_preserves_case_manifest_without_storage_field(self) -> None:
+        artifact = self.declare_inventory_private_provenance()
+        self.assertNotIn("storage", artifact)
+        self.assertEqual([], self.validate())
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_inventory_private_provenance_rejects_returned_public_payload(self) -> None:
+        artifact = self.declare_inventory_private_provenance()
+        (self.canonical / artifact["path"]).write_bytes(b"synthetic private provenance")
+        self.assertTrue(any("undeclared" in error for error in self.validate()))
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_inventory_private_provenance_requires_matching_size_and_hash(self) -> None:
+        artifact = self.declare_inventory_private_provenance()
+        path = self.root / "docs/references/confidential-references.json"
+        inventory = json.loads(path.read_text(encoding="utf-8"))
+        for field, value in (("sizeBytes", artifact["size"] + 1), ("sha256", "0" * 64)):
+            with self.subTest(field=field):
+                changed = deepcopy(inventory)
+                changed["entries"][0][field] = value
+                self.write_json(path, changed)
+                self.assertTrue(any("cannot resolve canonical artifact" in error for error in self.validate()))
+
     @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
     def test_private_provenance_accepts_identity_without_public_file(self) -> None:
         self.declare_private_provenance()

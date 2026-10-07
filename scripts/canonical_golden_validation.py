@@ -1061,6 +1061,7 @@ def _validate_artifact(
     *,
     requires_legacy_paths: bool = True,
     approved_intake_source: bool = False,
+    private_reference_identities: frozenset[tuple[str, int]] = frozenset(),
 ) -> None:
     if not isinstance(artifact, dict):
         errors.append(f"{label} must be an object")
@@ -1112,6 +1113,8 @@ def _validate_artifact(
         or SHA256_PATTERN.fullmatch(expected_sha) is None
     ):
         errors.append(f"{label} has invalid sha256: {expected_sha}")
+    if role == "provenance" and isinstance(expected_sha, str) and type(expected_size) is int:
+        private_reference |= (expected_sha, expected_size) in private_reference_identities
     payload = None
     if private_reference:
         if isinstance(expected_sha, str) and SHA256_PATTERN.fullmatch(expected_sha):
@@ -1251,6 +1254,19 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
         return
 
     declared_files = set(ROOT_FILES)
+    private_reference_identities: frozenset[tuple[str, int]] = frozenset()
+    confidential_manifest_path = repository_root / "docs/references/confidential-references.json"
+    if confidential_manifest_path.exists():
+        confidential_manifest = _load_object(
+            confidential_manifest_path, repository_root, "confidential reference manifest", errors
+        )
+        if confidential_manifest is not None:
+            private_reference_identities = frozenset(
+                (entry["sha256"], entry["sizeBytes"])
+                for entry in confidential_manifest.get("entries", [])
+                if isinstance(entry, dict) and isinstance(entry.get("sha256"), str)
+                and type(entry.get("sizeBytes")) is int
+            )
     direct_source_case_ids: set[str] = set()
     alias_sources: list[tuple[str, str, str]] = []
     direct_source_workflows: dict[str, str] = {}
@@ -1340,6 +1356,7 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                         and not approved_intake_source
                     ),
                     approved_intake_source=approved_intake_source,
+                    private_reference_identities=private_reference_identities,
                 )
                 if (
                     isinstance(artifact, dict)
@@ -1713,11 +1730,13 @@ def validate_canonical_release_allowlist(
                     f"{artifact_label} is not declared by canonical case {case_id}"
                 )
                 continue
-            for field in ("role", "path", "size", "sha256", "storage"):
+            for field in ("role", "path", "size", "sha256"):
                 if release_artifact.get(field) != canonical_artifact.get(field):
                     errors.append(
                         f"{artifact_label}.{field} differs from canonical case {case_id}"
                     )
+            if "storage" in canonical_artifact and release_artifact.get("storage") != canonical_artifact["storage"]:
+                errors.append(f"{artifact_label}.storage differs from canonical case {case_id}")
             artifact_declaration_count += 1
             artifact_path = release_artifact.get("path")
             if isinstance(artifact_path, str):

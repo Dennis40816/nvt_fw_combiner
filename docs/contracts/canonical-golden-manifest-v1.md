@@ -99,18 +99,23 @@ byte size, and lowercase SHA-256. Migrated artifacts retain one or more pre-migr
 the corresponding case subtree; nested source groups such as `inputs/NF/` remain confined there.
 Expected bytes are never regenerated during layout migration.
 
-Provenance artifacts may add `storage: "private-reference"`. This additive
-disposition is forbidden for inputs and expected outputs. It retains the
-original size, SHA-256 and historical canonical identity, while excluding the
-physical file from the public inventory and release package projection.
+Provenance artifacts may declare `storage: "private-reference"`; this
+disposition is forbidden for inputs and expected outputs. For already certified
+cases, the public confidential-reference inventory holds the private disposition
+by SHA-256 and size, separately from the unchanged case manifest. The original
+case-manifest bytes, size and SHA-256 remain pinned by historical certification.
+The physical private file is excluded from the public inventory and release
+package projection.
 When `NVT_PRIVATE_ASSETS` is configured, consumers resolve and verify the
 digest through `nfc/references/SHA256SUMS`; otherwise public identity checks
 remain executable and tests requiring private bytes skip with
 `confidential golden not executed`. Public output Golden comparisons continue
 to use their unchanged input and expected artifacts.
 
-The release allowlist repeats this optional `storage` field exactly, including
-in case-manifest hash validation. The current selection keeps 177 logical
+The release allowlist records the optional `storage` disposition separately
+from the original case artifact metadata. Its role, path, size and SHA-256 still
+match the canonical artifact, and case-manifest hash validation retains the
+original certified identity. The current selection keeps 177 logical
 artifact declarations and 174 unique artifact identities, with one private
 provenance identity excluded from shipping: 173 public artifact paths and
 214 canonical source paths are projected. This preparation does not grant
