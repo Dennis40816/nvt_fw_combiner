@@ -199,6 +199,29 @@ function Get-ReleaseProductVersion {
     return [version]$VersionText
 }
 
+function Assert-PublicReferenceInventory {
+    param([Parameter(Mandatory = $true)]$Manifest)
+
+    $PublicManifestPath = 'reference/docs/references/confidential-references.json'
+    $PublicManifestEntries = @($Manifest.files | Where-Object { [string]$_.path -ceq $PublicManifestPath })
+    if ($PublicManifestEntries.Count -ne 1 -or [string]$PublicManifestEntries[0].role -cne 'reference') {
+        throw 'Release package must include the public confidential-reference manifest.'
+    }
+    foreach ($Entry in $Manifest.files) {
+        $Path = [string]$Entry.path
+        if ($Path.Contains('\')) {
+            throw 'Release manifest paths must use forward slashes.'
+        }
+        $Extension = [IO.Path]::GetExtension($Path)
+        if (($Path.StartsWith('reference/docs/references/', [StringComparison]::OrdinalIgnoreCase) -and
+             $Extension -notin @('.md', '.json')) -or
+            ($Path.StartsWith('reference/golden/', [StringComparison]::OrdinalIgnoreCase) -and
+             $Extension -eq '.bat')) {
+            throw "Release package contains confidential reference content: $Path"
+        }
+    }
+}
+
 function Assert-CombinerRuntime {
     param([Parameter(Mandatory = $true)][string]$PackageRoot)
 
@@ -826,6 +849,9 @@ try {
         $ProductVersion = Get-ReleaseProductVersion $manifest
         $RequiresCombinerRuntime = $ProductVersion -ge [version]'1.1.8'
         $RequiresPrebuiltCatalog = $ProductVersion -ge [version]'1.1.13'
+        if ($ProductVersion -ge [version]'1.2.5') {
+            Assert-PublicReferenceInventory -Manifest $manifest
+        }
     }
     if (-not $RequiresCombinerRuntime) {
         # Published historical packages retain their original closed tool inventory.

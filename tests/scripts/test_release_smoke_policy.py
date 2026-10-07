@@ -328,6 +328,7 @@ def test_packaged_combiner_executes_certified_crc_command_without_mutation() -> 
         ("1.1.7", "valid", "has no materialized built-in profile files"),
         ("1.1.8", "valid", "has no materialized built-in profile files"),
         ("1.1.10", "valid", "has no materialized built-in profile files"),
+        ("1.2.5", "valid", "public confidential-reference manifest"),
         ("1.1.8", "missing", "external-tool files differ from the approved allowlist"),
         (
             "1.1.8",
@@ -431,7 +432,7 @@ def test_release_entrypoint_enforces_runtime_before_later_package_gates(
         check=False,
     )
     assert result.returncode != 0
-    # Valid dependency inventory must advance to the intentionally absent profile gate.
+    # Each fixture must reach its declared gate before UI launch.
     assert expected in result.stderr, result.stdout + result.stderr
 
 
@@ -445,6 +446,40 @@ def test_stable_package_couples_one_version_scoped_launcher() -> None:
     assert "$Manifest.versionManagementProtocolVersion = 1" in package
     assert "role = 'launcher'" in package
     assert "NvtFwCombiner.Bootstrap.exe" not in package
+
+
+@pytest.mark.parametrize(
+    ("paths", "valid"),
+    [
+        (["reference/docs/references/ic-flashmap/README.md"], True),
+        (["reference/docs/references/ic-flashmap/data.json"], True),
+        (["reference/docs/references/ic-flashmap/sheet.xlsx"], False),
+        (["reference/docs/references/ic-flashmap/script.bat"], False),
+        (["reference/docs/references/ic-flashmap/memory_mmap.h"], False),
+        (["reference/golden/c001/provenance/script.bat"], False),
+        (["reference/docs/References/ic-flashmap/script.bat"], False),
+        (["REFERENCE/docs/references/source.c"], False),
+        (["reference/docs/references/sheet.xls"], False),
+        (["reference/docs/references/source.cpp"], False),
+        (["REFERENCE/GOLDEN/c001/provenance/script.BAT"], False),
+        ([r"reference\docs\references\ic-flashmap\script.bat"], False),
+    ],
+)
+def test_public_reference_inventory_rejects_confidential_content(
+    paths: list[str], valid: bool
+) -> None:
+    files = [
+        {"path": "reference/docs/references/confidential-references.json", "role": "reference"},
+        *({"path": path, "role": "reference"} for path in paths),
+    ]
+    entries = json.dumps(files, separators=(",", ":")).replace("'", "''")
+    result = run_release_functions(
+        "smoke-release.ps1",
+        ("Assert-PublicReferenceInventory",),
+        f"$manifest = [pscustomobject]@{{ files = ('{entries}' | ConvertFrom-Json) }}; "
+        "Assert-PublicReferenceInventory -Manifest $manifest",
+    )
+    assert (result.returncode == 0) is valid, result.stdout + result.stderr
 
 
 def test_release_smoke_rejects_bootstrap_in_update_and_checks_launcher_identity() -> (

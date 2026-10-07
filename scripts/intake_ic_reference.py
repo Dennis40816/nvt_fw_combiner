@@ -87,21 +87,30 @@ CATEGORY_DESCRIPTIONS = {
     "unclassified": "File could not be classified. Review manually before use.",
 }
 
-TRACKED_DESTINATIONS = {
-    "combiner-source-reference": "docs/references/ic-flashmap/combiner-source/{name}",
-    "flash-header-reference": "docs/references/ic-flashmap/flash-header/{name}",
+PRIVATE_DESTINATIONS = {
+    "combiner-source-reference": "docs/references/tddi-flash-header/{name}",
+    "flash-header-reference": "docs/references/tddi-flash-header/{name}",
     "flashmap-reference": "docs/references/ic-flashmap/{name}",
     "mmap-header": "docs/references/ic-flashmap/mmap/{name}",
     "postbuild-script": "docs/references/ic-flashmap/postbuild/{name}",
-    "supporting-reference": "docs/references/ic-flashmap/supporting/{name}",
 }
+
+CONFIDENTIAL_KINDS = {
+    "combiner-source-reference": "firmware-source",
+    "flash-header-reference": "flash-header",
+    "flashmap-reference": "flash-map",
+    "mmap-header": "mmap-header",
+    "postbuild-script": "postbuild-script",
+}
+PUBLIC_CONFIDENTIAL_MANIFEST = "docs/references/confidential-references.json"
 
 PRIVATE_COMMIT_POLICY = (
     "Keep in owner-handoff/private storage. Commit only after owner approval, "
     "manifested size/SHA-256, provenance, and required firmware review."
 )
 
-REFERENCE_COMMIT_POLICY = (
+REFERENCE_COMMIT_POLICY = "Keep confidential references in private storage; publish only a reviewed SHA-256 manifest entry."
+SUPPORTING_COMMIT_POLICY = (
     "May be promoted to docs/references only after owner confirms the file contains "
     "no firmware payload, secret, or private customer data."
 )
@@ -223,12 +232,16 @@ def classify(path: Path) -> str:
         return "postbuild-script"
     if contains_any(text, ("mmap", "memory-map", "memory_map")) and suffix in SOURCE_EXTENSIONS | DOCUMENT_EXTENSIONS:
         return "mmap-header"
+    if "fwconfig" in text and suffix in SOURCE_EXTENSIONS:
+        return "combiner-source-reference"
     if contains_any(text, ("flashmap", "flash-map", "flash_map", "ic-flashmap", "ic_flashmap")):
         return "flashmap-reference"
     if contains_any(text, ("flash-header", "flash_header", "flash header", "tp-header", "tp_header")):
         return "flash-header-reference"
     if "combiner" in text and suffix in SOURCE_EXTENSIONS | SCRIPT_EXTENSIONS | DOCUMENT_EXTENSIONS:
         return "combiner-source-reference"
+    if suffix in {".xls", ".xlsx", ".h"}:
+        return "unclassified"
     if suffix in DOCUMENT_EXTENSIONS:
         return "supporting-reference"
     return "unclassified"
@@ -280,9 +293,10 @@ def make_artifact(
     source_root: Path,
     output_dir: Path,
     dry_run: bool,
+    ic_slug: str,
 ) -> dict[str, Any]:
     relative = source.relative_to(source_root)
-    category = classify(source)
+    category = classify(relative)
     staged = output_dir / category_folder(category) / relative
     artifact: dict[str, Any] = {
         "relativeSourcePath": relative.as_posix(),
@@ -294,13 +308,18 @@ def make_artifact(
         "commitPolicy": commit_policy(category),
     }
 
-    role = infer_payload_role(source, category)
+    role = infer_payload_role(relative, category)
     if role is not None:
         artifact["payloadRoleHint"] = role
 
-    proposed = TRACKED_DESTINATIONS.get(category)
+    proposed = PRIVATE_DESTINATIONS.get(category)
     if proposed is not None:
-        artifact["proposedTrackedDestination"] = proposed.format(name=source.name)
+        if category == "combiner-source-reference" and "fwconfig" in normalize_for_matching(relative):
+            proposed = "docs/references/ic-flashmap/common-fw/{name}"
+        artifact["proposedPrivateDestination"] = "nfc/references/" + proposed.format(name=source.name)
+        artifact["confidentialManifestId"] = (
+            f"{CONFIDENTIAL_KINDS[category]}-{ic_slug}-{artifact['sha256'][:12]}"
+        )
 
     if not dry_run:
         staged.parent.mkdir(parents=True, exist_ok=True)
@@ -314,6 +333,8 @@ def commit_policy(category: str) -> str:
         return PRIVATE_COMMIT_POLICY
     if category == "unclassified":
         return "Review manually. Do not commit or use for implementation until classified."
+    if category == "supporting-reference":
+        return SUPPORTING_COMMIT_POLICY
     return REFERENCE_COMMIT_POLICY
 
 
@@ -347,7 +368,7 @@ def build_manifest(
         "policy": {
             "defaultStorage": "testdata/golden/owner-handoff; ignored by Git by default",
             "promotion": (
-                "Promotion to docs/references, external-tools, or testdata/golden requires a separate "
+                "Promotion to private references, external-tools, or testdata/golden requires a separate "
                 "reviewed change with provenance, SHA-256 manifest entries, and firmware-owner approval "
                 "where firmware semantics or golden bytes are affected."
             ),
@@ -360,7 +381,9 @@ def build_manifest(
             "missingDocumentFamilies": missing,
         },
         "artifacts": artifacts,
-        "sourceManifestFragment": build_source_manifest_fragment(artifacts),
+        "confidentialManifestFragment": build_confidential_manifest_fragment(artifacts),
+        "privateReferenceIndex": "nfc/references/SHA256SUMS",
+        "publicConfidentialManifest": PUBLIC_CONFIDENTIAL_MANIFEST,
         "nextActions": next_actions(mode, missing),
     }
 
@@ -375,30 +398,30 @@ def missing_requirements(mode: str, found_categories: Counter[str]) -> list[str]
     return missing
 
 
-def build_source_manifest_fragment(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    fragment: list[dict[str, Any]] = []
+def build_confidential_manifest_fragment(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    entries: dict[str, dict[str, Any]] = {}
     for artifact in artifacts:
         category = artifact["category"]
-        if category not in TRACKED_DESTINATIONS:
+        if category not in CONFIDENTIAL_KINDS:
             continue
-        fragment.append(
-            {
-                "path": artifact["proposedTrackedDestination"],
-                "sourcePath": artifact["relativeSourcePath"],
-                "category": category,
-                "size": artifact["size"],
-                "sha256": artifact["sha256"],
-                "approvalRequired": True,
-            }
-        )
-    return fragment
+        entry = {
+            "id": artifact["confidentialManifestId"],
+            "sizeBytes": artifact["size"],
+            "sha256": artifact["sha256"],
+            "kind": CONFIDENTIAL_KINDS[category],
+        }
+        identifier = entry["id"]
+        if identifier in entries and entries[identifier] != entry:
+            raise ValueError("Confidential reference id has conflicting public identities.")
+        entries[identifier] = entry
+    return list(entries.values())
 
 
 def next_actions(mode: str, missing: list[str]) -> list[str]:
     actions = [
         "Review unclassified files and rename or split the source folder if important files were not recognized.",
         "Confirm every range from flash-map, flash header, mmap.h, and postbuild evidence in half-open [start, end) form.",
-        "Promote only approved reference documents to docs/references/ic-flashmap and update SOURCE_MANIFEST.json.",
+        "Place approved confidential references under nfc/references in the private repository, index them in SHA256SUMS, and add their public manifest entries by SHA-256.",
         "Promote firmware payloads only through a workflow-specific golden manifest with sizes, SHA-256, provenance, and owner approval.",
     ]
     if mode in {"ctrlram-replace", "general-replace"}:
@@ -455,7 +478,7 @@ def write_next_steps(path: Path, manifest: dict[str, Any]) -> None:
             "",
             "- Confirm source/provenance, owner approval, and confidentiality class.",
             "- Convert all legacy inclusive ranges into half-open `[start, end)` ranges.",
-            "- Update `docs/references/ic-flashmap/SOURCE_MANIFEST.json` for promoted reference documents.",
+            "- Place confidential references under private `nfc/references/`, update its `SHA256SUMS`, and add reviewed entries to `docs/references/confidential-references.json`.",
             "- Update workflow-specific golden manifests only for owner-approved firmware payloads.",
             "- Update profile/catalog/C# code in a separate reviewed implementation change.",
             "",
@@ -486,7 +509,7 @@ def write_ai_prompt(path: Path, manifest: dict[str, Any]) -> None:
         "",
         "- Do not commit private firmware BINs, archives, tool binaries, or generated outputs.",
         "- Do not implement one-off firmware semantics in UI/CLI scripts.",
-        "- Promote reference docs only with manifest provenance and owner approval.",
+        "- Store confidential references in the private repository and publish only reviewed SHA-256 manifest entries.",
         "- Treat range, CRC/header, postbuild, processor write range, and golden promotion as firmware-owner-gated.",
         "",
         "Missing items to ask the owner for:",
@@ -514,7 +537,7 @@ def main() -> int:
         validate_output_location(output_dir, args.dry_run)
 
         files = iter_source_files(source_dir)
-        artifacts = [make_artifact(path, source_dir, output_dir, args.dry_run) for path in files]
+        artifacts = [make_artifact(path, source_dir, output_dir, args.dry_run, ic_slug) for path in files]
         manifest = build_manifest(
             source_dir=source_dir,
             output_dir=output_dir,

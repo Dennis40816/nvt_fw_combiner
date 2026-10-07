@@ -1172,12 +1172,85 @@ def verify_structure_sync(log_path: Path | None = None) -> None:
 
 
 def verify_structure_postchecks(log_path: Path | None = None) -> None:
+    verify_confidential_reference_paths()
+    verify_confidential_reference_manifest()
     run([sys.executable, "scripts/validate_repository.py"], log_path=log_path)
     run([sys.executable, "scripts/polytail_check.py"], log_path=log_path)
     run(
         [sys.executable, str(CTRL_RAM_SENTINEL_CREATOR), "--dry-run"],
         log_path=log_path,
     )
+
+
+CONFIDENTIAL_REFERENCE_PATTERNS = (
+    "docs/references/**/*.xlsx",
+    "docs/references/**/*.bat",
+    "**/*mmap*.h",
+    "**/Combiner.c",
+    "**/ap_fwconfig.c",
+    "**/*PostbuildSetup*.bat",
+    "refcode/flashmap/**",
+)
+
+
+def is_confidential_reference_path(path: str) -> bool:
+    normalized = path.replace("\\", "/").casefold()
+    return any(
+        fnmatch(normalized, pattern.casefold())
+        or fnmatch(normalized, pattern.replace("**/", "").casefold())
+        for pattern in CONFIDENTIAL_REFERENCE_PATTERNS
+    )
+
+
+def verify_confidential_reference_paths() -> None:
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "--cached", "-z"], cwd=ROOT
+    ).decode("utf-8").split("\0")
+    blocked = sorted(
+        path for path in tracked
+        if path and is_confidential_reference_path(path)
+        and os.path.lexists(ROOT / path)
+    )
+    if blocked:
+        raise RuntimeError(
+            "confidential reference files must be held privately: "
+            + ", ".join(blocked)
+        )
+
+
+
+def verify_confidential_reference_manifest() -> None:
+    schema = json.loads((ROOT / "docs/contracts/confidential-references-v1.schema.json").read_text(encoding="utf-8"))
+    manifest = json.loads((ROOT / "docs/references/confidential-references.json").read_text(encoding="utf-8"))
+    properties = schema["properties"]
+    item_schema = properties["entries"]["items"]
+    if not isinstance(manifest, dict) or set(manifest) != set(schema["required"]):
+        raise RuntimeError("invalid confidential reference manifest fields")
+    if type(manifest["schemaVersion"]) is not int or manifest["schemaVersion"] != properties["schemaVersion"]["const"]:
+        raise RuntimeError("invalid confidential reference manifest version")
+    entries = manifest["entries"]
+    if not isinstance(entries, list) or len(entries) < properties["entries"]["minItems"]:
+        raise RuntimeError("confidential reference manifest must contain entries")
+    ids: set[str] = set()
+    entry_properties = item_schema["properties"]
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != set(item_schema["required"]):
+            raise RuntimeError("invalid confidential reference entry fields")
+        identifier = entry["id"]
+        digest = entry["sha256"]
+        size = entry["sizeBytes"]
+        if (
+            not isinstance(identifier, str)
+            or re.fullmatch(entry_properties["id"]["pattern"], identifier) is None
+            or identifier in ids
+            or not isinstance(digest, str)
+            or re.fullmatch(entry_properties["sha256"]["pattern"], digest) is None
+            or type(size) is not int
+            or size < entry_properties["sizeBytes"]["minimum"]
+            or entry["kind"] not in entry_properties["kind"]["enum"]
+        ):
+            raise RuntimeError("invalid or duplicate confidential reference entry")
+        ids.add(identifier)
 
 
 def verify_repository_scripts(

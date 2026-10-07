@@ -40,8 +40,8 @@ Collect these items before adding a production IC profile:
 | Merge source ranges and output size | Standard Merge | Normalize inclusive legacy ranges into half-open `[start, end)`; record every source/metadata/validation read and expected outer length separately. |
 | Replace base/reference length and mutable regions | DP/CtrlRAM/General Replace | Replace never writes back to the input/base artifact. |
 | Protected ranges | DP/CtrlRAM/General Replace | Header, customer info, TP CRC/header areas, and any no-touch regions must be explicit. |
-| Combiner postbuild command source | CtrlRAM Replace and TP-affecting General Replace | Prefer owner-approved postbuild and mmap references committed as documentation/reference evidence when they contain no firmware payload or secrets. |
-| FWConfig layout/version reference | postbuild category selection and UI traceability | Record Common FW version, FW/bar, and PID offsets from a reviewed source such as `ap_fwconfig.c`; commit only non-secret reference code with sanitized provenance and SHA-256 hash. |
+| Combiner postbuild command source | CtrlRAM Replace and TP-affecting General Replace | Review owner-approved private postbuild and memory-map evidence. Record its ID and SHA-256 in the [public confidential reference manifest](../references/confidential-references.json). |
+| FWConfig layout/version reference | postbuild category selection and UI traceability | Record Common FW version, FW/bar, and PID offsets from reviewed evidence identified as `common-fw-configuration-source` in the public manifest. Keep source bytes in the private asset repository. |
 | External tool identity | any processor stage | Exact version string, manifest id, executable hash, timeout, and argv shape. |
 | Golden fixtures or private golden manifest | promotion | Include input sizes/hashes, expected output hash, source provenance, and owner approval. |
 

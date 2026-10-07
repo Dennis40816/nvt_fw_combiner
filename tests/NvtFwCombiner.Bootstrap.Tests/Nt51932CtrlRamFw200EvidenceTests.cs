@@ -143,10 +143,34 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.Equal("not-registered", manifest.RootElement.GetProperty("runtimeIntegrationStatus").GetString());
         Assert.Equal("unverified; deferred to the v0.12.x integration", manifest.RootElement.GetProperty("inputContractStatus").GetString());
 
-        string batPath = RepositoryPaths.FromRepositoryRoot(
-            "docs", "references", "ic-flashmap", "postbuild", "PostbuildSetup_51932_2.0.0.bat");
-        Assert.Equal(PostbuildBatSha256, Hash(File.ReadAllBytes(batPath)));
-        AssertBatCommandOrder(File.ReadAllText(batPath));
+    }
+
+    /// <summary>The public inventory retains this independent reference identity.</summary>
+    [Fact]
+    public void PostbuildReferenceIdentityIsPinnedInPublicManifest()
+    {
+        string manifestPath = RepositoryPaths.FromRepositoryRoot(
+            "docs", "references", "confidential-references.json");
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        JsonElement entry = manifest.RootElement.GetProperty("entries")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("id").GetString() == "postbuild-nt51932-fw2.0.0");
+        Assert.Equal("postbuild-script", entry.GetProperty("kind").GetString());
+        Assert.Equal(PostbuildBatSha256, entry.GetProperty("sha256").GetString());
+        Assert.True(entry.GetProperty("sizeBytes").GetInt64() > 0);
+    }
+
+    /// <summary>Private evidence retains the owner script's command ordering.</summary>
+    [Fact]
+    public void PrivatePostbuildReferenceRetainsCommandOrder()
+    {
+        if (!ConfidentialReferenceTestData.IsConfigured)
+        {
+            Assert.Skip("confidential golden not executed");
+        }
+
+        byte[] bytes = ConfidentialReferenceTestData.ReadVerifiedBytes(PostbuildBatSha256);
+        AssertBatCommandOrder(System.Text.Encoding.UTF8.GetString(bytes));
     }
 
     /// <summary>Requested generic-cascade routing accepts display-only metadata variations.</summary>

@@ -1609,18 +1609,18 @@ NVT FW Combiner reference payload
 This directory contains human-review reference evidence and owner-approved golden fixtures shipped with the release package.
 
 Included:
-- docs/references/: flash-map, postbuild, flash-header, and provenance references.
+- docs/references/: public reference documentation and the confidential-reference manifest; private source material is resolved by SHA-256 in the private repository.
 - docs/architecture/: CtrlRAM postbuild investigation and IC workflow references.
 - golden/: 25 Direct Golden cases, three owner-certified input-only evidence cases, and twelve self-contained fact-scoped alias manifests; manifest.json maps short paths to canonical repository paths.
 
-Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
+Confidential reference source files, non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifested BIN files, generated firmware outputs, refcode, source trees, and test projects are not shipped here.
 "@ | Set-Content -LiteralPath (Join-Path $ReferenceDestination 'README.txt') -Encoding utf8NoBOM
 
     $ReferenceFiles = @(
         'docs/references/verification-report.md',
         'docs/references/tddi-flash-header.md',
         'docs/references/nvt-fwconfig-copy-validation.md',
-        'docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx',
+        'docs/references/confidential-references.json',
         'docs/architecture/ctrlram-postbuild-command-matrix.md',
         'docs/architecture/ctrlram-postbuild-investigation-reference.md',
         'docs/architecture/ctrlram-postbuild-original-pasteback.md',
@@ -1631,7 +1631,7 @@ Non-allowlisted private firmware, diagnostics, owner-handoff records, unmanifest
         Copy-PackageFile -RelativePath $ReferenceFile -DestinationRoot $ReferenceDestination
     }
 
-    Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.bat', '.h', '.json', '.md', '.xlsx')
+    Copy-PackageReferenceTree -RelativeRoot 'docs/references/ic-flashmap' -AllowedExtensions @('.json', '.md')
 
     $CanonicalGoldenPaths = Get-DeclaredCanonicalGoldenPaths
     foreach ($GoldenFile in $script:CanonicalGoldenPackageFiles) {
@@ -1670,7 +1670,7 @@ Contents:
 - RELEASE-MANIFEST.json: source and file integrity metadata
 - SHA256SUMS.txt: package file hashes
 
-This exact release selection includes 25 Direct Golden cases, three selected owner-certified input-only evidence cases, and twelve self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/golden. Its manifest.json maps short case keys and each packaged file to canonical repository paths. Input-only cases retain all declared input BINs for manual package testing; neither these cases nor their aliases claim an expected output, Direct Golden status, parity, a runtime path, or support promotion. Eleven Direct Goldens use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Diagnostics, owner handoff records, CJK14/HackMD transfer material, archives, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. The packaged BAT and CONFIG provenance are inert reference bytes only and are never tools, processors, or commands. Packaging reference evidence does not promote runtime support.
+This exact release selection includes 25 Direct Golden cases, three selected owner-certified input-only evidence cases, and twelve self-contained evidence aliases across Standard Merge, AB Merge, and CtrlRAM Replace under reference/golden. Its manifest.json maps short case keys and each packaged file to canonical repository paths. Input-only cases retain all declared input BINs for manual package testing; neither these cases nor their aliases claim an expected output, Direct Golden status, parity, a runtime path, or support promotion. Eleven Direct Goldens use full-output comparison; fourteen retain their reviewed allowed-byte-difference scope. Diagnostics, owner handoff records, CJK14/HackMD transfer material, archives, private or quarantine evidence, unmanifested BIN files, generated firmware outputs, refcode, production source tree, test projects, editable source profiles, Python runtime installation, and .NET installation requirements are excluded. Confidential reference source files are excluded; their public manifest identifies private evidence by SHA-256. Packaged CONFIG provenance is inert reference data and is never a tool, processor, or command. Packaging reference evidence does not promote runtime support.
 "@ | Set-Content -LiteralPath (Join-Path $PackageRoot 'README.txt') -Encoding utf8NoBOM
 
 $AppHash = Get-LowerSha256 -Path $AppExe

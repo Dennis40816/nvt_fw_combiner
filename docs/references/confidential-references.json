@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "common-fw-configuration-source",
+      "sizeBytes": 84096,
+      "sha256": "32414f3ad6123936a854ae084b5aad17cf81497cb15fcccc1536550f0b98634c",
+      "kind": "firmware-source"
+    },
+    {
+      "id": "mmap-nt51920-fw1.3.1",
+      "sizeBytes": 10651,
+      "sha256": "40ad1e6a1204a778e8c6d9fd98d5e33bd9604ea8512221db17f99ae140502e64",
+      "kind": "mmap-header"
+    },
+    {
+      "id": "mmap-nt51923-fw1.4.1",
+      "sizeBytes": 13690,
+      "sha256": "36be90014bb55be683b25cb43f7f59e33f48345aba44aec54339a385ee0d7b9e",
+      "kind": "mmap-header"
+    },
+    {
+      "id": "mmap-nt51926-fw2.0.0",
+      "sizeBytes": 17399,
+      "sha256": "1213c224a86c440813d4d06026755537b0365a2cba96687c0f766de3d336e127",
+      "kind": "mmap-header"
+    },
+    {
+      "id": "mmap-nt51927-fw1.4.1",
+      "sizeBytes": 12264,
+      "sha256": "92327782d044892289c96ecc7e6be6fadd23f09467e9dd62f9f9ee5752ce6ec7",
+      "kind": "mmap-header"
+    },
+    {
+      "id": "mmap-nt51929-nt51932-fw2.0.0",
+      "sizeBytes": 17168,
+      "sha256": "945a5e5414e3779f52d5b7943ad734fa3d623810791ea352a2cd4c6ea9295c04",
+      "kind": "mmap-header"
+    },
+    {
+      "id": "mmap-nt51930-fw2.0.0",
+      "sizeBytes": 15798,
+      "sha256": "10f507ec06c1676cee5396436b00f4d08d6b80c3badcaff61343bbbca9e3096d",
+      "kind": "mmap-header"
+    },
+    {
+      "id": "mmap-nt51931-fw1.3.0",
+      "sizeBytes": 9775,
+      "sha256": "40ff51fac8ff65f1fc4d3cc2af3a144e0c4c9fe9146f24f5f4051f82e89ce41e",
+      "kind": "mmap-header"
+    },
+    {
+      "id": "mmap-nt51950-fw2.0.0",
+      "sizeBytes": 16514,
+      "sha256": "74470ec5df89cc55a50eb175712c8927dc5b89c4b4b45133d1ae18890d3c84a2",
+      "kind": "mmap-header"
+    },
+    {
+      "id": "mmap-overview",
+      "sizeBytes": 17428,
+      "sha256": "b73b7f93995e3a3d58a55375abd895c48a587762dcced9c8b5de5d24e2e4e31b",
+      "kind": "mmap-header"
+    },
+    {
+      "id": "postbuild-nt51920-fw1.3.1",
+      "sizeBytes": 3156,
+      "sha256": "828081d0155a72c9c72d672418a416be297615c524a2fc26ed830da6bc1c3cd2",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "postbuild-nt51923-fw1.4.1",
+      "sizeBytes": 2819,
+      "sha256": "0fd65bf624a27ccae7fbcb5e30d89b19c6d874e3e3daafabe8aa4f8fce73bf56",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "postbuild-nt51926-fw1.4.1",
+      "sizeBytes": 2784,
+      "sha256": "8d2021669e51f9e837e69ef6864aa9b6203674ebbe6394d39f5f81f1a0d2de3d",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "postbuild-nt51926-fw2.0.0",
+      "sizeBytes": 6161,
+      "sha256": "1dedb0d2c7025bdc2b44195210f2224e80c8df8b6f630ebbdcaeda48905e3c51",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "postbuild-nt51927-fw1.4.1",
+      "sizeBytes": 7077,
+      "sha256": "c6580f4f2f4b3af43a7595cc069cf7c8d95d2213f1d0f551c36973b7e254aaee",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "postbuild-nt51930-fw1.4.0",
+      "sizeBytes": 5421,
+      "sha256": "7641ef3b25442d31048d1831714f822a225d9f40875ab059c5b6cb669ead2b08",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "postbuild-nt51930-fw2.0.0",
+      "sizeBytes": 7151,
+      "sha256": "46e6b30a046d6649a5e820d634fd723843e50723b405078a72e35c72eb843771",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "postbuild-nt51931-fw1.3.0",
+      "sizeBytes": 4080,
+      "sha256": "ff6122efbc109b45540947a93176f7d292b19731bf1b5336c3d7deb0fad6a5eb",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "postbuild-nt51932-fw2.0.0",
+      "sizeBytes": 5669,
+      "sha256": "9b570db204df0849f9962f09f9800e6e442a86d38d6dacd0988b32e18f0a514f",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "postbuild-nt51950-fw2.0.0",
+      "sizeBytes": 5676,
+      "sha256": "676b2e0d4178731034a0e8b118e9ad514b9beadf7094c5f9a6ee56ea784318a0",
+      "kind": "postbuild-script"
+    },
+    {
+      "id": "tddi-flash-header-source",
+      "sizeBytes": 33754,
+      "sha256": "b178267649dc030c67ceb98552270fe08e9508011dd69958ea3004f3d13298f7",
+      "kind": "flash-header"
+    },
+    {
+      "id": "tddi-flash-header-sheet",
+      "sizeBytes": 316493,
+      "sha256": "930fb3e9a3cd652ab493817fc02006bcf4046a5b648b2fd32494c42ff4174fa4",
+      "kind": "flash-header"
+    },
+    {
+      "id": "flashmap-2026-07-01",
+      "sizeBytes": 208075,
+      "sha256": "daf5e56a3d5f8ea343ee4605304881a41764be3fc8171d92947449f22b135e44",
+      "kind": "flash-map"
+    },
+    {
+      "id": "flashmap-2026-07-25",
+      "sizeBytes": 214631,
+      "sha256": "07a77229d6c88441f101f19d9703ddcaef04c5a7463b56fc189a1a626a9cc839",
+      "kind": "flash-map"
+    },
+    {
+      "id": "flashmap-2026-07-30",
+      "sizeBytes": 217063,
+      "sha256": "94e9191b5b3ed48be15d408816f9217ac47d167d6c114435a0bf5a66f210c618",
+      "kind": "flash-map"
+    },
+    {
+      "id": "flashmap-2026-09-22",
+      "sizeBytes": 205832,
+      "sha256": "1bb37e8cf0c5826b5ea5e08d95b323cc740862f1a17b5d7ff4b37e18bf806350",
+      "kind": "flash-map"
+    },
+    {
+      "id": "golden-provenance-nt51951-ctrlram-fw2.0.0",
+      "sizeBytes": 5676,
+      "sha256": "676b2e0d4178731034a0e8b118e9ad514b9beadf7094c5f9a6ee56ea784318a0",
+      "kind": "postbuild-script"
+    }
+  ]
+}
