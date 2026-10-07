@@ -26,7 +26,7 @@ Earlier dated checkpoints below remain history, not open release gates.
 
 ### Owner version-line decision — 2026-10-07
 
-The owner decided the `1.3.x` line on 2026-10-07 (board decisions 332 to 340 on the
+The owner decided the `1.3.x` line on 2026-10-07 (board decisions 332 to 341 on the
 [`1.3.x` board](../handoff/1.3.x.md#owner-decisions)). The board owns the handoff order, each item's branch and
 base, and the contents of the `1.2.2` and `1.3.0` release branches. This subsection owns the version rules.
 It supersedes the version assignments for `1.2.2` to `1.2.14` and for `1.3.0` to `1.3.3` in the table below.
@@ -34,7 +34,9 @@ Those rows stay as history.
 
 Lines:
 
-- `1.2.x` takes Core-free hotfixes only. `1.2.2` is cut from `v1.2.1` and ships as usual (decision 337).
+- `1.2.x` takes Core-free hotfixes only. `1.2.2` is cut from `v1.2.1` and ships as usual (decision 337). The
+  comparison report of record still gates `1.2.2` and every later release (decisions 249 to 251 and 337); only the
+  old `1.2.2` row's content allocation is superseded.
 - `1.3.0` is the release branch cut from the `1.3.x` trunk at `6b3390e72`. It holds the 214 unreleased `1.2.x`
   trunk commits, license bridge step 1 (#574), the items the board lists for it, and `1.2.2` merged back. It has
   no Core and stays MIT. NFC supports NT51925 from `1.3.0` on (decision 340).
@@ -46,8 +48,8 @@ Version rules (decision 336):
 
 - Only a customer release gets a formal `v*` tag and a GitHub Release. Its number is chosen when it is released.
 - Customer version numbers stay contiguous. The minor number goes up only after many features have accumulated.
-- Each completed handoff item on the trunk gets an internal tag `dev/1.3.x/<NN>-<ID>`, with no Release and no
-  Launcher delivery.
+- The trunk gets one internal tag per handoff group when the whole group has merged, for example
+  `dev/1.3.x/g1-core-adoption` (decision 341). Internal tags get no Release and no Launcher delivery.
 - A customer who skipped versions can still update. The updater installs `1.3.0` first when the license bridge
   needs it. Saved Rules and settings migrate from every customer version. The customer notes list every change
   since the customer's version.

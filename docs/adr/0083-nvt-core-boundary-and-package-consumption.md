@@ -14,7 +14,7 @@
 
 NFC, NFH and NFU contain the same mechanisms, for example startup tracing, bounded file reads, process
 execution, the launcher, the message center and the shell. The owner decided to move these mechanisms into
-the shared NVT Core repository by 2026-10-18 (decision 322). NFC adopts them in the next 1.2.x patch.
+the shared NVT Core repository by 2026-10-18 (decision 322). NFC adopts them in the next 1.2.x patch (superseded 2026-10-07; see the dated update at the end).
 
 Each move changes who owns code, which way dependencies point and how NFC builds. NFC's adoption pull
 requests need one boundary, one dependency rule and one package contract to follow. This ADR records them.
