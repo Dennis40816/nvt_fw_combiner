@@ -231,12 +231,13 @@ The manifest and the shared script are R3 with `release-owner` and `governance-o
 This pull request adds only the delivery mechanism. The first module adoption pull request adds the pins,
 lock entries, `THIRD_PARTY_NOTICES.md` and the release license copy.
 
-### 2026-10-07: first Core adoption targets 1.3.1
+### 2026-10-07: Core adoption on the 1.3.x trunk
 
-The owner decided on 2026-10-07, relayed by the Commander session:
-- NFC's first Core adoption targets `1.3.1`, together with license bridge step 2 (decision 327).
-- The `1.2.x` line stays Core-free. It carries hotfixes only.
-- Core work lands first on `feature/1.3.1/core-integration`. That branch merges into the `1.3.x` trunk after the `1.3.0` release branch is cut.
+The owner decided on 2026-10-07, relayed by the Commander session (board decisions 332, 333 and 335):
+- The `1.2.x` line stays Core-free. It carries hotfixes only. The `1.3.0` release branch has no Core.
+- After `1.3.0`, Core adoption pull requests merge into the `1.3.x` trunk together with feature pull requests,
+  in the board's handoff order. Each adoption pull request is small and starts with zero visible change.
+- The first customer release with Core also does license bridge step 2 (decision 327).
 
-The [roadmap](../architecture/nfc_roadmap.md#owner-version-line-decision--2026-10-07) and the
-[`1.3.x` board](../handoff/1.3.x.md) record the version table.
+The [roadmap](../architecture/nfc_roadmap.md#owner-version-line-decision--2026-10-07) holds the version rules, and
+the [`1.3.x` board](../handoff/1.3.x.md) holds the handoff order.

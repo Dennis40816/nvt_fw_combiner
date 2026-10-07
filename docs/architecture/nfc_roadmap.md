@@ -26,29 +26,35 @@ Earlier dated checkpoints below remain history, not open release gates.
 
 ### Owner version-line decision — 2026-10-07
 
-The owner moved the planned progress to the `1.3.x` line. The `1.2.x` line now carries
-Core-free hotfixes only. The owner's words at 15:3x, before choosing `1.3.x` at 15:5x: 「我是覺得將目前規劃的進度往後移動到 1.3.x 或著 1.4.x , 1.2.2 留給還沒有 core 的 hotfix」.
-The 214 unreleased `1.2.x` trunk commits ship directly as `1.3.0`. The `1.3.x` line then adds
-the Core integration. The [`1.3.x` board](../handoff/1.3.x.md) owns the detail.
-This subsection supersedes the earlier version assignments for `1.2.2` to `1.2.12` and for
-`1.3.0` to `1.3.3` in the table below. Those rows stay as history.
+The owner decided the `1.3.x` line on 2026-10-07 (board decisions 332 to 340 on the
+[`1.3.x` board](../handoff/1.3.x.md#owner-decisions)). The board owns the handoff order, each item's branch and
+base, and the contents of the `1.2.2` and `1.3.0` release branches. This subsection owns the version rules.
+It supersedes the version assignments for `1.2.2` to `1.2.14` and for `1.3.0` to `1.3.3` in the table below.
+Those rows stay as history.
 
-| Version | Content |
-| --- | --- |
-| **1.2.2** | Core-free hotfix, branch `1.2.2` cut from `v1.2.1`. It holds the NT51925 restoration as a candidate (pull request #582), the confidential-reference move (stage A3) and necessary fixes. Later hotfixes are cut from the previous release tag. |
-| **1.3.0** | Trunk `1.3.x`, created from the `1.2.x` tip. It holds the unreleased trunk work, `1.2.2` merged back, the confidential-reference move (stage A2), license bridge step 1 (#574) and Q13 (CLI `--confirm`). The license stays MIT. It has no Core. |
-| **1.3.1** | License bridge step 2 and the first Core integration batch: #581 read-only RuntimeQuery commands, the package-closure allowlist test and the Core entries in `THIRD_PARTY_NOTICES.md`. Core work lands first on `feature/1.3.1/core-integration`. |
-| **1.3.2** | Q12a-2 (16 new startup options), Q12c (generic RuntimeQuery commands and named pipe) and the first utility adoption. |
-| **1.3.3 onward** | The decision 224 features (General Merge authoring, saved rules, maintainer rule UI), interleaved with Launcher adoption. The owner decides the order. |
+Lines:
 
-- The license bridge step 1 (#574) is not added to `1.2.2`. It ships in `1.3.0`.
-- The `1.3.1` release notes and a Launcher prompt must tell users who never installed
-  `1.3.0` to update to `1.3.0` first. For example: "Update to 1.3.0 first."
-- No waiting period separates `1.3.0` and `1.3.1`.
-- The feature list for `1.3.3` onward goes to the owner before `1.3.0` ships.
-- This decision does not yet assign the other items of `1.2.3` to `1.2.14`.
-  The owner decides where they go.
-- Branch names `1.3.x` (trunk) and `feature/1.3.1/core-integration` are approved. `1.2.x` is kept.
+- `1.2.x` takes Core-free hotfixes only. `1.2.2` is cut from `v1.2.1` and ships as usual (decision 337).
+- `1.3.0` is the release branch cut from the `1.3.x` trunk at `6b3390e72`. It holds the 214 unreleased `1.2.x`
+  trunk commits, license bridge step 1 (#574), the items the board lists for it, and `1.2.2` merged back. It has
+  no Core and stays MIT. NFC supports NT51925 from `1.3.0` on (decision 340).
+- After `1.3.0`, the `1.3.x` trunk takes features and Core adoption together, in the board's handoff order
+  (decision 335). The trunk stays releasable: Core adoption pull requests are small and start with zero visible
+  change, and an unconfirmed visible change stays behind a switch that is off by default.
+
+Version rules (decision 336):
+
+- Only a customer release gets a formal `v*` tag and a GitHub Release. Its number is chosen when it is released.
+- Customer version numbers stay contiguous. The minor number goes up only after many features have accumulated.
+- Each completed handoff item on the trunk gets an internal tag `dev/1.3.x/<NN>-<ID>`, with no Release and no
+  Launcher delivery.
+- A customer who skipped versions can still update. The updater installs `1.3.0` first when the license bridge
+  needs it. Saved Rules and settings migrate from every customer version. The customer notes list every change
+  since the customer's version.
+- The first customer release with Core also does license bridge step 2 (decision 333). Its notes and a Launcher
+  prompt tell users who never installed `1.3.0` to update to `1.3.0` first.
+- For Core 1.0.0, NFC counts when the `1.3.x` trunk uses Core and the owner has confirmed its screens in a
+  development build (decision 335).
 - The template-repository sync of decision 223 still follows the `v1.3.0` publication.
 
 ### Owner allocation after the 1.2.0 release — 2026-09-30
@@ -444,8 +450,8 @@ Release preparation is now authorized. Exact-head firmware-owner evidence,
 protected review/CI and candidate publication gates remain required.
 
 From 2026-10-06 to 2026-10-18, NVT Core work comes first ([board decision 322](../handoff/1.2.x.md)). The
-`1.2.x` targets below pause during that time, except urgent fixes. The next `1.2.x` patch adopts the Core modules
-with zero difference (decision 323). Some targets overlap with the Core modules, for example the launcher, the
+targets below pause during that time, except urgent fixes. Decision 323's zero-difference Core adoption now happens
+on the `1.3.x` trunk after `1.3.0` (decision 335), not in a `1.2.x` patch. Some targets overlap with the Core modules, for example the launcher, the
 shared visuals and the Message Center. Their scope and order are reviewed when the pause ends.
 
 | Target | Bounded outcome and dependency |
@@ -473,8 +479,8 @@ shared visuals and the Message Center. Their scope and order are reviewed when t
 | `1.2.10` | **Superseded 2026-10-07 by the [version-line decision](#owner-version-line-decision--2026-10-07).** **Native accessibility and notifications**: DPI, high contrast, screen reader, System activity and toasts, with Report and Message Center visual and interaction consistency (decision 173); the high-contrast acceptance includes the Memory Layout legend's non-colour cue (decisions 189 and 196), and the inspection panel becomes hideable (decisions 205 and 212). |
 | `1.2.11` | **Superseded 2026-10-07 by the [version-line decision](#owner-version-line-decision--2026-10-07).** **CI closure and test structure**: shared Release build and UiSmoke partition, T4b required-check activation after the shadow window, .NET lane regrouping, split pilots and mechanical splits, the CI core-shard H2 (decision 181), and the closure of the Avalonia off-session / headless stall (R34, decision 295). |
 | `1.2.12` | **Superseded 2026-10-07 by the [version-line decision](#owner-version-line-decision--2026-10-07).** **Conditional performance and cleanup**: F14/F15 and CtrlRAM cold first-open only with demonstrated value; the F13 helper; documentation reconciliation (R25-03 to R25-05) and proven-unused cleanup against a remeasured analyzer baseline. Home startup optimization stays delivered in `1.1.12`; do not claim a new ten-minute result. R25-01/02 move to `1.2.13` (decision 188). A native first-readable measurement of Memory Layout card opening decides whether that needs work (decisions 189 and 219). |
-| `1.2.13` | **Launcher completion** (decision 188, main case): the final candidate closes publisher-content integrity (A2), controlled preproduction on the same share plus a staging Registry with a diagnostic override canary client (A3), the full clean-Windows candidate rerun for the normal and fault paths (A4/A5), cold-health acceptance (A6), the Catalog/package HTTPS requirement (F14), the final publisher-trust re-confirmation and release/security-owner GO (A7), and closing the SPEC/handoff/active-TODO alignment (A8, moved from `1.2.12`). No GO ships with a known defect; see `1.2.14`. |
-| `1.2.14` | **Launcher repair reserve** (decision 188, conditional): opens only if `1.2.13`'s final gates (A4-A7) find a defect that must close before GO; scope and weight are set from the finding when it occurs (fix, re-verification, and any carried-over `1.2.13` work), and the affected gates rerun on the refrozen candidate. |
+| `1.2.13` | **Superseded 2026-10-07 by the [version-line decision](#owner-version-line-decision--2026-10-07).** **Launcher completion** (decision 188, main case): the final candidate closes publisher-content integrity (A2), controlled preproduction on the same share plus a staging Registry with a diagnostic override canary client (A3), the full clean-Windows candidate rerun for the normal and fault paths (A4/A5), cold-health acceptance (A6), the Catalog/package HTTPS requirement (F14), the final publisher-trust re-confirmation and release/security-owner GO (A7), and closing the SPEC/handoff/active-TODO alignment (A8, moved from `1.2.12`). No GO ships with a known defect; see `1.2.14`. |
+| `1.2.14` | **Superseded 2026-10-07 by the [version-line decision](#owner-version-line-decision--2026-10-07).** **Launcher repair reserve** (decision 188, conditional): opens only if `1.2.13`'s final gates (A4-A7) find a defect that must close before GO; scope and weight are set from the finding when it occurs (fix, re-verification, and any carried-over `1.2.13` work), and the affected gates rerun on the refrozen candidate. |
 | `1.3.0` | **Superseded 2026-10-07 by the [version-line decision](#owner-version-line-decision--2026-10-07).** **User release after all `1.2.x` development** (decision 224): the product source of the last `1.2.x` version with its version identity and release notes that name every `1.2.x` change, as `1.2.0` was for `1.1.x`; each `1.2.x` version is still published through the full release process. A hotfix needed on the way is released on its own. After `v1.3.0` is published, the commander syncs the folder structure and settings it considers best, combining local disk-space management with the development and release workflow, to a GitHub template repository for later projects (decision 223). |
 | `1.3.1` | **Superseded 2026-10-07 by the [version-line decision](#owner-version-line-decision--2026-10-07).** **General Merge authoring** through existing typed mappings/compiler/executor (moved from `1.3.0` by decision 224). |
 | `1.3.2` | **Superseded 2026-10-07 by the [version-line decision](#owner-version-line-decision--2026-10-07).** **Saved/custom rules**: edit, persistence, import and validation after the General contracts settle. Distinct from the narrow Settings marker editor. General Replace authoring, previously planned here, is dropped (decision 230). |
