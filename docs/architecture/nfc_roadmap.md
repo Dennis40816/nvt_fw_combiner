@@ -61,8 +61,8 @@ Version rules (decision 336):
 - A customer who skipped versions can still update. The updater installs a required intermediate version first.
   Since decision 342, `1.2.2` carries license bridge step 1, so the license bridge itself needs no `1.3.0`-first step. Saved Rules and settings migrate from every customer version. The customer notes list every change
   since the customer's version.
-- The first customer release with Core also does license bridge step 2 (decision 333). Its notes and a Launcher
-  prompt tell users who never installed `1.3.0` to update to `1.3.0` first.
+- The first customer release with Core also does license bridge step 2 (decision 333). It has no "update to
+  `1.3.0` first" prompt (decision 344); the updater installs an intermediate version only when a migration needs it.
 - For Core 1.0.0, NFC counts when the `1.3.x` trunk uses Core and the owner has confirmed its screens in a
   development build (decision 335).
 - The template-repository sync of decision 223 still follows the `v1.3.0` publication.
