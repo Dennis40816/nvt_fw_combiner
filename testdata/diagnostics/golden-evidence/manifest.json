@@ -27,7 +27,7 @@
   "ownerHandoff": {
     "root": "testdata/golden/owner-handoff",
     "fileCount": 65,
-    "treeSha256": "e8c115ef0ded8dfe0bf1466305767c5e72a83793c35308cda0d173c6c0e23d69",
+    "treeSha256": "aa50318f58052831de12baeb3e4b04b9949c7fc791be12dc8736e8c29e1dfb8a",
     "binaryPayloadsIncluded": false
   },
   "exclusions": [
