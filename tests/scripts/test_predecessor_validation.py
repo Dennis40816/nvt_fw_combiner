@@ -239,6 +239,7 @@ def rolling_world() -> dict[str, Any]:
         },
         "ledgerSha256": "c" * 64,
         "declarationSha256": "d" * 64,
+        "publishedInventory": {"rawSha256": "e" * 64, "factsSha256": "f" * 64},
         "scenarios": scenarios,
         "coverage": {
             "universe": len(universe),
@@ -270,6 +271,7 @@ def rolling_world() -> dict[str, Any]:
         contracts={"docs/contracts/predecessor-comparison-v1.json": "b" * 64},
         ledger_sha256="c" * 64,
         declaration_sha256="d" * 64,
+        published_inventory=report["publishedInventory"],
     )
     return {
         "report": report,
@@ -312,6 +314,26 @@ def entry_for(world: dict[str, Any], name: str) -> dict[str, Any]:
 
 class RollingValidationTests(unittest.TestCase):
     """Each rolling rule on a fresh valid world: the valid world passes, one change fails its rule."""
+
+    def test_process_start_failure_cannot_be_approved_as_a_rejection(self) -> None:
+        world = rolling_world()
+        self.assertEqual([], rolling_failures(world))
+        row = scenario(world, "rejects")
+        row["baseline"]["issues"][0]["code"] = "external-tool.process.start-failed"
+        entry_for(world, "rejects")["expected"]["baseline"] = validation.declared_side(row["baseline"])
+        self.assertIn("PREDECESSOR_PROCESS_FAILED", codes(rolling_failures(world)))
+        self.assertEqual("blocked", validation.rolling_gate(rolling_failures(world))["result"])
+
+    def test_process_failures_at_any_severity_block_output_sides(self) -> None:
+        for code in validation.PROCESS_FAILURE_ISSUE_CODES:
+            for severity in ("error", "warning", "info", "unspecified"):
+                with self.subTest(code=code, severity=severity):
+                    world = rolling_world()
+                    self.assertEqual([], rolling_failures(world))
+                    scenario(world, "equal")["candidate"]["issues"] = [
+                        {"code": code, "severity": severity, "source": "report"}
+                    ]
+                    self.assertIn("PREDECESSOR_PROCESS_FAILED", codes(rolling_failures(world)))
 
     def assert_each_mutation_fails(self, cases: dict[str, tuple[Callable[[dict[str, Any]], None], str, str]]) -> None:
         for label, (mutate, code, fragment) in cases.items():
@@ -838,7 +860,7 @@ def v0916_world() -> dict[str, Any]:
                 },
                 dispositionRow={"source": row.row_source, "member": row.row_member, "routeId": row.route_id},
             )
-            evidence[row.route_id] = validation.V0916RouteEvidence({"precursor": None})
+            evidence[row.route_id] = validation.V0916RouteEvidence({"precursor": None}, binding=dict(row.row["binding"]))
         routes.append(route)
     report = {
         "routes": routes,
@@ -882,6 +904,116 @@ def independent_exact_route(world: dict[str, Any]) -> dict[str, Any]:
 
 class V0916ModeValidationTests(unittest.TestCase):
     """The v0.9.16 1.x mode on a fresh valid report: each change fails its own rule."""
+
+    def test_consistent_correction_with_missing_baseline_returns_failure(self) -> None:
+        world = v0916_world()
+        self.assertEqual([], v0916_failures(world))
+        route = route_of(world, "exact-output-with-approved-semantic-correction")
+        route["baseline"] = None
+        failures = v0916_failures(world)
+        self.assertIn("PREDECESSOR_AMENDMENT_MISMATCH", codes(failures))
+        self.assertTrue(any(item.subject == route["planRouteId"] and
+                            item.detail == "baselineOutput does not reproduce the approved row" for item in failures))
+
+    def test_formal_v0916_report_requires_milestone(self) -> None:
+        world = v0916_world()
+        world["report"].update(formal=True, milestone="1.2.0-release-approval")
+        self.assertEqual([], v0916_failures(world))
+        world["report"]["milestone"] = None
+        self.assertIn("PREDECESSOR_INPUT_INVALID", codes(v0916_failures(world)))
+
+    def test_consistent_exact_output_with_typed_rejection_is_unapproved(self) -> None:
+        world = v0916_world()
+        self.assertEqual([], v0916_failures(world))
+        route = independent_exact_route(world)
+        route["candidate"] = rejected_side()
+        world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({})
+        self.assertEqual({"PREDECESSOR_UNAPPROVED_DIFFERENCE"}, codes(v0916_failures(world)))
+
+    def test_not_applicable_requires_canonical_binding_evidence(self) -> None:
+        for missing in ("binding", "evidence"):
+            with self.subTest(missing=missing):
+                world = v0916_world()
+                route = route_of(world, "canonical-binding-not-applicable-to-v0916")
+                disposition = next(item for item in world["dispositions"] if item.route_id == route["planRouteId"])
+                evidence = world["evidence"][disposition.route_id]
+                self.assertEqual([], v0916_failures(world))
+                world["evidence"][disposition.route_id] = evidence._replace(binding=None) if missing == "binding" else None
+                self.assertIn("PREDECESSOR_AMENDMENT_MISMATCH", codes(v0916_failures(world)))
+                verdict = validation.v0916_route_verdict(
+                    route, disposition, world["evidence"][disposition.route_id],
+                    {item["planRouteId"]: item for item in world["report"]["routes"]},
+                )
+                self.assertEqual("inconsistent", verdict.result)
+                self.assertEqual("PREDECESSOR_AMENDMENT_MISMATCH", verdict.failure_code)
+                if missing == "binding":
+                    route.update(result=verdict.result, failureCode=verdict.failure_code)
+                    recount(world)
+                    self.assertEqual([], v0916_failures(world))
+
+    def test_consistent_report_requires_a_compared_route_when_plan_is_all_unbound(self) -> None:
+        plan, amendment = copy.deepcopy(Sources.plan), copy.deepcopy(Sources.amendment)
+        selected = validation.plan_selected_routes(plan, Sources.pinned_policy)
+        plan["canonicalInputAuthority"]["currentlyMissingRouteIds"] = [item["routeId"] for item in selected]
+        plan["transitiveRoutes"] = []
+        plan["approvedSemanticCorrections"] = []
+        amendment["approvedSemanticCorrections"] = []
+        amendment["baselineNotApplicable"] = []
+        dispositions, failures = validation.v0916_route_dispositions(plan, amendment, Sources.pinned_policy)
+        self.assertEqual([], failures)
+        self.assertTrue(dispositions)
+        self.assertTrue(all(item.proof_kind == "not-covered" for item in dispositions))
+        routes = [{"planRouteId": item.route_id, "planCapabilityFingerprint": item.capability_fingerprint,
+                   "proofKind": item.proof_kind, "result": "not-covered", "dispositionRow": None,
+                   "baseline": None, "candidate": None, "comparison": None, "transitive": None,
+                   "failureCode": None} for item in dispositions]
+        report = {"routes": routes, "summary": validation.v0916_summary(["not-covered"] * len(routes)),
+                  "result": "consistent", "planBinding": validation.v0916_plan_binding(plan)}
+        found = validation.v0916_report_failures(report, dispositions, {}, plan=plan)
+        self.assertEqual({"PREDECESSOR_REPORT_INVALID"}, codes(found))
+        self.assertTrue(any(item.subject == "result" and "compared route" in item.detail for item in found))
+
+    def test_nontransitive_invalid_side_requires_invalid_route(self) -> None:
+        for result in ("consistent", "inconsistent"):
+            with self.subTest(result=result):
+                world = v0916_world()
+                route = independent_exact_route(world)
+                route["candidate"] = {**rejected_side(), "status": "invalid"}
+                route.update(result=result, failureCode="PREDECESSOR_PROCESS_FAILED")
+                recount(world)
+                self.assertIn("PREDECESSOR_REPORT_INVALID", codes(v0916_failures(world)))
+
+    def test_start_failure_is_not_a_consistent_output_or_approved_rejection(self) -> None:
+        for proof_kind, side_name in (("exact-output", "candidate"), ("canonical-binding-not-applicable-to-v0916", "baseline")):
+            with self.subTest(proof_kind=proof_kind):
+                world = v0916_world()
+                self.assertEqual([], v0916_failures(world))
+                route_of(world, proof_kind)[side_name]["issues"][0]["code"] = "external-tool.process.start-failed"
+                self.assertIn("PREDECESSOR_PROCESS_FAILED", codes(v0916_failures(world)))
+
+    def test_invalid_side_faithfully_reports_its_process_failure(self) -> None:
+        """The guard is for sides offered as product results; an invalid side reporting its failure stays valid."""
+
+        for code in sorted(validation.PROCESS_FAILURE_ISSUE_CODES):
+            with self.subTest(code=code):
+                world = v0916_world()
+                route = independent_exact_route(world)
+                failed = {**rejected_side(), "status": "invalid",
+                          "issues": [{"code": code, "severity": "error", "source": "report"}]}
+                route.update(candidate=failed, result="invalid", failureCode="PREDECESSOR_PROCESS_FAILED")
+                world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({})
+                recount(world)
+                self.assertEqual([], v0916_failures(world))
+
+    def test_runnable_transitive_proof_cannot_be_missing_even_on_invalid_route(self) -> None:
+        world = v0916_world()
+        self.assertEqual([], v0916_failures(world))
+        route = route_of(world, "tp-prefix-transitive")
+        route.update(result="invalid", failureCode="PREDECESSOR_REPORT_INVALID", transitive=None)
+        world["evidence"][route["planRouteId"]] = validation.V0916RouteEvidence({})
+        found = v0916_failures(world)
+        self.assertIn("PREDECESSOR_REPORT_INVALID", codes(found))
+        self.assertTrue(any(failure.detail == "transitive evidence is missing" for failure in found))
 
     def test_amendment_binds_the_plan(self) -> None:
         self.assertEqual([], validation.amendment_binding_failures(Sources.amendment, Sources.plan))
@@ -1236,6 +1368,65 @@ class V0916ModeValidationTests(unittest.TestCase):
         self.assertEqual("inconsistent", validation.v0916_result(["consistent", "inconsistent"]))
         self.assertEqual("invalid", validation.v0916_result(["inconsistent", "invalid"]))
 
+
+
+class DeterministicProjectionTests(unittest.TestCase):
+    def test_projection_removes_exactly_contract_paths_and_preserves_nulls_and_other_values(self):
+        fixture_root = ROOT / "tests/scripts/fixtures/predecessor-comparison"
+        report = load_json(fixture_root / "rolling-declared.json")
+        report["routes"] = load_json(fixture_root / "v0916-consistent.json")["routes"]
+        report["gate"]["failures"] = [{"code": "PREDECESSOR_REPORT_INVALID", "subject": "synthetic", "detail": "path"}]
+        report["failures"] = copy.deepcopy(report["gate"]["failures"])
+        report["publishedInventory"] = {"rawSha256": "a" * 64, "factsSha256": "b" * 64}
+        report["informational"] = {"size": 1, "sha256": "a" * 64, "timestamp": "unchanged", "detail": "retained"}
+        report["routes"].append({"baseline": None, "candidate": {"processes": [{"report": None}]}})
+        original = copy.deepcopy(report)
+        projection = validation.deterministic_digest_projection(report)
+        removed = set()
+
+        def compare(before, after, pointer=""):
+            if isinstance(before, dict):
+                self.assertEqual(set(), set(after) - set(before))
+                for key, value in before.items():
+                    child = pointer + "/" + key.replace("~", "~0").replace("/", "~1")
+                    if key not in after:
+                        removed.add(child)
+                    else:
+                        compare(value, after[key], child)
+            elif isinstance(before, list):
+                self.assertEqual(len(before), len(after))
+                for index, (left, right) in enumerate(zip(before, after)):
+                    compare(left, right, pointer + "/" + str(index))
+            else:
+                self.assertEqual(before, after, pointer)
+
+        compare(report, projection)
+        patterns = load_json(CONTRACTS / "predecessor-comparison-v1.json")["comparison"]["deterministicDigestExcludedPaths"]
+
+        def expand(value, parts, pointer=""):
+            if not parts:
+                return {pointer}
+            part, *rest = parts
+            if part == "*":
+                return set().union(*(expand(item, rest, pointer + "/" + str(index)) for index, item in enumerate(value)))
+            if not isinstance(value, dict) or part not in value:
+                return set()
+            return expand(value[part], rest, pointer + "/" + part)
+
+        expected = set().union(*(expand(report, path.split("/")[1:]) for path in patterns))
+        self.assertEqual(expected, removed)
+        self.assertEqual(report, original)
+        self.assertIsNone(projection["routes"][-1]["baseline"])
+        self.assertIsNone(projection["routes"][-1]["candidate"]["processes"][0]["report"])
+        # Every declared wildcard pattern is exercised by the combined full fixture.
+        self.assertEqual(len(patterns), len({"/".join("*" if part.isdigit() else part for part in path.split("/")) for path in removed}))
+
+    def test_completed_report_digest_validation_retains_semantic_values_in_both_modes(self):
+        for name in ("rolling-declared", "v0916-consistent"):
+            report = load_json(ROOT / "tests/scripts/fixtures/predecessor-comparison" / (name + ".json"))
+            self.assertEqual([], validation.deterministic_digest_failures(report))
+            report["candidate"]["executor"]["runtimeClosureSha256"] = "0" * 64
+            self.assertEqual("PREDECESSOR_REPORT_INVALID", validation.deterministic_digest_failures(report)[0].code)
 
 if __name__ == "__main__":
     unittest.main()

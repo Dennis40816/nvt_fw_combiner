@@ -70,7 +70,11 @@ decision are in the 1.1.13 WS-PARITY handoff.
    difference or a baseline rejection is acceptable only when an exact plan or
    [1.x amendment](../contracts/v0916-parity-1x-amendment-v1.md) row is
    reproduced exactly; no declaration is read. The result is `consistent`,
-   `inconsistent` or `invalid`, never `pass`.
+   `inconsistent` or `invalid`, never `pass`. The 1.2.0 release-approval milestone
+   was deferred by [1.1.12 board decision 201](../handoff/1.1.12.md) and must run
+   formally and consistently before the 1.2.2 release under
+   [1.2.x board decision 250](../handoff/1.2.x.md); candidate version 1.2.2
+   retains milestone `1.2.0-release-approval`.
 4. **Coverage ledger.** A committed
    [ledger](../contracts/predecessor-comparison-v1.md#universe-and-coverage-ledger)
    declares every rolling scenario with its pinned inputs, CLI selection and
@@ -126,7 +130,7 @@ decision are in the 1.1.13 WS-PARITY handoff.
     to v0.9.16 and is revisited at 2.0.0 (decision 62). A second v0.9.16
     executor contract is approved (decisions 63 and 79). The amendment rows
     are firmware-owner authority: they are admitted by their own R3 pull request
-    with the owner's exact-head firmware-owner approval (ADR 0080 item 7),
+    with the owner's exact-head firmware-owner and release-owner approval (ADR 0080 item 7),
     which the declaration's citation form does not replace.
 11. **ADR 0057 unchanged.** Its plan, schemas, workflow contract, three
     parity jobs, protected environment, terminal parser and 2.0.0 gate stay as
@@ -209,10 +213,29 @@ with its ledger and its proposed declaration and report schemas, and the
 
 ## Open items
 
-- The report reader rules and the revision of the proposed report and
-  declaration schemas (a separate pull request after the P-0.5 spike).
-- The second v0.9.16 executor contract and the compiler-host pinning of
-  decision 79 (a separate executor pull request after the P-0.5 spike).
+- Closed in `1.2.2`: the report reader rules and the revised report and
+  declaration schemas are in effect
+  ([contract](../contracts/predecessor-comparison-v1.md#report-reader-v1)).
+- Implemented locally in `1.2.2` part 2: [baseline executor v2](../contracts/v0916-baseline-executor-v2.md), amendment binding and host pinning (decisions 63 and 79). Both firmware-owner and release-owner review are required; R35-09 remains the real-build rehearsal.
 - A Draft 2020-12 validator for the comparator's Python runtime, or keeping
   schema validation in the .NET contract tests (P-2).
 - The owner's 1.1.13 approval of the 11 candidate routes as accepted gaps.
+
+## Executor-contract part 2 admission (1.2.2)
+
+R35-06: `feature/1.2.2/executor-contract`, base `83166051e`. Owner search found
+shared admission/materialization/process/closure acquisition in
+`scripts/predecessor_comparison.py`, pure semantic checks in
+`scripts/predecessor_validation.py`, snapshot/CLI callers in
+`scripts/predecessor_{rolling,v0916}.py`, and immutable terminal evidence in
+`scripts/v0916_parity_certification.py`. Disposition: `extend-owner` for shared
+execution, validation and loaders; `reuse` for ADR 0057 Git materialization
+and closure capture. The pure Python PDB probe acquires compiler metadata.
+Separate explicit lock policies retain 1.x unchanged and v0.9.16 exactly
+seven pinned rewrites; reports retain all original Git-blob locks.
+No terminal, product, profile or Golden semantics change.
+
+Local acceptance uses fake hosts, synthetic PE/PDB bytes, short/long TEMP,
+regenerated builder fixtures and Python/.NET contract cases. The commander
+runs .NET and actual-build rehearsal R35-09. Last-push R3 approval names both
+`firmware-owner` and `release-owner`.

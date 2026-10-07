@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nvt.local/contracts/predecessor-comparison-declaration-v1.schema.json",
-  "title": "NVT FW Combiner predecessor comparison release declaration (proposed)",
-  "$comment": "Proposed interface: revised with the report schema before any release commits a declaration. The schema holds only relations inside one declaration; its agreement with the ledger, the report, the CHANGELOG and the cited board decisions belongs to the comparator's single semantic validator and to review.",
+  "title": "NVT FW Combiner predecessor comparison release declaration (in effect)",
+  "$comment": "In effect under R35-02. The schema holds only relations inside one declaration; its agreement with the ledger, the report, the CHANGELOG and the cited board decisions belongs to the comparator's single semantic validator and to review. Accepted-gap approvals cover only their declared release; a renewal is a declared coverage change.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "kind", "candidateVersion", "baseline", "ledgerSha256", "entries"],
@@ -32,6 +32,7 @@
     "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
     "entryId": { "type": "string", "pattern": "^RP-(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)-[0-9]{2,}$" },
     "stage": { "enum": ["build", "precursor-build", "precursor-preview", "preview"] },
+    "processFailureIssueCode": { "enum": ["external-tool.process.failed", "external-tool.process.start-failed"] },
     "artifact": {
       "type": "object",
       "additionalProperties": false,
@@ -63,7 +64,7 @@
         "issueCodes": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
+          "items": { "type": "string", "minLength": 1, "not": { "$ref": "#/$defs/processFailureIssueCode" } }
         }
       },
       "allOf": [
