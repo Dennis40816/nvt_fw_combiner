@@ -330,7 +330,7 @@ class RollingValidationTests(unittest.TestCase):
         world = rolling_world()
         self.assertEqual([], rolling_failures(world))
         self.assertEqual({"result": "clear", "failures": []}, validation.rolling_gate(rolling_failures(world)))
-        self.assertEqual(11, sum(1 for row in world["declaration"]["entries"] if row["kind"] == "accepted-gap"))
+        self.assertEqual(20, sum(1 for row in world["declaration"]["entries"] if row["kind"] == "accepted-gap"))
         self.assertTrue(scenario(world, "plain")["comparison"]["rangesTruncated"])
 
     def test_report_covers_each_ledger_scenario_and_the_ledger_coverage(self) -> None:

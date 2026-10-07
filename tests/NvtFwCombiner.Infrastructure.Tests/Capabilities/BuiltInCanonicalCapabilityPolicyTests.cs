@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.23.0", policy.CatalogVersion);
+        Assert.Equal("1.24.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -85,7 +85,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 route.Publication.Value == CapabilityPublicationStatus.Supported),
         ];
 
-        Assert.Equal(85, policy.Routes.Count);
+        Assert.Equal(94, policy.Routes.Count);
         Assert.Equal(63, formalRoutes.Length);
         Assert.All(formalRoutes, static route =>
         {
@@ -98,7 +98,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 route.Publication.Value);
         });
         Assert.Equal(
-            85,
+            94,
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Available));
         Assert.Equal(
@@ -122,14 +122,17 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             .. policy.Routes.Where(static route =>
                 route.Publication.Value == CapabilityPublicationStatus.Candidate),
         ];
-        Assert.Equal(11, candidates.Length);
+        Assert.Equal(20, candidates.Length);
         Assert.All(formatCandidateIds, routeId =>
             Assert.Contains(candidates, route => route.Identity.RouteId == routeId));
         Assert.All(candidates, static route =>
         {
             Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
             Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
-            Assert.True(route.Identity.WorkflowId is "ab-merge" or "ctrlram-replace");
+            // ADR 0084: NT51925 Standard Merge is the only Standard Merge candidate.
+            Assert.True(
+                route.Identity.WorkflowId is "ab-merge" or "ctrlram-replace" ||
+                (route.Identity.IcId == "NT51925" && route.Identity.WorkflowId == "standard-merge"));
         });
         Assert.Equal(
             26,
@@ -144,7 +147,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.SyntheticOracle));
         Assert.Equal(
-            48,
+            57,
             policy.Routes.Count(static route =>
                 route.Evidence.Value == CapabilityEvidenceStatus.ContractOnly));
         string[] tpRoutesAwaitingIndependentExpectedOutput =
