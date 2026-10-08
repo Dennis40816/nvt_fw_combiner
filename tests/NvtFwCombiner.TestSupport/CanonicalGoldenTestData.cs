@@ -124,6 +124,13 @@ public static class CanonicalGoldenTestData
         return ValidatedArtifactPath(artifact);
     }
 
+    /// <summary>Gets one validated physical artifact path from a raw canonical case, resolving the private reference of the named case.</summary>
+    public static string ArtifactPath(JsonElement artifact, string caseId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
+        return ValidatedArtifactPath(artifact, Root, caseId);
+    }
+
     private static JsonElement LoadPhysicalCase(
         string workflow,
         string caseId,

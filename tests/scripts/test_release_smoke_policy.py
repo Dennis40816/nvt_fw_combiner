@@ -322,6 +322,60 @@ def test_packaged_combiner_executes_certified_crc_command_without_mutation() -> 
         assert golden.read_bytes() == (ROOT / GOLDEN_PATH).read_bytes()
 
 
+CURRENT_ALLOWLIST_SHA256 = "8cf5e2c610f7012ea53db83da7f8a41aa3191b81774ae3689165ad1ceb28e718"
+LEGACY_ALLOWLIST_SHA256 = "4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87"
+
+
+@pytest.mark.parametrize(
+    "sha256,version,accepted",
+    [
+        (CURRENT_ALLOWLIST_SHA256, "1.2.1", "current"),
+        (CURRENT_ALLOWLIST_SHA256, "1.2.2", "current"),
+        (LEGACY_ALLOWLIST_SHA256, "1.1.4", "legacy"),
+        (LEGACY_ALLOWLIST_SHA256, "1.2.1", "legacy"),
+        (LEGACY_ALLOWLIST_SHA256, "1.2.2", None),
+        (LEGACY_ALLOWLIST_SHA256, None, None),
+        ("0" * 64, "1.2.1", None),
+        ("", "1.2.1", None),
+    ],
+)
+def test_canonical_golden_shape_follows_the_package_version(
+    sha256: str, version: str | None, accepted: str | None
+) -> None:
+    """A published package keeps its own allowlist shape; a new release must use the current one."""
+    version_arg = "$null" if version is None else f"([version]'{version}')"
+    result = run_release_functions(
+        "smoke-release.ps1",
+        ("Get-CanonicalGoldenShape",),
+        f"$ApprovedCanonicalGoldenAllowlistSha256 = '{CURRENT_ALLOWLIST_SHA256}'; "
+        f"$LegacyCanonicalGoldenAllowlistSha256 = '{LEGACY_ALLOWLIST_SHA256}'; "
+        f"$shape = Get-CanonicalGoldenShape -PackagedAllowlistSha256 '{sha256}' "
+        f"-ProductVersion {version_arg}; "
+        "'{0} {1} {2} {3}' -f $shape.Legacy, $shape.ProjectionFiles, "
+        "$shape.PrivateReferences, $shape.PublicArtifacts",
+    )
+    if accepted is None:
+        assert result.returncode != 0, result.stdout + result.stderr
+        assert "allowlist identity" in result.stderr + result.stdout
+    elif accepted == "current":
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.stdout.strip().endswith("False 215 1 173"), result.stdout
+    else:
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.stdout.strip().endswith("True 216 0 174"), result.stdout
+
+
+def test_smoke_pins_match_the_packager_and_the_published_legacy_allowlist() -> None:
+    """The smoke pins stay equal to the packager pin and to the allowlist that 1.2.1 shipped."""
+    smoke = (ROOT / "scripts/smoke-release.ps1").read_text(encoding="utf-8")
+    package = (ROOT / "scripts/package.ps1").read_text(encoding="utf-8")
+    assert f"$ApprovedCanonicalGoldenAllowlistSha256 = '{CURRENT_ALLOWLIST_SHA256}'" in smoke
+    assert f"$LegacyCanonicalGoldenAllowlistSha256 = '{LEGACY_ALLOWLIST_SHA256}'" in smoke
+    assert f"$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '{CURRENT_ALLOWLIST_SHA256}'" in package
+    current = (ROOT / "testdata/golden/release-canonical-v1.json").read_bytes()
+    assert hashlib.sha256(current).hexdigest() == CURRENT_ALLOWLIST_SHA256
+
+
 @pytest.mark.parametrize(
     "version,mutation,expected",
     [

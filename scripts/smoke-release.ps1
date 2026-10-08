@@ -39,6 +39,8 @@ $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
 $ApprovedCanonicalGoldenAllowlistSha256 = '8cf5e2c610f7012ea53db83da7f8a41aa3191b81774ae3689165ad1ceb28e718'
+# Packages published up to 1.2.1 ship the earlier allowlist that still carries the private provenance in the package.
+$LegacyCanonicalGoldenAllowlistSha256 = '4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87'
 $CanonicalGoldenPackagePrefix = 'reference/golden'
 $CanonicalGoldenAllowlistPackagePath = 'reference/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -361,24 +363,58 @@ function Assert-FileHash {
     }
 }
 
+function Get-CanonicalGoldenShape {
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$PackagedAllowlistSha256,
+        [version]$ProductVersion
+    )
+
+    if ($PackagedAllowlistSha256 -ceq $ApprovedCanonicalGoldenAllowlistSha256) {
+        return [pscustomobject]@{
+            Sha256 = $ApprovedCanonicalGoldenAllowlistSha256
+            Legacy = $false
+            ProjectionFiles = 215
+            PrivateReferences = 1
+            PublicArtifacts = 173
+        }
+    }
+    if ($PackagedAllowlistSha256 -ceq $LegacyCanonicalGoldenAllowlistSha256 -and
+        $null -ne $ProductVersion -and $ProductVersion -lt [version]'1.2.2') {
+        return [pscustomobject]@{
+            Sha256 = $LegacyCanonicalGoldenAllowlistSha256
+            Legacy = $true
+            ProjectionFiles = 216
+            PrivateReferences = 0
+            PublicArtifacts = 174
+        }
+    }
+    throw 'Release package canonical Golden allowlist identity or reference role differs from the approved authority.'
+}
+
 function Assert-CanonicalGoldenReference {
     param(
         [Parameter(Mandatory = $true)][string]$PackageRoot,
-        [Parameter(Mandatory = $true)]$ReleaseManifest
+        [Parameter(Mandatory = $true)]$ReleaseManifest,
+        [version]$ProductVersion
     )
 
-    if (-not (Test-Path -LiteralPath $ApprovedCanonicalGoldenAllowlistPath -PathType Leaf) -or
-        (Get-LowerSha256 -Path $ApprovedCanonicalGoldenAllowlistPath) -cne $ApprovedCanonicalGoldenAllowlistSha256) {
+    $PackagedAllowlistPath = Join-Path $PackageRoot $CanonicalGoldenAllowlistPackagePath
+    $PackagedAllowlistSha256 = if (Test-Path -LiteralPath $PackagedAllowlistPath -PathType Leaf) {
+        Get-LowerSha256 -Path $PackagedAllowlistPath
+    }
+    else { '' }
+    $Shape = Get-CanonicalGoldenShape -PackagedAllowlistSha256 $PackagedAllowlistSha256 -ProductVersion $ProductVersion
+    if (-not $Shape.Legacy -and
+        (-not (Test-Path -LiteralPath $ApprovedCanonicalGoldenAllowlistPath -PathType Leaf) -or
+         (Get-LowerSha256 -Path $ApprovedCanonicalGoldenAllowlistPath) -cne $ApprovedCanonicalGoldenAllowlistSha256)) {
         throw 'Protected smoke does not have the exact approved canonical Golden allowlist.'
     }
-    $PackagedAllowlistPath = Join-Path $PackageRoot $CanonicalGoldenAllowlistPackagePath
     $AllowlistEntries = @($ReleaseManifest.files | Where-Object {
         [string]$_.path -ceq $CanonicalGoldenAllowlistPackagePath
     })
     if ($AllowlistEntries.Count -ne 1 -or
         [string]$AllowlistEntries[0].role -cne 'reference' -or
-        [string]$AllowlistEntries[0].sha256 -cne $ApprovedCanonicalGoldenAllowlistSha256 -or
-        (Get-LowerSha256 -Path $PackagedAllowlistPath) -cne $ApprovedCanonicalGoldenAllowlistSha256) {
+        [string]$AllowlistEntries[0].sha256 -cne $Shape.Sha256) {
         throw 'Release package canonical Golden allowlist identity or reference role differs from the approved authority.'
     }
 
@@ -454,7 +490,7 @@ function Assert-CanonicalGoldenReference {
         }
         $ProjectionFiles[$RepositoryPath] = $File
     }
-    if ($ProjectionFiles.Count -ne 215 -or
+    if ($ProjectionFiles.Count -ne $Shape.ProjectionFiles -or
         [string]$ProjectionFiles['testdata/golden/canonical/README.md'].packagePath -cne $CanonicalReadmePackagePath -or
         [string]$ProjectionFiles['testdata/golden/release-canonical-v1.json'].packagePath -cne $CanonicalGoldenAllowlistPackagePath) {
         throw 'Release package canonical Golden projection file mapping differs from the approved scope.'
@@ -607,8 +643,8 @@ function Assert-CanonicalGoldenReference {
     if ($SelectedCases.Count -ne 40 -or
         $DirectInputEvidenceCount -ne 3 -or
         $ArtifactDeclarationCount -ne 177 -or
-        $PrivateReferenceCount -ne 1 -or
-        $ExpectedArtifacts.Count -ne 173) {
+        $PrivateReferenceCount -ne $Shape.PrivateReferences -or
+        $ExpectedArtifacts.Count -ne $Shape.PublicArtifacts) {
         throw 'Release package canonical Golden counts differ from the approved scope.'
     }
 
@@ -858,6 +894,7 @@ try {
     else { $null }
     $RequiresCombinerRuntime = $false
     $RequiresPrebuiltCatalog = $false
+    $ProductVersion = $null
     if ($null -ne $ManifestVersion -or $manifest.PSObject.Properties.Name -contains 'sourceTag') {
         $ProductVersion = Get-ReleaseProductVersion $manifest
         $RequiresCombinerRuntime = $ProductVersion -ge [version]'1.1.8'
@@ -1093,7 +1130,7 @@ try {
             ([int]$Matches[1] -eq 1 -and [int]$Matches[2] -eq 0 -and [int]$Matches[3] -ge 8)
     }
     if ($RequiresCanonicalGoldenReference) {
-        Assert-CanonicalGoldenReference -PackageRoot $packageRoot -ReleaseManifest $manifest
+        Assert-CanonicalGoldenReference -PackageRoot $packageRoot -ReleaseManifest $manifest -ProductVersion $ProductVersion
     }
 
     foreach ($entry in $manifest.files) {
