@@ -20,3 +20,10 @@ profile facts, certify firmware outputs or grant release approval. Release
 packages include public reference documentation and manifests, with confidential
 source files and private provenance excluded. Historical source inventories
 remain provenance records; they do not assert current public availability.
+
+The release smoke compares the packaged `confidential-references.json` with the
+SHA-256 that its product version shipped, kept in
+`$PublishedPublicReferenceManifestSha256` in `scripts/smoke-release.ps1`. A
+version without an entry is a candidate and must carry the manifest of the
+checkout that runs the smoke. The release step that publishes a version adds its
+entry, so a later checkout can still smoke that published package.
