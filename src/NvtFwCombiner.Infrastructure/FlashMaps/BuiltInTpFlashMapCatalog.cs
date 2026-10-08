@@ -7,19 +7,15 @@ namespace NvtFwCombiner.Infrastructure.FlashMaps;
 /// <summary>Hash-pinned TP flash-map facts normalized from TP Overview and owner-approved base shapes.</summary>
 internal static partial class BuiltInTpFlashMapCatalog
 {
-    private static readonly Dictionary<string, TpFlashMapProfile> ProfilesByIc = LoadProfiles()
-        .ToDictionary(profile => profile.IcId, StringComparer.Ordinal);
+    private static readonly Catalog CatalogInstance = new(LoadProfiles());
 
     /// <summary>Supported IC ids in stable order.</summary>
-    internal static IReadOnlyList<string> IcIds { get; } =
-    [
-        .. ProfilesByIc.Keys.Order(StringComparer.Ordinal),
-    ];
+    internal static IReadOnlyList<string> IcIds { get; } = CatalogInstance.IcIds;
 
-    /// <summary>Returns true when the catalog has a flash-map profile for <paramref name="icId"/>.</summary>
+    /// <summary>Returns true only when the IC has exactly one map entry and needs no version selection.</summary>
     internal static bool TryFind(string icId, out TpFlashMapProfile? profile)
     {
-        return ProfilesByIc.TryGetValue(icId, out profile);
+        return CatalogInstance.TryFind(icId, out profile);
     }
 
     /// <summary>Gets TP Overview regions adjusted to the selected postbuild category.</summary>
@@ -29,11 +25,15 @@ internal static partial class BuiltInTpFlashMapCatalog
         LegacyCombinerPostbuildProfile? postbuildProfile,
         TpFlashMapRegionKind? kind = null)
     {
-        if (!ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? profile))
-        {
-            return [];
-        }
+        return CatalogInstance.GetRegions(icId, selection, postbuildProfile, kind);
+    }
 
+    private static IReadOnlyList<TpFlashMapRegion> GetRegions(
+        TpFlashMapProfile profile,
+        IcNumberSelection? selection,
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        TpFlashMapRegionKind? kind)
+    {
         int? count = TryGetNumericCount(selection);
         bool isSingle = IsSingle(selection, count);
         return [
@@ -52,12 +52,14 @@ internal static partial class BuiltInTpFlashMapCatalog
         LegacyCombinerPostbuildCommandPlan postbuildPlan,
         TpFlashMapRegionKind? kind = null)
     {
-        ArgumentNullException.ThrowIfNull(postbuildPlan);
-        if (!ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? profile))
-        {
-            return [];
-        }
+        return CatalogInstance.GetRegionsForPlan(icId, postbuildPlan, kind);
+    }
 
+    private static IReadOnlyList<TpFlashMapRegion> GetRegionsForPlan(
+        TpFlashMapProfile profile,
+        LegacyCombinerPostbuildCommandPlan postbuildPlan,
+        TpFlashMapRegionKind? kind)
+    {
         int count = postbuildPlan.TopologyCount;
         bool isSingle = count == 1;
         return [

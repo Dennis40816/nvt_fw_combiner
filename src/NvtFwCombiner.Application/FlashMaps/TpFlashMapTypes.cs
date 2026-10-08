@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.FlashMaps;
@@ -99,7 +100,8 @@ public sealed class TpFlashMapProfile
         IEnumerable<long> fullFlashCapacities,
         string baseShapeEvidence,
         IEnumerable<TpFlashMapRegion> regions,
-        string evidence)
+        string evidence,
+        LegacyCombinerCommonFwVersion? effectiveCommonFwVersion = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(overviewSource);
@@ -129,10 +131,14 @@ public sealed class TpFlashMapProfile
         FullFlashCapacities = Array.AsReadOnly(capacities);
         BaseShapeEvidence = baseShapeEvidence;
         Evidence = evidence;
+        EffectiveCommonFwVersion = effectiveCommonFwVersion ?? LegacyCombinerCommonFwVersion.MinimumSupported;
     }
 
     /// <summary>Selectable NT-prefixed IC id.</summary>
     public string IcId { get; }
+
+    /// <summary>Inclusive Common FW version at which this map entry takes effect; defaults to 1.0.0.</summary>
+    public LegacyCombinerCommonFwVersion EffectiveCommonFwVersion { get; }
 
     /// <summary>TP Overview source section label.</summary>
     public string OverviewSource { get; }

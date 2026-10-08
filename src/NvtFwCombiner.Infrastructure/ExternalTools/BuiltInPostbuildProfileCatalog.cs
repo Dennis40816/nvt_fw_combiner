@@ -73,6 +73,7 @@ internal static class BuiltInPostbuildProfileCatalog
         ];
     }
 
+    /// <summary>Selects a runtime postbuild profile using the shared Common FW interval rule.</summary>
     internal static bool TrySelectProfileForCommonFwVersion(
         string icId,
         string? commonFwVersion,
@@ -80,43 +81,26 @@ internal static class BuiltInPostbuildProfileCatalog
         out string? issue)
     {
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetProfiles(icId);
-        if (profiles.Count == 0)
+        CommonFwVersionIntervalSelector.SelectionResult result = CommonFwVersionIntervalSelector.Select(
+            profiles, static profile => profile.EffectiveCommonFwVersion, commonFwVersion,
+            out int index, out LegacyCombinerCommonFwVersion version);
+        postbuildProfile = index >= 0 ? profiles[index] : null;
+        issue = result switch
         {
-            postbuildProfile = null;
-            issue = $"No legacy Combiner postbuild profile is registered for {icId}.";
-            return false;
-        }
-
-        bool hasVersion = LegacyCombinerCommonFwVersion.TryParse(
-            commonFwVersion,
-            out LegacyCombinerCommonFwVersion version);
-        if (hasVersion && version.CompareTo(LegacyCombinerCommonFwVersion.MinimumSupported) < 0)
-        {
-            postbuildProfile = null;
-            issue = $"{icId} Common FW {version} is below the minimum supported version " +
-                $"{LegacyCombinerCommonFwVersion.MinimumSupported}.";
-            return false;
-        }
-
-        if (profiles.Count == 1)
-        {
-            postbuildProfile = profiles[0];
-            issue = null;
-            return true;
-        }
-
-        if (!hasVersion)
-        {
-            postbuildProfile = null;
-            issue = $"{icId} has multiple runtime postbuild profiles; a valid three-component " +
-                $"base FWConfig Common FW version is required. Intervals: {DescribeIntervals(profiles)}.";
-            return false;
-        }
-
-        postbuildProfile = profiles.Last(profile =>
-            profile.EffectiveCommonFwVersion.CompareTo(version) <= 0);
-        issue = null;
-        return true;
+            CommonFwVersionIntervalSelector.SelectionResult.Selected => null,
+            CommonFwVersionIntervalSelector.SelectionResult.NoEntries =>
+                $"No legacy Combiner postbuild profile is registered for {icId}.",
+            CommonFwVersionIntervalSelector.SelectionResult.BelowMinimum =>
+                $"{icId} Common FW {version} is below the minimum supported version " +
+                $"{LegacyCombinerCommonFwVersion.MinimumSupported}.",
+            CommonFwVersionIntervalSelector.SelectionResult.VersionRequired =>
+                $"{icId} has multiple runtime postbuild profiles; a valid three-component " +
+                $"base FWConfig Common FW version is required. Intervals: {DescribeIntervals(profiles)}.",
+            CommonFwVersionIntervalSelector.SelectionResult.NoMatchingInterval =>
+                $"No legacy Combiner postbuild profile for {icId} applies to Common FW {version}.",
+            _ => throw new InvalidOperationException("Unsupported interval selection result."),
+        };
+        return result == CommonFwVersionIntervalSelector.SelectionResult.Selected;
     }
 
     private static string DescribeIntervals(IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)

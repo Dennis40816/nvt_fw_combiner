@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
@@ -14,6 +15,7 @@ internal static partial class BuiltInTpFlashMapCatalog
         return Load(File.ReadAllBytes(path), ExpectedSha256);
     }
 
+    /// <summary>Loads hash-checked schema 1.0 entries ordered by effective version within each IC.</summary>
     internal static IReadOnlyList<TpFlashMapProfile> Load(ReadOnlySpan<byte> bytes, string expectedSha256)
     {
         CatalogDocument document = PinnedJsonCatalogLoader.Load<CatalogDocument>(
@@ -28,9 +30,11 @@ internal static partial class BuiltInTpFlashMapCatalog
         }
 
         TpFlashMapProfile[] profiles = [.. document.Profiles.Select(CreateProfile)];
-        return profiles.Select(static profile => profile.IcId).Distinct(StringComparer.Ordinal).Count() == profiles.Length
-            ? Array.AsReadOnly(profiles)
-            : throw Invalid("duplicate IC id");
+        return profiles.Select(static profile => (profile.IcId, profile.EffectiveCommonFwVersion))
+                .Distinct().Count() == profiles.Length
+            ? Array.AsReadOnly(profiles.GroupBy(static profile => profile.IcId, StringComparer.Ordinal)
+                .SelectMany(group => group.OrderBy(static profile => profile.EffectiveCommonFwVersion)).ToArray())
+            : throw Invalid("duplicate IC id / effectiveCommonFwVersion");
     }
 
     private static TpFlashMapProfile CreateProfile(ProfileDocument source)
@@ -45,8 +49,18 @@ internal static partial class BuiltInTpFlashMapCatalog
                 source.FullFlashCapacities ?? throw Invalid("profile.fullFlashCapacities"),
                 source.BaseShapeEvidence,
                 regions.Select(CreateRegion),
-                source.Evidence)
+                source.Evidence,
+                ParseEffectiveCommonFwVersion(source.EffectiveCommonFwVersion))
             : throw Invalid($"duplicate region id for {source.IcId}");
+    }
+
+    private static LegacyCombinerCommonFwVersion ParseEffectiveCommonFwVersion(string? value)
+    {
+        return value is null
+            ? LegacyCombinerCommonFwVersion.MinimumSupported
+            : LegacyCombinerCommonFwVersion.TryParse(value, out LegacyCombinerCommonFwVersion version)
+                ? version
+                : throw Invalid("effectiveCommonFwVersion");
     }
 
     private static TpFlashMapRegion CreateRegion(RegionDocument source)
@@ -93,7 +107,8 @@ internal static partial class BuiltInTpFlashMapCatalog
         [property: JsonPropertyName("fullFlashCapacities")] IReadOnlyList<long>? FullFlashCapacities,
         [property: JsonPropertyName("baseShapeEvidence")] string BaseShapeEvidence,
         [property: JsonPropertyName("evidence")] string Evidence,
-        [property: JsonPropertyName("regions")] IReadOnlyList<RegionDocument>? Regions);
+        [property: JsonPropertyName("regions")] IReadOnlyList<RegionDocument>? Regions,
+        [property: JsonPropertyName("effectiveCommonFwVersion")] string? EffectiveCommonFwVersion);
 
     private sealed record RegionDocument(
         [property: JsonPropertyName("regionId")] string RegionId,
