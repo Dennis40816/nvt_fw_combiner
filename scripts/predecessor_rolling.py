@@ -293,14 +293,14 @@ def execute_rolling_side(
     """One invocation of every required stage, stopping on the validator's verdict."""
     case = resolve_case(authority, {**manifest, "__manifestRelative": authority.manifest_relative}, scenario["evidenceCaseId"])
     artifacts = {row["artifactId"]: row for row in case["artifacts"]}
-    request = {"workflowId": scenario["workflowId"], "profileId": scenario["cli"]["profile"],
+    request = {"workflowId": scenario["workflowId"], "profileId": scenario["cli"]["profile"], "icId": scenario["icId"],
                "cliSelectionToken": scenario["cli"]["selectionToken"]}
     bindings = scenario["inputs"]
     base = scenario["ctrlRamBase"] or {}
     precursor_request = None
     precursor_bindings = []
     if base.get("kind") == "standard-merge":
-        precursor_request = {"workflowId": "standard-merge", "profileId": request["profileId"],
+        precursor_request = {"workflowId": "standard-merge", "profileId": request["profileId"], "icId": request["icId"],
                              "cliSelectionToken": None}
         precursor_bindings = [binding for binding in bindings if binding["slotId"] in ("dp-input", "tp-input")]
         bindings = [binding for binding in bindings if binding["slotId"] not in ("dp-input", "tp-input")]

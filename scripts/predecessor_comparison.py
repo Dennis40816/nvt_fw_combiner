@@ -806,9 +806,13 @@ def execute_cli_stage(
     arguments = [str(cli), request["workflowId"], action, "--profile", request["profileId"]]
     arguments.extend(cli_arguments(request, execution_role, [(row, Path(row["path"])) for row in rows]))
     arguments.extend(("--output", str(output_path), "--report", str(report_path)))
+    # The report must name the IC, workflow and composition this request asked for (ADR 0057 tokens); a request
+    # that declares a resolved profile also binds ProfileId.
+    expected_identity = validation.expected_report_identity(
+        profile_id=request.get("resolvedProfileId"), ic_id=request["icId"], workflow_id=request["workflowId"])
     return runner.run(stage=stage, argv=arguments, staging_root=work, inputs=rows,
                       report_path=report_path, output_path=output_path, report_version=executor.report_version,
-                      execution_hashes=hashes, tool_hashes=tools)
+                      execution_hashes=hashes, tool_hashes=tools, expected_identity=expected_identity)
 
 
 class SideResult(NamedTuple):

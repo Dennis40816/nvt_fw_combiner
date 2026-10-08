@@ -607,6 +607,7 @@ def side_execution_verdict(
         return SideVerdict("invalid", stages[-1], [_failure("REPORT_INVALID", "side", "invalid Preview/Build process order")])
     authority: Mapping[str, Any] | None = None
     preview_output: Mapping[str, Any] | None = None
+    phase_profiles: dict[str, Any] = {}
     for index, evidence in enumerate(processes):
         process = evidence.process
         stage = process["stage"]
@@ -632,6 +633,13 @@ def side_execution_verdict(
                 return SideVerdict("invalid", stage, [
                     _failure("REPORT_INVALID", stage, f"{stage} {field} differs from the request")
                     for field in mismatches])
+        # A request that declares no resolved profile still binds Build to the profile its own Preview resolved.
+        phase = stage.removesuffix("preview").removesuffix("build")
+        if stage.endswith("preview"):
+            phase_profiles[phase] = evidence.context.get("profileId")
+        elif phase in phase_profiles and evidence.context.get("profileId") != phase_profiles[phase]:
+            return SideVerdict("invalid", stage, [
+                _failure("REPORT_INVALID", stage, f"{stage} ProfileId differs from the same side's Preview")])
         projection = evidence.projection
         if stage.endswith("preview"):
             authority = projection

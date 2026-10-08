@@ -264,7 +264,8 @@ class SyntheticProcesses(FakeProcessHost):
         if workflow == "standard-merge" and self.precursor_payload is not None:
             rejection = False
         value = raw_report()
-        value.update(ProfileId="NT51950", IcId="NT51950", ModeId=workflow, ExperienceId=workflow)
+        value.update(ProfileId="NT51950", IcId=argv[argv.index("--profile") + 1], ModeId=workflow, ExperienceId=workflow,
+                     CompositionKind="Replace" if workflow == "ctrlram-replace" else "Merge")
         inputs = []
         index = argv.index("--profile") + 2
         while index < argv.index("--output"):

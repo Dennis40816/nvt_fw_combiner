@@ -3674,15 +3674,18 @@ def _canonicalize_raw_utc(value: str) -> str:
 class ReportRequestIdentity(NamedTuple):
     """Request identity shared by CLI report provenance validators."""
 
-    ProfileId: str
+    ProfileId: str | None
     IcId: str
     ModeId: str
     ExperienceId: str
     CompositionKind: str
 
 
-def expected_report_identity(*, profile_id: str, ic_id: str, workflow_id: str) -> ReportRequestIdentity:
-    """Use the ADR 0057 workflow's exact report identity tokens."""
+def expected_report_identity(*, profile_id: str | None, ic_id: str, workflow_id: str) -> ReportRequestIdentity:
+    """Use the ADR 0057 workflow's exact report identity tokens.
+
+    `profile_id` is None when the request declares no resolved profile; that field is then not compared.
+    """
     return ReportRequestIdentity(profile_id, ic_id, workflow_id, workflow_id,
                                  "Replace" if workflow_id == "ctrlram-replace" else "Merge")
 
@@ -3690,7 +3693,7 @@ def expected_report_identity(*, profile_id: str, ic_id: str, workflow_id: str) -
 def report_identity_mismatches(context: Mapping[str, Any], expected: ReportRequestIdentity) -> list[str]:
     """Compare the reader's context with the request using exact equality."""
     return [field for field, value in zip(expected._fields, expected)
-            if context.get(field[0].lower() + field[1:]) != value]
+            if value is not None and context.get(field[0].lower() + field[1:]) != value]
 
 
 def _validate_raw_report(raw: Mapping[str, Any], receipt: Mapping[str, Any], *, committed: bool, invocation_field: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:

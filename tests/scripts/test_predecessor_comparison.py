@@ -1012,7 +1012,7 @@ class ComparisonTests(unittest.TestCase):
             target.write_text(json.dumps(raw), encoding="utf-8")
             return subprocess.CompletedProcess(argv, 0, "", "")
         self.runner.host = FakeProcessHost(cli)
-        request = {"workflowId": "standard-merge", "profileId": "test", "cliSelectionToken": None}
+        request = {"workflowId": "standard-merge", "profileId": "test", "icId": "test", "cliSelectionToken": None}
         for _ in range(2):
             capture = comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts, [("input", "dp-input")], stage="preview")
             self.assertNotIn("artifactId", capture.inputs[0])
@@ -1043,7 +1043,7 @@ class ComparisonTests(unittest.TestCase):
         git = FakeGitHost()
         self.build_host(git)
         executor = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
-        request = {"workflowId": "ctrlram-replace", "profileId": "test", "cliSelectionToken": "cascade"}
+        request = {"workflowId": "ctrlram-replace", "profileId": "test", "icId": "test", "cliSelectionToken": "cascade"}
 
         def span(start, end):
             return {"Start": start, "Length": end - start, "EndExclusive": end}
@@ -1102,7 +1102,7 @@ class ComparisonTests(unittest.TestCase):
         if custody is not None:
             self.runner.custody = custody
         self.runner.host = FakeProcessHost(cli)
-        request = {"workflowId": "standard-merge", "profileId": "test", "cliSelectionToken": None}
+        request = {"workflowId": "standard-merge", "profileId": "test", "icId": "test", "cliSelectionToken": None}
         return executor, comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts,
                                                       [("input", "dp-input")], stage="preview")
 
@@ -1161,18 +1161,19 @@ class ComparisonTests(unittest.TestCase):
                 self.assertEqual("invalid", comparison.assemble_side_result([capture], capacities={}).side["status"])
 
 
-    def request_identity_stages(self, field=None, *, wrong_stage=None):
+    def request_identity_stages(self, field=None, *, wrong_stage=None, declare_profile=True):
         def write(action, staging, temporary):
             raw = merge_report(committed=action == "build")
-            raw.update(ProfileId="test", IcId="test")
             if field is not None and wrong_stage in ("preview", action):
                 # A wrong Preview is followed by a self-consistent wrong Build.
                 raw[field] = "Replace" if field == "CompositionKind" else "another-route"
             return raw
 
+        # The synthetic report names IC "synthetic"; the request declares the profile it resolves to.
         return self.written_stages(
             "standard-merge", {"dp": MERGE_DP, "tp": MERGE_TP},
-            [("dp", "dp-input"), ("tp", "tp-input")], write, output=MERGE_OUTPUT)
+            [("dp", "dp-input"), ("tp", "tp-input")], write, output=MERGE_OUTPUT,
+            request_extra={"resolvedProfileId": "synthetic-standard-merge"} if declare_profile else None)
 
     def assert_request_identity_refused(self, field):
         for stage in ("preview", "build"):
@@ -1202,6 +1203,23 @@ class ComparisonTests(unittest.TestCase):
     def test_report_composition_kind_must_match_request_in_preview_and_build(self):
         self.assert_request_identity_refused("CompositionKind")
 
+    def test_build_profile_must_match_its_preview_when_the_request_declares_none(self):
+        def write(action, staging, temporary):
+            raw = merge_report(committed=action == "build")
+            if action == "build":
+                raw["ProfileId"] = "another-route"
+            return raw
+
+        captures = self.written_stages(
+            "standard-merge", {"dp": MERGE_DP, "tp": MERGE_TP},
+            [("dp", "dp-input"), ("tp", "tp-input")], write, output=MERGE_OUTPUT)
+        verdict = comparison.validation.side_execution_verdict(
+            [capture.evidence() for capture in captures],
+            capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
+        self.assertEqual(("invalid", "build"), (verdict.status, verdict.stopped_at))
+        self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
+        self.assertIn("ProfileId", verdict.failures[0].detail)
+
     def test_matching_request_identity_is_ready_after_preview_and_build(self):
         captures = self.request_identity_stages()
         for count in (1, 2):
@@ -1214,7 +1232,7 @@ class ComparisonTests(unittest.TestCase):
     # Decision 261: the three per-side rules, on the report shapes a CLI writes.
 
     def written_stages(self, workflow, payloads, bindings, write, *, token=None, stages=("preview", "build"),
-                       output=PROCESSED):
+                       output=PROCESSED, request_extra=None):
         """Run Preview and Build through the real staging; `write(action, staging, temporary)` returns the report."""
         authority = parity.MaterializedCanonicalAuthority(
             self.root, "0" * 64, "golden/manifest.json", {f"golden/{name}.bin": payload for name, payload in payloads.items()})
@@ -1224,7 +1242,8 @@ class ComparisonTests(unittest.TestCase):
         git.files.update(TOOLS)
         self.build_host(git)
         executor = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
-        request = {"workflowId": workflow, "profileId": "test", "cliSelectionToken": token}
+        request = {"workflowId": workflow, "profileId": "test", "icId": "synthetic", "cliSelectionToken": token,
+                   **(request_extra or {})}
 
         def cli(argv, cwd):
             action = argv[2]
