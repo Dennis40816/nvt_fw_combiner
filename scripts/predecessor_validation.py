@@ -627,12 +627,13 @@ def side_execution_verdict(
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "report contains process-failure issue")])
         if evidence.projection is None or evidence.context is None:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "report could not be read")])
-        if evidence.expected_identity is not None:
-            mismatches = report_identity_mismatches(evidence.context, evidence.expected_identity)
-            if mismatches:
-                return SideVerdict("invalid", stage, [
-                    _failure("REPORT_INVALID", stage, f"{stage} {field} differs from the request")
-                    for field in mismatches])
+        if evidence.expected_identity is None:
+            return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "report has no request identity to check")])
+        mismatches = report_identity_mismatches(evidence.context, evidence.expected_identity, declared_only=True)
+        if mismatches:
+            return SideVerdict("invalid", stage, [
+                _failure("REPORT_INVALID", stage, f"{stage} {field} differs from the request")
+                for field in mismatches])
         # A request that declares no resolved profile still binds Build to the profile its own Preview resolved.
         phase = stage.removesuffix("preview").removesuffix("build")
         if stage.endswith("preview"):

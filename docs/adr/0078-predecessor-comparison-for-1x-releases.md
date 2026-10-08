@@ -217,9 +217,10 @@ with its ledger and its proposed declaration and report schemas, and the
   declaration schemas are in effect
   ([contract](../contracts/predecessor-comparison-v1.md#report-reader-v1)).
 - Implemented locally in `1.2.2` part 2: [baseline executor v2](../contracts/v0916-baseline-executor-v2.md), amendment binding and host pinning (decisions 63 and 79). Both firmware-owner and release-owner review are required; R35-09 remains the real-build rehearsal.
-- Implemented in `1.2.2`: the comparator uses `jsonschema` for Draft 2020-12
-  schema validation. `tools/crc-worker/pyproject.toml` pins the dev dependency
-  `jsonschema==4.25.1`, and CI installs the `[dev]` extra in repository-script jobs.
+- Implemented in `1.2.2`: the report reader validates the comparison report
+  with `jsonschema` (Draft 2020-12). `tools/crc-worker/pyproject.toml` pins the
+  dev dependency `jsonschema==4.25.1`, and CI installs the `[dev]` extra in
+  repository-script jobs.
 - The owner's 1.1.13 approval of the 11 candidate routes as accepted gaps.
 
 ## Executor-contract part 2 admission (1.2.2)

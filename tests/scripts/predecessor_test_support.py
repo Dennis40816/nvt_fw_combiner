@@ -7,6 +7,13 @@ import zlib
 from pathlib import Path
 
 from scripts.predecessor_pdb_probe import OPTIONS_KIND
+from scripts.v0916_parity_certification import ReportRequestIdentity
+
+
+def request_identity_of(raw):
+    """The request identity a synthetic report was written for (the report names exactly what was asked)."""
+    return None if raw is None else ReportRequestIdentity(
+        raw["ProfileId"], raw["IcId"], raw["ModeId"], raw["ExperienceId"], raw["CompositionKind"])
 
 
 RUNTIME_VERSION = "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"

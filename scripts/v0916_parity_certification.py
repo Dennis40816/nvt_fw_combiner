@@ -3690,10 +3690,16 @@ def expected_report_identity(*, profile_id: str | None, ic_id: str, workflow_id:
                                  "Replace" if workflow_id == "ctrlram-replace" else "Merge")
 
 
-def report_identity_mismatches(context: Mapping[str, Any], expected: ReportRequestIdentity) -> list[str]:
-    """Compare the reader's context with the request using exact equality."""
+def report_identity_mismatches(
+    context: Mapping[str, Any], expected: ReportRequestIdentity, *, declared_only: bool = False,
+) -> list[str]:
+    """Compare the reader's context with the request using exact equality.
+
+    The ADR 0057 terminal path compares every field. The comparator passes `declared_only` because a request
+    may leave the resolved profile undeclared; only then is a None expected value skipped.
+    """
     return [field for field, value in zip(expected._fields, expected)
-            if value is not None and context.get(field[0].lower() + field[1:]) != value]
+            if not (declared_only and value is None) and context.get(field[0].lower() + field[1:]) != value]
 
 
 def _validate_raw_report(raw: Mapping[str, Any], receipt: Mapping[str, Any], *, committed: bool, invocation_field: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:

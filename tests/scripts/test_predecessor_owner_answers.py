@@ -11,7 +11,7 @@ from scripts import predecessor_comparison as comparison
 from scripts import predecessor_validation as validation
 from scripts import v0916_parity_certification as parity
 from tests.scripts.predecessor_test_support import (
-    _written_mutation, _written_operation, _written_report,
+    _written_mutation, _written_operation, _written_report, request_identity_of,
     written_1x_ab_merge_report, written_output_difference,
 )
 from tests.scripts.test_predecessor_report_reader import raw_report
@@ -28,7 +28,7 @@ def evidence(raw, stage="preview", *, exit_code=0, output=None, report_version="
                "expectedReportAddressSpaceId": row["addressSpaceId"]} for row in read.context["orderedInputs"]]
     process = {"stage": stage, "exitCode": exit_code, "timedOut": False, "report": {"size": 1, "sha256": "a" * 64}}
     return validation.SideProcessEvidence(process, read.projection, read.context, read.issues, inputs, output, [], False,
-                                          [str(TOOL)], str(TEMPORARY))
+                                          [str(TOOL)], str(TEMPORARY), request_identity_of(raw))
 
 
 def ab_report(*, processor=False):
@@ -138,7 +138,7 @@ class WholeBankDecision278Tests(unittest.TestCase):
                     item = evidence(raw, stage, output=output, report_version=version)
                     captures.append(comparison.ProcessCapture(
                         item.process, read, item.inputs, output, None, b"", b"", [], False,
-                        None, (str(TOOL),), str(TEMPORARY)))
+                        None, (str(TOOL),), str(TEMPORARY), item.expected_identity))
                 executor = comparison.Executor({}, None, version, {})
                 with patch.object(comparison, "execute_cli_stage", side_effect=captures) as execute:
                     result = comparison.execute_side_stages(None, executor, {}, None, {}, [])
@@ -410,7 +410,7 @@ class OwnerAnswersTests(unittest.TestCase):
                     measured = evidence(item, stage, output=output, report_version="v0916")
                     captures.append(comparison.ProcessCapture(
                         measured.process, read, measured.inputs, output, None, b"", b"", [], False,
-                        None, (str(TOOL),), str(TEMPORARY)))
+                        None, (str(TOOL),), str(TEMPORARY), measured.expected_identity))
                 for identity, status in (("v0916", "output"), ("1x", "invalid")):
                     executor = comparison.Executor({}, None, identity, {})
                     with patch.object(comparison, "execute_cli_stage", side_effect=captures) as execute:

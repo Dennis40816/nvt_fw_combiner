@@ -689,6 +689,21 @@ second implementation. The comparator's staged-command identity check
    Non-processor output differences and missing differences for a changed
    `output-image` processor retain their existing refusals.
 
+6. **Request identity.** Every Preview and Build report names the request that
+   was run. `IcId` equals the request's IC, `ModeId` and `ExperienceId` equal
+   its workflow, and `CompositionKind` is `Replace` only for `ctrlram-replace`
+   and `Merge` otherwise; these are the ADR 0057 identity tokens, compared by
+   the helpers `expected_report_identity` and `report_identity_mismatches` in
+   `scripts/v0916_parity_certification.py`, which the terminal path also uses.
+   The check covers the precursor stages. A report that arrives without a
+   request identity is refused. `ProfileId` is bound to the request only when
+   the request carries `resolvedProfileId`. No scenario or route declares it
+   today, because a report names the resolved profile and the CLI is given a
+   selector. A request without it still requires each Build `ProfileId` to
+   equal the `ProfileId` of the same side's Preview in the same phase. A CLI
+   that resolves both stages to another profile of the same IC and workflow is
+   therefore not caught until a plan declares the resolved profile per route.
+
 A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's
 format into the normalized projection these functions read. It may not relax,
@@ -821,12 +836,14 @@ validator (P-2), which fails closed:
   each route's proof kind from the plan and the amendment, and each row
   reproduced exactly.
 
-The comparator uses `jsonschema` for Draft 2020-12 schema validation. The pinned
-dev dependency `jsonschema==4.25.1` is declared in
+The report reader (`scripts/predecessor_report_reader.py`) validates the
+comparison report against its schema with `jsonschema` (Draft 2020-12). The
+pinned dev dependency `jsonschema==4.25.1` is declared in
 `tools/crc-worker/pyproject.toml`, and CI installs it through the `[dev]` extra
-in the repository-script jobs. Cross-document semantic validation remains in
+in the repository-script jobs. Cross-document semantic validation, including
+the published release inventory checks, remains in
 `scripts/predecessor_validation.py`; the comparator does not implement a
-hand-written schema subset.
+hand-written schema subset for reports.
 
 ## Canonical digests
 

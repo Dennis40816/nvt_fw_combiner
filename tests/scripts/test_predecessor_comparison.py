@@ -17,7 +17,7 @@ from unittest.mock import patch
 
 from scripts import predecessor_comparison as comparison
 from scripts import v0916_parity_certification as parity
-from tests.scripts.predecessor_test_support import (contract_for_fake_processes, write_synthetic_cli_graph, RUNTIME_LIST, HOST_INFO, compiler_identity,
+from tests.scripts.predecessor_test_support import (request_identity_of, contract_for_fake_processes, write_synthetic_cli_graph, RUNTIME_LIST, HOST_INFO, compiler_identity,
                                                     written_1x_merge_report, written_1x_processor_report,
                                                     written_1x_ab_merge_report, written_output_difference, PREVIEW_MARKER)
 from tests.scripts.test_predecessor_report_reader import raw_report
@@ -160,7 +160,8 @@ class ComparisonTests(unittest.TestCase):
         return self.runner.run(stage=stage, argv=["synthetic"], staging_root=work,
                                inputs=[{"path": str(input_path), "expectedReportAddressSpaceId": "source", "expectedReportArtifactId": "source",
                                         "size": 8, "sha256": digest(PAYLOAD)}],
-                               report_path=report_path, output_path=output_path, report_version="1x")
+                               report_path=report_path, output_path=output_path, report_version="1x",
+                               expected_identity=request_identity_of(raw))
 
     def pair(self, build=None):
         preview = self.capture("preview", report(preview=True), output=None)
@@ -480,7 +481,8 @@ class ComparisonTests(unittest.TestCase):
 
         self.runner.host = FakeProcessHost(run)
         return self.runner.run(stage=stage, argv=["synthetic"], staging_root=work, inputs=rows,
-                               report_path=report_path, output_path=output_path, report_version="1x")
+                               report_path=report_path, output_path=output_path, report_version="1x",
+                               expected_identity=request_identity_of(raw))
 
     def merge_side(self, captures):
         capacities = {capture.record["stage"]: comparison.validation.execution_capacities(capture.evidence())
@@ -968,7 +970,8 @@ class ComparisonTests(unittest.TestCase):
                             return subprocess.CompletedProcess(argv, 0, "", "")
                         self.runner.host = FakeProcessHost(cli)
                         capture = self.runner.run(stage="preview", argv=["synthetic"], staging_root=work,
-                                                  inputs=rows, report_path=report_path, report_version=version)
+                                                  inputs=rows, report_path=report_path, report_version=version,
+                                                  expected_identity=request_identity_of(raw))
                         verdict = comparison.validation.side_execution_verdict([capture.evidence()],
                             capacities={expected: 8, "golden-input": 8, "output-image": 8}, complete=False)
                         self.assertEqual("invalid" if wrong else "ready", verdict.status)
@@ -1161,10 +1164,10 @@ class ComparisonTests(unittest.TestCase):
                 self.assertEqual("invalid", comparison.assemble_side_result([capture], capacities={}).side["status"])
 
 
-    def request_identity_stages(self, field=None, *, wrong_stage=None, declare_profile=True):
+    def request_identity_stages(self, field=None, *, wrong_stage=None, declare_profile=True, prefix=""):
         def write(action, staging, temporary):
             raw = merge_report(committed=action == "build")
-            if field is not None and wrong_stage in ("preview", action):
+            if field is not None and wrong_stage in (prefix + "preview", prefix + action):
                 # A wrong Preview is followed by a self-consistent wrong Build.
                 raw[field] = "Replace" if field == "CompositionKind" else "another-route"
             return raw
@@ -1173,6 +1176,7 @@ class ComparisonTests(unittest.TestCase):
         return self.written_stages(
             "standard-merge", {"dp": MERGE_DP, "tp": MERGE_TP},
             [("dp", "dp-input"), ("tp", "tp-input")], write, output=MERGE_OUTPUT,
+            stages=(prefix + "preview", prefix + "build"),
             request_extra={"resolvedProfileId": "synthetic-standard-merge"} if declare_profile else None)
 
     def assert_request_identity_refused(self, field):
@@ -1202,6 +1206,43 @@ class ComparisonTests(unittest.TestCase):
 
     def test_report_composition_kind_must_match_request_in_preview_and_build(self):
         self.assert_request_identity_refused("CompositionKind")
+
+    def test_precursor_stage_reports_must_match_the_request_too(self):
+        for field in ("ProfileId", "IcId", "ModeId", "ExperienceId", "CompositionKind"):
+            for stage in ("precursor-preview", "precursor-build"):
+                with self.subTest(field=field, stage=stage):
+                    captures = self.request_identity_stages(field, wrong_stage=stage, prefix="precursor-")
+                    verdict = comparison.validation.side_execution_verdict(
+                        [capture.evidence() for capture in captures],
+                        capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
+                    self.assertEqual(("invalid", stage), (verdict.status, verdict.stopped_at))
+                    self.assertIn(field, verdict.failures[0].detail)
+
+    def test_precursor_build_profile_must_match_its_precursor_preview_when_none_is_declared(self):
+        def write(action, staging, temporary):
+            raw = merge_report(committed=action == "build")
+            if action == "build":
+                raw["ProfileId"] = "another-route"
+            return raw
+
+        captures = self.written_stages(
+            "standard-merge", {"dp": MERGE_DP, "tp": MERGE_TP},
+            [("dp", "dp-input"), ("tp", "tp-input")], write, output=MERGE_OUTPUT,
+            stages=("precursor-preview", "precursor-build"))
+        verdict = comparison.validation.side_execution_verdict(
+            [capture.evidence() for capture in captures],
+            capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
+        self.assertEqual(("invalid", "precursor-build"), (verdict.status, verdict.stopped_at))
+        self.assertIn("ProfileId", verdict.failures[0].detail)
+
+    def test_report_without_a_request_identity_is_refused(self):
+        captures = self.request_identity_stages()
+        evidence = captures[0].evidence()._replace(expected_identity=None)
+        verdict = comparison.validation.side_execution_verdict(
+            [evidence], capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
+        self.assertEqual(("invalid", "preview"), (verdict.status, verdict.stopped_at))
+        self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
+        self.assertIn("no request identity", verdict.failures[0].detail)
 
     def test_build_profile_must_match_its_preview_when_the_request_declares_none(self):
         def write(action, staging, temporary):
