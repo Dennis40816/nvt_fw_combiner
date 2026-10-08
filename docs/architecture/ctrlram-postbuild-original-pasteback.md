@@ -435,28 +435,28 @@ separate work.
 The owner pointed out that this checkout already contains the 1.13 source.
 It was present in the checkout's Git-ignored scratch area, with the matching
 owner archive beside it.
-The previously inspected tracked `tddi-flash-header/Combiner.c` is a different,
-older source and was not a sufficient search of the available evidence.
+The previously inspected tracked legacy source (manifest entry
+`tddi-flash-header-source`) is a different, older source and was not a sufficient search of the available evidence.
 
 Provenance is already recorded in the
 [owner intake](../../testdata/golden/owner-handoff/combiner-and-51929/CASE.md).
-The nested `Combiner_1.13_SourceCode.7z` SHA-256 is
+The nested owner-provided 1.13 source archive has SHA-256
 `0c86ad1d292db279c613b0f23a2e4cef8c2422950c56d1c22fdd1130660b47b8`.
-The entry `firmware-merge-tool/Combiner/Combiner.c` was read directly from that
-archive and compared byte-for-byte with the existing extracted file; both hash
-to `7fb6551894d5a71f7df42b6b7c2bda99f35cbcc13f5c01713dc0ae596ebb5ea8`.
-The archived `.vcxproj` compiles `Combiner.c`; its `main` at line 2142 prints
+The main C entry in that archive was read directly and compared byte-for-byte
+with the existing extracted file; both hash to
+`7fb6551894d5a71f7df42b6b7c2bda99f35cbcc13f5c01713dc0ae596ebb5ea8`.
+The archived project compiles that entry, and its `main` prints
 `Combiner version:1.13.0.0`. This establishes source provenance, not a claim of
 reproducible binary-build equivalence. No archive payload was added to Git.
 
-Source observations (line numbers refer to that exact C entry):
+Source observations (they refer to that exact C entry; routines are named by role):
 
 | Path | Source evidence | Consequence for the experiment |
 | --- | --- | --- |
-| NT51929 uses the catalog's NT51932-based mode | `NT51932_CalculateDlmDiffCrcAndHeaderCrc`, lines 1469–1473, reads header start `0x7104` with size code `0x23`; `CRC8Alg` line 42 includes the end byte | Header CRC covers `[0x7104,0x7128)`, excluding address fields `0x7164/0x7168/0x716C` |
-| NT51932 AB assembly | `NT51932BasedMergeABMode`, lines 1658–1673, adds the B delta to the three main-header addresses and writes the output; it calls no CRC or header-copy routine | Normal postbuild followed by restoring only those addresses agrees with this source's assembly sequence; equal A/B CRCs and local copied addresses are not themselves a defect |
-| NT51950 AB assembly | `NT51950BasedMergeABMode`, lines 1930–1934, relocates ILM/DLM addresses then calls `NT51950_CalculateHeaderCrc` | Its header range is `[0xA100,0xA130)` (lines 1721–1727), including its address fields, so the 929 no-extra-CRC conclusion must not be generalized to 950 |
-| Local-B failure | `NT51932_MergeBinsThenInsertFwConfigAndEndFlag`, lines 1495–1520, allocates the local image and computes Backup destination from the stored DIFF address without a destination bound check | The observed 1-IC B control has length `0x40000`, DIFF address `0x6D100` and computed Backup destination `0x6E000`; the 4096-byte copy is outside its buffer even before CRC calculation. This is a concrete unsafe access explaining the crash, not a captured exception stack |
+| NT51929 uses the catalog's NT51932-based mode | the NT51932-based DLM-diff and header CRC routine reads header start `0x7104` with size code `0x23`; the CRC8 routine includes the end byte | Header CRC covers `[0x7104,0x7128)`, excluding address fields `0x7164/0x7168/0x716C` |
+| NT51932 AB assembly | the NT51932-based AB merge routine adds the B delta to the three main-header addresses and writes the output; it calls no CRC or header-copy routine | Normal postbuild followed by restoring only those addresses agrees with this source's assembly sequence; equal A/B CRCs and local copied addresses are not themselves a defect |
+| NT51950 AB assembly | the NT51950-based AB merge routine relocates ILM/DLM addresses then calls its header CRC routine | Its header range is `[0xA100,0xA130)`, including its address fields, so the 929 no-extra-CRC conclusion must not be generalized to 950 |
+| Local-B failure | the NT51932-based merge, FWConfig and end-flag routine allocates the local image and computes Backup destination from the stored DIFF address without a destination bound check | The observed 1-IC B control has length `0x40000`, DIFF address `0x6D100` and computed Backup destination `0x6E000`; the 4096-byte copy is outside its buffer even before CRC calculation. This is a concrete unsafe access explaining the crash, not a captured exception stack |
 | NF propagation | The same routine copies 4096 bytes from FWConfig source, then writes the final NVT marker | For the local control, `[0x1F200,0x20200)` is copied to `[0x2E000,0x2F000)`. NF byte `0x1FC00` is therefore copied to `0x2EA00`, exactly matching the retained host refusal |
 
 The source resolves the missing address/CRC-coverage explanation for these
