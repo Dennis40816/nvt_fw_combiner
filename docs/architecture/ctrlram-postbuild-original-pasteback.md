@@ -57,7 +57,7 @@ Primary evidence:
 
 Important limitation:
 
-- The inspected `Combiner.c` source is not the same version as the committed 1.13.0 executable.
+- The inspected legacy Combiner source (manifest entry `tddi-flash-header-source`) is not the same version as the committed 1.13.0 executable.
 - Normal-mode behavior aligns closely enough to explain NT51920/NT51923/NT51926 16-byte CRC effects.
 - NT-based modes and common-header modes must be treated as 1.13.0 executable behavior until owner provides matching source or golden Replace vectors.
 
@@ -67,7 +67,7 @@ The postbuild catalog currently uses these combiner command families:
 
 | Family | Argv head | Examples | Notes |
 | --- | --- | --- | --- |
-| Legacy normal | `CRC_Enable <fw>` | NT51920, NT51923, NT51926 | Source evidence exists in `Combiner.c`; requires `map.txt` for real-tool runs. |
+| Legacy normal | `CRC_Enable <fw>` | NT51920, NT51923, NT51926 | Source evidence exists in the legacy Combiner source (manifest entry `tddi-flash-header-source`); requires `map.txt` for real-tool runs. |
 | NT-based normal | `<NTxxxxxBASED_NORMAL_MODE> CRC8 <fw> <fw>` | NT51930, NT51931, NT51932, NT51950, NT51951 | 1.13.0-only behavior for current repo evidence; requires `map.txt` for merge/postbuild commands. |
 | Merge mode | `MERGE_MODE <fw>` | NT51927 family | May shorten command output; host overlays shortened output onto the previous full-length staged image when declared coverage is complete. |
 | CRC-only | `NT51927BASED_GEN_CRC_MODE CRC32 <fw> <fw>` | NT51927 family | Does not need `map.txt` in the observed smoke tests. |
