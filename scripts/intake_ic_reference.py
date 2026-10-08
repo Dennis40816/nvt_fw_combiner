@@ -109,6 +109,9 @@ PUBLIC_CONFIDENTIAL_MANIFEST = "docs/references/confidential-references.json"
 # spreadsheet, header or document that intake classifies as confidential by name, is private material.
 PUBLIC_DOCUMENT_SUFFIXES = frozenset({".md", ".json"})
 CONFIDENTIAL_SUFFIXES = (SCRIPT_EXTENSIONS | DOCUMENT_EXTENSIONS) - PUBLIC_DOCUMENT_SUFFIXES
+# Native sources named for a memory map or the firmware configuration are confidential too. Python and C# are not:
+# the repository's own tools use those names.
+NATIVE_SOURCE_SUFFIXES = frozenset({".c", ".cc", ".cpp", ".hpp", ".asm", ".s"})
 CONFIDENTIAL_TREES = ("docs/references/", "refcode/flashmap/")
 # Immutable evidence that was public before the private store existed.
 PUBLIC_CONFIDENTIAL_EXCEPTIONS = frozenset({"refcode/ab_code_combiner/clean.bat"})
@@ -117,20 +120,24 @@ PUBLIC_CONFIDENTIAL_EXCEPTIONS = frozenset({"refcode/ab_code_combiner/clean.bat"
 def is_confidential_path(relative_path: str) -> bool:
     """Whether a tracked repository path holds material that intake classifies as confidential."""
 
-    posix = PurePosixPath(relative_path.replace("\\", "/"))
+    # Windows drops trailing dots and spaces from a name, so "x.bat." is the same file as "x.bat".
+    segments = [part if part == ".." else part.rstrip(". ") for part in relative_path.replace("\\", "/").split("/")]
+    posix = PurePosixPath(*[part for part in segments if part not in ("", ".")])
     lowered = posix.as_posix().lower()
     suffix = posix.suffix.lower()
     if lowered in PUBLIC_CONFIDENTIAL_EXCEPTIONS:
         return False
     if lowered.startswith(CONFIDENTIAL_TREES):
         return suffix not in PUBLIC_DOCUMENT_SUFFIXES
-    if suffix not in CONFIDENTIAL_SUFFIXES:
-        return False
     category = classify(Path(*posix.parts))
+    if category not in CONFIDENTIAL_KINDS:
+        return False
+    if category == "mmap-header" or (category == "combiner-source-reference" and "fwconfig" in lowered):
+        return suffix in CONFIDENTIAL_SUFFIXES | NATIVE_SOURCE_SUFFIXES
     # "combiner" also appears in the repository's own names, so by name alone only its scripts are confidential.
-    return category in CONFIDENTIAL_KINDS and (
-        category != "combiner-source-reference" or suffix in SCRIPT_EXTENSIONS
-    )
+    if category == "combiner-source-reference":
+        return suffix in SCRIPT_EXTENSIONS
+    return suffix in CONFIDENTIAL_SUFFIXES
 
 
 PRIVATE_COMMIT_POLICY = (

@@ -72,6 +72,33 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(verify.is_confidential_reference_path(path))
 
+    def test_native_sources_named_for_a_memory_map_or_the_firmware_configuration_are_blocked(self) -> None:
+        for path in (
+            "src/x_fwconfig.c",
+            "src/fwconfig.cpp",
+            "inc/memory_mmap.hpp",
+            "src/x_mmap.c",
+            "boot/mmap_layout.asm",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(verify.is_confidential_reference_path(path))
+
+    def test_trailing_dots_and_spaces_do_not_hide_a_confidential_name(self) -> None:
+        for path in (
+            "tools/x_PostbuildSetup.bat.",
+            "tools/x_PostbuildSetup.bat ",
+            "data/flash_map_export.xlsx.",
+            "docs/references./layout.xlsx",
+            "docs/references/ic-flashmap/layout.xls.",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(verify.is_confidential_reference_path(path))
+
+    def test_python_and_csharp_tools_named_for_a_memory_map_are_allowed(self) -> None:
+        for path in ("scripts/mmap_report.py", "src/Example/MmapReader.cs", "scripts/fwconfig_check.py"):
+            with self.subTest(path=path):
+                self.assertFalse(verify.is_confidential_reference_path(path))
+
     def test_ordinary_scripts_and_headers_are_allowed(self) -> None:
         for path in (
             "scripts/package.ps1",
