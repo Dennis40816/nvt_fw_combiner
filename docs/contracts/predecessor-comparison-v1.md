@@ -821,12 +821,12 @@ validator (P-2), which fails closed:
   each route's proof kind from the plan and the amendment, and each row
   reproduced exactly.
 
-The repository's Python lane has no Draft 2020-12 validator: `jsonschema` is
-optional in `scripts/validate_repository.py` and absent from the CI
-dependencies. The comparator batch (P-2) therefore either adds a reviewed
-validator dependency or keeps schema validation in the .NET contract tests and
-implements the semantic validator directly; it never grows a hand-written
-schema subset.
+The comparator uses `jsonschema` for Draft 2020-12 schema validation. The pinned
+dev dependency `jsonschema==4.25.1` is declared in
+`tools/crc-worker/pyproject.toml`, and CI installs it through the `[dev]` extra
+in the repository-script jobs. Cross-document semantic validation remains in
+`scripts/predecessor_validation.py`; the comparator does not implement a
+hand-written schema subset.
 
 ## Canonical digests
 

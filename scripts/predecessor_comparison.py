@@ -290,6 +290,7 @@ class ProcessCapture(NamedTuple):
     written_report_identity: dict[str, Any] | None
     staged_tools: tuple[str, ...]
     temporary_directory: str
+    expected_identity: validation.ReportRequestIdentity | None = None
 
     def evidence(self) -> validation.SideProcessEvidence:
         return validation.SideProcessEvidence(
@@ -297,7 +298,7 @@ class ProcessCapture(NamedTuple):
             None if self.report is None else self.report.context,
             [] if self.report is None else self.report.issues,
             self.inputs, self.output, self.failures, self.settings_present,
-            self.staged_tools, self.temporary_directory,
+            self.staged_tools, self.temporary_directory, self.expected_identity,
         )
 
 
@@ -385,6 +386,7 @@ class ProcessRunner:
         output_path: Path | None = None, report_version: str = "1x",
         execution_hashes: Mapping[Path, str] | None = None,
         tool_hashes: Mapping[Path, str] | None = None,
+        expected_identity: validation.ReportRequestIdentity | None = None,
     ) -> ProcessCapture:
         if self.finished:
             raise ExecutionError("PREDECESSOR_ENVIRONMENT_INVALID", "run already finished")
@@ -452,7 +454,7 @@ class ProcessRunner:
                                  stdout, stderr, failures,
                                  any(value is not None for value in (*settings_before.values(), *settings_after.values())),
                                  None if written is None else _payload_identity(written),
-                                 tuple(str(path) for path in (tool_hashes or {})), str(temporary))
+                                 tuple(str(path) for path in (tool_hashes or {})), str(temporary), expected_identity)
         self.captures.append(capture)
         return capture
 

@@ -28,10 +28,13 @@ try:
     from scripts.render_release_notes import render_release_notes
     from scripts.v0916_parity_certification import (
         ParityError,
+        ReportRequestIdentity,
         canonical_json_sha256,
         cli_selection_token,
         compare_approved_semantic_correction_payloads,
         compare_transitive_payloads,
+        expected_report_identity,
+        report_identity_mismatches,
         validate_report_sequence,
         validate_report_projection_against_compiled_authority,
         validate_semantic_report_ranges,
@@ -45,10 +48,13 @@ except ModuleNotFoundError as error:
     from render_release_notes import render_release_notes  # type: ignore[no-redef]
     from v0916_parity_certification import (  # type: ignore[no-redef]
         ParityError,
+        ReportRequestIdentity,
         canonical_json_sha256,
         cli_selection_token,
         compare_approved_semantic_correction_payloads,
         compare_transitive_payloads,
+        expected_report_identity,
+        report_identity_mismatches,
         validate_report_sequence,
         validate_report_projection_against_compiled_authority,
         validate_semantic_report_ranges,
@@ -127,6 +133,7 @@ class SideProcessEvidence(NamedTuple):
     # temporary directory it created for it; an executed command is held to both.
     staged_tools: Sequence[str] = ()
     temporary_directory: str | None = None
+    expected_identity: ReportRequestIdentity | None = None
 
 
 class SideVerdict(NamedTuple):
@@ -619,6 +626,12 @@ def side_execution_verdict(
             return SideVerdict("invalid", stage, [_failure("PROCESS_FAILED", stage, "report contains process-failure issue")])
         if evidence.projection is None or evidence.context is None:
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "report could not be read")])
+        if evidence.expected_identity is not None:
+            mismatches = report_identity_mismatches(evidence.context, evidence.expected_identity)
+            if mismatches:
+                return SideVerdict("invalid", stage, [
+                    _failure("REPORT_INVALID", stage, f"{stage} {field} differs from the request")
+                    for field in mismatches])
         projection = evidence.projection
         if stage.endswith("preview"):
             authority = projection

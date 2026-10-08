@@ -3671,6 +3671,28 @@ def _canonicalize_raw_utc(value: str) -> str:
     return value
 
 
+class ReportRequestIdentity(NamedTuple):
+    """Request identity shared by CLI report provenance validators."""
+
+    ProfileId: str
+    IcId: str
+    ModeId: str
+    ExperienceId: str
+    CompositionKind: str
+
+
+def expected_report_identity(*, profile_id: str, ic_id: str, workflow_id: str) -> ReportRequestIdentity:
+    """Use the ADR 0057 workflow's exact report identity tokens."""
+    return ReportRequestIdentity(profile_id, ic_id, workflow_id, workflow_id,
+                                 "Replace" if workflow_id == "ctrlram-replace" else "Merge")
+
+
+def report_identity_mismatches(context: Mapping[str, Any], expected: ReportRequestIdentity) -> list[str]:
+    """Compare the reader's context with the request using exact equality."""
+    return [field for field, value in zip(expected._fields, expected)
+            if context.get(field[0].lower() + field[1:]) != value]
+
+
 def _validate_raw_report(raw: Mapping[str, Any], receipt: Mapping[str, Any], *, committed: bool, invocation_field: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     required = {"RunId", "ProfileId", "ProfileVersion", "IcId", "ModeId", "ExperienceId", "CompositionKind", "StartedAtUtc", "CompletedAtUtc", "Inputs", "Operations", "Mutations", "Issues", "Output", "OutputDifferences", "CompilationFingerprint", "Validations", "OutputNaming"}
     scenario, invocation = receipt["scenario"], receipt[invocation_field]
@@ -3684,7 +3706,8 @@ def _validate_raw_report(raw: Mapping[str, Any], receipt: Mapping[str, Any], *, 
     ):
         _fail("PARITY_PROVENANCE_INVALID")
     workflow = scenario["workflowId"]
-    expected_kind = "Replace" if workflow == "ctrlram-replace" else "Merge"
+    expected_identity = expected_report_identity(
+        profile_id=scenario["resolvedProfileId"], ic_id=scenario["icId"], workflow_id=workflow)
     inputs = [{"addressSpaceId": row["AddressSpaceId"], "artifactId": row["ArtifactId"], "size": row["Size"], "sha256": row["Sha256"]} for row in raw["Inputs"]]
     expected_inputs = [{"addressSpaceId": row["slotId"], "artifactId": row["slotId"], "size": row["size"], "sha256": row["sha256"]} for row in receipt["inputs"]]
     context = {
@@ -3695,7 +3718,7 @@ def _validate_raw_report(raw: Mapping[str, Any], receipt: Mapping[str, Any], *, 
         "outputCommitted": raw["Output"]["Committed"], "issueCount": len(raw["Issues"]),
     }
     valid = (
-        raw["ProfileId"] == scenario["resolvedProfileId"]
+        not report_identity_mismatches({"profileId": raw["ProfileId"], **context}, expected_identity)
         and (
             "MapId" not in raw
             or isinstance(raw["MapId"], str)
@@ -3706,8 +3729,7 @@ def _validate_raw_report(raw: Mapping[str, Any], receipt: Mapping[str, Any], *, 
             )
         )
         and isinstance(raw["ProfileVersion"], str) and bool(raw["ProfileVersion"])
-        and raw["IcId"] == scenario["icId"] and raw["ModeId"] == workflow and raw["ExperienceId"] == workflow
-        and raw["CompositionKind"] == expected_kind and context["startedAtUtc"] == invocation["startedAtUtc"]
+        and context["startedAtUtc"] == invocation["startedAtUtc"]
         and context["completedAtUtc"] == invocation["completedAtUtc"] and inputs == expected_inputs
         and raw["Output"]["Committed"] is committed and not raw["Issues"]
         and raw["CompilationFingerprint"] == scenario["compilationFingerprint"]

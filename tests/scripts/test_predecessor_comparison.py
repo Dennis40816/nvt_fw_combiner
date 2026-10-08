@@ -1161,6 +1161,56 @@ class ComparisonTests(unittest.TestCase):
                 self.assertEqual("invalid", comparison.assemble_side_result([capture], capacities={}).side["status"])
 
 
+    def request_identity_stages(self, field=None, *, wrong_stage=None):
+        def write(action, staging, temporary):
+            raw = merge_report(committed=action == "build")
+            raw.update(ProfileId="test", IcId="test")
+            if field is not None and wrong_stage in ("preview", action):
+                # A wrong Preview is followed by a self-consistent wrong Build.
+                raw[field] = "Replace" if field == "CompositionKind" else "another-route"
+            return raw
+
+        return self.written_stages(
+            "standard-merge", {"dp": MERGE_DP, "tp": MERGE_TP},
+            [("dp", "dp-input"), ("tp", "tp-input")], write, output=MERGE_OUTPUT)
+
+    def assert_request_identity_refused(self, field):
+        for stage in ("preview", "build"):
+            with self.subTest(stage=stage):
+                captures = self.request_identity_stages(field, wrong_stage=stage)
+                verdict = comparison.validation.side_execution_verdict(
+                    [capture.evidence() for capture in captures],
+                    capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
+                self.assertEqual("invalid", verdict.status)
+                self.assertEqual(stage, verdict.stopped_at)
+                self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
+                self.assertIn(stage, verdict.failures[0].detail)
+                self.assertIn(field, verdict.failures[0].detail)
+
+    def test_report_profile_id_must_match_request_in_preview_and_build(self):
+        self.assert_request_identity_refused("ProfileId")
+
+    def test_report_ic_id_must_match_request_in_preview_and_build(self):
+        self.assert_request_identity_refused("IcId")
+
+    def test_report_mode_id_must_match_request_in_preview_and_build(self):
+        self.assert_request_identity_refused("ModeId")
+
+    def test_report_experience_id_must_match_request_in_preview_and_build(self):
+        self.assert_request_identity_refused("ExperienceId")
+
+    def test_report_composition_kind_must_match_request_in_preview_and_build(self):
+        self.assert_request_identity_refused("CompositionKind")
+
+    def test_matching_request_identity_is_ready_after_preview_and_build(self):
+        captures = self.request_identity_stages()
+        for count in (1, 2):
+            with self.subTest(process_count=count):
+                verdict = comparison.validation.side_execution_verdict(
+                    [capture.evidence() for capture in captures[:count]],
+                    capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
+                self.assertEqual(("ready", []), (verdict.status, verdict.failures))
+
     # Decision 261: the three per-side rules, on the report shapes a CLI writes.
 
     def written_stages(self, workflow, payloads, bindings, write, *, token=None, stages=("preview", "build"),
