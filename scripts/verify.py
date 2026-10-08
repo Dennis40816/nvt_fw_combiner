@@ -1182,18 +1182,28 @@ def verify_structure_postchecks(log_path: Path | None = None) -> None:
     )
 
 
+# Spreadsheets, scripts and memory-map headers follow the intake classification (scripts/intake_ic_reference.py).
+# These patterns add the source files that intake treats by name only.
 CONFIDENTIAL_REFERENCE_PATTERNS = (
-    "docs/references/**/*.xlsx",
-    "docs/references/**/*.bat",
-    "**/*mmap*.h",
     "**/Combiner.c",
     "**/ap_fwconfig.c",
-    "**/*PostbuildSetup*.bat",
     "refcode/flashmap/**",
 )
 
 
+def _intake_reference_module():
+    spec = importlib.util.spec_from_file_location(
+        "intake_ic_reference", Path(__file__).resolve().parent / "intake_ic_reference.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault("intake_ic_reference", module)
+    spec.loader.exec_module(module)
+    return module
+
+
 def is_confidential_reference_path(path: str) -> bool:
+    if _intake_reference_module().is_confidential_path(path):
+        return True
     normalized = path.replace("\\", "/").casefold()
     return any(
         fnmatch(normalized, pattern.casefold())

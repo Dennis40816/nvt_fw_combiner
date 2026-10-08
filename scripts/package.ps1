@@ -102,7 +102,7 @@ $WorkerBuild = Join-Path $WorkRoot 'worker-build'
 $WorkerDist = Join-Path $WorkRoot 'worker-dist'
 $IdleBuildWorkerStopper = Join-Path $PSScriptRoot 'stop-idle-build-workers.ps1'
 $CanonicalGoldenReleaseAllowlistPath = Join-Path $RepoRoot 'testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '7527372086df3c9b410ce2de79b6461d5c8921083e68a62ceed7772c831f977e'
+$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '8cf5e2c610f7012ea53db83da7f8a41aa3191b81774ae3689165ad1ceb28e718'
 
 try {
 if (-not $PolicyDryRunSentinel) {

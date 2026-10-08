@@ -35,11 +35,11 @@ def test_private_provenance_preserves_certified_case_manifest_identity() -> None
 
 
 @pytest.mark.parametrize("mutation", ["missing-manifest", "reference-sheet", "golden-script"])
-def test_current_version_smoke_refuses_confidential_reference_inventory(tmp_path: Path, mutation: str) -> None:
+def test_first_inventory_version_smoke_refuses_confidential_reference_inventory(tmp_path: Path, mutation: str) -> None:
     shell = shutil.which("pwsh")
     if shell is None:
         pytest.skip("PowerShell is unavailable")
-    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    version = "1.2.2"  # The first version that ships the inventory; published packages up to 1.2.1 predate it.
     package_name = f"NvtFwCombiner-v{version}-win-x64"
     required_paths = [
         "NvtFwCombiner.exe", "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",

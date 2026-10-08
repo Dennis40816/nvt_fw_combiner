@@ -38,7 +38,7 @@ $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     sha256 = 'a3ad08440076fb6b8b840ba64a6fbe0ccadb4345530ba1db09ab0b4f0fa671d4'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenAllowlistSha256 = '7527372086df3c9b410ce2de79b6461d5c8921083e68a62ceed7772c831f977e'
+$ApprovedCanonicalGoldenAllowlistSha256 = '8cf5e2c610f7012ea53db83da7f8a41aa3191b81774ae3689165ad1ceb28e718'
 $CanonicalGoldenPackagePrefix = 'reference/golden'
 $CanonicalGoldenAllowlistPackagePath = 'reference/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -862,7 +862,8 @@ try {
         $ProductVersion = Get-ReleaseProductVersion $manifest
         $RequiresCombinerRuntime = $ProductVersion -ge [version]'1.1.8'
         $RequiresPrebuiltCatalog = $ProductVersion -ge [version]'1.1.13'
-        if ($ProductVersion -ge [version]'1.2.1') {
+        # Every published package (up to 1.2.1) predates the public confidential-reference manifest.
+        if ($ProductVersion -ge [version]'1.2.2') {
             Assert-PublicReferenceInventory -Manifest $manifest
         }
     }

@@ -38,6 +38,65 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(verify.is_confidential_reference_path(path))
 
+    def test_every_intake_confidential_format_is_blocked_under_references(self) -> None:
+        for path in (
+            "docs/references/flashmap.xls",
+            "docs/references/flashmap.xlsx",
+            "docs/references/postbuild.cmd",
+            "docs/references/nested/run.ps1",
+            "docs/references/run.sh",
+            "docs/references/header_mmap.h",
+            "docs/references/ic-flashmap/mmap/sample.H",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(verify.is_confidential_reference_path(path))
+
+    def test_named_confidential_scripts_and_sheets_are_blocked_outside_references(self) -> None:
+        for path in (
+            "provenance/ExamplePostbuildSetup.cmd",
+            "tools/postbuild-notes.ps1",
+            "provenance/postbuild_run.sh",
+            "data/ic-flashmap-layout.xls",
+            "data/flash_map_export.xlsx",
+            "data/tp-header.xls",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(verify.is_confidential_reference_path(path))
+
+    def test_ordinary_scripts_and_headers_are_allowed(self) -> None:
+        for path in (
+            "scripts/package.ps1",
+            "scripts/run-tests.sh",
+            "tools/helper.cmd",
+            "src/common.h",
+            "docs/references/README.md",
+            "docs/references/confidential-references.json",
+        ):
+            with self.subTest(path=path):
+                self.assertFalse(verify.is_confidential_reference_path(path))
+
+    def test_no_currently_tracked_public_file_is_blocked(self) -> None:
+        tracked = subprocess.check_output(["git", "ls-files", "--cached", "-z"], cwd=verify.ROOT).decode("utf-8")
+        self.assertEqual(
+            [],
+            [path for path in tracked.split("\0") if path and verify.is_confidential_reference_path(path)],
+        )
+
+    def test_block_list_covers_every_intake_confidential_category(self) -> None:
+        intake = verify._intake_reference_module()
+        examples = {
+            "postbuild-script": "provenance/ic51920_postbuild.cmd",
+            "mmap-header": "provenance/ic51920_mmap.h",
+            "flashmap-reference": "provenance/ic51920-flashmap.xls",
+            "flash-header-reference": "provenance/tp_header.xls",
+            "combiner-source-reference": "provenance/combiner-notes.sh",
+        }
+        self.assertEqual(set(intake.CONFIDENTIAL_KINDS), set(examples))
+        for category, path in examples.items():
+            with self.subTest(category=category):
+                self.assertEqual(category, intake.classify(Path(path)))
+                self.assertTrue(verify.is_confidential_reference_path(path))
+
     def test_tracked_confidential_file_fails_until_removed_from_index(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

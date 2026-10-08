@@ -10,7 +10,7 @@ import shutil
 import sys
 from collections import Counter
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -103,6 +103,22 @@ CONFIDENTIAL_KINDS = {
     "postbuild-script": "postbuild-script",
 }
 PUBLIC_CONFIDENTIAL_MANIFEST = "docs/references/confidential-references.json"
+
+# The structure check in verify.py blocks tracked files by this one definition, so it cannot drift from intake.
+CONFIDENTIAL_SUFFIXES = SCRIPT_EXTENSIONS | {".xls", ".xlsx", ".h"}
+CONFIDENTIAL_TREES = ("docs/references/", "refcode/flashmap/")
+# Immutable evidence that was public before the private store existed.
+PUBLIC_CONFIDENTIAL_EXCEPTIONS = frozenset({"refcode/ab_code_combiner/clean.bat"})
+
+
+def is_confidential_path(relative_path: str) -> bool:
+    """Whether a tracked repository path holds material that intake classifies as confidential."""
+
+    posix = PurePosixPath(relative_path.replace("\\", "/"))
+    lowered = posix.as_posix().lower()
+    if lowered in PUBLIC_CONFIDENTIAL_EXCEPTIONS or posix.suffix.lower() not in CONFIDENTIAL_SUFFIXES:
+        return False
+    return lowered.startswith(CONFIDENTIAL_TREES) or classify(Path(*posix.parts)) in CONFIDENTIAL_KINDS
 
 PRIVATE_COMMIT_POLICY = (
     "Keep in owner-handoff/private storage. Commit only after owner approval, "

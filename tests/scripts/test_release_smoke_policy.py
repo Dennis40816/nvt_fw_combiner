@@ -328,6 +328,8 @@ def test_packaged_combiner_executes_certified_crc_command_without_mutation() -> 
         ("1.1.7", "valid", "has no materialized built-in profile files"),
         ("1.1.8", "valid", "has no materialized built-in profile files"),
         ("1.1.10", "valid", "has no materialized built-in profile files"),
+        ("1.2.1", "valid", "has no materialized built-in profile files"),
+        ("1.2.2", "valid", "public confidential-reference manifest"),
         ("1.2.5", "valid", "public confidential-reference manifest"),
         ("1.1.8", "missing", "external-tool files differ from the approved allowlist"),
         (
