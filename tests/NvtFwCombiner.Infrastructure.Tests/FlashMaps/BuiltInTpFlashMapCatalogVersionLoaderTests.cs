@@ -84,6 +84,20 @@ public sealed class BuiltInTpFlashMapCatalogVersionLoaderTests
             TpFlashMapCatalogTestData.Profile(version: secondVersion)));
     }
 
+    /// <summary>Every IC needs an entry at the minimum supported version, so no readable version falls outside.</summary>
+    [Fact]
+    public void IcWithoutTheMinimumVersionEntryThrowsInvalidData()
+    {
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.Load(
+            TpFlashMapCatalogTestData.Profile(version: "2.0.0")));
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.Load(
+            TpFlashMapCatalogTestData.Profile(version: "2.0.0"),
+            TpFlashMapCatalogTestData.Profile(version: "2.5.0")));
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.Load(
+            TpFlashMapCatalogTestData.Profile("TEST-IC-A", "1.0.0"),
+            TpFlashMapCatalogTestData.Profile("TEST-IC-B", "2.0.0")));
+    }
+
     /// <summary>Different ICs can share boundaries, and each IC's entries are ordered numerically.</summary>
     [Fact]
     public void EntriesAreOrderedByEffectiveVersionWithinEachIc()

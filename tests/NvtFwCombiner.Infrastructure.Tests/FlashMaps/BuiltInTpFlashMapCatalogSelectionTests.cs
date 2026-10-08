@@ -44,32 +44,20 @@ public sealed class BuiltInTpFlashMapCatalogSelectionTests
         AssertSelection(catalog, profiles, version, expectedVersion);
     }
 
-    /// <summary>A sole map accepts unreadable metadata and earlier effective boundaries, except below minimum.</summary>
+    /// <summary>A sole map accepts unreadable metadata and any readable version, except below minimum.</summary>
     [Theory]
-    [InlineData("invalid", "2.0.0")]
-    [InlineData(null, "2.0.0")]
-    [InlineData("1.0.0", "2.0.0")]
-    [InlineData("255.255.255", "2.0.0")]
+    [InlineData("invalid", "1.0.0")]
+    [InlineData(null, "1.0.0")]
+    [InlineData("1.0.0", "1.0.0")]
+    [InlineData("255.255.255", "1.0.0")]
     [InlineData("0.9.9", null)]
     public void SoleEntryUsesTheSameFallbackAsPostbuildSelection(string? version, string? expectedVersion)
     {
         IReadOnlyList<TpFlashMapProfile> profiles = TpFlashMapCatalogTestData.Load(
-            TpFlashMapCatalogTestData.Profile(version: "2.0.0"));
+            TpFlashMapCatalogTestData.Profile());
         var catalog = new BuiltInTpFlashMapCatalog.Catalog(profiles);
 
         AssertSelection(catalog, profiles, version, expectedVersion);
-    }
-
-    /// <summary>Readable versions with no eligible map fail with a diagnostic rather than throwing.</summary>
-    [Fact]
-    public void VersionBeforeEveryEffectiveBoundaryIsRejected()
-    {
-        IReadOnlyList<TpFlashMapProfile> profiles = TpFlashMapCatalogTestData.Load(
-            TpFlashMapCatalogTestData.Profile(version: "2.0.0"),
-            TpFlashMapCatalogTestData.Profile(version: "2.5.0"));
-        var catalog = new BuiltInTpFlashMapCatalog.Catalog(profiles);
-
-        AssertSelection(catalog, profiles, "1.9.9", null);
     }
 
     /// <summary>Missing ICs and empty catalogs always fail with a diagnostic, even with unreadable versions.</summary>

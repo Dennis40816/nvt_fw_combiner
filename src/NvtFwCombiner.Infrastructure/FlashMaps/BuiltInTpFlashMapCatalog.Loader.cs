@@ -30,11 +30,26 @@ internal static partial class BuiltInTpFlashMapCatalog
         }
 
         TpFlashMapProfile[] profiles = [.. document.Profiles.Select(CreateProfile)];
-        return profiles.Select(static profile => (profile.IcId, profile.EffectiveCommonFwVersion))
-                .Distinct().Count() == profiles.Length
-            ? Array.AsReadOnly(profiles.GroupBy(static profile => profile.IcId, StringComparer.Ordinal)
-                .SelectMany(group => group.OrderBy(static profile => profile.EffectiveCommonFwVersion)).ToArray())
-            : throw Invalid("duplicate IC id / effectiveCommonFwVersion");
+        if (profiles.Select(static profile => (profile.IcId, profile.EffectiveCommonFwVersion))
+                .Distinct().Count() != profiles.Length)
+        {
+            throw Invalid("duplicate IC id / effectiveCommonFwVersion");
+        }
+
+        IGrouping<string, TpFlashMapProfile>[] groups =
+            [.. profiles.GroupBy(static profile => profile.IcId, StringComparer.Ordinal)];
+        foreach (IGrouping<string, TpFlashMapProfile> group in groups)
+        {
+            if (group.Min(static profile => profile.EffectiveCommonFwVersion) !=
+                LegacyCombinerCommonFwVersion.MinimumSupported)
+            {
+                throw Invalid($"{group.Key} first effectiveCommonFwVersion");
+            }
+        }
+
+        return Array.AsReadOnly(groups
+            .SelectMany(static group => group.OrderBy(static profile => profile.EffectiveCommonFwVersion))
+            .ToArray());
     }
 
     private static TpFlashMapProfile CreateProfile(ProfileDocument source)
