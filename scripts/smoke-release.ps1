@@ -41,6 +41,7 @@ $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/gol
 $ApprovedCanonicalGoldenAllowlistSha256 = '8cf5e2c610f7012ea53db83da7f8a41aa3191b81774ae3689165ad1ceb28e718'
 # Packages published up to 1.2.1 ship the earlier allowlist that still carries the private provenance in the package.
 $LegacyCanonicalGoldenAllowlistSha256 = '4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87'
+$ApprovedPublicReferenceManifestPath = Join-Path $PSScriptRoot '../docs/references/confidential-references.json'
 $CanonicalGoldenPackagePrefix = 'reference/golden'
 $CanonicalGoldenAllowlistPackagePath = 'reference/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -209,16 +210,27 @@ function Assert-PublicReferenceInventory {
     if ($PublicManifestEntries.Count -ne 1 -or [string]$PublicManifestEntries[0].role -cne 'reference') {
         throw 'Release package must include the public confidential-reference manifest.'
     }
+    # The packaged inventory must be the reviewed one: its identities resolve the private evidence.
+    if (-not (Test-Path -LiteralPath $ApprovedPublicReferenceManifestPath -PathType Leaf) -or
+        [string]$PublicManifestEntries[0].sha256 -cne (Get-LowerSha256 -Path $ApprovedPublicReferenceManifestPath)) {
+        throw 'Release package public confidential-reference manifest differs from the reviewed repository manifest.'
+    }
+    # Documents under reference/docs are Markdown or JSON. Scripts, spreadsheets, documents and native sources
+    # are private material anywhere in the reference tree.
+    $ForbiddenReferenceExtensions = @(
+        '.bat', '.cmd', '.ps1', '.sh', '.xls', '.xlsx', '.doc', '.docx',
+        '.c', '.cc', '.cpp', '.h', '.hpp', '.asm', '.s'
+    )
     foreach ($Entry in $Manifest.files) {
         $Path = [string]$Entry.path
         if ($Path.Contains('\')) {
             throw 'Release manifest paths must use forward slashes.'
         }
-        $Extension = [IO.Path]::GetExtension($Path)
-        if (($Path.StartsWith('reference/docs/references/', [StringComparison]::OrdinalIgnoreCase) -and
+        $Extension = [IO.Path]::GetExtension($Path).ToLowerInvariant()
+        $InReference = $Path.StartsWith('reference/', [StringComparison]::OrdinalIgnoreCase)
+        if (($Path.StartsWith('reference/docs/', [StringComparison]::OrdinalIgnoreCase) -and
              $Extension -notin @('.md', '.json')) -or
-            ($Path.StartsWith('reference/golden/', [StringComparison]::OrdinalIgnoreCase) -and
-             $Extension -eq '.bat')) {
+            ($InReference -and $Extension -in $ForbiddenReferenceExtensions)) {
             throw "Release package contains confidential reference content: $Path"
         }
     }

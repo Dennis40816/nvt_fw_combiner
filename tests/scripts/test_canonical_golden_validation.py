@@ -80,6 +80,37 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.assertTrue(errors, "a missing public file must not pass on an inventory identity alone")
         self.assertTrue(any(artifact["path"] in error for error in errors))
 
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_release_allowlist_cannot_add_private_storage_to_an_uncertified_artifact(self) -> None:
+        artifact = self.declare_inventory_private_provenance()
+        self.validate_release_allowlist()
+        self.release_allowlist["selectionSummary"].update(artifactDeclarationCount=3, uniqueArtifactPathCount=3)
+        VALIDATOR.CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS.pop(self.case_manifest["caseId"])
+        for release_artifact in self.release_allowlist["cases"][0]["artifacts"]:
+            if release_artifact["artifactId"] == artifact["artifactId"]:
+                release_artifact["storage"] = "private-reference"
+        self.write_json(self.root / "testdata/golden/release-canonical-v1.json", self.release_allowlist)
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root, errors, expected_summary=self.release_allowlist["selectionSummary"]
+        )
+        self.assertTrue(any("storage differs" in error for error in errors), errors)
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_release_allowlist_may_mark_the_certified_implicit_artifact_private(self) -> None:
+        artifact = self.declare_inventory_private_provenance()
+        self.validate_release_allowlist()
+        self.release_allowlist["selectionSummary"].update(artifactDeclarationCount=3, uniqueArtifactPathCount=3)
+        for release_artifact in self.release_allowlist["cases"][0]["artifacts"]:
+            if release_artifact["artifactId"] == artifact["artifactId"]:
+                release_artifact["storage"] = "private-reference"
+        self.write_json(self.root / "testdata/golden/release-canonical-v1.json", self.release_allowlist)
+        errors: list[str] = []
+        VALIDATOR.validate_canonical_release_allowlist(
+            self.root, errors, expected_summary=self.release_allowlist["selectionSummary"]
+        )
+        self.assertEqual([], errors)
+
     def test_only_the_certified_case_relies_on_the_implicit_private_disposition(self) -> None:
         self.assertEqual(
             {"nt51951-fw200-cascade2-auto-prj-599-20260731": frozenset({"postbuild-script-reference"})},

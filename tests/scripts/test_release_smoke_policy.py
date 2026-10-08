@@ -504,6 +504,23 @@ def test_stable_package_couples_one_version_scoped_launcher() -> None:
     assert "NvtFwCombiner.Bootstrap.exe" not in package
 
 
+REVIEWED_PUBLIC_MANIFEST_SHA256 = hashlib.sha256(
+    (ROOT / "docs/references/confidential-references.json").read_bytes()
+).hexdigest()
+
+
+def run_public_reference_inventory(files: list[dict[str, str]]):
+    entries = json.dumps(files, separators=(",", ":")).replace("'", "''")
+    manifest_path = str(ROOT / "docs/references/confidential-references.json").replace("'", "''")
+    return run_release_functions(
+        "smoke-release.ps1",
+        ("Get-LowerSha256", "Assert-PublicReferenceInventory"),
+        f"$ApprovedPublicReferenceManifestPath = '{manifest_path}'; "
+        f"$manifest = [pscustomobject]@{{ files = ('{entries}' | ConvertFrom-Json) }}; "
+        "Assert-PublicReferenceInventory -Manifest $manifest",
+    )
+
+
 @pytest.mark.parametrize(
     ("paths", "valid"),
     [
@@ -518,6 +535,13 @@ def test_stable_package_couples_one_version_scoped_launcher() -> None:
         (["reference/docs/references/sheet.xls"], False),
         (["reference/docs/references/source.cpp"], False),
         (["REFERENCE/GOLDEN/c001/provenance/script.BAT"], False),
+        (["reference/docs/architecture/ic-workflow-flowcharts.md"], True),
+        (["reference/docs/architecture/private.xlsx"], False),
+        (["reference/docs/architecture/postbuild.bat"], False),
+        (["reference/docs/architecture/notes.txt"], False),
+        (["reference/golden/c001/expected/output.bin"], True),
+        (["reference/golden/c001/provenance/source.cpp"], False),
+        (["reference/golden/c001/provenance/cmd.ps1"], False),
         ([r"reference\docs\references\ic-flashmap\script.bat"], False),
     ],
 )
@@ -525,17 +549,30 @@ def test_public_reference_inventory_rejects_confidential_content(
     paths: list[str], valid: bool
 ) -> None:
     files = [
-        {"path": "reference/docs/references/confidential-references.json", "role": "reference"},
+        {
+            "path": "reference/docs/references/confidential-references.json",
+            "role": "reference",
+            "sha256": REVIEWED_PUBLIC_MANIFEST_SHA256,
+        },
         *({"path": path, "role": "reference"} for path in paths),
     ]
-    entries = json.dumps(files, separators=(",", ":")).replace("'", "''")
-    result = run_release_functions(
-        "smoke-release.ps1",
-        ("Assert-PublicReferenceInventory",),
-        f"$manifest = [pscustomobject]@{{ files = ('{entries}' | ConvertFrom-Json) }}; "
-        "Assert-PublicReferenceInventory -Manifest $manifest",
-    )
+    result = run_public_reference_inventory(files)
     assert (result.returncode == 0) is valid, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("sha256", ["0" * 64, "", "A" * 64])
+def test_public_reference_inventory_requires_the_reviewed_manifest(sha256: str) -> None:
+    """Replacing the packaged inventory with any other JSON fails the smoke."""
+    files = [
+        {
+            "path": "reference/docs/references/confidential-references.json",
+            "role": "reference",
+            "sha256": sha256,
+        }
+    ]
+    result = run_public_reference_inventory(files)
+    assert result.returncode != 0
+    assert "differs from the reviewed repository manifest" in result.stdout + result.stderr
 
 
 def test_release_smoke_rejects_bootstrap_in_update_and_checks_launcher_identity() -> (

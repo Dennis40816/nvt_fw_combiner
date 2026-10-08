@@ -1746,7 +1746,14 @@ def validate_canonical_release_allowlist(
                     errors.append(
                         f"{artifact_label}.{field} differs from canonical case {case_id}"
                     )
-            if "storage" in canonical_artifact and release_artifact.get("storage") != canonical_artifact["storage"]:
+            # Both sides declare the same storage. Only the certified case keeps an unchanged canonical manifest
+            # that says nothing, while the allowlist marks the artifact private.
+            certified_implicit = (
+                artifact_id in CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS.get(case_id, frozenset())
+                and "storage" not in canonical_artifact
+                and release_artifact.get("storage") == "private-reference"
+            )
+            if release_artifact.get("storage") != canonical_artifact.get("storage") and not certified_implicit:
                 errors.append(f"{artifact_label}.storage differs from canonical case {case_id}")
             artifact_declaration_count += 1
             artifact_path = release_artifact.get("path")

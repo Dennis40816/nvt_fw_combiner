@@ -84,6 +84,12 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             "src/tp-flash-header.cpp",
             "inc/flash_map_layout.hpp",
             "boot/flash_header.asm",
+            "src/VendorCombiner.cpp",
+            "src/MyCombiner.c",
+            "src/LegacyCombiner.h",
+            "src/combiner_main.cc",
+            "boot/Combiner.asm",
+            "src/Combiner.hpp",
         ):
             with self.subTest(path=path):
                 self.assertTrue(verify.is_confidential_reference_path(path))
@@ -103,6 +109,7 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
         for path in (
             "scripts/mmap_report.py", "src/Example/MmapReader.cs", "scripts/fwconfig_check.py",
             "scripts/flashmap_report.py", "src/Example/FlashHeaderReader.cs",
+            "scripts/combiner_report.py", "src/Example/CombinerRunner.cs",
         ):
             with self.subTest(path=path):
                 self.assertFalse(verify.is_confidential_reference_path(path))

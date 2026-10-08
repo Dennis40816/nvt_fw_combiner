@@ -132,9 +132,10 @@ def is_confidential_path(relative_path: str) -> bool:
     category = classify(Path(*posix.parts))
     if category not in CONFIDENTIAL_KINDS:
         return False
-    # "combiner" also appears in the repository's own names, so by name alone only its scripts are confidential.
+    # "combiner" also appears in the repository's own names, so by name alone its scripts, native sources and headers
+    # are confidential, while the repository's own Python and C# tools are not.
     if category == "combiner-source-reference" and "fwconfig" not in lowered:
-        return suffix in SCRIPT_EXTENSIONS
+        return suffix in SCRIPT_EXTENSIONS | NATIVE_SOURCE_SUFFIXES | {".h"}
     # Every other intake category (memory map, flash map, flash header, fwconfig, postbuild) covers native sources too.
     return suffix in CONFIDENTIAL_SUFFIXES | NATIVE_SOURCE_SUFFIXES
 
