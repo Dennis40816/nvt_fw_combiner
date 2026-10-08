@@ -242,7 +242,7 @@ outputs match the corresponding NT51927 hashes for single
 
 Report verification gate: committed golden-backed self-replacement tests inspect the generated Replace report, not only the final output bytes. DP self-replacement must leave `OutputDifferences` empty. A CtrlRAM case whose evidence claims zero replacement-payload drift may emit only accepted `PostbuildCrcHeader` rows. An expected-derived CtrlRAM case may additionally emit accepted `DeclaredReplacement` rows only when every row traces to an explicit compiled mapping and an evidence-declared half-open range. Every case forbids `Unexpected` rows and `report.output-difference.unexpected`; a second self-replacement from the postbuild-clean output must return to an empty difference table.
 
-`mmap-nt51927-fw1.4.1` supplies private evidence for reviewing cascade write authority.
+`mmap-nt51927-fw1.4.1` supplies private evidence for reviewing cascade write authority. The 3-chip/cascade CRC-only header writes remain R3 firmware evidence and require firmware-owner review before production-support promotion.
 
 NT51930 Standard Merge golden cross-check:
 
@@ -252,7 +252,7 @@ NT51930 Standard Merge golden cross-check:
 
 No-overlay/header-copy size cross-check:
 
-| IC family | Manifest ID | Evidence purpose |
+| IC family | Manifest ID | Evidence purpose (the selected header-copy sizes are in `profiles/built-in/ctrlram-postbuild-v2/catalog.json`) |
 | --- | --- | --- |
 | NT51920 | `postbuild-nt51920-fw1.3.1` | Private evidence for postbuild layout review. |
 | NT51923 | `postbuild-nt51923-fw1.4.1` | Private evidence for postbuild layout review. |
@@ -321,7 +321,7 @@ Private evidence used for NT51931 postbuild review:
 - `postbuild-nt51931-fw1.3.0`
 
 
-That mode paired with Combiner 1.13.0 access-violates before mutation:
+The NT51930-based normal mode paired with Combiner 1.13.0 access-violates before mutation:
 
 ```text
 ExitCode=-1073741819
