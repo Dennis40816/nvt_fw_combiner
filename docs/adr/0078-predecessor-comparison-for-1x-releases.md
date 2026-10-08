@@ -96,8 +96,10 @@ decision are in the 1.1.13 WS-PARITY handoff.
    including the independent compiled-authority check: the Build report must
    match the operations that a typed Preview of the same executor compiled
    for the same inputs (`validate_report_projection_against_compiled_authority`),
-   so a report cannot widen its own ranges. The versioned report reader only
-   converts formats and may not relax these checks. A crash, timeout, tool or
+   so a report cannot widen its own ranges. Every Preview and Build report
+   must also name the request that was run (IC, workflow and composition; the
+   resolved profile when the request declares it). The versioned report reader
+   only converts formats and may not relax these checks. A crash, timeout, tool or
    report failure is `invalid` and cannot be declared or approved.
 7. **Comparison and attribution.** The primary output is compared completely
    (size, every byte, SHA-256), with half-open difference ranges. Each

@@ -3696,10 +3696,11 @@ def report_identity_mismatches(
     """Compare the reader's context with the request using exact equality.
 
     The ADR 0057 terminal path compares every field. The comparator passes `declared_only` because a request
-    may leave the resolved profile undeclared; only then is a None expected value skipped.
+    may leave the resolved profile undeclared; only then is an undeclared `ProfileId` skipped.
     """
     return [field for field, value in zip(expected._fields, expected)
-            if not (declared_only and value is None) and context.get(field[0].lower() + field[1:]) != value]
+            if not (declared_only and field == "ProfileId" and value is None)
+            and context.get(field[0].lower() + field[1:]) != value]
 
 
 def _validate_raw_report(raw: Mapping[str, Any], receipt: Mapping[str, Any], *, committed: bool, invocation_field: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
@@ -3727,7 +3728,7 @@ def _validate_raw_report(raw: Mapping[str, Any], receipt: Mapping[str, Any], *, 
         "outputCommitted": raw["Output"]["Committed"], "issueCount": len(raw["Issues"]),
     }
     valid = (
-        not report_identity_mismatches({"profileId": raw["ProfileId"], **context}, expected_identity)
+        not report_identity_mismatches({**context, "profileId": raw["ProfileId"]}, expected_identity)
         and (
             "MapId" not in raw
             or isinstance(raw["MapId"], str)

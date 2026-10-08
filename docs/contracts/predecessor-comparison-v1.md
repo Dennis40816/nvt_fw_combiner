@@ -120,7 +120,8 @@ The rolling baseline is the previous published stable release: the highest
 annotated `vX.Y.Z` tag below the candidate `VERSION` that has a complete,
 published GitHub Release. Its peeled commit must be an ancestor of the
 candidate commit. Before R-5, the commander supplies the file through
-`rolling --published-release-inventory FILE`, validated against
+`rolling --published-release-inventory FILE`, checked by
+`published_inventory_failures` against the rules of
 `predecessor-published-release-inventory-v1.schema.json`. The comparator only
 reads duplicate-rejecting JSON; it never calls `gh` or accepts a token.
 The declaration names the same tag and tag object.

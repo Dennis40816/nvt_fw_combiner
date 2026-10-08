@@ -995,11 +995,12 @@ class ComparisonTests(unittest.TestCase):
             return subprocess.CompletedProcess(argv, 0, "", "")
         self.runner.host = FakeProcessHost(cli)
         capture = self.runner.run(stage="preview", argv=["synthetic"], staging_root=work,
-                                  inputs=rows, report_path=report_path)
+                                  inputs=rows, report_path=report_path, expected_identity=request_identity_of(raw))
         verdict = comparison.validation.side_execution_verdict([capture.evidence()],
             capacities={"dp-input": 8, "tp-input": 8, "output-image": 8}, complete=False)
         self.assertEqual("invalid", verdict.status)
         self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
+        self.assertEqual("report input binding differs from capture", verdict.failures[0].detail)
 
     def test_input_admission_and_cli_stage_use_fresh_copies(self):
         authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
@@ -1234,6 +1235,32 @@ class ComparisonTests(unittest.TestCase):
             capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
         self.assertEqual(("invalid", "precursor-build"), (verdict.status, verdict.stopped_at))
         self.assertIn("ProfileId", verdict.failures[0].detail)
+
+    def test_replace_workflow_report_naming_a_merge_is_refused(self):
+        expected = comparison.validation.expected_report_identity(
+            profile_id=None, ic_id="synthetic", workflow_id="ctrlram-replace")
+        context = {"icId": "synthetic", "modeId": "ctrlram-replace", "experienceId": "ctrlram-replace",
+                   "compositionKind": "Merge", "profileId": "synthetic-ctrlram-replace"}
+        self.assertEqual(["CompositionKind"],
+                         parity.report_identity_mismatches(context, expected, declared_only=True))
+        self.assertEqual([], parity.report_identity_mismatches({**context, "compositionKind": "Replace"}, expected,
+                                                                declared_only=True))
+        # The terminal path compares every field, including an undeclared profile.
+        self.assertEqual(["ProfileId"], parity.report_identity_mismatches(
+            {**context, "compositionKind": "Replace"}, expected._replace(ProfileId=None)))
+
+    def test_cli_stage_without_an_ic_in_the_request_fails_closed(self):
+        authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
+        artifacts = {"input": {"role": "input", "path": "input.bin", "size": 8, "sha256": digest(PAYLOAD)}}
+        git = FakeGitHost()
+        self.build_host(git)
+        executor = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
+        self.runner.host = FakeProcessHost(lambda argv, cwd: subprocess.CompletedProcess(argv, 0, "", ""))
+        request = {"workflowId": "standard-merge", "profileId": "test", "cliSelectionToken": None}
+        with self.assertRaises(KeyError):
+            comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts,
+                                         [("input", "dp-input")], stage="preview")
+        self.assertEqual([], self.runner.host.calls)
 
     def test_report_without_a_request_identity_is_refused(self):
         captures = self.request_identity_stages()
