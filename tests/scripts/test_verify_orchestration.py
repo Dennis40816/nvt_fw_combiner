@@ -5,6 +5,7 @@ from __future__ import annotations
 import _thread
 import argparse
 import contextlib
+from collections import Counter
 from fnmatch import fnmatch
 import hashlib
 import importlib.util
@@ -37,7 +38,16 @@ SPEC.loader.exec_module(MODULE)
 import validate_repository as REPOSITORY_VALIDATOR  # noqa: E402
 
 
+PRIVATE_REFERENCE_BOOTSTRAP_SKIPS = MODULE.PRIVATE_REFERENCE_BOOTSTRAP_SKIPS
+
+
 class VerifyOrchestrationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        # CI evidence fixtures predate the private-reference skips; the dedicated test restores them.
+        private_skips = patch.object(MODULE, "PRIVATE_REFERENCE_BOOTSTRAP_SKIPS", ())
+        private_skips.start()
+        self.addCleanup(private_skips.stop)
+
     def test_structure_preflight_reports_missing_pyyaml_before_lane(self) -> None:
         output = io.StringIO()
         with (
@@ -6333,6 +6343,37 @@ class VerifyOrchestrationTests(unittest.TestCase):
             ),
             outcomes["Passed"],
         )
+
+    def test_private_reference_skips_are_approved_only_without_private_assets(self) -> None:
+        bootstrap = MODULE.CiDotnetProject(
+            "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj"
+        )
+        infrastructure = MODULE.CiDotnetProject(
+            "tests/NvtFwCombiner.Infrastructure.Tests/NvtFwCombiner.Infrastructure.Tests.csproj"
+        )
+        private = Counter(
+            MODULE.canonical_vstest_identity(identity)
+            for identity in PRIVATE_REFERENCE_BOOTSTRAP_SKIPS
+        )
+        restored = patch.object(MODULE, "PRIVATE_REFERENCE_BOOTSTRAP_SKIPS", PRIVATE_REFERENCE_BOOTSTRAP_SKIPS)
+        with restored, patch.dict(os.environ, {MODULE.PRIVATE_ASSETS_ENVIRONMENT_VARIABLE: ""}):
+            self.assertEqual(private, MODULE.approved_platform_skip_identities(bootstrap, "windows"))
+            self.assertEqual(
+                private + Counter(
+                    MODULE.canonical_vstest_identity(identity)
+                    for identity in MODULE.WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS
+                ),
+                MODULE.approved_platform_skip_identities(bootstrap, "non-windows"),
+            )
+            self.assertEqual(
+                Counter(),
+                MODULE.approved_platform_skip_identities(infrastructure, "windows"),
+            )
+        with restored, patch.dict(os.environ, {MODULE.PRIVATE_ASSETS_ENVIRONMENT_VARIABLE: "configured"}):
+            self.assertEqual(
+                Counter(),
+                MODULE.approved_platform_skip_identities(bootstrap, "windows"),
+            )
 
     def test_compiled_inventory_admits_only_exact_producer_platform_skips(self) -> None:
         project = MODULE.CiDotnetProject(

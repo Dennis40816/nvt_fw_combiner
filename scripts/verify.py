@@ -3115,6 +3115,26 @@ WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS = (
 )
 
 
+# Owner 2026-10-08 09:00 (A2): 「1. 核准略過，報告看得到 (Recommended)」. These tests read private
+# reference bytes. Without NVT_PRIVATE_ASSETS they skip on every producer and stay listed as skipped;
+# with it they must run.
+PRIVATE_REFERENCE_BOOTSTRAP_SKIPS = (
+    "NvtFwCombiner.Bootstrap.Tests.ConfidentialReferenceTestDataTests.PrivateHeldCanonicalProvenanceMatchesPinnedBytes",
+    "NvtFwCombiner.Bootstrap.Tests.Nt51932CtrlRamFw200EvidenceTests.PrivatePostbuildReferenceRetainsCommandOrder",
+)
+PRIVATE_ASSETS_ENVIRONMENT_VARIABLE = "NVT_PRIVATE_ASSETS"
+
+
+def private_reference_skip_identities(project: CiDotnetProject) -> tuple[str, ...]:
+    """Return the private-reference tests that skip because private data is absent."""
+
+    if project.name != "NvtFwCombiner.Bootstrap.Tests":
+        return ()
+    if os.environ.get(PRIVATE_ASSETS_ENVIRONMENT_VARIABLE, "").strip():
+        return ()
+    return PRIVATE_REFERENCE_BOOTSTRAP_SKIPS
+
+
 def approved_platform_skip_identities(
     project: CiDotnetProject,
     producer_platform: str,
@@ -3131,6 +3151,7 @@ def approved_platform_skip_identities(
         )
     else:
         raise RuntimeError(f"unsupported .NET producer platform: {producer_platform}")
+    identities = (*identities, *private_reference_skip_identities(project))
     return Counter(canonical_vstest_identity(identity) for identity in identities)
 
 
