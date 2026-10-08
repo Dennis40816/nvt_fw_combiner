@@ -15,6 +15,13 @@ NT51925, NT51930, and NT51931. Their worksheet/header entries remain
 non-production historical evidence for report interpretation only and are not
 migrated into target selectors, profiles, processors, or family relationships.
 
+NT51925 update (2026-10-08): the owner supplied a private NT51925 data set
+(postbuild flows, map headers, sample images). It sits in the private asset
+repository, and this repository keeps no copy of it. The worksheet and
+header entries above stay report-interpretation evidence only. The data set
+does not change any NT51925 route state in
+[ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+
 Evidence sources:
 
 - `docs/references/ic-flashmap/IC_FlashMap_20260725.xlsx` TP Overview rows;

@@ -26,6 +26,14 @@ parity. No repository TP flash-map version lists NT51925. Legacy Combiner
 1.13.0 has no IC-specific mode or chip-ID check, so successful invocation is
 not NT51925 support evidence.
 
+Evidence update (2026-10-08): the owner supplied a private NT51925 data set
+(postbuild flows, map headers, sample images) and no independent Golden output.
+The data set sits in the private asset repository, and this repository holds no
+copy. It holds a layout that is consistent with the provisional geometry below.
+The owner has not yet confirmed the production layout. The delivered Combiner
+and Combiner 1.13.0 gave byte-identical output on every sample, which does not
+prove support. This update changes no decision, route state or gate in this ADR.
+
 ## Considered options
 
 1. Join NT51925 to the existing NT51923/NT51926 family now. This would change

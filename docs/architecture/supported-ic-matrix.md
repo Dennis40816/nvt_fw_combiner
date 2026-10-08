@@ -26,6 +26,21 @@ separate owner approval. The `925&926` workbook proves limited header facts
 only. The CASE instructions are
 [Standard Merge](../../testdata/golden/owner-handoff/standard-merge/nt51925/CASE.md)
 and [CtrlRAM Replace](../../testdata/golden/owner-handoff/ctrlram-replace/nt51925/CASE.md).
+
+**Owner data received (2026-10-08).** The owner supplied a private NT51925
+data set. It sits in the private asset repository, not in this repository. It
+holds postbuild flows, map headers and sample images, but no independent Golden
+output yet. Three results are public:
+
+- The data set holds a layout that is consistent with the provisional address
+  settings above. The owner has not yet confirmed the production layout, so the
+  settings stay provisional.
+- The legacy Combiner delivered with the data set and the legacy Combiner 1.13.0
+  pinned in this repository gave byte-identical output on every sample. Neither
+  build checks the chip, so this is not NT51925 support evidence.
+- No route state changes. All nine NT51925 routes stay `Candidate`,
+  `ContractOnly` and blocked until every gate in ADR 0084 passes.
+
 The existing canonical policy remains the in-app Support Matrix source; no UI
 support table or IC-specific semantic branch is added. Dated support and
 retirement statements below describe prior scope; this isolated candidate
