@@ -9,8 +9,8 @@ NFC calls the legacy `Combiner.exe` only through the constrained runner describe
 
 1. **Pick the case.** The owner delivered a finished executable, or the owner wants a source change and a rebuild. Delivered source and build recipes are private evidence until the owner approves publication. Ask the owner for the toolchain and flags before any rebuild. Keep the delivered source and the build outside the public repository.
 2. **Identify the binary.** Record the size and SHA-256 in the private asset repository. Do not trust a version string inside the binary. Use a version string that the owner names, and never parse it as a number.
-3. **Get the publication approval.** Ask the owner whether this binary may ship. Until the owner says yes, its hash and size stay out of this repository.
-4. **Prove parity.** Run the old and the new executable on host-created staging copies of every canonical Golden input and every owner sample, in the test area. Compare complete outputs byte by byte. Report each difference range. A difference needs a bound that the owner declares.
+3. **Get the approvals.** Ask the owner for the execution approval and a trust review of the exact binary, and ask whether it may ship. Until the owner says yes, nobody runs it, and its hash and size stay out of this repository. It is evidence only.
+4. **Prove parity.** List the profiles that reference the old and the new `toolBindingId`. Use only the routes of those profiles. Run the old and the new executable with each profile's exact command plan on host-created staging copies of the canonical Golden inputs and the owner samples of those routes, in the test area. Do not run it on Standard Merge, DP Replace, or other cases that bind no Combiner. Compare complete outputs byte by byte. Report each difference range. A difference needs a bound that the owner declares.
 5. **Package the version.** Create `external-tools/legacy-combiner/<version>/` with `Combiner.exe` and `manifest.json`. The manifest holds:
    - a unique `toolBindingId` and the exact `toolVersion`;
    - the SHA-256, the adapter id, and the input mode;
