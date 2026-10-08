@@ -14,7 +14,7 @@
 
 NFC, NFH and NFU contain the same mechanisms, for example startup tracing, bounded file reads, process
 execution, the launcher, the message center and the shell. The owner decided to move these mechanisms into
-the shared NVT Core repository by 2026-10-18 (decision 322). NFC adopts them in the next 1.2.x patch.
+the shared NVT Core repository by 2026-10-18 (decision 322). NFC adopts them in the next 1.2.x patch (superseded 2026-10-07; see the dated update at the end).
 
 Each move changes who owns code, which way dependencies point and how NFC builds. NFC's adoption pull
 requests need one boundary, one dependency rule and one package contract to follow. This ADR records them.
@@ -230,3 +230,14 @@ Release at build time and integrate it into NFC. Core adds explicit license text
 The manifest and the shared script are R3 with `release-owner` and `governance-owner`, under decision 328.
 This pull request adds only the delivery mechanism. The first module adoption pull request adds the pins,
 lock entries, `THIRD_PARTY_NOTICES.md` and the release license copy.
+
+### 2026-10-07: Core adoption on the 1.3.x trunk
+
+The owner decided on 2026-10-07, relayed by the Commander session (board decisions 332, 333 and 335):
+- The `1.2.x` line stays Core-free. It carries hotfixes only. The `1.3.0` release branch has no Core.
+- After `1.3.0`, Core adoption pull requests merge into the `1.3.x` trunk together with feature pull requests,
+  in the board's handoff order. Each adoption pull request is small and starts with zero visible change.
+- The first customer release with Core also does license bridge step 2 (decision 327).
+
+The [roadmap](../architecture/nfc_roadmap.md#owner-version-line-decision--2026-10-07) holds the version rules, and
+the [`1.3.x` board](../handoff/1.3.x.md) holds the handoff order.
