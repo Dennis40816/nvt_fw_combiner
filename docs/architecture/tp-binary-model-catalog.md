@@ -21,6 +21,10 @@ repository, and this repository keeps no copy of it. The worksheet and
 header entries above stay report-interpretation evidence only. The data set
 does not change any NT51925 route state in
 [ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+The planned NT51925 TP Overview entry follows NT51926 and has two topologies,
+`Single` and `Cascade`. A cascade holds up to three ICs. The entry is not
+registered yet. The owner supplies the production values, and the
+[support matrix](supported-ic-matrix.md) lists the open points.
 
 Evidence sources:
 

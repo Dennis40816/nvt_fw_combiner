@@ -32,14 +32,28 @@ data set. It sits in the private asset repository, not in this repository. It
 holds postbuild flows, map headers and sample images, but no independent Golden
 output yet. Three results are public:
 
-- The data set holds a layout that is consistent with the provisional address
-  settings above. The owner has not yet confirmed the production layout, so the
-  settings stay provisional.
+- The data set holds a layout that is consistent with the provisional TP and
+  DP geometry above. The owner has not yet confirmed the production layout, so
+  the geometry stays provisional. The CtrlRAM region positions copied from
+  NT51926 stay unconfirmed.
 - The legacy Combiner delivered with the data set and the legacy Combiner 1.13.0
   pinned in this repository gave byte-identical output on every sample. Neither
   build checks the chip, so this is not NT51925 support evidence.
 - No route state changes. All nine NT51925 routes stay `Candidate`,
   `ContractOnly` and blocked until every gate in ADR 0084 passes.
+
+Owner scope decisions (2026-10-08, relayed through the commander session):
+
+- First scope is Standard Merge only. The eight CtrlRAM Replace routes above
+  are deferred until the owner supplies Golden cases, expected in the week of
+  2026-10-12. The declarations stay in place.
+- NT51925 has two layouts, split by the Common FW major version at `2.0.0`.
+  Both are to be supported. No code selects a TP map by Common FW version
+  today; this is new work. The postbuild profile already does, by taking the
+  highest profile that does not exceed the firmware version.
+- The TP Overview entry follows NT51926: `Single` and `Cascade`. A cascade
+  holds up to three ICs. How a three-IC cascade maps to the generic Cascade
+  plan is not yet proved.
 
 The existing canonical policy remains the in-app Support Matrix source; no UI
 support table or IC-specific semantic branch is added. Dated support and

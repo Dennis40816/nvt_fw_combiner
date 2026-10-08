@@ -33,6 +33,9 @@ copy. It holds a layout that is consistent with the provisional geometry below.
 The owner has not yet confirmed the production layout. The delivered Combiner
 and Combiner 1.13.0 gave byte-identical output on every sample, which does not
 prove support. This update changes no decision, route state or gate in this ADR.
+The owner also set the first scope to Standard Merge only (relayed 2026-10-08).
+The CtrlRAM Replace candidates below stay declared and are deferred until the
+owner supplies Golden cases, expected in the week of 2026-10-12.
 
 ## Considered options
 
