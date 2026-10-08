@@ -30,7 +30,9 @@ This document is an index for the current Merge and Replace flows by IC. It is n
 > map headers, sample images) holds a layout that is consistent with the
 > candidate geometry. The owner has not yet confirmed the production layout. The
 > legacy Combiner 1.13.0 and the Combiner delivered with the data gave identical
-> output on every sample, but neither checks the chip. No route state changes.
+> output on the samples checked on 2026-10-08, but neither checks the chip. This
+> is an unverified observation until the sample identities are in a public
+> manifest. No route state changes.
 > See the [support matrix](supported-ic-matrix.md).
 
 ## Update rule

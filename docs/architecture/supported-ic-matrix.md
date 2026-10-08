@@ -36,9 +36,10 @@ output yet. Three results are public:
   DP geometry above. The owner has not yet confirmed the production layout, so
   the geometry stays provisional. The CtrlRAM region positions copied from
   NT51926 stay unconfirmed.
-- The legacy Combiner delivered with the data set and the legacy Combiner 1.13.0
-  pinned in this repository gave byte-identical output on every sample. Neither
-  build checks the chip, so this is not NT51925 support evidence.
+- On 2026-10-08 the legacy Combiner delivered with the data set and the legacy
+  Combiner 1.13.0 pinned in this repository gave byte-identical output on the
+  samples that were checked. Neither build checks the chip, so this is not
+  NT51925 support evidence. The sample identities, the sample count and the delivered Combiner hash are kept in the private repository and are not in a public manifest yet. Until they are, treat this as an unverified observation that no one can reproduce from this repository.
 - No route state changes. All nine NT51925 routes stay `Candidate`,
   `ContractOnly` and blocked until every gate in ADR 0084 passes.
 
