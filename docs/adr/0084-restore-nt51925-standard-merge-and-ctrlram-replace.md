@@ -35,7 +35,9 @@ and Combiner 1.13.0 gave byte-identical output on every sample, which does not
 prove support. This update changes no decision, route state or gate in this ADR.
 The owner also set the first scope to Standard Merge only (relayed 2026-10-08).
 The CtrlRAM Replace candidates below stay declared and are deferred until the
-owner supplies Golden cases, expected in the week of 2026-10-12.
+owner supplies Golden cases, expected in the week of 2026-10-12. The owner plans
+to support different layouts by Common FW version. That decision needs a later
+amendment of this ADR, and this update does not change the geometry below.
 
 ## Considered options
 

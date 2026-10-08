@@ -42,15 +42,18 @@ output yet. Three results are public:
 - No route state changes. All nine NT51925 routes stay `Candidate`,
   `ContractOnly` and blocked until every gate in ADR 0084 passes.
 
-Owner scope decisions (2026-10-08, relayed through the commander session):
+Owner scope decisions (relayed 2026-10-08):
 
 - First scope is Standard Merge only. The eight CtrlRAM Replace routes above
   are deferred until the owner supplies Golden cases, expected in the week of
-  2026-10-12. The declarations stay in place.
-- NT51925 has two layouts, split by the Common FW major version at `2.0.0`.
-  Both are to be supported. No code selects a TP map by Common FW version
-  today; this is new work. The postbuild profile already does, by taking the
-  highest profile that does not exceed the firmware version.
+  2026-10-12. The declarations stay in place, and every other gate in ADR 0084
+  still applies.
+- The owner plans to support different layouts by Common FW version, with a
+  first boundary at `2.0.0`. No support is claimed. The owner has not yet given
+  production values for these layouts. No code selects a TP map by Common FW
+  version today. That needs new implementation, and it needs an amendment of
+  ADR 0084. The postbuild profile choice already uses the Common FW version: it
+  takes the highest profile that does not exceed the firmware version.
 - The TP Overview entry follows NT51926: `Single` and `Cascade`. A cascade
   holds up to three ICs. How a three-IC cascade maps to the generic Cascade
   plan is not yet proved.
