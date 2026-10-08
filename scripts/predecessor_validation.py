@@ -572,10 +572,20 @@ def report_ordered_inputs(workflow_id: str, rows: Sequence[Mapping[str, Any]]) -
     return [{**row, "order": order} for order, row in enumerate(ordered)]
 
 
-def v0916_milestone_failures(*, formal: bool, milestone: str | None) -> list[Failure]:
-    """A formal v0.9.16 comparison must identify its milestone."""
-    return ([_failure("INPUT_INVALID", "milestone", "formal comparison requires a milestone")]
-            if formal and milestone is None else [])
+# The contract names the milestone of the report of record for a candidate version.
+V0916_RECORD_MILESTONES = {"1.2.2": "1.2.0-release-approval"}
+
+
+def v0916_milestone_failures(*, formal: bool, milestone: str | None, candidate_version: str | None = None) -> list[Failure]:
+    """A formal v0.9.16 comparison must identify its milestone, and the one its candidate version requires."""
+    if not formal:
+        return []
+    if milestone is None:
+        return [_failure("INPUT_INVALID", "milestone", "formal comparison requires a milestone")]
+    required = V0916_RECORD_MILESTONES.get(candidate_version or "")
+    if required is not None and milestone != required:
+        return [_failure("INPUT_INVALID", "milestone", f"candidate {candidate_version} requires milestone {required}")]
+    return []
 
 
 def output_destination_failures(*, exists: bool, is_symlink: bool) -> list[Failure]:

@@ -388,6 +388,28 @@ class V0916Tests(unittest.TestCase):
         sources.assert_not_called()
         self.assertFalse((self.root / "formal.json").exists())
 
+    def test_formal_run_must_use_the_milestone_its_candidate_version_requires(self):
+        sources = milestone.V0916Sources("1.2.2", {}, {}, {}, None, None)
+        for wrong in ("1.1.13-final-candidate", "before-ro-1-decision"):
+            with self.subTest(milestone=wrong):
+                with (patch.object(execution, "admit_execution_contract"),
+                      patch.object(milestone, "load_v0916_sources", return_value=sources),
+                      patch.object(execution, "admit_loaded_execution_contract") as admitted,
+                      self.assertRaises(execution.ExecutionError) as found):
+                    milestone.run_v0916(git=None, host=None, baseline_builder=None, candidate_commit=CANDIDATE,
+                                        output_path=self.root / "formal.json", temporary_root=self.root,
+                                        settings_folder=self.settings, formal=True, milestone=wrong)
+                self.assertEqual("PREDECESSOR_INPUT_INVALID", found.exception.code)
+                admitted.assert_not_called()
+                self.assertFalse((self.root / "formal.json").exists())
+
+    def test_milestone_rule_only_binds_formal_runs_of_a_version_the_contract_names(self):
+        rule = milestone.validation.v0916_milestone_failures
+        self.assertEqual([], rule(formal=True, milestone="1.2.0-release-approval", candidate_version="1.2.2"))
+        self.assertEqual([], rule(formal=False, milestone="before-ro-1-decision", candidate_version="1.2.2"))
+        self.assertEqual([], rule(formal=True, milestone="before-ro-1-decision", candidate_version="1.3.0"))
+        self.assertEqual(1, len(rule(formal=True, milestone="before-ro-1-decision", candidate_version="1.2.2")))
+
     def alias_world_git(self, *, alias=True, matching_fingerprint=True):
         route = self.world["policy"]["routes"][2]
         historical = json.loads((ROOT / milestone.PLAN).read_bytes())["inputIdentityAliases"][0]

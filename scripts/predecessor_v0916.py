@@ -285,6 +285,8 @@ def run_v0916(
     execution._refuse(validation.v0916_milestone_failures(formal=formal, milestone=milestone))
     try:
         sources = load_v0916_sources(git, candidate_commit, formal=formal)
+        execution._refuse(validation.v0916_milestone_failures(
+            formal=formal, milestone=milestone, candidate_version=sources.version))
         admission = execution.admit_loaded_execution_contract(sources.contract, mode="v0916-1x", formal=formal,
                                                               amendment=sources.amendment)
         if baseline_builder is None or sources.baseline_executor is None:

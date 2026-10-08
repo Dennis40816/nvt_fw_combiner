@@ -264,7 +264,7 @@ a declaration entry for every scenario that is not `equal`.
 
 ## v0.9.16 1.x mode
 
-For candidate version 1.2.2, the report of record uses milestone "1.2.0-release-approval", the deferred milestone of 1.1.12 board decision 201 and 1.2.x board decision 250. The report must be formal and consistent before 1.2.2 is released; all existing plan and amendment obligations remain mandatory.
+For candidate version 1.2.2, the report of record uses milestone "1.2.0-release-approval", the deferred milestone of 1.1.12 board decision 201 and 1.2.x board decision 250. The report must be formal and consistent before 1.2.2 is released; all existing plan and amendment obligations remain mandatory. A formal run for candidate version 1.2.2 with any other milestone is refused with `PREDECESSOR_INPUT_INVALID`; the candidate version comes from the `VERSION` file of the candidate commit.
 
 The mode is a historical consumer of the ADR 0057 plan, as ADR 0057 permits.
 It materializes the plan's canonical input authority with the ADR 0057
