@@ -18,8 +18,8 @@ NFC calls the legacy `Combiner.exe` only through the constrained runner describe
    - the argument template, the timeout, and the allowed extra outputs.
 
    Add the app-local runtime only with a reviewed identity and notice.
-7. **Register the version.** Update `external-tools/catalog.json` with size and SHA-256 for every file. Update the packager, the release allowlist, and the independent release smoke so they pin the same bytes. Profiles reference `toolBindingId` only, never an executable path.
+7. **Register the version.** Update `external-tools/catalog.json` with size and SHA-256 for every file. Update the packager, the release allowlist, and the independent release smoke so they pin the same bytes. Profiles reference `toolBindingId` only, never an executable path. Move every consumer of the old `toolBindingId` to the new one in one change: the source profiles, the postbuild entries, and the closed invocation registry (`ExternalCombinerInvocationCatalog`). Then check that no `external-tool.invocation.binding-mismatch` remains. Keep the old package only while a route still references it.
 8. **Add postbuild data last.** Add or change a postbuild catalog profile only after the postbuild and map evidence is reviewed.
-9. **Test and gate.** Add fake-runner tests for staging, argv, and the diff policy. Add real Golden runs when the owner approves the inputs. The executable ships in the release payload, so this is R3. It needs the firmware owner and the release owner.
+9. **Test and gate.** Add fake-runner tests for staging, argv, and the diff policy. Run every applicable owner-certified complete-output Golden case against the new binary and compare the expected output. A missing, failed, or skipped case blocks publication. Parity with the old binary is not a substitute. The executable ships in the release payload, so this is R3. It needs the firmware owner and the release owner.
 
 Do not load a tool from `refcode/`. Do not run the executable on repository files. Do not treat a successful run as support for any IC.
