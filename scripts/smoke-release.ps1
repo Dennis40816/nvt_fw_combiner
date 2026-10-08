@@ -42,6 +42,10 @@ $ApprovedCanonicalGoldenAllowlistSha256 = '8cf5e2c610f7012ea53db83da7f8a41aa3191
 # Packages published up to 1.2.1 ship the earlier allowlist that still carries the private provenance in the package.
 $LegacyCanonicalGoldenAllowlistSha256 = '4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87'
 $ApprovedPublicReferenceManifestPath = Join-Path $PSScriptRoot '../docs/references/confidential-references.json'
+# SHA-256 of the public confidential-reference manifest that each published package shipped, by product version.
+# The release step adds the entry for a version when it is published. A version without an entry is a candidate:
+# it must carry the manifest of this checkout.
+$PublishedPublicReferenceManifestSha256 = @{}
 $CanonicalGoldenPackagePrefix = 'reference/golden'
 $CanonicalGoldenAllowlistPackagePath = 'reference/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -203,7 +207,10 @@ function Get-ReleaseProductVersion {
 }
 
 function Assert-PublicReferenceInventory {
-    param([Parameter(Mandatory = $true)]$Manifest)
+    param(
+        [Parameter(Mandatory = $true)]$Manifest,
+        [version]$ProductVersion
+    )
 
     $PublicManifestPath = 'reference/docs/references/confidential-references.json'
     $PublicManifestEntries = @($Manifest.files | Where-Object { [string]$_.path -ceq $PublicManifestPath })
@@ -211,9 +218,16 @@ function Assert-PublicReferenceInventory {
         throw 'Release package must include the public confidential-reference manifest.'
     }
     # The packaged inventory must be the reviewed one: its identities resolve the private evidence.
-    if (-not (Test-Path -LiteralPath $ApprovedPublicReferenceManifestPath -PathType Leaf) -or
-        [string]$PublicManifestEntries[0].sha256 -cne (Get-LowerSha256 -Path $ApprovedPublicReferenceManifestPath)) {
-        throw 'Release package public confidential-reference manifest differs from the reviewed repository manifest.'
+    $PublishedSha256 = if ($null -ne $ProductVersion -and
+        $PublishedPublicReferenceManifestSha256.ContainsKey($ProductVersion.ToString())) {
+        [string]$PublishedPublicReferenceManifestSha256[$ProductVersion.ToString()]
+    }
+    elseif (Test-Path -LiteralPath $ApprovedPublicReferenceManifestPath -PathType Leaf) {
+        Get-LowerSha256 -Path $ApprovedPublicReferenceManifestPath
+    }
+    else { '' }
+    if ($PublishedSha256 -cnotmatch '^[0-9a-f]{64}$' -or [string]$PublicManifestEntries[0].sha256 -cne $PublishedSha256) {
+        throw 'Release package public confidential-reference manifest differs from the reviewed manifest of its version.'
     }
     # Documents under reference/docs are Markdown or JSON. Scripts, spreadsheets, documents and native sources
     # are private material anywhere in the reference tree.
@@ -913,7 +927,7 @@ try {
         $RequiresPrebuiltCatalog = $ProductVersion -ge [version]'1.1.13'
         # Every published package (up to 1.2.1) predates the public confidential-reference manifest.
         if ($ProductVersion -ge [version]'1.2.2') {
-            Assert-PublicReferenceInventory -Manifest $manifest
+            Assert-PublicReferenceInventory -Manifest $manifest -ProductVersion $ProductVersion
         }
     }
     if (-not $RequiresCombinerRuntime) {

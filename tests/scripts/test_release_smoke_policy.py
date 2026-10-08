@@ -509,15 +509,20 @@ REVIEWED_PUBLIC_MANIFEST_SHA256 = hashlib.sha256(
 ).hexdigest()
 
 
-def run_public_reference_inventory(files: list[dict[str, str]]):
+def run_public_reference_inventory(
+    files: list[dict[str, str]], version: str | None = None, published: dict[str, str] | None = None
+):
     entries = json.dumps(files, separators=(",", ":")).replace("'", "''")
     manifest_path = str(ROOT / "docs/references/confidential-references.json").replace("'", "''")
+    table = "".join(f"'{key}' = '{value}'; " for key, value in (published or {}).items())
+    version_arg = "" if version is None else f" -ProductVersion ([version]'{version}')"
     return run_release_functions(
         "smoke-release.ps1",
         ("Get-LowerSha256", "Assert-PublicReferenceInventory"),
         f"$ApprovedPublicReferenceManifestPath = '{manifest_path}'; "
+        f"$PublishedPublicReferenceManifestSha256 = @{{ {table}}}; "
         f"$manifest = [pscustomobject]@{{ files = ('{entries}' | ConvertFrom-Json) }}; "
-        "Assert-PublicReferenceInventory -Manifest $manifest",
+        f"Assert-PublicReferenceInventory -Manifest $manifest{version_arg}",
     )
 
 
@@ -572,7 +577,39 @@ def test_public_reference_inventory_requires_the_reviewed_manifest(sha256: str) 
     ]
     result = run_public_reference_inventory(files)
     assert result.returncode != 0
-    assert "differs from the reviewed repository manifest" in result.stdout + result.stderr
+    assert "differs from the reviewed manifest of its version" in result.stdout + result.stderr
+
+
+def manifest_entry(sha256: str) -> list[dict[str, str]]:
+    return [{
+        "path": "reference/docs/references/confidential-references.json",
+        "role": "reference",
+        "sha256": sha256,
+    }]
+
+
+def test_a_published_version_keeps_its_own_reviewed_manifest() -> None:
+    """A newer checkout still smokes an older published package with the manifest that package shipped."""
+    older = "b" * 64
+    assert older != REVIEWED_PUBLIC_MANIFEST_SHA256
+    result = run_public_reference_inventory(manifest_entry(older), "1.2.2", {"1.2.2": older})
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_a_published_version_rejects_the_current_manifest_when_it_shipped_another() -> None:
+    older = "b" * 64
+    result = run_public_reference_inventory(
+        manifest_entry(REVIEWED_PUBLIC_MANIFEST_SHA256), "1.2.2", {"1.2.2": older}
+    )
+    assert result.returncode != 0
+    assert "differs from the reviewed manifest of its version" in result.stdout + result.stderr
+
+
+def test_an_unpublished_version_must_carry_the_manifest_of_this_checkout() -> None:
+    result = run_public_reference_inventory(manifest_entry("b" * 64), "1.2.3", {"1.2.2": "b" * 64})
+    assert result.returncode != 0
+    ok = run_public_reference_inventory(manifest_entry(REVIEWED_PUBLIC_MANIFEST_SHA256), "1.2.3", {"1.2.2": "b" * 64})
+    assert ok.returncode == 0, ok.stdout + ok.stderr
 
 
 def test_release_smoke_rejects_bootstrap_in_update_and_checks_launcher_identity() -> (

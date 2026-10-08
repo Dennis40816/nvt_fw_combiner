@@ -1120,11 +1120,15 @@ def _validate_artifact(
         or SHA256_PATTERN.fullmatch(expected_sha) is None
     ):
         errors.append(f"{label} has invalid sha256: {expected_sha}")
-    if (
-        role == "provenance" and artifact_id in implicit_private_artifact_ids
-        and isinstance(expected_sha, str) and type(expected_size) is int
-    ):
-        private_reference |= (expected_sha, expected_size) in private_reference_identities
+    if isinstance(expected_sha, str) and type(expected_size) is int:
+        in_inventory = (expected_sha, expected_size) in private_reference_identities
+        if "storage" in artifact and not in_inventory:
+            # An explicit private artifact still needs a public identity, or a missing file could pass unnoticed.
+            errors.append(
+                f"{label} private reference has no matching identity in the public confidential-reference manifest"
+            )
+        if role == "provenance" and artifact_id in implicit_private_artifact_ids:
+            private_reference |= in_inventory
     payload = None
     if private_reference:
         if isinstance(expected_sha, str) and SHA256_PATTERN.fullmatch(expected_sha):

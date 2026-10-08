@@ -53,15 +53,17 @@ def test_first_inventory_version_smoke_refuses_confidential_reference_inventory(
             "reference-sheet": "reference/docs/references/synthetic.xlsx",
             "golden-script": "reference/golden/synthetic/provenance/synthetic.bat",
         }[mutation])
+    reviewed_manifest = (ROOT / "docs/references/confidential-references.json").read_bytes()
+    payloads = {path: (reviewed_manifest if path == public_manifest else b"synthetic") for path in required_paths}
     files = [
         {"path": path, "role": "reference" if path.startswith("reference/") else "application",
-         "size": 9, "sha256": hashlib.sha256(b"synthetic").hexdigest()}
+         "size": len(payloads[path]), "sha256": hashlib.sha256(payloads[path]).hexdigest()}
         for path in required_paths
     ]
     package_path = tmp_path / f"{package_name}.zip"
     with zipfile.ZipFile(package_path, "w") as archive:
         for path in required_paths:
-            archive.writestr(f"{package_name}/{path}", b"synthetic")
+            archive.writestr(f"{package_name}/{path}", payloads[path])
         archive.writestr(f"{package_name}/RELEASE-MANIFEST.json", json.dumps({
             "version": version, "sourceTag": f"v{version}", "files": files,
         }))

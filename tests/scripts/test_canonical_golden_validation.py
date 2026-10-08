@@ -43,7 +43,16 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.case_manifest["artifacts"].append(artifact)
         path.unlink()
         self.rewrite_case()
+        self.write_private_inventory(artifact)
         return artifact
+
+    def write_private_inventory(self, artifact: dict[str, object]) -> None:
+        inventory = self.root / "docs/references/confidential-references.json"
+        inventory.parent.mkdir(parents=True, exist_ok=True)
+        self.write_json(inventory, {"schemaVersion": 1, "entries": [{
+            "id": "synthetic-provenance", "kind": "postbuild-script",
+            "sha256": artifact["sha256"], "sizeBytes": artifact["size"],
+        }]})
 
     def certify_implicit_private(self, artifact: dict[str, object]) -> None:
         patcher = patch.dict(
@@ -58,12 +67,6 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         del artifact["storage"]
         self.rewrite_case()
         self.certify_implicit_private(artifact)
-        inventory = self.root / "docs/references/confidential-references.json"
-        inventory.parent.mkdir(parents=True)
-        self.write_json(inventory, {"schemaVersion": 1, "entries": [{
-            "id": "synthetic-provenance", "kind": "postbuild-script",
-            "sha256": artifact["sha256"], "sizeBytes": artifact["size"],
-        }]})
         return artifact
 
     @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
@@ -134,6 +137,17 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
                 changed["entries"][0][field] = value
                 self.write_json(path, changed)
                 self.assertTrue(any("cannot resolve canonical artifact" in error for error in self.validate()))
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_explicit_private_reference_needs_a_public_identity(self) -> None:
+        self.declare_private_provenance()
+        self.assertEqual([], self.validate())
+        (self.root / "docs/references/confidential-references.json").unlink()
+        errors = self.validate()
+        self.assertTrue(
+            any("no matching identity in the public confidential-reference manifest" in error for error in errors),
+            errors,
+        )
 
     @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
     def test_private_provenance_accepts_identity_without_public_file(self) -> None:
