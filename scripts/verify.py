@@ -1191,14 +1191,19 @@ CONFIDENTIAL_REFERENCE_PATTERNS = (
 )
 
 
+_INTAKE_REFERENCE_MODULE = None
+
+
 def _intake_reference_module():
-    spec = importlib.util.spec_from_file_location(
-        "intake_ic_reference", Path(__file__).resolve().parent / "intake_ic_reference.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    sys.modules.setdefault("intake_ic_reference", module)
-    spec.loader.exec_module(module)
-    return module
+    global _INTAKE_REFERENCE_MODULE
+    if _INTAKE_REFERENCE_MODULE is None:
+        spec = importlib.util.spec_from_file_location(
+            "intake_ic_reference", Path(__file__).resolve().parent / "intake_ic_reference.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _INTAKE_REFERENCE_MODULE = module
+    return _INTAKE_REFERENCE_MODULE
 
 
 def is_confidential_reference_path(path: str) -> bool:

@@ -105,7 +105,10 @@ CONFIDENTIAL_KINDS = {
 PUBLIC_CONFIDENTIAL_MANIFEST = "docs/references/confidential-references.json"
 
 # The structure check in verify.py blocks tracked files by this one definition, so it cannot drift from intake.
-CONFIDENTIAL_SUFFIXES = SCRIPT_EXTENSIONS | {".xls", ".xlsx", ".h"}
+# Public reference documents are Markdown and JSON; any other format under a confidential tree, and any script,
+# spreadsheet, header or document that intake classifies as confidential by name, is private material.
+PUBLIC_DOCUMENT_SUFFIXES = frozenset({".md", ".json"})
+CONFIDENTIAL_SUFFIXES = (SCRIPT_EXTENSIONS | DOCUMENT_EXTENSIONS) - PUBLIC_DOCUMENT_SUFFIXES
 CONFIDENTIAL_TREES = ("docs/references/", "refcode/flashmap/")
 # Immutable evidence that was public before the private store existed.
 PUBLIC_CONFIDENTIAL_EXCEPTIONS = frozenset({"refcode/ab_code_combiner/clean.bat"})
@@ -116,9 +119,19 @@ def is_confidential_path(relative_path: str) -> bool:
 
     posix = PurePosixPath(relative_path.replace("\\", "/"))
     lowered = posix.as_posix().lower()
-    if lowered in PUBLIC_CONFIDENTIAL_EXCEPTIONS or posix.suffix.lower() not in CONFIDENTIAL_SUFFIXES:
+    suffix = posix.suffix.lower()
+    if lowered in PUBLIC_CONFIDENTIAL_EXCEPTIONS:
         return False
-    return lowered.startswith(CONFIDENTIAL_TREES) or classify(Path(*posix.parts)) in CONFIDENTIAL_KINDS
+    if lowered.startswith(CONFIDENTIAL_TREES):
+        return suffix not in PUBLIC_DOCUMENT_SUFFIXES
+    if suffix not in CONFIDENTIAL_SUFFIXES:
+        return False
+    category = classify(Path(*posix.parts))
+    # "combiner" also appears in the repository's own names, so by name alone only its scripts are confidential.
+    return category in CONFIDENTIAL_KINDS and (
+        category != "combiner-source-reference" or suffix in SCRIPT_EXTENSIONS
+    )
+
 
 PRIVATE_COMMIT_POLICY = (
     "Keep in owner-handoff/private storage. Commit only after owner approval, "

@@ -47,6 +47,11 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             "docs/references/run.sh",
             "docs/references/header_mmap.h",
             "docs/references/ic-flashmap/mmap/sample.H",
+            "docs/references/ic-flashmap/NT51950_flashmap.csv",
+            "docs/references/tddi-flash-header.pdf",
+            "docs/references/notes.docx",
+            "docs/references/notes.txt",
+            "docs/references/layout.yaml",
         ):
             with self.subTest(path=path):
                 self.assertTrue(verify.is_confidential_reference_path(path))
@@ -59,6 +64,10 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             "data/ic-flashmap-layout.xls",
             "data/flash_map_export.xlsx",
             "data/tp-header.xls",
+            "data/NT51950_flashmap.csv",
+            "data/postbuild-notes.txt",
+            "data/tddi_flash_header.pdf",
+            "data/ic51920_mmap.docx",
         ):
             with self.subTest(path=path):
                 self.assertTrue(verify.is_confidential_reference_path(path))
@@ -71,6 +80,10 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             "src/common.h",
             "docs/references/README.md",
             "docs/references/confidential-references.json",
+            "refcode/ab_code_combiner/README.txt",
+            "tests/Example.Tests/Fixtures/canonical-route-axes-v1.txt",
+            "profiles/built-in/example/flash-map.json",
+            "src/Example.Application/FlashMaps/FlashMapTypes.cs",
         ):
             with self.subTest(path=path):
                 self.assertFalse(verify.is_confidential_reference_path(path))
@@ -81,6 +94,17 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             [],
             [path for path in tracked.split("\0") if path and verify.is_confidential_reference_path(path)],
         )
+
+    def test_every_intake_confidential_suffix_is_blocked_under_references(self) -> None:
+        intake = verify._intake_reference_module()
+        self.assertTrue(intake.CONFIDENTIAL_SUFFIXES >= {".xls", ".xlsx", ".cmd", ".bat", ".ps1", ".sh", ".h", ".csv", ".pdf"})
+        self.assertFalse(intake.CONFIDENTIAL_SUFFIXES & intake.PUBLIC_DOCUMENT_SUFFIXES)
+        for suffix in sorted(intake.CONFIDENTIAL_SUFFIXES):
+            with self.subTest(suffix=suffix):
+                self.assertTrue(verify.is_confidential_reference_path(f"docs/references/sample{suffix}"))
+        for suffix in sorted(intake.PUBLIC_DOCUMENT_SUFFIXES):
+            with self.subTest(suffix=suffix):
+                self.assertFalse(verify.is_confidential_reference_path(f"docs/references/sample{suffix}"))
 
     def test_block_list_covers_every_intake_confidential_category(self) -> None:
         intake = verify._intake_reference_module()
