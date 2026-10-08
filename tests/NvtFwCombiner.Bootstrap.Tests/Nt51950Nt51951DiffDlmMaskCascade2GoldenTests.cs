@@ -729,7 +729,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         OwnerArtifact[] artifacts =
         [
             .. goldenCase.GetProperty("artifacts").EnumerateArray()
-                .Where(static artifact => !CanonicalGoldenTestData.IsPrivateReference(artifact))
+                .Where(static artifact => !CanonicalGoldenTestData.IsPrivateReference(artifact, CaseId))
                 .Select(ReadArtifact),
         ];
         OwnerArtifact Require(string artifactId)

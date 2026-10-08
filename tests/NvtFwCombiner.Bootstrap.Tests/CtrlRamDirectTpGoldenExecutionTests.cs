@@ -211,7 +211,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         OwnerArtifact[] artifacts =
         [
             .. goldenCase.GetProperty("artifacts").EnumerateArray()
-                .Where(static artifact => !CanonicalGoldenTestData.IsPrivateReference(artifact))
+                .Where(artifact => !CanonicalGoldenTestData.IsPrivateReference(artifact, caseId))
                 .Select(ReadArtifact),
         ];
         OwnerArtifact tpBase = RequireArtifact(artifacts, tpArtifactId);

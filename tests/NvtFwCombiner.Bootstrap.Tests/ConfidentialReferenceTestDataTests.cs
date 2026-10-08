@@ -101,7 +101,8 @@ public sealed class ConfidentialReferenceTestDataTests
             using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.PathFromRelative(
                 CanonicalGoldenTestData.Root, entry.GetProperty("manifestPath").GetString()!)));
             if (!document.RootElement.TryGetProperty("artifacts", out JsonElement artifacts) ||
-                !artifacts.EnumerateArray().Any(CanonicalGoldenTestData.IsPrivateReference))
+                !artifacts.EnumerateArray().Any(artifact => CanonicalGoldenTestData.IsPrivateReference(
+                    artifact, document.RootElement.GetProperty("caseId").GetString())))
             {
                 continue;
             }
@@ -110,7 +111,8 @@ public sealed class ConfidentialReferenceTestDataTests
                 document.RootElement.GetProperty("workflow").GetString()!,
                 document.RootElement.GetProperty("caseId").GetString()!);
             return goldenCase.GetProperty("artifacts").EnumerateArray()
-                .Single(CanonicalGoldenTestData.IsPrivateReference).Clone();
+                .Single(artifact => CanonicalGoldenTestData.IsPrivateReference(
+                    artifact, document.RootElement.GetProperty("caseId").GetString())).Clone();
         }
 
         throw new InvalidDataException("Private-held canonical provenance was not declared.");

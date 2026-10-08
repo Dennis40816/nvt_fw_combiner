@@ -159,7 +159,7 @@ public static class CanonicalGoldenTestData
 
             foreach (JsonElement artifact in goldenCase.GetProperty("artifacts").EnumerateArray())
             {
-                ValidateArtifact(artifact, root);
+                ValidateArtifact(artifact, root, caseId);
             }
 
             _ = directEvidence
@@ -384,12 +384,12 @@ public static class CanonicalGoldenTestData
         JsonElement artifact = artifactId == "expected-output"
             ? goldenCase.GetProperty("expectedOutput")
             : goldenCase.GetProperty("inputs").GetProperty(artifactId);
-        return ValidatedArtifactPath(artifact);
+        return ValidatedArtifactPath(artifact, Root, goldenCase.GetProperty("caseId").GetString());
     }
 
     private static string ValidatedArtifactPath(JsonElement artifact)
     {
-        return ValidatedArtifactPath(artifact, Root);
+        return ValidatedArtifactPath(artifact, Root, null);
     }
 
     private static List<CanonicalGoldenDifferenceRange> ParseAllowedDifferenceRanges(
@@ -459,9 +459,9 @@ public static class CanonicalGoldenTestData
                 $"Allowed difference {propertyName} must be a non-negative hexadecimal offset.");
     }
 
-    private static string ValidatedArtifactPath(JsonElement artifact, string root)
+    private static string ValidatedArtifactPath(JsonElement artifact, string root, string? caseId)
     {
-        if (IsPrivateReference(artifact))
+        if (IsPrivateReference(artifact, caseId))
         {
             string privatePath = ConfidentialReferenceTestData.ResolveVerifiedPath(
                 artifact.GetProperty("sha256").GetString()!);
@@ -491,7 +491,7 @@ public static class CanonicalGoldenTestData
         foreach (JsonElement artifact in goldenCase.GetProperty("artifacts").EnumerateArray())
         {
             string role = artifact.GetProperty("role").GetString()!;
-            JsonObject projection = ProjectArtifact(artifact, root);
+            JsonObject projection = ProjectArtifact(artifact, root, goldenCase.GetProperty("caseId").GetString());
             if (StringComparer.Ordinal.Equals(role, "input"))
             {
                 inputs.Add(artifact.GetProperty("artifactId").GetString()!, projection);
@@ -519,9 +519,9 @@ public static class CanonicalGoldenTestData
         };
     }
 
-    private static JsonObject ProjectArtifact(JsonElement artifact, string root)
+    private static JsonObject ProjectArtifact(JsonElement artifact, string root, string? caseId)
     {
-        ValidateArtifact(artifact, root);
+        ValidateArtifact(artifact, root, caseId);
         return new JsonObject
         {
             ["path"] = artifact.GetProperty("path").GetString(),
@@ -530,12 +530,29 @@ public static class CanonicalGoldenTestData
         };
     }
 
-    /// <summary>Identifies private provenance from its disposition or the public confidential inventory.</summary>
+    // Mirrors CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS in scripts/canonical_golden_validation.py. A test checks that both
+    // lists stay equal. Every other artifact must declare its private storage.
+    private static readonly Dictionary<string, string> CertifiedImplicitPrivateArtifacts =
+        new(StringComparer.Ordinal)
+        {
+            ["nt51951-fw200-cascade2-auto-prj-599-20260731"] = "postbuild-script-reference",
+        };
+
+    /// <summary>Identifies private provenance by its declared storage disposition only.</summary>
     public static bool IsPrivateReference(JsonElement artifact)
+    {
+        return IsPrivateReference(artifact, null);
+    }
+
+    /// <summary>Identifies private provenance from its disposition, or for a certified case from the inventory.</summary>
+    public static bool IsPrivateReference(JsonElement artifact, string? caseId)
     {
         if (!artifact.TryGetProperty("storage", out JsonElement storage))
         {
-            if (!artifact.TryGetProperty("role", out JsonElement role) || role.GetString() != "provenance")
+            if (!artifact.TryGetProperty("role", out JsonElement role) || role.GetString() != "provenance" ||
+                caseId is null || !CertifiedImplicitPrivateArtifacts.TryGetValue(caseId, out string? certifiedId) ||
+                !artifact.TryGetProperty("artifactId", out JsonElement artifactId) ||
+                !StringComparer.Ordinal.Equals(artifactId.GetString(), certifiedId))
             {
                 return false;
             }
@@ -561,12 +578,12 @@ public static class CanonicalGoldenTestData
             : true;
     }
 
-    private static void ValidateArtifact(JsonElement artifact, string root)
+    private static void ValidateArtifact(JsonElement artifact, string root, string? caseId)
     {
         _ = RepositoryPaths.ManifestPath(root, artifact);
-        if (!IsPrivateReference(artifact) || ConfidentialReferenceTestData.IsConfigured)
+        if (!IsPrivateReference(artifact, caseId) || ConfidentialReferenceTestData.IsConfigured)
         {
-            _ = ValidatedArtifactPath(artifact, root);
+            _ = ValidatedArtifactPath(artifact, root, caseId);
         }
     }
 }

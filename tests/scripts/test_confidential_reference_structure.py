@@ -1,6 +1,7 @@
 """Confidential source files cannot re-enter the tracked public tree."""
 
 import json
+import re
 import subprocess
 import tempfile
 import unittest
@@ -105,6 +106,16 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
         ):
             with self.subTest(path=path):
                 self.assertFalse(verify.is_confidential_reference_path(path))
+
+    def test_dotnet_test_support_lists_the_same_certified_implicit_private_artifacts(self) -> None:
+        from scripts import canonical_golden_validation as validator
+
+        source = (verify.ROOT / "tests/NvtFwCombiner.TestSupport/CanonicalGoldenTestData.cs").read_text(encoding="utf-8")
+        pairs = re.findall(r'\["([a-z0-9-]+)"\] = "([a-z0-9-]+)"', source)
+        self.assertEqual(
+            {case: ids for case, ids in validator.CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS.items()},
+            {case: frozenset({artifact}) for case, artifact in pairs},
+        )
 
     def test_ordinary_scripts_and_headers_are_allowed(self) -> None:
         for path in (
