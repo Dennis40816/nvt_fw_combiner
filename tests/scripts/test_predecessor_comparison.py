@@ -1257,9 +1257,10 @@ class ComparisonTests(unittest.TestCase):
         executor = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
         self.runner.host = FakeProcessHost(lambda argv, cwd: subprocess.CompletedProcess(argv, 0, "", ""))
         request = {"workflowId": "standard-merge", "profileId": "test", "cliSelectionToken": None}
-        with self.assertRaises(KeyError):
+        with self.assertRaises(comparison.ExecutionError) as found:
             comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts,
                                          [("input", "dp-input")], stage="preview")
+        self.assertEqual("PREDECESSOR_INPUT_INVALID", found.exception.code)
         self.assertEqual([], self.runner.host.calls)
 
     def test_report_without_a_request_identity_is_refused(self):

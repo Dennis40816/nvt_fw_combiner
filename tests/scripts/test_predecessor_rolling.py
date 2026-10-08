@@ -309,6 +309,8 @@ class SyntheticProcesses(FakeProcessHost):
                 value["Issues"] = [{"Code": "synthetic.product-rejection", "Severity": "error"}]
             if action == "build" and self.behavior == "lying-output":
                 value["Output"]["Sha256"] = "0" * 64
+            if action == "build" and self.behavior == "wrong-ic":
+                value["IcId"] = "NT00000"
             if action == "build" and self.behavior == "self-widened":
                 value["Operations"][0]["TargetRange"].update(Length=161, EndExclusive=161)
                 value["Mutations"][0]["TargetRange"].update(Length=161, EndExclusive=161)
@@ -585,7 +587,7 @@ class RollingTests(unittest.TestCase):
                     self.assertNotIn(("candidate", "standard-merge", "build"), host.invocations)
 
     def test_error_issue_output_lie_and_self_widening_are_invalid(self):
-        for behavior in ("error-output", "lying-output", "self-widened"):
+        for behavior in ("error-output", "lying-output", "self-widened", "wrong-ic"):
             with self.subTest(behavior=behavior):
                 self.world = synthetic_world()
                 report, _, _ = self.run_world(behavior)

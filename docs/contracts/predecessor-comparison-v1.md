@@ -697,13 +697,19 @@ second implementation. The comparator's staged-command identity check
    the helpers `expected_report_identity` and `report_identity_mismatches` in
    `scripts/v0916_parity_certification.py`, which the terminal path also uses.
    The check covers the precursor stages. A report that arrives without a
-   request identity is refused. `ProfileId` is bound to the request only when
-   the request carries `resolvedProfileId`. No scenario or route declares it
-   today, because a report names the resolved profile and the CLI is given a
-   selector. A request without it still requires each Build `ProfileId` to
-   equal the `ProfileId` of the same side's Preview in the same phase. A CLI
-   that resolves both stages to another profile of the same IC and workflow is
-   therefore not caught until a plan declares the resolved profile per route.
+   request identity is refused. A request without `icId` or `workflowId` is
+   refused with `PREDECESSOR_INPUT_INVALID` before any staging.
+   `ProfileId` is bound to the request only when the request carries
+   `resolvedProfileId`. Production does not bind it today. The CLI is given a
+   selector while a report names the resolved profile, so the two cannot be
+   compared. No scenario or route declares the resolved profile, and the
+   request builders do not forward one. A request without it still requires
+   each Build `ProfileId` to equal the `ProfileId` of the same side's Preview
+   in the same phase. A CLI that resolves both stages to another profile of
+   the same IC and workflow is therefore not caught. Closing this gap needs a
+   resolved profile declared per scenario or route and per side (baseline and
+   candidate can differ), forwarded by the request builders. That is an
+   owner-approved schema and ledger change, tracked as a separate issue.
 
 A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's
@@ -844,7 +850,9 @@ pinned dev dependency `jsonschema==4.25.1` is declared in
 in the repository-script jobs. Cross-document semantic validation, including
 the published release inventory checks, remains in
 `scripts/predecessor_validation.py`; the comparator does not implement a
-hand-written schema subset for reports.
+hand-written schema subset for reports. The one exception is the published
+release inventory, which `published_inventory_failures` checks by hand against
+the rules of its schema.
 
 ## Canonical digests
 

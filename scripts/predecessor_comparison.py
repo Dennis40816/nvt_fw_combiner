@@ -781,6 +781,9 @@ def execute_cli_stage(
 ) -> ProcessCapture:
     """Fresh runtime and admitted input copies for one Preview or Build."""
 
+    for field in ("icId", "workflowId"):
+        if not isinstance(request.get(field), str) or not request[field]:
+            raise ExecutionError("PREDECESSOR_INPUT_INVALID", f"request {field} is missing")
     work = Path(tempfile.mkdtemp(prefix="cli-", dir=runner.temporary_root))
     rows = stage_case_inputs(authority, artifacts, bindings, work / "inputs", request=request, execution_role=execution_role)
     if precursor is not None:

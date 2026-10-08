@@ -136,7 +136,8 @@ decision are in the 1.1.13 WS-PARITY handoff.
     which the declaration's citation form does not replace.
 11. **ADR 0057 unchanged.** Its plan, schemas, workflow contract, three
     parity jobs, protected environment, terminal parser and 2.0.0 gate stay as
-    they are. The comparator never emits ADR 0057 evidence or reads its
+    they are. The terminal parser shares the request identity helpers with the
+    comparator and keeps exact equality for every field. The comparator never emits ADR 0057 evidence or reads its
     candidate, package, authority-transfer or attestation authority, and its
     documents state `certification: none`.
 
@@ -182,7 +183,9 @@ with its ledger and its proposed declaration and report schemas, and the
 - **Local reports with user settings.** A report of record must not depend on
   one machine's profile (decision 59).
 - **A hand-written schema subset in the comparator.** Schemas are checked by
-  a Draft 2020-12 engine; the comparator owns the semantic checks.
+  a Draft 2020-12 engine; the comparator owns the semantic checks. The
+  published release inventory is the one exception: `published_inventory_failures`
+  checks it by hand against the rules of its schema.
 
 ## Non-goals
 
