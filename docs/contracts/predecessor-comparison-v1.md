@@ -706,7 +706,10 @@ second implementation. The comparator's staged-command identity check
    request builders do not forward one. A request without it still requires
    each Build `ProfileId` to equal the `ProfileId` of the same side's Preview
    in the same phase. A CLI that resolves both stages to another profile of
-   the same IC and workflow is therefore not caught. Closing this gap needs a
+   the same IC and workflow is therefore not caught. The same holds when a CLI
+   ignores the selection token or the map variant and builds another variant
+   of that IC and workflow on both sides: neither the selection token nor
+   `MapId` is bound to the scenario. Closing these gaps needs a
    resolved profile declared per scenario or route and per side (baseline and
    candidate can differ), forwarded by the request builders. That is an
    owner-approved schema and ledger change, tracked as a separate issue.
@@ -843,16 +846,18 @@ validator (P-2), which fails closed:
   each route's proof kind from the plan and the amendment, and each row
   reproduced exactly.
 
-The report reader (`scripts/predecessor_report_reader.py`) validates the
-comparison report against its schema with `jsonschema` (Draft 2020-12). The
+The `owner-list` projection in `scripts/predecessor_report_reader.py`
+validates a saved comparison report against its schema with `jsonschema`
+(Draft 2020-12). Report reader v1 (`read_cli_report`) reads CLI reports and does
+not use it. The
 pinned dev dependency `jsonschema==4.25.1` is declared in
 `tools/crc-worker/pyproject.toml`, and CI installs it through the `[dev]` extra
 in the repository-script jobs. Cross-document semantic validation, including
 the published release inventory checks, remains in
 `scripts/predecessor_validation.py`; the comparator does not implement a
-hand-written schema subset for reports. The one exception is the published
-release inventory, which `published_inventory_failures` checks by hand against
-the rules of its schema.
+hand-written schema subset for reports. The published release inventory is an
+observed deviation: `published_inventory_failures` checks it by hand against
+the rules of its schema. This change does not replace that check.
 
 ## Canonical digests
 

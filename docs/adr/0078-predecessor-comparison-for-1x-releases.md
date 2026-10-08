@@ -136,8 +136,9 @@ decision are in the 1.1.13 WS-PARITY handoff.
     which the declaration's citation form does not replace.
 11. **ADR 0057 unchanged.** Its plan, schemas, workflow contract, three
     parity jobs, protected environment, terminal parser and 2.0.0 gate stay as
-    they are. The terminal parser shares the request identity helpers with the
-    comparator and keeps exact equality for every field. The comparator never emits ADR 0057 evidence or reads its
+    they are. Its behavior is unchanged: the terminal parser keeps exact
+    equality for every field and now calls the request identity helpers that
+    the comparator shares. The comparator never emits ADR 0057 evidence or reads its
     candidate, package, authority-transfer or attestation authority, and its
     documents state `certification: none`.
 
@@ -184,8 +185,8 @@ with its ledger and its proposed declaration and report schemas, and the
   one machine's profile (decision 59).
 - **A hand-written schema subset in the comparator.** Schemas are checked by
   a Draft 2020-12 engine; the comparator owns the semantic checks. The
-  published release inventory is the one exception: `published_inventory_failures`
-  checks it by hand against the rules of its schema.
+  published release inventory is an observed deviation: `published_inventory_failures`
+  checks it by hand against the rules of its schema, and this change does not replace it.
 
 ## Non-goals
 
@@ -222,8 +223,8 @@ with its ledger and its proposed declaration and report schemas, and the
   declaration schemas are in effect
   ([contract](../contracts/predecessor-comparison-v1.md#report-reader-v1)).
 - Implemented locally in `1.2.2` part 2: [baseline executor v2](../contracts/v0916-baseline-executor-v2.md), amendment binding and host pinning (decisions 63 and 79). Both firmware-owner and release-owner review are required; R35-09 remains the real-build rehearsal.
-- Implemented in `1.2.2`: the report reader validates the comparison report
-  with `jsonschema` (Draft 2020-12). `tools/crc-worker/pyproject.toml` pins the
+- Implemented in `1.2.2`: the `owner-list` projection of the report reader
+  module validates a saved comparison report with `jsonschema` (Draft 2020-12). `tools/crc-worker/pyproject.toml` pins the
   dev dependency `jsonschema==4.25.1`, and CI installs the `[dev]` extra in
   repository-script jobs.
 - The owner's 1.1.13 approval of the 11 candidate routes as accepted gaps.

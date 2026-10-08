@@ -1217,6 +1217,7 @@ class ComparisonTests(unittest.TestCase):
                         [capture.evidence() for capture in captures],
                         capacities={"dp-input": 8, "tp-input": 4, "output-image": 8}, complete=False)
                     self.assertEqual(("invalid", stage), (verdict.status, verdict.stopped_at))
+                    self.assertEqual("PREDECESSOR_REPORT_INVALID", verdict.failures[0].code)
                     self.assertIn(field, verdict.failures[0].detail)
 
     def test_precursor_build_profile_must_match_its_precursor_preview_when_none_is_declared(self):
@@ -1256,12 +1257,19 @@ class ComparisonTests(unittest.TestCase):
         self.build_host(git)
         executor = comparison.build_1x_executor(git, self.runner, "1" * 40, self.contract)
         self.runner.host = FakeProcessHost(lambda argv, cwd: subprocess.CompletedProcess(argv, 0, "", ""))
-        request = {"workflowId": "standard-merge", "profileId": "test", "cliSelectionToken": None}
-        with self.assertRaises(comparison.ExecutionError) as found:
-            comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts,
-                                         [("input", "dp-input")], stage="preview")
-        self.assertEqual("PREDECESSOR_INPUT_INVALID", found.exception.code)
-        self.assertEqual([], self.runner.host.calls)
+        complete = {"workflowId": "standard-merge", "icId": "NT51950", "profileId": "test", "cliSelectionToken": None}
+        cases = {"icId missing": {k: v for k, v in complete.items() if k != "icId"}, "icId empty": {**complete, "icId": ""},
+                 "workflowId missing": {k: v for k, v in complete.items() if k != "workflowId"},
+                 "workflowId empty": {**complete, "workflowId": ""}}
+        for name, request in cases.items():
+            with self.subTest(name):
+                before = set(self.runner.temporary_root.iterdir())
+                with self.assertRaises(comparison.ExecutionError) as found:
+                    comparison.execute_cli_stage(self.runner, executor, request, authority, artifacts,
+                                                 [("input", "dp-input")], stage="preview")
+                self.assertEqual("PREDECESSOR_INPUT_INVALID", found.exception.code)
+                self.assertEqual([], self.runner.host.calls)
+                self.assertEqual(before, set(self.runner.temporary_root.iterdir()))
 
     def test_report_without_a_request_identity_is_refused(self):
         captures = self.request_identity_stages()
