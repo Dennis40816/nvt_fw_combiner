@@ -63,6 +63,7 @@ public sealed class BuiltInTpFlashMapCatalogVersionLoaderTests
     [InlineData("2")]
     [InlineData("true")]
     [InlineData("{}")]
+    [InlineData("null")]
     public void NonStringEffectiveVersionThrowsInvalidData(string jsonValue)
     {
         JsonObject profile = TpFlashMapCatalogTestData.Profile();

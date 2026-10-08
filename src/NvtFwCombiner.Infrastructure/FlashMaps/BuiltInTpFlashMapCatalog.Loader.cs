@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
@@ -69,11 +70,13 @@ internal static partial class BuiltInTpFlashMapCatalog
             : throw Invalid($"duplicate region id for {source.IcId}");
     }
 
-    private static LegacyCombinerCommonFwVersion ParseEffectiveCommonFwVersion(string? value)
+    private static LegacyCombinerCommonFwVersion ParseEffectiveCommonFwVersion(JsonElement value)
     {
-        return value is null
+        // An omitted field is Undefined and defaults to the minimum; an explicit null or any non-string is malformed.
+        return value.ValueKind == JsonValueKind.Undefined
             ? LegacyCombinerCommonFwVersion.MinimumSupported
-            : LegacyCombinerCommonFwVersion.TryParse(value, out LegacyCombinerCommonFwVersion version)
+            : value.ValueKind == JsonValueKind.String &&
+              LegacyCombinerCommonFwVersion.TryParse(value.GetString(), out LegacyCombinerCommonFwVersion version)
                 ? version
                 : throw Invalid("effectiveCommonFwVersion");
     }
@@ -123,7 +126,7 @@ internal static partial class BuiltInTpFlashMapCatalog
         [property: JsonPropertyName("baseShapeEvidence")] string BaseShapeEvidence,
         [property: JsonPropertyName("evidence")] string Evidence,
         [property: JsonPropertyName("regions")] IReadOnlyList<RegionDocument>? Regions,
-        [property: JsonPropertyName("effectiveCommonFwVersion")] string? EffectiveCommonFwVersion);
+        [property: JsonPropertyName("effectiveCommonFwVersion")] JsonElement EffectiveCommonFwVersion);
 
     private sealed record RegionDocument(
         [property: JsonPropertyName("regionId")] string RegionId,
