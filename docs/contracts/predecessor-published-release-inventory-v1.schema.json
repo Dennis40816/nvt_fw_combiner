@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.local/contracts/predecessor-published-release-inventory-v1.schema.json",
+  "title": "Complete predecessor published stable release inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "repository",
+    "collectedAtUtc",
+    "complete",
+    "pagesRead",
+    "releases"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "kind": {
+      "const": "predecessor-published-release-inventory"
+    },
+    "repository": {
+      "type": "string",
+      "const": "Dennis40816/nvt_fw_combiner"
+    },
+    "collectedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "complete": {
+      "const": true
+    },
+    "pagesRead": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "releases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tag",
+          "publishedAtUtc",
+          "draft",
+          "prerelease",
+          "complete"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "tag": {
+            "type": "string",
+            "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+          },
+          "publishedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "draft": {
+            "const": false
+          },
+          "prerelease": {
+            "const": false
+          },
+          "complete": {
+            "const": true
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,11 +1,11 @@
 """Semantic contract tests for the rolling predecessor comparison.
 
-The tests read only JSON: the predecessor-comparison contract and ledger, the
+The tests read canonical contracts and JSON: the predecessor-comparison contract and ledger, the
 report schema, the active capability policy and canonical Golden manifest with
 their case manifests, the ADR 0057 plan, and the plan's pinned policy and
 manifest from Git objects. They never read firmware payloads.
 
-Schema validity, including every conditional relation of the proposed report
+Schema validity, including every conditional relation of the in-effect report
 and declaration schemas, is tested with the repository's Draft 2020-12 engine
 in PredecessorComparisonSchemaContractTests (.NET). This module checks the
 facts a schema cannot hold: the ledger against the governed sources it
@@ -25,6 +25,7 @@ import unittest
 from typing import Any
 
 from scripts import predecessor_validation as validation
+from scripts import predecessor_report_reader as reader
 from tests.scripts.v0916_parity_test_support import MODULE, ROOT
 
 CONTRACTS = ROOT / "docs" / "contracts"
@@ -159,21 +160,85 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         self.assertEqual(candidate["runtimeClosure"]["root"], executor["runtimeClosureRoot"])
         self.assertEqual(sorted(candidate["source"]["authorityTrees"]), executor["authorityTrees"])
         self.assertTrue(all(item["path"].endswith("/packages.lock.json") for item in candidate["lockFiles"]))
-        self.assertEqual("pending-executor-record", executor["compilerHost"]["status"])
+        self.assertEqual("in-effect", executor["compilerHost"]["status"])
 
     def test_per_side_safety_names_the_shared_owners(self) -> None:
         safety = self.contract["perSideSafety"]
-        self.assertEqual("scripts/v0916_parity_certification.py", safety["owner"])
+        owners = {"scripts/v0916_parity_certification.py": MODULE,
+                  "scripts/predecessor_validation.py": validation}
+        self.assertEqual(list(owners), safety["owner"])
         self.assertIn("validate_report_projection_against_compiled_authority", safety["checks"])
         for name in safety["checks"]:
             with self.subTest(check=name):
-                self.assertTrue(callable(getattr(MODULE, name, None)))
+                owner = validation if name in ("_executed_command_failures", "_processor_write_audit_failures") else MODULE
+                self.assertTrue(callable(getattr(owner, name, None)))
+        self.assertIn("_executed_command_failures", safety["checks"])
+        self.assertIn("_processor_write_audit_failures", safety["checks"])
         self.assertFalse(safety["readerMayRelaxChecks"])
-        self.assertEqual("pending-reader-record", self.contract["interfaces"]["reportReader"]["status"])
+        rules = safety["writtenReportRules"]
+        self.assertEqual(sorted(validation.WORK_ADDRESS_SPACES), rules["workAddressSpaces"])
+        self.assertEqual(sorted(validation.V0916_WORK_ADDRESS_SPACES), rules["v0916ExecutorWorkAddressSpaces"])
+        self.assertEqual(validation.OUTPUT_ADDRESS_SPACE, rules["processorWriteAudit"]["addressSpace"])
+        self.assertIs(False, rules["processorWriteAudit"]["contentPreviewsRead"])
+        schema = load_json(CONTRACTS / "predecessor-comparison-v1.schema.json")
+        for member in ("owner", "checks"):
+            self.assertEqual(safety[member], schema["properties"]["perSideSafety"]["properties"][member]["const"])
+        self.assertEqual(rules, schema["properties"]["perSideSafety"]["properties"]["writtenReportRules"]["const"])
+        self.assertEqual(self.contract["typedRejection"]["skippedOperations"],
+                         schema["properties"]["typedRejection"]["properties"]["skippedOperations"]["const"])
+        for name in ("declarationSchema", "reportSchema", "reportReader"):
+            self.assertEqual("in-effect", self.contract["interfaces"][name]["status"])
+        self.assertEqual(sorted(reader.READER_VERSIONS.values()), self.contract["interfaces"]["reportReader"]["readerVersions"])
+        self.assertEqual(sorted(reader.READER_VERSIONS.values()), self.report_schema["$defs"]["capturedReport"]["properties"]["readerVersion"]["enum"])
         self.assertEqual(
             self.contract["typedRejection"]["processFailureIssueCodes"],
             self.report_schema["$defs"]["processFailureIssueCode"]["enum"],
         )
+        self.assertEqual(sorted(validation.PROCESS_FAILURE_ISSUE_CODES), self.contract["typedRejection"]["processFailureIssueCodes"])
+        declaration_schema = load_json(CONTRACTS / "predecessor-comparison-declaration-v1.schema.json")
+        self.assertEqual(self.contract["typedRejection"]["processFailureIssueCodes"], declaration_schema["$defs"]["processFailureIssueCode"]["enum"])
+
+    def test_decision_278_contract_does_not_reclassify_saved_invalid_results(self) -> None:
+        contract = (CONTRACTS / "predecessor-comparison-v1.md").read_text(encoding="utf-8")
+        decision = contract.split("**Owner decision 278 (2026-10-03):", 1)[1].split("\n\n", 1)[0]
+        for member in ("ab-combiner-work", "[262144, 524288)", "v0.9.16", "273"):
+            self.assertIn(member, decision)
+        self.assertIn('report_version="v0916"', decision)
+        self.assertIn("Later writes", decision)
+
+        report = load_json(ROOT / "tests/scripts/fixtures/predecessor-comparison/v0916-consistent.json")
+        route = next(row for row in report["routes"] if row["result"] == "consistent")
+        route.update(result="invalid", failureCode="PREDECESSOR_REPORT_INVALID")
+        report["result"] = "invalid"
+        report["summary"] = validation.v0916_summary([row["result"] for row in report["routes"]])
+        report["failures"] = [{"code": "PREDECESSOR_REPORT_INVALID", "subject": route["planRouteId"],
+                               "detail": "saved audit refusal"}]
+        report["deterministicSha256"] = validation.deterministic_report_sha256(report)
+        saved = copy.deepcopy(report)
+        projected = reader.render_owner_list(report)
+        self.assertIn("result: invalid.", projected)
+        self.assertIn("PREDECESSOR_REPORT_INVALID", projected)
+        self.assertEqual(saved, report)
+
+        reclassified = copy.deepcopy(saved)
+        reclassified["result"] = "consistent"
+        reclassified["deterministicSha256"] = validation.deterministic_report_sha256(reclassified)
+        with self.assertRaises(reader.ReportReaderError):
+            reader.render_owner_list(reclassified)
+
+    def test_all_execution_interfaces_are_in_effect(self) -> None:
+        self.assertEqual("in-effect", self.contract["executor"]["compilerHost"]["status"])
+        amendment = load_json(CONTRACTS / "v0916-parity-1x-amendment-v1.json")
+        self.assertEqual("in-effect", amendment["baselineExecutor"]["status"])
+        pending = next(row for row in self.contract["failureCodes"] if row["code"] == "PREDECESSOR_CONTRACT_PENDING")
+        self.assertIn("compiler-host pinning", pending["meaning"])
+        self.assertIn("v0.9.16 baseline executor", pending["meaning"])
+
+    def test_additive_terminal_entry_points_are_available(self) -> None:
+        for name in ("admit_case_inputs", "runtime_closure_inventory", "resolve_case", "cli_arguments", "input_option",
+                     "normalize_raw_operation", "normalize_raw_mutation"):
+            with self.subTest(entry_point=name):
+                self.assertTrue(callable(getattr(MODULE, name, None)))
 
     def test_a_report_cannot_widen_its_own_allowed_ranges(self) -> None:
         def operation(target_end: int, write_end: int) -> dict[str, Any]:

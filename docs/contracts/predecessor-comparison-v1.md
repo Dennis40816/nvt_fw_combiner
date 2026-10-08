@@ -15,8 +15,9 @@ their own:
 | --- | --- |
 | `predecessor-comparison-v1.json` and its schema | the two modes, executor recipe, environment policy, per-side safety, typed rejection, interface status, failure codes |
 | `predecessor-comparison-scenarios-v1.json` and its schema | the rolling coverage ledger: scenarios, decision 12's debt set, accepted and pending gaps, retired scenarios |
-| `predecessor-comparison-declaration-v1.schema.json` | one declaration per release under `predecessor-comparison-declarations/` (proposed) |
-| `predecessor-comparison-report-v1.schema.json` | the comparator's payload-free report of either mode (proposed) |
+| `predecessor-comparison-declaration-v1.schema.json` | one declaration per release under `predecessor-comparison-declarations/` (in effect, R35-02) |
+| `predecessor-comparison-report-v1.schema.json` | the comparator's payload-free report of either mode (in effect, R35-02) |
+| `predecessor-published-release-inventory-v1.schema.json` | the commander's complete offline published stable release inventory for rolling mode |
 
 The contract, the amendment and every report state `certification: none` and
 `terminal: false`; the ledger and the declarations are inputs and make no
@@ -29,7 +30,7 @@ comparator keep their own authority unchanged.
 
 | | Rolling | v0.9.16 1.x |
 | --- | --- | --- |
-| Purpose | release gate for every 1.x release | consistency check at the 1.1.13 final candidate, the 1.2.0 release approval and before RO-1 is decided (board decision 64) |
+| Purpose | release gate for every 1.x release | consistency check at the 1.1.13 final candidate, at the deferred 1.2.0 release-approval milestone executed before the 1.2.2 release, and before RO-1 is decided (board decision 64) |
 | Baseline | previous published stable release, rebuilt from its annotated tag | the plan's v0.9.16 tag, built with the amendment's baseline executor |
 | Input authority | active canonical Golden and capability policy at the candidate commit, through the ledger | the plan's `canonicalInputAuthority`: policy and manifest read only at its `repositoryCommit` |
 | Compared set | the ledger's scenarios | the plan's 37 routes with canonical input; its 27 `currentlyMissingRouteIds` are reported `not-covered` |
@@ -98,6 +99,11 @@ Rules:
    revision is a coverage disposition declared by this release. A Golden input
    change updates the scenario's pinned inputs in the same pull request and
    increments its `inputRevision`.
+   Every accepted-gap row must have `approvedInVersion` equal to the release
+   it covers. An earlier release's approval carries over to no later release,
+   successor or renamed route. A new or renewed gap row is an `accepted-gap`
+   coverage change, declared with this release's entry, approval and CHANGELOG
+   id (1.1.12 board decision 60, 1.1.13 decision 96, 1.2.x decision 251).
 4. A scenario compares only what its inputs make comparable; it never makes a
    route Golden-verified.
 
@@ -113,10 +119,34 @@ pending gaps until the owner's 1.1.13 approval.
 The rolling baseline is the previous published stable release: the highest
 annotated `vX.Y.Z` tag below the candidate `VERSION` that has a complete,
 published GitHub Release. Its peeled commit must be an ancestor of the
-candidate commit. The release workflow confirms through GitHub that the
-Release is published and that no higher published stable release lies in
-between; a local run records the tag it was given. The declaration names the
-same tag and tag object.
+candidate commit. Before R-5, the commander supplies the file through
+`rolling --published-release-inventory FILE`, checked by
+`published_inventory_failures` against the rules of
+`predecessor-published-release-inventory-v1.schema.json`. The comparator only
+reads duplicate-rejecting JSON; it never calls `gh` or accepts a token.
+The declaration names the same tag and tag object.
+
+The commander's GitHub App inventory producer must read every release page
+before filtering stable releases, state root `complete: true` and `pagesRead`,
+and verify each row's completeness before stating `complete: true`. It must
+not substitute a default result limit for complete enumeration or hide a newer
+stable release whose checks are incomplete. Credentials are removed before
+the wrapper ends and never enter the comparator process. Offline completeness
+is a producer statement with provenance; SHA-256 cannot prove that no page was
+omitted. Release-owner review checks the pagination and completeness evidence.
+
+The validator refuses a wrong repository, duplicate id or tag, a non-`vX.Y.Z`
+tag, missing publication time, draft or prerelease, `complete` other than true,
+and publication later than `collectedAtUtc`. Missing or invalid inventory in a
+formal run is `PREDECESSOR_BASELINE_INVALID`. Selection starts from the highest
+published stable version below the candidate, then requires that exact local
+annotated ancestor tag; a missing or invalid tag never falls back to an older
+release. A diagnostic run records the given tag without asserting publication.
+
+Rolling reports carry `publishedInventory: {rawSha256, factsSha256}`, which may
+be null only in diagnostic runs. `rawSha256` binds the complete file bytes;
+`factsSha256` is the JCS SHA-256 of `{repository, releases}`, with the complete
+release rows sorted by numeric version, excluding collection time and pagination.
 
 ### Inputs
 
@@ -181,7 +211,7 @@ substitute for the precursor's own identities and ranges.
 Every entry carries the owner's approval as firmware owner: the board
 decision, which is the authority, the role `firmware-owner` and the date. The
 declaration cites the decision exactly; this citation is the approval form of
-a release declaration (board decision 64). It does not replace the owner's exact-head firmware-owner approval that an
+a release declaration (board decision 64). It does not replace the owner's exact-head firmware-owner and release-owner approval that an
 R3 pull request needs, such as a change to the 1.x amendment (ADR 0080 item 7). The release decision stays with the owner as release owner.
 A newly rejected input ships only as a known non-blocking issue approved for
 that release; a declared issue never overrides a P0 or P1 bug, a required
@@ -203,9 +233,7 @@ under a separate, exact and reviewed transfer contract; there is no automatic
 fallback to any reduced comparison (board decision 58). Until the release
 workflow runs the comparison, the gate is procedural (board decision 61).
 
-The report does not bind a workflow run, attempt or artifact: two runs on the
-same source give the same `deterministicSha256`, which is what makes a report
-reproducible. The release-workflow integration (WS-GOV batch R-5) binds that
+Runs with identical source, admitted executors, inputs, disposition documents, published-release facts, settings facts and semantic results must reproduce deterministicSha256. The digest does not identify the complete serialized report or a workflow run. The release-workflow integration (WS-GOV batch R-5) binds that
 digest into its run-scoped evidence envelope together with the run, attempt
 and artifact identities. Until then the report alone cannot tell evidence of
 another run on the same source apart, and this format makes no claim to reject
@@ -235,6 +263,8 @@ absent before and after, no pending gap, no failure, no `invalid` scenario and
 a declaration entry for every scenario that is not `equal`.
 
 ## v0.9.16 1.x mode
+
+For candidate version 1.2.2, the report of record uses milestone "1.2.0-release-approval", the deferred milestone of 1.1.12 board decision 201 and 1.2.x board decision 250. The report must be formal and consistent before 1.2.2 is released; all existing plan and amendment obligations remain mandatory. A formal run for candidate version 1.2.2 with any other milestone is refused with `PREDECESSOR_INPUT_INVALID`; the candidate version comes from the `VERSION` file of the candidate commit.
 
 The mode is a historical consumer of the ADR 0057 plan, as ADR 0057 permits.
 It materializes the plan's canonical input authority with the ADR 0057
@@ -269,6 +299,17 @@ plan binding is checked before any route runs; a mismatch stops the mode with
 `PREDECESSOR_AMENDMENT_MISMATCH`. Rows are never widened into patterns, and a
 row that no longer reproduces needs a new owner decision.
 
+For a `tp-prefix-transitive` route, the proof can run only when the candidate
+TP output and both outputs of the plan's full route exist. A runnable proof
+is never missing, including on an `invalid` route. If the proof cannot run,
+`transitive` is `null` and no computed proof is supplied: a typed rejection
+makes the route `inconsistent` with `PREDECESSOR_UNAPPROVED_DIFFERENCE`, and a
+shared execution failure makes it `invalid` with its execution failure code.
+A `consistent` route carries a passing proof and a consistent full route.
+The schema expresses the candidate-side structural conditions and requires a
+passing proof for `consistent`; the single validator checks availability
+against the full route named by the plan, the TP length and computed evidence.
+
 ## Shared execution
 
 ### Executors
@@ -280,29 +321,117 @@ in a fresh detached Git worktree. The 1.x recipe is the locked restore and
 Release build of `predecessor-comparison-v1.json` (with
 `ContinuousIntegrationBuild` and `PathMap`). A pre-existing `bin` or `obj`
 path, a dirty tree, a restore that rewrites a lock file, or a failed build is
-`PREDECESSOR_EXECUTOR_INVALID`. The CLI apphost hash alone never identifies an
+`PREDECESSOR_EXECUTOR_INVALID`. The source's own `NuGet.config` puts the
+restored packages in the top-level folder `.packages` of the worktree, which
+Git ignores (`executor.restorePackageFolder`). That folder must be absent
+before restore; its files are restore products, identified by the lock bytes,
+and are not source files of the v0.9.16 source comparison below. The CLI apphost hash alone never identifies an
 executor; the runtime-closure digest does.
 
-The compiler host is pinned by board decision 79: the P-0.5 spike showed that
-the embedded PDBs record whichever runtime patch hosts the compiler, and that
-pinning the host to runtime 10.0.11 reproduces the pinned v0.9.16 closure bit
-for bit; the 1.x identity comparison uses the same pinning. The exact pinning,
-together with the second v0.9.16 executor contract, is admitted by its own R3
-pull request with the owner's exact-head approval of its last push naming the
-`firmware-owner` role, with byte and Golden evidence and the exact write-range
-audit (ADR 0080 items 4 and 7); until it is, `compilerHost` is
-`pending-executor-record` and no formal run is possible.
+Compiler-host pinning and [baseline executor v2](v0916-baseline-executor-v2.md)
+are in effect together under decisions 63 and 79. Every comparator-built
+executor preflights the selected dotnet installation with `--list-runtimes`
+for framework `Microsoft.NETCore.App` exactly `10.0.11` and `--info` for the
+same host's `x64` architecture. Restore/build alone receive
+`DOTNET_ROLL_FORWARD=Disable`; build appends `-p:UseSharedCompilation=false`
+and `-nodeReuse:false` and `-p:RuntimeFrameworkVersion=10.0.11` once; the
+`RuntimeFrameworkVersion` value must equal `compilerHost.requiredRuntime.version`.
+The release owner approved `-p:RuntimeFrameworkVersion=10.0.11` on 2026-10-02
+(board decisions 275 and 277, extending decision 79). It applies to every
+program the comparator builds: the v0.9.16 baseline, the 1.x baseline and the
+candidate, and only to those builds. `compilerHost.boardDecisions` records
+decisions 79, 275 and 277; the executor v2 JSON, schema and raw amendment
+binding carry the same approval.
+Every path restores the previous environment.
+Missing runtime or a wrong architecture refuses with
+`PREDECESSOR_EXECUTOR_INVALID`, without installing or selecting another host.
 
-The identity is recorded, not pinned in advance. From 1.1.14 on, the rebuilt
-rolling baseline identity is also compared with the candidate identity that
-the baseline release's own report recorded; a mismatch is reported, and
-becomes a failure once local and hosted builds are shown to match.
+Since 1.1.13, the 1.x build runs the framework-dependent prebuilt profile
+catalog generator, which requests runtime `10.0.0` and cannot start while
+roll-forward is disabled. Fixing the runtime framework version to the pinned
+patch lets it run on `10.0.11`. The self-contained CLI already takes runtime
+`10.0.11` from the SDK, so its closure is unchanged; the v0.9.16 closure pin
+is reproduced with the property: 431 files, 88367164 bytes, SHA-256
+`18da112302672766db191872d6b7973ca05effa257293b09161904545eb2c3b0`.
 
-| Contract `recordedIdentity` | Report `executor` member | Value |
+The comparator enables Git's `core.longpaths` for its own Git commands through
+Git's environment protocol (`GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_n`,
+`GIT_CONFIG_VALUE_n`) and restores the environment afterwards. The Golden
+tree has paths of about 200 characters, so a worktree under a temporary root
+passes the Windows limit of 260; no configuration file is changed, and
+identities come from Git objects.
+
+For a failed executor process or capture, stderr names the command's first
+three arguments and shows the last 30 lines of each captured stdout/stderr
+stream, decoded as UTF-8 with replacement; these diagnostics never enter the
+report, and the existing refusal is preserved.
+
+`scripts/predecessor_pdb_probe.py` reads every managed assembly declared by the
+built CLI `.deps.json` project graph in the measured closure. It parses PE
+entry type 17, inflates `MPDB` raw deflate and reads portable metadata streams
+`#Pdb`, `#~`, `#GUID` and `#Blob`. CustomDebugInformation kind
+`B5FEEC05-8CD0-4A83-96DA-466284BB4BD8` supplies null-terminated UTF-8 options
+only when its `HasCustomDebugInformation` Parent is Module RID 1 (tag 7)
+and `#Pdb` declares exactly one external Module row. Nil parents, other tags,
+other RIDs and absent or invalid Module row counts refuse compiler-host evidence.
+`runtime-version` must equal the pinned servicing version; `compiler-version`
+is the compiler identity, while `version` is the options format version.
+Empty graphs, missing or ambiguous PDB/options, corrupt metadata and mixed
+or unpinned hosts refuse the executor. The probe starts no process.
+
+This R3 activation requires the firmware owner and the release owner's
+exact-head approval of the last push, with byte/Golden, write-range and
+release-policy evidence. R35-09 rehearses actual builds before formal reports.
+
+The 1.x identity is measured; the v0.9.16 v2 identity is pinned in its contract.
+Rolling mode implements the comparison with the baseline release's own
+**predecessor comparison report**, opt-in through `--baseline-report FILE`.
+That report's `candidate.version` must equal the selected baseline tag's
+version, and its `candidate.executor` is compared with the rebuilt baseline's
+`Executor.identity`. Either predecessor report mode (`rolling` or `v0916-1x`)
+may record a 1.x candidate. The report must identify schemaVersion `1.0`, kind
+`predecessor-comparison-report`, certification `none` and terminal `false`.
+This is an identity check, not admission of the report's outcomes or evidence
+rank, and does not authenticate publication; the commander supplies the
+correct release artifact and verifies its provenance.
+
+All eight identity members other than `tagObject`, including every nested
+authority tree and compiler-host value, must equal exactly with their types.
+`tagObject` must be present and either `null` (the candidate report predates
+tagging) or the rebuilt baseline's annotated tag object. Another non-null tag
+refuses. Missing or null required values, an unreadable/malformed report or
+duplicate JSON members refuse with `PREDECESSOR_BASELINE_IDENTITY_MISSING`;
+a different value, unexpected identity member, wrong candidate version or
+report family refuses with `PREDECESSOR_BASELINE_IDENTITY_MISMATCH`. Refusal
+occurs after the baseline rebuild, before building the candidate or running
+any scenario; no comparison output report is written. A successful opt-in run
+records the exact input report bytes' SHA-256 as optional
+`baselineIdentityReportSha256`, retained in `deterministicSha256`.
+Without the option that member is absent and no own-report comparison is
+claimed. Making this mandatory remains deferred until local and hosted
+builds are shown to match; ADR 0057's default/terminal path is unchanged.
+
+**Not implemented for the v0.9.16 baseline family:** its own CLI
+`CompositionRunReport` records no program identity also produced by the
+rebuild. AssemblyVersion, FileVersion and InformationalVersion come from
+`Directory.Build.props`/`VERSION`, but are not recorded in that report.
+Current build-admission assembly metadata (`NfcBuiltInTrustIndexSha256` and
+`NfcBuiltInManifestSetSha256`) identifies profile admission inputs and is
+likewise not a report program identity. `Executor.report_version` (`v0916` or
+`1x`) selects the report reader; it is host-declared, not a field the program
+writes. ProfileVersion and CompilationFingerprint identify profile/compiled
+firmware facts, not the program. The v2 contract's pinned CLI, managed-assembly
+and closure hashes are external build evidence, not a v0.9.16 self-report.
+No comparison is invented from them, and `v0916-1x` has no baseline-report
+option. A 1.x CLI Preview/Build report also lacks these program fields: the
+common fields below are in the predecessor report, not the CLI report.
+
+| Contract `recordedIdentity` | Own predecessor report `candidate.executor` member | Rebuilt value from `_build_executor` |
 | --- | --- | --- |
 | `authorityTrees` | `authorityTrees` | the Git tree ids of `external-tools`, `profiles`, `src` and `tools/crc-worker` at the commit |
 | `cliSha256` | `cliSha256` | SHA-256 of the built `cliAssembly` |
 | `commit` | `commit` | the built commit (the peeled commit of a tag) |
+| `compilerHost` | `compilerHost` | verified `runtimeVersion`, `compilerVersion` and positive `verifiedAssemblyCount` |
 | `lockFileSetSha256` | `lockFileSetSha256` | the lock-file set digest below |
 | `resolvedSdkVersion` | `resolvedSdkVersion` | the SDK version `global.json` resolves in the worktree |
 | `runtimeClosureSha256` | `runtimeClosureSha256` | the ADR 0057 closure digest: JCS SHA-256 of `{path, size, sha256}` for every file under `runtimeClosureRoot`, by relative path |
@@ -312,15 +441,20 @@ becomes a failure once local and hosted builds are shown to match.
 `lockFileSetSha256` is the JCS SHA-256 of the array of `{path, size, sha256}`
 objects, one for every Git-tracked file matching `src/*/packages.lock.json`
 at the built commit, taken from the Git blob bytes (so checkout line endings
-cannot change it), sorted by path in ascending ordinal order. A restore that
-leaves any of these files different from its blob is
-`PREDECESSOR_EXECUTOR_INVALID`.
+cannot change it), sorted by path in ascending ordinal order. For 1.x any lock change is `PREDECESSOR_EXECUTOR_INVALID`. For v0.9.16 exactly the seven v2 rewrites are required after restore and build; all other locks stay equal to their blobs. The digest still uses all eight original Git-blob locks, never post-restore bytes.
 
 ### Inputs, processes and environment
 
 Every process receives its own read-only staged copy of its inputs, hashed
 before and after; the repository Golden file is never a process input, and
 firmware inputs and outputs never enter Git or an uploaded artifact.
+
+A report is compared with its staged inputs by position. A CtrlRAM Replace CLI
+sorts its bindings by slot id (ordinal) whatever the order of its arguments,
+so its report lists `reference-base` first and the replacements by name. The
+comparator therefore stages, passes and expects CtrlRAM Replace inputs in that
+order, also when the reviewed binding names them in another one. Merge inputs
+keep the binding order.
 
 Each CLI process gets fresh comparator-owned temporary directories under a
 temporary root of at most 64 characters, and a working directory inside its
@@ -329,15 +463,57 @@ characters, which the CLI's temporary layers reach from a root of about 111
 characters (`BUG-20260926-legacy-combiner-long-path`); a longer root is
 refused before any process with `PREDECESSOR_ENVIRONMENT_INVALID`.
 
+A 1.x or v0.9.16 CLI finds its external tools by looking for a directory named
+`external-tools` in its base directory and then in each parent; per-user
+settings take no part. Each CLI process therefore gets, beside its staged
+runtime closure, a read-only copy of the `external-tools` tree of its
+executor's commit, taken from the Git blobs
+(`executor.externalToolStaging`). The copy is held under the same custody as
+the runtime closure and is hashed before and after the process; a change is
+`PREDECESSOR_EXECUTOR_INVALID`. The directory is created even when the commit
+has no tool file, so the search never reaches a directory outside the staging
+root. The closure digest and the `authorityTrees` identity are unchanged: the
+tree is already identified by its Git tree id.
+
 A side is a **typed product rejection** only when a Preview or Build process
 exits with a nonzero code and a written report that carries at least one
 `error` issue, and no issue code of the report is a process failure listed in
 `typedRejection.processFailureIssueCodes`. The list holds
-`external-tool.process.failed`, which the P-0.5 spike saw inside written
-reports when an argument path reached 260 characters. A process that crashes,
+`external-tool.process.failed` and `external-tool.process.start-failed`, at
+any severity. The P-0.5 spike saw the former inside written reports when an
+argument path reached 260 characters. A process that crashes,
 times out, exits without a report or reports a process failure is
 `PREDECESSOR_PROCESS_FAILED`; it is never a rejection and can never be
 declared or approved.
+
+For a rejection with compiled operations, there are three cases:
+
+- With no `Skipped` row, operations that ran and mutation rows remain admitted
+  under the existing typed rejection and per-side safety rules when publication
+  was blocked and no output file was committed.
+- With every row `Skipped`, decision 272 requires all five conditions: the
+  process exits nonzero; its written report carries an `error` issue; every
+  operation is `Skipped`; there is no write record (no mutation row, processor
+  command or output difference); and no output file exists for that side.
+  No output file means absent `Output` or `Committed: false`, with no captured file.
+- A report mixing `Skipped` rows with rows that ran is `invalid`.
+
+The commander's reading of decision 272, presented for firmware-owner approval
+with this pull request, is that a row that did not run is evidence of neither a
+read nor a write. Only a report meeting all five conditions above is exempt from
+capacity, work-space admission and semantic range/overlap checks for those rows,
+including the processor write-range audit. Schema and identity checks (including
+intrinsic named half-open range format), known
+operation kinds, `Skipped` status, strictly increasing integer sequence numbers,
+the five conditions themselves and every process check (exit code, stderr and
+staged inputs) remain required. A report missing any condition receives no
+exemption and retains the existing range validation. This reading applies only
+to the predecessor comparator's opt-in; the ADR 0057 default path is unchanged.
+
+The comparator opts into the shared projection check's `skipped_rejection`
+only after proving these conditions. A skipped processor may describe its
+declared ranges without an executed command; this supplies no execution authority.
+The ADR 0057 default normalization and projection checks still refuse that shape.
 
 The CLI reads `event-buffer-format.v1.json` and `toolchain-runtime.v1.json`
 from the local application-data folder. The P-0.5 spike confirmed that
@@ -357,8 +533,11 @@ present and `PREDECESSOR_PROCESS_FAILED` otherwise.
 ### Per-side execution safety
 
 Each side must pass per-side execution safety before its result counts. The
-owners are the ADR 0057 functions in `scripts/v0916_parity_certification.py`,
-reused unchanged:
+owners of the shared sequence, compiled-authority and range checks are the ADR
+0057 functions in `scripts/v0916_parity_certification.py`, reused without a
+second implementation. The comparator's staged-command identity check
+(`_executed_command_failures`, item 4) and processor write-range audit
+(`_processor_write_audit_failures`, item 5) live in `scripts/predecessor_validation.py`:
 
 1. **Independent compiled authority.** A typed Preview of the same executor
    with the same staged inputs and arguments produces the compiled operations
@@ -366,23 +545,233 @@ reused unchanged:
    operations to be the Preview's, in order, and its mutations to follow that
    order, and `validate_report_projection_against_compiled_authority` requires
    the Build projection's compiled operations to equal the authority's
-   exactly and every mutation to lie inside its own operation and, for a
-   processor, inside the authority's allowed write ranges. A report that
+   exactly and every mutation to lie inside its own operation. Decision 272's
+   no-write typed rejection opts into `skipped_rejection`: only the operation
+   status and execution-only command records may differ from a succeeded Preview, every observed operation must
+   be `Skipped`, and there may be no mutation, command, output difference or
+   output file. The nonzero-exit and report-error requirements above still
+   apply; the compiled operation identities, order, ranges and other fields
+   remain bound to that Preview. In particular, a processor that ran in the
+   Preview may have commands there and none in the skipped Build; its processor
+   declaration and allowed ranges must still match exactly. A report that
    widens its own operation or processor ranges together with its mutations
-   is therefore rejected even though it is self-consistent.
+   is therefore rejected even though it is self-consistent. A processor's
+   writes are held to the authority's allowed write ranges by the audit of
+   item 5, because its written mutation row is its whole operation target;
+   the comparator asks the range function for that with
+   `audited_processor_writes`, and the terminal path keeps its default. A written
+   mutation row names its operation and carries no sequence, so the validator
+   gives each row the sequence its own report declares for that operation
+   before the order check; a row that names an undeclared operation fails it.
 2. **Report ranges.** `validate_semantic_report_ranges` checks that every
-   range is half-open, inside its address space's capacity, non-overlapping
-   and contained in its operation.
+   range is half-open, inside its address space's capacity and contained in
+   its operation, and that a processor's read ranges and its write ranges do
+   not overlap among themselves. Operation targets are compared inside their
+   own address space, in strictly increasing integer `sequence` order: a target may overlap an earlier
+   target only when its operation declares the `ReplaceExisting` overlap
+   policy, as a map does when it copies the DP container and writes the TP
+   over part of it. As in `CompositionOperation.GetProfileOverlapError`,
+   `CopyRange`, `ReplaceRange`, `PatchScalar` and `TransformScalar` with
+   `ReplaceExisting` require their target to be fully contained in one earlier
+   target in that space. Partial cover and cover assembled from adjacent earlier
+   targets are refused for those kinds; `FillRange` and unknown kinds with
+   `ReplaceExisting` are refused.
+
+   `RunExternalProcessor` with `ReplaceExisting` instead requires an earlier
+   overlapping target, without full cover of its target or every allowed write.
+   `V2CompositionPlanCompiler.RuntimeReferenceReplace` validates overlaps only
+   for version-edit `PatchScalar` and mapping `ReplaceRange` operations before
+   appending postbuild processors. It seeds the output with
+   `ImageInitialization.Reference`, which is not an operation row. A CtrlRAM
+   Replace report therefore needs no invented `copy-reference` operation.
+   The processor's allowed writes remain constrained by the audit in item 5.
+
+   Every policy other than `ReplaceExisting` compares operation targets,
+   including a processor's whole target: disjoint allowed writes do not admit
+   a processor target overlapping an earlier target or a later copy into that
+   processor target outside its allowed writes. No earlier overlapping target
+   for `ReplaceExisting`, and any other target overlap, are refused. The comparator asks for
+   this rule with the function's `declared_overlap` option; the ADR 0057
+   terminal path keeps its default, which refuses every overlap.
+
+   A report declares no capacity for the work address spaces of AB Merge,
+   `tp-b-work` and `ab-combiner-work` (`perSideSafety.writtenReportRules`,
+   1.2.x board decision 261). No capacity is invented for them: a range in
+   such a space must lie inside one range the same side's Preview declares
+   there, as an operation source or target or a processor read or write
+   range. The Preview's own ranges are the declaration; a Build range
+   outside them, and a range in any other address space that is neither an
+   input nor `output-image`, is refused. A Preview's `output-image` bound is
+   the extent of its targets in `output-image` only.
+   Decision 273 adds `a-bank-work` and `b-bank-work` only for the declared
+   `v0.9.16` baseline executor (`report_version="v0916"`, selected by the
+   mode's executor identity). No filename or version string inside a report
+   can select these names. The same Preview containment rule applies; every
+   other executor refuses them.
 3. **Capture.** The report agrees with the captured inputs and output, and a
-   side that produced an output carries no `error` issue.
+   side that produced an output carries no `error` issue. A Preview, or a run
+   that stops before it writes, describes the output it would write with
+   `Committed: false` and leaves no file; that description is not a file
+   identity and is not compared with a capture. A described output without a
+   file and with any other `Committed` value, or an output file whose report
+   is not `Committed: true`, is `PREDECESSOR_REPORT_INVALID`.
+   In addition, decision 274 requires each same-side Preview/Build pair,
+   including the precursor pair, to agree on output size and SHA-256 when the
+   Build committed an output file. A successful Preview must describe its
+   output prediction for every executor, including v0.9.16. An
+   uncommitted failed Build's empty output description is not compared with
+   the Preview prediction. Either mismatch is `PREDECESSOR_REPORT_INVALID`
+   with `Build output size or hash differs from Preview prediction`. A successful
+   Preview without a prediction is `PREDECESSOR_REPORT_INVALID` with
+   `successful Preview has no output prediction`; there is no v0.9.16 exception.
+4. **Executed commands** (decision 261). The executable of every executed
+   command must be one of the external tool files the comparator staged for
+   that process and checked by hash before and after it; the path text alone
+   is not trusted. Its working directory must lie below the temporary
+   directory the comparator created for the process. Its file arguments
+   (the absolute paths among its arguments) must lie in the working directory
+   or below it, and no path may step back with `..`. `Arguments` must be a list
+   of strings. Any other argument is a
+   plain token: one that could name a file elsewhere (a path separator, a
+   drive colon, `.` or `..`, a reserved device name with or without an
+   extension in any case, including `COM0` and `LPT0`, a leading `@`, or any `%`)
+   is refused. The value after a leading `-x`, `--name=`, `--name:` or `/name:`
+   is also refused if it is a reserved device name (with or without extension,
+   any case) or contains a `..` path segment. A repeated command is
+   kept, and the Build's commands are compared with the Preview's in the
+   order they appear. A processor operation without an executed command is
+   still refused.
+5. **Write-range audit of an external processor** (decisions 261 and 271). A written
+   mutation row of a processor is its whole operation target, so the audit
+   reads the ranges the report lists under `OutputDifferences`, and only the
+   ranges: the content previews of those rows are never read or kept. Each
+   listed range must lie inside one write range that the Preview allows a
+   processor in `output-image`. A processor whose mutation row reports
+   changed bytes must have a listed range inside its own allowed write
+   ranges; an `output-image` processor that lists none for its changed bytes
+   is still refused. Before exempting a processor mutation with zero changed
+   bytes, its before and after SHA-256 must be equal in each stage. Different
+   hashes with a zero count refuse even when both Preview and Build report the
+   same false count and omit every output difference. This applies to output
+   and work-space processors; work-space read/write checks still run for zero
+   changes. The comparator computes no byte difference of its own.
+
+   For a processor targeting a declared work address space, decision 271
+   instead reads the compiled operations in Preview order, regardless of its
+   mutation's changed-byte count. Every later operation that reads that work
+   space must read a range completely inside one of that processor's allowed
+   write ranges; spanning two ranges is refused even when they are adjacent.
+   No later operation may write that work space. The audit classifies
+   `CopyRange`, `ReplaceRange`, `TransformScalar`, `FillRange`, `PatchScalar`
+   and `RunExternalProcessor`; an unknown kind, missing range or unnamed
+   address space refuses. The `output-image` output-difference audit is unchanged.
+
+   **Owner decision 278 (2026-10-03): v0.9.16 baseline exception.** A later
+   read of `ab-combiner-work` may instead be exactly the whole B bank
+   `[262144, 524288)`, even when it exceeds the processor's allowed write
+   ranges. This reuses decision 273's gate: the declared baseline executor's
+   `report_version="v0916"`, passed as `v0916_executor` to the existing audit,
+   never a filename, route name or version string inside the report. No other
+   range (including a one-byte extension or reduction or the A bank), work
+   space, rolling or 1.x executor receives this exception. Later writes to
+   `ab-combiner-work` remain forbidden, and the candidate keeps the full
+   decision 271 audit. Preview/Build authority, range and declared-overlap
+   checks remain in force; complete outputs are still compared byte for byte.
+   The serialized `workAddressSpaceAudit.laterReads` retains the general
+   decision 271 rule; this section defines its decision 278 exception without
+   changing the report or executor format.
+
+   **Current refusal is stricter than decision 261:** the audit holds every
+   `OutputDifferences` row to processor write ranges, including a non-processor
+   row such as `DeclaredReplacement`. It does not filter rows by their producer.
+   The product's `CompositionRunService.CreateOutputDifferences` returns an
+   empty list for every Merge and whenever output and reference lengths differ.
+   The empty work-space evidence question is resolved by decision 271 above.
+   Non-processor output differences and missing differences for a changed
+   `output-image` processor retain their existing refusals.
+
+6. **Request identity.** Every Preview and Build report names the request that
+   was run. `IcId` equals the request's IC, `ModeId` and `ExperienceId` equal
+   its workflow, and `CompositionKind` is `Replace` only for `ctrlram-replace`
+   and `Merge` otherwise; these are the ADR 0057 identity tokens, compared by
+   the helpers `expected_report_identity` and `report_identity_mismatches` in
+   `scripts/v0916_parity_certification.py`, which the terminal path also uses.
+   The check covers the precursor stages. A report that arrives without a
+   request identity is refused. A request without `icId` or `workflowId` is
+   refused with `PREDECESSOR_INPUT_INVALID` before any staging.
+   `ProfileId` is bound to the request only when the request carries
+   `resolvedProfileId`. Production does not bind it today. The CLI is given a
+   selector while a report names the resolved profile, so the two cannot be
+   compared. No scenario or route declares the resolved profile, and the
+   request builders do not forward one. A request without it still requires
+   each Build `ProfileId` to equal the `ProfileId` of the same side's Preview
+   in the same phase. A CLI that resolves both stages to another profile of
+   the same IC and workflow is therefore not caught. The same holds when a CLI
+   ignores the selection token or the map variant and builds another variant
+   of that IC and workflow on both sides: neither the selection token nor
+   `MapId` is bound to the scenario. Closing these gaps needs a
+   resolved profile declared per scenario or route and per side (baseline and
+   candidate can differ), forwarded by the request builders. That is an
+   owner-approved schema and ledger change, tracked as a separate issue.
 
 A failure is `PREDECESSOR_REPORT_INVALID` and makes the scenario or route
 `invalid`. The versioned report reader only converts a report version's
-format into the normalized projection these functions read (member names,
-issue severities and codes, unknown optional members recorded by name and
-never used as authority). It may not relax, skip or reorder these checks; its rules are admitted by their own pull request after the P-0.5 spike, with
-the review and approvals their paths require, and until then
-`reportReader` is `pending-reader-record`.
+format into the normalized projection these functions read. It may not relax,
+skip or reorder these checks. The reader and the report and declaration
+schemas and both executor interfaces are in effect
+([Interface status](#interface-status)).
+
+#### Report reader v1
+
+`scripts/predecessor_report_reader.py:read_cli_report` takes an already-loaded
+written JSON report and the executor's declared `report_version` (`v0916` or
+`1x`), never inferred from the payload. JSON is loaded by the ADR 0057
+duplicate-rejecting loader. The returned `ReadReport` carries:
+
+- `reader_version`: `cli-v0916-v1` or `cli-1x-v1`;
+- `projection`: `compiledOperations`, `compiledMutations` and
+  `compilationFingerprint`, consumed by the existing per-side checks;
+- `context`: report identity, input/output identities, times, composition
+  kind and optional `mapId`, the executable and working directory of each
+  executed command, and the range of each output difference, for the
+  caller's capture, command and audit checks;
+- `issues`: each report issue's exact code and lower-case severity (`error`,
+  `warning`, `info` or `unspecified`), with `source: report`;
+- `unknown_members`: sorted JSON pointers naming unknown optional members,
+  without their values. JSON pointer escaping uses `~0` and `~1`.
+
+The required top-level members are the ADR 0057 report members; `MapId` is
+optional on both formats and is `null` in the context when absent. No map id
+is invented for v0.9.16. The 1.x extensions `AbMergeFormat` and
+`SourceEnvelope` are unknown optional members recorded by name, without
+becoming authority. Unknown members in input, output and issue objects are
+likewise recorded and excluded. An unknown member in an operation or mutation
+object, or in a range, provenance or command object inside one, is refused
+with `PREDECESSOR_REPORT_INVALID`: those rows carry write authority, and the
+ADR 0057 normalizers' exact-member rule is not relaxed. Known presentation
+members (`OriginalFileName`, `FileName`, `Message` and an issue's
+`OperationId`) are ignored; `Validations` and `OutputNaming` remain
+unconsumed and supply no authority. Of an `OutputDifferences` row only
+`Range` is read, as an exact `Start`/`Length`/`EndExclusive` triple; a row
+without one is refused, and no other member of the row, in particular no
+content preview, is read or kept.
+Required members are never supplied by an optional extension.
+
+The reader reuses `normalize_raw_operation` and `normalize_raw_mutation`, the
+ADR 0057 public aliases, without copying their implementations. It asks the
+operation normalizer for the command shape a CLI writes (`written_commands`):
+the executable stands below a directory named `external-tools` and is
+identified from that component, and absolute arguments stand in the working
+directory or below it. The ADR 0057 terminal path keeps its default. It preserves
+operation/mutation/input/issue order, named address spaces and half-open
+ranges. It does no file, process or Git access and makes no semantic verdict.
+A malformed format, unsupported version or absent report is
+`PREDECESSOR_REPORT_INVALID` at this format boundary; the process runner owns
+the contract's classification of an absent report as a process/environment
+failure. In particular, `AB_FORMAT_CONFIGURATION_INVALID` or
+`capability.readiness.runtime-dependency-blocked` appearing only on stderr
+does not create a report or a typed rejection. Stderr issues, when captured,
+stay separate and cannot satisfy a written report's `error` requirement.
 
 ### Comparison and attribution
 
@@ -407,6 +796,16 @@ bytes, never a wider range or a pattern. Per-side safety is a separate check,
 and the union of both sides' write ranges is not an attribution.
 
 ## Validation
+
+The `owner-list` projection admits no empty `scenarios` or `routes`, even when
+the counts and deterministic digest have been recomputed to agree. Its existing
+`_check_list_input` checks the recorded rolling gate against `rolling_gate`
+and refuses a clear gate containing an invalid or undeclared non-equal unit.
+Historical summaries and top-level results must agree with `v0916_summary`
+and `v0916_result`; a consistent result has no failures, and other results
+must carry failures. Admission failures are `PREDECESSOR_REPORT_INVALID` and
+produce no owner list. These checks do not rerun execution or grant release
+authority, and do not substitute for full report schema validation.
 
 The schemas hold every rule that can be decided inside one document, including
 the conditional ones: a formal report needs both settings files absent; a
@@ -447,12 +846,18 @@ validator (P-2), which fails closed:
   each route's proof kind from the plan and the amendment, and each row
   reproduced exactly.
 
-The repository's Python lane has no Draft 2020-12 validator: `jsonschema` is
-optional in `scripts/validate_repository.py` and absent from the CI
-dependencies. The comparator batch (P-2) therefore either adds a reviewed
-validator dependency or keeps schema validation in the .NET contract tests and
-implements the semantic validator directly; it never grows a hand-written
-schema subset.
+The `owner-list` projection in `scripts/predecessor_report_reader.py`
+validates a saved comparison report against its schema with `jsonschema`
+(Draft 2020-12). Report reader v1 (`read_cli_report`) reads CLI reports and does
+not use it. The
+pinned dev dependency `jsonschema==4.25.1` is declared in
+`tools/crc-worker/pyproject.toml`, and CI installs it through the `[dev]` extra
+in the repository-script jobs. Cross-document semantic validation, including
+the published release inventory checks, remains in
+`scripts/predecessor_validation.py`; the comparator does not implement a
+hand-written schema subset for reports. The published release inventory is an
+observed deviation: `published_inventory_failures` checks it by hand against
+the rules of its schema. This change does not replace that check.
 
 ## Canonical digests
 
@@ -460,18 +865,51 @@ JSON-derived digests use the RFC 8785 JCS rules of the ADR 0057 parity
 contract and its existing implementation (`canonical_json_sha256`).
 `rangeListSha256` is the JCS SHA-256 of the complete list of differing ranges
 in ascending order. Ledger, declaration, amendment and contract identities are
-SHA-256 values of the raw file bytes. `deterministicSha256` is the JCS SHA-256
-of the report without that member; timings are never part of the report.
+SHA-256 values of the raw file bytes.
+
+deterministicSha256 is the RFC 8785 SHA-256 of the report after removing only the members listed below. All other members, values and array order are retained. Excluded members remain required and validated run evidence; exclusion does not relax any execution or report check.
+
+The exact excluded JSON pointer patterns (`*` selects each array member) are
+also declared by `comparison.deterministicDigestExcludedPaths` in
+`predecessor-comparison-v1.json`:
+
+- `/deterministicSha256`
+- `/environment/temporaryRootLength`
+- `/scenarios/*/baseline/processes/*/stdoutSha256`
+- `/scenarios/*/baseline/processes/*/stderrSha256`
+- `/scenarios/*/baseline/processes/*/report/size`
+- `/scenarios/*/baseline/processes/*/report/sha256`
+- `/scenarios/*/candidate/processes/*/stdoutSha256`
+- `/scenarios/*/candidate/processes/*/stderrSha256`
+- `/scenarios/*/candidate/processes/*/report/size`
+- `/scenarios/*/candidate/processes/*/report/sha256`
+- `/routes/*/baseline/processes/*/stdoutSha256`
+- `/routes/*/baseline/processes/*/stderrSha256`
+- `/routes/*/baseline/processes/*/report/size`
+- `/routes/*/baseline/processes/*/report/sha256`
+- `/routes/*/candidate/processes/*/stdoutSha256`
+- `/routes/*/candidate/processes/*/stderrSha256`
+- `/routes/*/candidate/processes/*/report/size`
+- `/routes/*/candidate/processes/*/report/sha256`
+- `/gate/failures/*/detail`
+- `/failures/*/detail`
+- `/publishedInventory/rawSha256`
+
+Null sides and null process reports remain null. Report presence, reader version,
+unknown members, stage, exit code, timeout, input custody, issues, settings
+hashes, executor identity, output and precursor hashes, ranges, informational
+values, inventory facts, gate and result are retained. No general removal by
+member name is permitted.
 
 ## Interface status
 
 | Interface | Status | Until it is in effect |
 | --- | --- | --- |
-| declaration schema | proposed | revised with the report schema before any release commits a declaration |
-| report schema | proposed | revised by the reader pull request, with the review and approvals its paths require; any R3 approval binds the last push and names each required role (ADR 0080 item 7); no report of record |
-| report reader | `pending-reader-record` | no report of record |
-| compiler-host pinning | `pending-executor-record` (board decision 79) | no formal run |
-| v0.9.16 baseline executor | `pending-executor-record` in the amendment (board decisions 63 and 79) | no formal v0.9.16 1.x run |
+| declaration schema | in effect (R35-02) | — |
+| report schema | in effect (R35-02) | — |
+| report reader | in effect (R35-01) | — |
+| compiler-host pinning | in effect (board decision 79; decisions 275 and 277 approve the runtime property for all comparator-built programs only) | runtime preflight and embedded PDB verification |
+| v0.9.16 baseline executor | in effect through the amendment binding to v2 (board decisions 63 and 79) | exact source, recipe, lock rewrites and closure pins |
 
 A formal run requested while any of these is not in effect fails with
 `PREDECESSOR_CONTRACT_PENDING`.
