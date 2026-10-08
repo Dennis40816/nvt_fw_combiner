@@ -229,11 +229,18 @@ function Assert-PublicReferenceInventory {
     if ($PublishedSha256 -cnotmatch '^[0-9a-f]{64}$' -or [string]$PublicManifestEntries[0].sha256 -cne $PublishedSha256) {
         throw 'Release package public confidential-reference manifest differs from the reviewed manifest of its version.'
     }
-    # Documents under reference/docs are Markdown or JSON. Scripts, spreadsheets, documents and native sources
-    # are private material anywhere in the reference tree.
+    # Documents under reference/docs are Markdown or JSON. The Golden projection holds only the formats below,
+    # and a file that is not firmware bytes must not carry a name that intake treats as a confidential kind.
+    # Scripts, spreadsheets, documents and native sources are private material anywhere in the reference tree.
     $ForbiddenReferenceExtensions = @(
         '.bat', '.cmd', '.ps1', '.sh', '.xls', '.xlsx', '.doc', '.docx',
         '.c', '.cc', '.cpp', '.h', '.hpp', '.asm', '.s'
+    )
+    $AllowedGoldenExtensions = @('.bin', '.json', '.txt', '.config', '.md')
+    $ConfidentialNameHints = @(
+        'postbuild', 'post-build', 'post_build', 'mmap', 'memory-map', 'memory_map', 'fwconfig',
+        'flashmap', 'flash-map', 'flash_map', 'flash-header', 'flash_header', 'flash header',
+        'tp-header', 'tp_header', 'combiner'
     )
     foreach ($Entry in $Manifest.files) {
         $Path = [string]$Entry.path
@@ -246,6 +253,20 @@ function Assert-PublicReferenceInventory {
              $Extension -notin @('.md', '.json')) -or
             ($InReference -and $Extension -in $ForbiddenReferenceExtensions)) {
             throw "Release package contains confidential reference content: $Path"
+        }
+        if ($InReference -and
+            -not $Path.StartsWith('reference/docs/', [StringComparison]::OrdinalIgnoreCase)) {
+            if ($Path.StartsWith('reference/golden/', [StringComparison]::OrdinalIgnoreCase)) {
+                $LeafName = ($Path -split '/')[-1].ToLowerInvariant()
+                $NameIsConfidential = $Extension -cne '.bin' -and
+                    @($ConfidentialNameHints | Where-Object { $LeafName.Contains($_) }).Count -gt 0
+                if ($Extension -notin $AllowedGoldenExtensions -or $NameIsConfidential) {
+                    throw "Release package contains confidential reference content: $Path"
+                }
+            }
+            elseif ($Path -ine 'reference/README.txt') {
+                throw "Release package contains confidential reference content: $Path"
+            }
         }
     }
 }
