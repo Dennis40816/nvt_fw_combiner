@@ -63,11 +63,11 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
 
         Assert.Equal("1.5", index.SchemaVersion);
         Assert.Equal("built-in-profile-bundles", index.TrustIndexId);
-        Assert.Equal("1.1.10.7", index.TrustIndexVersion);
+        Assert.Equal("1.2.2-nt51925.1", index.TrustIndexVersion);
         Assert.Equal("built-in-profile-bundle-v2", index.TrustAnchorBindingId);
-        Assert.Equal(24, index.Bundles.Count);
+        Assert.Equal(26, index.Bundles.Count);
         Assert.Equal(
-            52,
+            57,
             index.Bundles.Sum(static bundle => bundle.RuntimeRegistrations.Count));
         ProfileBundleRuntimeRegistration generalReplace = index.Bundles
             .SelectMany(static bundle => bundle.RuntimeRegistrations)
@@ -86,7 +86,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
                 .Where(static registration => registration.MapVariantSetId is not null)
                 .Select(static registration => registration.MapVariantSetId));
         Assert.Equal(
-            8,
+            9,
             index.Bundles.Sum(static bundle => bundle.MetadataProviderFamilies.Count));
         _ = Assert.Single(index.Bundles.SelectMany(static bundle => bundle.FamilyDisclosureFamilies));
         ProfileBundleRuntimeRegistration[] ctrlRam =
@@ -94,8 +94,8 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
             .. index.Bundles.SelectMany(static bundle => bundle.RuntimeRegistrations)
                 .Where(static registration => registration.WorkflowId == "ctrlram-replace"),
         ];
-        Assert.Equal(25, ctrlRam.Length);
-        Assert.Equal(19, ctrlRam.Count(static registration =>
+        Assert.Equal(29, ctrlRam.Length);
+        Assert.Equal(23, ctrlRam.Count(static registration =>
             registration.ReportMetadataMapId is not null));
         Assert.Equal(6, ctrlRam.Count(static registration =>
             registration.ReportMetadataMapId is null));

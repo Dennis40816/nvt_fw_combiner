@@ -208,6 +208,7 @@ public sealed class StartupCompilationReuseTests
             ["NT51917"] = new("nt51917-nt51927-nt51928-canonical-container", CapabilityFamilyRelationship.PerfectAlias, Nt51927PerfectScope),
             ["NT51919"] = new("nt51929-nt51932", CapabilityFamilyRelationship.PerfectAlias, Nt51929PerfectScope),
             ["NT51923"] = new(null, CapabilityFamilyRelationship.Standalone, null),
+            ["NT51925"] = new(null, CapabilityFamilyRelationship.Standalone, null),
             ["NT51926"] = new(null, CapabilityFamilyRelationship.Standalone, null),
             ["NT51927"] = new("nt51917-nt51927-nt51928-canonical-container", CapabilityFamilyRelationship.PerfectAlias, Nt51927PerfectScope),
             ["NT51928"] = new("nt51917-nt51927-nt51928-canonical-container", CapabilityFamilyRelationship.PartialAlias, Nt51928Scope),

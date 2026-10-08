@@ -8,6 +8,21 @@ the manifest-pinned schema bytes from the canonical `docs/contracts` files into 
 root before tests, publish, or runtime loading; source trees must never be passed directly to the
 trusted loader.
 
+## NT51925 local candidate preparation
+
+[Proposed ADR 0084](../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md)
+keeps NT51925 in its own `nt51925-standard-merge-candidate` and
+`nt51925-ctrlram-replace-candidate` bundles. Each has a separate NT51925 family
+and map declarations; the five profiles are `compilable` candidates. Their
+current address and postbuild values are copied from NT51926 and are not NT51925
+evidence. Standard Merge and CtrlRAM Replace routes remain blocked for authoring
+and execution. Official NT51925 map/mmap, version-specific postbuild, FW/topology
+declarations, differences, and independent Golden cases remain pending. NT51923
+and NT51926 identities retain their v1.2.1 values. A later approved change may
+consider a shared family only if the official map proves identical facts.
+NT51920, NT51930 and NT51931 stay retired. The historical NT51925 retirement
+below describes the earlier ADR 0042 removal, not approval for this preparation.
+
 ## Historical retired bundle evidence
 
 The former `nt51920-standard-merge`, `nt51930-standard-merge`, and

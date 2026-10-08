@@ -1,0 +1,373 @@
+{
+  "schemaVersion": "2.15",
+  "profileId": "nt51925-standard-merge-gen-flash",
+  "profileVersion": "0.1.0",
+  "promotion": {
+    "stage": "compilable",
+    "blockers": [
+      {
+        "blockerId": "nt51925-official-map-and-postbuild",
+        "kind": "map",
+        "reason": "Official NT51925 map/mmap, per-version postbuild and declared versions/topologies remain pending; isolated candidate borrows the NT51926 contract.",
+        "evidenceRefs": [
+          "nt51925-isolated-candidate-pending-owner-evidence"
+        ]
+      },
+      {
+        "blockerId": "nt51925-independent-golden",
+        "kind": "golden",
+        "reason": "Independent NT51925 full-output Golden cases have not been supplied.",
+        "evidenceRefs": [
+          "nt51925-isolated-candidate-pending-owner-evidence"
+        ]
+      },
+      {
+        "blockerId": "nt51925-r3-owner-approval",
+        "kind": "human-review",
+        "reason": "Proposed ADR 0084 awaits firmware-owner R3 approval and exact write-range audit.",
+        "evidenceRefs": [
+          "nt51925-isolated-candidate-pending-owner-evidence"
+        ]
+      }
+    ]
+  },
+  "compositionKind": "merge",
+  "compilationContext": {
+    "kind": "resolved-map"
+  },
+  "experience": {
+    "experienceId": "standard-merge",
+    "audience": "system",
+    "layoutPolicy": "fixed",
+    "inputPolicy": "fixed",
+    "topologyAuthoring": "hidden",
+    "displayNameKey": "profile.nt51925.standard-merge"
+  },
+  "mapBinding": {
+    "familyId": "nt51925-standard-merge",
+    "familyVersion": "0.1.0",
+    "familyContentHash": "9d4510fb1b62cc4d78ae4a672cec44132dd36a6660044cf86492852cde6b7275",
+    "mapIds": [
+      "nt51925-standard-merge-256k"
+    ],
+    "requiredRegionIds": [
+      "tp-code",
+      "dp-code"
+    ],
+    "requiredMetadataStructureIds": [
+      "firmware-config-general-parameters",
+      "dpcmi",
+      "nt51926-normal-tp-flash-header",
+      "tp-svn"
+    ],
+    "requiredCapabilityIds": []
+  },
+  "inputSlots": [
+    {
+      "slotId": "tp-input",
+      "role": "tp",
+      "artifactClass": "tp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "source-view-coverage"
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    },
+    {
+      "slotId": "dp-input",
+      "role": "dp",
+      "artifactClass": "dp-firmware",
+      "required": true,
+      "cardinality": "exactly-one",
+      "acceptedExtensions": [
+        ".bin"
+      ],
+      "acceptance": {
+        "lengthRule": {
+          "kind": "source-view-coverage"
+        },
+        "normalization": {
+          "kind": "none"
+        }
+      }
+    }
+  ],
+  "spaces": [
+    {
+      "spaceId": "tp-input",
+      "kind": "input-artifact",
+      "slotId": "tp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "dp-input",
+      "kind": "input-artifact",
+      "slotId": "dp-input",
+      "instancePolicy": "singleton"
+    },
+    {
+      "spaceId": "output-image",
+      "kind": "output-image",
+      "capacity": {
+        "kind": "resolved-map"
+      },
+      "initializer": {
+        "kind": "blank",
+        "fillByte": 0
+      }
+    }
+  ],
+  "views": [
+    {
+      "viewId": "tp-source",
+      "spaceId": "tp-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tp-code"
+      }
+    },
+    {
+      "viewId": "dp-source",
+      "spaceId": "dp-input",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "dp-code"
+      }
+    },
+    {
+      "viewId": "tp-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "tp-code"
+      }
+    },
+    {
+      "viewId": "dp-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "dp-code"
+      }
+    }
+  ],
+  "metadataBindings": [
+    {
+      "bindingId": "firmware-config-general-parameters-inspection",
+      "spaceId": "tp-input",
+      "structureId": "firmware-config-general-parameters",
+      "fieldIds": [
+        "tp-firmware-version",
+        "tp-firmware-version-complement",
+        "sensor-count-x",
+        "sensor-count-y",
+        "display-resolution-x",
+        "display-resolution-y",
+        "maximum-operable-fingers",
+        "report-irq-type",
+        "tp-firmware-subversion",
+        "tp-resolution-x",
+        "tp-resolution-y",
+        "observed-ic-count",
+        "outermost-ic-master-enable",
+        "common-firmware-major-version",
+        "common-firmware-minor-version",
+        "common-firmware-additional-version",
+        "cascade-enable",
+        "pid"
+      ],
+      "purposes": [
+        "validation",
+        "output-naming",
+        "display",
+        "version"
+      ]
+    },
+    {
+      "bindingId": "dpcmi-inspection",
+      "spaceId": "dp-input",
+      "structureId": "dpcmi",
+      "fieldIds": [
+        "jira-low",
+        "dp-major",
+        "dp-minor",
+        "jira-high"
+      ],
+      "purposes": [
+        "validation",
+        "output-naming",
+        "display",
+        "version"
+      ]
+    },
+    {
+      "bindingId": "nt51926-normal-tp-flash-header-read-model",
+      "spaceId": "tp-input",
+      "structureId": "nt51926-normal-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "header-integrity-values"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "tp-bin-start-addresses"
+        }
+      ],
+      "purposes": [
+        "inspection",
+        "formatting",
+        "memory-projection",
+        "report-classification"
+      ],
+      "evidenceRefs": [
+        "nt51925-isolated-candidate-pending-owner-evidence"
+      ]
+    },
+    {
+      "bindingId": "nt51926-normal-tp-flash-header-copy-reference",
+      "spaceId": "tp-input",
+      "structureId": "nt51926-normal-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        }
+      ],
+      "purposes": [
+        "copy"
+      ],
+      "evidenceRefs": [
+        "nt51925-isolated-candidate-pending-owner-evidence"
+      ]
+    },
+    {
+      "bindingId": "tp-svn-display",
+      "spaceId": "tp-input",
+      "structureId": "tp-svn",
+      "fieldIds": [
+        "svn-flags",
+        "svn-revision"
+      ],
+      "purposes": [
+        "display"
+      ],
+      "evidenceRefs": [
+        "nt51925-isolated-candidate-pending-owner-evidence"
+      ]
+    }
+  ],
+  "regionAccessRules": [
+    {
+      "regionId": "tp-code",
+      "access": "whole",
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: gen_flash_bin_v2 NT51926 Standard Merge TP range."
+    },
+    {
+      "regionId": "dp-code",
+      "access": "whole",
+      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: gen_flash_bin_v2 NT51926 Standard Merge DP range."
+    }
+  ],
+  "operations": [
+    {
+      "operationId": "copy-tp",
+      "sequence": 100,
+      "overlapPolicy": "reject",
+      "reason": "Prepared isolated NT51925 candidate: Copy the reviewed NT51926 TP range. Official NT51925 evidence remains pending.",
+      "kind": "copy-range",
+      "sourceViewId": "tp-source",
+      "targetViewId": "tp-output"
+    },
+    {
+      "operationId": "copy-dp",
+      "sequence": 200,
+      "overlapPolicy": "reject",
+      "reason": "Prepared isolated NT51925 candidate: Copy the reviewed NT51926 DP range. Official NT51925 evidence remains pending.",
+      "kind": "copy-range",
+      "sourceViewId": "dp-source",
+      "targetViewId": "dp-output"
+    }
+  ],
+  "validations": [
+    {
+      "ruleId": "dp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "DP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "dp-source"
+    },
+    {
+      "ruleId": "tp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "TP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "tp-source"
+    }
+  ],
+  "processorStages": [],
+  "output": {
+    "fileNameTemplate": "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
+    "allowOverride": true,
+    "invalidCharacterPolicy": "reject",
+    "requiredTokenIds": [
+      "date",
+      "dp-version",
+      "ic",
+      "tp-version"
+    ],
+    "ruleId": "normal-flashcode-v1",
+    "outputArtifactType": "flash-code",
+    "tokenRequirements": [
+      {
+        "tokenId": "date",
+        "source": {
+          "kind": "run-date-utc"
+        },
+        "missingPolicy": "block"
+      },
+      {
+        "tokenId": "dp-version",
+        "source": {
+          "kind": "dpcmi-version",
+          "metadataBindingId": "dpcmi-inspection"
+        },
+        "missingPolicy": "use-placeholder",
+        "placeholder": "xxxx"
+      },
+      {
+        "tokenId": "ic",
+        "source": {
+          "kind": "compiled-ic"
+        },
+        "missingPolicy": "block"
+      },
+      {
+        "tokenId": "tp-version",
+        "source": {
+          "kind": "firmware-config-tp-version",
+          "metadataBindingId": "firmware-config-general-parameters-inspection"
+        },
+        "missingPolicy": "use-placeholder",
+        "placeholder": "xxxx"
+      }
+    ]
+  },
+  "evidenceRefs": [
+    "nt51925-isolated-candidate-pending-owner-evidence"
+  ]
+}

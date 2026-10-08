@@ -103,6 +103,20 @@ public sealed class CapabilitySelectorPublication
     /// <summary>IC identifiers with an authorable AB Merge route.</summary>
     public IReadOnlyList<string> AbMergeIcIds => _abMergeIcIds;
 
+    /// <summary>Counts ICs admitted by this exact selector publication.</summary>
+    public CapabilityCatalogSummary GetCatalogSummary()
+    {
+        return new CapabilityCatalogSummary(
+            IcIds.Count,
+            CountAuthorableIcs(ExperienceIds.StandardMerge),
+            CountAuthorableIcs(ExperienceIds.CtrlRamReplace));
+    }
+
+    private int CountAuthorableIcs(string workflowId)
+    {
+        return IcIds.Count(icId => IsWorkflowAuthorable(icId, workflowId));
+    }
+
     /// <summary>Gets profile-owned IC-number choices from this publication.</summary>
     public IReadOnlyList<CapabilityNumberChoice> GetNumberSelectionChoices(
         string icId)
@@ -158,7 +172,8 @@ public sealed class CapabilitySelectorPublication
         CapabilityRouteIdentity[] authorableIdentities =
         [
             .. capabilities
-                .Where(static capability => IsAuthorable(capability.Authoring))
+                .Where(static capability =>
+                    IsAuthorable(capability.Authoring) && capability.ExecutionAdmitted)
                 .Select(static capability => capability.Identity)
                 .Concat(dynamicRoutes
                     .Where(static route => IsAuthorable(route.Authoring))

@@ -56,7 +56,7 @@ CAPABILITY_POLICY_RELATIVE_PATH = Path(
 )
 CAPABILITY_POLICY_ROLE = "capabilityPolicy"
 CAPABILITY_POLICY_SHA256 = (
-    "a3ad08440076fb6b8b840ba64a6fbe0ccadb4345530ba1db09ab0b4f0fa671d4"
+    "b75cc3dd8df33114cb48f078f5806a2945ed840b356bcd47ff644acbecb26df6"
 )
 RUNTIME_CAPABILITY_POLICY = (
     ROOT
@@ -80,7 +80,7 @@ APPROVED_RUNTIME_CATALOG_PATHS = (
     "profiles/built-in/ctrlram-postbuild-v2/catalog.json",
     "profiles/built-in/ctrlram-postbuild-v2/flash-map.json",
 )
-RETIRED_PRODUCTION_IC_IDS = ("NT51920", "NT51925", "NT51930", "NT51931")
+RETIRED_PRODUCTION_IC_IDS = ("NT51920", "NT51930", "NT51931")
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 PWSH = shutil.which("pwsh")
 DOTNET = (

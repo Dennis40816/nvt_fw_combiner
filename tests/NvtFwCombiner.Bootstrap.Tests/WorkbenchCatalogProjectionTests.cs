@@ -60,7 +60,6 @@ public sealed class WorkbenchCatalogProjectionTests
     /// <summary>Retired ICs are absent from every production selector and compiled profile summary.</summary>
     [Theory]
     [InlineData("NT51920")]
-    [InlineData("NT51925")]
     [InlineData("NT51930")]
     [InlineData("NT51931")]
     public void RetiredIcIdsAreNotProjectedByWorkbenchCatalogs(string icId)

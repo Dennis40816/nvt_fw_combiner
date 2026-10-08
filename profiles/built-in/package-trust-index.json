@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.5",
   "trustIndexId": "built-in-profile-bundles",
-  "trustIndexVersion": "1.1.10.7",
+  "trustIndexVersion": "1.2.2-nt51925.1",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "bundles": [
     {
@@ -231,6 +231,54 @@
           "icId": "NT51926",
           "profileId": "nt51926-general-replace-dp-single-candidate",
           "profileVersion": "0.1.0"
+        }
+      ]
+    },
+    {
+      "bundleDirectory": "nt51925-ctrlram-replace-candidate",
+      "bundleSchemaVersion": "1.0",
+      "bundleVersion": "1.2.2-nt51925.1",
+      "contentHash": "441ebb5c3969e5dc5573222bfabcd90ac4a81e4a7fc1464a72c99cf01fa1113f",
+      "materialization": {
+        "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
+        "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
+      },
+      "runtimeRegistrations": [
+        {
+          "workflowId": "ctrlram-replace",
+          "icId": "NT51925",
+          "profileId": "nt51925-ctrlram-replace-fw141-runtime-single",
+          "profileVersion": "0.1.0",
+          "reportMetadataMapId": "nt51925-standard-merge-256k",
+          "postbuildProcessorId": "nfc.nt51925.ctrlram-postbuild-fw1.4.1",
+          "postbuildBranch": "single-chip"
+        },
+        {
+          "workflowId": "ctrlram-replace",
+          "icId": "NT51925",
+          "profileId": "nt51925-ctrlram-replace-fw141-runtime-cascade",
+          "profileVersion": "0.1.0",
+          "reportMetadataMapId": "nt51925-standard-merge-256k",
+          "postbuildProcessorId": "nfc.nt51925.ctrlram-postbuild-fw1.4.1",
+          "postbuildBranch": "cascade"
+        },
+        {
+          "workflowId": "ctrlram-replace",
+          "icId": "NT51925",
+          "profileId": "nt51925-ctrlram-replace-fw200-runtime-single",
+          "profileVersion": "0.1.0",
+          "reportMetadataMapId": "nt51925-standard-merge-256k",
+          "postbuildProcessorId": "nfc.nt51925.ctrlram-postbuild-v1",
+          "postbuildBranch": "single-chip"
+        },
+        {
+          "workflowId": "ctrlram-replace",
+          "icId": "NT51925",
+          "profileId": "nt51925-ctrlram-replace-fw200-runtime-cascade",
+          "profileVersion": "0.1.0",
+          "reportMetadataMapId": "nt51925-standard-merge-256k",
+          "postbuildProcessorId": "nfc.nt51925.ctrlram-postbuild-v1",
+          "postbuildBranch": "cascade"
         }
       ]
     },
@@ -520,6 +568,30 @@
           "icId": "NT51926",
           "profileId": "nt51926-standard-merge-gen-flash",
           "profileVersion": "0.6.0"
+        }
+      ]
+    },
+    {
+      "bundleDirectory": "nt51925-standard-merge-candidate",
+      "bundleSchemaVersion": "1.0",
+      "bundleVersion": "1.2.2-nt51925.1",
+      "contentHash": "59c8f935946672a52e7e3c539a4bc053da2180c75d73892e739e721f442d272c",
+      "materialization": {
+        "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
+        "firmwareFamilySchemaFile": "firmware-family-v1.2-tp-header-subjects.schema.json"
+      },
+      "metadataProviderFamilies": [
+        {
+          "familyId": "nt51925-standard-merge",
+          "familyVersion": "0.1.0"
+        }
+      ],
+      "runtimeRegistrations": [
+        {
+          "workflowId": "standard-merge",
+          "icId": "NT51925",
+          "profileId": "nt51925-standard-merge-gen-flash",
+          "profileVersion": "0.1.0"
         }
       ]
     },

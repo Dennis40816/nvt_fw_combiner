@@ -25,21 +25,26 @@ public sealed class CanonicalCatalogSnapshotDigestTests
     // publication/evidence decisions and all other sections remain unchanged.
     // Decision 195 moves only the two 1024k B CMI ranges; its shared bundle
     // identity re-pins the same sections and seven routes without length changes.
+    // Proposed ADR 0084 isolates nine NT51925 Candidate/ContractOnly declarations
+    // in their own maps, families and bundles. Re-pinned from the production
+    // catalog probe; existing NT51923/NT51926 identities and Golden expectations
+    // are restored to v1.2.1. All nine NT51925 routes are unavailable, and the
+    // selector excludes them from both workflows until owner evidence arrives.
     // A change here is a published catalog change and needs its own review.
     private const string PinnedSha256 =
-        "adf144922d409b48b3ef76a263f57c957337c3c4b4ecefd3b65137e18bbca730";
-    private const int PinnedLength = 493_864;
+        "438c8b9dadcdd7be480475b66f1fcd39ad511aed555d90d42a27463a0ac4d338";
+    private const int PinnedLength = 536_741;
     private const int SequentialReloads = 5;
     private const int ConcurrentLoads = 4;
 
     private static readonly (string Name, int Length, string Sha256)[] PinnedSections =
     [
-        ("catalog", 341, "55d92f891dafcc70cbf96291806e636c0e75a27d8d5eaa6027b796a584141225"),
-        ("static-routes", 108_496, "bd79eb2c64579f10aa1c7cbccd519d66151cbcdf0e5ab6f25f72e8727e4daf01"),
-        ("dynamic-routes", 248_943, "6f011ee5895f66defe0a37eceb7b7fca2ad2508050e123503aba2ae1083cbb53"),
+        ("catalog", 341, "58e3c437c9e55926e7f72a242207dcb78a8aa1db9c1ea8c0b559e9a22750116e"),
+        ("static-routes", 124_414, "99e89241e38565dc811a407bd8731e16f97efa0f776f899aac6fc96595d35523"),
+        ("dynamic-routes", 274_639, "df4c87edbe60a9e8e2b5dac153d95beb82016efe7e2ad877cf09093d8cdb7578"),
         ("full-image-plans", 106_364, "3052ae411884f7c44713a18286360b2d4f1d410bf0c4bc97ab2c3f3c9dea2df9"),
-        ("disclosure", 18_861, "c5f8148381d38b36373194f60de8a6450df680f910394a9dc257ad32ac32fe2f"),
-        ("selector", 10_835, "41e00a86903342faa9c1a739234d06a3bf9f1423cba74b24ad83a0da1ac89d55"),
+        ("disclosure", 20_002, "dcd5a7655b7ea02a8ee601093ac02f449a3b7509828ef5dd8f94ae76f7bba8de"),
+        ("selector", 10_957, "260184aa3b48b10e6e3bf7883ddab6d7a25a5659930b27fe00a6c77f0a28aafe"),
         ("certification", 24, "eb0edc192f3394a161de752c7d53cef86dd32bf94e352929b9f715db1efd5353"),
     ];
 

@@ -51,12 +51,7 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
     /// <inheritdoc />
     public CapabilityCatalogSummary GetCatalogSummary()
     {
-        CanonicalCapabilityCatalogSnapshot snapshot = _catalog.GetCurrentSnapshot();
-        CapabilitySelectorPublication selector = snapshot.SelectorPublication;
-        return new CapabilityCatalogSummary(
-            selector.IcIds.Count,
-            GetProfileSummaries(snapshot, ExperienceIds.StandardMerge).Count,
-            CountAuthorableIcs(selector, ExperienceIds.CtrlRamReplace));
+        return GetSelectorPublication().GetCatalogSummary();
     }
 
     /// <inheritdoc />
@@ -169,11 +164,4 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
         ]);
     }
 
-    private static int CountAuthorableIcs(
-        CapabilitySelectorPublication selector,
-        string workflowId)
-    {
-        return selector.IcIds.Count(icId =>
-            selector.IsWorkflowAuthorable(icId, workflowId));
-    }
 }

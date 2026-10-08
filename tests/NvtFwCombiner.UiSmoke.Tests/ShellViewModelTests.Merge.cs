@@ -49,6 +49,45 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal("NT51950 / single: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
     }
 
+    /// <summary>Selecting NT51925 cannot open unadmitted Standard authoring or promote candidate evidence.</summary>
+    [Theory]
+    [InlineData("English")]
+    [InlineData("ChineseTraditional")]
+    public void Nt51925StandardMergeSelectionRemainsBlocked(string language)
+    {
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(Enum.Parse<ShellLanguage>(language));
+        viewModel.ShowMergeCommand.Execute(null);
+
+        viewModel.WorkflowSession.SelectedIc = "NT51925";
+
+        Assert.Equal("NT51925", viewModel.WorkflowSession.SelectedIc);
+        Assert.Empty(viewModel.Merge.SelectedMergeMode);
+        Assert.DoesNotContain("NT51925", viewModel.WorkflowSession.IcChoices);
+        Assert.NotEqual("NT51925",
+            viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        Assert.False(viewModel.Merge.BuildMergeCommand.CanExecute(null));
+        Assert.DoesNotContain(TestProjection.GetStandardMergeProfileSummaries(),
+            static profile => profile.IcId == "NT51925");
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
+        Assert.False(TestProjection.GetSelectorPublication().IsWorkflowAuthorable(
+            "NT51925", ExperienceIds.StandardMerge));
+        Assert.False(TestProjection.GetSelectorPublication().IsWorkflowAuthorable(
+            "NT51925", ExperienceIds.CtrlRamReplace));
+        viewModel.OpenSettingsCommand.Execute(null);
+        viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
+        SupportMatrixIcRowViewModel candidate = Assert.Single(
+            viewModel.Settings.SupportMatrix.IcRows, static row => row.IcId == "NT51925");
+        Assert.Equal(SupportMatrixCellStatus.Blocked,
+            candidate.Cells.Single(static cell => cell.WorkflowLabel == "Standard Merge").Status);
+        SupportMatrixRowViewModel standard = Assert.Single(
+            viewModel.Settings.SupportMatrix.Rows,
+            static row => row.IcId == "NT51925" && row.WorkflowId == ExperienceIds.StandardMerge);
+        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, standard.EvidenceStatus);
+        Assert.True(standard.HasBlocker);
+    }
+
     /// <summary>Every admitted Standard Merge profile keeps IC Number out of its authoring context.</summary>
     [Fact]
     public void EverySupportedStandardMergeHidesNumberSelector()
@@ -155,7 +194,9 @@ public sealed partial class MergeWorkflowTests
 
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
-        Assert.Equal(TestProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
+        // NT51925 is blocked in both workflows and absent from ordinary authoring selectors.
+        Assert.Equal(TestProjection.GetIcIds(),
+            viewModel.WorkflowSession.IcChoices);
     }
 
     /// <summary>A nonstandard DP_AB size extends output coverage while processor effects remain on TPB.</summary>

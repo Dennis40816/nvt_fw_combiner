@@ -202,7 +202,7 @@ internal sealed partial class ReplacePresentationViewModel
     /// null when no IC is selected.
     /// </summary>
     public CapabilityWorkflowReadiness? SelectedReplaceWorkflowReadiness =>
-        HasSelectedIc
+        HasSelectedIc && !string.IsNullOrWhiteSpace(SelectedReplaceMode)
             ? SelectedReplaceMode == CtrlRamReplaceMode && IsAbCtrlRamReference
                 ? AbCtrlRamReadiness
                 : _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode)
@@ -242,6 +242,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     public CapabilityActionAvailability BuildAvailability => SelectedReplaceMode switch
     {
+        "" => ActiveSessionBuildBlockerResolver.ResolveWorkflowSelectionPending(),
         CtrlRamReplaceMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _ctrlRamReplaceSession.CurrentSnapshot,
             CtrlRamReplaceMode,
@@ -250,9 +251,7 @@ internal sealed partial class ReplacePresentationViewModel
             _generalReplaceSession.CurrentSnapshot,
             GeneralReplaceMode,
             _generalReplaceActionReadiness),
-        _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
-            null,
-            SelectedReplaceMode),
+        _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(null, SelectedReplaceMode),
     };
 
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
@@ -280,6 +279,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private bool IsSelectedReplaceModeSupported =>
         HasSelectedIc &&
+        !string.IsNullOrWhiteSpace(SelectedReplaceMode) &&
         _stateBindings.IsWorkflowAuthorable(SelectedIc, SelectedReplaceMode);
 
     private Task RunCompositionAsync(
