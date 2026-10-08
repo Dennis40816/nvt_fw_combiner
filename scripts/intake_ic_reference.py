@@ -132,12 +132,11 @@ def is_confidential_path(relative_path: str) -> bool:
     category = classify(Path(*posix.parts))
     if category not in CONFIDENTIAL_KINDS:
         return False
-    if category == "mmap-header" or (category == "combiner-source-reference" and "fwconfig" in lowered):
-        return suffix in CONFIDENTIAL_SUFFIXES | NATIVE_SOURCE_SUFFIXES
     # "combiner" also appears in the repository's own names, so by name alone only its scripts are confidential.
-    if category == "combiner-source-reference":
+    if category == "combiner-source-reference" and "fwconfig" not in lowered:
         return suffix in SCRIPT_EXTENSIONS
-    return suffix in CONFIDENTIAL_SUFFIXES
+    # Every other intake category (memory map, flash map, flash header, fwconfig, postbuild) covers native sources too.
+    return suffix in CONFIDENTIAL_SUFFIXES | NATIVE_SOURCE_SUFFIXES
 
 
 PRIVATE_COMMIT_POLICY = (

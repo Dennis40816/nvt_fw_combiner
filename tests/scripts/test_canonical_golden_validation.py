@@ -45,10 +45,19 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         self.rewrite_case()
         return artifact
 
+    def certify_implicit_private(self, artifact: dict[str, object]) -> None:
+        patcher = patch.dict(
+            VALIDATOR.CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS,
+            {self.case_manifest["caseId"]: frozenset({artifact["artifactId"]})},
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def declare_inventory_private_provenance(self) -> dict[str, object]:
         artifact = self.declare_private_provenance()
         del artifact["storage"]
         self.rewrite_case()
+        self.certify_implicit_private(artifact)
         inventory = self.root / "docs/references/confidential-references.json"
         inventory.parent.mkdir(parents=True)
         self.write_json(inventory, {"schemaVersion": 1, "entries": [{
@@ -62,6 +71,20 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
         artifact = self.declare_inventory_private_provenance()
         self.assertNotIn("storage", artifact)
         self.assertEqual([], self.validate())
+
+    @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
+    def test_inventory_identity_does_not_make_a_new_artifact_private_without_storage(self) -> None:
+        artifact = self.declare_inventory_private_provenance()
+        VALIDATOR.CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS.pop(self.case_manifest["caseId"])
+        errors = self.validate()
+        self.assertTrue(errors, "a missing public file must not pass on an inventory identity alone")
+        self.assertTrue(any(artifact["path"] in error for error in errors))
+
+    def test_only_the_certified_case_relies_on_the_implicit_private_disposition(self) -> None:
+        self.assertEqual(
+            {"nt51951-fw200-cascade2-auto-prj-599-20260731": frozenset({"postbuild-script-reference"})},
+            VALIDATOR.CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS,
+        )
 
     @patch.dict(os.environ, {"NVT_PRIVATE_ASSETS": ""})
     def test_inventory_private_provenance_rejects_returned_public_payload(self) -> None:

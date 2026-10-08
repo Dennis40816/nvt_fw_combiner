@@ -79,6 +79,10 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             "inc/memory_mmap.hpp",
             "src/x_mmap.c",
             "boot/mmap_layout.asm",
+            "src/vendor_flashmap.c",
+            "src/tp-flash-header.cpp",
+            "inc/flash_map_layout.hpp",
+            "boot/flash_header.asm",
         ):
             with self.subTest(path=path):
                 self.assertTrue(verify.is_confidential_reference_path(path))
@@ -95,7 +99,10 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
                 self.assertTrue(verify.is_confidential_reference_path(path))
 
     def test_python_and_csharp_tools_named_for_a_memory_map_are_allowed(self) -> None:
-        for path in ("scripts/mmap_report.py", "src/Example/MmapReader.cs", "scripts/fwconfig_check.py"):
+        for path in (
+            "scripts/mmap_report.py", "src/Example/MmapReader.cs", "scripts/fwconfig_check.py",
+            "scripts/flashmap_report.py", "src/Example/FlashHeaderReader.cs",
+        ):
             with self.subTest(path=path):
                 self.assertFalse(verify.is_confidential_reference_path(path))
 

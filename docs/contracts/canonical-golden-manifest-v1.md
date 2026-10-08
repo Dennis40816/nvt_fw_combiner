@@ -102,7 +102,10 @@ Expected bytes are never regenerated during layout migration.
 Provenance artifacts may declare `storage: "private-reference"`; this
 disposition is forbidden for inputs and expected outputs. For already certified
 cases, the public confidential-reference inventory holds the private disposition
-by SHA-256 and size, separately from the unchanged case manifest. The original
+by SHA-256 and size, separately from the unchanged case manifest. This applies
+only to the provenance artifacts that `CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS` in
+`scripts/canonical_golden_validation.py` names. Every other artifact declares
+`storage: "private-reference"` itself. The original
 case-manifest bytes, size and SHA-256 remain pinned by historical certification.
 The physical private file is excluded from the public inventory and release
 package projection.

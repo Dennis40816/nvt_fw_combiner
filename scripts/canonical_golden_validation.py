@@ -31,6 +31,12 @@ CANONICAL_RELEASE_SELECTION_SUMMARY = {
     "uniqueArtifactPathCount": 174,
 }
 CERTIFIED_NT51929_DPCMI_CASE_ID = "nt51929-certified-metadata-inputs-20260904"
+# Cases certified before `storage: "private-reference"` existed keep their unchanged manifests. For exactly these
+# provenance artifacts the public confidential-reference inventory holds the private disposition by size and SHA-256.
+# Every other artifact must declare `storage: "private-reference"` itself, so a new case cannot pass without its file.
+CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS: dict[str, frozenset[str]] = {
+    "nt51951-fw200-cascade2-auto-prj-599-20260731": frozenset({"postbuild-script-reference"}),
+}
 CERTIFIED_NT51929_DPCMI_RANGE = (0x401A, 0x401D)
 CERTIFIED_NT51929_DPCMI_BYTES = bytes.fromhex("5F0912")
 CAPABILITY_POLICY = PurePosixPath("docs/contracts/canonical-capability-policy-v1.json")
@@ -1062,6 +1068,7 @@ def _validate_artifact(
     requires_legacy_paths: bool = True,
     approved_intake_source: bool = False,
     private_reference_identities: frozenset[tuple[str, int]] = frozenset(),
+    implicit_private_artifact_ids: frozenset[str] = frozenset(),
 ) -> None:
     if not isinstance(artifact, dict):
         errors.append(f"{label} must be an object")
@@ -1113,7 +1120,10 @@ def _validate_artifact(
         or SHA256_PATTERN.fullmatch(expected_sha) is None
     ):
         errors.append(f"{label} has invalid sha256: {expected_sha}")
-    if role == "provenance" and isinstance(expected_sha, str) and type(expected_size) is int:
+    if (
+        role == "provenance" and artifact_id in implicit_private_artifact_ids
+        and isinstance(expected_sha, str) and type(expected_size) is int
+    ):
         private_reference |= (expected_sha, expected_size) in private_reference_identities
     payload = None
     if private_reference:
@@ -1357,6 +1367,7 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                     ),
                     approved_intake_source=approved_intake_source,
                     private_reference_identities=private_reference_identities,
+                    implicit_private_artifact_ids=CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS.get(case_id, frozenset()),
                 )
                 if (
                     isinstance(artifact, dict)
