@@ -1038,6 +1038,32 @@ def is_solution_test_project(relative: str) -> bool:
     )
 
 
+VENDORED_CORE_SOURCE = "Vendor/Core/UiEventRunner.cs"
+VENDORED_CORE_SOURCE_CONSUMERS = frozenset(
+    {
+        "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
+        "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
+    }
+)
+
+
+def is_approved_vendored_core_include(relative: str, include: str) -> bool:
+    """Accept the one byte-pinned Core source file in its two named consumers.
+
+    The pin itself is checked by the UiSmoke source-consumption tests; this rule only keeps the
+    exception exact, so any other file outside the measured tree is still rejected.
+    """
+
+    if relative not in VENDORED_CORE_SOURCE_CONSUMERS:
+        return False
+    target = PurePosixPath(
+        os.path.normpath(
+            (PurePosixPath(relative).parent / include.replace(chr(92), "/")).as_posix()
+        ).replace(chr(92), "/")
+    )
+    return target.as_posix() == VENDORED_CORE_SOURCE
+
+
 def validate_production_source_ownership(
     relative: str, project_root: ET.Element, errors: list[str]
 ) -> None:
@@ -1047,7 +1073,7 @@ def validate_production_source_ownership(
         return
     for element in project_root.iter("Compile"):
         include = element.attrib.get("Include")
-        if include:
+        if include and not is_approved_vendored_core_include(relative, include):
             errors.append(
                 "production project must not add an explicit Compile include "
                 f"outside its owned source tree: {relative} -> {include}"
@@ -1161,6 +1187,10 @@ def validate_evaluated_production_source_ownership(
             )
             continue
         source_path = Path(full_path)
+        if relative in VENDORED_CORE_SOURCE_CONSUMERS and source_path.resolve() == (
+            repository_root / VENDORED_CORE_SOURCE
+        ).resolve():
+            continue
         if not is_physical_source_file(
             source_path,
             owned_directory,

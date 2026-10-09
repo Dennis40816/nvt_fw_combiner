@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Reflection;
-using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -14,7 +10,6 @@ using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
-using Xunit;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -24,7 +19,7 @@ public sealed class UiEventHandlerFailureTests
 {
     /// <summary>A failed native picker is reported under the Hex Editor operation.</summary>
     [AvaloniaFact]
-    public async Task OpenSource_PickerThrows_RecordsOperationOnce()
+    public async Task OpenSourcePickerThrowsRecordsOperationOnce()
     {
         MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         var failure = new IOException("picker failed");
@@ -34,7 +29,7 @@ public sealed class UiEventHandlerFailureTests
             PickFirmwareFileAsync = (_, _) => Task.FromException<string?>(failure),
         };
         var window = new Window { Content = panel };
-        var diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
+        ISystemInformationService diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
         var fallback = new List<Exception>();
         var adapter = new UiEventAdapter(diagnostics, () => { }, (_, error) => fallback.Add(error));
 
@@ -59,15 +54,15 @@ public sealed class UiEventHandlerFailureTests
 
     /// <summary>A failed drop transfer is reported under the Hex Editor drop operation.</summary>
     [AvaloniaFact]
-    public async Task SourceDrop_TransferThrows_RecordsOperationOnce()
+    public async Task SourceDropTransferThrowsRecordsOperationOnce()
     {
         MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         var panel = new HexEditorPanel { DataContext = shell.HexEditorWorkspace };
         var failure = new IOException("drop transfer failed");
-        IDataTransfer transfer = DispatchProxy.Create<IDataTransfer, ThrowingTransfer>();
+        using IDataTransfer transfer = DispatchProxy.Create<IDataTransfer, ThrowingTransfer>();
         ((ThrowingTransfer)transfer).Failure = failure;
         var drop = new DragEventArgs(DragDrop.DropEvent, transfer, panel, default, KeyModifiers.None);
-        var diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
+        ISystemInformationService diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
         var fallback = new List<Exception>();
         var adapter = new UiEventAdapter(diagnostics, () => { }, (_, error) => fallback.Add(error));
 
@@ -82,14 +77,14 @@ public sealed class UiEventHandlerFailureTests
 
     /// <summary>A failed Build settings callback is reported under the Build operation.</summary>
     [AvaloniaFact]
-    public async Task BuildMerge_SettingsCallbackThrows_RecordsOperationOnce()
+    public async Task BuildMergeSettingsCallbackThrowsRecordsOperationOnce()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-event-build-failure");
         PresentationHostServices services = await ReportControlTestHost.CreateServicesAsync(workspace);
         using var window = new MainWindow(
             UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
         var failure = new IOException("build settings failed");
-        var diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
+        ISystemInformationService diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
         var fallback = new List<Exception>();
         var adapter = new UiEventAdapter(diagnostics, () => { }, (_, error) => fallback.Add(error));
 
@@ -124,7 +119,7 @@ public sealed class UiEventHandlerFailureTests
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
-            throw Failure;
+            return targetMethod?.Name == nameof(IDisposable.Dispose) ? null : throw Failure;
         }
     }
 }

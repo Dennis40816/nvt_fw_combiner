@@ -9,7 +9,7 @@ public sealed class UiEventLauncherTests
 {
     /// <summary>A disposed owner does not make the Opened event escape before observation.</summary>
     [AvaloniaFact]
-    public void WindowOpened_OwnerDisposed_DoesNotEscape()
+    public void WindowOpenedOwnerDisposedDoesNotEscape()
     {
         var window = new LauncherWindow();
         MethodInfo? opened = typeof(LauncherWindow).GetMethod(

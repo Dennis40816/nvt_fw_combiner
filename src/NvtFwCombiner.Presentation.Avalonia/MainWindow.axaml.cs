@@ -90,10 +90,7 @@ public sealed partial class MainWindow : Window, IDisposable
         _reportToastHoldTimer.Tick += ReportToastHoldTimer_OnTick;
         _reportToastFadeTimer.Tick += ReportToastFadeTimer_OnTick;
         MainWindowViewModel viewModel = CreateStartupViewModel(_hostServices, startupPreferences);
-        UiEventAdapter.Attach(this, new UiEventAdapter(
-            hostServices.SystemInformation,
-            viewModel.MessageCenter.NotifyActivityChanged,
-            UiEventAdapter.ReportEmergency));
+        UiEventAdapter.Attach(this, new UiEventAdapter(hostServices.SystemInformation, viewModel.MessageCenter.NotifyActivityChanged, UiEventAdapter.ReportEmergency));
         viewModel.Settings.WindowPublication = _windowPublication;
         viewModel.Reports.WindowPublication = _windowPublication;
         viewModel.WorkflowSession.WindowPublication = _windowPublication;
@@ -534,10 +531,7 @@ public sealed partial class MainWindow : Window, IDisposable
         loading.ReportProgress(progress, detail, announce);
     }
 
-    private void OptionalPreloadRetryButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        UiEventAdapter.Run(this, "MainWindow.OptionalPreloadRetry", _ => HandleOptionalPreloadRetryButton_OnClickAsync(sender, e));
-    }
+    private void OptionalPreloadRetryButton_OnClick(object? sender, RoutedEventArgs e) { UiEventAdapter.Run(this, "MainWindow.OptionalPreloadRetry", _ => HandleOptionalPreloadRetryButton_OnClickAsync(sender, e)); }
 
     private async Task HandleOptionalPreloadRetryButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
@@ -558,10 +552,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private void OptionalPreloadCancelButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        UiEventAdapter.Run(this, "MainWindow.OptionalPreloadCancel", _ => HandleOptionalPreloadCancelButton_OnClickAsync(sender, e));
-    }
+    private void OptionalPreloadCancelButton_OnClick(object? sender, RoutedEventArgs e) { UiEventAdapter.Run(this, "MainWindow.OptionalPreloadCancel", _ => HandleOptionalPreloadCancelButton_OnClickAsync(sender, e)); }
 
     private async Task HandleOptionalPreloadCancelButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {

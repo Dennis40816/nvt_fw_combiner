@@ -117,6 +117,35 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
         self.assertEqual(1, len(errors))
         self.assertIn("explicit Compile include", errors[0])
 
+    def test_accepts_the_pinned_core_source_in_its_two_consumers(self) -> None:
+        document = (
+            '<Project><ItemGroup><Compile Include="../../Vendor/Core/UiEventRunner.cs" '
+            'Link="Vendor/Core/UiEventRunner.cs" /></ItemGroup></Project>'
+        )
+
+        for relative in (
+            "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
+            "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
+        ):
+            with self.subTest(relative=relative):
+                self.assertEqual([], self.validate(relative, document))
+
+    def test_rejects_the_pinned_core_source_in_any_other_production_project(self) -> None:
+        errors = self.validate(
+            "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+            '<Project><ItemGroup><Compile Include="../../Vendor/Core/UiEventRunner.cs" /></ItemGroup></Project>',
+        )
+
+        self.assertEqual(1, len(errors))
+
+    def test_rejects_another_vendored_file_in_a_consumer(self) -> None:
+        errors = self.validate(
+            "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
+            '<Project><ItemGroup><Compile Include="../../Vendor/Core/Other.cs" /></ItemGroup></Project>',
+        )
+
+        self.assertEqual(1, len(errors))
+
     def test_rejects_source_generating_analyzer_in_production(self) -> None:
         errors = self.validate(
             "src/Product/Product.csproj",

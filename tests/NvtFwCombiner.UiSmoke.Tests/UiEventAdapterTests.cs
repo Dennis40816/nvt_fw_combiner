@@ -1,16 +1,10 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Presentation.Avalonia;
-using Xunit;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -20,9 +14,9 @@ public sealed class UiEventAdapterTests
 {
     /// <summary>A child control inherits its window's adapter for the production static event route.</summary>
     [AvaloniaFact]
-    public async Task Run_ChildControl_InheritsWindowDiagnosticRoute()
+    public async Task RunChildControlInheritsWindowDiagnosticRoute()
     {
-        var diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
+        ISystemInformationService diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
         var notified = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var fallbacks = new List<Exception>();
         var adapter = new UiEventAdapter(
@@ -52,9 +46,9 @@ public sealed class UiEventAdapterTests
 
     /// <summary>An action failure is recorded once with its operation and severity.</summary>
     [AvaloniaFact]
-    public async Task RunAsync_ActionThrows_RecordsOperationAndNotifiesOnce()
+    public async Task RunAsyncActionThrowsRecordsOperationAndNotifiesOnce()
     {
-        var diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
+        ISystemInformationService diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
         var notifications = 0;
         var fallbacks = new List<(string Operation, Exception Error)>();
         var adapter = new UiEventAdapter(
@@ -65,7 +59,7 @@ public sealed class UiEventAdapterTests
 
         await adapter.RunAsync("Open firmware", _ => Task.FromException(failure));
 
-        var activity = Assert.Single(((CaptureDiagnostics)diagnostics).Activities);
+        SystemActivityDraft activity = Assert.Single(((CaptureDiagnostics)diagnostics).Activities);
         Assert.Equal("Open firmware", activity.Code);
         Assert.Equal(SystemActivityImportance.Important, activity.Importance);
         Assert.Equal(SystemActivityCategory.Diagnostics, activity.Category);
@@ -77,9 +71,9 @@ public sealed class UiEventAdapterTests
 
     /// <summary>A failed diagnostic sink invokes the fallback with the original error.</summary>
     [AvaloniaFact]
-    public async Task RunAsync_DiagnosticsThrows_ReportsOriginalFailureOnce()
+    public async Task RunAsyncDiagnosticsThrowsReportsOriginalFailureOnce()
     {
-        var diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
+        ISystemInformationService diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
         ((CaptureDiagnostics)diagnostics).ThrowOnRecord = true;
         var notifications = 0;
         var fallbacks = new List<(string Operation, Exception Error)>();
@@ -91,18 +85,18 @@ public sealed class UiEventAdapterTests
 
         await adapter.RunAsync("Load dropped firmware", _ => Task.FromException(failure));
 
-        var fallback = Assert.Single(fallbacks);
-        Assert.Equal("Load dropped firmware", fallback.Operation);
-        Assert.Same(failure, fallback.Error);
+        (string Operation, Exception Error) = Assert.Single(fallbacks);
+        Assert.Equal("Load dropped firmware", Operation);
+        Assert.Same(failure, Error);
         Assert.Equal(0, notifications);
         Assert.Empty(((CaptureDiagnostics)diagnostics).Activities);
     }
 
     /// <summary>A failed notification invokes the fallback with the original error.</summary>
     [AvaloniaFact]
-    public async Task RunAsync_NotificationThrows_ReportsOriginalFailureOnce()
+    public async Task RunAsyncNotificationThrowsReportsOriginalFailureOnce()
     {
-        var diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
+        ISystemInformationService diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
         var fallbacks = new List<(string Operation, Exception Error)>();
         var adapter = new UiEventAdapter(
             diagnostics,
@@ -112,17 +106,17 @@ public sealed class UiEventAdapterTests
 
         await adapter.RunAsync("Build merge", _ => Task.FromException(failure));
 
-        Assert.Single(((CaptureDiagnostics)diagnostics).Activities);
-        var fallback = Assert.Single(fallbacks);
-        Assert.Equal("Build merge", fallback.Operation);
-        Assert.Same(failure, fallback.Error);
+        _ = Assert.Single(((CaptureDiagnostics)diagnostics).Activities);
+        (string Operation, Exception Error) = Assert.Single(fallbacks);
+        Assert.Equal("Build merge", Operation);
+        Assert.Same(failure, Error);
     }
 
     /// <summary>Cancellation from the supplied token produces no failure report.</summary>
     [AvaloniaFact]
-    public async Task RunAsync_SuppliedTokenCancels_ReportsNothing()
+    public async Task RunAsyncSuppliedTokenCancelsReportsNothing()
     {
-        var diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
+        ISystemInformationService diagnostics = DispatchProxy.Create<ISystemInformationService, CaptureDiagnostics>();
         var notifications = 0;
         var fallbacks = new List<(string Operation, Exception Error)>();
         var adapter = new UiEventAdapter(
@@ -132,7 +126,7 @@ public sealed class UiEventAdapterTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await adapter.RunAsync("Open firmware", token => Task.FromCanceled(token), cancellation.Token);
+        await adapter.RunAsync("Open firmware", Task.FromCanceled, cancellation.Token);
 
         Assert.Empty(((CaptureDiagnostics)diagnostics).Activities);
         Assert.Equal(0, notifications);
@@ -150,7 +144,7 @@ public sealed class UiEventAdapterTests
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
             Assert.Equal(nameof(ISystemInformationService.RecordActivity), targetMethod!.Name);
-            var activity = Assert.IsType<SystemActivityDraft>(Assert.Single(args!));
+            SystemActivityDraft activity = Assert.IsType<SystemActivityDraft>(Assert.Single(args!));
             if (ThrowOnRecord)
             {
                 throw new IOException("diagnostics unavailable");

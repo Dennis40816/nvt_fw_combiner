@@ -14,12 +14,7 @@ public sealed partial class MainWindow
 
     private void LoadReportJsonButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        UiEventAdapter.Run(this, "MainWindow.LoadReportJson", _ => HandleLoadReportJsonButton_OnClickAsync(sender, e));
-    }
-
-    private async Task HandleLoadReportJsonButton_OnClickAsync(object? sender, RoutedEventArgs e)
-    {
-        await LoadReportJsonAsync(sender as Control, StorageProvider);
+        UiEventAdapter.Run(this, "MainWindow.LoadReportJson", _ => LoadReportJsonAsync(sender as Control, StorageProvider));
     }
 
     internal Task LoadReportJsonAsync(Control? trigger, IStorageProvider storageProvider)

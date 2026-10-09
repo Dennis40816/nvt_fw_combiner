@@ -5,15 +5,7 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 
 public sealed partial class MainWindow
 {
-    private void BuildMergeButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        UiEventAdapter.Run(this, "MainWindow.BuildMerge", _ => HandleBuildMergeButton_OnClickAsync(sender, e));
-    }
-
-    private async Task HandleBuildMergeButton_OnClickAsync(object? sender, RoutedEventArgs e)
-    {
-        await OpenBuildSettingsAsync(sender, OpenMergeBuildSettingsAsync);
-    }
+    private void BuildMergeButton_OnClick(object? sender, RoutedEventArgs e) { UiEventAdapter.Run(this, "MainWindow.BuildMerge", _ => OpenBuildSettingsAsync(sender, OpenMergeBuildSettingsAsync)); }
 
     internal static async Task<bool> OpenMergeBuildSettingsAsync(MainWindowViewModel viewModel)
     {
@@ -29,12 +21,7 @@ public sealed partial class MainWindow
 
     private void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        UiEventAdapter.Run(this, "MainWindow.BuildReplace", _ => HandleBuildReplaceButton_OnClickAsync(sender, e));
-    }
-
-    private async Task HandleBuildReplaceButton_OnClickAsync(object? sender, RoutedEventArgs e)
-    {
-        await OpenBuildSettingsAsync(sender, static viewModel => OpenReplaceBuildSettingsAsync(viewModel.Replace));
+        UiEventAdapter.Run(this, "MainWindow.BuildReplace", _ => OpenBuildSettingsAsync(sender, static viewModel => OpenReplaceBuildSettingsAsync(viewModel.Replace)));
     }
 
     internal async Task OpenBuildSettingsAsync(
