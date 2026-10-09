@@ -1,0 +1,81 @@
+<Project>
+  <UsingTask TaskName="CaptureArchitectureInput" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <ProjectPath ParameterType="System.String" Required="true" />
+      <Configuration ParameterType="System.String" Required="true" />
+      <Framework ParameterType="System.String" Required="true" />
+      <Runtime ParameterType="System.String" />
+      <TargetPath ParameterType="System.String" Required="true" />
+      <References ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
+      <Snapshot ParameterType="System.Boolean" />
+      <Result ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Xml.Linq" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var project = new XElement("project", new XAttribute("path", ProjectPath),
+          new XAttribute("configuration", Configuration), new XAttribute("framework", Framework),
+          new XAttribute("runtime", Runtime ?? ""), new XAttribute("assembly", Path.GetFullPath(TargetPath)));
+        foreach (var reference in References ?? new Microsoft.Build.Framework.ITaskItem[0])
+        {
+          var edge = new XElement("reference", new XAttribute("path", reference.GetMetadata("FullPath")));
+          foreach (string name in reference.MetadataNames)
+            edge.Add(new XElement("metadata", new XAttribute("name", name), reference.GetMetadata(name)));
+          project.Add(edge);
+        }
+        if (Snapshot)
+        {
+          using (var hash = SHA256.Create())
+          using (var stream = File.OpenRead(TargetPath))
+            project.Add(new XAttribute("sha256", BitConverter.ToString(hash.ComputeHash(stream)).Replace("-", "")));
+        }
+        Result = new[] { new Microsoft.Build.Utilities.TaskItem(project.ToString(SaveOptions.DisableFormatting)) };
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <!-- Injected only for evaluation calls; production project files remain unchanged. -->
+  <Target Name="CaptureArchitectureProject" DependsOnTargets="GetTargetPath" Returns="@(_ArchitectureSnapshot)">
+    <CaptureArchitectureInput ProjectPath="$(MSBuildProjectFullPath)" Configuration="$(Configuration)"
+                              Framework="$(TargetFramework)" Runtime="$(RuntimeIdentifier)"
+                              TargetPath="$(TargetPath)" References="@(ProjectReference)" Snapshot="$(ArchitectureSnapshotAssembly)">
+      <Output TaskParameter="Result" ItemName="_ArchitectureSnapshot" />
+    </CaptureArchitectureInput>
+  </Target>
+  <PropertyGroup>
+    <ArchitectureSnapshotAssembly Condition="'$(ArchitectureSnapshotAssembly)' == ''">false</ArchitectureSnapshotAssembly>
+    <ArchitectureInputsTargets>$(MSBuildThisFileFullPath)</ArchitectureInputsTargets>
+  </PropertyGroup>
+  <Target Name="WriteArchitectureInputs" AfterTargets="Build" Condition="'$(IsArchitectureInputHost)' == 'true'">
+    <ItemGroup>
+      <_ArchitectureGraphProjects Include="@(ProjectReference)" />
+      <_ArchitectureGraphProjects Include="$(MSBuildThisFileDirectory)../prebuilt-profile-catalog/NvtFwCombiner.PrebuiltProfileCatalogGenerator.csproj" />
+    </ItemGroup>
+    <MSBuild Projects="@(_ArchitectureGraphProjects)" Targets="CaptureArchitectureProject"
+             Properties="CustomAfterMicrosoftCommonTargets=$(ArchitectureInputsTargets);Configuration=Debug;TargetFramework=$(TargetFramework);RuntimeIdentifier=;ArchitectureSnapshotAssembly=false">
+      <Output TaskParameter="TargetOutputs" ItemName="_ArchitectureGraph" />
+    </MSBuild>
+    <MSBuild Projects="@(_ArchitectureGraphProjects)" Targets="CaptureArchitectureProject"
+             Properties="CustomAfterMicrosoftCommonTargets=$(ArchitectureInputsTargets);Configuration=Debug;TargetFramework=$(TargetFramework);RuntimeIdentifier=win-x64;ArchitectureSnapshotAssembly=false">
+      <Output TaskParameter="TargetOutputs" ItemName="_ArchitectureGraph" />
+    </MSBuild>
+    <MSBuild Projects="@(_ArchitectureGraphProjects)" Targets="CaptureArchitectureProject"
+             Properties="CustomAfterMicrosoftCommonTargets=$(ArchitectureInputsTargets);Configuration=Release;TargetFramework=$(TargetFramework);RuntimeIdentifier=;ArchitectureSnapshotAssembly=false">
+      <Output TaskParameter="TargetOutputs" ItemName="_ArchitectureGraph" />
+    </MSBuild>
+    <MSBuild Projects="@(_ArchitectureGraphProjects)" Targets="CaptureArchitectureProject"
+             Properties="CustomAfterMicrosoftCommonTargets=$(ArchitectureInputsTargets);Configuration=Release;TargetFramework=$(TargetFramework);RuntimeIdentifier=win-x64;ArchitectureSnapshotAssembly=false">
+      <Output TaskParameter="TargetOutputs" ItemName="_ArchitectureGraph" />
+    </MSBuild>
+    <MSBuild Projects="@(ProjectReference)" Targets="CaptureArchitectureProject"
+             Properties="CustomAfterMicrosoftCommonTargets=$(ArchitectureInputsTargets);Configuration=$(Configuration);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(RuntimeIdentifier);ArchitectureSnapshotAssembly=true">
+      <Output TaskParameter="TargetOutputs" ItemName="_ArchitectureAssemblies" />
+    </MSBuild>
+    <WriteLinesToFile File="$(TargetDir)architecture-project-graph.xml" Overwrite="true"
+                      Lines="&lt;inputs&gt;;@(_ArchitectureGraph);&lt;/inputs&gt;" />
+    <WriteLinesToFile File="$(TargetDir)architecture-assemblies.xml" Overwrite="true"
+                      Lines="&lt;inputs&gt;;@(_ArchitectureAssemblies);&lt;/inputs&gt;" />
+  </Target>
+</Project>

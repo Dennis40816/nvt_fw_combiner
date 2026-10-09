@@ -4,13 +4,13 @@ namespace NvtFwCombiner.Architecture.Tests;
 public sealed partial class RepositoryBoundaryTests
 {
 
-    /// <summary>Verifies architecture tests do not introduce production project references.</summary>
+    /// <summary>Verifies production acquisition references never become runtime dependencies.</summary>
     [Fact]
     public void ArchitectureTestsRemainDependencyFree()
     {
         string project = ReadText("tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj");
 
-        Assert.DoesNotContain("ProjectReference", project, StringComparison.Ordinal);
+        EvaluatedProjectGraphTests.AssertArchitectureReferences(System.Xml.Linq.XDocument.Parse(project));
         AssertUiRuntimeControlConstructionIsSerialized();
     }
 

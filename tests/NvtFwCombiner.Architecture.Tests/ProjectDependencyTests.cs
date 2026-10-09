@@ -178,7 +178,7 @@ public sealed class ProjectDependencyTests
         }
     }
 
-    /// <summary>Architecture tests reuse the shared root helper without a project dependency.</summary>
+    /// <summary>Architecture tests source-link their root helper and keep production references build-only.</summary>
     [Fact]
     public void ArchitectureTestsSourceLinkSharedRepositoryPathsWithoutProjectReference()
     {
@@ -196,7 +196,7 @@ public sealed class ProjectDependencyTests
                 element.Attribute("Link")?.Value,
                 "RepositoryPaths.cs",
                 StringComparison.Ordinal));
-        Assert.Empty(project.Descendants("ProjectReference"));
+        EvaluatedProjectGraphTests.AssertArchitectureReferences(project);
     }
 
     /// <summary>An unset configured root preserves direct-local upward discovery.</summary>
