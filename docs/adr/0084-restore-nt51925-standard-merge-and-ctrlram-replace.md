@@ -140,6 +140,11 @@ Decision proposed here:
   future map of one IC needs a different end flag per Common FW line, that map first
   needs a way to read the version without a chosen map. That design belongs to the
   change that adds such a map.
+- Limit: General Replace keeps its compiled capability when the user changes only
+  the Base. The retained capability is not checked again against the DP regions of a
+  different map. No shipped IC has two maps, so this does not occur today. The change
+  that adds a second map to one IC must add that check and a planner test with a
+  swapped Base.
 - One internal selector, `BuiltInCommonFwSelector`, picks the postbuild profile and
   the TP flash map for one Common FW version. CtrlRAM Replace, General Replace and
   the memory-layout display call it, so they cannot disagree on the rule or on
