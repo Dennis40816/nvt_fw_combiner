@@ -321,7 +321,12 @@ public sealed partial class SettingsModal : UserControl
         e.Handled = true;
     }
 
-    private async void Settings_ToolchainBrowseRequested(object? sender, EventArgs e)
+    private void Settings_ToolchainBrowseRequested(object? sender, EventArgs e)
+    {
+        UiEventAdapter.Run(this, "SettingsModal.ToolchainBrowse", _ => HandleSettings_ToolchainBrowseRequestedAsync(sender, e));
+    }
+
+    private async Task HandleSettings_ToolchainBrowseRequestedAsync(object? sender, EventArgs e)
     {
         SettingsViewModel? settings = _settings;
         if (!IsOpen || settings is null || !settings.CanEditToolchain || _owningTopLevel is null) { return; }

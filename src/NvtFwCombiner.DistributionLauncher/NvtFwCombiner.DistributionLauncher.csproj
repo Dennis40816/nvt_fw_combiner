@@ -15,6 +15,12 @@
     <ProjectReference Include="..\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\Vendor\Core\UiEventRunner.cs" Link="Core\UiEventRunner.cs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);NVT_CORE_SOURCE_CONSUMPTION</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Fonts.Inter" />

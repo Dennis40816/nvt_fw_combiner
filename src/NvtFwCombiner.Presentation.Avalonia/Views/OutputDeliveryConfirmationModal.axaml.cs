@@ -257,7 +257,12 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         e.Handled = true;
     }
 
-    private async void ChooseParentButton_OnClick(object? sender, RoutedEventArgs e)
+    private void ChooseParentButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        UiEventAdapter.Run(this, "OutputDeliveryConfirmationModal.ChooseParent", _ => HandleChooseParentButton_OnClickAsync(sender, e));
+    }
+
+    private async Task HandleChooseParentButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not OutputDeliveryConfirmationViewModel viewModel ||
             TopLevel.GetTopLevel(this) is not { StorageProvider: { } storageProvider })
@@ -285,7 +290,12 @@ public sealed partial class OutputDeliveryConfirmationModal : UserControl
         }
     }
 
-    private async void ConfirmButton_OnClick(object? sender, RoutedEventArgs e)
+    private void ConfirmButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        UiEventAdapter.Run(this, "OutputDeliveryConfirmationModal.Confirm", _ => HandleConfirmButton_OnClickAsync(sender, e));
+    }
+
+    private async Task HandleConfirmButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not OutputDeliveryConfirmationViewModel viewModel)
         {

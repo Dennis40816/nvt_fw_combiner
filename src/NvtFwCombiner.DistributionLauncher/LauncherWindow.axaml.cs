@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using System.Diagnostics.CodeAnalysis;
+using Nvt.Core.Threading;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Bootstrap;
 
@@ -11,6 +12,7 @@ namespace NvtFwCombiner.DistributionLauncher;
 internal sealed partial class LauncherWindow : Window, IDisposable
 {
     private readonly Action<int> _complete;
+    private readonly UiEventRunner _uiEvents;
     private ManagedDistributionLauncherRecoverySession? _recovery;
     private ManagedFirstInstallationExperience? _setup;
     private readonly CancellationTokenSource _lifetime = new();
@@ -41,6 +43,8 @@ internal sealed partial class LauncherWindow : Window, IDisposable
     {
         InitializeComponent();
         _complete = complete ?? throw new ArgumentNullException(nameof(complete));
+        var eventFailures = new LauncherUiEventFailureReporter(message => OutcomeText.Text = message);
+        _uiEvents = new UiEventRunner(eventFailures.Report, LauncherUiEventFailureReporter.ReportEmergency);
         _candidateRoot = Path.GetFullPath(initialRoot);
         _setup = startup?.Setup;
         _recovery = startup?.Recovery;
@@ -54,7 +58,12 @@ internal sealed partial class LauncherWindow : Window, IDisposable
         Closed += Window_Closed;
     }
 
-    private async void Window_Opened(object? sender, EventArgs e)
+    private void Window_Opened(object? sender, EventArgs e)
+    {
+        _uiEvents.Run("LauncherWindow.Opened", _ => OpenAsync());
+    }
+
+    private async Task OpenAsync()
     {
         try
         {
@@ -126,7 +135,12 @@ internal sealed partial class LauncherWindow : Window, IDisposable
             : string.Empty;
     }
 
-    private async void EditLocation_Click(object? sender, RoutedEventArgs e)
+    private void EditLocation_Click(object? sender, RoutedEventArgs e)
+    {
+        _uiEvents.Run("LauncherWindow.EditLocation", _ => EditLocationAsync());
+    }
+
+    private async Task EditLocationAsync()
     {
         try
         {
@@ -150,7 +164,12 @@ internal sealed partial class LauncherWindow : Window, IDisposable
         }
     }
 
-    private async void Primary_Click(object? sender, RoutedEventArgs e)
+    private void Primary_Click(object? sender, RoutedEventArgs e)
+    {
+        _uiEvents.Run("LauncherWindow.Primary", _ => PrimaryAsync());
+    }
+
+    private async Task PrimaryAsync()
     {
         try
         {

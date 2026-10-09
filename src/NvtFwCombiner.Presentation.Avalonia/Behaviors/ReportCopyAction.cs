@@ -46,8 +46,16 @@ public sealed class ReportCopyAction : AvaloniaObject
         }
     }
 
+    private static void CopyButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button button)
+        {
+            UiEventAdapter.Run(button, "ReportCopyAction.Copy", _ => HandleCopyButton_OnClickAsync(sender, e));
+        }
+    }
+
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "An optional OS clipboard operation must not escape the async UI event; failure is reported through the existing shell toast.")]
-    private static async void CopyButton_OnClick(object? sender, RoutedEventArgs e)
+    private static async Task HandleCopyButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
         if (sender is not Button button || GetText(button) is not { } text || string.IsNullOrWhiteSpace(text))
         {

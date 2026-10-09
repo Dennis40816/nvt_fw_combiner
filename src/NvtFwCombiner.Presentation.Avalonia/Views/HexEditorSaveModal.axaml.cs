@@ -14,7 +14,12 @@ public sealed partial class HexEditorSaveModal : UserControl
         ModalInitialFocus.Register(this, () => CloseButton);
     }
 
-    private async void ConfirmHexEditorSaveButton_OnClick(object? sender, RoutedEventArgs e)
+    private void ConfirmHexEditorSaveButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        UiEventAdapter.Run(this, "HexEditorSaveModal.ConfirmSave", _ => HandleConfirmHexEditorSaveButton_OnClickAsync(sender, e));
+    }
+
+    private async Task HandleConfirmHexEditorSaveButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not HexEditorWorkspaceViewModel viewModel ||
             !viewModel.CanSave ||

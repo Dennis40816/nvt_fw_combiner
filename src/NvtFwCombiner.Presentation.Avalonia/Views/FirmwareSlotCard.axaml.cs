@@ -121,7 +121,12 @@ public sealed partial class FirmwareSlotCard : UserControl
         DropZoneDragState.SetActive(sender, isActive: false);
     }
 
-    private async void SlotDrop_OnDrop(object? sender, DragEventArgs e)
+    private void SlotDrop_OnDrop(object? sender, DragEventArgs e)
+    {
+        UiEventAdapter.Run(this, "FirmwareSlotCard.SlotDrop", _ => HandleSlotDrop_OnDropAsync(sender, e));
+    }
+
+    private async Task HandleSlotDrop_OnDropAsync(object? sender, DragEventArgs e)
     {
         DropZoneDragState.SetActive(sender, isActive: false);
 
@@ -148,7 +153,12 @@ public sealed partial class FirmwareSlotCard : UserControl
         await viewModel.WorkflowSession.SetSlotFileAsync(slotId, selection.Path!);
     }
 
-    private async void BrowseButton_OnClick(object? sender, RoutedEventArgs e)
+    private void BrowseButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        UiEventAdapter.Run(this, "FirmwareSlotCard.Browse", _ => HandleBrowseButton_OnClickAsync(sender, e));
+    }
+
+    private async Task HandleBrowseButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control
             {
