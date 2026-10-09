@@ -8,6 +8,39 @@
     <Compile Include="..\NvtFwCombiner.TestSupport\RepositoryPaths.cs"
              Link="RepositoryPaths.cs" />
   </ItemGroup>
+  <!-- Build-only: the metadata scanner reads the built assemblies of these projects and never loads them. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Bootstrap\NvtFwCombiner.Bootstrap.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Cli\NvtFwCombiner.Cli.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Desktop\NvtFwCombiner.Desktop.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.DistributionLauncher\NvtFwCombiner.DistributionLauncher.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Domain\NvtFwCombiner.Domain.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Infrastructure\NvtFwCombiner.Infrastructure.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Launcher\NvtFwCombiner.Launcher.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.LauncherBootstrap\NvtFwCombiner.LauncherBootstrap.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Platform\NvtFwCombiner.Platform.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Presentation.Avalonia\NvtFwCombiner.Presentation.Avalonia.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Profiles\NvtFwCombiner.Profiles.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.VersionManagement.Infrastructure\NvtFwCombiner.VersionManagement.Infrastructure.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" Private="false" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
