@@ -26,6 +26,20 @@ parity. No repository TP flash-map version lists NT51925. Legacy Combiner
 1.13.0 has no IC-specific mode or chip-ID check, so successful invocation is
 not NT51925 support evidence.
 
+Evidence update (2026-10-08): the owner supplied a private NT51925 data set
+(postbuild flows, map headers, sample images) and no independent Golden output.
+The data set sits in the private asset repository, and this repository holds no
+copy. It holds a layout that is consistent with the provisional geometry below.
+The owner has not yet confirmed the production layout. On 2026-10-08 the
+delivered Combiner and Combiner 1.13.0 gave byte-identical output on the samples
+that were checked. This does not prove support. The sample identities, the sample count and the delivered Combiner hash are kept in the private repository and are not in a public manifest yet. Until they are, treat this as an unverified observation that no one can reproduce from this repository. This update changes
+no decision, route state or gate in this ADR.
+The owner also set the first scope to Standard Merge only (relayed 2026-10-08).
+The CtrlRAM Replace candidates below stay declared and are deferred until the
+owner supplies Golden cases, expected in the week of 2026-10-12. The owner plans
+to support different layouts by Common FW version. That decision needs a later
+amendment of this ADR, and this update does not change the geometry below.
+
 ## Considered options
 
 1. Join NT51925 to the existing NT51923/NT51926 family now. This would change

@@ -25,6 +25,15 @@ This document is an index for the current Merge and Replace flows by IC. It is n
 > execution and Build. NT51923/NT51926 v1.2.1 identities and Saved Rules remain
 > stable. Official NT51925 evidence, independent Golden cases and owner R3
 > approval are pending. NT51920, NT51930 and NT51931 remain retired.
+>
+> Owner data update (2026-10-08): a private NT51925 data set (postbuild flows,
+> map headers, sample images) holds a layout that is consistent with the
+> candidate geometry. The owner has not yet confirmed the production layout. The
+> legacy Combiner 1.13.0 and the Combiner delivered with the data gave identical
+> output on the samples checked on 2026-10-08, but neither checks the chip. This
+> is an unverified observation until the sample identities are in a public
+> manifest. No route state changes.
+> See the [support matrix](supported-ic-matrix.md).
 
 ## Update rule
 

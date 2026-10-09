@@ -26,6 +26,39 @@ separate owner approval. The `925&926` workbook proves limited header facts
 only. The CASE instructions are
 [Standard Merge](../../testdata/golden/owner-handoff/standard-merge/nt51925/CASE.md)
 and [CtrlRAM Replace](../../testdata/golden/owner-handoff/ctrlram-replace/nt51925/CASE.md).
+
+**Owner data received (2026-10-08).** The owner supplied a private NT51925
+data set. It sits in the private asset repository, not in this repository. It
+holds postbuild flows, map headers and sample images, but no independent Golden
+output yet. Three results are public:
+
+- The data set holds a layout that is consistent with the provisional TP and
+  DP geometry above. The owner has not yet confirmed the production layout, so
+  the geometry stays provisional. The CtrlRAM region positions copied from
+  NT51926 stay unconfirmed.
+- On 2026-10-08 the legacy Combiner delivered with the data set and the legacy
+  Combiner 1.13.0 pinned in this repository gave byte-identical output on the
+  samples that were checked. Neither build checks the chip, so this is not
+  NT51925 support evidence. The sample identities, the sample count and the delivered Combiner hash are kept in the private repository and are not in a public manifest yet. Until they are, treat this as an unverified observation that no one can reproduce from this repository.
+- No route state changes. All nine NT51925 routes stay `Candidate`,
+  `ContractOnly` and blocked until every gate in ADR 0084 passes.
+
+Owner scope decisions (relayed 2026-10-08):
+
+- First scope is Standard Merge only. The eight CtrlRAM Replace routes above
+  are deferred until the owner supplies Golden cases, expected in the week of
+  2026-10-12. The declarations stay in place, and every other gate in ADR 0084
+  still applies.
+- The owner plans to support different layouts by Common FW version, with a
+  first boundary at `2.0.0`. No support is claimed. The owner has not yet given
+  production values for these layouts. No code selects a TP map by Common FW
+  version today. That needs new implementation, and it needs an amendment of
+  ADR 0084. The postbuild profile choice already uses the Common FW version: it
+  takes the highest profile that does not exceed the firmware version.
+- The TP Overview entry follows NT51926: `Single` and `Cascade`. A cascade
+  holds up to three ICs. How a three-IC cascade maps to the generic Cascade
+  plan is not yet proved.
+
 The existing canonical policy remains the in-app Support Matrix source; no UI
 support table or IC-specific semantic branch is added. Dated support and
 retirement statements below describe prior scope; this isolated candidate
