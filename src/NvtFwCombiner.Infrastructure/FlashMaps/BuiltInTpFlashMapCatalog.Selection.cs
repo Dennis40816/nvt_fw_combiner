@@ -16,6 +16,15 @@ internal static partial class BuiltInTpFlashMapCatalog
         return CatalogInstance.TrySelect(icId, commonFwVersion, out profile, out issue);
     }
 
+    /// <summary>
+    /// Reports the "not provided" reasons of an IC whose slots are all markers, so a caller can refuse it
+    /// without a readable Common FW version.
+    /// </summary>
+    internal static bool TryGetNotProvidedIssue(string icId, out string? issue)
+    {
+        return CatalogInstance.TryGetNotProvidedIssue(icId, out issue);
+    }
+
     /// <summary>Catalog state shared by shipped queries and synthetic-data tests.</summary>
     internal sealed class Catalog
     {
@@ -47,6 +56,15 @@ internal static partial class BuiltInTpFlashMapCatalog
                 ? slots[0].Profile
                 : null;
             return profile is not null;
+        }
+
+        /// <summary>Joins the reasons of an IC that has markers and no map at all.</summary>
+        internal bool TryGetNotProvidedIssue(string icId, out string? issue)
+        {
+            bool markersOnly = _slotsByIc.TryGetValue(icId, out Slot[]? slots) &&
+                slots.All(static slot => slot.Profile is null);
+            issue = markersOnly ? string.Join("; ", slots!.Select(static slot => slot.Reason)) : null;
+            return markersOnly;
         }
 
         /// <summary>Selects a map by Common FW version, returning a diagnostic on every failure.</summary>

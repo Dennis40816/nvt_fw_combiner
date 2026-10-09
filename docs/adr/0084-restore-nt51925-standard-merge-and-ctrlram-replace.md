@@ -133,15 +133,19 @@ Decision proposed here:
   end flag position for NT51925.
 - Limit: the selector needs the Common FW version, and the reader of that version
   needs the end flag of the base BIN before a map is chosen. Today the end flags
-  of all candidate maps of one IC must agree, or the reader reports the position as
-  unresolved. NT51925 has no map yet, so this limit is not reached. If a future map of one IC needs a different end flag per Common FW
-  line, that map first needs a way to read the version without a chosen map. That
-  design is a later item and belongs to the change that adds such a map.
+  of all CtrlRAM Replace image maps of one IC must agree, or the reader reports the
+  position as unresolved. For NT51925 the reader already reports it as unresolved,
+  so a base BIN of that IC has no readable version. The selector therefore refuses
+  NT51925 before it needs a version and returns both "not provided" messages. If a
+  future map of one IC needs a different end flag per Common FW line, that map first
+  needs a way to read the version without a chosen map. That design belongs to the
+  change that adds such a map.
 - One internal selector, `BuiltInCommonFwSelector`, picks the postbuild profile and
   the TP flash map for one Common FW version. CtrlRAM Replace, General Replace and
-  the memory-layout display call it, so they cannot disagree on the rule, the
-  messages or the refusal of a marker. The by-IC catalog lookups remain for ICs
-  with exactly one slot that is a map, and return nothing for any other IC.
+  the memory-layout display call it, so they cannot disagree on the rule or on
+  which map is refused. The display has no field for an issue, so a refused map
+  shows an empty layout instead of the message. The by-IC catalog lookups remain
+  for ICs with exactly one slot that is a map, and return nothing for any other IC.
 - Standard Merge does not read the TP flash-map catalog today. Its image maps
   declare no Common FW condition. The NT51925 Standard Merge candidate cannot run
   yet, so a version condition for image maps is a later item. It changes the

@@ -29,6 +29,16 @@ internal static class BuiltInCommonFwSelector
     {
         selection = null;
         string normalizedIcId = IcIdentifier.Normalize(icId);
+        if (!hasCommonFwVersion && BuiltInTpFlashMapCatalog.TryGetNotProvidedIssue(normalizedIcId, out string? notProvided))
+        {
+            // No slot of this IC is a map, so no version could select one. Say that before asking for a version.
+            issue = new CompositionIssue(
+                CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown,
+                notProvided!,
+                "postbuild");
+            return false;
+        }
+
         if (!BuiltInPostbuildProfileResolver.TryResolvePostbuildProfile(
                 icId,
                 BuiltInPostbuildProfileCatalog.GetProfiles(normalizedIcId),
@@ -63,17 +73,15 @@ internal static class BuiltInCommonFwSelector
     }
 
     /// <summary>
-    /// Finds the TP flash map for a display that must stay available while an input is incomplete. Any refusal
-    /// shows no map instead of an unverified one.
+    /// Finds the TP flash map for a display that must stay available while an input is incomplete. A refusal
+    /// shows no map instead of an unverified one, except that an IC with exactly one map keeps it.
     /// </summary>
     internal static TpFlashMapProfile? FindTpFlashMap(string icId, string? commonFwVersion)
     {
-        return BuiltInTpFlashMapCatalog.TrySelect(
-            IcIdentifier.Normalize(icId),
-            commonFwVersion,
-            out TpFlashMapProfile? tpFlashMap,
-            out _)
-                ? tpFlashMap
-                : null;
+        string normalizedIcId = IcIdentifier.Normalize(icId);
+        // An IC with one map keeps showing it for any version, as before. Other refusals show no map.
+        return BuiltInTpFlashMapCatalog.TrySelect(normalizedIcId, commonFwVersion, out TpFlashMapProfile? tpFlashMap, out _)
+            ? tpFlashMap
+            : BuiltInTpFlashMapCatalog.TryFind(normalizedIcId, out TpFlashMapProfile? sole) ? sole : null;
     }
 }

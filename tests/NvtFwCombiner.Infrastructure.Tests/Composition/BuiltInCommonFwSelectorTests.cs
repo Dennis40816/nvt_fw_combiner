@@ -40,7 +40,7 @@ public sealed class BuiltInCommonFwSelectorTests
         Assert.Equal("NT51925 2.0.0 map has not been provided", issue.Message);
     }
 
-    /// <summary>An unreadable or missing version never selects a map for NT51925.</summary>
+    /// <summary>An unreadable or missing version is refused for NT51925 with both "not provided" messages.</summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -53,6 +53,9 @@ public sealed class BuiltInCommonFwSelectorTests
 
         Assert.Null(selection);
         Assert.Equal(CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown, issue!.Code);
+        Assert.Equal(
+            "NT51925 1.x map has not been provided; NT51925 2.0.0 map has not been provided",
+            issue.Message);
     }
 
     /// <summary>A version below the minimum is refused for NT51925 before any map is chosen.</summary>
@@ -107,6 +110,17 @@ public sealed class BuiltInCommonFwSelectorTests
     public void DisplayLookupShowsNoMapForARefusedNt51925Version(string? commonFwVersion)
     {
         Assert.Null(BuiltInCommonFwSelector.FindTpFlashMap("NT51925", commonFwVersion));
+    }
+
+    /// <summary>An IC with one map keeps showing it for a readable version below the minimum, as before.</summary>
+    [Fact]
+    public void DisplayLookupKeepsTheSoleMapBelowTheMinimumVersion()
+    {
+        foreach (string icId in BuiltInTpFlashMapCatalog.IcIds.Where(static id => id != "NT51925"))
+        {
+            Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? sole));
+            Assert.Same(sole, BuiltInCommonFwSelector.FindTpFlashMap(icId, "0.9.9"));
+        }
     }
 
     /// <summary>An IC without a TP flash-map entry still resolves its postbuild profile and gets no map.</summary>
