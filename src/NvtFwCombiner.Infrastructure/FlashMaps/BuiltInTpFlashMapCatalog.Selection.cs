@@ -13,7 +13,7 @@ internal static partial class BuiltInTpFlashMapCatalog
         out TpFlashMapProfile? profile,
         out string? issue)
     {
-        return CatalogInstance.TrySelect(icId, commonFwVersion, out profile, out issue);
+        return ShippedCatalog.TrySelect(icId, commonFwVersion, out profile, out issue);
     }
 
     /// <summary>
@@ -22,7 +22,7 @@ internal static partial class BuiltInTpFlashMapCatalog
     /// </summary>
     internal static bool TryGetNotProvidedIssue(string icId, out string? issue)
     {
-        return CatalogInstance.TryGetNotProvidedIssue(icId, out issue);
+        return ShippedCatalog.TryGetNotProvidedIssue(icId, out issue);
     }
 
     /// <summary>Catalog state shared by shipped queries and synthetic-data tests.</summary>

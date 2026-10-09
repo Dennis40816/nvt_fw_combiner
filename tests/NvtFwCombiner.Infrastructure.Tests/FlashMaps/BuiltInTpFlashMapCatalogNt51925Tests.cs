@@ -1,6 +1,6 @@
-using NvtFwCombiner.Application.ExternalTools;
+using System.Text.Json.Nodes;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Composition;
 
 namespace NvtFwCombiner.Infrastructure.Tests.FlashMaps;
@@ -54,46 +54,51 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
         ("dp", 0x3E000, 8192, TpFlashMapRegionVisibility.Always),
     ];
 
+    /// <summary>Get Regions Common1 Single Returns Exact Owner Regions.</summary>
     [Theory]
     [InlineData("1.0.0")]
     [InlineData("1.9.9")]
-    public void GetRegions_Common1Single_ReturnsExactOwnerRegions(string version)
+    public void GetRegionsCommon1SingleReturnsExactOwnerRegions(string version)
     {
         AssertRegions(version, "1", Common1Single);
     }
 
+    /// <summary>Get Regions Common1 Cascade Returns Exact Owner Regions.</summary>
     [Theory]
     [InlineData("1.0.0", "2")]
     [InlineData("1.0.0", "3")]
     [InlineData("1.9.9", "2")]
     [InlineData("1.9.9", "3")]
-    public void GetRegions_Common1Cascade_ReturnsExactOwnerRegions(string version, string count)
+    public void GetRegionsCommon1CascadeReturnsExactOwnerRegions(string version, string count)
     {
         AssertRegions(version, count, Common1Cascade);
     }
 
+    /// <summary>Get Regions Common2 Single Returns Exact Owner Regions.</summary>
     [Theory]
     [InlineData("2.0.0")]
     [InlineData("2.9.9")]
-    public void GetRegions_Common2Single_ReturnsExactOwnerRegions(string version)
+    public void GetRegionsCommon2SingleReturnsExactOwnerRegions(string version)
     {
         AssertRegions(version, "1", Common2Single);
     }
 
+    /// <summary>Get Regions Common2 Cascade Returns Exact Owner Regions.</summary>
     [Theory]
     [InlineData("2.0.0", "2")]
     [InlineData("2.0.0", "3")]
     [InlineData("2.9.9", "2")]
     [InlineData("2.9.9", "3")]
-    public void GetRegions_Common2Cascade_ReturnsExactOwnerRegions(string version, string count)
+    public void GetRegionsCommon2CascadeReturnsExactOwnerRegions(string version, string count)
     {
         AssertRegions(version, count, Common2Cascade);
     }
 
+    /// <summary>Try Select Nt51925 Declares Separate Tp And Full Flash Shapes.</summary>
     [Theory]
     [InlineData("1.0.0")]
     [InlineData("2.0.0")]
-    public void TrySelect_Nt51925_DeclaresSeparateTpAndFullFlashShapes(string version)
+    public void TrySelectNt51925DeclaresSeparateTpAndFullFlashShapes(string version)
     {
         Assert.True(BuiltInTpFlashMapCatalog.TrySelect("NT51925", version, out TpFlashMapProfile? map, out _));
         Assert.Equal(0x22000, map!.FirmwareConfigPrimaryStart);
@@ -101,14 +106,16 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
         Assert.Equal([0x40000L], map.FullFlashCapacities);
     }
 
+    /// <summary>Try Select Below Minimum Refuses Map.</summary>
     [Fact]
-    public void TrySelect_BelowMinimum_RefusesMap()
+    public void TrySelectBelowMinimumRefusesMap()
     {
         Assert.False(BuiltInTpFlashMapCatalog.TrySelect("NT51925", "0.9.9", out TpFlashMapProfile? map, out string? issue));
         Assert.Null(map);
         Assert.Contains("below the minimum", issue, StringComparison.Ordinal);
     }
 
+    /// <summary>Get Regions Chip Visibility Shows Only Declared Topology.</summary>
     [Theory]
     [InlineData("single-chip-only", "1", true)]
     [InlineData("single-chip-only", "2", false)]
@@ -116,14 +123,15 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
     [InlineData("multi-chip-only", "1", false)]
     [InlineData("multi-chip-only", "2", true)]
     [InlineData("multi-chip-only", "3", true)]
-    public void GetRegions_ChipVisibility_ShowsOnlyDeclaredTopology(string visibility, string count, bool visible)
+    public void GetRegionsChipVisibilityShowsOnlyDeclaredTopology(string visibility, string count, bool visible)
     {
-        var document = TpFlashMapCatalogTestData.Profile();
+        JsonObject document = TpFlashMapCatalogTestData.Profile();
         document["regions"]![0]!["visibility"] = visibility;
         TpFlashMapProfile map = Assert.Single(TpFlashMapCatalogTestData.Load(document));
         Assert.Equal(visible, BuiltInTpFlashMapCatalog.GetRegionsOf(map, IcNumberSelection.FromToken(count), null).Count == 1);
     }
 
+    /// <summary>Get Regions Provisional Postbuild Plan Keeps Authoritative Catalog Ranges.</summary>
     [Theory]
     [InlineData("1.0.0", "1")]
     [InlineData("1.0.0", "2")]
@@ -131,7 +139,7 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
     [InlineData("2.0.0", "1")]
     [InlineData("2.0.0", "2")]
     [InlineData("2.0.0", "3")]
-    public void GetRegions_ProvisionalPostbuildPlan_KeepsAuthoritativeCatalogRanges(string version, string count)
+    public void GetRegionsProvisionalPostbuildPlanKeepsAuthoritativeCatalogRanges(string version, string count)
     {
         Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, version, out BuiltInCommonFwSelection? selected, out _));
         IcNumberSelection topology = IcNumberSelection.FromToken(count);
@@ -140,6 +148,7 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
             Tuples(BuiltInTpFlashMapCatalog.GetRegionsOf(selected.TpFlashMap, topology, selected.PostbuildProfile)));
     }
 
+    /// <summary>Create Display Shipped Provisional Plan Projects Declared Regions.</summary>
     [Theory]
     [InlineData("1.0.0", "1", "normal,mp,vn-single,nf-single")]
     [InlineData("1.0.0", "2", "normal,mp,normal-slave,mp-slave,vn,nf")]
@@ -147,13 +156,15 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
     [InlineData("2.0.0", "1", "normal,mp,vn,nf")]
     [InlineData("2.0.0", "2", "normal,mp,diff,vn,nf")]
     [InlineData("2.0.0", "3", "normal,mp,diff,vn,nf")]
-    public void CreateDisplay_ShippedProvisionalPlan_ProjectsDeclaredRegions(string version, string count, string expectedIds)
+    public void CreateDisplayShippedProvisionalPlanProjectsDeclaredRegions(string version, string count, string expectedIds)
     {
+        ArgumentNullException.ThrowIfNull(expectedIds);
         Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, version, out BuiltInCommonFwSelection? selected, out _));
-        var display = BuiltInCtrlRamAuthoringAdapter.CreateDisplay("NT51925", count, selected!.PostbuildProfile, version, true);
+        CtrlRamInspectionDisplay display = BuiltInCtrlRamAuthoringAdapter.CreateDisplay("NT51925", count, selected!.PostbuildProfile, version, true);
         Assert.Equal(expectedIds.Split(','), display.Regions.Select(static region => region.RegionId));
     }
 
+    /// <summary>Create Display Unconfirmed Provisional Sources Produces No Input Slots.</summary>
     [Theory]
     [InlineData("1.0.0", "1")]
     [InlineData("1.0.0", "2")]
@@ -161,10 +172,10 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
     [InlineData("2.0.0", "1")]
     [InlineData("2.0.0", "2")]
     [InlineData("2.0.0", "3")]
-    public void CreateDisplay_UnconfirmedProvisionalSources_ProducesNoInputSlots(string version, string count)
+    public void CreateDisplayUnconfirmedProvisionalSourcesProducesNoInputSlots(string version, string count)
     {
         Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, version, out BuiltInCommonFwSelection? selected, out _));
-        var display = BuiltInCtrlRamAuthoringAdapter.CreateDisplay("NT51925", count, selected!.PostbuildProfile, version, true);
+        CtrlRamInspectionDisplay display = BuiltInCtrlRamAuthoringAdapter.CreateDisplay("NT51925", count, selected!.PostbuildProfile, version, true);
         Assert.Empty(display.InputSlots);
     }
 

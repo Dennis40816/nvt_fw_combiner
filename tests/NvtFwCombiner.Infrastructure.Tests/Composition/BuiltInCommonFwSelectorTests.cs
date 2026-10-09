@@ -13,7 +13,7 @@ public sealed class BuiltInCommonFwSelectorTests
     [InlineData("1.0.0")]
     [InlineData("1.4.1")]
     [InlineData("1.255.255")]
-    public void TrySelect_Nt51925Common1x_SelectsFirstMap(string commonFwVersion)
+    public void TrySelectNt51925Common1xSelectsFirstMap(string commonFwVersion)
     {
         Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, commonFwVersion,
             out BuiltInCommonFwSelection? selection, out CompositionIssue? issue));
@@ -30,7 +30,7 @@ public sealed class BuiltInCommonFwSelectorTests
     [InlineData("2.5.0")]
     [InlineData("3.0.0")]
     [InlineData("255.255.255")]
-    public void TrySelect_Nt51925Common2xAndLater_SelectsSecondMap(string commonFwVersion)
+    public void TrySelectNt51925Common2xAndLaterSelectsSecondMap(string commonFwVersion)
     {
         Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, commonFwVersion,
             out BuiltInCommonFwSelection? selection, out CompositionIssue? issue));

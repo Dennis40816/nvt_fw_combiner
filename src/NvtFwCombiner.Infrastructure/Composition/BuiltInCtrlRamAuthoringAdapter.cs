@@ -76,7 +76,8 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
                 tpFlashMap,
                 selection,
                 postbuildProfile),
-            hasReadableBase) with { Issue = issue };
+            hasReadableBase) with
+        { Issue = issue };
     }
 
     public CtrlRamAuthoringCompilation Resolve(
