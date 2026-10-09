@@ -17,8 +17,14 @@ public sealed class AssemblyInventoryTests
             new XAttribute("sha256", Convert.ToHexString(SHA256.HashData(MetadataFixtureBuilder.Create(assembly: project).AsSpan()))));
     }
     private static ImmutableArray<AssemblyInput> Validate(XElement? manifest, Func<string, byte[]>? read = null)
-        => AssemblyInventory.Validate(manifest, Target, ["Fixture.csproj", "Second.csproj"], read ?? (path => MetadataFixtureBuilder.Create(assembly: Path.GetFileNameWithoutExtension(path)).ToArray()));
-    private static XElement Fixture() => new("inputs", Entry(), Entry("Second", "Second.dll"));
+    {
+        return AssemblyInventory.Validate(manifest, Target, ["Fixture.csproj", "Second.csproj"], read ?? (path => [.. MetadataFixtureBuilder.Create(assembly: Path.GetFileNameWithoutExtension(path))]));
+    }
+
+    private static XElement Fixture()
+    {
+        return new("inputs", Entry(), Entry("Second", "Second.dll"));
+    }
 
     /// <summary>The normal test build supplies every production assembly.</summary>
     [Fact]
@@ -58,7 +64,11 @@ public sealed class AssemblyInventoryTests
     [InlineData("Stale", "Inputs.Stale: Fixture.dll")]
     public void Validate_InvalidAssembly_NamesRuleAndOffender(string scenario, string expected)
     {
-        byte[] Read(string path) => scenario switch { "Missing" => throw new FileNotFoundException(path), "Empty" => [], _ => [1] };
+        byte[] Read(string path)
+        {
+            return scenario switch { "Missing" => throw new FileNotFoundException(path), "Empty" => [], _ => [1] };
+        }
+
         Assert.Contains(expected, Assert.Throws<InvalidDataException>(() => Validate(Fixture(), Read)).Message, StringComparison.Ordinal);
     }
     /// <summary>Matching hashes do not excuse wrong or mixed build tuples.</summary>

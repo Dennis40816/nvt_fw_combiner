@@ -6,7 +6,10 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 internal sealed record BoundaryFinding(string Rule, string Type, string Member, string ReferencedType)
 {
-    public override string ToString() => $"{Rule}: {Type} | {Member} -> {ReferencedType}";
+    public override string ToString()
+    {
+        return $"{Rule}: {Type} | {Member} -> {ReferencedType}";
+    }
 }
 
 /// <summary>A2 rules operate on compiled references, including generated method bodies.</summary>
@@ -17,31 +20,44 @@ public sealed class CompiledMetadataBoundaryTests
     // Namespace roles are explicit; these reusable primitives historically reside under Views.
     private static readonly ImmutableDictionary<string, string> ExactRoles = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["Views.HexViewportControl"] = "Control", ["Views.MemoryCoverageBar"] = "Control",
-        ["Views.ProportionalStackPanel"] = "Control", ["Views.ReportTableText"] = "Control",
-        ["Views.SpaciousPanel"] = "Control", ["Views.VersionCheckingIndicator"] = "Control",
-        ["PresentationCompositionServices"] = "Service", ["PresentationHostServices"] = "Service",
-        ["LocalJsonDocument"] = "Service", ["ReportHistoryFileStore"] = "Service", ["ShellPreferenceFileStore"] = "Service",
-        ["UiCompositionRunner"] = "ViewModel", ["LatestSnapshotPersistenceCoordinator`1"] = "Service",
-        ["StartupTraceFileSink"] = "Service", ["StartupTraceSession"] = "Service",
-        ["App"] = "View", ["MainWindow"] = "View", ["ShellViewModelLocator"] = "View",
-        ["DesktopLaunchCoordinator"] = "Lifecycle", ["DesktopLaunchContext"] = "Lifecycle",
-        ["DesktopCaptureSession"] = "Lifecycle", ["ShellPreloadSession"] = "Lifecycle",
+        ["Views.HexViewportControl"] = "Control",
+        ["Views.MemoryCoverageBar"] = "Control",
+        ["Views.ProportionalStackPanel"] = "Control",
+        ["Views.ReportTableText"] = "Control",
+        ["Views.SpaciousPanel"] = "Control",
+        ["Views.VersionCheckingIndicator"] = "Control",
+        ["PresentationCompositionServices"] = "Service",
+        ["PresentationHostServices"] = "Service",
+        ["LocalJsonDocument"] = "Service",
+        ["ReportHistoryFileStore"] = "Service",
+        ["ShellPreferenceFileStore"] = "Service",
+        ["UiCompositionRunner"] = "ViewModel",
+        ["LatestSnapshotPersistenceCoordinator`1"] = "Service",
+        ["StartupTraceFileSink"] = "Service",
+        ["StartupTraceSession"] = "Service",
+        ["App"] = "View",
+        ["MainWindow"] = "View",
+        ["ShellViewModelLocator"] = "View",
+        ["DesktopLaunchCoordinator"] = "Lifecycle",
+        ["DesktopLaunchContext"] = "Lifecycle",
+        ["DesktopCaptureSession"] = "Lifecycle",
+        ["ShellPreloadSession"] = "Lifecycle",
     }.ToImmutableDictionary(StringComparer.Ordinal);
     internal static string Role(string type)
     {
         string root = type.Split('+')[0];
         if (!root.StartsWith(Presentation + ".", StringComparison.Ordinal)) { return "Other"; }
         string relative = root[(Presentation.Length + 1)..];
-        if (ExactRoles.TryGetValue(relative, out string? role)) { return role; }
-        return relative switch
-        {
-            var name when name.StartsWith("ViewModels.", StringComparison.Ordinal) => "ViewModel",
-            var name when name.StartsWith("Controls.", StringComparison.Ordinal) => "Control",
-            var name when name.StartsWith("Services.", StringComparison.Ordinal) => "Service",
-            var name when name.StartsWith("Views.", StringComparison.Ordinal) => "View",
-            _ => "Other",
-        };
+        return ExactRoles.TryGetValue(relative, out string? role)
+            ? role
+            : relative switch
+            {
+                var name when name.StartsWith("ViewModels.", StringComparison.Ordinal) => "ViewModel",
+                var name when name.StartsWith("Controls.", StringComparison.Ordinal) => "Control",
+                var name when name.StartsWith("Services.", StringComparison.Ordinal) => "Service",
+                var name when name.StartsWith("Views.", StringComparison.Ordinal) => "View",
+                _ => "Other",
+            };
     }
     internal static ImmutableArray<BoundaryFinding> Find(IEnumerable<MetadataReference> references)
     {
@@ -65,34 +81,34 @@ public sealed class CompiledMetadataBoundaryTests
     // N0b moves these exact identities and reasons into its ratcheted baseline.
     private static readonly ImmutableArray<(BoundaryFinding Finding, string Reason)> KnownViolations =
     [
-        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", ".ctor [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", ".ctor(System.Func`3<System.Action,System.TimeSpan,System.IDisposable>)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
+        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", ".ctor(System.Func`3<System.Action,System.TimeSpan,System.IDisposable>) [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "<>9__122_0", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "<>9__132_0", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "<>9__132_2", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "<>9__72_0", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusPositionViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "<>9__72_4", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusPositionViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "<>9__83_1", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageInteractionState", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
-        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "BuildLegend [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageFillRole", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "BuildLegend()", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
-        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "BuildPositions [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageInteractionState", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusPositionViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
+        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "BuildLegend() [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageFillRole", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "BuildPositions()", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusPositionViewModel"),
+        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "BuildPositions() [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageInteractionState", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusPositionViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "CloseAll()", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "CollisionEntry(NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
-        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "ContainingStates [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageInteractionState", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "ContainingStates(NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageInteractionState", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel"),
+        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "ContainingStates(NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel) [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageInteractionState", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "GroupSummary(NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "OpenCard(Avalonia.Controls.Control,NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel,System.Nullable`1<System.Boolean>)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "OpenLocal(NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem,Avalonia.Controls.Control,NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel,System.Boolean)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageInteractionState", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
-        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "Rebuild [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "Rebuild()", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarProjection", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
-        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "SegmentContent [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageFillRole", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
+        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "Rebuild() [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "SegmentContent(NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageFillRole", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
+        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "SegmentContent(NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel) [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageFillRole", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "Text", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
-        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "UpdateTinyMarkers [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "UpdateTinyMarkers(System.Double)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
-        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "WireSlice [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
+        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "UpdateTinyMarkers(System.Double) [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusLaneViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "WireSlice(Avalonia.Controls.Control,NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel,System.Boolean)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
+        .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "WireSlice(Avalonia.Controls.Control,NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel,System.Boolean) [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "_activeGroup", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "_displaySegments", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "get_Text()", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellLanguage", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources"),
@@ -101,7 +117,7 @@ public sealed class CompiledMetadataBoundaryTests
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "position", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusPositionViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "positions", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryFocusPositionViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", "slice", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
-        .. Known("A2.PresentationRawJson", "NvtFwCombiner.Presentation.Avalonia.LocalJsonDocument", "DeserializeAsync(System.IO.Stream,System.Threading.CancellationToken)", "Legacy report/local-state JSON decoding call; N0b owns its exact debt.", "System.Text.Json.JsonSerializer.DeserializeAsync"),
+        .. Known("A2.PresentationRawJson", "NvtFwCombiner.Presentation.Avalonia.LocalJsonDocument", "DeserializeAsync`1(System.IO.Stream,System.Threading.CancellationToken)", "Legacy report/local-state JSON decoding call; N0b owns its exact debt.", "System.Text.Json.JsonSerializer.DeserializeAsync"),
         .. Known("A2.PresentationRawJson", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistoryEntryViewModel", ".ctor(System.Int32,NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot,System.Nullable`1<System.Int64>)", "Legacy report/local-state JSON decoding call; N0b owns its exact debt.", "System.Text.Json.JsonDocument.Parse"),
         .. Known("A2.PresentationRawJson", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportPresentationViewModel", "TryPrepareReportHistoryEntry(NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot,NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellLanguage,System.Boolean,System.Threading.CancellationToken,NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot&,NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportReviewViewModel&)", "Legacy report/local-state JSON decoding call; N0b owns its exact debt.", "System.Text.Json.JsonDocument.Parse"),
         .. Known("A2.PresentationRawJson", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportReviewViewModel", "FromJsonCore(System.String,System.String,System.String,NvtFwCombiner.Application.Composition.CompositionRunInspectionSnapshot,NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellLanguage,System.Threading.CancellationToken)", "Legacy report/local-state JSON decoding call; N0b owns its exact debt.", "System.Text.Json.JsonDocument.Parse"),
@@ -112,11 +128,11 @@ public sealed class CompiledMetadataBoundaryTests
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "<>9__6_0", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "<>9__7_0", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "LoadAsync(NvtFwCombiner.Application.Ports.ILocalFileStore,System.String,System.Threading.CancellationToken)", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
-        .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "RetainPayloadBudget [closure]", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "RetainPayloadBudget(System.Collections.Generic.IEnumerable`1<NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot>)", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
+        .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "RetainPayloadBudget(System.Collections.Generic.IEnumerable`1<NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot>) [closure]", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "SaveAsync(NvtFwCombiner.Application.Ports.ILocalFileStore,System.String,System.Collections.Generic.IEnumerable`1<NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot>,System.Threading.CancellationToken)", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportPresentationViewModel"),
-        .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "Serialize [closure]", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistoryMetadataSnapshot", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "Serialize(System.Collections.Generic.IReadOnlyList`1<NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot>)", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
+        .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "Serialize(System.Collections.Generic.IReadOnlyList`1<NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot>) [closure]", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistoryMetadataSnapshot", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore", "ToSnapshot(NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore+ReportHistoryFileEntry)", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistoryMetadataSnapshot", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistorySnapshot"),
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore+ReportHistoryFileEntry", ".ctor(NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore+ReportHistoryFileEntry)", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistoryMetadataSnapshot"),
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ReportHistoryFileStore+ReportHistoryFileEntry", ".ctor(System.String,System.String,System.String,NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistoryMetadataSnapshot)", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportHistoryMetadataSnapshot"),
@@ -132,7 +148,9 @@ public sealed class CompiledMetadataBoundaryTests
         .. Known("A2.ServiceViewModels", "NvtFwCombiner.Presentation.Avalonia.ShellPreferenceFileStore", "SaveAsync(NvtFwCombiner.Application.Ports.ILocalFileStore,System.String,NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellPreferenceSnapshot,System.Threading.CancellationToken)", "Legacy bounded UI-history adapter consumes ViewModels snapshots; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellPreferenceSnapshot"),
     ];
     private static IEnumerable<(BoundaryFinding Finding, string Reason)> Known(string rule, string type, string member, string reason, params string[] targets)
-        => targets.Select(target => (new BoundaryFinding(rule, type, member, target), reason));
+    {
+        return targets.Select(target => (new BoundaryFinding(rule, type, member, target), reason));
+    }
 
     /// <summary>Every acquired assembly is scanned and new or stale A2 allowances fail.</summary>
     [Fact]
@@ -195,8 +213,12 @@ public sealed class CompiledMetadataBoundaryTests
     /// <summary>Real MoveNext, closure and async-closure bodies retain their logical owner.</summary>
     [Theory]
     [InlineData("AfterAwait(System.Threading.Tasks.Task)")]
-    [InlineData("WithClosure [closure]")]
-    [InlineData("AsyncClosure [closure]")]
+    [InlineData("WithClosure(System.Object) [closure]")]
+    [InlineData("AsyncClosure(System.Threading.Tasks.Task) [closure]")]
+    [InlineData("Pick(System.String) [closure]")]
+    [InlineData("Pick(System.Int32) [closure]")]
+    [InlineData("Generic`1(!!0) [closure]")]
+    [InlineData("Generic`2(!!0) [closure]")]
     public void Boundaries_CompiledGeneratedBody_NamesLogicalOwner(string member)
     {
         ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read([.. File.ReadAllBytes(typeof(CompiledMetadataBoundaryTests).Assembly.Location)]);

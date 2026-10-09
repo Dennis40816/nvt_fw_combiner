@@ -84,8 +84,16 @@ internal static class MetadataFixtureBuilder
         }
         if (scenario is "MemberReference" or "MethodSpecification" or "JsonParse" or "JsonDeserialize" or "JsonDeserializeAsync")
         {
-            MemberReferenceHandle method = metadata.AddMemberReference(target, metadata.GetOrAddString(scenario == "JsonParse" ? "Parse" : scenario.StartsWith("Json", StringComparison.Ordinal) ? scenario[4..] : "ForbiddenCall"),
-                Signature(blob => { blob.WriteByte(scenario == "MethodSpecification" ? (byte)0x10 : (byte)0); if (scenario == "MethodSpecification") { blob.WriteByte(1); } blob.WriteByte(0); blob.WriteByte(1); }));
+            bool allowedParent = scenario is "MemberReference" or "MethodSpecification";
+            MemberReferenceHandle method = metadata.AddMemberReference(allowedParent ? objectType : target, metadata.GetOrAddString(scenario == "JsonParse" ? "Parse" : scenario.StartsWith("Json", StringComparison.Ordinal) ? scenario[4..] : "ForbiddenCall"),
+                Signature(blob =>
+                {
+                    blob.WriteByte(scenario == "MethodSpecification" ? (byte)0x10 : (byte)0);
+                    if (scenario == "MethodSpecification") { blob.WriteByte(1); }
+                    blob.WriteByte(scenario == "MemberReference" ? (byte)1 : (byte)0);
+                    blob.WriteByte(1);
+                    if (scenario == "MemberReference") { Class(blob, target); }
+                }));
             EntityHandle token = method;
             if (scenario == "MethodSpecification") { token = metadata.AddMethodSpecification(method, Signature(blob => { blob.WriteByte(0x0a); blob.WriteByte(1); Class(blob, target); })); }
             code.OpCode(ILOpCode.Call); code.Token(token);
@@ -131,7 +139,7 @@ internal static class MetadataFixtureBuilder
             }));
         }
         var image = new BlobBuilder();
-        new ManagedPEBuilder(new PEHeaderBuilder(imageCharacteristics: Characteristics.Dll), new MetadataRootBuilder(metadata), bodies, deterministicIdProvider: _ => new BlobContentId(new Guid("b1111111-1111-1111-1111-111111111111"), 0)).Serialize(image);
+        _ = new ManagedPEBuilder(new PEHeaderBuilder(imageCharacteristics: Characteristics.Dll), new MetadataRootBuilder(metadata), bodies, deterministicIdProvider: _ => new BlobContentId(new Guid("b1111111-1111-1111-1111-111111111111"), 0)).Serialize(image);
         return [.. image.ToArray()];
     }
 }

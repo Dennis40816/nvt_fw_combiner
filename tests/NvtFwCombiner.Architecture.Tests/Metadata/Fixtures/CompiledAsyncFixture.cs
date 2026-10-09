@@ -18,6 +18,22 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels
         {
             return async () => { await completion.ConfigureAwait(false); global::Avalonia.Controls.ForbiddenAsyncControl.Touch(); };
         }
+        internal static Action Pick(string value)
+        {
+            return () => { GC.KeepAlive(value); global::Avalonia.Controls.ForbiddenAsyncControl.Touch(); };
+        }
+        internal static Action Pick(int value)
+        {
+            return () => { GC.KeepAlive(value); global::Avalonia.Controls.ForbiddenAsyncControl.Touch(); };
+        }
+        internal static Action Generic<T>(T value)
+        {
+            return () => { GC.KeepAlive(value); global::Avalonia.Controls.ForbiddenAsyncControl.Touch(); };
+        }
+        internal static Action Generic<T, TIgnored>(T value)
+        {
+            return () => { GC.KeepAlive(value); global::Avalonia.Controls.ForbiddenAsyncControl.Touch(); };
+        }
         internal static async Task AfterAwait(Task completion)
         {
             await completion.ConfigureAwait(false);
