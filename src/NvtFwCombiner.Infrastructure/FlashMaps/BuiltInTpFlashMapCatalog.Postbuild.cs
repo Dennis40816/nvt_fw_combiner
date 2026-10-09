@@ -41,11 +41,11 @@ internal static partial class BuiltInTpFlashMapCatalog
         IcNumberSelection? selection,
         LegacyCombinerPostbuildProfile? postbuildProfile)
     {
-        return ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? flashMapProfile) &&
+        return TryFind(icId, out TpFlashMapProfile? flashMapProfile) &&
                postbuildProfile is not null
             ? GetPostbuildCtrlRamSources(
                 icId,
-                flashMapProfile,
+                flashMapProfile!,
                 postbuildProfile.ResolvePlan(selection))
             : [];
     }
@@ -55,8 +55,8 @@ internal static partial class BuiltInTpFlashMapCatalog
         string icId,
         LegacyCombinerPostbuildCommandPlan plan)
     {
-        return ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? flashMapProfile)
-            ? GetPostbuildCtrlRamSources(icId, flashMapProfile, plan)
+        return TryFind(icId, out TpFlashMapProfile? flashMapProfile)
+            ? GetPostbuildCtrlRamSources(icId, flashMapProfile!, plan)
             : [];
     }
 

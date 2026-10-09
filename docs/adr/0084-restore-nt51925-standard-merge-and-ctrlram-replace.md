@@ -89,6 +89,37 @@ those exact definitions continue to resolve without migration. A later family
 join requires the official NT51925 map proving identical canonical facts and
 separate owner approval; this proposal neither prepares nor authorizes it.
 
+## Amendment (2026-10-09): version-keyed Standard Merge TP maps
+
+Status of this amendment: Proposed, together with the rest of this ADR.
+
+Owner decision (relayed 2026-10-08): the NT51925 layouts V1 and V2 are Common FW
+major versions. Both are supported. For now they split at 2.0.0: V1 below 2.0.0,
+V2 from 2.0.0. The first scope is Standard Merge only. The Single and Cascade
+topologies are the only TP Overview variants, as for NT51926. A Cascade holds up
+to three ICs.
+
+Decision proposed here:
+
+- The built-in TP flash-map catalog may hold more than one entry for one IC. Each
+  entry has an effective Common FW version. A missing version means 1.0.0.
+- The catalog selects an entry with the rule that the postbuild profile catalog
+  already uses. It takes the entry with the highest effective version that is not
+  above the input version. A version below 1.0.0 is refused. An IC with several
+  entries and an unreadable version is refused. The catalog never guesses.
+- An IC with exactly one entry behaves as before. Its output bytes do not change.
+  Only NT51925 gets a second entry, and only after the official map is confirmed.
+- The version comes from the Common FW fields of the FWConfig in the TP input.
+  Filename, PID, version text, hash or a Golden observation cannot supply it.
+- A later map, for example from 2.5.0, is one new catalog entry with its owner
+  evidence. It needs no code change. Versions 2.0.0 to 2.4.x keep using the 2.0.0
+  entry. Adding such an entry is a firmware change and follows the gates below.
+
+This amendment adds no map values. The V1 and V2 TP ranges, the production
+layout and the Cascade mapping stay unconfirmed. They wait for the owner's
+workbook sheet for V2, the owner's choice of the production layout and the Golden
+evidence listed below. Replace stays deferred.
+
 ## Required owner evidence and gates
 
 Before NT51925 promotion, obtain and review:
