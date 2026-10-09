@@ -50,7 +50,7 @@ class CatalogOutputLifecycleTests(unittest.TestCase):
         # Keep the unique eight-character suffix; the verifier owns the parent.
         with tempfile.TemporaryDirectory(prefix="") as temp:
             root = Path(temp)
-            for directory in ("src", "eng", "profiles", "docs/contracts"):
+            for directory in ("src", "eng", "profiles", "docs/contracts", "Vendor"):
                 shutil.copytree(ROOT / directory, root / directory,
                                 ignore=shutil.ignore_patterns("bin", "obj", "AGENTS.md"))
             for name in ("Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props",
