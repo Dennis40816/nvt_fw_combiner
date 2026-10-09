@@ -3,14 +3,14 @@
   "repository": "Dennis40816/nvt_fw_core",
   "packages": [
     {
-      "release": "core-v0.4.0",
-      "asset": "Nvt.Core.0.4.0.nupkg",
-      "sha256": "9a76943164e49132805234dc1e5245fcc0044f844db48098fc3dc3942be4f361"
+      "release": "core-v0.5.0",
+      "asset": "Nvt.Core.0.5.0.nupkg",
+      "sha256": "bf768c1e15d15cc8c86ffae5ae9f8e055ff682f6d9c6711236968eb9245dbc34"
     },
     {
-      "release": "core-v0.4.0",
-      "asset": "Nvt.Core.Avalonia.0.4.0.nupkg",
-      "sha256": "e7c1d261822b38c79689a0899ae8ee6f5876f0098841ae353285f0076bbebbc4"
+      "release": "core-v0.5.0",
+      "asset": "Nvt.Core.Avalonia.0.5.0.nupkg",
+      "sha256": "233c7a55a8403be083d7aa535e43504f2fdc55de604853c1910a966bbfbd1d57"
     }
   ]
 }
