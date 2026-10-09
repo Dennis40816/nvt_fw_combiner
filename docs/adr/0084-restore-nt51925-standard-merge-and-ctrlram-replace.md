@@ -149,8 +149,9 @@ Decision proposed here:
 - Standard Merge does not read the TP flash-map catalog today. Its image maps
   declare no Common FW condition. The NT51925 Standard Merge candidate cannot run
   yet, so a version condition for image maps is a later item. It changes the
-  profile schema and needs R3 approval from the owner. It is not part of this
-  amendment.
+  profile schema and needs R3 approval from the owner. Owner decision 2026-10-09:
+  do it later, and add it before the NT51925 Standard Merge candidate can run.
+  It is not part of this amendment.
 
 This amendment adds no NT51925 map values. The V1 and V2 TP ranges, the
 production layout and the Cascade mapping stay unconfirmed. They wait for the

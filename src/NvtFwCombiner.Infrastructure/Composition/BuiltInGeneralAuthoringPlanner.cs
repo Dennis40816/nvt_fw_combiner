@@ -204,6 +204,13 @@ internal sealed partial class BuiltInGeneralAuthoringPlanner(
         TpFlashMapProfile? tpFlashMap = profileResolved
             ? commonFwSelection!.TpFlashMap
             : BuiltInCommonFwSelector.FindTpFlashMap(icId, baseFirmware?.CommonFwVersion);
+        if (BuiltInCommonFwSelector.MustRefuseWithoutTpRegions(icId, profileResolved, tpFlashMap))
+        {
+            // No map means no TP regions, so a TP-touching mapping would pass unseen. Refuse before any retained
+            // capability is reused, and keep the issue of the selection.
+            return new GeneralReplaceAuthoringPlanResult(null, admission, [profileIssue!]);
+        }
+
         IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegionsOf(
             tpFlashMap,
             selection,

@@ -73,6 +73,18 @@ internal static class BuiltInCommonFwSelector
     }
 
     /// <summary>
+    /// Tells a flow that plans from map regions to stop: the selection was refused, the IC has TP flash-map slots,
+    /// and no map remains to show where the TP regions are. Without a map such a flow cannot tell whether a
+    /// mapping touches TP, so it must carry the refusal instead of continuing.
+    /// </summary>
+    internal static bool MustRefuseWithoutTpRegions(string icId, bool selected, TpFlashMapProfile? tpFlashMap)
+    {
+        return !selected &&
+            tpFlashMap is null &&
+            BuiltInTpFlashMapCatalog.IcIds.Contains(IcIdentifier.Normalize(icId), StringComparer.Ordinal);
+    }
+
+    /// <summary>
     /// Finds the TP flash map for a display that must stay available while an input is incomplete. A refusal
     /// shows no map instead of an unverified one, except that an IC with exactly one map keeps it.
     /// </summary>

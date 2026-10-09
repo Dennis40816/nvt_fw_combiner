@@ -123,6 +123,38 @@ public sealed class BuiltInCommonFwSelectorTests
         }
     }
 
+    /// <summary>
+    /// A planner that needs map regions must stop when the selection is refused and no map remains. This is the
+    /// guard that keeps a retained capability from being reused after the Base moves into a "not provided" range.
+    /// </summary>
+    [Theory]
+    [InlineData("NT51925", "1.4.1")]
+    [InlineData("NT51925", "2.0.0")]
+    [InlineData("NT51925", null)]
+    public void PlannerMustRefuseWhenAnIcHasNoMapForTheSelection(string icId, string? commonFwVersion)
+    {
+        bool selected = BuiltInCommonFwSelector.TrySelect(icId, commonFwVersion is not null, commonFwVersion,
+            out _, out CompositionIssue? issue);
+        TpFlashMapProfile? tpFlashMap = BuiltInCommonFwSelector.FindTpFlashMap(icId, commonFwVersion);
+
+        Assert.False(selected);
+        Assert.NotNull(issue);
+        Assert.True(BuiltInCommonFwSelector.MustRefuseWithoutTpRegions(icId, selected, tpFlashMap));
+    }
+
+    /// <summary>Supported ICs, a selected map and an IC without any slot keep planning as before.</summary>
+    [Fact]
+    public void PlannerKeepsPlanningWhenAMapRemainsOrTheIcHasNoSlot()
+    {
+        TpFlashMapProfile? sole = BuiltInCommonFwSelector.FindTpFlashMap("NT51926", "1.4.1");
+
+        Assert.NotNull(sole);
+        Assert.False(BuiltInCommonFwSelector.MustRefuseWithoutTpRegions("NT51926", true, sole));
+        // A refused postbuild profile with a map left keeps the earlier behavior.
+        Assert.False(BuiltInCommonFwSelector.MustRefuseWithoutTpRegions("NT51926", false, sole));
+        Assert.False(BuiltInCommonFwSelector.MustRefuseWithoutTpRegions("NT00000", false, null));
+    }
+
     /// <summary>An IC without a TP flash-map entry still resolves its postbuild profile and gets no map.</summary>
     [Fact]
     public void UnknownIcWithoutAnyEntryIsRefusedByThePostbuildCatalog()
