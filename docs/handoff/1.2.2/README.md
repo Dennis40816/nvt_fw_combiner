@@ -15,7 +15,7 @@ are decisions 261 and 271 to 278. The contract is
 | R35-03 | shared execution layer (`scripts/predecessor_comparison.py`) | pull request #517 |
 | R35-04 | rolling mode, report assembly, gate, CLI (`scripts/predecessor_rolling.py`) | pull request #517 |
 | R35-05 | v0.9.16 1.x mode (`scripts/predecessor_v0916.py`) | pull request #517 |
-| R35-06 | v0.9.16 baseline executor contract and compiler-host pinning | implemented on `feature/1.2.2/executor-contract`, rebased on the trunk, not yet submitted; the pull request is R3 |
+| R35-06 | v0.9.16 baseline executor contract and compiler-host pinning | implemented on `feature/1.3.0/comparator-executor`; pull request to `1.3.0` pending; the pull request is R3 |
 | R35-09 | diagnostic rehearsal against real builds | saved rolling result `rolling-1003a`: 39 of 39 scenarios `equal`; saved v0.9.16 result `v0916-5`: 35 of 37 bound routes `consistent`, 2 `invalid`, 27 not covered; see "Rehearsal findings"; no fresh run claimed |
 | R36-01 | coverage and difference disposition for `1.2.2` (decision 251) | owner-list command and two diagnostic drafts implemented locally; the owner has not approved the `1.2.2` list |
 | R58 | Support Matrix hover flicker (decision 253) | pull request #518 |

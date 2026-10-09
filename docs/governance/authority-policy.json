@@ -257,10 +257,14 @@
     },
     {
       "id": "topic-test-inputs",
-      "description": "Handoff Markdown that a topic test reads, so it is not prose: tests/scripts/test_v0916_parity_1x_amendment.py reads the 1.1.12 board.",
+      "description": "Handoff Markdown that a topic test reads, so it is not prose: the parity amendment test reads the 1.1.12 board; the predecessor comparison contract test reads the 1.2.x board and the 1.2.2 handoff.",
       "floor": "R1",
       "roles": [],
-      "patterns": ["docs/handoff/1.1.12.md"]
+      "patterns": [
+        "docs/handoff/1.1.12.md",
+        "docs/handoff/1.2.x.md",
+        "docs/handoff/1.2.2/README.md"
+      ]
     },
     {
       "id": "prose",
