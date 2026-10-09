@@ -19,33 +19,33 @@ internal static partial class BuiltInTpFlashMapCatalog
     /// <summary>Catalog state shared by shipped queries and synthetic-data tests.</summary>
     internal sealed class Catalog
     {
-        private readonly Dictionary<string, TpFlashMapProfile[]> _profilesByIc;
-        private readonly Dictionary<string, PendingTpFlashMap> _pendingByIc;
+        private readonly Dictionary<string, Slot[]> _slotsByIc;
 
         /// <summary>Creates an isolated query catalog from loaded, validated entries and pending-map declarations.</summary>
         internal Catalog(
             IReadOnlyList<TpFlashMapProfile> profiles,
             IReadOnlyList<PendingTpFlashMap>? pendingMaps = null)
         {
-            _pendingByIc = (pendingMaps ?? []).ToDictionary(static map => map.IcId, StringComparer.Ordinal);
-            _profilesByIc = profiles.GroupBy(static profile => profile.IcId, StringComparer.Ordinal)
+            _slotsByIc = profiles
+                .Select(static profile => new Slot(profile.IcId, profile.EffectiveCommonFwVersion, profile, null))
+                .Concat((pendingMaps ?? []).Select(static map =>
+                    new Slot(map.IcId, map.FromCommonFwVersion, null, map.Reason)))
+                .GroupBy(static slot => slot.IcId, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key,
-                    group => group.OrderBy(static profile => profile.EffectiveCommonFwVersion).ToArray(),
+                    group => group.OrderBy(static slot => slot.Version).ToArray(),
                     StringComparer.Ordinal);
-            IcIds = Array.AsReadOnly(_profilesByIc.Keys.Order(StringComparer.Ordinal).ToArray());
+            IcIds = Array.AsReadOnly(_slotsByIc.Keys.Order(StringComparer.Ordinal).ToArray());
         }
 
         /// <summary>Each declared IC id once in ordinal order, including ICs that require version selection.</summary>
         internal IReadOnlyList<string> IcIds { get; }
 
-        /// <summary>Finds a map only when the IC has exactly one entry and no pending map.</summary>
+        /// <summary>Finds a map only when the IC has exactly one slot and that slot is a map.</summary>
         internal bool TryFind(string icId, [NotNullWhen(true)] out TpFlashMapProfile? profile)
         {
-            profile = _profilesByIc.TryGetValue(icId, out TpFlashMapProfile[]? profiles) &&
-                profiles.Length == 1 &&
-                !_pendingByIc.ContainsKey(icId)
-                    ? profiles[0]
-                    : null;
+            profile = _slotsByIc.TryGetValue(icId, out Slot[]? slots) && slots.Length == 1
+                ? slots[0].Profile
+                : null;
             return profile is not null;
         }
 
@@ -56,41 +56,31 @@ internal static partial class BuiltInTpFlashMapCatalog
             out TpFlashMapProfile? profile,
             out string? issue)
         {
-            TpFlashMapProfile[] profiles = _profilesByIc.GetValueOrDefault(icId) ?? [];
-            bool hasPending = _pendingByIc.TryGetValue(icId, out PendingTpFlashMap? pending);
-            // A pending map acts as one more entry the caller cannot read yet, so a sole entry needs a version too.
+            // A "not provided" marker is a slot like a map: the greatest slot at or below the version decides.
+            Slot[] slots = _slotsByIc.GetValueOrDefault(icId) ?? [];
             CommonFwVersionIntervalSelector.SelectionResult result = CommonFwVersionIntervalSelector.Select(
-                profiles, static candidate => candidate.EffectiveCommonFwVersion, commonFwVersion,
-                out int index, out LegacyCombinerCommonFwVersion version, requireVersion: hasPending);
-            if (result == CommonFwVersionIntervalSelector.SelectionResult.Selected &&
-                hasPending &&
-                version >= pending!.FromCommonFwVersion)
-            {
-                profile = null;
-                issue = pending.Reason;
-                return false;
-            }
-
-            profile = index >= 0 ? profiles[index] : null;
+                slots, static slot => slot.Version, commonFwVersion,
+                out int index, out LegacyCombinerCommonFwVersion version);
+            profile = index >= 0 ? slots[index].Profile : null;
             issue = result switch
             {
-                CommonFwVersionIntervalSelector.SelectionResult.Selected => null,
+                CommonFwVersionIntervalSelector.SelectionResult.Selected => slots[index].Reason,
                 CommonFwVersionIntervalSelector.SelectionResult.NoEntries =>
                     $"No TP flash-map profile is registered for {icId}.",
                 CommonFwVersionIntervalSelector.SelectionResult.BelowMinimum =>
                     $"{icId} Common FW {version} is below the minimum supported version " +
                     $"{LegacyCombinerCommonFwVersion.MinimumSupported}.",
                 CommonFwVersionIntervalSelector.SelectionResult.VersionRequired =>
-                    $"{icId} has several or pending TP flash-map profiles; a valid three-component " +
+                    $"{icId} has several TP flash-map slots; a valid three-component " +
                     "base FWConfig Common FW version is required.",
                 CommonFwVersionIntervalSelector.SelectionResult.NoMatchingInterval =>
                     $"No TP flash-map profile for {icId} applies to Common FW {version}.",
                 _ => throw new InvalidOperationException("Unsupported interval selection result."),
             };
-            return result == CommonFwVersionIntervalSelector.SelectionResult.Selected;
+            return profile is not null;
         }
 
-        /// <summary>Gets visible regions only for an IC whose map needs no version selection.</summary>
+        /// <summary>Gets visible regions only for an IC whose sole slot is a map.</summary>
         internal IReadOnlyList<TpFlashMapRegion> GetRegions(
             string icId,
             IcNumberSelection? selection,
@@ -102,7 +92,7 @@ internal static partial class BuiltInTpFlashMapCatalog
                 : [];
         }
 
-        /// <summary>Gets plan-adjusted regions only for an IC whose map needs no version selection.</summary>
+        /// <summary>Gets plan-adjusted regions only for an IC whose sole slot is a map.</summary>
         internal IReadOnlyList<TpFlashMapRegion> GetRegionsForPlan(
             string icId,
             LegacyCombinerPostbuildCommandPlan postbuildPlan,
@@ -113,5 +103,11 @@ internal static partial class BuiltInTpFlashMapCatalog
                 ? BuiltInTpFlashMapCatalog.GetRegionsForPlan(profile, postbuildPlan, kind)
                 : [];
         }
+
+        private sealed record Slot(
+            string IcId,
+            LegacyCombinerCommonFwVersion Version,
+            TpFlashMapProfile? Profile,
+            string? Reason);
     }
 }

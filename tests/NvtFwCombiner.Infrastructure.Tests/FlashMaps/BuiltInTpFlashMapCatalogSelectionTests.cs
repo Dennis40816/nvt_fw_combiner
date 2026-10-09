@@ -122,7 +122,7 @@ public sealed class BuiltInTpFlashMapCatalogSelectionTests
         }
     }
 
-    /// <summary>A pending map makes the sole entry version-dependent, so an unreadable version is refused.</summary>
+    /// <summary>A pending map is one more slot, so a sole entry no longer decides an unreadable version.</summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -150,6 +150,49 @@ public sealed class BuiltInTpFlashMapCatalogSelectionTests
             [new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-A", new(3, 0, 0), "the 3.0.0 map is missing")]);
 
         AssertSelection(catalog, profiles, version, expectedVersion);
+    }
+
+    /// <summary>An IC whose every slot is "not provided" refuses each version with the reason of its slot.</summary>
+    [Theory]
+    [InlineData("1.0.0", "the 1.x map is missing")]
+    [InlineData("1.255.255", "the 1.x map is missing")]
+    [InlineData("2.0.0", "the 2.0.0 map is missing")]
+    [InlineData("255.255.255", "the 2.0.0 map is missing")]
+    public void PendingOnlyIcRefusesEveryReadableVersionWithTheReasonOfItsSlot(string version, string expectedReason)
+    {
+        BuiltInTpFlashMapCatalog.Catalog catalog = CreatePendingOnlyCatalog();
+
+        Assert.False(catalog.TrySelect("TEST-IC-P", version, out TpFlashMapProfile? profile, out string? issue));
+        Assert.Null(profile);
+        Assert.Equal(expectedReason, issue);
+    }
+
+    /// <summary>Below the minimum or unreadable, the pending-only IC is refused without a map.</summary>
+    [Theory]
+    [InlineData("0.9.9")]
+    [InlineData("invalid")]
+    [InlineData(null)]
+    public void PendingOnlyIcRefusesUnusableVersions(string? version)
+    {
+        BuiltInTpFlashMapCatalog.Catalog catalog = CreatePendingOnlyCatalog();
+
+        Assert.False(catalog.TrySelect("TEST-IC-P", version, out TpFlashMapProfile? profile, out string? issue));
+        Assert.Null(profile);
+        Assert.False(string.IsNullOrWhiteSpace(issue));
+    }
+
+    /// <summary>A pending-only IC with one slot still has an id in the catalog and no by-IC map.</summary>
+    [Fact]
+    public void SoleNotProvidedSlotIsRefusedAndHasNoByIcMap()
+    {
+        var catalog = new BuiltInTpFlashMapCatalog.Catalog(
+            [],
+            [new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-P", new(1, 0, 0), "the map is missing")]);
+
+        Assert.Equal(["TEST-IC-P"], catalog.IcIds);
+        Assert.False(catalog.TryFind("TEST-IC-P", out _));
+        Assert.False(catalog.TrySelect("TEST-IC-P", null, out _, out string? issue));
+        Assert.Equal("the map is missing", issue);
     }
 
     /// <summary>The by-IC lookups never serve an IC that has a pending map, because they cannot see a version.</summary>
@@ -186,5 +229,15 @@ public sealed class BuiltInTpFlashMapCatalogSelectionTests
         profiles = TpFlashMapCatalogTestData.Load(TpFlashMapCatalogTestData.Profile());
         return new BuiltInTpFlashMapCatalog.Catalog(profiles,
             [new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-A", new(2, 0, 0), "the 2.0.0 map is missing")]);
+    }
+
+    private static BuiltInTpFlashMapCatalog.Catalog CreatePendingOnlyCatalog()
+    {
+        return new BuiltInTpFlashMapCatalog.Catalog(
+            [],
+            [
+                new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-P", new(1, 0, 0), "the 1.x map is missing"),
+                new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-P", new(2, 0, 0), "the 2.0.0 map is missing"),
+            ]);
     }
 }

@@ -21,7 +21,7 @@ public sealed class BuiltInTpFlashMapCatalogTests
     }
 
     /// <summary>
-    /// Returns the TP map the profile's Common FW line selects. Only the declared pending NT51925 2.0.0 map is absent.
+    /// Returns the TP map the profile's Common FW line selects. Only the declared not-provided NT51925 maps (1.x and 2.0.0) are absent.
     /// </summary>
     private static TpFlashMapProfile? SelectMap(LegacyCombinerPostbuildProfile profile)
     {
@@ -35,8 +35,7 @@ public sealed class BuiltInTpFlashMapCatalogTests
         }
 
         Assert.Equal("NT51925", profile.IcId);
-        Assert.Equal(new LegacyCombinerCommonFwVersion(2, 0, 0), profile.EffectiveCommonFwVersion);
-        Assert.Contains("2.0.0 map has not been provided", issue, StringComparison.Ordinal);
+        Assert.Contains("map has not been provided", issue, StringComparison.Ordinal);
         return null;
     }
 

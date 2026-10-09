@@ -114,30 +114,37 @@ Decision proposed here:
 - A later map, for example from 2.5.0, is one new catalog entry with its owner
   evidence. It needs no code change. Versions 2.0.0 to 2.4.x keep using the 2.0.0
   entry. Adding such an entry is a firmware change and follows the gates below.
-- The catalog may declare a pending map: an IC, the first Common FW version that
-  has no map yet, and a reason. From that version on, the catalog refuses the IC
-  and returns the reason. Below it, entries apply as before. An IC with a pending
-  map needs a readable version, like an IC with several entries. An entry at or
-  above the pending version makes the marker stale, and the loader rejects such a
-  catalog, so the marker is removed with the entry that replaces it.
-- NT51925 declares a pending map from Common FW 2.0.0. A 2.x firmware is refused
-  with the message that the 2.0.0 map has not been provided, until the owner
-  supplies it. Common FW 1.x keeps using the one entry that borrows NT51926
-  values. That entry is a candidate and not an NT51925 fact. The NT51925
-  candidates keep their promotion blockers and publish no executable output.
+- An entry that says "map not provided" is a slot like a map. It has an IC, a first
+  Common FW version and a reason. The slots of one IC, maps and markers together,
+  form one list. Each IC list starts at 1.0.0. One version is used once. The
+  selector takes the slot with the highest version that is not above the input.
+  If that slot is a marker, the selector refuses the IC and returns its reason.
+  An IC may have only markers. An IC with several slots needs a readable version.
+- NT51925 has two markers: 1.0.0 ("NT51925 1.x map has not been provided") and
+  2.0.0 ("NT51925 2.0.0 map has not been provided"). Both lines are refused until
+  the owner supplies the map. The NT51926 values that the isolated candidate
+  borrowed are removed from the catalog, so they cannot be selected. NT51925 and
+  NT51926 differ in the NF and VN sizes and in every address, so borrowing was
+  never correct. The NT51925 candidates keep their promotion blockers and publish
+  no executable output.
+- The end flag is not a fixed address. Its position differs between ICs, and for
+  some ICs it depends on the IC count (ADR 0076). The FWConfig Backup location follows
+  the end flag of each map, not a shared constant. A future
+  NT51925 map declares its own end flag per Common FW line.
 - One internal selector, `BuiltInCommonFwSelector`, picks the postbuild profile and
   the TP flash map for one Common FW version. CtrlRAM Replace, General Replace and
   the memory-layout display call it, so they cannot disagree on the rule, the
-  messages or the pending refusal. The by-IC catalog lookups remain for ICs with
-  one entry and no pending map, and return nothing for any other IC.
+  messages or the refusal of a marker. The by-IC catalog lookups remain for ICs
+  with exactly one slot that is a map, and return nothing for any other IC.
 - Standard Merge does not read the TP flash-map catalog today. Its image maps
-  declare no Common FW condition. A version condition for them needs its own
-  profile design and is not part of this amendment.
+  declare no Common FW condition. The NT51925 Standard Merge candidate cannot run
+  yet, so a version condition for image maps is a later item. It changes the
+  profile schema and needs R3 approval from the owner. It is not part of this
+  amendment.
 
-This amendment adds no map values. The V1 and V2 TP ranges, the production
-layout and the Cascade mapping stay unconfirmed. They wait for the owner's
-workbook sheet for V2, the owner's choice of the production layout and the Golden
-evidence listed below. Replace stays deferred.
+This amendment adds no NT51925 map values. The V1 and V2 TP ranges, the
+production layout and the Cascade mapping stay unconfirmed. They wait for the
+owner's data and the Golden evidence listed below. Replace stays deferred.
 
 ## Required owner evidence and gates
 

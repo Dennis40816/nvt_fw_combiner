@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Infrastructure.FlashMaps;
 internal static partial class BuiltInTpFlashMapCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/flash-map.json";
-    private const string ExpectedSha256 = "3531245afbf71b751e095fb0aee3b2f65e67b348fbf2289303520caf75aea9c6";
+    private const string ExpectedSha256 = "1ba6eee0a139266121cda96e95f5e1f3dc1f0d317508a92ea71d9fc1970e67ed";
     private static LoadedCatalog LoadShippedCatalog()
     {
         string path = Path.Combine(AppContext.BaseDirectory, RelativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -37,56 +37,49 @@ internal static partial class BuiltInTpFlashMapCatalog
         }
 
         TpFlashMapProfile[] profiles = [.. document.Profiles.Select(CreateProfile)];
-        if (profiles.Select(static profile => (profile.IcId, profile.EffectiveCommonFwVersion))
-                .Distinct().Count() != profiles.Length)
-        {
-            throw Invalid("duplicate IC id / effectiveCommonFwVersion");
-        }
+        PendingTpFlashMap[] pending = CreatePendingMaps(document.PendingMaps ?? []);
+        ValidateSlots(profiles, pending);
 
-        IGrouping<string, TpFlashMapProfile>[] groups =
-            [.. profiles.GroupBy(static profile => profile.IcId, StringComparer.Ordinal)];
-        foreach (IGrouping<string, TpFlashMapProfile> group in groups)
-        {
-            if (group.Min(static profile => profile.EffectiveCommonFwVersion) !=
-                LegacyCombinerCommonFwVersion.MinimumSupported)
-            {
-                throw Invalid($"{group.Key} first effectiveCommonFwVersion");
-            }
-        }
-
-        TpFlashMapProfile[] ordered = [.. groups
+        TpFlashMapProfile[] ordered = [.. profiles
+            .GroupBy(static profile => profile.IcId, StringComparer.Ordinal)
             .SelectMany(static group => group.OrderBy(static profile => profile.EffectiveCommonFwVersion))];
-        return new LoadedCatalog(
-            Array.AsReadOnly(ordered),
-            CreatePendingMaps(document.PendingMaps ?? [], ordered));
+        return new LoadedCatalog(Array.AsReadOnly(ordered), Array.AsReadOnly(pending));
     }
 
-    private static PendingTpFlashMap[] CreatePendingMaps(
-        IReadOnlyList<PendingMapDocument> sources,
-        IReadOnlyList<TpFlashMapProfile> profiles)
+    private static PendingTpFlashMap[] CreatePendingMaps(IReadOnlyList<PendingMapDocument> sources)
     {
-        PendingTpFlashMap[] pending = [.. sources.Select(static source =>
+        return [.. sources.Select(static source =>
             !string.IsNullOrWhiteSpace(source.IcId) &&
             !string.IsNullOrWhiteSpace(source.Reason) &&
             LegacyCombinerCommonFwVersion.TryParse(source.FromCommonFwVersion, out LegacyCombinerCommonFwVersion from)
                 ? new PendingTpFlashMap(source.IcId, from, source.Reason)
                 : throw Invalid("pendingMaps entry"))];
-        if (pending.Select(static map => map.IcId).Distinct(StringComparer.Ordinal).Count() != pending.Length)
+    }
+
+    /// <summary>
+    /// Checks each IC's slots, the entries and the pending markers together: a version is used once and the first
+    /// slot starts at the minimum supported version. An IC may have only pending markers.
+    /// </summary>
+    private static void ValidateSlots(IReadOnlyList<TpFlashMapProfile> profiles, IReadOnlyList<PendingTpFlashMap> pending)
+    {
+        (string IcId, LegacyCombinerCommonFwVersion Version)[] slots =
+        [
+            .. profiles.Select(static profile => (profile.IcId, profile.EffectiveCommonFwVersion)),
+            .. pending.Select(static map => (map.IcId, map.FromCommonFwVersion)),
+        ];
+        if (slots.Distinct().Count() != slots.Length)
         {
-            throw Invalid("duplicate pendingMaps IC id");
+            throw Invalid("duplicate IC id / effectiveCommonFwVersion");
         }
 
-        foreach (PendingTpFlashMap map in pending)
+        foreach (IGrouping<string, (string IcId, LegacyCombinerCommonFwVersion Version)> group in
+                 slots.GroupBy(static slot => slot.IcId, StringComparer.Ordinal))
         {
-            TpFlashMapProfile[] entries = [.. profiles.Where(profile => StringComparer.Ordinal.Equals(profile.IcId, map.IcId))];
-            // A pending map announces a version no entry covers yet. An entry at or above it makes the marker stale.
-            if (entries.Length == 0 || entries.Any(entry => entry.EffectiveCommonFwVersion >= map.FromCommonFwVersion))
+            if (group.Min(static slot => slot.Version) != LegacyCombinerCommonFwVersion.MinimumSupported)
             {
-                throw Invalid($"pendingMaps entry for {map.IcId}");
+                throw Invalid($"{group.Key} first effectiveCommonFwVersion");
             }
         }
-
-        return pending;
     }
 
     private static TpFlashMapProfile CreateProfile(ProfileDocument source)
@@ -186,7 +179,7 @@ internal static partial class BuiltInTpFlashMapCatalog
         IReadOnlyList<PendingTpFlashMap> PendingMaps);
 
     /// <summary>
-    /// Declares that an IC has no map from a Common FW version on, so no earlier entry may be used there.
+    /// Declares that an IC has no map from a Common FW version on, so no earlier slot may be used there.
     /// </summary>
     internal sealed record PendingTpFlashMap(string IcId, LegacyCombinerCommonFwVersion FromCommonFwVersion, string Reason);
 }

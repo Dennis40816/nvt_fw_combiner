@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Composition;
@@ -9,24 +8,22 @@ namespace NvtFwCombiner.Infrastructure.Tests.Composition;
 /// <summary>Tests the one selector that every flow uses to pick the postbuild profile and the TP flash map.</summary>
 public sealed class BuiltInCommonFwSelectorTests
 {
-    /// <summary>The shipped NT51925 entry still borrows NT51926 values, so Common FW 1.x is a candidate and not verified.</summary>
+    /// <summary>NT51925 Common FW 1.x is refused with a message that names the missing 1.x map.</summary>
     [Theory]
     [InlineData("1.0.0")]
     [InlineData("1.4.1")]
     [InlineData("1.255.255")]
-    public void Nt51925Common1xSelectsTheBorrowedCandidateMap(string commonFwVersion)
+    public void Nt51925Common1xIsRefusedUntilItsMapExists(string commonFwVersion)
     {
-        Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, commonFwVersion,
+        Assert.False(BuiltInCommonFwSelector.TrySelect("NT51925", true, commonFwVersion,
             out BuiltInCommonFwSelection? selection, out CompositionIssue? issue));
 
-        Assert.Null(issue);
-        Assert.Equal(new LegacyCombinerCommonFwVersion(1, 0, 0),
-            selection!.PostbuildProfile!.EffectiveCommonFwVersion);
-        Assert.Contains("borrowed NT51926 values", selection.TpFlashMap!.OverviewSource, StringComparison.Ordinal);
-        Assert.Contains("pending", selection.TpFlashMap.BaseShapeEvidence, StringComparison.Ordinal);
+        Assert.Null(selection);
+        Assert.Equal(CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported, issue!.Code);
+        Assert.Equal("NT51925 1.x map has not been provided", issue.Message);
     }
 
-    /// <summary>NT51925 Common FW 2.0.0 and later is refused with a message that names the missing map.</summary>
+    /// <summary>NT51925 Common FW 2.0.0 and later is refused with a message that names the missing 2.0.0 map.</summary>
     [Theory]
     [InlineData("2.0.0")]
     [InlineData("2.4.99")]
@@ -40,11 +37,10 @@ public sealed class BuiltInCommonFwSelectorTests
 
         Assert.Null(selection);
         Assert.Equal(CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported, issue!.Code);
-        Assert.Contains("NT51925", issue.Message, StringComparison.Ordinal);
-        Assert.Contains("2.0.0 map has not been provided", issue.Message, StringComparison.Ordinal);
+        Assert.Equal("NT51925 2.0.0 map has not been provided", issue.Message);
     }
 
-    /// <summary>An unreadable or missing version never falls back to the candidate map for NT51925.</summary>
+    /// <summary>An unreadable or missing version never selects a map for NT51925.</summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -103,6 +99,7 @@ public sealed class BuiltInCommonFwSelectorTests
 
     /// <summary>The display lookup shows no map instead of an unverified one when the selection is refused.</summary>
     [Theory]
+    [InlineData("1.4.1")]
     [InlineData("2.0.0")]
     [InlineData("255.255.255")]
     [InlineData(null)]
@@ -110,13 +107,6 @@ public sealed class BuiltInCommonFwSelectorTests
     public void DisplayLookupShowsNoMapForARefusedNt51925Version(string? commonFwVersion)
     {
         Assert.Null(BuiltInCommonFwSelector.FindTpFlashMap("NT51925", commonFwVersion));
-    }
-
-    /// <summary>The display lookup still shows the candidate map for a readable 1.x version.</summary>
-    [Fact]
-    public void DisplayLookupShowsTheCandidateMapForNt51925Common1x()
-    {
-        Assert.NotNull(BuiltInCommonFwSelector.FindTpFlashMap("NT51925", "1.4.1"));
     }
 
     /// <summary>An IC without a TP flash-map entry still resolves its postbuild profile and gets no map.</summary>
