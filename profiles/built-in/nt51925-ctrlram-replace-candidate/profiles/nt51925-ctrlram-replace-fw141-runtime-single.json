@@ -47,7 +47,7 @@
   "mapBinding": {
     "familyId": "nt51925-ctrlram-replace",
     "familyVersion": "0.1.0",
-    "familyContentHash": "a96dec1f0b04a5cf4901860245d64798468f4dc4e282789c44546c9fb486e9a4",
+    "familyContentHash": "17d21801f5ec555c6186fc480a7e4edeb4156e929b278fe3b6fe8dc67bb29e49",
     "mapIds": [
       "nt51925-ctrlram-fw141-tp-work-240k",
       "nt51925-ctrlram-fw141-full-flash-256k"

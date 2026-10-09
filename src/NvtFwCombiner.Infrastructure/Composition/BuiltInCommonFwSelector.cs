@@ -90,10 +90,16 @@ internal static class BuiltInCommonFwSelector
     /// </summary>
     internal static TpFlashMapProfile? FindTpFlashMap(string icId, string? commonFwVersion)
     {
-        string normalizedIcId = IcIdentifier.Normalize(icId);
-        // An IC with one map keeps showing it for any version, as before. Other refusals show no map.
-        return BuiltInTpFlashMapCatalog.TrySelect(normalizedIcId, commonFwVersion, out TpFlashMapProfile? tpFlashMap, out _)
-            ? tpFlashMap
-            : BuiltInTpFlashMapCatalog.TryFind(normalizedIcId, out TpFlashMapProfile? sole) ? sole : null;
+        return FindTpFlashMap(icId, commonFwVersion, out _);
+    }
+
+    internal static TpFlashMapProfile? FindTpFlashMap(
+        string icId,
+        string? commonFwVersion,
+        out string? issue,
+        BuiltInTpFlashMapCatalog.Catalog? catalog = null)
+    {
+        return (catalog ?? BuiltInTpFlashMapCatalog.ShippedCatalog).FindForDisplay(
+            IcIdentifier.Normalize(icId), commonFwVersion, out issue);
     }
 }

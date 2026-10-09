@@ -9,6 +9,8 @@ internal static partial class BuiltInTpFlashMapCatalog
 {
     private static readonly Catalog CatalogInstance = CreateShippedCatalog();
 
+    internal static Catalog ShippedCatalog => CatalogInstance;
+
     private static Catalog CreateShippedCatalog()
     {
         LoadedCatalog loaded = LoadShippedCatalog();
@@ -52,14 +54,12 @@ internal static partial class BuiltInTpFlashMapCatalog
     {
         int? count = TryGetNumericCount(selection);
         bool isSingle = IsSingle(selection, count);
-        return [
-            .. ApplyPostbuildRangeOverrides(
-                    profile.Regions
-                        .Where(region => kind is null || region.Kind == kind)
-                        .Where(region => IsVisible(region.Visibility, isSingle, count)),
-                    postbuildProfile,
-                    selection)
-        ];
+        TpFlashMapRegion[] visible = [.. profile.Regions
+            .Where(region => kind is null || region.Kind == kind)
+            .Where(region => IsVisible(region.Visibility, isSingle, count))];
+        return profile.UseDeclaredRegionRanges
+            ? visible
+            : ApplyPostbuildRangeOverrides(visible, postbuildProfile, selection);
     }
 
     /// <summary>Gets TP Overview regions adjusted by one exact topology-resolved postbuild plan.</summary>
@@ -78,13 +78,12 @@ internal static partial class BuiltInTpFlashMapCatalog
     {
         int count = postbuildPlan.TopologyCount;
         bool isSingle = count == 1;
-        return [
-            .. ApplyPostbuildRangeOverrides(
-                profile.Regions
-                    .Where(region => kind is null || region.Kind == kind)
-                    .Where(region => IsVisible(region.Visibility, isSingle, count)),
-                postbuildPlan)
-        ];
+        TpFlashMapRegion[] visible = [.. profile.Regions
+            .Where(region => kind is null || region.Kind == kind)
+            .Where(region => IsVisible(region.Visibility, isSingle, count))];
+        return profile.UseDeclaredRegionRanges
+            ? visible
+            : ApplyPostbuildRangeOverrides(visible, postbuildPlan);
     }
 
     private static bool IsVisible(TpFlashMapRegionVisibility visibility, bool isSingle, int? count)
@@ -92,6 +91,7 @@ internal static partial class BuiltInTpFlashMapCatalog
         return visibility switch
         {
             TpFlashMapRegionVisibility.Always => true,
+            TpFlashMapRegionVisibility.SingleChipOnly => isSingle,
             TpFlashMapRegionVisibility.MultiChipOnly => !isSingle,
             TpFlashMapRegionVisibility.TwoChipAndAbove => !isSingle && (count is null || count >= 2),
             TpFlashMapRegionVisibility.ThreeChipAndAbove => !isSingle && (count is null || count >= 3),

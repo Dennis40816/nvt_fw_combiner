@@ -157,7 +157,7 @@ public sealed class Nt51925RestorationProfileTests
 
     private static CompiledComposition CompileRuntime(string ic, string profileVersion, string fw, int chipCount, int capacity)
     {
-        byte[] reference = CreateRuntimeReference(fw, capacity);
+        byte[] reference = CreateRuntimeReference(fw, capacity, ic);
         string topology = chipCount == 1 ? "single" : "cascade";
         V2CompositionPlanCompileResult result = BuiltInV2BundleRegistry.All[$"{ic.ToLowerInvariant()}-ctrlram-replace-candidate"]
             .CompileRuntimeReferenceReplace(
@@ -176,13 +176,14 @@ public sealed class Nt51925RestorationProfileTests
         return Assert.IsType<CompiledComposition>(result.CompiledComposition);
     }
 
-    private static byte[] CreateRuntimeReference(string fw, int capacity)
+    private static byte[] CreateRuntimeReference(string fw, int capacity, string ic = "NT51925")
     {
         byte[] reference = new byte[capacity];
-        reference[0x3B000 + FirmwareConfigLayout.CommonFwMajorVersionOffset] = fw == "141" ? (byte)1 : (byte)2;
-        reference[0x3B000 + FirmwareConfigLayout.CommonFwMinorVersionOffset] = fw == "141" ? (byte)4 : (byte)0;
-        reference[0x3B000 + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = fw == "141" ? (byte)1 : (byte)0;
-        new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(reference, 0x3BFFC);
+        int backupStart = ic == "NT51925" ? 0x2F000 : 0x3B000;
+        reference[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = fw == "141" ? (byte)1 : (byte)2;
+        reference[backupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = fw == "141" ? (byte)4 : (byte)0;
+        reference[backupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = fw == "141" ? (byte)1 : (byte)0;
+        new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(reference, backupStart + 0xFFC);
         return reference;
     }
 

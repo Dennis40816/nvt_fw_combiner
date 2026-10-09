@@ -1358,18 +1358,255 @@
           "tags": []
         }
       ]
-    }
-  ],
-  "pendingMaps": [
-    {
-      "icId": "NT51925",
-      "fromCommonFwVersion": "1.0.0",
-      "reason": "NT51925 1.x map has not been provided"
     },
     {
       "icId": "NT51925",
-      "fromCommonFwVersion": "2.0.0",
-      "reason": "NT51925 2.0.0 map has not been provided"
+      "overviewSource": "The owner's postbuild flow",
+      "effectiveCommonFwVersion": "1.0.0",
+      "firmwareConfigPrimaryStart": 139264,
+      "tpPrefixLength": 196608,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "useDeclaredRegionRanges": true,
+      "baseShapeEvidence": "The owner's postbuild flow is the authority. Common FW 1.x cascade: postbuild plus two real BINs agree (owner-reported); Common FW 1.x single: postbuild only, no real BIN. The single-chip .data position is unknown. Candidate execution remains blocked; no support, approval or Golden claim.",
+      "evidence": "The owner's postbuild flow is the authority. Common FW 1.x cascade: postbuild plus two real BINs agree (owner-reported); Common FW 1.x single: postbuild only, no real BIN. The single-chip .data position is unknown. Candidate execution remains blocked; no support, approval or Golden claim.",
+      "regions": [
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 141184,
+          "length": 10240,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp",
+          "displayName": "MP CtrlRAM",
+          "kind": "ctrlram",
+          "start": 151424,
+          "length": 8192,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "normal-slave",
+          "displayName": "Normal CtrlRAM_S",
+          "kind": "ctrlram",
+          "start": 159616,
+          "length": 10240,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": null,
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "mp-slave",
+          "displayName": "MP CtrlRAM_S",
+          "kind": "ctrlram",
+          "start": 169856,
+          "length": 8192,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": null,
+          "tags": [
+            "slave"
+          ]
+        },
+        {
+          "regionId": "vn-single",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 159616,
+          "length": 824,
+          "visibility": "single-chip-only",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "nf-single",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 160440,
+          "length": 3328,
+          "visibility": "single-chip-only",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 178048,
+          "length": 824,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 178872,
+          "length": 7856,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "fw-config-backup",
+          "displayName": "FW Config and Reg Backup",
+          "kind": "other",
+          "start": 192512,
+          "length": 1920,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 249856,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 253952,
+          "length": 8192,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
+    },
+    {
+      "icId": "NT51925",
+      "overviewSource": "The owner's postbuild flow",
+      "effectiveCommonFwVersion": "2.0.0",
+      "firmwareConfigPrimaryStart": 139264,
+      "tpPrefixLength": 196608,
+      "fullFlashCapacities": [
+        262144
+      ],
+      "useDeclaredRegionRanges": true,
+      "baseShapeEvidence": "The owner's postbuild flow is the authority. Common FW 2.0.0 cascade: postbuild plus three real BINs agree (owner-reported); Common FW 2.0.0 single: postbuild only, no real BIN, and differs only by omitting DIFF. Full DIFF use in a two-chip cascade and the gaps before/after Header Copy remain unknown. Candidate execution remains blocked; no support, approval or Golden claim.",
+      "evidence": "The owner's postbuild flow is the authority. Common FW 2.0.0 cascade: postbuild plus three real BINs agree (owner-reported); Common FW 2.0.0 single: postbuild only, no real BIN, and differs only by omitting DIFF. Full DIFF use in a two-chip cascade and the gaps before/after Header Copy remain unknown. Candidate execution remains blocked; no support, approval or Golden claim.",
+      "regions": [
+        {
+          "regionId": "normal",
+          "displayName": "Normal CtrlRAM",
+          "kind": "ctrlram",
+          "start": 141824,
+          "length": 11264,
+          "visibility": "always",
+          "postbuildFileName": "Normal_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "mp",
+          "displayName": "MP CtrlRAM",
+          "kind": "ctrlram",
+          "start": 153088,
+          "length": 9216,
+          "visibility": "always",
+          "postbuildFileName": "MP_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "diff",
+          "displayName": "DIFF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 162304,
+          "length": 10240,
+          "visibility": "multi-chip-only",
+          "postbuildFileName": "DiffDLM.bin",
+          "tags": [
+            "diff"
+          ]
+        },
+        {
+          "regionId": "vn",
+          "displayName": "VN CtrlRAM",
+          "kind": "ctrlram",
+          "start": 184320,
+          "length": 5728,
+          "visibility": "always",
+          "postbuildFileName": "VN_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "nf",
+          "displayName": "NF CtrlRAM",
+          "kind": "ctrlram",
+          "start": 172544,
+          "length": 11776,
+          "visibility": "always",
+          "postbuildFileName": "NF_Ctrlram.bin",
+          "tags": []
+        },
+        {
+          "regionId": "header-backup",
+          "displayName": "FW Header Copy",
+          "kind": "other",
+          "start": 190848,
+          "length": 256,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "fw-config-backup",
+          "displayName": "FW Config and Reg Backup",
+          "kind": "other",
+          "start": 192512,
+          "length": 2048,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "backup",
+            "postbuild"
+          ]
+        },
+        {
+          "regionId": "customer-info",
+          "displayName": "Customer information",
+          "kind": "customer-info",
+          "start": 249856,
+          "length": 4096,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": [
+            "preserve"
+          ]
+        },
+        {
+          "regionId": "dp",
+          "displayName": "DP Region",
+          "kind": "dp",
+          "start": 253952,
+          "length": 8192,
+          "visibility": "always",
+          "postbuildFileName": null,
+          "tags": []
+        }
+      ]
     }
   ]
 }

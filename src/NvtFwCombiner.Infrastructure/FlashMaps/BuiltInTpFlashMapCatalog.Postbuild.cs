@@ -41,7 +41,7 @@ internal static partial class BuiltInTpFlashMapCatalog
             GetSelectableStagedFileBlocks(plan);
         return [
             .. GetRegionsForPlan(profile, plan, TpFlashMapRegionKind.CtrlRam)
-                .Where(region => blocks.Any(block => IsMappedBlock(region, block)))
+                .Where(region => blocks.Any(block => IsMappedBlock(region, block, profile.UseDeclaredRegionRanges)))
         ];
     }
 
@@ -104,13 +104,15 @@ internal static partial class BuiltInTpFlashMapCatalog
             .. GetSelectableStagedFileBlocks(plan)
             .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
             .GroupBy(block => block.SourceFileName, StringComparer.Ordinal)
+            .Where(group => !flashMapProfile.UseDeclaredRegionRanges ||
+                group.All(block => regions.Any(region => IsMappedBlock(region, block, requireExactRange: true))))
             .OrderBy(group => group.Min(block => block.FirmwareRange.Start))
             .Select(group =>
             {
                 LegacyCombinerBlockArgument[] blocks = [.. group];
                 TpFlashMapRegion[] sourceRegions = [.. regions.Where(region =>
                     string.Equals(region.PostbuildFileName, group.Key, StringComparison.Ordinal) &&
-                    blocks.Any(block => region.Range.Overlaps(block.FirmwareRange)))];
+                    blocks.Any(block => IsMappedBlock(region, block, flashMapProfile.UseDeclaredRegionRanges)))];
                 string[] physicalRegionIds = [.. flashMapProfile.Regions
                     .Where(region =>
                     region.Kind == TpFlashMapRegionKind.CtrlRam &&
@@ -228,9 +230,9 @@ internal static partial class BuiltInTpFlashMapCatalog
             block.BlockId.Contains("fw-config", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static bool IsMappedBlock(TpFlashMapRegion region, LegacyCombinerBlockArgument block)
+    private static bool IsMappedBlock(TpFlashMapRegion region, LegacyCombinerBlockArgument block, bool requireExactRange = false)
     {
         return string.Equals(region.PostbuildFileName, block.SourceFileName, StringComparison.Ordinal) &&
-            region.Range.Overlaps(block.FirmwareRange);
+            (requireExactRange ? region.Range.Equals(block.FirmwareRange) : region.Range.Overlaps(block.FirmwareRange));
     }
 }

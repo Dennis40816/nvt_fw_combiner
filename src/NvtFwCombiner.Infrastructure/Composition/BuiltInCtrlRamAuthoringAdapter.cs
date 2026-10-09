@@ -58,11 +58,12 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
         string number,
         LegacyCombinerPostbuildProfile? postbuildProfile,
         string? commonFwVersion,
-        bool hasReadableBase)
+        bool hasReadableBase,
+        BuiltInTpFlashMapCatalog.Catalog? catalog = null)
     {
         var selection = IcNumberSelection.FromToken(number);
         LegacyCombinerPostbuildCommandPlan? commandPlan = postbuildProfile?.ResolvePlan(selection);
-        TpFlashMapProfile? tpFlashMap = BuiltInCommonFwSelector.FindTpFlashMap(icId, commonFwVersion);
+        TpFlashMapProfile? tpFlashMap = BuiltInCommonFwSelector.FindTpFlashMap(icId, commonFwVersion, out string? issue, catalog);
         return MemoryLayoutProjector.ProjectCtrlRamDiscovery(
             number,
             commandPlan,
@@ -75,7 +76,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
                 tpFlashMap,
                 selection,
                 postbuildProfile),
-            hasReadableBase);
+            hasReadableBase) with { Issue = issue };
     }
 
     public CtrlRamAuthoringCompilation Resolve(

@@ -98,6 +98,21 @@ internal static partial class BuiltInTpFlashMapCatalog
             return profile is not null;
         }
 
+        /// <summary>Uses the slot selection issue for display, retaining the existing sole-map fallback.</summary>
+        internal TpFlashMapProfile? FindForDisplay(string icId, string? version, out string? issue)
+        {
+            if (TrySelect(icId, version, out TpFlashMapProfile? selected, out issue))
+            {
+                return selected;
+            }
+            if (TryFind(icId, out TpFlashMapProfile? sole))
+            {
+                issue = null;
+                return sole;
+            }
+            return null;
+        }
+
         /// <summary>Gets visible regions only for an IC whose sole slot is a map.</summary>
         internal IReadOnlyList<TpFlashMapRegion> GetRegions(
             string icId,
