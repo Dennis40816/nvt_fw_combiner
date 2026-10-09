@@ -117,18 +117,62 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
         self.assertEqual(1, len(errors))
         self.assertIn("explicit Compile include", errors[0])
 
-    def test_accepts_the_pinned_core_source_in_its_two_consumers(self) -> None:
-        document = (
-            '<Project><ItemGroup><Compile Include="../../Vendor/Core/UiEventRunner.cs" '
-            'Link="Vendor/Core/UiEventRunner.cs" /></ItemGroup></Project>'
+    PRESENTATION_PROJECT = (
+        "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj"
+    )
+    LAUNCHER_PROJECT = (
+        "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj"
+    )
+    PINNED_CORE_INCLUDE = (
+        '<Project><ItemGroup><Compile Include="../../Vendor/Core/UiEventRunner.cs" '
+        'Link="Vendor/Core/UiEventRunner.cs" /></ItemGroup></Project>'
+    )
+
+    def test_accepts_the_pinned_core_source_in_the_presentation_project(self) -> None:
+        self.assertEqual([], self.validate(self.PRESENTATION_PROJECT, self.PINNED_CORE_INCLUDE))
+
+    def test_accepts_the_pinned_core_source_in_the_launcher_project(self) -> None:
+        self.assertEqual([], self.validate(self.LAUNCHER_PROJECT, self.PINNED_CORE_INCLUDE))
+
+    def test_rejects_a_property_that_resolves_to_the_pinned_core_source(self) -> None:
+        errors = self.validate(
+            self.PRESENTATION_PROJECT,
+            '<Project><ItemGroup><Compile Include="$(Hidden)/../../../Vendor/Core/UiEventRunner.cs" />'
+            "</ItemGroup></Project>",
         )
 
-        for relative in (
-            "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
-            "src/NvtFwCombiner.DistributionLauncher/NvtFwCombiner.DistributionLauncher.csproj",
-        ):
-            with self.subTest(relative=relative):
-                self.assertEqual([], self.validate(relative, document))
+        self.assertEqual(1, len(errors))
+
+    def test_evaluated_check_accepts_the_pinned_core_source_in_a_consumer(self) -> None:
+        errors: list[str] = []
+        validate_evaluated_production_source_ownership(
+            self.PRESENTATION_PROJECT,
+            ROOT / "src" / "NvtFwCombiner.Presentation.Avalonia",
+            {
+                "Compile": [{"FullPath": str(ROOT / "Vendor" / "Core" / "UiEventRunner.cs")}],
+                "Analyzer": [],
+            },
+            self.sdks_directory,
+            errors,
+        )
+
+        self.assertEqual([], errors)
+
+    def test_evaluated_check_rejects_the_pinned_core_source_in_another_project(self) -> None:
+        errors: list[str] = []
+        validate_evaluated_production_source_ownership(
+            "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+            ROOT / "src" / "NvtFwCombiner.Cli",
+            {
+                "Compile": [{"FullPath": str(ROOT / "Vendor" / "Core" / "UiEventRunner.cs")}],
+                "Analyzer": [],
+            },
+            self.sdks_directory,
+            errors,
+        )
+
+        self.assertEqual(1, len(errors))
+        self.assertIn("physical C#", errors[0])
 
     def test_rejects_the_pinned_core_source_in_any_other_production_project(self) -> None:
         errors = self.validate(
