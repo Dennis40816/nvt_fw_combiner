@@ -20,10 +20,14 @@ internal static partial class BuiltInTpFlashMapCatalog
     internal sealed class Catalog
     {
         private readonly Dictionary<string, TpFlashMapProfile[]> _profilesByIc;
+        private readonly Dictionary<string, PendingTpFlashMap> _pendingByIc;
 
-        /// <summary>Creates an isolated query catalog from loaded, validated entries.</summary>
-        internal Catalog(IReadOnlyList<TpFlashMapProfile> profiles)
+        /// <summary>Creates an isolated query catalog from loaded, validated entries and pending-map declarations.</summary>
+        internal Catalog(
+            IReadOnlyList<TpFlashMapProfile> profiles,
+            IReadOnlyList<PendingTpFlashMap>? pendingMaps = null)
         {
+            _pendingByIc = (pendingMaps ?? []).ToDictionary(static map => map.IcId, StringComparer.Ordinal);
             _profilesByIc = profiles.GroupBy(static profile => profile.IcId, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key,
                     group => group.OrderBy(static profile => profile.EffectiveCommonFwVersion).ToArray(),
@@ -34,12 +38,14 @@ internal static partial class BuiltInTpFlashMapCatalog
         /// <summary>Each declared IC id once in ordinal order, including ICs that require version selection.</summary>
         internal IReadOnlyList<string> IcIds { get; }
 
-        /// <summary>Finds a map only when the IC has exactly one entry.</summary>
+        /// <summary>Finds a map only when the IC has exactly one entry and no pending map.</summary>
         internal bool TryFind(string icId, [NotNullWhen(true)] out TpFlashMapProfile? profile)
         {
-            profile = _profilesByIc.TryGetValue(icId, out TpFlashMapProfile[]? profiles) && profiles.Length == 1
-                ? profiles[0]
-                : null;
+            profile = _profilesByIc.TryGetValue(icId, out TpFlashMapProfile[]? profiles) &&
+                profiles.Length == 1 &&
+                !_pendingByIc.ContainsKey(icId)
+                    ? profiles[0]
+                    : null;
             return profile is not null;
         }
 
@@ -51,9 +57,20 @@ internal static partial class BuiltInTpFlashMapCatalog
             out string? issue)
         {
             TpFlashMapProfile[] profiles = _profilesByIc.GetValueOrDefault(icId) ?? [];
+            bool hasPending = _pendingByIc.TryGetValue(icId, out PendingTpFlashMap? pending);
+            // A pending map acts as one more entry the caller cannot read yet, so a sole entry needs a version too.
             CommonFwVersionIntervalSelector.SelectionResult result = CommonFwVersionIntervalSelector.Select(
                 profiles, static candidate => candidate.EffectiveCommonFwVersion, commonFwVersion,
-                out int index, out LegacyCombinerCommonFwVersion version);
+                out int index, out LegacyCombinerCommonFwVersion version, requireVersion: hasPending);
+            if (result == CommonFwVersionIntervalSelector.SelectionResult.Selected &&
+                hasPending &&
+                version >= pending!.FromCommonFwVersion)
+            {
+                profile = null;
+                issue = pending.Reason;
+                return false;
+            }
+
             profile = index >= 0 ? profiles[index] : null;
             issue = result switch
             {
@@ -64,7 +81,7 @@ internal static partial class BuiltInTpFlashMapCatalog
                     $"{icId} Common FW {version} is below the minimum supported version " +
                     $"{LegacyCombinerCommonFwVersion.MinimumSupported}.",
                 CommonFwVersionIntervalSelector.SelectionResult.VersionRequired =>
-                    $"{icId} has multiple TP flash-map profiles; a valid three-component " +
+                    $"{icId} has several or pending TP flash-map profiles; a valid three-component " +
                     "base FWConfig Common FW version is required.",
                 CommonFwVersionIntervalSelector.SelectionResult.NoMatchingInterval =>
                     $"No TP flash-map profile for {icId} applies to Common FW {version}.",

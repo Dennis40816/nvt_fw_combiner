@@ -9,15 +9,21 @@ namespace NvtFwCombiner.Infrastructure.FlashMaps;
 internal static partial class BuiltInTpFlashMapCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/flash-map.json";
-    private const string ExpectedSha256 = "60b61fecca8fbab189ebd250c8beb6370e0960f2598ccf500e1a777747e9b4b4";
-    private static IReadOnlyList<TpFlashMapProfile> LoadProfiles()
+    private const string ExpectedSha256 = "3531245afbf71b751e095fb0aee3b2f65e67b348fbf2289303520caf75aea9c6";
+    private static LoadedCatalog LoadShippedCatalog()
     {
         string path = Path.Combine(AppContext.BaseDirectory, RelativePath.Replace('/', Path.DirectorySeparatorChar));
-        return Load(File.ReadAllBytes(path), ExpectedSha256);
+        return LoadCatalog(File.ReadAllBytes(path), ExpectedSha256);
     }
 
     /// <summary>Loads hash-checked schema 1.0 entries ordered by effective version within each IC.</summary>
     internal static IReadOnlyList<TpFlashMapProfile> Load(ReadOnlySpan<byte> bytes, string expectedSha256)
+    {
+        return LoadCatalog(bytes, expectedSha256).Profiles;
+    }
+
+    /// <summary>Loads entries and the declared pending maps of one hash-checked catalog document.</summary>
+    internal static LoadedCatalog LoadCatalog(ReadOnlySpan<byte> bytes, string expectedSha256)
     {
         CatalogDocument document = PinnedJsonCatalogLoader.Load<CatalogDocument>(
             bytes,
@@ -48,9 +54,39 @@ internal static partial class BuiltInTpFlashMapCatalog
             }
         }
 
-        return Array.AsReadOnly(groups
-            .SelectMany(static group => group.OrderBy(static profile => profile.EffectiveCommonFwVersion))
-            .ToArray());
+        TpFlashMapProfile[] ordered = [.. groups
+            .SelectMany(static group => group.OrderBy(static profile => profile.EffectiveCommonFwVersion))];
+        return new LoadedCatalog(
+            Array.AsReadOnly(ordered),
+            CreatePendingMaps(document.PendingMaps ?? [], ordered));
+    }
+
+    private static PendingTpFlashMap[] CreatePendingMaps(
+        IReadOnlyList<PendingMapDocument> sources,
+        IReadOnlyList<TpFlashMapProfile> profiles)
+    {
+        PendingTpFlashMap[] pending = [.. sources.Select(static source =>
+            !string.IsNullOrWhiteSpace(source.IcId) &&
+            !string.IsNullOrWhiteSpace(source.Reason) &&
+            LegacyCombinerCommonFwVersion.TryParse(source.FromCommonFwVersion, out LegacyCombinerCommonFwVersion from)
+                ? new PendingTpFlashMap(source.IcId, from, source.Reason)
+                : throw Invalid("pendingMaps entry"))];
+        if (pending.Select(static map => map.IcId).Distinct(StringComparer.Ordinal).Count() != pending.Length)
+        {
+            throw Invalid("duplicate pendingMaps IC id");
+        }
+
+        foreach (PendingTpFlashMap map in pending)
+        {
+            TpFlashMapProfile[] entries = [.. profiles.Where(profile => StringComparer.Ordinal.Equals(profile.IcId, map.IcId))];
+            // A pending map announces a version no entry covers yet. An entry at or above it makes the marker stale.
+            if (entries.Length == 0 || entries.Any(entry => entry.EffectiveCommonFwVersion >= map.FromCommonFwVersion))
+            {
+                throw Invalid($"pendingMaps entry for {map.IcId}");
+            }
+        }
+
+        return pending;
     }
 
     private static TpFlashMapProfile CreateProfile(ProfileDocument source)
@@ -115,7 +151,13 @@ internal static partial class BuiltInTpFlashMapCatalog
 
     private sealed record CatalogDocument(
         [property: JsonPropertyName("schemaVersion")] string SchemaVersion,
-        [property: JsonPropertyName("profiles")] IReadOnlyList<ProfileDocument>? Profiles);
+        [property: JsonPropertyName("profiles")] IReadOnlyList<ProfileDocument>? Profiles,
+        [property: JsonPropertyName("pendingMaps")] IReadOnlyList<PendingMapDocument>? PendingMaps = null);
+
+    private sealed record PendingMapDocument(
+        [property: JsonPropertyName("icId")] string IcId,
+        [property: JsonPropertyName("fromCommonFwVersion")] string FromCommonFwVersion,
+        [property: JsonPropertyName("reason")] string Reason);
 
     private sealed record ProfileDocument(
         [property: JsonPropertyName("icId")] string IcId,
@@ -137,4 +179,14 @@ internal static partial class BuiltInTpFlashMapCatalog
         [property: JsonPropertyName("visibility")] string Visibility,
         [property: JsonPropertyName("postbuildFileName")] string? PostbuildFileName,
         [property: JsonPropertyName("tags")] IReadOnlyList<string>? Tags);
+
+    /// <summary>Entries and pending-map declarations loaded from one catalog document.</summary>
+    internal sealed record LoadedCatalog(
+        IReadOnlyList<TpFlashMapProfile> Profiles,
+        IReadOnlyList<PendingTpFlashMap> PendingMaps);
+
+    /// <summary>
+    /// Declares that an IC has no map from a Common FW version on, so no earlier entry may be used there.
+    /// </summary>
+    internal sealed record PendingTpFlashMap(string IcId, LegacyCombinerCommonFwVersion FromCommonFwVersion, string Reason);
 }

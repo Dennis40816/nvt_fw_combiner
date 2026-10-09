@@ -27,6 +27,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
             icId,
             number,
             declaredProfile,
+            commonFwVersion: null,
             hasReadableBase: false);
     }
 
@@ -40,13 +41,15 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
                 _projection,
                 icId,
                 acceptedBaseBytes.Span,
-                out LegacyCombinerPostbuildProfile? profile)
+                out LegacyCombinerPostbuildProfile? profile,
+                out string? commonFwVersion)
                     ? profile
                     : null;
         return CreateDisplay(
             icId,
             number,
             postbuildProfile,
+            commonFwVersion,
             hasReadableBase: true);
     }
 
@@ -54,20 +57,22 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter(
         string icId,
         string number,
         LegacyCombinerPostbuildProfile? postbuildProfile,
+        string? commonFwVersion,
         bool hasReadableBase)
     {
         var selection = IcNumberSelection.FromToken(number);
         LegacyCombinerPostbuildCommandPlan? commandPlan = postbuildProfile?.ResolvePlan(selection);
+        TpFlashMapProfile? tpFlashMap = BuiltInCommonFwSelector.FindTpFlashMap(icId, commonFwVersion);
         return MemoryLayoutProjector.ProjectCtrlRamDiscovery(
             number,
             commandPlan,
-            BuiltInTpFlashMapCatalog.GetRegions(
-                icId,
+            BuiltInTpFlashMapCatalog.GetRegionsOf(
+                tpFlashMap,
                 selection,
                 postbuildProfile,
                 TpFlashMapRegionKind.CtrlRam),
-            BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
-                icId,
+            BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSourcesOf(
+                tpFlashMap,
                 selection,
                 postbuildProfile),
             hasReadableBase);

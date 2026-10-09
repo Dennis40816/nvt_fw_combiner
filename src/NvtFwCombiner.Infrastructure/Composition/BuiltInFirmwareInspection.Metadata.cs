@@ -161,7 +161,8 @@ internal sealed partial class BuiltInFirmwareInspection
         ICompositionCapabilityExperience projection,
         string icId,
         ReadOnlySpan<byte> acceptedBaseBytes,
-        out LegacyCombinerPostbuildProfile? postbuildProfile)
+        out LegacyCombinerPostbuildProfile? postbuildProfile,
+        out string? commonFwVersion)
     {
         FirmwareConfigMetadata? metadata =
             TryReadFirmwareConfigBackupMetadata(
@@ -171,6 +172,7 @@ internal sealed partial class BuiltInFirmwareInspection
                 out FirmwareConfigMetadata parsed)
                     ? parsed
                     : null;
+        commonFwVersion = metadata?.CommonFwVersion;
         return TryResolvePostbuildProfileForDisplay(
             projection,
             icId,

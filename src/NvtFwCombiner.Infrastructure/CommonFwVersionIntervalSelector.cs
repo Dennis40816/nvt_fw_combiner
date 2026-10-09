@@ -6,12 +6,17 @@ namespace NvtFwCombiner.Infrastructure;
 internal static class CommonFwVersionIntervalSelector
 {
     /// <summary>Selects the sole entry or the greatest effective version no higher than the input.</summary>
+    /// <remarks>
+    /// Callers that know a version-dependent entry exists elsewhere set <c>requireVersion</c>, so a sole entry is
+    /// not used without a readable version.
+    /// </remarks>
     internal static SelectionResult Select<TProfile>(
         IReadOnlyList<TProfile> profiles,
         Func<TProfile, LegacyCombinerCommonFwVersion> effectiveVersion,
         string? commonFwVersion,
         out int selectedIndex,
-        out LegacyCombinerCommonFwVersion version)
+        out LegacyCombinerCommonFwVersion version,
+        bool requireVersion = false)
     {
         selectedIndex = -1;
         version = default;
@@ -26,7 +31,7 @@ internal static class CommonFwVersionIntervalSelector
             return SelectionResult.BelowMinimum;
         }
 
-        if (profiles.Count == 1)
+        if (profiles.Count == 1 && !requireVersion)
         {
             selectedIndex = 0;
             return SelectionResult.Selected;

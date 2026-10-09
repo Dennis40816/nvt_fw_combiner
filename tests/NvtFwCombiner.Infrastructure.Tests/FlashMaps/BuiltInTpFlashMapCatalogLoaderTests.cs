@@ -34,7 +34,8 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
     [InlineData("NT51951", 0x37000, 0x80000)]
     public void ProfilesDeclareTpAndFullFlashShapes(string icId, long tpPrefix, long evidencedFlashCapacity)
     {
-        Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out Application.FlashMaps.TpFlashMapProfile? profile));
+        // NT51925 has a pending 2.0.0 map, so only a readable version below it selects its single entry.
+        Assert.True(BuiltInTpFlashMapCatalog.TrySelect(icId, "1.0.0", out Application.FlashMaps.TpFlashMapProfile? profile, out _));
         Assert.Equal(tpPrefix, profile!.TpPrefixLength);
         Assert.Contains(evidencedFlashCapacity, profile.FullFlashCapacities);
         Assert.False(string.IsNullOrWhiteSpace(profile.BaseShapeEvidence));

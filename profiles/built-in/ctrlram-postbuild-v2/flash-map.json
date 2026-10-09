@@ -1469,5 +1469,12 @@
         }
       ]
     }
+  ],
+  "pendingMaps": [
+    {
+      "icId": "NT51925",
+      "fromCommonFwVersion": "2.0.0",
+      "reason": "NT51925 Common FW 2.0.0 and later has no TP flash map yet: the 2.0.0 map has not been provided."
+    }
   ]
 }

@@ -168,7 +168,8 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
                 string profileId = profile.GetProperty("profileId").GetString()!;
                 string icId = profileId[..7].ToUpperInvariant();
                 _ = coveredIcIds.Add(icId);
-                Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMap),
+                // The minimum-version entry is each IC's reference map; NT51925 has no 2.0.0 map yet.
+                Assert.True(BuiltInTpFlashMapCatalog.TrySelect(icId, "1.0.0", out TpFlashMapProfile? flashMap, out _),
                     $"{profileId} has no TP flash-map profile.");
 
                 JsonElement mapBinding = profile.GetProperty("mapBinding");

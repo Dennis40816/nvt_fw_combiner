@@ -53,19 +53,29 @@ public sealed class BuiltInTpFlashMapCatalogQueryTests
         Assert.Equal(sole.Regions, catalog.GetRegions("TEST-IC-B", null, null));
     }
 
-    /// <summary>The original shipped bytes and hash retain one entry per IC and null-version lookup identity.</summary>
+    /// <summary>The shipped bytes keep one entry per IC. Only a declared pending map changes null-version lookup.</summary>
     [Fact]
     public void ShippedCatalogRetainsPinnedHashAndSingleEntrySelection()
     {
         byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
             "profiles/built-in/ctrlram-postbuild-v2/flash-map.json".Replace('/', Path.DirectorySeparatorChar)));
-        IReadOnlyList<TpFlashMapProfile> profiles = BuiltInTpFlashMapCatalog.Load(bytes,
-            "60b61fecca8fbab189ebd250c8beb6370e0960f2598ccf500e1a777747e9b4b4");
+        BuiltInTpFlashMapCatalog.LoadedCatalog loaded = BuiltInTpFlashMapCatalog.LoadCatalog(bytes,
+            "3531245afbf71b751e095fb0aee3b2f65e67b348fbf2289303520caf75aea9c6");
+        IReadOnlyList<TpFlashMapProfile> profiles = loaded.Profiles;
 
         Assert.Equal(BuiltInTpFlashMapCatalog.IcIds, profiles.Select(profile => profile.IcId).Order(StringComparer.Ordinal));
         Assert.All(profiles.GroupBy(profile => profile.IcId), group => Assert.Single(group));
+        Assert.Equal(["NT51925"], loaded.PendingMaps.Select(map => map.IcId));
         foreach (string icId in BuiltInTpFlashMapCatalog.IcIds)
         {
+            if (loaded.PendingMaps.Any(map => map.IcId == icId))
+            {
+                Assert.False(BuiltInTpFlashMapCatalog.TryFind(icId, out _));
+                Assert.False(BuiltInTpFlashMapCatalog.TrySelect(icId, null, out _, out string? pendingIssue));
+                Assert.False(string.IsNullOrWhiteSpace(pendingIssue));
+                continue;
+            }
+
             Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? found));
             Assert.Equal(LegacyCombinerCommonFwVersion.MinimumSupported, found!.EffectiveCommonFwVersion);
             Assert.True(BuiltInTpFlashMapCatalog.TrySelect(icId, null, out TpFlashMapProfile? selected, out string? issue));

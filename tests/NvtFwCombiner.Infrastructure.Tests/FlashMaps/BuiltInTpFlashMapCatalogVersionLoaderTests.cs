@@ -116,4 +116,62 @@ public sealed class BuiltInTpFlashMapCatalogVersionLoaderTests
         Assert.Equal([new LegacyCombinerCommonFwVersion(1, 0, 0), new LegacyCombinerCommonFwVersion(2, 0, 0)],
             profiles.Where(profile => profile.IcId == "TEST-IC-B").Select(profile => profile.EffectiveCommonFwVersion));
     }
+
+    /// <summary>A pending map is data: IC, first unavailable version and a reason.</summary>
+    [Fact]
+    public void PendingMapLoadsWithItsVersionAndReason()
+    {
+        BuiltInTpFlashMapCatalog.LoadedCatalog loaded = TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile()],
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", "2.0.0", "the 2.0.0 map is missing"));
+
+        BuiltInTpFlashMapCatalog.PendingTpFlashMap pending = Assert.Single(loaded.PendingMaps);
+        Assert.Equal("TEST-IC-A", pending.IcId);
+        Assert.Equal(new LegacyCombinerCommonFwVersion(2, 0, 0), pending.FromCommonFwVersion);
+        Assert.Equal("the 2.0.0 map is missing", pending.Reason);
+    }
+
+    /// <summary>A catalog without the field has no pending maps.</summary>
+    [Fact]
+    public void MissingPendingMapsFieldMeansNone()
+    {
+        Assert.Empty(TpFlashMapCatalogTestData.LoadCatalog([TpFlashMapCatalogTestData.Profile()]).PendingMaps);
+    }
+
+    /// <summary>Malformed or contradictory pending maps make the whole catalog invalid.</summary>
+    [Theory]
+    [InlineData("TEST-IC-MISSING", "2.0.0", "reason")]
+    [InlineData("TEST-IC-A", "invalid", "reason")]
+    [InlineData("TEST-IC-A", "2.0", "reason")]
+    [InlineData("TEST-IC-A", "2.0.0", "")]
+    [InlineData("TEST-IC-A", "2.0.0", "   ")]
+    [InlineData("", "2.0.0", "reason")]
+    public void InvalidPendingMapThrowsInvalidData(string icId, string from, string reason)
+    {
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile()],
+            TpFlashMapCatalogTestData.Pending(icId, from, reason)));
+    }
+
+    /// <summary>A pending map at or below an existing entry is stale and must be removed with the new entry.</summary>
+    [Theory]
+    [InlineData("1.0.0")]
+    [InlineData("2.0.0")]
+    [InlineData("2.4.0")]
+    public void PendingMapNotAboveEveryEntryThrowsInvalidData(string from)
+    {
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile(version: "1.0.0"), TpFlashMapCatalogTestData.Profile(version: "2.5.0")],
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", from)));
+    }
+
+    /// <summary>One IC can announce only one pending map.</summary>
+    [Fact]
+    public void DuplicatePendingMapForOneIcThrowsInvalidData()
+    {
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile()],
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", "2.0.0"),
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", "3.0.0")));
+    }
 }

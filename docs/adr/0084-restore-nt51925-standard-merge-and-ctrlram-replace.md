@@ -114,6 +114,25 @@ Decision proposed here:
 - A later map, for example from 2.5.0, is one new catalog entry with its owner
   evidence. It needs no code change. Versions 2.0.0 to 2.4.x keep using the 2.0.0
   entry. Adding such an entry is a firmware change and follows the gates below.
+- The catalog may declare a pending map: an IC, the first Common FW version that
+  has no map yet, and a reason. From that version on, the catalog refuses the IC
+  and returns the reason. Below it, entries apply as before. An IC with a pending
+  map needs a readable version, like an IC with several entries. An entry at or
+  above the pending version makes the marker stale, and the loader rejects such a
+  catalog, so the marker is removed with the entry that replaces it.
+- NT51925 declares a pending map from Common FW 2.0.0. A 2.x firmware is refused
+  with the message that the 2.0.0 map has not been provided, until the owner
+  supplies it. Common FW 1.x keeps using the one entry that borrows NT51926
+  values. That entry is a candidate and not an NT51925 fact. The NT51925
+  candidates keep their promotion blockers and publish no executable output.
+- One internal selector, `BuiltInCommonFwSelector`, picks the postbuild profile and
+  the TP flash map for one Common FW version. CtrlRAM Replace, General Replace and
+  the memory-layout display call it, so they cannot disagree on the rule, the
+  messages or the pending refusal. The by-IC catalog lookups remain for ICs with
+  one entry and no pending map, and return nothing for any other IC.
+- Standard Merge does not read the TP flash-map catalog today. Its image maps
+  declare no Common FW condition. A version condition for them needs its own
+  profile design and is not part of this amendment.
 
 This amendment adds no map values. The V1 and V2 TP ranges, the production
 layout and the Cascade mapping stay unconfirmed. They wait for the owner's
