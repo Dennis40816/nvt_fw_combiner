@@ -63,6 +63,7 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
     `TimeProvider`.
   - Platform, the Infrastructure projects and the non-Avalonia hosts, for example Launcher, may reference
     `Nvt.Core`.
+  - Presentation.Avalonia and Desktop may also reference `Nvt.Core` for RuntimeQuery commands and routing.
   - Only the projects that use Avalonia today may reference `Nvt.Core.Avalonia`: Presentation.Avalonia and
     DistributionLauncher, which reference Avalonia packages, and Desktop, which uses Avalonia through
     Presentation.Avalonia.
@@ -78,6 +79,41 @@ wording and pages. Core's package verification checks mechanics. NFC decides whi
   Core packages per project is a follow-up before the first adoption merges. It checks each project's whole
   package closure from its lock file, not only its direct references. An adoption that adds a Core package to
   DistributionLauncher also updates its pinned list.
+
+### RuntimeQuery
+
+The owner decided on 2026-10-06 that NFC uses one command set with two entry points: startup arguments and
+runtime queries. Each command defines its name, arguments, handler, risk and startup spelling once. Core owns
+the command router, argument helpers, startup entry, UI dispatch and transport mechanisms in
+`Nvt.Core.RuntimeQuery` and `Nvt.Core.Avalonia.RuntimeQuery`. NFC consumes them in Presentation.Avalonia;
+Desktop receives them through Presentation.Avalonia until the server is wired. NFC's product handlers live in Presentation.Avalonia, beside its internal view models; they project
+existing product facts and execute through `RuntimeQueryUiThread`.
+
+The RuntimeQuery server starts only after NFC writes READY and never changes READY timing. Capture mode,
+`--help` and internal probes never start it. Commands that write files or change data require `--confirm`.
+`screenshot` is exempt: it accepts only absolute paths and never overwrites a file.
+
+Existing startup options stay in NFC. `UiLaunchOptions` keeps parsing `--page`, `--load-report` / `--report`,
+`--open-report`, the input preload options, `--help`, `--capture` and `--overwrite-capture` exactly as before.
+Core's startup entry handles only the commands NFC registers with a startup spelling and hands every other
+argument back unchanged and in order. Without a registered startup command, `UiLaunchOptions` therefore receives
+the original arguments. The declared but refused options (`--theme`, `--language`, `--window-size` and the others
+asserted in the capture tests) become Core startup commands in a later slice. Their issues follow NFC's own:
+first the `UiLaunchOptions` issues, then the Core startup issues, then NFC's checks that combine a new option with
+an existing one (for example `--settings-section` with `--page settings`).
+
+The first slice registers only `state` and `catalog.list`, both `ReadOnly`, with no arguments or startup
+spelling. `state` reads the current page and its workflow mode (null outside Merge/Replace), whether startup
+preload stages have settled, whether Preview/Build is running, and the close phase. A preload is finished when
+every existing stage is succeeded, failed, skipped or cancelled; pending, running or dependency-blocked stages
+remain unfinished. `catalog.list` reads the current `WorkflowContextSetup.IcChoices` / `NumberChoices` and
+distinct workflow modes from `PresentationHostServices.SupportMatrix`, preserving their source order. IC/number
+choices are empty until the UI configures its workflow context draft. These queries store no new product state
+and start no server.
+
+A later slice adopts Core's generic commands (help, ping, focus, page, screenshot, exit) and starts the server
+with one pipe per window and `--pid`. This ADR records the accepted timing and confirmation rules before that
+implementation.
 
 ### Package contract
 

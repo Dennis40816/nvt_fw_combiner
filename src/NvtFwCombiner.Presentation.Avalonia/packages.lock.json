@@ -51,6 +51,22 @@
         "resolved": "8.4.2",
         "contentHash": "WadCzGEc2U+3e20avRLng4qNtt4zoOGWrdUISqJWrHe3/FSnrYjuM5Sb4yQb09LhkBXrrI4Zt3dLKgRMbItsrg=="
       },
+      "Nvt.Core": {
+        "type": "Direct",
+        "requested": "[0.2.0, 0.2.0]",
+        "resolved": "0.2.0",
+        "contentHash": "k/mY/z0n19QLga/dln2mLWsRjAFvGUGfcjrhM2WmBCztOsiET6jpKn28lmVykgfEEy7DUd+YFLDRDifsWj7vqg=="
+      },
+      "Nvt.Core.Avalonia": {
+        "type": "Direct",
+        "requested": "[0.2.0, 0.2.0]",
+        "resolved": "0.2.0",
+        "contentHash": "xyPQ3GMSdg6fhnTlFs/ysK2S8Z+VBxsJKVwk55f4Ub1kO32TVUgekmo53J2sFq1sPWMMbeI6Ov7S15Zeg4uxYQ==",
+        "dependencies": {
+          "Avalonia": "12.1.1",
+          "Nvt.Core": "0.2.0"
+        }
+      },
       "Avalonia.Angle.Windows.Natives": {
         "type": "Transitive",
         "resolved": "2.1.27548.20260419",

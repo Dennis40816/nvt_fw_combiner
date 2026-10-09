@@ -14,6 +14,7 @@ internal sealed partial class DesktopLaunchCoordinator
         Persistence = new(options.CapturePath is not null);
         CaptureSession = new(window, options, trace, services, preloadSession, confirmedClose);
         Context = new(window, viewModel, options, services, Persistence);
+        RuntimeQuery = new(window, viewModel, preloadSession, services.SupportMatrix);
         ConfigureReportTabs(Context);
         ConfigureAppearance(Context);
         ConfigureWorkflowState(Context);
@@ -49,6 +50,8 @@ internal sealed partial class DesktopLaunchCoordinator
     internal CapturePersistenceScope Persistence { get; }
     internal DesktopLaunchContext Context { get; }
     internal DesktopCaptureSession CaptureSession { get; }
+    // Immutable query wiring; the referenced window/view-model facts are guarded by the UI thread.
+    internal DesktopRuntimeQuery RuntimeQuery { get; }
     internal bool StartVersionDiscovery => Context.Options.CapturePath is null;
 
     internal Task GuardStartup(Task startup, CancellationToken cancellationToken)

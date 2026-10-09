@@ -61,7 +61,8 @@ internal sealed partial class WorkflowSessionPresentationViewModel : ObservableO
 
     internal bool IsRefreshingFirmwareInspectionContext { get; set; }
 
-    private WorkflowInspectionContext? ActiveInspectionContext =>
+    /// <summary>Current workflow identity, read on the UI thread from the session's existing owners.</summary>
+    internal WorkflowInspectionContext? ActiveInspectionContext =>
         _stateBindings.SelectedPage() switch
         {
             ShellPage.Merge => InspectionContext(WorkflowInspectionOwner.Merge),
