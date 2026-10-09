@@ -1,0 +1,4 @@
+interface:
+  display_name: "Change The Legacy Combiner"
+  short_description: "Add or replace a pinned legacy Combiner.exe version"
+  default_prompt: "Use $nfc-change-legacy-combiner to add or change a pinned legacy Combiner executable."
