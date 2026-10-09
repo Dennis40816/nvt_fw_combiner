@@ -222,10 +222,10 @@
     },
     {
       "id": "repository-tooling",
-      "description": "The rest of .github/ and scripts/, the script tests, build engineering and vendored third-party material.",
+      "description": "The rest of .github/ and scripts/, the script tests, build engineering, vendored third-party material and byte-pinned source copies from Core.",
       "floor": "R2",
       "roles": [],
-      "patterns": [".github/**", "scripts/**", "tests/scripts/**", "eng/**", "third-party/**"]
+      "patterns": [".github/**", "scripts/**", "tests/scripts/**", "eng/**", "third-party/**", "Vendor/**"]
     },
     {
       "id": "repository-configuration",

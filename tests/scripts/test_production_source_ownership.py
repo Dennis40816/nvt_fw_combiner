@@ -143,6 +143,24 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
 
         self.assertEqual(1, len(errors))
 
+    def test_rejects_an_escaped_path_that_resolves_to_the_pinned_core_source(self) -> None:
+        errors = self.validate(
+            self.PRESENTATION_PROJECT,
+            '<Project><ItemGroup><Compile Include="../../%2e%2e/../Vendor/Core/UiEventRunner.cs" />'
+            "</ItemGroup></Project>",
+        )
+
+        self.assertEqual(1, len(errors))
+
+    def test_rejects_an_item_expression_that_names_the_pinned_core_source(self) -> None:
+        errors = self.validate(
+            self.PRESENTATION_PROJECT,
+            '<Project><ItemGroup><Compile Include="@(Hidden)../../Vendor/Core/UiEventRunner.cs" />'
+            "</ItemGroup></Project>",
+        )
+
+        self.assertEqual(1, len(errors))
+
     def test_evaluated_check_accepts_the_pinned_core_source_in_a_consumer(self) -> None:
         errors: list[str] = []
         validate_evaluated_production_source_ownership(

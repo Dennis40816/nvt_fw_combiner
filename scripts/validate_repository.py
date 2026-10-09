@@ -1054,7 +1054,7 @@ def is_approved_vendored_core_include(relative: str, include: str) -> bool:
     exception exact, so any other file outside the measured tree is still rejected.
     """
 
-    if relative not in VENDORED_CORE_SOURCE_CONSUMERS or "$(" in include or "@(" in include:
+    if relative not in VENDORED_CORE_SOURCE_CONSUMERS or any(token in include for token in ("$(", "@(", "%")):
         return False
     target = PurePosixPath(
         os.path.normpath(
