@@ -155,7 +155,25 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
     def test_rejects_an_item_expression_that_names_the_pinned_core_source(self) -> None:
         errors = self.validate(
             self.PRESENTATION_PROJECT,
-            '<Project><ItemGroup><Compile Include="@(Hidden)../../Vendor/Core/UiEventRunner.cs" />'
+            '<Project><ItemGroup><Compile Include="@(Hidden)/../../../Vendor/Core/UiEventRunner.cs" />'
+            "</ItemGroup></Project>",
+        )
+
+        self.assertEqual(1, len(errors))
+
+    def test_rejects_a_second_item_hidden_behind_a_separator(self) -> None:
+        errors = self.validate(
+            self.PRESENTATION_PROJECT,
+            '<Project><ItemGroup><Compile Include="../NvtFwCombiner.Cli/Other.cs;g/../../../Vendor/Core/UiEventRunner.cs" />'
+            "</ItemGroup></Project>",
+        )
+
+        self.assertEqual(1, len(errors))
+
+    def test_rejects_a_wildcard_that_resolves_to_the_pinned_core_source(self) -> None:
+        errors = self.validate(
+            self.PRESENTATION_PROJECT,
+            '<Project><ItemGroup><Compile Include="../../**/../Vendor/Core/UiEventRunner.cs" />'
             "</ItemGroup></Project>",
         )
 
