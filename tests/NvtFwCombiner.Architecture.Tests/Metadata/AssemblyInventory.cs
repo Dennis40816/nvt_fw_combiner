@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
@@ -7,17 +8,24 @@ using System.Xml.Linq;
 namespace NvtFwCombiner.Architecture.Tests.Metadata;
 
 internal sealed record AssemblyInput(string Project, string Path, Guid Mvid, ImmutableArray<byte> Image);
+internal sealed record BuildTuple(string Configuration, string Framework, string Runtime);
 
 internal static class AssemblyInventory
 {
     internal static ImmutableArray<AssemblyInput> Load()
     {
+        var values = typeof(AssemblyInventory).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .ToDictionary(item => item.Key, item => item.Value ?? string.Empty, StringComparer.Ordinal);
+        var target = new BuildTuple(values["Architecture.Configuration"], values["Architecture.Framework"], values["Architecture.Runtime"]);
         string manifest = Path.Combine(AppContext.BaseDirectory, "architecture-assemblies.xml");
-        return !File.Exists(manifest)
-            ? throw new InvalidDataException("Inputs.Manifest: missing architecture-assemblies.xml")
-            : Validate(XElement.Load(manifest), EvaluatedProjectGraphTests.ProductionProjects.Select(EvaluatedProjectGraphTests.ProjectPath), File.ReadAllBytes);
+        return LoadManifest(manifest, target, EvaluatedProjectGraphTests.ProductionProjects.Select(EvaluatedProjectGraphTests.ProjectPath), File.ReadAllBytes);
     }
-    internal static ImmutableArray<AssemblyInput> Validate(XElement? manifest, IEnumerable<string> expectedProjects, Func<string, byte[]> read)
+    internal static ImmutableArray<AssemblyInput> LoadManifest(string path, BuildTuple target, IEnumerable<string> expected, Func<string, byte[]> read)
+    {
+        return !File.Exists(path) ? throw new InvalidDataException($"Inputs.Manifest: missing {Path.GetFileName(path)}")
+            : Validate(XElement.Load(path), target, expected, read);
+    }
+    internal static ImmutableArray<AssemblyInput> Validate(XElement? manifest, BuildTuple target, IEnumerable<string> expectedProjects, Func<string, byte[]> read)
     {
         if (manifest is null || !manifest.Elements("project").Any())
         {
@@ -42,9 +50,8 @@ internal static class AssemblyInventory
                 throw new InvalidDataException($"Inputs.Duplicate: {assembly}");
             }
 
-            if (EvaluatedProjectGraphTests.Value(entry, "framework") != "net10.0"
-                || EvaluatedProjectGraphTests.Value(entry, "configuration") is not ("Debug" or "Release")
-                || EvaluatedProjectGraphTests.Value(entry, "runtime") is not ("" or "win-x64"))
+            if (new BuildTuple(EvaluatedProjectGraphTests.Value(entry, "configuration"),
+                EvaluatedProjectGraphTests.Value(entry, "framework"), EvaluatedProjectGraphTests.Value(entry, "runtime")) != target)
             {
                 throw new InvalidDataException($"Inputs.Target: {project}");
             }
@@ -52,6 +59,7 @@ internal static class AssemblyInventory
             byte[] bytes;
             try { bytes = read(assembly); }
             catch (IOException error) { throw new InvalidDataException($"Inputs.Missing: {assembly}", error); }
+            if (bytes.Length == 0) { throw new InvalidDataException($"Inputs.Empty: {assembly}"); }
             if (!StringComparer.OrdinalIgnoreCase.Equals(Convert.ToHexString(SHA256.HashData(bytes)), EvaluatedProjectGraphTests.Value(entry, "sha256")))
             {
                 throw new InvalidDataException($"Inputs.Stale: {assembly}");

@@ -48,6 +48,11 @@
     <ArchitectureSnapshotAssembly Condition="'$(ArchitectureSnapshotAssembly)' == ''">false</ArchitectureSnapshotAssembly>
     <ArchitectureInputsTargets>$(MSBuildThisFileFullPath)</ArchitectureInputsTargets>
   </PropertyGroup>
+  <ItemGroup Condition="'$(IsArchitectureInputHost)' == 'true'">
+    <AssemblyMetadata Include="Architecture.Configuration" Value="$(Configuration)" />
+    <AssemblyMetadata Include="Architecture.Framework" Value="$(TargetFramework)" />
+    <AssemblyMetadata Include="Architecture.Runtime" Value="$(RuntimeIdentifier)" />
+  </ItemGroup>
   <Target Name="WriteArchitectureInputs" AfterTargets="Build" Condition="'$(IsArchitectureInputHost)' == 'true'">
     <ItemGroup>
       <_ArchitectureGraphProjects Include="@(ProjectReference)" />
