@@ -9,7 +9,10 @@ namespace NvtFwCombiner.Infrastructure.Tests.FlashMaps;
 internal static class TpFlashMapCatalogTestData
 {
     /// <summary>Creates one made-up IC entry with an optional effective version.</summary>
-    internal static JsonObject Profile(string icId = "TEST-IC-A", string? version = null)
+    internal static JsonObject Profile(
+        string icId = "TEST-IC-A",
+        string? version = null,
+        string regionId = "test-region")
     {
         var profile = new JsonObject
         {
@@ -22,7 +25,7 @@ internal static class TpFlashMapCatalogTestData
             ["evidence"] = "synthetic",
             ["regions"] = new JsonArray(new JsonObject
             {
-                ["regionId"] = "test-region",
+                ["regionId"] = regionId,
                 ["displayName"] = "Synthetic region",
                 ["kind"] = "other",
                 ["start"] = 0,
@@ -38,15 +41,39 @@ internal static class TpFlashMapCatalogTestData
         return profile;
     }
 
+    /// <summary>Creates one made-up pending-map declaration.</summary>
+    internal static JsonObject Pending(string icId, string from, string reason = "synthetic pending map")
+    {
+        return new JsonObject
+        {
+            ["icId"] = icId,
+            ["fromCommonFwVersion"] = from,
+            ["reason"] = reason,
+        };
+    }
+
     /// <summary>Loads only synthesized entries through the production hash-checked loader.</summary>
     internal static IReadOnlyList<TpFlashMapProfile> Load(params JsonObject[] profiles)
+    {
+        return LoadCatalog(profiles).Profiles;
+    }
+
+    /// <summary>Loads synthesized entries and pending-map declarations through the production loader.</summary>
+    internal static BuiltInTpFlashMapCatalog.LoadedCatalog LoadCatalog(
+        JsonObject[] profiles,
+        params JsonObject[] pendingMaps)
     {
         var document = new JsonObject
         {
             ["schemaVersion"] = "1.0",
             ["profiles"] = new JsonArray(profiles.Select(profile => (JsonNode)profile).ToArray()),
         };
+        if (pendingMaps.Length > 0)
+        {
+            document["pendingMaps"] = new JsonArray(pendingMaps.Select(map => (JsonNode)map).ToArray());
+        }
+
         byte[] bytes = Encoding.UTF8.GetBytes(document.ToJsonString());
-        return BuiltInTpFlashMapCatalog.Load(bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        return BuiltInTpFlashMapCatalog.LoadCatalog(bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)));
     }
 }

@@ -101,4 +101,143 @@ public sealed class BuiltInTpFlashMapCatalogSelectionTests
                 candidate.EffectiveCommonFwVersion.ToString() == expectedVersion), profile);
         }
     }
+
+    /// <summary>A pending map refuses every version from its boundary on and keeps lower versions on the old entry.</summary>
+    [Theory]
+    [InlineData("1.0.0", "1.0.0")]
+    [InlineData("1.9.9", "1.0.0")]
+    [InlineData("2.0.0", null)]
+    [InlineData("2.4.99", null)]
+    [InlineData("255.255.255", null)]
+    [InlineData("0.9.9", null)]
+    public void PendingMapRefusesFromItsBoundary(string version, string? expectedVersion)
+    {
+        BuiltInTpFlashMapCatalog.Catalog catalog = CreatePendingCatalog(out IReadOnlyList<TpFlashMapProfile> profiles);
+
+        AssertSelection(catalog, profiles, version, expectedVersion);
+        if (expectedVersion is null && version != "0.9.9")
+        {
+            Assert.False(catalog.TrySelect("TEST-IC-A", version, out _, out string? issue));
+            Assert.Equal("the 2.0.0 map is missing", issue);
+        }
+    }
+
+    /// <summary>A pending map is one more slot, so a sole entry no longer decides an unreadable version.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("invalid")]
+    [InlineData("2.0")]
+    public void PendingMapRefusesUnreadableVersions(string? version)
+    {
+        BuiltInTpFlashMapCatalog.Catalog catalog = CreatePendingCatalog(out IReadOnlyList<TpFlashMapProfile> profiles);
+
+        AssertSelection(catalog, profiles, version, null);
+    }
+
+    /// <summary>A pending map above several entries leaves the interval rule for lower versions unchanged.</summary>
+    [Theory]
+    [InlineData("1.9.9", "1.0.0")]
+    [InlineData("2.0.0", "2.0.0")]
+    [InlineData("2.9.9", "2.0.0")]
+    [InlineData("3.0.0", null)]
+    public void PendingMapAboveSeveralEntriesOnlyBlocksItsOwnRange(string version, string? expectedVersion)
+    {
+        IReadOnlyList<TpFlashMapProfile> profiles = TpFlashMapCatalogTestData.Load(
+            TpFlashMapCatalogTestData.Profile(version: "2.0.0"),
+            TpFlashMapCatalogTestData.Profile(version: "1.0.0"));
+        var catalog = new BuiltInTpFlashMapCatalog.Catalog(profiles,
+            [new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-A", new(3, 0, 0), "the 3.0.0 map is missing")]);
+
+        AssertSelection(catalog, profiles, version, expectedVersion);
+    }
+
+    /// <summary>An IC whose every slot is "not provided" refuses each version with the reason of its slot.</summary>
+    [Theory]
+    [InlineData("1.0.0", "the 1.x map is missing")]
+    [InlineData("1.255.255", "the 1.x map is missing")]
+    [InlineData("2.0.0", "the 2.0.0 map is missing")]
+    [InlineData("255.255.255", "the 2.0.0 map is missing")]
+    public void PendingOnlyIcRefusesEveryReadableVersionWithTheReasonOfItsSlot(string version, string expectedReason)
+    {
+        BuiltInTpFlashMapCatalog.Catalog catalog = CreatePendingOnlyCatalog();
+
+        Assert.False(catalog.TrySelect("TEST-IC-P", version, out TpFlashMapProfile? profile, out string? issue));
+        Assert.Null(profile);
+        Assert.Equal(expectedReason, issue);
+    }
+
+    /// <summary>Below the minimum or unreadable, the pending-only IC is refused without a map.</summary>
+    [Theory]
+    [InlineData("0.9.9")]
+    [InlineData("invalid")]
+    [InlineData(null)]
+    public void PendingOnlyIcRefusesUnusableVersions(string? version)
+    {
+        BuiltInTpFlashMapCatalog.Catalog catalog = CreatePendingOnlyCatalog();
+
+        Assert.False(catalog.TrySelect("TEST-IC-P", version, out TpFlashMapProfile? profile, out string? issue));
+        Assert.Null(profile);
+        Assert.False(string.IsNullOrWhiteSpace(issue));
+    }
+
+    /// <summary>A pending-only IC with one slot still has an id in the catalog and no by-IC map.</summary>
+    [Fact]
+    public void SoleNotProvidedSlotIsRefusedAndHasNoByIcMap()
+    {
+        var catalog = new BuiltInTpFlashMapCatalog.Catalog(
+            [],
+            [new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-P", new(1, 0, 0), "the map is missing")]);
+
+        Assert.Equal(["TEST-IC-P"], catalog.IcIds);
+        Assert.False(catalog.TryFind("TEST-IC-P", out _));
+        Assert.False(catalog.TrySelect("TEST-IC-P", null, out _, out string? issue));
+        Assert.Equal("the map is missing", issue);
+    }
+
+    /// <summary>The by-IC lookups never serve an IC that has a pending map, because they cannot see a version.</summary>
+    [Fact]
+    public void ByIcLookupsReturnNothingForAPendingIc()
+    {
+        BuiltInTpFlashMapCatalog.Catalog catalog = CreatePendingCatalog(out _);
+
+        Assert.False(catalog.TryFind("TEST-IC-A", out _));
+        Assert.Empty(catalog.GetRegions("TEST-IC-A", null, null));
+    }
+
+    /// <summary>
+    /// An IC with several entries has regions for a chosen entry even though the by-IC lookup returns nothing.
+    /// </summary>
+    [Fact]
+    public void ChosenEntryOfAMultiEntryIcHasItsOwnRegions()
+    {
+        IReadOnlyList<TpFlashMapProfile> profiles = TpFlashMapCatalogTestData.Load(
+            TpFlashMapCatalogTestData.Profile(version: "1.0.0", regionId: "region-v1"),
+            TpFlashMapCatalogTestData.Profile(version: "2.0.0", regionId: "region-v2"));
+        var catalog = new BuiltInTpFlashMapCatalog.Catalog(profiles);
+
+        Assert.Empty(catalog.GetRegions("TEST-IC-A", null, null));
+        Assert.True(catalog.TrySelect("TEST-IC-A", "1.9.9", out TpFlashMapProfile? v1, out _));
+        Assert.True(catalog.TrySelect("TEST-IC-A", "2.0.0", out TpFlashMapProfile? v2, out _));
+        Assert.Equal(["region-v1"], BuiltInTpFlashMapCatalog.GetRegionsOf(v1, null, null).Select(region => region.RegionId));
+        Assert.Equal(["region-v2"], BuiltInTpFlashMapCatalog.GetRegionsOf(v2, null, null).Select(region => region.RegionId));
+        Assert.Empty(BuiltInTpFlashMapCatalog.GetRegionsOf(null, null, null));
+    }
+
+    private static BuiltInTpFlashMapCatalog.Catalog CreatePendingCatalog(out IReadOnlyList<TpFlashMapProfile> profiles)
+    {
+        profiles = TpFlashMapCatalogTestData.Load(TpFlashMapCatalogTestData.Profile());
+        return new BuiltInTpFlashMapCatalog.Catalog(profiles,
+            [new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-A", new(2, 0, 0), "the 2.0.0 map is missing")]);
+    }
+
+    private static BuiltInTpFlashMapCatalog.Catalog CreatePendingOnlyCatalog()
+    {
+        return new BuiltInTpFlashMapCatalog.Catalog(
+            [],
+            [
+                new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-P", new(1, 0, 0), "the 1.x map is missing"),
+                new BuiltInTpFlashMapCatalog.PendingTpFlashMap("TEST-IC-P", new(2, 0, 0), "the 2.0.0 map is missing"),
+            ]);
+    }
 }

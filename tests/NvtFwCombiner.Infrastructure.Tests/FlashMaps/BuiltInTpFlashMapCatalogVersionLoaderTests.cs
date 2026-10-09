@@ -116,4 +116,98 @@ public sealed class BuiltInTpFlashMapCatalogVersionLoaderTests
         Assert.Equal([new LegacyCombinerCommonFwVersion(1, 0, 0), new LegacyCombinerCommonFwVersion(2, 0, 0)],
             profiles.Where(profile => profile.IcId == "TEST-IC-B").Select(profile => profile.EffectiveCommonFwVersion));
     }
+
+    /// <summary>A pending map is data: IC, first unavailable version and a reason.</summary>
+    [Fact]
+    public void PendingMapLoadsWithItsVersionAndReason()
+    {
+        BuiltInTpFlashMapCatalog.LoadedCatalog loaded = TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile()],
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", "2.0.0", "the 2.0.0 map is missing"));
+
+        BuiltInTpFlashMapCatalog.PendingTpFlashMap pending = Assert.Single(loaded.PendingMaps);
+        Assert.Equal("TEST-IC-A", pending.IcId);
+        Assert.Equal(new LegacyCombinerCommonFwVersion(2, 0, 0), pending.FromCommonFwVersion);
+        Assert.Equal("the 2.0.0 map is missing", pending.Reason);
+    }
+
+    /// <summary>A catalog without the field has no pending maps.</summary>
+    [Fact]
+    public void MissingPendingMapsFieldMeansNone()
+    {
+        Assert.Empty(TpFlashMapCatalogTestData.LoadCatalog([TpFlashMapCatalogTestData.Profile()]).PendingMaps);
+    }
+
+    /// <summary>Malformed or contradictory pending maps make the whole catalog invalid.</summary>
+    [Theory]
+    [InlineData("TEST-IC-MISSING", "2.0.0", "reason")]
+    [InlineData("TEST-IC-A", "invalid", "reason")]
+    [InlineData("TEST-IC-A", "2.0", "reason")]
+    [InlineData("TEST-IC-A", "2.0.0", "")]
+    [InlineData("TEST-IC-A", "2.0.0", "   ")]
+    [InlineData("", "2.0.0", "reason")]
+    public void InvalidPendingMapThrowsInvalidData(string icId, string from, string reason)
+    {
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile()],
+            TpFlashMapCatalogTestData.Pending(icId, from, reason)));
+    }
+
+    /// <summary>A pending map and an entry cannot share one version, because the slot would be declared twice.</summary>
+    [Theory]
+    [InlineData("1.0.0")]
+    [InlineData("2.5.0")]
+    public void PendingMapAtTheVersionOfAnEntryThrowsInvalidData(string from)
+    {
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile(version: "1.0.0"), TpFlashMapCatalogTestData.Profile(version: "2.5.0")],
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", from)));
+    }
+
+    /// <summary>A pending map may sit between entries or after them: all of them are slots of one IC.</summary>
+    [Theory]
+    [InlineData("2.0.0")]
+    [InlineData("2.4.0")]
+    [InlineData("3.0.0")]
+    public void PendingMapBetweenOrAfterEntriesLoads(string from)
+    {
+        BuiltInTpFlashMapCatalog.LoadedCatalog loaded = TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile(version: "1.0.0"), TpFlashMapCatalogTestData.Profile(version: "2.5.0")],
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", from));
+
+        Assert.Equal(2, loaded.Profiles.Count);
+        _ = Assert.Single(loaded.PendingMaps);
+    }
+
+    /// <summary>An IC may have only "not provided" markers, as long as the first one starts at the minimum version.</summary>
+    [Fact]
+    public void PendingOnlyIcLoadsWhenItStartsAtTheMinimumVersion()
+    {
+        BuiltInTpFlashMapCatalog.LoadedCatalog loaded = TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile("TEST-IC-B")],
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", "1.0.0"),
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", "2.0.0"));
+
+        Assert.Equal(2, loaded.PendingMaps.Count);
+        Assert.Equal(["TEST-IC-B"], loaded.Profiles.Select(profile => profile.IcId));
+    }
+
+    /// <summary>A pending-only IC without a 1.0.0 slot would leave versions below its first slot undefined.</summary>
+    [Fact]
+    public void PendingOnlyIcWithoutTheMinimumVersionThrowsInvalidData()
+    {
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile("TEST-IC-B")],
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", "2.0.0")));
+    }
+
+    /// <summary>One IC cannot declare the same "not provided" version twice.</summary>
+    [Fact]
+    public void DuplicatePendingMapVersionForOneIcThrowsInvalidData()
+    {
+        _ = Assert.Throws<InvalidDataException>(() => TpFlashMapCatalogTestData.LoadCatalog(
+            [TpFlashMapCatalogTestData.Profile()],
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", "2.0.0"),
+            TpFlashMapCatalogTestData.Pending("TEST-IC-A", "2.0.0")));
+    }
 }

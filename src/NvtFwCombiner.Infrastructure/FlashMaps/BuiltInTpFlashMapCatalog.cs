@@ -7,7 +7,13 @@ namespace NvtFwCombiner.Infrastructure.FlashMaps;
 /// <summary>Hash-pinned TP flash-map facts normalized from TP Overview and owner-approved base shapes.</summary>
 internal static partial class BuiltInTpFlashMapCatalog
 {
-    private static readonly Catalog CatalogInstance = new(LoadProfiles());
+    private static readonly Catalog CatalogInstance = CreateShippedCatalog();
+
+    private static Catalog CreateShippedCatalog()
+    {
+        LoadedCatalog loaded = LoadShippedCatalog();
+        return new Catalog(loaded.Profiles, loaded.PendingMaps);
+    }
 
     /// <summary>Supported IC ids in stable order.</summary>
     internal static IReadOnlyList<string> IcIds { get; } = CatalogInstance.IcIds;
@@ -26,6 +32,16 @@ internal static partial class BuiltInTpFlashMapCatalog
         TpFlashMapRegionKind? kind = null)
     {
         return CatalogInstance.GetRegions(icId, selection, postbuildProfile, kind);
+    }
+
+    /// <summary>Gets visible regions of an entry the shared selector already chose; nothing when no entry was chosen.</summary>
+    internal static IReadOnlyList<TpFlashMapRegion> GetRegionsOf(
+        TpFlashMapProfile? profile,
+        IcNumberSelection? selection,
+        LegacyCombinerPostbuildProfile? postbuildProfile,
+        TpFlashMapRegionKind? kind = null)
+    {
+        return profile is null ? [] : GetRegions(profile, selection, postbuildProfile, kind);
     }
 
     private static IReadOnlyList<TpFlashMapRegion> GetRegions(

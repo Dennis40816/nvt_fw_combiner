@@ -114,11 +114,53 @@ Decision proposed here:
 - A later map, for example from 2.5.0, is one new catalog entry with its owner
   evidence. It needs no code change. Versions 2.0.0 to 2.4.x keep using the 2.0.0
   entry. Adding such an entry is a firmware change and follows the gates below.
+- An entry that says "map not provided" is a slot like a map. It has an IC, a first
+  Common FW version and a reason. The slots of one IC, maps and markers together,
+  form one list. Each IC list starts at 1.0.0. One version is used once. The
+  selector takes the slot with the highest version that is not above the input.
+  If that slot is a marker, the selector refuses the IC and returns its reason.
+  An IC may have only markers. An IC with several slots needs a readable version.
+- NT51925 has two markers: 1.0.0 ("NT51925 1.x map has not been provided") and
+  2.0.0 ("NT51925 2.0.0 map has not been provided"). Both lines are refused until
+  the owner supplies the map. The NT51926 values that the isolated candidate
+  borrowed are removed from the catalog, so they cannot be selected. NT51925 and
+  NT51926 differ in the NF and VN sizes and in every address, so borrowing was
+  never correct. The NT51925 candidates keep their promotion blockers and publish
+  no executable output.
+- The end flag is not a fixed address. Its position differs between ICs, and for
+  some ICs it depends on the IC count (ADR 0076). The FWConfig Backup location
+  follows the end flag of the map, not a shared constant. This amendment adds no
+  end flag position for NT51925.
+- Limit: the selector needs the Common FW version, and the reader of that version
+  needs the end flag of the base BIN before a map is chosen. Today the end flags
+  of all CtrlRAM Replace image maps of one IC must agree, or the reader reports the
+  position as unresolved. For NT51925 the reader already reports it as unresolved,
+  so a base BIN of that IC has no readable version. The selector therefore refuses
+  NT51925 before it needs a version and returns both "not provided" messages. If a
+  future map of one IC needs a different end flag per Common FW line, that map first
+  needs a way to read the version without a chosen map. That design belongs to the
+  change that adds such a map.
+- Limit: General Replace keeps its compiled capability when the user changes only
+  the Base. The retained capability is not checked again against the DP regions of a
+  different map. No shipped IC has two maps, so this does not occur today. The change
+  that adds a second map to one IC must add that check and a planner test with a
+  swapped Base.
+- One internal selector, `BuiltInCommonFwSelector`, picks the postbuild profile and
+  the TP flash map for one Common FW version. CtrlRAM Replace, General Replace and
+  the memory-layout display call it, so they cannot disagree on the rule or on
+  which map is refused. The display has no field for an issue, so a refused map
+  shows an empty layout instead of the message. The by-IC catalog lookups remain
+  for ICs with exactly one slot that is a map, and return nothing for any other IC.
+- Standard Merge does not read the TP flash-map catalog today. Its image maps
+  declare no Common FW condition. The NT51925 Standard Merge candidate cannot run
+  yet, so a version condition for image maps is a later item. It changes the
+  profile schema and needs R3 approval from the owner. Owner decision 2026-10-09:
+  do it later, and add it before the NT51925 Standard Merge candidate can run.
+  It is not part of this amendment.
 
-This amendment adds no map values. The V1 and V2 TP ranges, the production
-layout and the Cascade mapping stay unconfirmed. They wait for the owner's
-workbook sheet for V2, the owner's choice of the production layout and the Golden
-evidence listed below. Replace stays deferred.
+This amendment adds no NT51925 map values. The V1 and V2 TP ranges, the
+production layout and the Cascade mapping stay unconfirmed. They wait for the
+owner's data and the Golden evidence listed below. Replace stays deferred.
 
 ## Required owner evidence and gates
 
