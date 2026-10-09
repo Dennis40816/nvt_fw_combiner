@@ -170,10 +170,15 @@ postbuild command plan is supplied.
 Verification scope: 1.x Cascade agrees with the owner's postbuild flow and two
 real BINs; 2.0.0 Cascade agrees with that flow and three real BINs. Both Single
 layouts have postbuild evidence only and no real BIN. The 2.0.0 Single layout
-omits DIFF. BIN agreement is owner-reported; this local change does not perform
-private BIN verification. Unknowns remain the 1.x Single `.data` position,
-whether a two-chip 2.0.0 Cascade uses all declared DIFF bytes, and the unused
-gaps before and after the 2.0.0 Header Copy. No Project ID is invented.
+omits DIFF. On 2026-10-10 the host compared both Cascade layouts with those real
+BINs: the declared end flag is found once at the declared position, every
+declared region holds data where the layout says so, and no other firmware data
+lies outside the declared regions except the 1.x vector table and data area, which
+are not catalog regions. This is a layout check, not a byte-exact
+Golden run. Unknowns remain the 1.x Single `.data` position, whether a two-chip
+2.0.0 Cascade uses all declared DIFF bytes (about half of that region holds data
+in the real BINs), and the unused gaps before and after the 2.0.0 Header Copy
+(blank in the real BINs). No Project ID is invented.
 
 Candidate Replace routes stay blocked as Candidate/ContractOnly. Their other
 geometry and execution contracts remain provisional. Standard Merge remains
