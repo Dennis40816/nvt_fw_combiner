@@ -35,7 +35,7 @@ For stronger slot-swap detection, duplicate this same file per slot and change t
 
 ## IC FlashMap Evidence Notes
 
-The current `IC_FlashMap_20260725.xlsx` `TP Overview` sheet splits NT51926 into `51926 (2.0.0)` and `51926 (1.X.X)` sections. Production interprets these as effective intervals rather than exact-version gates:
+`flashmap-2026-07-25` supplies private evidence for NT51926 layout review. Production uses the accepted effective intervals:
 
 | NT51926 source | VN range | FWConfig backup | Header copy |
 | --- | --- | --- | --- |

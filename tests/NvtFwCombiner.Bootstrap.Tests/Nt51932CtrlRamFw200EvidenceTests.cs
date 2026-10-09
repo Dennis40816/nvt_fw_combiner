@@ -16,7 +16,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
     private const string OwnerExpectedSha256 = "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd";
     private const string CurrentOutputSha256 = "0e59a2fbaab16979745b3543564b18f49c9d4eb7912bdea2e61383e31e662566";
     private const string RegisteredCombinerSha256 = "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf";
-    private const string PostbuildBatSha256 = "9b570db204df0849f9962f09f9800e6e442a86d38d6dacd0988b32e18f0a514f";
+    private const string PostbuildBatSha256 = "946a84c12a3479c110b006bdcfb2ba7a65804037f5e0d92e9d6c53786fc49781";
     private const int Capacity = 0x40000;
     private const int NfStart = 0x1FC00;
     private const int NfMaximumLength = 0x1F90;
@@ -143,10 +143,34 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.Equal("not-registered", manifest.RootElement.GetProperty("runtimeIntegrationStatus").GetString());
         Assert.Equal("unverified; deferred to the v0.12.x integration", manifest.RootElement.GetProperty("inputContractStatus").GetString());
 
-        string batPath = RepositoryPaths.FromRepositoryRoot(
-            "docs", "references", "ic-flashmap", "postbuild", "PostbuildSetup_51932_2.0.0.bat");
-        Assert.Equal(PostbuildBatSha256, Hash(File.ReadAllBytes(batPath)));
-        AssertBatCommandOrder(File.ReadAllText(batPath));
+    }
+
+    /// <summary>The public inventory retains this independent reference identity.</summary>
+    [Fact]
+    public void PostbuildReferenceIdentityIsPinnedInPublicManifest()
+    {
+        string manifestPath = RepositoryPaths.FromRepositoryRoot(
+            "docs", "references", "confidential-references.json");
+        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        JsonElement entry = manifest.RootElement.GetProperty("entries")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("id").GetString() == "postbuild-nt51932-fw2.0.0");
+        Assert.Equal("postbuild-script", entry.GetProperty("kind").GetString());
+        Assert.Equal(PostbuildBatSha256, entry.GetProperty("sha256").GetString());
+        Assert.True(entry.GetProperty("sizeBytes").GetInt64() > 0);
+    }
+
+    /// <summary>Private evidence retains the owner script's command ordering.</summary>
+    [Fact]
+    public void PrivatePostbuildReferenceRetainsCommandOrder()
+    {
+        if (!ConfidentialReferenceTestData.IsConfigured)
+        {
+            Assert.Skip("confidential golden not executed");
+        }
+
+        byte[] bytes = ConfidentialReferenceTestData.ReadVerifiedBytes(PostbuildBatSha256);
+        AssertBatCommandOrder(System.Text.Encoding.UTF8.GetString(bytes));
     }
 
     /// <summary>Requested generic-cascade routing accepts display-only metadata variations.</summary>

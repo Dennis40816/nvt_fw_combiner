@@ -38,7 +38,14 @@ $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     sha256 = 'a3ad08440076fb6b8b840ba64a6fbe0ccadb4345530ba1db09ab0b4f0fa671d4'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
-$ApprovedCanonicalGoldenAllowlistSha256 = '4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87'
+$ApprovedCanonicalGoldenAllowlistSha256 = '8cf5e2c610f7012ea53db83da7f8a41aa3191b81774ae3689165ad1ceb28e718'
+# Packages published up to 1.2.1 ship the earlier allowlist that still carries the private provenance in the package.
+$LegacyCanonicalGoldenAllowlistSha256 = '4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87'
+$ApprovedPublicReferenceManifestPath = Join-Path $PSScriptRoot '../docs/references/confidential-references.json'
+# SHA-256 of the public confidential-reference manifest that each published package shipped, by product version.
+# The release step adds the entry for a version when it is published. A version without an entry is a candidate:
+# it must carry the manifest of this checkout.
+$PublishedPublicReferenceManifestSha256 = @{}
 $CanonicalGoldenPackagePrefix = 'reference/golden'
 $CanonicalGoldenAllowlistPackagePath = 'reference/golden/release-canonical-v1.json'
 $RetiredSupportPublicationPolicyPackagePaths = @(
@@ -199,6 +206,71 @@ function Get-ReleaseProductVersion {
     return [version]$VersionText
 }
 
+function Assert-PublicReferenceInventory {
+    param(
+        [Parameter(Mandatory = $true)]$Manifest,
+        [version]$ProductVersion
+    )
+
+    $PublicManifestPath = 'reference/docs/references/confidential-references.json'
+    $PublicManifestEntries = @($Manifest.files | Where-Object { [string]$_.path -ceq $PublicManifestPath })
+    if ($PublicManifestEntries.Count -ne 1 -or [string]$PublicManifestEntries[0].role -cne 'reference') {
+        throw 'Release package must include the public confidential-reference manifest.'
+    }
+    # The packaged inventory must be the reviewed one: its identities resolve the private evidence.
+    $PublishedSha256 = if ($null -ne $ProductVersion -and
+        $PublishedPublicReferenceManifestSha256.ContainsKey($ProductVersion.ToString())) {
+        [string]$PublishedPublicReferenceManifestSha256[$ProductVersion.ToString()]
+    }
+    elseif (Test-Path -LiteralPath $ApprovedPublicReferenceManifestPath -PathType Leaf) {
+        Get-LowerSha256 -Path $ApprovedPublicReferenceManifestPath
+    }
+    else { '' }
+    if ($PublishedSha256 -cnotmatch '^[0-9a-f]{64}$' -or [string]$PublicManifestEntries[0].sha256 -cne $PublishedSha256) {
+        throw 'Release package public confidential-reference manifest differs from the reviewed manifest of its version.'
+    }
+    # Documents under reference/docs are Markdown or JSON. The Golden projection holds only the formats below,
+    # and a file that is not firmware bytes must not carry a name that intake treats as a confidential kind.
+    # Scripts, spreadsheets, documents and native sources are private material anywhere in the reference tree.
+    $ForbiddenReferenceExtensions = @(
+        '.bat', '.cmd', '.ps1', '.sh', '.xls', '.xlsx', '.doc', '.docx',
+        '.c', '.cc', '.cpp', '.h', '.hpp', '.asm', '.s'
+    )
+    $AllowedGoldenExtensions = @('.bin', '.json', '.txt', '.config', '.md')
+    $ConfidentialNameHints = @(
+        'postbuild', 'post-build', 'post_build', 'mmap', 'memory-map', 'memory_map', 'fwconfig',
+        'flashmap', 'flash-map', 'flash_map', 'flash-header', 'flash_header', 'flash header',
+        'tp-header', 'tp_header', 'combiner'
+    )
+    foreach ($Entry in $Manifest.files) {
+        $Path = [string]$Entry.path
+        if ($Path.Contains('\')) {
+            throw 'Release manifest paths must use forward slashes.'
+        }
+        $Extension = [IO.Path]::GetExtension($Path).ToLowerInvariant()
+        $InReference = $Path.StartsWith('reference/', [StringComparison]::OrdinalIgnoreCase)
+        if (($Path.StartsWith('reference/docs/', [StringComparison]::OrdinalIgnoreCase) -and
+             $Extension -notin @('.md', '.json')) -or
+            ($InReference -and $Extension -in $ForbiddenReferenceExtensions)) {
+            throw "Release package contains confidential reference content: $Path"
+        }
+        if ($InReference -and
+            -not $Path.StartsWith('reference/docs/', [StringComparison]::OrdinalIgnoreCase)) {
+            if ($Path.StartsWith('reference/golden/', [StringComparison]::OrdinalIgnoreCase)) {
+                $LeafName = ($Path -split '/')[-1].ToLowerInvariant()
+                $NameIsConfidential = $Extension -cne '.bin' -and
+                    @($ConfidentialNameHints | Where-Object { $LeafName.Contains($_) }).Count -gt 0
+                if ($Extension -notin $AllowedGoldenExtensions -or $NameIsConfidential) {
+                    throw "Release package contains confidential reference content: $Path"
+                }
+            }
+            elseif ($Path -ine 'reference/README.txt') {
+                throw "Release package contains confidential reference content: $Path"
+            }
+        }
+    }
+}
+
 function Assert-CombinerRuntime {
     param([Parameter(Mandatory = $true)][string]$PackageRoot)
 
@@ -338,24 +410,58 @@ function Assert-FileHash {
     }
 }
 
+function Get-CanonicalGoldenShape {
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$PackagedAllowlistSha256,
+        [version]$ProductVersion
+    )
+
+    if ($PackagedAllowlistSha256 -ceq $ApprovedCanonicalGoldenAllowlistSha256) {
+        return [pscustomobject]@{
+            Sha256 = $ApprovedCanonicalGoldenAllowlistSha256
+            Legacy = $false
+            ProjectionFiles = 215
+            PrivateReferences = 1
+            PublicArtifacts = 173
+        }
+    }
+    if ($PackagedAllowlistSha256 -ceq $LegacyCanonicalGoldenAllowlistSha256 -and
+        $null -ne $ProductVersion -and $ProductVersion -lt [version]'1.2.2') {
+        return [pscustomobject]@{
+            Sha256 = $LegacyCanonicalGoldenAllowlistSha256
+            Legacy = $true
+            ProjectionFiles = 216
+            PrivateReferences = 0
+            PublicArtifacts = 174
+        }
+    }
+    throw 'Release package canonical Golden allowlist identity or reference role differs from the approved authority.'
+}
+
 function Assert-CanonicalGoldenReference {
     param(
         [Parameter(Mandatory = $true)][string]$PackageRoot,
-        [Parameter(Mandatory = $true)]$ReleaseManifest
+        [Parameter(Mandatory = $true)]$ReleaseManifest,
+        [version]$ProductVersion
     )
 
-    if (-not (Test-Path -LiteralPath $ApprovedCanonicalGoldenAllowlistPath -PathType Leaf) -or
-        (Get-LowerSha256 -Path $ApprovedCanonicalGoldenAllowlistPath) -cne $ApprovedCanonicalGoldenAllowlistSha256) {
+    $PackagedAllowlistPath = Join-Path $PackageRoot $CanonicalGoldenAllowlistPackagePath
+    $PackagedAllowlistSha256 = if (Test-Path -LiteralPath $PackagedAllowlistPath -PathType Leaf) {
+        Get-LowerSha256 -Path $PackagedAllowlistPath
+    }
+    else { '' }
+    $Shape = Get-CanonicalGoldenShape -PackagedAllowlistSha256 $PackagedAllowlistSha256 -ProductVersion $ProductVersion
+    if (-not $Shape.Legacy -and
+        (-not (Test-Path -LiteralPath $ApprovedCanonicalGoldenAllowlistPath -PathType Leaf) -or
+         (Get-LowerSha256 -Path $ApprovedCanonicalGoldenAllowlistPath) -cne $ApprovedCanonicalGoldenAllowlistSha256)) {
         throw 'Protected smoke does not have the exact approved canonical Golden allowlist.'
     }
-    $PackagedAllowlistPath = Join-Path $PackageRoot $CanonicalGoldenAllowlistPackagePath
     $AllowlistEntries = @($ReleaseManifest.files | Where-Object {
         [string]$_.path -ceq $CanonicalGoldenAllowlistPackagePath
     })
     if ($AllowlistEntries.Count -ne 1 -or
         [string]$AllowlistEntries[0].role -cne 'reference' -or
-        [string]$AllowlistEntries[0].sha256 -cne $ApprovedCanonicalGoldenAllowlistSha256 -or
-        (Get-LowerSha256 -Path $PackagedAllowlistPath) -cne $ApprovedCanonicalGoldenAllowlistSha256) {
+        [string]$AllowlistEntries[0].sha256 -cne $Shape.Sha256) {
         throw 'Release package canonical Golden allowlist identity or reference role differs from the approved authority.'
     }
 
@@ -431,7 +537,7 @@ function Assert-CanonicalGoldenReference {
         }
         $ProjectionFiles[$RepositoryPath] = $File
     }
-    if ($ProjectionFiles.Count -ne 216 -or
+    if ($ProjectionFiles.Count -ne $Shape.ProjectionFiles -or
         [string]$ProjectionFiles['testdata/golden/canonical/README.md'].packagePath -cne $CanonicalReadmePackagePath -or
         [string]$ProjectionFiles['testdata/golden/release-canonical-v1.json'].packagePath -cne $CanonicalGoldenAllowlistPackagePath) {
         throw 'Release package canonical Golden projection file mapping differs from the approved scope.'
@@ -447,6 +553,7 @@ function Assert-CanonicalGoldenReference {
     [void]$UsedProjectionSources.Add('testdata/golden/release-canonical-v1.json')
     $ExpectedArtifacts = @{}
     $ArtifactDeclarationCount = 0
+    $PrivateReferenceCount = 0
     $DirectInputEvidenceCount = 0
     foreach ($ApprovedCase in $Allowlist.cases) {
         $CaseId = [string]$ApprovedCase.caseId
@@ -516,7 +623,10 @@ function Assert-CanonicalGoldenReference {
         foreach ($ApprovedArtifact in $ApprovedCase.artifacts) {
             $ArtifactId = [string]$ApprovedArtifact.artifactId
             $CanonicalArtifact = $CanonicalArtifacts[$ArtifactId]
+            $Storage = if ($null -ne $CanonicalArtifact -and $CanonicalArtifact.PSObject.Properties.Name -contains 'storage') { [string]$CanonicalArtifact.storage } else { '' }
+            $ApprovedStorage = if ($ApprovedArtifact.PSObject.Properties.Name -contains 'storage') { [string]$ApprovedArtifact.storage } else { '' }
             if ($null -eq $CanonicalArtifact -or
+                ($Storage -cne '' -and $Storage -cne $ApprovedStorage) -or
                 [string]$CanonicalArtifact.role -cne [string]$ApprovedArtifact.role -or
                 [string]$CanonicalArtifact.path -cne [string]$ApprovedArtifact.path -or
                 [long]$CanonicalArtifact.size -ne [long]$ApprovedArtifact.size -or
@@ -524,6 +634,14 @@ function Assert-CanonicalGoldenReference {
                 throw "Release package canonical artifact '$CaseId/$ArtifactId' differs from the approved declaration."
             }
             $ArtifactDeclarationCount++
+            if ($ApprovedArtifact.PSObject.Properties.Name -contains 'storage') {
+                if ($ApprovedStorage -cne 'private-reference' -or [string]$ApprovedArtifact.role -cne 'provenance' -or
+                    $ProjectionFiles.ContainsKey("testdata/golden/canonical/$($ApprovedArtifact.path)")) {
+                    throw 'Private canonical provenance must remain outside the package projection.'
+                }
+                $PrivateReferenceCount++
+                continue
+            }
             $ArtifactRelativePath = [string]$ApprovedArtifact.path
             if ($ExpectedArtifacts.ContainsKey($ArtifactRelativePath)) {
                 $Existing = $ExpectedArtifacts[$ArtifactRelativePath]
@@ -572,7 +690,8 @@ function Assert-CanonicalGoldenReference {
     if ($SelectedCases.Count -ne 40 -or
         $DirectInputEvidenceCount -ne 3 -or
         $ArtifactDeclarationCount -ne 177 -or
-        $ExpectedArtifacts.Count -ne 174) {
+        $PrivateReferenceCount -ne $Shape.PrivateReferences -or
+        $ExpectedArtifacts.Count -ne $Shape.PublicArtifacts) {
         throw 'Release package canonical Golden counts differ from the approved scope.'
     }
 
@@ -822,10 +941,15 @@ try {
     else { $null }
     $RequiresCombinerRuntime = $false
     $RequiresPrebuiltCatalog = $false
+    $ProductVersion = $null
     if ($null -ne $ManifestVersion -or $manifest.PSObject.Properties.Name -contains 'sourceTag') {
         $ProductVersion = Get-ReleaseProductVersion $manifest
         $RequiresCombinerRuntime = $ProductVersion -ge [version]'1.1.8'
         $RequiresPrebuiltCatalog = $ProductVersion -ge [version]'1.1.13'
+        # Every published package (up to 1.2.1) predates the public confidential-reference manifest.
+        if ($ProductVersion -ge [version]'1.2.2') {
+            Assert-PublicReferenceInventory -Manifest $manifest -ProductVersion $ProductVersion
+        }
     }
     if (-not $RequiresCombinerRuntime) {
         # Published historical packages retain their original closed tool inventory.
@@ -1053,7 +1177,7 @@ try {
             ([int]$Matches[1] -eq 1 -and [int]$Matches[2] -eq 0 -and [int]$Matches[3] -ge 8)
     }
     if ($RequiresCanonicalGoldenReference) {
-        Assert-CanonicalGoldenReference -PackageRoot $packageRoot -ReleaseManifest $manifest
+        Assert-CanonicalGoldenReference -PackageRoot $packageRoot -ReleaseManifest $manifest -ProductVersion $ProductVersion
     }
 
     foreach ($entry in $manifest.files) {

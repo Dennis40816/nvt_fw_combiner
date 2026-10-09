@@ -322,12 +322,69 @@ def test_packaged_combiner_executes_certified_crc_command_without_mutation() -> 
         assert golden.read_bytes() == (ROOT / GOLDEN_PATH).read_bytes()
 
 
+CURRENT_ALLOWLIST_SHA256 = "8cf5e2c610f7012ea53db83da7f8a41aa3191b81774ae3689165ad1ceb28e718"
+LEGACY_ALLOWLIST_SHA256 = "4496e7a6379e05877f0f372e5ec056938f6b279b2508400f96b52bb213219a87"
+
+
+@pytest.mark.parametrize(
+    "sha256,version,accepted",
+    [
+        (CURRENT_ALLOWLIST_SHA256, "1.2.1", "current"),
+        (CURRENT_ALLOWLIST_SHA256, "1.2.2", "current"),
+        (LEGACY_ALLOWLIST_SHA256, "1.1.4", "legacy"),
+        (LEGACY_ALLOWLIST_SHA256, "1.2.1", "legacy"),
+        (LEGACY_ALLOWLIST_SHA256, "1.2.2", None),
+        (LEGACY_ALLOWLIST_SHA256, None, None),
+        ("0" * 64, "1.2.1", None),
+        ("", "1.2.1", None),
+    ],
+)
+def test_canonical_golden_shape_follows_the_package_version(
+    sha256: str, version: str | None, accepted: str | None
+) -> None:
+    """A published package keeps its own allowlist shape; a new release must use the current one."""
+    version_arg = "$null" if version is None else f"([version]'{version}')"
+    result = run_release_functions(
+        "smoke-release.ps1",
+        ("Get-CanonicalGoldenShape",),
+        f"$ApprovedCanonicalGoldenAllowlistSha256 = '{CURRENT_ALLOWLIST_SHA256}'; "
+        f"$LegacyCanonicalGoldenAllowlistSha256 = '{LEGACY_ALLOWLIST_SHA256}'; "
+        f"$shape = Get-CanonicalGoldenShape -PackagedAllowlistSha256 '{sha256}' "
+        f"-ProductVersion {version_arg}; "
+        "'{0} {1} {2} {3}' -f $shape.Legacy, $shape.ProjectionFiles, "
+        "$shape.PrivateReferences, $shape.PublicArtifacts",
+    )
+    if accepted is None:
+        assert result.returncode != 0, result.stdout + result.stderr
+        assert "allowlist identity" in result.stderr + result.stdout
+    elif accepted == "current":
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.stdout.strip().endswith("False 215 1 173"), result.stdout
+    else:
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.stdout.strip().endswith("True 216 0 174"), result.stdout
+
+
+def test_smoke_pins_match_the_packager_and_the_published_legacy_allowlist() -> None:
+    """The smoke pins stay equal to the packager pin and to the allowlist that 1.2.1 shipped."""
+    smoke = (ROOT / "scripts/smoke-release.ps1").read_text(encoding="utf-8")
+    package = (ROOT / "scripts/package.ps1").read_text(encoding="utf-8")
+    assert f"$ApprovedCanonicalGoldenAllowlistSha256 = '{CURRENT_ALLOWLIST_SHA256}'" in smoke
+    assert f"$LegacyCanonicalGoldenAllowlistSha256 = '{LEGACY_ALLOWLIST_SHA256}'" in smoke
+    assert f"$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '{CURRENT_ALLOWLIST_SHA256}'" in package
+    current = (ROOT / "testdata/golden/release-canonical-v1.json").read_bytes()
+    assert hashlib.sha256(current).hexdigest() == CURRENT_ALLOWLIST_SHA256
+
+
 @pytest.mark.parametrize(
     "version,mutation,expected",
     [
         ("1.1.7", "valid", "has no materialized built-in profile files"),
         ("1.1.8", "valid", "has no materialized built-in profile files"),
         ("1.1.10", "valid", "has no materialized built-in profile files"),
+        ("1.2.1", "valid", "has no materialized built-in profile files"),
+        ("1.2.2", "valid", "public confidential-reference manifest"),
+        ("1.2.5", "valid", "public confidential-reference manifest"),
         ("1.1.8", "missing", "external-tool files differ from the approved allowlist"),
         (
             "1.1.8",
@@ -431,7 +488,7 @@ def test_release_entrypoint_enforces_runtime_before_later_package_gates(
         check=False,
     )
     assert result.returncode != 0
-    # Valid dependency inventory must advance to the intentionally absent profile gate.
+    # Each fixture must reach its declared gate before UI launch.
     assert expected in result.stderr, result.stdout + result.stderr
 
 
@@ -445,6 +502,130 @@ def test_stable_package_couples_one_version_scoped_launcher() -> None:
     assert "$Manifest.versionManagementProtocolVersion = 1" in package
     assert "role = 'launcher'" in package
     assert "NvtFwCombiner.Bootstrap.exe" not in package
+
+
+REVIEWED_PUBLIC_MANIFEST_SHA256 = hashlib.sha256(
+    (ROOT / "docs/references/confidential-references.json").read_bytes()
+).hexdigest()
+
+
+def run_public_reference_inventory(
+    files: list[dict[str, str]], version: str | None = None, published: dict[str, str] | None = None
+):
+    entries = json.dumps(files, separators=(",", ":")).replace("'", "''")
+    manifest_path = str(ROOT / "docs/references/confidential-references.json").replace("'", "''")
+    table = "".join(f"'{key}' = '{value}'; " for key, value in (published or {}).items())
+    version_arg = "" if version is None else f" -ProductVersion ([version]'{version}')"
+    return run_release_functions(
+        "smoke-release.ps1",
+        ("Get-LowerSha256", "Assert-PublicReferenceInventory"),
+        f"$ApprovedPublicReferenceManifestPath = '{manifest_path}'; "
+        f"$PublishedPublicReferenceManifestSha256 = @{{ {table}}}; "
+        f"$manifest = [pscustomobject]@{{ files = ('{entries}' | ConvertFrom-Json) }}; "
+        f"Assert-PublicReferenceInventory -Manifest $manifest{version_arg}",
+    )
+
+
+@pytest.mark.parametrize(
+    ("paths", "valid"),
+    [
+        (["reference/docs/references/ic-flashmap/README.md"], True),
+        (["reference/docs/references/ic-flashmap/data.json"], True),
+        (["reference/docs/references/ic-flashmap/sheet.xlsx"], False),
+        (["reference/docs/references/ic-flashmap/script.bat"], False),
+        (["reference/docs/references/ic-flashmap/memory_mmap.h"], False),
+        (["reference/golden/c001/provenance/script.bat"], False),
+        (["reference/docs/References/ic-flashmap/script.bat"], False),
+        (["REFERENCE/docs/references/source.c"], False),
+        (["reference/docs/references/sheet.xls"], False),
+        (["reference/docs/references/source.cpp"], False),
+        (["REFERENCE/GOLDEN/c001/provenance/script.BAT"], False),
+        (["reference/docs/architecture/ic-workflow-flowcharts.md"], True),
+        (["reference/docs/architecture/private.xlsx"], False),
+        (["reference/docs/architecture/postbuild.bat"], False),
+        (["reference/docs/architecture/notes.txt"], False),
+        (["reference/golden/c001/expected/output.bin"], True),
+        (["reference/golden/c001/provenance/source.cpp"], False),
+        (["reference/golden/c001/provenance/cmd.ps1"], False),
+        (["reference/golden/c001/provenance/postbuild-notes.pdf"], False),
+        (["reference/golden/c001/provenance/ic51920_mmap.txt"], False),
+        (["reference/golden/c001/provenance/flashmap.csv"], False),
+        (["reference/golden/c001/provenance/settings.ini"], False),
+        (["reference/golden/c001/provenance/run.log"], False),
+        (["reference/golden/c001/provenance/map.yaml"], False),
+        (["reference/golden/c001/provenance/map.yml"], False),
+        (["reference/golden/c001/provenance/Combiner_notes.txt"], False),
+        (["reference/golden/c001/provenance/fwconfig.json"], False),
+        (["reference/other/c001/notes.json"], False),
+        (["reference/README.txt"], True),
+        (["reference/golden/README.md"], True),
+        (["reference/golden/c001/provenance/case.json"], True),
+        (["reference/golden/c001/provenance/Common_FW_2.0.0.txt"], True),
+        (["reference/golden/c001/provenance/DiffNFMerge.exe.config"], True),
+        (["reference/golden/c001/inputs/postbuild/nt1-postbuild-normal-ctrlram.bin"], True),
+        ([r"reference\docs\references\ic-flashmap\script.bat"], False),
+    ],
+)
+def test_public_reference_inventory_rejects_confidential_content(
+    paths: list[str], valid: bool
+) -> None:
+    files = [
+        {
+            "path": "reference/docs/references/confidential-references.json",
+            "role": "reference",
+            "sha256": REVIEWED_PUBLIC_MANIFEST_SHA256,
+        },
+        *({"path": path, "role": "reference"} for path in paths),
+    ]
+    result = run_public_reference_inventory(files)
+    assert (result.returncode == 0) is valid, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("sha256", ["0" * 64, "", "A" * 64])
+def test_public_reference_inventory_requires_the_reviewed_manifest(sha256: str) -> None:
+    """Replacing the packaged inventory with any other JSON fails the smoke."""
+    files = [
+        {
+            "path": "reference/docs/references/confidential-references.json",
+            "role": "reference",
+            "sha256": sha256,
+        }
+    ]
+    result = run_public_reference_inventory(files)
+    assert result.returncode != 0
+    assert "differs from the reviewed manifest of its version" in result.stdout + result.stderr
+
+
+def manifest_entry(sha256: str) -> list[dict[str, str]]:
+    return [{
+        "path": "reference/docs/references/confidential-references.json",
+        "role": "reference",
+        "sha256": sha256,
+    }]
+
+
+def test_a_published_version_keeps_its_own_reviewed_manifest() -> None:
+    """A newer checkout still smokes an older published package with the manifest that package shipped."""
+    older = "b" * 64
+    assert older != REVIEWED_PUBLIC_MANIFEST_SHA256
+    result = run_public_reference_inventory(manifest_entry(older), "1.2.2", {"1.2.2": older})
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_a_published_version_rejects_the_current_manifest_when_it_shipped_another() -> None:
+    older = "b" * 64
+    result = run_public_reference_inventory(
+        manifest_entry(REVIEWED_PUBLIC_MANIFEST_SHA256), "1.2.2", {"1.2.2": older}
+    )
+    assert result.returncode != 0
+    assert "differs from the reviewed manifest of its version" in result.stdout + result.stderr
+
+
+def test_an_unpublished_version_must_carry_the_manifest_of_this_checkout() -> None:
+    result = run_public_reference_inventory(manifest_entry("b" * 64), "1.2.3", {"1.2.2": "b" * 64})
+    assert result.returncode != 0
+    ok = run_public_reference_inventory(manifest_entry(REVIEWED_PUBLIC_MANIFEST_SHA256), "1.2.3", {"1.2.2": "b" * 64})
+    assert ok.returncode == 0, ok.stdout + ok.stderr
 
 
 def test_release_smoke_rejects_bootstrap_in_update_and_checks_launcher_identity() -> (

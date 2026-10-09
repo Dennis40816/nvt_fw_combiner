@@ -103,8 +103,8 @@
         "evidenceCaseId": "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
         "evidenceCaseManifest": {
           "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/cascade-2/nt51950-cascade2-geometry-nt51951-auto-prj-599-alias/provenance/case.json",
-          "size": 1632,
-          "sha256": "b8b6a1ceeb1a6232a144363aab05173cbf9833eccec09a62f8a42190c221b4ca"
+          "size": 1601,
+          "sha256": "98ed5ec3d8872d0470984e69abc97cc2c3eb04c36018f4b74fde7b0e15bc6987"
         },
         "inputCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
         "inputCaseManifest": {

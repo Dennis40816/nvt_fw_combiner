@@ -124,6 +124,13 @@ public static class CanonicalGoldenTestData
         return ValidatedArtifactPath(artifact);
     }
 
+    /// <summary>Gets one validated physical artifact path from a raw canonical case, resolving the private reference of the named case.</summary>
+    public static string ArtifactPath(JsonElement artifact, string caseId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
+        return ValidatedArtifactPath(artifact, Root, caseId);
+    }
+
     private static JsonElement LoadPhysicalCase(
         string workflow,
         string caseId,
@@ -159,7 +166,7 @@ public static class CanonicalGoldenTestData
 
             foreach (JsonElement artifact in goldenCase.GetProperty("artifacts").EnumerateArray())
             {
-                _ = ValidatedArtifactPath(artifact, root);
+                ValidateArtifact(artifact, root, caseId);
             }
 
             _ = directEvidence
@@ -384,12 +391,12 @@ public static class CanonicalGoldenTestData
         JsonElement artifact = artifactId == "expected-output"
             ? goldenCase.GetProperty("expectedOutput")
             : goldenCase.GetProperty("inputs").GetProperty(artifactId);
-        return ValidatedArtifactPath(artifact);
+        return ValidatedArtifactPath(artifact, Root, goldenCase.GetProperty("caseId").GetString());
     }
 
     private static string ValidatedArtifactPath(JsonElement artifact)
     {
-        return ValidatedArtifactPath(artifact, Root);
+        return ValidatedArtifactPath(artifact, Root, null);
     }
 
     private static List<CanonicalGoldenDifferenceRange> ParseAllowedDifferenceRanges(
@@ -459,8 +466,17 @@ public static class CanonicalGoldenTestData
                 $"Allowed difference {propertyName} must be a non-negative hexadecimal offset.");
     }
 
-    private static string ValidatedArtifactPath(JsonElement artifact, string root)
+    private static string ValidatedArtifactPath(JsonElement artifact, string root, string? caseId)
     {
+        if (IsPrivateReference(artifact, caseId))
+        {
+            string privatePath = ConfidentialReferenceTestData.ResolveVerifiedPath(
+                artifact.GetProperty("sha256").GetString()!);
+            return new FileInfo(privatePath).Length != artifact.GetProperty("size").GetInt64()
+                ? throw new InvalidDataException("Private canonical artifact size drift.")
+                : privatePath;
+        }
+
         string path = RepositoryPaths.ManifestPath(root, artifact);
         var file = new FileInfo(path);
         if (file.Length != artifact.GetProperty("size").GetInt64())
@@ -482,7 +498,7 @@ public static class CanonicalGoldenTestData
         foreach (JsonElement artifact in goldenCase.GetProperty("artifacts").EnumerateArray())
         {
             string role = artifact.GetProperty("role").GetString()!;
-            JsonObject projection = ProjectArtifact(artifact, root);
+            JsonObject projection = ProjectArtifact(artifact, root, goldenCase.GetProperty("caseId").GetString());
             if (StringComparer.Ordinal.Equals(role, "input"))
             {
                 inputs.Add(artifact.GetProperty("artifactId").GetString()!, projection);
@@ -510,14 +526,71 @@ public static class CanonicalGoldenTestData
         };
     }
 
-    private static JsonObject ProjectArtifact(JsonElement artifact, string root)
+    private static JsonObject ProjectArtifact(JsonElement artifact, string root, string? caseId)
     {
-        _ = ValidatedArtifactPath(artifact, root);
+        ValidateArtifact(artifact, root, caseId);
         return new JsonObject
         {
             ["path"] = artifact.GetProperty("path").GetString(),
             ["size"] = artifact.GetProperty("size").GetInt64(),
             ["sha256"] = artifact.GetProperty("sha256").GetString(),
         };
+    }
+
+    // Mirrors CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS in scripts/canonical_golden_validation.py. A test checks that both
+    // lists stay equal. Every other artifact must declare its private storage.
+    private static readonly Dictionary<string, string> CertifiedImplicitPrivateArtifacts =
+        new(StringComparer.Ordinal)
+        {
+            ["nt51951-fw200-cascade2-auto-prj-599-20260731"] = "postbuild-script-reference",
+        };
+
+    /// <summary>Identifies private provenance by its declared storage disposition only.</summary>
+    public static bool IsPrivateReference(JsonElement artifact)
+    {
+        return IsPrivateReference(artifact, null);
+    }
+
+    /// <summary>Identifies private provenance from its disposition, or for a certified case from the inventory.</summary>
+    public static bool IsPrivateReference(JsonElement artifact, string? caseId)
+    {
+        if (!artifact.TryGetProperty("storage", out JsonElement storage))
+        {
+            if (!artifact.TryGetProperty("role", out JsonElement role) || role.GetString() != "provenance" ||
+                caseId is null || !CertifiedImplicitPrivateArtifacts.TryGetValue(caseId, out string? certifiedId) ||
+                !artifact.TryGetProperty("artifactId", out JsonElement artifactId) ||
+                !StringComparer.Ordinal.Equals(artifactId.GetString(), certifiedId))
+            {
+                return false;
+            }
+
+            using var inventory = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
+                "docs", "references", "confidential-references.json")));
+            return inventory.RootElement.GetProperty("entries").EnumerateArray().Any(entry =>
+                StringComparer.Ordinal.Equals(
+                    entry.GetProperty("sha256").GetString(), artifact.GetProperty("sha256").GetString()) &&
+                entry.GetProperty("sizeBytes").GetInt64() == artifact.GetProperty("size").GetInt64());
+        }
+
+        if (storage.ValueKind != JsonValueKind.String || storage.GetString() != "private-reference" ||
+            artifact.GetProperty("role").GetString() != "provenance")
+        {
+            throw new InvalidDataException("Private storage is permitted only for provenance artifacts.");
+        }
+
+        string? hash = artifact.GetProperty("sha256").GetString();
+        return artifact.GetProperty("size").GetInt64() < 0 || hash is null || hash.Length != 64 ||
+            !hash.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'))
+            ? throw new InvalidDataException("Private canonical artifact has invalid integrity metadata.")
+            : true;
+    }
+
+    private static void ValidateArtifact(JsonElement artifact, string root, string? caseId)
+    {
+        _ = RepositoryPaths.ManifestPath(root, artifact);
+        if (!IsPrivateReference(artifact, caseId) || ConfidentialReferenceTestData.IsConfigured)
+        {
+            _ = ValidatedArtifactPath(artifact, root, caseId);
+        }
     }
 }

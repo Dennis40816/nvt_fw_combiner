@@ -19,7 +19,7 @@ alias without copying payloads or presenting an alias as a direct product golden
   `manifestPath`; and
 - `routeEvidence`: the closed exact-route evidence inventory described below.
 
-The root, every case manifest, and every declared artifact form a closed file inventory. Extra files,
+The root, every case manifest, and every public artifact form a closed file inventory. Extra files,
 missing files, duplicate declarations, path escapes, symlinked files or directories, and sibling-path
 discovery fail validation. Containment is checked on resolved paths before any manifest or payload is
 read.
@@ -98,6 +98,31 @@ byte size, and lowercase SHA-256. Migrated artifacts retain one or more pre-migr
 `legacyPaths`. Input, expected, and provenance artifacts stay below
 the corresponding case subtree; nested source groups such as `inputs/NF/` remain confined there.
 Expected bytes are never regenerated during layout migration.
+
+Provenance artifacts may declare `storage: "private-reference"`; this
+disposition is forbidden for inputs and expected outputs. For already certified
+cases, the public confidential-reference inventory holds the private disposition
+by SHA-256 and size, separately from the unchanged case manifest. This applies
+only to the provenance artifacts that `CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS` in
+`scripts/canonical_golden_validation.py` names. Every other artifact declares
+`storage: "private-reference"` itself. The original
+case-manifest bytes, size and SHA-256 remain pinned by historical certification.
+The physical private file is excluded from the public inventory and release
+package projection.
+When `NVT_PRIVATE_ASSETS` is configured, consumers resolve and verify the
+digest through `nfc/references/SHA256SUMS`; otherwise public identity checks
+remain executable and tests requiring private bytes skip with
+`confidential golden not executed`. Public output Golden comparisons continue
+to use their unchanged input and expected artifacts.
+
+The release allowlist records the optional `storage` disposition separately
+from the original case artifact metadata. Its role, path, size and SHA-256 still
+match the canonical artifact, and case-manifest hash validation retains the
+original certified identity. The current selection keeps 177 logical
+artifact declarations and 174 unique artifact identities, with one private
+provenance identity excluded from shipping: 173 public artifact paths and
+214 canonical source paths are projected. This preparation does not grant
+release approval or change any expected output bytes.
 
 Every canonical `.bin` filename must itself contain the case IC number (for example `51950`). A
 generic basename such as `tp_bin.bin`, `dp-input.bin`, `flash.bin`, or `expected-output.bin` is not
@@ -206,7 +231,8 @@ it may not source input-only evidence. Diagnostics, owner-handoff, quarantine, r
 transfer parts, archives, generated, private, and unlisted material is likewise excluded. A canonical
 path, a `directEvidence` flag, or a raw BIN alone never admits content to the package.
 
-The allowlist treats its BAT and CONFIG provenance artifacts as inert, hash-pinned reference bytes.
+Public CONFIG provenance remains inert, hash-pinned reference bytes. Private
+provenance retains its integrity declaration and is excluded from packaging.
 They are not processors, tools, commands, or executable Golden runtime. The packager fails closed if
 canonical facts, disposition, alias closure, or artifact identity drift from the independent
 allowlist. Changing this authority is an R3 Golden and release/security action and still requires

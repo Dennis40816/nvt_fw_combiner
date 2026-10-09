@@ -5,6 +5,16 @@ Date: 2026-07-03.
 
 Latest searchable conclusion reference: [`ctrlram-postbuild-investigation-reference.md`](ctrlram-postbuild-investigation-reference.md).
 
+The confidential evidence is identified by the `postbuild-*` and
+`tddi-flash-header-*` entries in the
+[public reference manifest](../references/confidential-references.json). The
+manifest records identity and integrity metadata; the private asset repository
+resolves each SHA-256 to its source. The public postbuild catalog and profiles
+remain the authority for production command data and allowed writes. This note
+keeps the 2026-07-03 investigation and the 2026-09-21 characterization with
+their observations, limits and result digests. It names the private sources by
+manifest entry, not by path.
+
 ## Scope
 
 This note records the current understanding of CtrlRAM original-information pasteback through the legacy postbuild combiner.
@@ -40,14 +50,14 @@ Invariants:
 
 Primary evidence:
 
-- `docs/references/tddi-flash-header/Combiner.c`, version string `1.6.0.1`, used as source-level evidence for legacy normal-mode behavior.
-- `docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx`, used as TP header descriptor layout evidence.
+- The older tracked legacy Combiner source (manifest entry `tddi-flash-header-source`), version string `1.6.0.1`, used as source-level evidence for legacy normal-mode behavior.
+- The TP flash header workbook (manifest entry `tddi-flash-header-sheet`), used as TP header descriptor layout evidence.
 - `external-tools/legacy-combiner/1.13.0/Combiner.exe`, used for real-tool experiments.
 - Direct `standard-merge` expected artifacts under `testdata/golden/canonical/`, used only as existing owner-approved firmware outputs for self-pasteback experiments.
 
 Important limitation:
 
-- The inspected `Combiner.c` source is not the same version as the committed 1.13.0 executable.
+- The inspected legacy Combiner source (manifest entry `tddi-flash-header-source`) is not the same version as the committed 1.13.0 executable.
 - Normal-mode behavior aligns closely enough to explain NT51920/NT51923/NT51926 16-byte CRC effects.
 - NT-based modes and common-header modes must be treated as 1.13.0 executable behavior until owner provides matching source or golden Replace vectors.
 
@@ -57,7 +67,7 @@ The postbuild catalog currently uses these combiner command families:
 
 | Family | Argv head | Examples | Notes |
 | --- | --- | --- | --- |
-| Legacy normal | `CRC_Enable <fw>` | NT51920, NT51923, NT51926 | Source evidence exists in `Combiner.c`; requires `map.txt` for real-tool runs. |
+| Legacy normal | `CRC_Enable <fw>` | NT51920, NT51923, NT51926 | Source evidence exists in the legacy Combiner source (manifest entry `tddi-flash-header-source`); requires `map.txt` for real-tool runs. |
 | NT-based normal | `<NTxxxxxBASED_NORMAL_MODE> CRC8 <fw> <fw>` | NT51930, NT51931, NT51932, NT51950, NT51951 | 1.13.0-only behavior for current repo evidence; requires `map.txt` for merge/postbuild commands. |
 | Merge mode | `MERGE_MODE <fw>` | NT51927 family | May shorten command output; host overlays shortened output onto the previous full-length staged image when declared coverage is complete. |
 | CRC-only | `NT51927BASED_GEN_CRC_MODE CRC32 <fw> <fw>` | NT51927 family | Does not need `map.txt` in the observed smoke tests. |
@@ -220,7 +230,7 @@ Combiner.exe CRC_Enable .\nt51926_fw.bin .\BIN\Normal_Ctrlram.bin 0x0 0x22800 11
 Combiner.exe CRC_Enable .\nt51926_fw.bin .\nt51926_fw.bin 0x0 0x32A70 256
 ```
 
-Owner-provided `PostbuildSetup_51926_1.4.1.bat` instead uses `0x32F50` for the same header-copy length and uses `VN_Ctrlram.bin` length `5728` plus FWConfig length `2048`. The 2026-07-05 NT51926 base has its initialized header-copy area at `0x32F50`, not `0x32A70`.
+The owner-provided NT51926 1.4.1 postbuild script (manifest entry `postbuild-nt51926-fw1.4.1`) instead uses `0x32F50` for the same header-copy length and uses `VN_Ctrlram.bin` length `5728` plus FWConfig length `2048`. The 2026-07-05 NT51926 base has its initialized header-copy area at `0x32F50`, not `0x32A70`.
 
 The NT51926 Common FW `1.4.1` cascade reference maps to this canonical host-staging argv. Path tokens are staging-relative; the runtime report expands them beneath one host-created staging working directory:
 
@@ -236,7 +246,7 @@ Combiner.exe NT51930BASED_NORMAL_MODE CRC8 .\NT51930_fw.bin .\NT51930_fw.bin .\B
 Combiner.exe NT51930BASED_NORMAL_MODE CRC8 .\NT51930_fw.bin .\NT51930_fw.bin .\NT51930_fw.bin 0x7000 0x28FB0 512
 ```
 
-Owner-provided `PostbuildSetup_51930_1.4.0.bat` instead uses one command with `0x7000 -> 0x28FB0`, length `0x100`, and no second header-only command. The current 51930 golden has only one differing byte for the first `0x100` of that copy target but 40 differing bytes if interpreted as the `2.0.0` `0x200` copy target.
+The owner-provided NT51930 1.4.0 postbuild script (manifest entry `postbuild-nt51930-fw1.4.0`) instead uses one command with `0x7000 -> 0x28FB0`, length `0x100`, and no second header-only command. The current 51930 golden has only one differing byte for the first `0x100` of that copy target but 40 differing bytes if interpreted as the `2.0.0` `0x200` copy target.
 
 NT51931 failing full-single call:
 
@@ -378,8 +388,7 @@ path. Windows is required; other platforms explicitly skip the real-tool test.
   range is not a comparison allowance. Write authority and CRC read coverage
   remain distinct facts.
 
-External private artifacts are under
-`D:\NvtFwCombiner-TestArea\evidence\v1110-nt51929-ab-ctrlram-characterization`.
+External private artifacts are kept in the owner's private test area.
 The final Normal run is `272de94807f8405d8a440d9712d6b716`; its `report.json`
 SHA-256 is `389cbb65b2f3d67b32a1e1926be5f30a927a2a9c83f5ffedc8acf5c240315348`.
 Each command retains full pre/post snapshots, exact argv, exit status, stdout,
@@ -424,30 +433,30 @@ separate work.
 ### Recovered existing 1.13 source — 2026-09-21
 
 The owner pointed out that this checkout already contains the 1.13 source.
-It is present under Git-ignored `.tmp/combiner-1.13-source/`, with the matching
-owner archive also in `.tmp/owner-archive/929-golden-combiner-intake/`.
-The previously inspected tracked `tddi-flash-header/Combiner.c` is a different,
-older source and was not a sufficient search of the available evidence.
+It was present in the checkout's Git-ignored scratch area, with the matching
+owner archive beside it.
+The previously inspected tracked legacy source (manifest entry
+`tddi-flash-header-source`) is a different, older source and was not a sufficient search of the available evidence.
 
 Provenance is already recorded in the
 [owner intake](../../testdata/golden/owner-handoff/combiner-and-51929/CASE.md).
-The nested `Combiner_1.13_SourceCode.7z` SHA-256 is
+The nested owner-provided 1.13 source archive has SHA-256
 `0c86ad1d292db279c613b0f23a2e4cef8c2422950c56d1c22fdd1130660b47b8`.
-The entry `firmware-merge-tool/Combiner/Combiner.c` was read directly from that
-archive and compared byte-for-byte with the existing extracted file; both hash
-to `7fb6551894d5a71f7df42b6b7c2bda99f35cbcc13f5c01713dc0ae596ebb5ea8`.
-The archived `.vcxproj` compiles `Combiner.c`; its `main` at line 2142 prints
+The main C entry in that archive was read directly and compared byte-for-byte
+with the existing extracted file; both hash to
+`7fb6551894d5a71f7df42b6b7c2bda99f35cbcc13f5c01713dc0ae596ebb5ea8`.
+The archived project compiles that entry, and its `main` prints
 `Combiner version:1.13.0.0`. This establishes source provenance, not a claim of
 reproducible binary-build equivalence. No archive payload was added to Git.
 
-Source observations (line numbers refer to that exact C entry):
+Source observations (they refer to that exact C entry; routines are named by role):
 
 | Path | Source evidence | Consequence for the experiment |
 | --- | --- | --- |
-| NT51929 uses the catalog's NT51932-based mode | `NT51932_CalculateDlmDiffCrcAndHeaderCrc`, lines 1469–1473, reads header start `0x7104` with size code `0x23`; `CRC8Alg` line 42 includes the end byte | Header CRC covers `[0x7104,0x7128)`, excluding address fields `0x7164/0x7168/0x716C` |
-| NT51932 AB assembly | `NT51932BasedMergeABMode`, lines 1658–1673, adds the B delta to the three main-header addresses and writes the output; it calls no CRC or header-copy routine | Normal postbuild followed by restoring only those addresses agrees with this source's assembly sequence; equal A/B CRCs and local copied addresses are not themselves a defect |
-| NT51950 AB assembly | `NT51950BasedMergeABMode`, lines 1930–1934, relocates ILM/DLM addresses then calls `NT51950_CalculateHeaderCrc` | Its header range is `[0xA100,0xA130)` (lines 1721–1727), including its address fields, so the 929 no-extra-CRC conclusion must not be generalized to 950 |
-| Local-B failure | `NT51932_MergeBinsThenInsertFwConfigAndEndFlag`, lines 1495–1520, allocates the local image and computes Backup destination from the stored DIFF address without a destination bound check | The observed 1-IC B control has length `0x40000`, DIFF address `0x6D100` and computed Backup destination `0x6E000`; the 4096-byte copy is outside its buffer even before CRC calculation. This is a concrete unsafe access explaining the crash, not a captured exception stack |
+| NT51929 uses the catalog's NT51932-based mode | the NT51932-based DLM-diff and header CRC routine reads header start `0x7104` with size code `0x23`; the CRC8 routine includes the end byte | Header CRC covers `[0x7104,0x7128)`, excluding address fields `0x7164/0x7168/0x716C` |
+| NT51932 AB assembly | the NT51932-based AB merge routine adds the B delta to the three main-header addresses and writes the output; it calls no CRC or header-copy routine | Normal postbuild followed by restoring only those addresses agrees with this source's assembly sequence; equal A/B CRCs and local copied addresses are not themselves a defect |
+| NT51950 AB assembly | the NT51950-based AB merge routine relocates ILM/DLM addresses then calls its header CRC routine | Its header range is `[0xA100,0xA130)`, including its address fields, so the 929 no-extra-CRC conclusion must not be generalized to 950 |
+| Local-B failure | the NT51932-based merge, FWConfig and end-flag routine allocates the local image and computes Backup destination from the stored DIFF address without a destination bound check | The observed 1-IC B control has length `0x40000`, DIFF address `0x6D100` and computed Backup destination `0x6E000`; the 4096-byte copy is outside its buffer even before CRC calculation. This is a concrete unsafe access explaining the crash, not a captured exception stack |
 | NF propagation | The same routine copies 4096 bytes from FWConfig source, then writes the final NVT marker | For the local control, `[0x1F200,0x20200)` is copied to `[0x2E000,0x2F000)`. NF byte `0x1FC00` is therefore copied to `0x2EA00`, exactly matching the retained host refusal |
 
 The source resolves the missing address/CRC-coverage explanation for these

@@ -40,18 +40,20 @@ Repository evidence used:
 - `docs/architecture/ctrlram-postbuild-original-pasteback.md`
 - `docs/architecture/ctrlram-postbuild-command-matrix.md`
 
-Original postbuild BAT evidence inspected from the owner-approved IC FlashMap reference copy:
+Original postbuild command evidence inspected from the owner-approved private
+reference collection is identified by these entries in the
+[public confidential reference manifest](../references/confidential-references.json):
 
-- `PostbuildSetup_51920_1.3.1.bat`
-- `PostbuildSetup_51923_1.4.1.bat`
-- `PostbuildSetup_51926_1.4.1.bat`
-- `PostbuildSetup_51926_2.0.0.bat`
-- `PostbuildSetup_51927_1.4.1.bat`
-- `PostbuildSetup_51930_1.4.0.bat`
-- `PostbuildSetup_51930_2.0.0.bat`
-- `PostbuildSetup_51931_1.3.0.bat`
-- `PostbuildSetup_51932_2.0.0.bat`
-- `PostbuildSetup_51950_2.0.0.bat`
+- `postbuild-nt51920-fw1.3.1`
+- `postbuild-nt51923-fw1.4.1`
+- `postbuild-nt51926-fw1.4.1`
+- `postbuild-nt51926-fw2.0.0`
+- `postbuild-nt51927-fw1.4.1`
+- `postbuild-nt51930-fw1.4.0`
+- `postbuild-nt51930-fw2.0.0`
+- `postbuild-nt51931-fw1.3.0`
+- `postbuild-nt51932-fw2.0.0`
+- `postbuild-nt51950-fw2.0.0`
 
 The reference archive recorded for that evidence was `IC FlashMap.7z`, SHA-256 `784af28a77f2348933bba0723883415def60dd6bc18dc13367031cab1eb6bfe9`.
 
@@ -80,7 +82,7 @@ Not currently required for NT51928 just to classify LDC:
 
 Useful for NT51931 closure:
 
-- The combiner executable version that originally ran `PostbuildSetup_51931_1.3.0.bat`, if different from committed `Combiner.exe` 1.13.0.
+- The combiner executable version that originally ran `postbuild-nt51931-fw1.3.0`, if different from committed `Combiner.exe` 1.13.0.
 - NT51931 is now resolved by exact tool hashes and a common-base experiment: 1.13.0/51931-based equals the 1.2.0.4/51930-based control byte-for-byte; only the 1.13.0/51930-based pairing crashes.
 
 ## Postbuild BAT Consistency
@@ -154,21 +156,12 @@ Observed self-pasteback diff with committed Combiner 1.13.0 and the current `2.0
 
 The copy length is still exactly `0x100` bytes. The `243` bytes are only the bytes that differ after copying.
 
-The original bytes in the changed `2.0.0` copy-header target were mostly `0xFE` and `0x00`, not `0xFF`. This first looked like a copy-header target state mismatch:
+The original bytes in the changed `2.0.0` copy-header target initially
+suggested a target-state mismatch.
 
-```text
-source: [0x00000, 0x00100)
-target: [0x32A70, 0x32B70)
-length: 0x100
-```
-
-After importing the owner-provided `PostbuildSetup_51926_1.4.1.bat`, the direct cause is clearer. `1.4.1` uses:
-
-```text
-source: [0x00000, 0x00100)
-target: [0x32F50, 0x33050)
-length: 0x100
-```
+Review of the private evidence identified as `postbuild-nt51926-fw1.4.1`
+clarified the version difference: its copy target differs from the `2.0.0`
+catalog shape.
 
 The supplied 2026-07-05 NT51926 base matches the `1.4.1` target shape:
 
@@ -183,21 +176,8 @@ Those 8 bytes are CRC/header-generation words, so the 251-byte `2.0.0` self-repl
 
 NT51927 2-chip and 3-chip branches explicitly contain whole-window copies in the BAT. These are not inferred from flash-map UI names. The exact three-chip route runs one ordered 13-command session; its right NF source offset is `0x1F90`, as declared by the BAT.
 
-2-chip right-window copy:
-
-```text
-source: 0x16000
-target: 0x1F000
-length: 0x9000
-```
-
-3-chip includes the same right-window copy and an additional left-window copy:
-
-```text
-source: 0x16000
-target: 0x28000
-length: 0x9000
-```
+The 2-chip route copies the right window. The 3-chip route adds the left
+window; both then overlay selected CtrlRAM subregions.
 
 After those copies, the BAT overlays CtrlRAM subregions, but it does not overwrite every byte in the copied windows. Therefore non-CtrlRAM bytes can remain changed if the base golden was not produced by the same chip-count branch.
 
@@ -226,8 +206,8 @@ Conclusion: NT51928 LDC belongs to Display/DP merge/replace handling.
 
 The inspected BAT references now show two NT51930 postbuild shapes:
 
-- `PostbuildSetup_51930_1.4.0.bat`: single branch does not pass `DiffDLM.bin`; cascade branch passes `DiffDLM.bin`; header copy is `0x7000 -> 0x28FB0`, length `0x100`; there is no second header-only command.
-- `PostbuildSetup_51930_2.0.0.bat`: single branch does not pass `DiffDLM.bin`; cascade branch passes `DiffDLM.bin`; header copy is `0x7000 -> 0x28FB0`, length `HEADER_SZ = 0x200`; both single and cascade run a second header-only command.
+- `postbuild-nt51930-fw1.4.0` supplies the selected single-command shape.
+- `postbuild-nt51930-fw2.0.0` supplies a distinct, evidence-only header shape.
 
 The current 51930 Standard Merge golden aligns better with the `1.4.0` header-copy shape:
 
@@ -246,11 +226,8 @@ Current interpretation:
 
 ### NT51931
 
-The original BAT confirms NT51931 official postbuild uses:
-
-```text
-NT51930BASED_NORMAL_MODE CRC8
-```
+The private postbuild evidence for NT51931 conflicts on mode selection. The
+selected runtime pairing follows the controlled tool-parity result below.
 
 The archived 2026-07-18 catalog matched that BAT. The selected catalog now follows the
 registered-tool parity result below rather than the crashing final-BAT pairing.
@@ -283,8 +260,8 @@ When this topic comes up again, search this file first for:
 
 The short answer to preserve:
 
-- NT51926 now has two inspected postbuild versions. The 2026-07-05 base aligns with `PostbuildSetup_51926_1.4.1.bat` (`0x32F50` header copy), not the current `2.0.0` catalog target (`0x32A70`).
-- NT51930 now has two inspected postbuild versions. The current Standard Merge golden aligns with `PostbuildSetup_51930_1.4.0.bat` header-copy length `0x100`, not the current `2.0.0` catalog length `0x200` plus second header-only command.
+- `postbuild-nt51926-fw1.4.1` supplies private evidence for the NT51926 postbuild review.
+- `postbuild-nt51930-fw1.4.0` supplies private evidence for the NT51930 postbuild review.
 - Current postbuild catalog matches inspected `2.0.0` BAT evidence, but not necessarily the version of every golden sample.
 - NT51926 is no longer just a copy-header initialization question; it is a postbuild-version selection/evidence question.
 - NT51927 single has direct owner-output evidence. The 2-chip and 3-chip exact routes are closed through full-reference-SHA V1/V2 and expected-derived replacement/CRC classification; both remain support-neutral and make no independent owner-output claim.

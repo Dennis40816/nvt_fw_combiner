@@ -80,7 +80,7 @@ The currently visible version-crossing issue is concentrated in ICs whose postbu
 
 FWConfig can now be used as the preferred postbuild-category signal for the base/TP work image:
 
-- The owner-provided `ap_fwconfig.c` reference is preserved at `docs/references/ic-flashmap/common-fw/ap_fwconfig.c`; only its sanitized source label and SHA-256 hash are recorded in `SOURCE_MANIFEST.json`.
+- The owner-provided FWConfig layout reference is identified as `common-fw-configuration-source` in the [public confidential reference manifest](../references/confidential-references.json); its source bytes are held privately.
 - `ST_PUB_FW_CONFIG.gstFwSettings` keeps Common FW version at offsets `+0x01A/+0x01B/+0x01C`, FW version/bar at `+0x000/+0x001`, FW sub-version at `+0x011`, and Project ID at `+0x022` as little-endian `UINT16`.
 - Current golden reads confirm NT51926 is Common FW `1.4.1`; 2.0.0-family golden cases read as `2.0.0`.
 - This supports treating the 1.x.x vs 2.0.0 mismatch as historical MD/postbuild codebase drift, not a Replace overlay-size bug.
@@ -120,7 +120,8 @@ All currently classified CtrlRAM self-replacement differences are either known h
 
 ## Evidence Sources
 
-Primary files:
+Primary code and evidence identifiers (the latter resolve through the
+[public confidential reference manifest](../references/confidential-references.json)):
 
 - `profiles/built-in/ctrlram-postbuild-v2/catalog.json`
 - `src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs`
@@ -128,10 +129,10 @@ Primary files:
 - `src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog*.cs`
 - `src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs`
 - `external-tools/legacy-combiner/1.13.0/Combiner.exe`
-- `docs/references/ic-flashmap/postbuild/*.bat`
-- `docs/references/ic-flashmap/mmap/*.h`
-- `docs/references/ic-flashmap/common-fw/ap_fwconfig.c`
-- `docs/references/ic-flashmap/IC_FlashMap_20260725.xlsx`
+- `postbuild-*` entries for command evidence
+- `mmap-*` entries for address and header evidence
+- `common-fw-configuration-source`
+- `flashmap-2026-07-25`
 - `testdata/golden/canonical/manifest.json`
 - `testdata/golden/ctrlram-replace/manifest.20260717.json` (remaining
   diagnostics/cross-workflow duplicates only)
@@ -241,25 +242,25 @@ outputs match the corresponding NT51927 hashes for single
 
 Report verification gate: committed golden-backed self-replacement tests inspect the generated Replace report, not only the final output bytes. DP self-replacement must leave `OutputDifferences` empty. A CtrlRAM case whose evidence claims zero replacement-payload drift may emit only accepted `PostbuildCrcHeader` rows. An expected-derived CtrlRAM case may additionally emit accepted `DeclaredReplacement` rows only when every row traces to an explicit compiled mapping and an evidence-declared half-open range. Every case forbids `Unexpected` rows and `report.output-difference.unexpected`; a second self-replacement from the postbuild-clean output must return to an empty difference table.
 
-The 2026-07-05 NT51927 synthetic sentinel run replaced every selected 2-chip and 3-chip CtrlRAM slot with non-golden byte patterns. The 2-chip branch stayed within the existing declarations. The 3-chip branch exposed additional CRC-only main-header word writes at `[0x22C,0x230)`, `[0x29C,0x2A0)`, and `[0x2AC,0x2B0)` that self-replacement did not necessarily surface. These ranges align with the `51927_1.4.1_mmap.h` cascade header CRC offsets and descriptor/header CRC-word rule below, so the allowed-write catalog declares them only for the 3-chip/cascade branch. This remains R3 firmware evidence and requires firmware-owner review before production-support promotion.
+`mmap-nt51927-fw1.4.1` supplies private evidence for reviewing cascade write authority. The 3-chip/cascade CRC-only header writes remain R3 firmware evidence and require firmware-owner review before production-support promotion.
 
 NT51930 Standard Merge golden cross-check:
 
-- `PostbuildSetup_51930_1.4.0.bat` uses `output\nt51930_fw.bin 0x7000 0x28FB0 256`.
-- `PostbuildSetup_51930_2.0.0.bat` derives `HEADER_SZ = 0x200` from `51930_2.0.0_mmap.h` and runs both a merge command and a second header-only command.
+- `postbuild-nt51930-fw1.4.0` supplies the historical header-copy command shape.
+- `postbuild-nt51930-fw2.0.0` and `mmap-nt51930-fw2.0.0` supply private evidence for reviewing an alternative postbuild layout.
 - In the current 51930 golden output, comparing `[0x7000,0x7200)` to `[0x28FB0,0x291B0)` gives 1 differing byte for the first `0x100`, but 40 differing bytes for `0x200`. This supports treating the golden as 1.4.0-era evidence.
 
 No-overlay/header-copy size cross-check:
 
-| IC family | Matching reference | Header-copy size conclusion |
+| IC family | Manifest ID | Evidence purpose (the selected header-copy sizes are in `profiles/built-in/ctrlram-postbuild-v2/catalog.json`) |
 | --- | --- | --- |
-| NT51920 | `PostbuildSetup_51920_1.3.1.bat` | `0x100`; golden header table also reports `0x100`. |
-| NT51923 | `PostbuildSetup_51923_1.4.1.bat` | `0x100`; golden header table also reports `0x100`. |
-| NT51926 | `PostbuildSetup_51926_1.4.1.bat` and `PostbuildSetup_51926_2.0.0.bat` | Size remains `0x100`; mismatch is target address/codebase, not size. |
-| NT51929 / NT51932 | `PostbuildSetup_51932_2.0.0.bat` | `0x200`; this is the 2.0.0 NT-based header size. |
-| NT51930 | `PostbuildSetup_51930_1.4.0.bat`; `PostbuildSetup_51930_2.0.0.bat` evidence-only | The one runtime interval `[1.0.0,infinity)` continues to use the 1.4.0-sourced shape (`0x100`). The inspected 2.0.0 shape (`0x200`) is retained for traceability and cannot create a production boundary. |
-| NT51931 | `PostbuildSetup_51931_1.3.0.bat` | `0x100`; two supplied BAT versions disagree on mode. Registered Combiner 1.13.0/51931-based is selected after full-byte equality with the hash-only 1.2.0.4/51930-based control. The 1.2.0.4 executable is not packaged or routed. |
-| NT51950 / NT51951 | `PostbuildSetup_51950_2.0.0.bat` | `0x200`; this is the 2.0.0 NT-based header size. |
+| NT51920 | `postbuild-nt51920-fw1.3.1` | Private evidence for postbuild layout review. |
+| NT51923 | `postbuild-nt51923-fw1.4.1` | Private evidence for postbuild layout review. |
+| NT51926 | `postbuild-nt51926-fw1.4.1` and `postbuild-nt51926-fw2.0.0` | Private evidence for postbuild layout review. |
+| NT51929 / NT51932 | `postbuild-nt51932-fw2.0.0` | Private evidence for postbuild layout review. |
+| NT51930 | `postbuild-nt51930-fw1.4.0`; `postbuild-nt51930-fw2.0.0` evidence-only | Private evidence for postbuild layout review. |
+| NT51931 | `postbuild-nt51931-fw1.3.0` | Private evidence for postbuild layout review. |
+| NT51950 / NT51951 | `postbuild-nt51950-fw2.0.0` | Private evidence for postbuild layout review. |
 
 Current conclusion: for normal/NT-based no-overlay postbuild, the size data is consistent when matched to the selected runtime profile. Common FW selects only between multiple effective profile intervals; it is not required for an IC with one runtime profile. Auto mode may keep the empty `map.txt` staging model for this no-overlay category and must still fail closed for overlay-enabled or unclassified firmware.
 
@@ -307,25 +308,20 @@ TP Overview evidence notes:
 
 NT51927 flash-header cross-check:
 
-- `IC_FlashMap_20260725.xlsx` records `0x00200` Common Header, `0x00220` Flash Header, `0x1E230` Master header copy, `0x27230` Slave R header copy, `0x30230` Slave L header copy, and `0x32DC0` Header backup.
-- `51927_1.4.1_mmap.h` records cascade header CRC offsets.
+- `flashmap-2026-07-25` supplies private evidence for header-layout review.
+- `mmap-nt51927-fw1.4.1` supplies private evidence for cascade integrity review.
 - Observed changed words align with 16-byte descriptor CRC positions (`descriptor + 0x0C`), including split 3-chip diff ranges where one byte in a 4-byte word happened to match.
 - Synthetic sentinel replacement confirmed the real Combiner 1.13.0 path can update additional 3-chip main-header CRC words that self-replacement did not necessarily surface.
 
 ### 4. NT51931 corrected command evidence and exact-case candidate
 
-Current repo reference for NT51931 is `1.3.0`, not `2.0.0`:
+Private evidence used for NT51931 postbuild review:
 
-- `docs/references/ic-flashmap/mmap/51931_1.3.0_mmap.h`
-- `docs/references/ic-flashmap/postbuild/PostbuildSetup_51931_1.3.0.bat`
+- `mmap-nt51931-fw1.3.0`
+- `postbuild-nt51931-fw1.3.0`
 
-The final 2026-07-18 BAT-shaped command was:
 
-```text
-Combiner.exe NT51930BASED_NORMAL_MODE CRC8 ...
-```
-
-That mode paired with Combiner 1.13.0 access-violates before mutation:
+The NT51930-based normal mode paired with Combiner 1.13.0 access-violates before mutation:
 
 ```text
 ExitCode=-1073741819
@@ -335,11 +331,6 @@ STDERR=<empty>
 DiffBytes=0
 ```
 
-The 2026-07-17 owner BAT instead declares:
-
-```text
-Combiner.exe NT51931BASED_NORMAL_MODE CRC8 ...
-```
 
 The owner-selected 2026-07-19 experiment retained the final `0x17C00`
 DiffDLM input and every other argv token, while comparing these two pairings:

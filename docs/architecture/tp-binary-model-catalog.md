@@ -15,10 +15,11 @@ NT51925, NT51930, and NT51931. Their worksheet/header entries remain
 non-production historical evidence for report interpretation only and are not
 migrated into target selectors, profiles, processors, or family relationships.
 
-Evidence sources:
+Evidence sources, identified by IDs in the
+[public confidential reference manifest](../references/confidential-references.json):
 
-- `docs/references/ic-flashmap/IC_FlashMap_20260725.xlsx` TP Overview rows;
-- `docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx` named header worksheets;
+- `flashmap-2026-07-25` for flash-layout review;
+- `tddi-flash-header-sheet` for header-layout review;
 - documented owner aliases already recorded in hash-pinned
   `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.
 
