@@ -128,9 +128,15 @@ Decision proposed here:
   never correct. The NT51925 candidates keep their promotion blockers and publish
   no executable output.
 - The end flag is not a fixed address. Its position differs between ICs, and for
-  some ICs it depends on the IC count (ADR 0076). The FWConfig Backup location follows
-  the end flag of each map, not a shared constant. A future
-  NT51925 map declares its own end flag per Common FW line.
+  some ICs it depends on the IC count (ADR 0076). The FWConfig Backup location
+  follows the end flag of the map, not a shared constant. This amendment adds no
+  end flag position for NT51925.
+- Limit: the selector needs the Common FW version, and the reader of that version
+  needs the end flag of the base BIN before a map is chosen. Today the end flags
+  of all candidate maps of one IC must agree, or the reader reports the position as
+  unresolved. NT51925 has no map yet, so this limit is not reached. If a future map of one IC needs a different end flag per Common FW
+  line, that map first needs a way to read the version without a chosen map. That
+  design is a later item and belongs to the change that adds such a map.
 - One internal selector, `BuiltInCommonFwSelector`, picks the postbuild profile and
   the TP flash map for one Common FW version. CtrlRAM Replace, General Replace and
   the memory-layout display call it, so they cannot disagree on the rule, the
