@@ -13,7 +13,7 @@ internal static partial class BuiltInTpFlashMapCatalog
         out TpFlashMapProfile? profile,
         out string? issue)
     {
-        return CatalogInstance.TrySelect(icId, commonFwVersion, out profile, out issue);
+        return ShippedCatalog.TrySelect(icId, commonFwVersion, out profile, out issue);
     }
 
     /// <summary>
@@ -22,7 +22,7 @@ internal static partial class BuiltInTpFlashMapCatalog
     /// </summary>
     internal static bool TryGetNotProvidedIssue(string icId, out string? issue)
     {
-        return CatalogInstance.TryGetNotProvidedIssue(icId, out issue);
+        return ShippedCatalog.TryGetNotProvidedIssue(icId, out issue);
     }
 
     /// <summary>Catalog state shared by shipped queries and synthetic-data tests.</summary>
@@ -96,6 +96,21 @@ internal static partial class BuiltInTpFlashMapCatalog
                 _ => throw new InvalidOperationException("Unsupported interval selection result."),
             };
             return profile is not null;
+        }
+
+        /// <summary>Uses the slot selection issue for display, retaining the existing sole-map fallback.</summary>
+        internal TpFlashMapProfile? FindForDisplay(string icId, string? version, out string? issue)
+        {
+            if (TrySelect(icId, version, out TpFlashMapProfile? selected, out issue))
+            {
+                return selected;
+            }
+            if (TryFind(icId, out TpFlashMapProfile? sole))
+            {
+                issue = null;
+                return sole;
+            }
+            return null;
         }
 
         /// <summary>Gets visible regions only for an IC whose sole slot is a map.</summary>

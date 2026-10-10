@@ -32,16 +32,16 @@ public sealed class CanonicalCatalogSnapshotDigestTests
     // selector excludes them from both workflows until owner evidence arrives.
     // A change here is a published catalog change and needs its own review.
     private const string PinnedSha256 =
-        "438c8b9dadcdd7be480475b66f1fcd39ad511aed555d90d42a27463a0ac4d338";
+        "3fc20d45223e6eec062482acd9b0e14d8fb512c66bb1ac3e2fb2f90c82604914";
     private const int PinnedLength = 536_741;
     private const int SequentialReloads = 5;
     private const int ConcurrentLoads = 4;
 
     private static readonly (string Name, int Length, string Sha256)[] PinnedSections =
     [
-        ("catalog", 341, "58e3c437c9e55926e7f72a242207dcb78a8aa1db9c1ea8c0b559e9a22750116e"),
-        ("static-routes", 124_414, "99e89241e38565dc811a407bd8731e16f97efa0f776f899aac6fc96595d35523"),
-        ("dynamic-routes", 274_639, "df4c87edbe60a9e8e2b5dac153d95beb82016efe7e2ad877cf09093d8cdb7578"),
+        ("catalog", 341, "ac458bd5668cd5cee1da98c861df63952a2f61683cbd0d17a733e7f530bc7e55"),
+        ("static-routes", 124_414, "e2943d82cbf31d85ba457c2fc73fdf5677afb2ab2125314a8672a4fe61a974f5"),
+        ("dynamic-routes", 274_639, "99b1fa0da450084ebf24056f188f132885e1c9ac4cf50ad247dfeb092968fe41"),
         ("full-image-plans", 106_364, "3052ae411884f7c44713a18286360b2d4f1d410bf0c4bc97ab2c3f3c9dea2df9"),
         ("disclosure", 20_002, "dcd5a7655b7ea02a8ee601093ac02f449a3b7509828ef5dd8f94ae76f7bba8de"),
         ("selector", 10_957, "260184aa3b48b10e6e3bf7883ddab6d7a25a5659930b27fe00a6c77f0a28aafe"),

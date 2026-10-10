@@ -53,39 +53,26 @@ public sealed class BuiltInTpFlashMapCatalogQueryTests
         Assert.Equal(sole.Regions, catalog.GetRegions("TEST-IC-B", null, null));
     }
 
-    /// <summary>The shipped bytes keep one entry per IC. NT51925 has only "not provided" slots, 1.x and 2.0.0.</summary>
+    /// <summary>NT51925 has two versioned maps; all other shipped ICs retain their sole maps.</summary>
     [Fact]
     public void ShippedCatalogRetainsPinnedHashAndSingleEntrySelection()
     {
         byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
             "profiles/built-in/ctrlram-postbuild-v2/flash-map.json".Replace('/', Path.DirectorySeparatorChar)));
         BuiltInTpFlashMapCatalog.LoadedCatalog loaded = BuiltInTpFlashMapCatalog.LoadCatalog(bytes,
-            "1ba6eee0a139266121cda96e95f5e1f3dc1f0d317508a92ea71d9fc1970e67ed");
+            "2c880f6786a611654b84d888d7ac6590856a0109dbb184c6b22b14d58d158c01");
         IReadOnlyList<TpFlashMapProfile> profiles = loaded.Profiles;
 
         Assert.Equal(BuiltInTpFlashMapCatalog.IcIds,
             profiles.Select(profile => profile.IcId).Concat(loaded.PendingMaps.Select(map => map.IcId))
                 .Distinct().Order(StringComparer.Ordinal));
-        Assert.All(profiles.GroupBy(profile => profile.IcId), group => Assert.Single(group));
-        Assert.DoesNotContain(profiles, profile => profile.IcId == "NT51925");
-        Assert.Equal(["NT51925", "NT51925"], loaded.PendingMaps.Select(map => map.IcId));
-        Assert.Equal(
-            ["NT51925 1.x map has not been provided", "NT51925 2.0.0 map has not been provided"],
-            loaded.PendingMaps.OrderBy(map => map.FromCommonFwVersion).Select(map => map.Reason));
-        foreach (string icId in BuiltInTpFlashMapCatalog.IcIds)
+        Assert.All(profiles.Where(profile => profile.IcId != "NT51925").GroupBy(profile => profile.IcId),
+            group => Assert.Single(group));
+        Assert.Equal(["1.0.0", "2.0.0"], profiles.Where(profile => profile.IcId == "NT51925")
+            .Select(profile => profile.EffectiveCommonFwVersion.ToString()));
+        Assert.Empty(loaded.PendingMaps);
+        foreach (string icId in BuiltInTpFlashMapCatalog.IcIds.Where(static id => id != "NT51925"))
         {
-            if (loaded.PendingMaps.Any(map => map.IcId == icId))
-            {
-                Assert.False(BuiltInTpFlashMapCatalog.TryFind(icId, out _));
-                foreach (string? version in new string?[] { null, "1.0.0", "1.4.1", "2.0.0", "255.255.255" })
-                {
-                    Assert.False(BuiltInTpFlashMapCatalog.TrySelect(icId, version, out _, out string? pendingIssue));
-                    Assert.False(string.IsNullOrWhiteSpace(pendingIssue));
-                }
-
-                continue;
-            }
-
             Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? found));
             Assert.Equal(LegacyCombinerCommonFwVersion.MinimumSupported, found!.EffectiveCommonFwVersion);
             Assert.True(BuiltInTpFlashMapCatalog.TrySelect(icId, null, out TpFlashMapProfile? selected, out string? issue));

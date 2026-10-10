@@ -120,36 +120,27 @@ Decision proposed here:
   selector takes the slot with the highest version that is not above the input.
   If that slot is a marker, the selector refuses the IC and returns its reason.
   An IC may have only markers. An IC with several slots needs a readable version.
-- NT51925 has two markers: 1.0.0 ("NT51925 1.x map has not been provided") and
-  2.0.0 ("NT51925 2.0.0 map has not been provided"). Both lines are refused until
-  the owner supplies the map. The NT51926 values that the isolated candidate
-  borrowed are removed from the catalog, so they cannot be selected. NT51925 and
-  NT51926 differ in the NF and VN sizes and in every address, so borrowing was
-  never correct. The NT51925 candidates keep their promotion blockers and publish
-  no executable output.
-- The end flag is not a fixed address. Its position differs between ICs, and for
-  some ICs it depends on the IC count (ADR 0076). The FWConfig Backup location
-  follows the end flag of the map, not a shared constant. This amendment adds no
-  end flag position for NT51925.
-- Limit: the selector needs the Common FW version, and the reader of that version
-  needs the end flag of the base BIN before a map is chosen. Today the end flags
-  of all CtrlRAM Replace image maps of one IC must agree, or the reader reports the
-  position as unresolved. For NT51925 the reader already reports it as unresolved,
-  so a base BIN of that IC has no readable version. The selector therefore refuses
-  NT51925 before it needs a version and returns both "not provided" messages. If a
-  future map of one IC needs a different end flag per Common FW line, that map first
-  needs a way to read the version without a chosen map. That design belongs to the
-  change that adds such a map.
+- NT51925 now has owner-declared maps at both slot starts, as recorded in the
+  NT51925 maps amendment below. The borrowed NT51926 catalog values stay removed.
+  NT51925 candidate routes retain their promotion blockers and publish no executable output.
+- End flags are declared per layout (ADR 0076). NT51925 declares the same end
+  flag in both Common FW lines and in the Standard Merge and CtrlRAM Replace
+  candidate families, so the base Backup can supply the version before selection.
+- Limit: every CtrlRAM Replace image map of one IC must resolve the same end
+  flag before the reader can read its base version. A future Common FW line
+  needing a different position first needs a version-reading design independent
+  of a chosen map; that remains outside this amendment.
 - Limit: General Replace keeps its compiled capability when the user changes only
   the Base. The retained capability is not checked again against the DP regions of a
-  different map. No shipped IC has two maps, so this does not occur today. The change
+  different map. NT51925 now has two catalog maps, with identical DP declarations and blocked
+  candidate execution. No supported route exercises different DP declarations today. The change
   that adds a second map to one IC must add that check and a planner test with a
   swapped Base.
 - One internal selector, `BuiltInCommonFwSelector`, picks the postbuild profile and
   the TP flash map for one Common FW version. CtrlRAM Replace, General Replace and
   the memory-layout display call it, so they cannot disagree on the rule or on
-  which map is refused. The display has no field for an issue, so a refused map
-  shows an empty layout instead of the message. The by-IC catalog lookups remain
+  which map is refused. The display record now carries an optional issue for a refused slot;
+  the UI pending-layout projection remains a later presentation change. The by-IC catalog lookups remain
   for ICs with exactly one slot that is a map, and return nothing for any other IC.
 - Standard Merge does not read the TP flash-map catalog today. Its image maps
   declare no Common FW condition. The NT51925 Standard Merge candidate cannot run
@@ -158,9 +149,49 @@ Decision proposed here:
   do it later, and add it before the NT51925 Standard Merge candidate can run.
   It is not part of this amendment.
 
-This amendment adds no NT51925 map values. The V1 and V2 TP ranges, the
-production layout and the Cascade mapping stay unconfirmed. They wait for the
-owner's data and the Golden evidence listed below. Replace stays deferred.
+The version-slot model is unchanged by the NT51925 maps amendment below.
+Candidate Replace geometry remains provisional and Replace stays deferred.
+
+## Amendment (2026-10-10): NT51925 maps
+
+Status: Proposed. Owner decision (relayed 2026-10-10): the owner's postbuild
+flow is the single authority for NT51925 addresses and sizes.
+
+The layout key is the Common FW slot and IC count: 1.x starts at 1.0.0 and
+2.0.0 starts at 2.0.0 under the existing greatest-applicable-slot rule. One IC
+selects Single; two and three ICs select the same Cascade layout. Single-only
+and multi-chip-only rows express the four layouts in the existing catalog.
+Both candidate families declare the same NVT end flag for all selected maps,
+using an exact marker-length search, unique selection and the canonical
+Backup result offset. The Common FW Backup read therefore resolves before
+map selection. Catalog ranges remain authoritative when a provisional
+postbuild command plan is supplied.
+
+Verification scope: 1.x Cascade agrees with the owner's postbuild flow and two
+real BINs; 2.0.0 Cascade agrees with that flow and three real BINs. Both Single
+layouts have postbuild evidence only and no real BIN. The 2.0.0 Single layout
+omits DIFF. On 2026-10-10 the host compared both Cascade layouts with those real
+BINs: the declared end flag is found once at the declared position, every
+declared region except Customer Info (blank in these BINs) holds data where the
+layout says so, and no other firmware data
+lies outside the declared regions except the 1.x vector table and data area, which
+are not catalog regions. This is a layout check, not a byte-exact
+Golden run. Unknowns remain the 1.x Single `.data` position, whether a two-chip
+2.0.0 Cascade uses all declared DIFF bytes (in the real BINs the data reaches only
+past the middle of that region), and the unused gaps before and after the 2.0.0 Header Copy
+(blank in the real BINs). No Project ID is invented.
+
+Candidate Replace routes stay blocked as Candidate/ContractOnly. Their other
+geometry and execution contracts remain provisional. Standard Merge remains
+blocked pending its later version-conditioned image-map work. This amendment
+makes no support, approval or Golden claim and does not change the ADR status.
+
+### Later items and completed follow-ups
+
+- Optional issue in the display record: triggered by this map change and the
+  PR #602 marker-display finding; the record and discovery propagation are
+  implemented here, while rendering the reason in the pending UI is deferred
+  because it requires more than a small binding.
 
 ## Required owner evidence and gates
 

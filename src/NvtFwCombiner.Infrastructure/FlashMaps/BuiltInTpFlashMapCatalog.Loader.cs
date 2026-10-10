@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Infrastructure.FlashMaps;
 internal static partial class BuiltInTpFlashMapCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/flash-map.json";
-    private const string ExpectedSha256 = "1ba6eee0a139266121cda96e95f5e1f3dc1f0d317508a92ea71d9fc1970e67ed";
+    private const string ExpectedSha256 = "2c880f6786a611654b84d888d7ac6590856a0109dbb184c6b22b14d58d158c01";
     private static LoadedCatalog LoadShippedCatalog()
     {
         string path = Path.Combine(AppContext.BaseDirectory, RelativePath.Replace('/', Path.DirectorySeparatorChar));
@@ -95,7 +95,8 @@ internal static partial class BuiltInTpFlashMapCatalog
                 source.BaseShapeEvidence,
                 regions.Select(CreateRegion),
                 source.Evidence,
-                ParseEffectiveCommonFwVersion(source.EffectiveCommonFwVersion))
+                ParseEffectiveCommonFwVersion(source.EffectiveCommonFwVersion),
+                source.UseDeclaredRegionRanges)
             : throw Invalid($"duplicate region id for {source.IcId}");
     }
 
@@ -128,6 +129,7 @@ internal static partial class BuiltInTpFlashMapCatalog
             source.Visibility switch
             {
                 "always" => TpFlashMapRegionVisibility.Always,
+                "single-chip-only" => TpFlashMapRegionVisibility.SingleChipOnly,
                 "multi-chip-only" => TpFlashMapRegionVisibility.MultiChipOnly,
                 "two-chip-and-above" => TpFlashMapRegionVisibility.TwoChipAndAbove,
                 "three-chip-and-above" => TpFlashMapRegionVisibility.ThreeChipAndAbove,
@@ -161,7 +163,8 @@ internal static partial class BuiltInTpFlashMapCatalog
         [property: JsonPropertyName("baseShapeEvidence")] string BaseShapeEvidence,
         [property: JsonPropertyName("evidence")] string Evidence,
         [property: JsonPropertyName("regions")] IReadOnlyList<RegionDocument>? Regions,
-        [property: JsonPropertyName("effectiveCommonFwVersion")] JsonElement EffectiveCommonFwVersion);
+        [property: JsonPropertyName("effectiveCommonFwVersion")] JsonElement EffectiveCommonFwVersion,
+        [property: JsonPropertyName("useDeclaredRegionRanges")] bool UseDeclaredRegionRanges = false);
 
     private sealed record RegionDocument(
         [property: JsonPropertyName("regionId")] string RegionId,

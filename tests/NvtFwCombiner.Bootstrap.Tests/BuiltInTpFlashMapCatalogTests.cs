@@ -20,23 +20,18 @@ public sealed class BuiltInTpFlashMapCatalogTests
         }
     }
 
-    /// <summary>
-    /// Returns the TP map the profile's Common FW line selects. Only the declared not-provided NT51925 maps (1.x and 2.0.0) are absent.
-    /// </summary>
+    /// <summary>Checks selected maps; provisional NT51925 command geometry is outside catalog parity checks.</summary>
     private static TpFlashMapProfile? SelectMap(LegacyCombinerPostbuildProfile profile)
     {
-        if (BuiltInTpFlashMapCatalog.TrySelect(
-                profile.IcId,
-                profile.EffectiveCommonFwVersion.ToString(),
-                out TpFlashMapProfile? flashMapProfile,
-                out string? issue))
+        Assert.True(BuiltInTpFlashMapCatalog.TrySelect(profile.IcId,
+            profile.EffectiveCommonFwVersion.ToString(), out TpFlashMapProfile? map, out string? issue), issue);
+        Assert.Null(issue);
+        if (profile.IcId == "NT51925")
         {
-            return flashMapProfile;
+            Assert.True(map!.UseDeclaredRegionRanges);
+            return null;
         }
-
-        Assert.Equal("NT51925", profile.IcId);
-        Assert.Contains("map has not been provided", issue, StringComparison.Ordinal);
-        return null;
+        return map;
     }
 
     /// <summary>NT51927 numeric selections expose the expected master/right/left CtrlRAM rows.</summary>

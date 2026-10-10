@@ -8,39 +8,39 @@ namespace NvtFwCombiner.Infrastructure.Tests.Composition;
 /// <summary>Tests the one selector that every flow uses to pick the postbuild profile and the TP flash map.</summary>
 public sealed class BuiltInCommonFwSelectorTests
 {
-    /// <summary>NT51925 Common FW 1.x is refused with a message that names the missing 1.x map.</summary>
+    /// <summary>NT51925 Common FW 1.x selects the owner-declared first slot.</summary>
     [Theory]
     [InlineData("1.0.0")]
     [InlineData("1.4.1")]
     [InlineData("1.255.255")]
-    public void Nt51925Common1xIsRefusedUntilItsMapExists(string commonFwVersion)
+    public void TrySelectNt51925Common1xSelectsFirstMap(string commonFwVersion)
     {
-        Assert.False(BuiltInCommonFwSelector.TrySelect("NT51925", true, commonFwVersion,
+        Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, commonFwVersion,
             out BuiltInCommonFwSelection? selection, out CompositionIssue? issue));
 
-        Assert.Null(selection);
-        Assert.Equal(CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported, issue!.Code);
-        Assert.Equal("NT51925 1.x map has not been provided", issue.Message);
+        Assert.Null(issue);
+        Assert.Equal(1, selection!.TpFlashMap!.EffectiveCommonFwVersion.Major);
+        Assert.Equal(1, selection.PostbuildProfile!.EffectiveCommonFwVersion.Major);
     }
 
-    /// <summary>NT51925 Common FW 2.0.0 and later is refused with a message that names the missing 2.0.0 map.</summary>
+    /// <summary>NT51925 Common FW 2.0.0 and later selects the owner-declared second slot.</summary>
     [Theory]
     [InlineData("2.0.0")]
     [InlineData("2.4.99")]
     [InlineData("2.5.0")]
     [InlineData("3.0.0")]
     [InlineData("255.255.255")]
-    public void Nt51925Common2xAndLaterIsRefusedUntilItsMapExists(string commonFwVersion)
+    public void TrySelectNt51925Common2xAndLaterSelectsSecondMap(string commonFwVersion)
     {
-        Assert.False(BuiltInCommonFwSelector.TrySelect("NT51925", true, commonFwVersion,
+        Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, commonFwVersion,
             out BuiltInCommonFwSelection? selection, out CompositionIssue? issue));
 
-        Assert.Null(selection);
-        Assert.Equal(CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported, issue!.Code);
-        Assert.Equal("NT51925 2.0.0 map has not been provided", issue.Message);
+        Assert.Null(issue);
+        Assert.Equal(2, selection!.TpFlashMap!.EffectiveCommonFwVersion.Major);
+        Assert.Equal(2, selection.PostbuildProfile!.EffectiveCommonFwVersion.Major);
     }
 
-    /// <summary>An unreadable or missing version is refused for NT51925 with both "not provided" messages.</summary>
+    /// <summary>An unreadable or missing version is refused for NT51925 without choosing a layout.</summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -53,9 +53,7 @@ public sealed class BuiltInCommonFwSelectorTests
 
         Assert.Null(selection);
         Assert.Equal(CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown, issue!.Code);
-        Assert.Equal(
-            "NT51925 1.x map has not been provided; NT51925 2.0.0 map has not been provided",
-            issue.Message);
+        Assert.False(string.IsNullOrWhiteSpace(issue.Message));
     }
 
     /// <summary>A version below the minimum is refused for NT51925 before any map is chosen.</summary>
@@ -102,9 +100,7 @@ public sealed class BuiltInCommonFwSelectorTests
 
     /// <summary>The display lookup shows no map instead of an unverified one when the selection is refused.</summary>
     [Theory]
-    [InlineData("1.4.1")]
-    [InlineData("2.0.0")]
-    [InlineData("255.255.255")]
+    [InlineData("0.9.9")]
     [InlineData(null)]
     [InlineData("invalid")]
     public void DisplayLookupShowsNoMapForARefusedNt51925Version(string? commonFwVersion)
@@ -128,8 +124,8 @@ public sealed class BuiltInCommonFwSelectorTests
     /// guard that keeps a retained capability from being reused after the Base moves into a "not provided" range.
     /// </summary>
     [Theory]
-    [InlineData("NT51925", "1.4.1")]
-    [InlineData("NT51925", "2.0.0")]
+    [InlineData("NT51925", "0.9.9")]
+    [InlineData("NT51925", "invalid")]
     [InlineData("NT51925", null)]
     public void PlannerMustRefuseWhenAnIcHasNoMapForTheSelection(string icId, string? commonFwVersion)
     {

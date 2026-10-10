@@ -694,8 +694,8 @@
             "kind": "marker-relative",
             "searchRange": {
               "addressSpaceId": "flash",
-              "start": 0,
-              "length": 245760
+              "start": 196604,
+              "length": 4
             },
             "markerHex": "004e5654",
             "selection": {
