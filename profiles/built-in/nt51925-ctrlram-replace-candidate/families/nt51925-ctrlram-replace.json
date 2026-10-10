@@ -1576,6 +1576,7 @@
         }
       ],
       "evidenceRefs": [
+        "nt51926-fwconfig-backup-golden",
         "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
         "nt51925-isolated-candidate-pending-owner-evidence"
       ]
@@ -1601,6 +1602,7 @@
         }
       ],
       "evidenceRefs": [
+        "owner-decision-2026-09-26-tp-svn-header-copy",
         "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
         "owner-decision-2026-09-25-tp-svn-location-encoding",
         "nt51925-isolated-candidate-pending-owner-evidence"

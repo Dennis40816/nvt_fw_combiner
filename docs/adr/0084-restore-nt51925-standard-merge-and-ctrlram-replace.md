@@ -224,12 +224,18 @@ is unchanged; the removed NT51926 Header Copy locator supplies no authority.
 The Standard Merge TP SVN binding stays unchanged. No `.data` or Project ID
 region is declared. The unknown 1.x Single `.data` position is not guessed.
 
-Pending owner script: the five bytes `[0x2EA80, 0x2EA8B)` of the FW 2.0.0
-output are written by an owner insertion script that is not yet in the private
-asset repository. Until the owner provides it, this range is temporarily
-excluded from every Standard Merge claim. This is a pending item, not a
-missing layout region. Replace flows clone the reference image, so those bytes
-carry over unchanged.
+Pending owner script: the 11-byte range `[0x2EA80, 0x2EA8B)` of the FW 2.0.0
+output holds five non-blank bytes that an owner insertion script writes. The
+script is not yet in the private asset repository. Until the owner provides it,
+Standard Merge copies the range as is from the TP input and makes no output
+claim for it. A later Golden comparison declares it as a difference bound; the
+layout does not split a region for it. This is a pending item, not a missing
+layout region. Replace flows clone the reference image, so those bytes carry
+over unchanged.
+
+CtrlRAM_S keeps the `explicit-range` physical constraint because the range
+exists in the TP overview. The FW 1.x cascade runtime profile makes it
+read-only, since the postbuild flow declares no replacement source for it.
 
 ## Required owner evidence and gates
 

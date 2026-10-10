@@ -238,7 +238,7 @@
       "bundleDirectory": "nt51925-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "1.2.2-nt51925.1",
-      "contentHash": "f3f1bf08072f1a404e7865db25e7ae81ff66b2c5d1d9e906af6813e0508ffc4b",
+      "contentHash": "35a9d835e66f18206b54db113c6fadfb3f72ae751fe8e4e6d229a6c9a84d81e7",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
@@ -575,7 +575,7 @@
       "bundleDirectory": "nt51925-standard-merge-candidate",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "1.2.2-nt51925.1",
-      "contentHash": "97962a65c9acc982b83cf4a894713b218e07ea23da58b589b8cd7e50c76b83e4",
+      "contentHash": "999f5dd6b12430275007619700ca82f06cfba28f78365b97570ebe4bd557a4ee",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.2-tp-header-subjects.schema.json"

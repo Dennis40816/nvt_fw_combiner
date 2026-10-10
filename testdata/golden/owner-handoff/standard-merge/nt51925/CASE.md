@@ -57,9 +57,10 @@ customer region, as in the CtrlRAM Replace full-flash map, and also stays
 zero-filled. The TP header metadata and TP SVN at
 `0x24` are unchanged. No `.data` or Project ID region is declared.
 
-The five bytes `[0x2EA80, 0x2EA8B)` of the FW 2.0.0 output come from an owner
-insertion script that is not yet available. They are temporarily excluded from
-the Merge candidate claim until the owner provides that script.
+The 11-byte range `[0x2EA80, 0x2EA8B)` of the FW 2.0.0 output holds five
+non-blank bytes from an owner insertion script that is not yet available. The
+Merge candidate copies the range as is from the TP input and makes no output
+claim for it until the owner provides that script.
 
 1.x Single: postbuild only, no real BIN. 1.x Cascade: postbuild plus two real
 BINs agree (owner-reported). 2.0.0 Single: postbuild only, no real BIN.
