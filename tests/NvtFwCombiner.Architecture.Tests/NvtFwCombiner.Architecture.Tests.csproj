@@ -8,8 +8,6 @@
   <ItemGroup>
     <Compile Include="..\NvtFwCombiner.TestSupport\RepositoryPaths.cs"
              Link="RepositoryPaths.cs" />
-    <Compile Include="..\NvtFwCombiner.TestSupport\TempWorkspace.cs"
-             Link="TempWorkspace.cs" />
   </ItemGroup>
   <!-- Build-only: the metadata scanner reads the built assemblies of these projects and never loads them. -->
   <ItemGroup>
