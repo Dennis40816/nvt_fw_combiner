@@ -8,7 +8,7 @@
       {
         "blockerId": "nt51925-official-map-and-postbuild",
         "kind": "map",
-        "reason": "Official NT51925 map/mmap, per-version postbuild and declared versions/topologies remain pending; isolated candidate borrows the NT51926 contract.",
+        "reason": "Official NT51925 evidence remains pending (no independent expected output); candidate geometry follows the owner's TP overview and postbuild flow. Common FW 1.x single: postbuild only, no real BIN; no independent expected output (Golden).",
         "evidenceRefs": [
           "nt51925-isolated-candidate-pending-owner-evidence"
         ]
@@ -47,29 +47,34 @@
   "mapBinding": {
     "familyId": "nt51925-ctrlram-replace",
     "familyVersion": "0.1.0",
-    "familyContentHash": "17d21801f5ec555c6186fc480a7e4edeb4156e929b278fe3b6fe8dc67bb29e49",
+    "familyContentHash": "93eed10d3f9cba8aa36d94ba36a19e23f8ad8c4808fa29a81eadc8ae339b25ba",
     "mapIds": [
-      "nt51925-ctrlram-fw141-tp-work-240k",
-      "nt51925-ctrlram-fw141-full-flash-256k"
+      "nt51925-ctrlram-fw141-single-tp-work-192k",
+      "nt51925-ctrlram-fw141-single-full-flash-256k"
     ],
     "requiredRegionIds": [
       "flash-image",
+      "fw-header",
+      "fw-code",
+      "overlay-ilm",
       "fw-config-source",
+      "fw-config",
+      "fw-register-reserved",
       "normal-ctrlram",
       "mp-ctrlram",
       "vn-ctrlram-fw141",
       "nf-ctrlram",
       "fw-config-backup",
-      "header-copy",
       "header-crc-18",
       "header-crc-1c",
       "header-crc-3c",
       "header-crc-4c",
       "header-crc-5c",
-      "header-crc-fc"
+      "header-crc-fc",
+      "end-flag"
     ],
     "requiredMetadataStructureIds": [
-      "nt51926-fwconfig-backup-envelope"
+      "nt51925-fwconfig-backup-envelope"
     ],
     "requiredCapabilityIds": []
   },
@@ -190,14 +195,6 @@
       }
     },
     {
-      "viewId": "header-copy-output",
-      "spaceId": "output-image",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "header-copy"
-      }
-    },
-    {
       "viewId": "header-crc-18-output",
       "spaceId": "output-image",
       "selector": {
@@ -251,62 +248,57 @@
     {
       "regionId": "normal-ctrlram",
       "access": "explicit-range",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Copy at most 0x2C00 bytes and preserve the reference tail when the immutable source is shorter."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy at most 0x2800 bytes and preserve the reference tail when the immutable source is shorter."
     },
     {
       "regionId": "mp-ctrlram",
       "access": "explicit-range",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Copy at most 0x2400 bytes and preserve the reference tail when the immutable source is shorter."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy at most 0x2000 bytes and preserve the reference tail when the immutable source is shorter."
     },
     {
       "regionId": "vn-ctrlram-fw141",
       "access": "explicit-range",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Copy at most 0x1660 bytes and preserve the reference tail when the immutable source is shorter."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy at most 0x338 bytes and preserve the reference tail when the immutable source is shorter."
     },
     {
       "regionId": "nf-ctrlram",
       "access": "explicit-range",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Copy at most 0x2DD0 bytes and preserve the reference tail when the immutable source is shorter."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy at most 0xD00 bytes and preserve the reference tail when the immutable source is shorter."
     },
     {
       "regionId": "fw-config-backup",
       "access": "hidden",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may refresh the firmware-config backup."
-    },
-    {
-      "regionId": "header-copy",
-      "access": "hidden",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may refresh the TP header copy."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Only the declared Legacy Combiner processor may refresh the firmware-config and register backup."
     },
     {
       "regionId": "header-crc-18",
       "access": "hidden",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate ILM CRC 0."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Only the declared Legacy Combiner processor may recalculate this header CRC."
     },
     {
       "regionId": "header-crc-1c",
       "access": "hidden",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate this header CRC."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Only the declared Legacy Combiner processor may recalculate this header CRC."
     },
     {
       "regionId": "header-crc-3c",
       "access": "hidden",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate this header CRC."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Only the declared Legacy Combiner processor may recalculate this header CRC."
     },
     {
       "regionId": "header-crc-4c",
       "access": "hidden",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate CtrlRAM CRC."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Only the declared Legacy Combiner processor may recalculate this header CRC."
     },
     {
       "regionId": "header-crc-5c",
       "access": "hidden",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate MP CtrlRAM CRC."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Only the declared Legacy Combiner processor may recalculate this header CRC."
     },
     {
       "regionId": "header-crc-fc",
       "access": "hidden",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: Only the declared Legacy Combiner processor may recalculate this header CRC."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Only the declared Legacy Combiner processor may recalculate this header CRC."
     }
   ],
   "operations": [
@@ -314,7 +306,7 @@
       "operationId": "postbuild-single",
       "sequence": 2147483647,
       "overlapPolicy": "replace-existing",
-      "reason": "Prepared isolated NT51925 candidate: Refresh the copied NT51926 Common FW 1.x header and integrity fields after all runtime CtrlRAM mappings. Official NT51925 evidence remains pending.",
+      "reason": "Prepared isolated NT51925 candidate: Refresh the owner's Common FW 1.x single header and integrity fields after all runtime CtrlRAM mappings under the TP overview and postbuild flow. Official NT51925 evidence remains pending.",
       "kind": "run-processor",
       "processorStageId": "nt51925-fw141-single-runtime-combiner"
     }
@@ -340,7 +332,6 @@
         "vn-ctrlram-output",
         "nf-ctrlram-output",
         "fw-config-backup-output",
-        "header-copy-output",
         "header-crc-18-output",
         "header-crc-1c-output",
         "header-crc-3c-output",
@@ -361,6 +352,8 @@
     "requiredTokenIds": []
   },
   "evidenceRefs": [
+    "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
+    "nt51925-fw1x-single-postbuild-only-no-real-bin-no-independent-golden",
     "nt51925-isolated-candidate-pending-owner-evidence"
   ]
 }

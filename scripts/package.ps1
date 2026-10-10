@@ -254,7 +254,7 @@ $MaximumPackageBytes = 134217728
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = 'abcc4261b3f563c71e0946b7619ea1d301e2ff1d0ecddaf205ab14b3f87a3216'
+    sha256 = '609be3c384706227c80a1b3e0a87985ae1403578214f33717d83430f8475ab03'
 }
 
 $ApprovedCanonicalCapabilityPolicyPackagePath =

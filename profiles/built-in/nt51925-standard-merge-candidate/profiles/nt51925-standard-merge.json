@@ -8,7 +8,7 @@
       {
         "blockerId": "nt51925-official-map-and-postbuild",
         "kind": "map",
-        "reason": "Official NT51925 map/mmap, per-version postbuild and declared versions/topologies remain pending; isolated candidate borrows the NT51926 contract.",
+        "reason": "Official NT51925 evidence remains pending (no independent expected output); candidate geometry follows the owner's TP overview and postbuild flow. Common FW 1.x single: postbuild only, no real BIN; no independent expected output (Golden). Common FW 1.x cascade: postbuild plus two real BINs agree (owner-reported); no independent expected output (Golden). Common FW 2.0.0 single: postbuild only, no real BIN; no independent expected output (Golden). Common FW 2.0.0 cascade: postbuild plus three real BINs agree (owner-reported); no independent expected output (Golden).",
         "evidenceRefs": [
           "nt51925-isolated-candidate-pending-owner-evidence"
         ]
@@ -46,7 +46,7 @@
   "mapBinding": {
     "familyId": "nt51925-standard-merge",
     "familyVersion": "0.1.0",
-    "familyContentHash": "79ed1b031e1272bf3cd50f62a79160063e77910e75a5596b0fdad0ffd2ba86f2",
+    "familyContentHash": "a5751b0739c9275b0985fabaf34ee200158d087acdd1f67745f49267491d498c",
     "mapIds": [
       "nt51925-standard-merge-256k"
     ],
@@ -273,12 +273,12 @@
     {
       "regionId": "tp-code",
       "access": "whole",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: gen_flash_bin_v2 NT51926 Standard Merge TP range."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy the declared 0x30000-byte TP prefix."
     },
     {
       "regionId": "dp-code",
       "access": "whole",
-      "reason": "Prepared isolated NT51925 candidate, borrowed NT51926 contract: gen_flash_bin_v2 NT51926 Standard Merge DP range."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy the declared 0x2000-byte DP window at 0x3E000."
     }
   ],
   "operations": [
@@ -286,7 +286,7 @@
       "operationId": "copy-tp",
       "sequence": 100,
       "overlapPolicy": "reject",
-      "reason": "Prepared isolated NT51925 candidate: Copy the reviewed NT51926 TP range. Official NT51925 evidence remains pending.",
+      "reason": "Prepared isolated NT51925 candidate: Copy the owner's TP range from the TP overview and postbuild flow. Official NT51925 evidence remains pending.",
       "kind": "copy-range",
       "sourceViewId": "tp-source",
       "targetViewId": "tp-output"
@@ -295,7 +295,7 @@
       "operationId": "copy-dp",
       "sequence": 200,
       "overlapPolicy": "reject",
-      "reason": "Prepared isolated NT51925 candidate: Copy the reviewed NT51926 DP range. Official NT51925 evidence remains pending.",
+      "reason": "Prepared isolated NT51925 candidate: Copy the owner's DP range from the TP overview and postbuild flow. Official NT51925 evidence remains pending.",
       "kind": "copy-range",
       "sourceViewId": "dp-source",
       "targetViewId": "dp-output"
@@ -368,6 +368,11 @@
     ]
   },
   "evidenceRefs": [
+    "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
+    "nt51925-fw1x-single-postbuild-only-no-real-bin-no-independent-golden",
+    "nt51925-fw1x-cascade-postbuild-two-real-bins-owner-reported-no-independent-golden",
+    "nt51925-fw200-single-postbuild-only-no-real-bin-no-independent-golden",
+    "nt51925-fw200-cascade-postbuild-three-real-bins-owner-reported-no-independent-golden",
     "nt51925-isolated-candidate-pending-owner-evidence"
   ]
 }

@@ -168,8 +168,8 @@ public sealed class PrebuiltProfileCatalogEquivalenceTests
     {
         Assert.True(result["loaded"]!.GetValue<bool>(), result.ToJsonString());
         // The published catalog snapshot includes the proposed NT51925 candidate declarations.
-        Assert.Equal("3fc20d45223e6eec062482acd9b0e14d8fb512c66bb1ac3e2fb2f90c82604914", result["publication"]!["sha256"]!.GetValue<string>());
-        Assert.Equal(536741, result["publication"]!["text"]!.GetValue<string>().Length);
+        Assert.Equal("ba14f4147b5286061c822e95c536cb75e1e9f628ee6bde03f87880fe2fb9e7d4", result["publication"]!["sha256"]!.GetValue<string>());
+        Assert.Equal(537918, result["publication"]!["text"]!.GetValue<string>().Length);
         Assert.Equal(7, result["publication"]!["sections"]!.AsArray().Count);
     }
 }

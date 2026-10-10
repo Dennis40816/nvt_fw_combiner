@@ -4,8 +4,8 @@ Status: awaiting owner evidence for the proposed NFC 1.2.2 restoration in
 [ADR 0084](../../../../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
 The isolated profile `nt51925-standard-merge-gen-flash` version `0.1.0`
 belongs to the NT51925-only `nt51925-standard-merge-candidate` bundle.
-Its copied numeric facts are provisional declarations, not NT51926 shared
-authority or independent NT51925 evidence. Policy is
+Its geometry follows the owner TP overview and postbuild flow; it supplies
+no NT51926 shared authority or independent expected-output evidence. Policy is
 `Unavailable`/`Candidate`/`ContractOnly`; authoring snapshot, exact
 executable resolution, execution and Build remain blocked. It has no approved
 support or Golden-certified output.
@@ -24,7 +24,7 @@ filenames and recording the slot mapping in `notes.txt`:
 | Slot / location | Provisional declared size | Purpose |
 | --- | --- | --- |
 | `inputs/<original DP filename>.bin` | 262,144 bytes (`0x40000`) for the conventional address-bearing Initial Code container | `dp-input`; copy its `[0x3E000,0x40000)` window. |
-| `inputs/<original TP filename>.bin` | 245,760 bytes (`0x3C000`); an actual larger source may be supplied with its exact size recorded | `tp-input`; copy `[0x00000,0x3C000)`. |
+| `inputs/<original TP filename>.bin` | 196,608 bytes (`0x30000`); an actual larger source may be supplied with its exact size recorded | `tp-input`; copy `[0x00000,0x30000)`. |
 | `expected.bin` (or original official final filename, identified in notes) | 262,144 bytes (`0x40000`) | Complete independent expected FlashCode. |
 | `notes.txt` | Text; no fixed byte size | Exact filenames, sizes, SHA-256, Common FW, declared single-chip topology/count, official commands/tool versions, provenance and expected output filename. |
 
@@ -34,7 +34,7 @@ that cannot cover its required window is invalid. Report every official
 NT51925 geometry difference for profile-owner review.
 
 The provisional operation declaration copies TP then DP, leaves the forbidden gap
-`[0x3C000,0x3E000)` zero-filled, and uses
+`[0x30000,0x3E000)` zero-filled, and uses
 `NT51925_FlashCode_D{dp-version}T{tp-version}_{date}.bin`. Missing version
 metadata follows the existing `xxxx` placeholder rule. The owner must confirm
 the actual expected filename and full output, not accept an NFC-generated file
@@ -49,10 +49,18 @@ as its own oracle.
 - Golden cases: Standard Merge at least one single; CtrlRAM Replace one per
   FW version and topology, collected in the corresponding CtrlRAM handoff.
 
-The `925&926` header sheet establishes only limited normal-header evidence.
-It is not complete flash-map or output-parity authority. Official evidence,
-complete Golden comparisons, exact range review and the owner's R3 approval
-are required before support promotion.
+The owner TP overview and postbuild flow declare the 196,608-byte TP prefix
+and the end flag at `0x2FFFC`. The gap before DP is 57,344 bytes (`0xE000`),
+including the production-test customer-data window; it stays unmapped and
+zero-filled in this Merge candidate. The TP header metadata and TP SVN at
+`0x24` are unchanged. No `.data` or Project ID region is declared.
+
+1.x Single: postbuild only, no real BIN. 1.x Cascade: postbuild plus two real
+BINs agree (owner-reported). 2.0.0 Single: postbuild only, no real BIN.
+2.0.0 Cascade: postbuild plus three real BINs agree (owner-reported). No layout
+has an independent expected output (Golden). Complete Golden comparisons,
+exact range review and the owner's R3 approval remain required before support
+promotion.
 
 A later family join requires the official NT51925 map proving identical facts
 and separate owner approval. NT51923/NT51926 v1.2.1 identities and Saved Rules

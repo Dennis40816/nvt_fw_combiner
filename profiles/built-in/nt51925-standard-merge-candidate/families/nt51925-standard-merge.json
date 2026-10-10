@@ -32,7 +32,7 @@
           "kind": "code",
           "range": {
             "start": 0,
-            "length": 245760
+            "length": 196608
           },
           "writeConstraint": "whole-region",
           "alignment": 1
@@ -43,8 +43,8 @@
           "owner": "unknown",
           "kind": "unmapped",
           "range": {
-            "start": 245760,
-            "length": 8192
+            "start": 196608,
+            "length": 57344
           },
           "writeConstraint": "forbidden",
           "alignment": 1
@@ -63,8 +63,8 @@
         }
       ],
       "evidenceRefs": [
-        "gen-flash-bin-v2-51923-golden",
-        "gen-flash-bin-v2-51926-golden"
+        "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
+        "nt51925-isolated-candidate-pending-owner-evidence"
       ]
     }
   ],
@@ -503,8 +503,8 @@
         }
       ],
       "evidenceRefs": [
-        "gen-flash-bin-v2-51926-golden",
-        "tddi-flash-header-workbook-925-926"
+        "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
+        "nt51925-isolated-candidate-pending-owner-evidence"
       ]
     },
     {
@@ -536,8 +536,8 @@
         }
       ],
       "evidenceRefs": [
-        "gen-flash-bin-v2-51923-golden",
-        "gen-flash-bin-v2-51926-golden"
+        "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
+        "nt51925-isolated-candidate-pending-owner-evidence"
       ]
     },
     {
@@ -561,8 +561,8 @@
         }
       ],
       "evidenceRefs": [
-        "gen-flash-bin-v2-51923-golden",
-        "gen-flash-bin-v2-51926-golden"
+        "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
+        "nt51925-isolated-candidate-pending-owner-evidence"
       ]
     },
     {
@@ -618,12 +618,18 @@
         "tp-svn-metadata"
       ],
       "evidenceRefs": [
+        "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
         "nt51925-isolated-candidate-pending-owner-evidence"
       ]
     }
   ],
   "factAliases": [],
   "evidenceRefs": [
+    "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
+    "nt51925-fw1x-single-postbuild-only-no-real-bin-no-independent-golden",
+    "nt51925-fw1x-cascade-postbuild-two-real-bins-owner-reported-no-independent-golden",
+    "nt51925-fw200-single-postbuild-only-no-real-bin-no-independent-golden",
+    "nt51925-fw200-cascade-postbuild-three-real-bins-owner-reported-no-independent-golden",
     "nt51925-isolated-candidate-pending-owner-evidence"
   ]
 }

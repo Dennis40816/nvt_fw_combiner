@@ -22,7 +22,7 @@ Merge, General Replace and DP Replace remain excluded.
 
 The `925&926` workbook sheet describes limited normal TP header facts, not a
 complete NT51925 TP map, CtrlRAM ranges, topologies, postbuild behavior or output
-parity. No repository TP flash-map version lists NT51925. Legacy Combiner
+parity. At that time no repository TP flash-map version listed NT51925; the 2026-10-10 amendments record the isolated owner-declared maps. Legacy Combiner
 1.13.0 has no IC-specific mode or chip-ID check, so successful invocation is
 not NT51925 support evidence.
 
@@ -45,10 +45,11 @@ amendment of this ADR, and this update does not change the geometry below.
 1. Join NT51925 to the existing NT51923/NT51926 family now. This would change
    established capability identities before an official NT51925 map proves
    identical facts and could disturb Saved Rules. Rejected.
-2. Give NT51925 its own map, family and candidate bundles while treating copied
-   numbers as provisional declarations. This preserves v1.2.1 NT51923/NT51926
-   identities and closes execution until independent evidence arrives. Selected
-   by owner decision 334 (2026-10-07).
+2. Give NT51925 its own map, family and candidate bundles. Initial provisional
+   numeric declarations were replaced by the owner TP overview and postbuild
+   flow in the 2026-10-10 candidate geometry amendment. This preserves v1.2.1
+   NT51923/NT51926 identities and closes execution until independent evidence
+   arrives. Selected by owner decision 334 (2026-10-07).
 
 ## Proposed restoration boundary
 
@@ -67,16 +68,18 @@ does not admit these NT51925 routes. No candidate execution exception is added.
 A declaration, structural check or policy row implies neither Supported nor
 approved nor Golden-verified firmware.
 
-The isolated Standard candidate provisionally declares a `0x40000` `flash`
-image: TP `[0x00000,0x3C000)`, forbidden zero-filled gap
-`[0x3C000,0x3E000)`, and DP `[0x3E000,0x40000)`, in TP-then-DP order. It
-has no topology selector. Normal FlashCode naming is a provisional declaration.
+The isolated Standard candidate declares a 262,144-byte `flash` image with a
+196,608-byte TP prefix, a forbidden zero-filled gap before the DP window, and
+TP-then-DP operation order. It has no topology selector. Its geometry follows
+the owner TP overview and postbuild flow; normal FlashCode naming remains a
+candidate declaration pending independent expected-output evidence.
 
 The isolated CtrlRAM candidates provisionally declare Common FW intervals
 `[1.0.0,2.0.0)` and `[2.0.0,+infinity)`, Single and generic Cascade plans,
-and `0x3C000` TP-work and `0x40000` full-Flash capacities. Copied CtrlRAM
-prefixes, operation order, postbuild write bounds, CRC/header handling and
-naming require official NT51925 confirmation. Filename, PID, hash or Golden
+and 196,608-byte TP-work and 262,144-byte full-Flash capacities. The four
+version/topology layouts, CtrlRAM prefixes and postbuild bounds now follow the
+owner TP overview and postbuild flow. Operation order, CRC/header behavior and
+naming still require independent expected-output evidence and owner review. Filename, PID, hash or Golden
 identity cannot supply version or topology authority. Any future external
 processor execution must modify only host-created staging copies and pass an
 exact declared-range diff.
@@ -150,12 +153,13 @@ Decision proposed here:
   It is not part of this amendment.
 
 The version-slot model is unchanged by the NT51925 maps amendment below.
-Candidate Replace geometry remains provisional and Replace stays deferred.
+Candidate Replace geometry follows the later owner TP overview and postbuild
+amendment; Replace stays deferred and blocked.
 
 ## Amendment (2026-10-10): NT51925 maps
 
 Status: Proposed. Owner decision (relayed 2026-10-10): the owner's postbuild
-flow is the single authority for NT51925 addresses and sizes.
+flow and TP overview declare NT51925 addresses and sizes.
 
 The layout key is the Common FW slot and IC count: 1.x starts at 1.0.0 and
 2.0.0 starts at 2.0.0 under the existing greatest-applicable-slot rule. One IC
@@ -181,10 +185,35 @@ Golden run. Unknowns remain the 1.x Single `.data` position, whether a two-chip
 past the middle of that region), and the unused gaps before and after the 2.0.0 Header Copy
 (blank in the real BINs). No Project ID is invented.
 
-Candidate Replace routes stay blocked as Candidate/ContractOnly. Their other
-geometry and execution contracts remain provisional. Standard Merge remains
+Candidate Replace routes stay blocked as Candidate/ContractOnly. Their geometry
+follows the owner TP overview and postbuild flow; execution contracts remain
+subject to independent expected-output evidence and owner review. Standard Merge remains
 blocked pending its later version-conditioned image-map work. This amendment
 makes no support, approval or Golden claim and does not change the ADR status.
+
+## Amendment (2026-10-10): candidate geometry from the TP overview
+
+Status: Proposed. Owner decisions at 14:49 and 14:59 replace the borrowed
+NT51926 candidate geometry with the owner's TP overview and postbuild flow.
+The TP region is 196,608 bytes, full flash is 262,144 bytes, and every layout
+uses the end flag at `0x2FFFC`. The existing Common FW slot and topology
+applicability model selects four layouts; no second selection path is added.
+
+Verification level: 1.x Single has postbuild evidence only, with no real BIN.
+1.x Cascade agrees with postbuild plus two real BINs (owner-reported).
+2.0.0 Single has postbuild evidence only, with no real BIN.
+2.0.0 Cascade agrees with postbuild plus three real BINs (owner-reported).
+No layout has an independent expected output (Golden). These observations
+make no support, approval or Golden claim; the candidate remains Proposed
+and Blocked, with Unavailable/Candidate/ContractOnly policy and every existing
+promotion blocker retained.
+
+Only 1.x Cascade declares CtrlRAM_S and the Vec Table; only 2.0.0 Cascade
+declares DIFF. Only 2.0.0 has a Header Copy. For 1.x, TP SVN uses the existing
+canonical definition at offset `0x24` in the original TP header, whose format
+is unchanged; the removed NT51926 Header Copy locator supplies no authority.
+The Standard Merge TP SVN binding stays unchanged. No `.data` or Project ID
+region is declared. The unknown 1.x Single `.data` position is not guessed.
 
 ### Later items and completed follow-ups
 
