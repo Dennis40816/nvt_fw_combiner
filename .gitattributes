@@ -26,3 +26,4 @@ testdata/golden/ctrlram-replace/fixtures/20260718/** binary
 testdata/golden/canonical/**/provenance/*.bat binary
 testdata/golden/canonical/**/provenance/*.config binary
 testdata/golden/canonical/**/provenance/*.txt binary
+Vendor/Core/UiEventRunner.cs text eol=lf

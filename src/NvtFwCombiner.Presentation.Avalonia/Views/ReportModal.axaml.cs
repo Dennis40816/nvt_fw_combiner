@@ -45,7 +45,12 @@ public sealed partial class ReportModal : UserControl
         e.Handled = stops[next].Focus(NavigationMethod.Tab, e.KeyModifiers);
     }
 
-    private async void SaveReportButton_OnClick(object? sender, RoutedEventArgs e)
+    private void SaveReportButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        UiEventAdapter.Run(this, "ReportModal.SaveReport", _ => HandleSaveReportButton_OnClickAsync(sender, e));
+    }
+
+    private async Task HandleSaveReportButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
         if (TopLevel.GetTopLevel(this) is { } topLevel)
         {

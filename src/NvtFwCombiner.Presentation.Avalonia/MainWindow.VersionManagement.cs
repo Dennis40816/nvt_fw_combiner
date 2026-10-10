@@ -70,9 +70,9 @@ public sealed partial class MainWindow
         }
     }
 
-    private async void Settings_UpdateSourceBrowseRequested(object? sender, EventArgs e)
+    private void Settings_UpdateSourceBrowseRequested(object? sender, EventArgs e)
     {
-        await BrowseUpdateSourceAsync(sender, StorageProvider);
+        UiEventAdapter.Run(this, "MainWindow.UpdateSourceBrowse", _ => BrowseUpdateSourceAsync(sender, StorageProvider));
     }
 
     internal async Task BrowseUpdateSourceAsync(object? sender, IStorageProvider storageProvider)

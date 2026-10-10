@@ -12,9 +12,9 @@ public sealed partial class MainWindow
     private const long MaximumStandaloneReportBytes = 10L * 1024 * 1024;
     private const double ReportToastFadeStep = 0.12;
 
-    private async void LoadReportJsonButton_OnClick(object? sender, RoutedEventArgs e)
+    private void LoadReportJsonButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        await LoadReportJsonAsync(sender as Control, StorageProvider);
+        UiEventAdapter.Run(this, "MainWindow.LoadReportJson", _ => LoadReportJsonAsync(sender as Control, StorageProvider));
     }
 
     internal Task LoadReportJsonAsync(Control? trigger, IStorageProvider storageProvider)

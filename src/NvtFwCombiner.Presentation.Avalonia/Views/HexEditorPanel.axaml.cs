@@ -181,7 +181,12 @@ public sealed partial class HexEditorPanel : UserControl
         }
     }
 
-    private async void OpenHexEditorSourceButton_OnClick(object? sender, RoutedEventArgs e)
+    private void OpenHexEditorSourceButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        UiEventAdapter.Run(this, "HexEditorPanel.OpenSource", _ => HandleOpenHexEditorSourceButton_OnClickAsync(sender, e));
+    }
+
+    internal async Task HandleOpenHexEditorSourceButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (DataContext is not HexEditorWorkspaceViewModel viewModel ||
@@ -214,7 +219,12 @@ public sealed partial class HexEditorPanel : UserControl
         DropZoneDragState.SetActive(sender, isActive: false);
     }
 
-    private async void HexEditorSourceDrop_OnDrop(object? sender, DragEventArgs e)
+    private void HexEditorSourceDrop_OnDrop(object? sender, DragEventArgs e)
+    {
+        UiEventAdapter.Run(this, "HexEditorPanel.SourceDrop", _ => HandleHexEditorSourceDrop_OnDropAsync(sender, e));
+    }
+
+    internal async Task HandleHexEditorSourceDrop_OnDropAsync(object? sender, DragEventArgs e)
     {
         DropZoneDragState.SetActive(sender, isActive: false);
         if (DataContext is not HexEditorWorkspaceViewModel viewModel)

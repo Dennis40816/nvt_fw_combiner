@@ -73,7 +73,14 @@ public sealed partial class MessageCenterModal : UserControl
         e.Handled = true;
     }
 
-    private async void ExportDiagnosticsButton_OnClick(
+    private void ExportDiagnosticsButton_OnClick(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        UiEventAdapter.Run(this, "MessageCenterModal.ExportDiagnostics", _ => HandleExportDiagnosticsButton_OnClickAsync(sender, e));
+    }
+
+    private async Task HandleExportDiagnosticsButton_OnClickAsync(
         object? sender,
         RoutedEventArgs e)
     {

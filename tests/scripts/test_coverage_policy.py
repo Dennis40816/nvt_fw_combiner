@@ -833,6 +833,15 @@ class CoveragePolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "outside the repository root"):
             _relative_source_path("eng/../../outside.cs", self.root)
 
+    def test_resolves_vendored_core_source_linked_into_a_production_project(self) -> None:
+        # H11 compiles Vendor/Core/UiEventRunner.cs into two production projects by link.
+        self.assertEqual(
+            "Vendor/Core/UiEventRunner.cs",
+            _relative_source_path("Vendor/Core/UiEventRunner.cs", self.root),
+        )
+        with self.assertRaisesRegex(ValueError, "outside the repository root"):
+            _relative_source_path("Vendor/../../outside.cs", self.root)
+
     def test_rejects_ambiguous_coverage_source_roots(self) -> None:
         with self.assertRaisesRegex(ValueError, "coverage report source is ambiguous"):
             _relative_source_path(

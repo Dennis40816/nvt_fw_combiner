@@ -64,7 +64,12 @@ public sealed partial class GeneralMappingRow : UserControl
         DropZoneDragState.SetActive(sender, isActive: false);
     }
 
-    private async void MappingDrop_OnDrop(object? sender, DragEventArgs e)
+    private void MappingDrop_OnDrop(object? sender, DragEventArgs e)
+    {
+        UiEventAdapter.Run(this, "GeneralMappingRow.MappingDrop", _ => HandleMappingDrop_OnDropAsync(sender, e));
+    }
+
+    private async Task HandleMappingDrop_OnDropAsync(object? sender, DragEventArgs e)
     {
         DropZoneDragState.SetActive(sender, isActive: false);
 
@@ -87,7 +92,12 @@ public sealed partial class GeneralMappingRow : UserControl
         await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId, selection.Path!);
     }
 
-    private async void BrowseButton_OnClick(object? sender, RoutedEventArgs e)
+    private void BrowseButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        UiEventAdapter.Run(this, "GeneralMappingRow.Browse", _ => HandleBrowseButton_OnClickAsync(sender, e));
+    }
+
+    private async Task HandleBrowseButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not GeneralMappingRowViewModel { CanSelectFile: true } mapping ||
             ShellViewModel is not MainWindowViewModel viewModel ||

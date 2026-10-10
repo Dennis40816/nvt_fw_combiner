@@ -14,7 +14,12 @@ public sealed partial class ReplaceSelectionModal : UserControl
         ModalInitialFocus.Register(this, () => CloseButton);
     }
 
-    private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
+    private void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        UiEventAdapter.Run(this, "ReplaceSelectionModal.BuildReplace", _ => HandleBuildReplaceButton_OnClickAsync(sender, e));
+    }
+
+    private async Task HandleBuildReplaceButton_OnClickAsync(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ReplacePresentationViewModel viewModel || !viewModel.CanBuildReplace)
         {

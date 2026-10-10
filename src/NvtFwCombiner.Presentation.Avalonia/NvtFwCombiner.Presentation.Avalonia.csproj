@@ -11,11 +11,13 @@
     <PackageReference Include="CommunityToolkit.Mvvm" />
   </ItemGroup>
   <PropertyGroup>
+    <DefineConstants>$(DefineConstants);NVT_CORE_SOURCE_CONSUMPTION</DefineConstants>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\Vendor\Core\UiEventRunner.cs" Link="Vendor\Core\UiEventRunner.cs" />
     <AvaloniaResource Include="Assets\**" />
     <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
   </ItemGroup>
