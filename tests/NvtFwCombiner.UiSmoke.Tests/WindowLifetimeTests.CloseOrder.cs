@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Platform.Storage;
@@ -104,14 +105,15 @@ public sealed partial class WindowLifetimeTests
         var order = new ConcurrentQueue<string>();
         int historyWrites = 0;
         int preferenceWrites = 0;
+        string lastHistory = "";
         ILocalFileStore files = DispatchProxy.Create<ILocalFileStore, LifetimeReportStorageProxy>();
         ((LifetimeReportStorageProxy)files).Call = (name, args) => name switch
         {
             nameof(ILocalFileStore.ReadAsync) => throw new LocalFileNotFoundException("No saved history."),
-            nameof(ILocalFileStore.WriteAsync) => new ValueTask(WriteAsync((string)args![0]!)),
+            nameof(ILocalFileStore.WriteAsync) => new ValueTask(WriteAsync((string)args![0]!, (ReadOnlyMemory<byte>)args[1]!)),
             _ => throw new NotSupportedException(name),
         };
-        async Task WriteAsync(string path)
+        async Task WriteAsync(string path, ReadOnlyMemory<byte> bytes)
         {
             bool history = Path.GetFileName(path) == "report-history.v1.json";
             bool first = (history ? Interlocked.Increment(ref historyWrites) : Interlocked.Increment(ref preferenceWrites)) == 1;
@@ -120,6 +122,10 @@ public sealed partial class WindowLifetimeTests
             if (first)
             {
                 order.Enqueue(history ? "history" : "preferences");
+            }
+            if (history)
+            {
+                Volatile.Write(ref lastHistory, Encoding.UTF8.GetString(bytes.Span));
             }
             _ = (history ? historyFinished : preferencesFinished).TrySetResult();
         }
@@ -163,8 +169,9 @@ public sealed partial class WindowLifetimeTests
             CloseConfirmed(window, shell);
             Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
             Assert.False(sealing.Task.IsCompleted);
-            // Admission stays open while the drain runs: this newer snapshot must still be queued and written.
+            // Admission stays open while the drain runs: newer preference and history snapshots must still be queued and written.
             shell.SelectedTheme = "Light";
+            shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "close-order-late"), "close-order-late.json");
             Dispatcher.UIThread.RunJobs();
             held.SetException(new InvalidOperationException("Controlled drain completion."));
             await sealing.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
@@ -196,6 +203,7 @@ public sealed partial class WindowLifetimeTests
             if (!expire)
             {
                 Assert.Equal(2, Volatile.Read(ref preferenceWrites));
+                Assert.Contains("close-order-late.json", Volatile.Read(ref lastHistory), StringComparison.Ordinal);
             }
         }
         finally
