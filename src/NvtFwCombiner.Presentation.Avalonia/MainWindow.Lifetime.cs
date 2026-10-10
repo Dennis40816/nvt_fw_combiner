@@ -1,206 +1,59 @@
-using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using Avalonia.Threading;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
-internal enum WindowClosePhase { Open, Draining, Sealing, HandingOff, Recovering, Closing, Closed }
-
 public sealed partial class MainWindow
 {
     private readonly WindowPublicationLease _windowPublication = new();
-    private bool _finalClosePosted;
-    private bool _internalFinalClose;
-    private bool _deferredActivationRequested;
-    internal WindowClosePhase ClosePhase { get; private set; } = WindowClosePhase.Open;
-    internal Task CloseAttempt { get; private set; } = Task.CompletedTask;
+    private readonly WindowLifetimeCoordinator _lifetime;
+    internal WindowClosePhase ClosePhase => _lifetime.ClosePhase;
+    internal Task CloseAttempt => _lifetime.CloseAttempt;
     private readonly List<Task> _sessionTasks = [];
     private bool _preloadReleaseScheduled;
     internal Task StartupWork { get; private set; } = Task.CompletedTask;
-    internal Func<TimeSpan, Task> CloseDeadlineFactory { get; set; } = static duration => Task.Delay(duration);
-
-    private async Task RunCloseAttemptAsync()
+    internal Func<TimeSpan, Task> CloseDeadlineFactory
     {
-        try
-        {
-            try
+        get => _lifetime.CloseDeadlineFactory;
+        set => _lifetime.CloseDeadlineFactory = value;
+    }
+
+    private WindowLifetimeCoordinator CreateWindowLifetime()
+    {
+        return new(
+            currentViewModel: () => DataContext as ViewModels.MainWindowViewModel,
+            sessionTasks: () => [.. _sessionTasks],
+            cancelStartup: CancelStartupLoad,
+            stopPreload: _preloadSession.StopAcceptingAndRevoke,
+            preloadUsersSettled: () => _preloadSession.AllUsersSettled,
+            completeLocalState: () => Task.WhenAll(
+                _reportHistoryPersistence.CompleteAsync(), _shellPreferencePersistence.CompleteAsync()),
+            reopenLocalState: ReopenLocalStateAfterFailedHandoff,
+            replayLocalState: ReplayLocalStateAfterFailedHandoff,
+            tryStartStableLauncher: TryStartStableLauncherAsync,
+            suspendPublication: _windowPublication.Suspend,
+            resumePublication: _windowPublication.Resume,
+            revokePublication: _windowPublication.Revoke,
+            cancelCaptureForClose: CancelCaptureForClose,
+            setEnabled: enabled => IsEnabled = enabled,
+            post: action => Dispatcher.UIThread.Post(action),
+            close: Close,
+            disposeResources: () =>
             {
+                _localStateSave.Detach();
                 _startupLoadCancellation.Cancel();
-                if (DataContext is MainWindowViewModel viewModel)
-                {
-                    viewModel.RunSession.CancelActiveRun();
-                    _preloadSession.StopAcceptingAndRevoke();
-                    using var stopDrain = new CancellationTokenSource();
-                    try
-                    {
-                        var work = Task.WhenAll(_preloadSession.AllUsersSettled,
-                            DrainAdmittedWindowWorkAsync(viewModel, stopDrain.Token));
-                        await WaitWithinCloseDeadlineAsync(work);
-                    }
-                    finally
-                    {
-                        stopDrain.Cancel();
-                    }
-                }
-                else
-                {
-                    _preloadSession.StopAcceptingAndRevoke();
-                    await WaitWithinCloseDeadlineAsync(Task.WhenAll(
-                        [_preloadSession.AllUsersSettled, .. _sessionTasks]));
-                }
-            }
-            catch (Exception exception)
-            {
-                System.Diagnostics.Trace.TraceError("Window close work drain failed: {0}", exception);
-            }
-            finally
-            {
-                if (DataContext is MainWindowViewModel timedOutViewModel &&
-                    !timedOutViewModel.RunSession.ActiveRunCompletion.IsCompleted)
-                {
-                    timedOutViewModel.RunSession.RevokeActiveRun();
-                }
-            }
-
-            ClosePhase = WindowClosePhase.Sealing;
-            _windowPublication.Suspend();
-            _localStateSealed = true;
-            try
-            {
-                var completion = Task.WhenAll(
-                    _reportHistoryPersistence.CompleteAsync(),
-                    _shellPreferencePersistence.CompleteAsync());
-                await WaitWithinCloseDeadlineAsync(completion);
-            }
-            catch (Exception exception)
-            {
-                System.Diagnostics.Trace.TraceError("Window close local-state flush failed: {0}", exception);
-            }
-            finally
-            {
-                _isReportHistoryPersistenceComplete = true;
-            }
-
-            if (_restartThroughStableLauncher)
-            {
-                ClosePhase = WindowClosePhase.HandingOff;
-                if (!await TryCompleteStableLauncherHandoffAsync())
-                {
-                    return;
-                }
-            }
-        }
-        catch (Exception exception)
-        {
-            System.Diagnostics.Trace.TraceError("Window close attempt failed: {0}", exception);
-        }
-        finally
-        {
-            if (ClosePhase != WindowClosePhase.Open)
-            {
-                PostFinalClose();
-            }
-        }
+                _preloadSession.StopAcceptingAndRevoke();
+                RetireSession(_startupLoadCancellation);
+            });
     }
 
-    private void PostFinalClose()
+    private void CancelStartupLoad()
     {
-        if (_finalClosePosted || ClosePhase == WindowClosePhase.Closed)
-        {
-            return;
-        }
-        _finalClosePosted = true;
-        _preloadSession.StopAcceptingAndRevoke();
-        if (DataContext is MainWindowViewModel viewModel)
-        {
-            viewModel.RunSession.RevokeActiveRun();
-        }
-        _windowPublication.Revoke();
-        ClosePhase = WindowClosePhase.Closing;
-        Dispatcher.UIThread.Post(() =>
-        {
-            _internalFinalClose = true;
-            try
-            {
-                Close();
-            }
-            finally
-            {
-                _internalFinalClose = false;
-            }
-        });
+        _startupLoadCancellation.Cancel();
     }
 
-    private async Task DrainAdmittedWindowWorkAsync(
-        MainWindowViewModel viewModel,
-        CancellationToken stopDrain)
+    private bool CancelCaptureForClose()
     {
-        while (!stopDrain.IsCancellationRequested)
-        {
-            Task[] admitted = CaptureWindowWork(viewModel);
-            var batch = Task.WhenAll(admitted);
-            try
-            {
-                await batch.WaitAsync(stopDrain);
-            }
-            catch (OperationCanceledException) when (stopDrain.IsCancellationRequested)
-            {
-                _ = batch.ContinueWith(completed => _ = completed.Exception,
-                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-                return;
-            }
-            catch (Exception exception)
-            {
-                System.Diagnostics.Trace.TraceError("Admitted window work failed during drain: {0}", exception);
-            }
-            if (CaptureWindowWork(viewModel).All(static task => task.IsCompleted))
-            {
-                return;
-            }
-        }
-    }
-
-    private Task[] CaptureWindowWork(MainWindowViewModel viewModel)
-    {
-        var tasks = new List<Task>(_sessionTasks)
-        {
-            viewModel.RunSession.ActiveRunCompletion,
-            viewModel.Settings.WhenOperationsIdleAsync(),
-            viewModel.Reports.WhenSavesIdleAsync(),
-        };
-        viewModel.Merge.InspectionLifecycles.ForEach(lifecycle => tasks.Add(lifecycle.ActiveTask));
-        viewModel.Replace.InspectionLifecycles.ForEach(lifecycle => tasks.Add(lifecycle.ActiveTask));
-        if (viewModel.Reports.RelocalizationTask is { } relocalization)
-        {
-            tasks.Add(relocalization);
-        }
-        if (viewModel.Reports.OpenReportHistoryEntryAsyncCommand.ExecutionTask is { } history)
-        {
-            tasks.Add(history);
-        }
-        return [.. tasks];
-    }
-
-    private static void ObserveCloseAttempt(Task attempt)
-    {
-        _ = attempt.ContinueWith(completed =>
-            System.Diagnostics.Trace.TraceError("Window close attempt escaped: {0}", completed.Exception),
-            CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-    }
-
-    private async Task WaitWithinCloseDeadlineAsync(Task work)
-    {
-        Task winner = await Task.WhenAny(work, CloseDeadlineFactory(TimeSpan.FromSeconds(5)));
-        if (winner == work)
-        {
-            _ = work.Exception;
-        }
-        else
-        {
-            _ = work.ContinueWith(completed =>
-            {
-                _ = completed.Exception;
-            }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-        }
+        return LaunchCoordinator.CaptureSession.CancelForClose();
     }
 
     private void ObserveSessionTask(Task task)

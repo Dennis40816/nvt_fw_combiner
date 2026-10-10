@@ -1,5 +1,4 @@
 using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -7,10 +6,7 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 
 public sealed partial class MainWindow
 {
-    private bool _restartThroughStableLauncher;
     private bool _stableLauncherStarted;
-    private bool _hasFailedStableLauncherHandoff;
-    private bool _closeAfterFailedHandoff;
 
     private async Task ReportManagedApplicationReadyAsync(CancellationToken cancellationToken)
     {
@@ -105,58 +101,24 @@ public sealed partial class MainWindow
 
     private void Settings_ActivationRequested(object? sender, EventArgs e)
     {
-        if (ClosePhase is WindowClosePhase.Closing or WindowClosePhase.Closed)
-        {
-            return;
-        }
-        RequestStableLauncherRestart();
-        if (ClosePhase is WindowClosePhase.Draining or WindowClosePhase.Sealing)
-        {
-            return;
-        }
-        if (ClosePhase is WindowClosePhase.HandingOff or WindowClosePhase.Recovering)
-        {
-            _deferredActivationRequested = true;
-            return;
-        }
-        if (ClosePhase == WindowClosePhase.Open)
-        {
-            Close();
-        }
+        _lifetime.RequestActivation();
     }
 
     internal void RequestStableLauncherRestart()
     {
-        if (!_closeAfterFailedHandoff)
-        {
-            _restartThroughStableLauncher = true;
-        }
+        _lifetime.RequestStableLauncherRestart();
     }
 
-    internal async Task<bool> TryCompleteStableLauncherHandoffAsync()
+    internal Task<bool> TryCompleteStableLauncherHandoffAsync()
     {
-        bool started;
-        try
-        {
-            started = await TryStartStableLauncherAsync();
-        }
-        catch (Exception exception)
-        {
-            System.Diagnostics.Trace.TraceError("Stable launcher handoff failed: {0}", exception);
-            started = false;
-        }
-        if (!started)
-        {
-            await ReportStableLauncherHandoffFailureAsync();
-        }
-        return started;
+        return _lifetime.TryCompleteStableLauncherHandoffAsync();
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
         Justification = "The late launcher observer owns cancellation disposal after the start task settles.")]
     private async Task<bool> TryStartStableLauncherAsync()
     {
-        if (!_restartThroughStableLauncher ||
+        if (!_lifetime.RestartRequested ||
             _stableLauncherStarted ||
             _hostServices.StableLauncherHandoff is not { } handoff)
         {
@@ -249,40 +211,8 @@ public sealed partial class MainWindow
         cancellation.Cancel();
     }
 
-    private async Task ReportStableLauncherHandoffFailureAsync()
+    private void ReopenLocalStateAfterFailedHandoff()
     {
-        _hasFailedStableLauncherHandoff = true;
-        if (ClosePhase == WindowClosePhase.HandingOff)
-        {
-            ClosePhase = WindowClosePhase.Recovering;
-        }
-        if (DataContext is MainWindowViewModel recoveryViewModel)
-        {
-            recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
-            var recoveryCancellation = new CancellationTokenSource();
-            Task<PendingActivationRecoveryStatus> recovery =
-                recoveryViewModel.Settings.HandleLauncherHandoffFailureAsync(recoveryCancellation.Token);
-            try
-            {
-                Task first = await Task.WhenAny(recovery, CloseDeadlineFactory(TimeSpan.FromSeconds(5)));
-                if (first == recovery)
-                {
-                    _ = await recovery;
-                }
-                else
-                {
-                    recoveryCancellation.Cancel();
-                    recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
-                }
-            }
-            catch (Exception exception)
-            {
-                System.Diagnostics.Trace.TraceError("Pending activation recovery failed: {0}", exception);
-                recoveryCancellation.Cancel();
-                recoveryViewModel.Settings.MarkPendingRecoveryUnknown();
-            }
-            _ = ObserveRecoveryAndDisposeAsync(recovery, recoveryCancellation);
-        }
         CancellationTokenSource previousSession = _startupLoadCancellation;
         previousSession.Cancel();
         _preloadSession.StopAcceptingAndRevoke();
@@ -291,7 +221,10 @@ public sealed partial class MainWindow
         OptionalPreloadStatusHost.DataContext = null;
         _reportHistoryPersistence.Reopen();
         _shellPreferencePersistence.Reopen();
-        _localStateSealed = false;
+    }
+
+    private void ReplayLocalStateAfterFailedHandoff()
+    {
         if (DataContext is MainWindowViewModel dirtyViewModel)
         {
             if (_preferenceChangedWhileSealed)
@@ -304,52 +237,6 @@ public sealed partial class MainWindow
                 LaunchCoordinator.Persistence.QueueLocalState(() => _reportHistoryPersistence.Queue(dirtyViewModel.Reports.ExportReportHistory()));
                 _historyChangedWhileSealed = false;
             }
-        }
-        _isReportHistoryPersistenceComplete = false;
-        _isReportHistoryClosePending = false;
-        _isExitConfirmed = false;
-        // A later Close is an ordinary exit. Only a new Settings activation or Retry
-        // can request another launcher handoff.
-        _restartThroughStableLauncher = false;
-        _closeAfterFailedHandoff = false;
-        ClosePhase = WindowClosePhase.Open;
-        _finalClosePosted = false;
-        IsEnabled = true;
-        _windowPublication.Resume();
-        if (DataContext is MainWindowViewModel viewModel)
-        {
-            viewModel.RunSession.PublishCurrentState();
-            viewModel.Merge.InspectionLifecycles.ForEach(lifecycle => lifecycle.PublishCurrentState());
-            viewModel.Replace.InspectionLifecycles.ForEach(lifecycle => lifecycle.PublishCurrentState());
-            viewModel.Settings.PublishPendingRecoveryStatus();
-        }
-        if (_deferredActivationRequested)
-        {
-            _deferredActivationRequested = false;
-            if (DataContext is MainWindowViewModel deferredViewModel &&
-                deferredViewModel.Settings.CanRetryPendingActivation)
-            {
-                _restartThroughStableLauncher = true;
-                Dispatcher.UIThread.Post(Close);
-            }
-        }
-    }
-
-    private static async Task ObserveRecoveryAndDisposeAsync(
-        Task<PendingActivationRecoveryStatus> recovery,
-        CancellationTokenSource cancellation)
-    {
-        try
-        {
-            _ = await recovery;
-        }
-        catch (Exception exception)
-        {
-            System.Diagnostics.Trace.TraceError("Late pending activation recovery failed: {0}", exception);
-        }
-        finally
-        {
-            cancellation.Dispose();
         }
     }
 }
