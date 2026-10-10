@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
+    <RepoHealthRoot>$(MSBuildThisFileDirectory)</RepoHealthRoot>
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
@@ -69,4 +70,6 @@
     <!-- Test processes must never resolve the developer's real local-state folder; see CompositionHostServices. -->
     <RuntimeHostConfigurationOption Include="NvtFwCombiner.LocalState.CurrentUserFolderForbidden" Value="true" />
   </ItemGroup>
+  <Import Project="eng/code-health/projects.props" />
+  <Import Project="eng/core-health/Directory.Build.props" />
 </Project>

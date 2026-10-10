@@ -1,0 +1,104 @@
+<Project>
+  <!-- Every C# project is classified here. Valid layers: domain, application, presentation, infrastructure, composition, tests, tooling. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Domain'">
+    <HealthLayer>domain</HealthLayer>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Application' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Contracts' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.VersionManagement.Application'">
+    <HealthLayer>application</HealthLayer>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Presentation.Avalonia' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Cli' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.DistributionLauncher'">
+    <HealthLayer>presentation</HealthLayer>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Infrastructure' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Profiles' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Platform' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.VersionManagement.Infrastructure'">
+    <HealthLayer>infrastructure</HealthLayer>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Bootstrap' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Desktop' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Launcher' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.LauncherBootstrap'">
+    <HealthLayer>composition</HealthLayer>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Application.Tests' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Architecture.Tests' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Bootstrap.Tests' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Domain.Tests' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.GoldenRegression.Tests' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.Infrastructure.Tests' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.ProfileContract.Tests' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.TestSupport' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.UiSmoke.Tests'">
+    <HealthLayer>tests</HealthLayer>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.CatalogProbe' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.ReadyProbe' Or '$(MSBuildProjectName)' == 'NvtFwCombiner.PrebuiltProfileCatalogGenerator'">
+    <HealthLayer>tooling</HealthLayer>
+  </PropertyGroup>
+  <!-- BEGIN GENERATED HEALTH WARNING IDS -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Application'">
+    <HealthBaselineWarningIds>CA1031;CA1307;IDE1006;RS0030</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Application.Tests'">
+    <HealthBaselineWarningIds>EnableGenerateDocumentationFile;IDE1006;RS0030;VSTHRD002;VSTHRD003;VSTHRD103;VSTHRD200</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Architecture.Tests'">
+    <HealthBaselineWarningIds>EnableGenerateDocumentationFile;IDE1006;RS0030;VSTHRD002</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Bootstrap'">
+    <HealthBaselineWarningIds>CA1031;RS0030;VSTHRD002</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Bootstrap.Tests'">
+    <HealthBaselineWarningIds>EnableGenerateDocumentationFile;IDE1006;RS0030;VSTHRD002;VSTHRD003;VSTHRD103;VSTHRD200</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.CatalogProbe'">
+    <HealthBaselineWarningIds>CA1031;IDE1006;RS0030</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Cli'">
+    <HealthBaselineWarningIds>IDE1006;RS0030;VSTHRD103</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Contracts'">
+    <HealthBaselineWarningIds>IDE1006</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Desktop'">
+    <HealthBaselineWarningIds>RS0030</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.DistributionLauncher'">
+    <HealthBaselineWarningIds>CA1031;IDE0005;IDE1006;VSTHRD002</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Domain'">
+    <HealthBaselineWarningIds>CA1031;IDE1006;VSTHRD002</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Domain.Tests'">
+    <HealthBaselineWarningIds>EnableGenerateDocumentationFile;IDE1006;RS0030;VSTHRD002;VSTHRD200</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.GoldenRegression.Tests'">
+    <HealthBaselineWarningIds>EnableGenerateDocumentationFile;IDE1006;RS0030</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Infrastructure'">
+    <HealthBaselineWarningIds>CA1031;CA1307;CA5392;IDE1006;RS0030;VSTHRD002;VSTHRD003;VSTHRD103;VSTHRD200</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Infrastructure.Tests'">
+    <HealthBaselineWarningIds>CA1307;CA5392;EnableGenerateDocumentationFile;IDE1006;RS0030;VSTHRD002;VSTHRD003;VSTHRD103;VSTHRD200</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Launcher'">
+    <HealthBaselineWarningIds>VSTHRD002</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.LauncherBootstrap'">
+    <HealthBaselineWarningIds>VSTHRD002</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Platform'">
+    <HealthBaselineWarningIds>CA5392;IDE1006;RS0030</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.PrebuiltProfileCatalogGenerator'">
+    <HealthBaselineWarningIds>RS0030</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Presentation.Avalonia'">
+    <HealthBaselineWarningIds>CA1031;CS9264;IDE0005;IDE1006;RS0030;VSTHRD001;VSTHRD002;VSTHRD003;VSTHRD103;VSTHRD200</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.ProfileContract.Tests'">
+    <HealthBaselineWarningIds>CA1307;EnableGenerateDocumentationFile;IDE1006;RS0030</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.ReadyProbe'">
+    <HealthBaselineWarningIds>RS0030</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.TestSupport'">
+    <HealthBaselineWarningIds>EnableGenerateDocumentationFile;IDE1006;RS0030</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.UiSmoke.Tests'">
+    <HealthBaselineWarningIds>CA1031;CA1307;CA5392;EnableGenerateDocumentationFile;IDE1006;RS0030;VSTHRD002;VSTHRD003;VSTHRD101;VSTHRD103;VSTHRD200</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.VersionManagement.Application'">
+    <HealthBaselineWarningIds>CA1031;IDE1006;VSTHRD003;VSTHRD103</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.VersionManagement.Infrastructure'">
+    <HealthBaselineWarningIds>CA1307;CA5392;IDE1006;RS0030;VSTHRD002;VSTHRD103;VSTHRD200</HealthBaselineWarningIds>
+  </PropertyGroup>
+  <!-- END GENERATED HEALTH WARNING IDS -->
+</Project>

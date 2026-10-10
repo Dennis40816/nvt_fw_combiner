@@ -27,3 +27,4 @@ testdata/golden/canonical/**/provenance/*.bat binary
 testdata/golden/canonical/**/provenance/*.config binary
 testdata/golden/canonical/**/provenance/*.txt binary
 Vendor/Core/UiEventRunner.cs text eol=lf
+eng/core-health/* text eol=lf

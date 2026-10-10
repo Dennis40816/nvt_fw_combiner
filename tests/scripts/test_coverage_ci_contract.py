@@ -333,7 +333,12 @@ class CoverageCiContractTests(unittest.TestCase):
             "<TreatWarningsAsErrors>true</TreatWarningsAsErrors>", build_props
         )
         self.assertIn("<AnalysisLevel>latest-recommended</AnalysisLevel>", build_props)
-        self.assertIn("dotnet_analyzer_diagnostic.severity = warning", editor_config)
+        core_block = (ROOT / "eng/core-health/.editorconfig").read_text(encoding="utf-8")
+        begin = "# BEGIN CORE HEALTH MANAGED BLOCK\n"
+        end = "# END CORE HEALTH MANAGED BLOCK\n"
+        self.assertEqual(1, editor_config.count(begin))
+        self.assertIn(begin + core_block + end, editor_config)
+        self.assertNotIn("dotnet_analyzer_diagnostic.", editor_config.replace(core_block, ""))
 
     def test_ci_retains_short_lived_real_coverage_evidence(self) -> None:
         workflow = CI_WORKFLOW.read_text(encoding="utf-8")

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -20,12 +21,22 @@ public sealed class UiEventAssemblyTests
         Assert.Empty(FindAsyncVoidMethods(Assembly.Load("NvtFwCombiner.DistributionLauncher")));
     }
 
-    /// <summary>An intentionally bad method in this test assembly proves scanner sensitivity.</summary>
+    /// <summary>A generated assembly with an async void method proves scanner sensitivity.</summary>
     [Fact]
-    public void TestAssemblyAsyncVoidFixtureIsDetected()
+    public void GeneratedAssemblyAsyncVoidFixtureIsDetected()
     {
-        Assert.Contains(FindAsyncVoidMethods(typeof(UiEventAssemblyTests).Assembly),
-            method => method.Name == nameof(AsyncVoidFixture));
+        AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(
+            new AssemblyName("UiEventAssemblyFixture"), AssemblyBuilderAccess.Run);
+        TypeBuilder type = assembly.DefineDynamicModule("UiEventAssemblyFixture")
+            .DefineType("Fixture", TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Abstract);
+        MethodBuilder method = type.DefineMethod(
+            "AsyncVoidFixture", MethodAttributes.Private | MethodAttributes.Static, typeof(void), Type.EmptyTypes);
+        method.GetILGenerator().Emit(OpCodes.Ret);
+        method.SetCustomAttribute(new CustomAttributeBuilder(
+            typeof(AsyncStateMachineAttribute).GetConstructor([typeof(Type)])!, [typeof(object)]));
+        _ = type.CreateType();
+
+        Assert.Contains(FindAsyncVoidMethods(assembly), found => found.Name == "AsyncVoidFixture");
     }
 
     private static IEnumerable<MethodInfo> FindAsyncVoidMethods(Assembly assembly)
@@ -35,10 +46,5 @@ public sealed class UiEventAssemblyTests
                 BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
             .Where(method => method.ReturnType == typeof(void)
                 && method.IsDefined(typeof(AsyncStateMachineAttribute), inherit: false));
-    }
-
-    private static async void AsyncVoidFixture()
-    {
-        await Task.Yield();
     }
 }
