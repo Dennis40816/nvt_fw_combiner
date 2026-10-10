@@ -315,7 +315,7 @@ jobs:
       - name: Upload immutable candidate assets
         if: ${{ steps.request.outputs.eligible == 'true' }}
         id: candidate-upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ steps.identity.outputs.artifact-name }}
           path: artifacts/release/*
@@ -324,7 +324,7 @@ jobs:
       - name: Upload update-source handoff
         if: ${{ steps.request.outputs.eligible == 'true' }}
         id: update-source-upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: update-source-handoff-v${{ steps.identity.outputs.version }}-${{ steps.identity.outputs.source-sha }}
           path: artifacts/update-source-handoff/*
@@ -863,7 +863,7 @@ jobs:
         shell: pwsh
         run: python ./scripts/v0916_parity_certification.py compare --plan ./docs/contracts/v0916-parity-certification-v1.json --candidate-artifact-dir ./artifacts/release --output-root ./artifacts/v0916-parity
       - name: Upload immutable parity comparison
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           if-no-files-found: error
           name: v0916-parity-comparison-${{ github.run_id }}
@@ -926,14 +926,14 @@ jobs:
             --verifier-id $env:NFC_OWNER_VERIFIER_ID
           if ($LASTEXITCODE -ne 0) { throw 'Independent firmware-owner material failed validation.' }
       - name: Upload immutable owner attestation
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           if-no-files-found: error
           name: v0916-parity-attestation-${{ github.run_id }}
           path: artifacts/v0916-parity/owner-attestation.json
           retention-days: 30
       - name: Upload immutable external verification
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           if-no-files-found: error
           name: v0916-parity-verification-${{ github.run_id }}
@@ -1002,7 +1002,7 @@ jobs:
             --output ./artifacts/v0916-parity/terminal-evidence.json
           if ($LASTEXITCODE -ne 0) { throw 'Terminal v2.0.0 parity finalization failed.' }
       - name: Upload terminal parity evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           if-no-files-found: error
           name: v0916-parity-terminal-${{ github.run_id }}

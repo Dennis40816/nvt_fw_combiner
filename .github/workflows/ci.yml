@@ -90,7 +90,7 @@ jobs:
         run: python scripts/verify.py --ci-python-shard python
       - name: Upload Python coverage evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: python-coverage
           path: artifacts/coverage/python/
@@ -164,7 +164,7 @@ jobs:
         run: python scripts/verify.py --ci-dotnet-build
       - name: Upload dotnet build evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dotnet-build-evidence-attempt-${{ github.run_attempt }}
           path: artifacts/ci-dotnet-upload/
@@ -173,7 +173,7 @@ jobs:
       - name: Upload dotnet build log
         if: failure()
         continue-on-error: true
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dotnet-build-log
           path: ${{ runner.temp }}/dotnet-build.log
@@ -220,7 +220,7 @@ jobs:
         run: python scripts/verify.py --ci-dotnet-test-shard ${{ matrix.shard }}
       - name: Upload dotnet test evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dotnet-test-${{ matrix.shard }}-evidence-attempt-${{ github.run_attempt }}
           path: artifacts/ci-dotnet-upload/
@@ -261,7 +261,7 @@ jobs:
         run: python scripts/verify.py --ci-dotnet-finalize artifacts/ci-dotnet-downloads
       - name: Upload dotnet coverage evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dotnet-coverage
           path: artifacts/coverage/dotnet/
