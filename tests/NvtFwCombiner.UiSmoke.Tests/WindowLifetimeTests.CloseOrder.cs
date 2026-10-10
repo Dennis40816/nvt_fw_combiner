@@ -95,41 +95,8 @@ public sealed partial class WindowLifetimeTests
     [InlineData(true, false)]
     public async Task PersistenceSealsBeforeFinalClose(bool expire, bool preferencesFirst)
     {
-        var historyStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var preferencesStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        // Release on the default scheduler so the persistence completion chain settles before the UI probe.
-        var releaseHistory = new TaskCompletionSource();
-        var releasePreferences = new TaskCompletionSource();
-        var historyFinished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var preferencesFinished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var order = new ConcurrentQueue<string>();
-        int historyWrites = 0;
-        int preferenceWrites = 0;
-        string lastHistory = "";
-        ILocalFileStore files = DispatchProxy.Create<ILocalFileStore, LifetimeReportStorageProxy>();
-        ((LifetimeReportStorageProxy)files).Call = (name, args) => name switch
-        {
-            nameof(ILocalFileStore.ReadAsync) => throw new LocalFileNotFoundException("No saved history."),
-            nameof(ILocalFileStore.WriteAsync) => new ValueTask(WriteAsync((string)args![0]!, (ReadOnlyMemory<byte>)args[1]!)),
-            _ => throw new NotSupportedException(name),
-        };
-        async Task WriteAsync(string path, ReadOnlyMemory<byte> bytes)
-        {
-            bool history = Path.GetFileName(path) == "report-history.v1.json";
-            bool first = (history ? Interlocked.Increment(ref historyWrites) : Interlocked.Increment(ref preferenceWrites)) == 1;
-            _ = (history ? historyStarted : preferencesStarted).TrySetResult();
-            await WaitForSignalAsync(history ? releaseHistory : releasePreferences).ConfigureAwait(false);
-            if (first)
-            {
-                order.Enqueue(history ? "history" : "preferences");
-            }
-            if (history)
-            {
-                Volatile.Write(ref lastHistory, Encoding.UTF8.GetString(bytes.Span));
-            }
-            _ = (history ? historyFinished : preferencesFinished).TrySetResult();
-        }
-        (PresentationHostServices services, _) = await PresentationTestHost.CreateServicesAsync(files);
+        var persistence = new HeldPersistenceWrites();
+        (PresentationHostServices services, _) = await PresentationTestHost.CreateServicesAsync(persistence.Files);
         var held = new TaskCompletionSource<IEventBufferFormatConfigurationSession>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         using MainWindow window = CreateWindowWithHeldConfiguration(services, held);
@@ -139,31 +106,13 @@ public sealed partial class WindowLifetimeTests
         MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
         shell.SelectedTheme = "Dark";
         shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "close-order"), "close-order.json");
-        await Task.WhenAll(historyStarted.Task, preferencesStarted.Task)
+        await Task.WhenAll(persistence.HistoryStarted.Task, persistence.PreferencesStarted.Task)
             .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         shell.OpenSettingsCommand.Execute(null);
         shell.Settings.SelectSectionCommand.Execute(SettingsSection.EventBufferFormat);
         var deadline = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var sealing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        window.CloseDeadlineFactory = duration =>
-        {
-            Assert.Equal(TimeSpan.FromSeconds(5), duration);
-            if (window.ClosePhase == WindowClosePhase.Sealing)
-            {
-                order.Enqueue("sealing");
-                _ = sealing.TrySetResult();
-            }
-            return WaitForSignalAsync(deadline);
-        };
-        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        window.Closing += (_, _) =>
-        {
-            if (window.ClosePhase == WindowClosePhase.Closing)
-            {
-                order.Enqueue("closing");
-            }
-        };
-        window.Closed += (_, _) => _ = closed.TrySetResult();
+        TaskCompletionSource closed = ObservePersistenceClose(window, persistence, deadline, sealing);
         try
         {
             CloseConfirmed(window, shell);
@@ -179,40 +128,32 @@ public sealed partial class WindowLifetimeTests
             Assert.False(window.CloseAttempt.IsCompleted);
             if (expire)
             {
-                order.Enqueue("deadline");
+                persistence.Order.Enqueue("deadline");
                 deadline.SetResult();
             }
             else
             {
-                await Task.Run(() => (preferencesFirst ? releasePreferences : releaseHistory).SetResult(),
+                await Task.Run(() => (preferencesFirst ? persistence.ReleasePreferences : persistence.ReleaseHistory).SetResult(),
                         TestContext.Current.CancellationToken)
                     .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-                await (preferencesFirst ? preferencesFinished : historyFinished).Task
+                await (preferencesFirst ? persistence.PreferencesFinished : persistence.HistoryFinished).Task
                     .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
                 window.Dispatcher.RunJobs();
                 Assert.Equal(WindowClosePhase.Sealing, window.ClosePhase);
                 Assert.False(window.CloseAttempt.IsCompleted);
-                (preferencesFirst ? releaseHistory : releasePreferences).SetResult();
+                (preferencesFirst ? persistence.ReleaseHistory : persistence.ReleasePreferences).SetResult();
             }
             await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             await window.CloseAttempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-            string[] expectedOrder = expire ? ["sealing", "deadline", "closing"] : preferencesFirst
-                ? ["sealing", "preferences", "history", "closing"]
-                : ["sealing", "history", "preferences", "closing"];
-            Assert.Equal(expectedOrder, order.ToArray());
-            if (!expire)
-            {
-                Assert.Equal(2, Volatile.Read(ref preferenceWrites));
-                Assert.Contains("close-order-late.json", Volatile.Read(ref lastHistory), StringComparison.Ordinal);
-            }
+            AssertPersistenceCloseOrder(persistence, expire, preferencesFirst);
         }
         finally
         {
             _ = held.TrySetCanceled(TestContext.Current.CancellationToken);
-            _ = releaseHistory.TrySetResult();
-            _ = releasePreferences.TrySetResult();
+            _ = persistence.ReleaseHistory.TrySetResult();
+            _ = persistence.ReleasePreferences.TrySetResult();
             _ = deadline.TrySetResult();
-            await Task.WhenAll(historyFinished.Task, preferencesFinished.Task)
+            await Task.WhenAll(persistence.HistoryFinished.Task, persistence.PreferencesFinished.Task)
                 .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         }
     }
@@ -322,16 +263,7 @@ public sealed partial class WindowLifetimeTests
             window.Dispatcher.RunJobs();
             Assert.Equal(toast, shell.Reports.ReportToastText);
             Assert.Equal(0, notifications);
-            bool started = false;
-            UiRunResultViewModel? result = await shell.RunSession.RunCompositionAsync(
-                shell.Merge.CaptureRunContext(ExperienceIds.StandardMerge, build: true), true,
-                (_, _) =>
-                {
-                    started = true;
-                    throw new InvalidOperationException("A late operation regained admission.");
-                }, (_, _) => { });
-            Assert.Null(result);
-            Assert.False(started);
+            await AssertLateRunRemainsBlockedAsync(shell);
             // Do not await or inspect the discovery fault; its window owners must observe the drain aggregates.
             return [new WeakReference(discovery.Task), new WeakReference(selection.Task), new WeakReference(saving)];
         }
@@ -340,6 +272,112 @@ public sealed partial class WindowLifetimeTests
             _ = selection.TrySetResult(null);
             _ = discovery.TrySetCanceled(TestContext.Current.CancellationToken);
             _ = deadline.TrySetResult();
+        }
+    }
+
+    private static async Task AssertLateRunRemainsBlockedAsync(MainWindowViewModel shell)
+    {
+        bool started = false;
+        UiRunResultViewModel? result = await shell.RunSession.RunCompositionAsync(
+            shell.Merge.CaptureRunContext(ExperienceIds.StandardMerge, build: true), true,
+            (_, _) =>
+            {
+                started = true;
+                throw new InvalidOperationException("A late operation regained admission.");
+            }, (_, _) => { });
+        Assert.Null(result);
+        Assert.False(started);
+    }
+
+    private static TaskCompletionSource ObservePersistenceClose(
+        MainWindow window,
+        HeldPersistenceWrites persistence,
+        TaskCompletionSource deadline,
+        TaskCompletionSource sealing)
+    {
+        window.CloseDeadlineFactory = duration =>
+        {
+            Assert.Equal(TimeSpan.FromSeconds(5), duration);
+            if (window.ClosePhase == WindowClosePhase.Sealing)
+            {
+                persistence.Order.Enqueue("sealing");
+                _ = sealing.TrySetResult();
+            }
+            return WaitForSignalAsync(deadline);
+        };
+        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        window.Closing += (_, _) =>
+        {
+            if (window.ClosePhase == WindowClosePhase.Closing)
+            {
+                persistence.Order.Enqueue("closing");
+            }
+        };
+        window.Closed += (_, _) => _ = closed.TrySetResult();
+        return closed;
+    }
+
+    private static void AssertPersistenceCloseOrder(
+        HeldPersistenceWrites persistence,
+        bool expire,
+        bool preferencesFirst)
+    {
+        string[] expectedOrder = expire ? ["sealing", "deadline", "closing"] : preferencesFirst
+            ? ["sealing", "preferences", "history", "closing"]
+            : ["sealing", "history", "preferences", "closing"];
+        Assert.Equal(expectedOrder, persistence.Order.ToArray());
+        if (!expire)
+        {
+            Assert.Equal(2, persistence.PreferenceWrites);
+            Assert.Contains("close-order-late.json", persistence.LastHistory, StringComparison.Ordinal);
+        }
+    }
+
+    private sealed class HeldPersistenceWrites
+    {
+        // Write callbacks can run off the UI thread; counters and the snapshot use Interlocked/Volatile.
+        private int _historyWrites;
+        private int _preferenceWrites;
+        private string _lastHistory = "";
+
+        internal TaskCompletionSource HistoryStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource PreferencesStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Release on the default scheduler so the persistence completion chain settles before the UI probe.
+        internal TaskCompletionSource ReleaseHistory { get; } = new();
+        internal TaskCompletionSource ReleasePreferences { get; } = new();
+        internal TaskCompletionSource HistoryFinished { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource PreferencesFinished { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal ConcurrentQueue<string> Order { get; } = new();
+        internal ILocalFileStore Files { get; }
+        internal int PreferenceWrites => Volatile.Read(ref _preferenceWrites);
+        internal string LastHistory => Volatile.Read(ref _lastHistory);
+
+        internal HeldPersistenceWrites()
+        {
+            Files = DispatchProxy.Create<ILocalFileStore, LifetimeReportStorageProxy>();
+            ((LifetimeReportStorageProxy)Files).Call = (name, args) => name switch
+            {
+                nameof(ILocalFileStore.ReadAsync) => throw new LocalFileNotFoundException("No saved history."),
+                nameof(ILocalFileStore.WriteAsync) => new ValueTask(WriteAsync((string)args![0]!, (ReadOnlyMemory<byte>)args[1]!)),
+                _ => throw new NotSupportedException(name),
+            };
+        }
+
+        private async Task WriteAsync(string path, ReadOnlyMemory<byte> bytes)
+        {
+            bool history = Path.GetFileName(path) == "report-history.v1.json";
+            bool first = (history ? Interlocked.Increment(ref _historyWrites) : Interlocked.Increment(ref _preferenceWrites)) == 1;
+            _ = (history ? HistoryStarted : PreferencesStarted).TrySetResult();
+            await WaitForSignalAsync(history ? ReleaseHistory : ReleasePreferences).ConfigureAwait(false);
+            if (first)
+            {
+                Order.Enqueue(history ? "history" : "preferences");
+            }
+            if (history)
+            {
+                Volatile.Write(ref _lastHistory, Encoding.UTF8.GetString(bytes.Span));
+            }
+            _ = (history ? HistoryFinished : PreferencesFinished).TrySetResult();
         }
     }
 

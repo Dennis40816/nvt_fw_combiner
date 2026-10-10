@@ -154,7 +154,7 @@ public sealed class CompiledMetadataBoundaryTests
 
     /// <summary>Every acquired assembly is scanned and new or stale A2 allowances fail.</summary>
     [Fact]
-    public void BoundariesCurrentAssembliesMatchReviewedKnownViolations()
+    public void Boundaries_CurrentAssemblies_MatchReviewedKnownViolations()
     {
         ImmutableArray<BoundaryFinding> actual = Find(AssemblyInventory.Load().SelectMany(input => MetadataReferenceWalker.Read(input.Image, Path.GetDirectoryName(input.Path))));
         Assert.True(_knownViolations.Select(item => item.Finding.ToString()).Order(StringComparer.Ordinal).SequenceEqual(actual.Select(item => item.ToString())), string.Join(Environment.NewLine, actual));
@@ -183,7 +183,7 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData("MemberReference")]
     [InlineData("MethodSpecification")]
     [InlineData("Calli")]
-    public void BoundariesForbiddenControlNamesRuleAndLogicalOwner(string scenario)
+    public void Boundaries_ForbiddenControl_NamesRuleAndLogicalOwner(string scenario)
     {
         ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read(MetadataFixtureBuilder.Create(scenario));
         Assert.Contains($"A2.ViewModelControls: {MetadataFixtureBuilder.ViewModel}", Assert.ThrowsAny<Exception>(() => RequireClean(references)).Message, StringComparison.Ordinal);
@@ -195,7 +195,7 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData("JsonDeserialize", ".Services.JsonCodec", "A2.PresentationRawJson")]
     [InlineData("JsonDeserializeAsync", ".Services.JsonCodec", "A2.PresentationRawJson")]
     [InlineData("JsonParse", ".Services.JsonCodec", "A2.PresentationRawJson")]
-    public void BoundariesForbiddenReferenceNamesRuleAndOffender(string scenario, string owner, string rule)
+    public void Boundaries_ForbiddenReference_NamesRuleAndOffender(string scenario, string owner, string rule)
     {
         ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read(MetadataFixtureBuilder.Create(scenario, Presentation + owner));
         Assert.Contains($"{rule}: {Presentation + owner}", Assert.ThrowsAny<Exception>(() => RequireClean(references)).Message, StringComparison.Ordinal);
@@ -206,7 +206,7 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData("Positive", ".Controls.CleanControl")]
     [InlineData("Positive", ".Services.CleanService")]
     [InlineData("View", ".Views.LegitimateView")]
-    public void BoundariesAllowedReferencePasses(string scenario, string owner)
+    public void Boundaries_AllowedReference_Passes(string scenario, string owner)
     {
         RequireClean(MetadataReferenceWalker.Read(MetadataFixtureBuilder.Create(scenario, Presentation + owner)));
     }
@@ -219,7 +219,7 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData("Pick(System.Int32) [closure]")]
     [InlineData("Generic`1(!!0) [closure]")]
     [InlineData("Generic`2(!!0) [closure]")]
-    public void BoundariesCompiledGeneratedBodyNamesLogicalOwner(string member)
+    public void Boundaries_CompiledGeneratedBody_NamesLogicalOwner(string member)
     {
         ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read([.. AssemblyInventory.ReadBytes(typeof(CompiledMetadataBoundaryTests).Assembly.Location)]);
         Assert.Contains("A2.ViewModelControls: " + Presentation + ".ViewModels.AsyncBoundaryFixture | " + member,
@@ -233,5 +233,5 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData(".DesktopLaunchCoordinator", "Lifecycle")]
     [InlineData(".WindowLifetimeCoordinator", "Lifecycle")]
     [InlineData(".UnlistedCoordinator", "Other")]
-    public void RoleExplicitCategoryMatchesPolicy(string suffix, string expected) { Assert.Equal(expected, Role(Presentation + suffix)); }
+    public void Role_ExplicitCategory_MatchesPolicy(string suffix, string expected) { Assert.Equal(expected, Role(Presentation + suffix)); }
 }

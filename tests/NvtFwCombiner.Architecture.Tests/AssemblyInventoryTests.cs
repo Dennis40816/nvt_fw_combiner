@@ -27,15 +27,15 @@ public sealed class AssemblyInventoryTests
 
     /// <summary>The normal test build supplies every production assembly.</summary>
     [Fact]
-    public void LoadCurrentBuildCoversProductionAssemblies() { Assert.Equal(15, AssemblyInventory.Load().Length); }
+    public void Load_CurrentBuild_CoversProductionAssemblies() { Assert.Equal(15, AssemblyInventory.Load().Length); }
     /// <summary>A complete matching manifest is accepted.</summary>
     [Fact]
-    public void ValidateCompleteManifestPasses() { Assert.Equal(2, Validate(Fixture()).Length); }
+    public void Validate_CompleteManifest_Passes() { Assert.Equal(2, Validate(Fixture()).Length); }
     /// <summary>Absence and emptiness are distinct invalid input states.</summary>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ValidateMissingOrEmptyManifestNamesManifestRule(bool missing)
+    public void Validate_MissingOrEmptyManifest_NamesManifestRule(bool missing)
     {
         Assert.Contains("Inputs.Manifest:", Assert.Throws<InvalidDataException>(() => Validate(missing ? null : new XElement("inputs"))).Message, StringComparison.Ordinal);
     }
@@ -45,7 +45,7 @@ public sealed class AssemblyInventoryTests
     [InlineData("Duplicate", "Inputs.Coverage: duplicate or unlisted project Fixture.csproj")]
     [InlineData("Unlisted", "Inputs.Coverage: duplicate or unlisted project Extra.csproj")]
     [InlineData("DuplicatePath", "Inputs.Duplicate: Fixture.dll")]
-    public void ValidateInvalidCoverageNamesRuleAndOffender(string scenario, string expected)
+    public void Validate_InvalidCoverage_NamesRuleAndOffender(string scenario, string expected)
     {
         XElement manifest = scenario switch
         {
@@ -61,7 +61,7 @@ public sealed class AssemblyInventoryTests
     [InlineData("Missing", "Inputs.Missing: Fixture.dll")]
     [InlineData("Empty", "Inputs.Empty: Fixture.dll")]
     [InlineData("Stale", "Inputs.Stale: Fixture.dll")]
-    public void ValidateInvalidAssemblyNamesRuleAndOffender(string scenario, string expected)
+    public void Validate_InvalidAssembly_NamesRuleAndOffender(string scenario, string expected)
     {
         byte[] Read(string path)
         {
@@ -77,7 +77,7 @@ public sealed class AssemblyInventoryTests
     [InlineData("runtime", "win-x64", 0)]
     [InlineData("configuration", "Debug", 1)]
     [InlineData("runtime", "win-x64", 1)]
-    public void ValidateWrongOrMixedTupleNamesTargetRule(string attribute, string value, int index)
+    public void Validate_WrongOrMixedTuple_NamesTargetRule(string attribute, string value, int index)
     {
         XElement manifest = Fixture();
         manifest.Elements().ElementAt(index).SetAttributeValue(attribute, value);

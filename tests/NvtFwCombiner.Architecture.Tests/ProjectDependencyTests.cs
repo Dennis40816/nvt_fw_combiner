@@ -203,22 +203,14 @@ public sealed class ProjectDependencyTests
     [Fact]
     public void SharedRepositoryPathsPreservesUnsetUpwardDiscovery()
     {
-        string owner = Path.Combine(
-            Path.GetTempPath(),
-            $"nvt-fw-combiner-architecture-root-{Guid.NewGuid():N}");
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-architecture-root");
+        string owner = workspace.Root;
         string nested = Path.Combine(owner, "nested", "output");
         _ = Directory.CreateDirectory(nested);
         File.WriteAllText(Path.Combine(owner, "NvtFwCombiner.slnx"), string.Empty);
-        try
-        {
-            Assert.Equal(
-                Path.GetFullPath(owner),
-                RepositoryPaths.FindRepositoryRoot(null, new DirectoryInfo(nested)));
-        }
-        finally
-        {
-            Directory.Delete(owner, recursive: true);
-        }
+        Assert.Equal(
+            Path.GetFullPath(owner),
+            RepositoryPaths.FindRepositoryRoot(null, new DirectoryInfo(nested)));
     }
 
     /// <summary>Relocated test outputs bind external-tool evidence through the shared root.</summary>

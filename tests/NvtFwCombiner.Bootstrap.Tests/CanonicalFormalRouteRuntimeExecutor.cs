@@ -115,25 +115,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
             new CompositionRunProgressFeed(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(preview.Succeeded, Failure(runtimeCase, preview));
-        Assert.True(build.Succeeded, Failure(runtimeCase, build));
-        Assert.Same(capability, preview.ResolvedCapability);
-        Assert.Same(capability, build.ResolvedCapability);
-        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
-        string computedOutputSha256 = Convert.ToHexStringLower(
-            SHA256.HashData(preview.OutputBytes.Span));
-        Assert.Equal(computedOutputSha256, preview.OutputSha256);
-        Assert.Equal(computedOutputSha256, build.OutputSha256);
-        Assert.Equal(preview.OutputBytes.Length, preview.OutputSize);
-        Assert.Equal(build.OutputBytes.Length, build.OutputSize);
-        Assert.Equal(preview.OutputSha256, build.OutputSha256);
-        Assert.Equal(preview.OutputSize, build.OutputSize);
-        Assert.Equal(preview.OutputBytes.ToArray(), ReadInputBytes(outputPath));
-        Assert.Equal(capability.CompiledComposition.CompilationFingerprint,
-            preview.Report.CompilationFingerprint);
-        Assert.Equal(preview.Report.CompilationFingerprint, build.Report.CompilationFingerprint);
-        AssertOperationsSucceededAndConstrained(preview);
-        AssertOperationsSucceededAndConstrained(build);
+        AssertPreviewAndBuildMatch(runtimeCase, capability, preview, build, outputPath);
         int processorOperationCount = capability.CompiledComposition.Plan.OrderedOperations.Count(
             static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor);
         Assert.Equal(processorOperationCount * 2, processor.Requests.Count);
@@ -156,6 +138,34 @@ internal static class CanonicalFormalRouteRuntimeExecutor
             Assert.Equal(baseLength, build.OutputSize);
         }
         Assert.All(originalInputHashes, pair => Assert.Equal(pair.Value, HashFile(pair.Key)));
+    }
+
+    private static void AssertPreviewAndBuildMatch(
+        CanonicalFormalRouteRuntimeCase runtimeCase,
+        ResolvedCapability capability,
+        CompositionRunResult preview,
+        CompositionRunResult build,
+        string outputPath)
+    {
+        Assert.True(preview.Succeeded, Failure(runtimeCase, preview));
+        Assert.True(build.Succeeded, Failure(runtimeCase, build));
+        Assert.Same(capability, preview.ResolvedCapability);
+        Assert.Same(capability, build.ResolvedCapability);
+        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
+        string computedOutputSha256 = Convert.ToHexStringLower(
+            SHA256.HashData(preview.OutputBytes.Span));
+        Assert.Equal(computedOutputSha256, preview.OutputSha256);
+        Assert.Equal(computedOutputSha256, build.OutputSha256);
+        Assert.Equal(preview.OutputBytes.Length, preview.OutputSize);
+        Assert.Equal(build.OutputBytes.Length, build.OutputSize);
+        Assert.Equal(preview.OutputSha256, build.OutputSha256);
+        Assert.Equal(preview.OutputSize, build.OutputSize);
+        Assert.Equal(preview.OutputBytes.ToArray(), ReadInputBytes(outputPath));
+        Assert.Equal(capability.CompiledComposition.CompilationFingerprint,
+            preview.Report.CompilationFingerprint);
+        Assert.Equal(preview.Report.CompilationFingerprint, build.Report.CompilationFingerprint);
+        AssertOperationsSucceededAndConstrained(preview);
+        AssertOperationsSucceededAndConstrained(build);
     }
 
     private static void AssertCanonicalMemoryProjection(

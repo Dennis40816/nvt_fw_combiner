@@ -282,26 +282,10 @@ internal sealed class MetadataReferenceWalker
             case HandleKind.TypeReference:
             case HandleKind.TypeSpecification: _ = _names.Type(handle); break;
             case HandleKind.MemberReference:
-                MemberReference member = _reader.GetMemberReference((MemberReferenceHandle)handle);
-                string parent = _names.Type(member.Parent);
-                _ = _references.Add(new(_owner, _member, parent, _reader.GetString(member.Name)));
-                if (member.GetKind() == MemberReferenceKind.Field) { _ = member.DecodeFieldSignature(_names, null); }
-                else { _ = member.DecodeMethodSignature(_names, null); }
-                break;
             case HandleKind.MethodSpecification:
-                MethodSpecification method = _reader.GetMethodSpecification((MethodSpecificationHandle)handle);
-                Token(method.Method);
-                _ = method.DecodeSignature(_names, null);
-                break;
             case HandleKind.MethodDefinition:
-                MethodDefinition definition = _reader.GetMethodDefinition((MethodDefinitionHandle)handle);
-                _ = _references.Add(new(_owner, _member, _names.Type(definition.GetDeclaringType()), _reader.GetString(definition.Name)));
-                _ = definition.DecodeSignature(_names, null);
-                break;
             case HandleKind.FieldDefinition:
-                FieldDefinition field = _reader.GetFieldDefinition((FieldDefinitionHandle)handle);
-                _ = _references.Add(new(_owner, _member, _names.Type(field.GetDeclaringType()), _reader.GetString(field.Name)));
-                _ = field.DecodeSignature(_names, null);
+                ReadMemberToken(handle);
                 break;
             case HandleKind.StandaloneSignature: _ = _reader.GetStandaloneSignature((StandaloneSignatureHandle)handle).DecodeMethodSignature(_names, null); break;
             case HandleKind.ModuleDefinition:
@@ -361,6 +345,35 @@ internal sealed class MetadataReferenceWalker
             case HandleKind.String:
                 break;
             case HandleKind.NamespaceDefinition:
+                break;
+            default: throw new BadImageFormatException($"Metadata.Token: unsupported {handle.Kind}");
+        }
+    }
+    private void ReadMemberToken(EntityHandle handle)
+    {
+        switch (handle.Kind)
+        {
+            case HandleKind.MemberReference:
+                MemberReference member = _reader.GetMemberReference((MemberReferenceHandle)handle);
+                string parent = _names.Type(member.Parent);
+                _ = _references.Add(new(_owner, _member, parent, _reader.GetString(member.Name)));
+                if (member.GetKind() == MemberReferenceKind.Field) { _ = member.DecodeFieldSignature(_names, null); }
+                else { _ = member.DecodeMethodSignature(_names, null); }
+                break;
+            case HandleKind.MethodSpecification:
+                MethodSpecification method = _reader.GetMethodSpecification((MethodSpecificationHandle)handle);
+                Token(method.Method);
+                _ = method.DecodeSignature(_names, null);
+                break;
+            case HandleKind.MethodDefinition:
+                MethodDefinition definition = _reader.GetMethodDefinition((MethodDefinitionHandle)handle);
+                _ = _references.Add(new(_owner, _member, _names.Type(definition.GetDeclaringType()), _reader.GetString(definition.Name)));
+                _ = definition.DecodeSignature(_names, null);
+                break;
+            case HandleKind.FieldDefinition:
+                FieldDefinition field = _reader.GetFieldDefinition((FieldDefinitionHandle)handle);
+                _ = _references.Add(new(_owner, _member, _names.Type(field.GetDeclaringType()), _reader.GetString(field.Name)));
+                _ = field.DecodeSignature(_names, null);
                 break;
             default: throw new BadImageFormatException($"Metadata.Token: unsupported {handle.Kind}");
         }

@@ -103,7 +103,7 @@ public sealed class EvaluatedProjectGraphTests
     [InlineData("Missing")]
     [InlineData("Duplicate")]
     [InlineData("Empty")]
-    public void GraphInvalidCoverageNamesRuleAndOffender(string scenario)
+    public void Graph_InvalidCoverage_NamesRuleAndOffender(string scenario)
     {
         string message = Assert.ThrowsAny<Exception>(() => ValidateCoverage(InvalidCoverage(scenario))).Message;
         Assert.Contains("Graph.Coverage:", message, StringComparison.Ordinal);
@@ -147,7 +147,7 @@ public sealed class EvaluatedProjectGraphTests
 
     /// <summary>All shipped projects have all four required evaluations.</summary>
     [Fact]
-    public void GraphShippedProjectsCoversRequiredTargetTuples()
+    public void Graph_ShippedProjects_CoversRequiredTargetTuples()
     {
         XElement graph = ReadGraph();
         Assert.Equal(ProductionProjects.Select(ProjectPath).Order(StringComparer.OrdinalIgnoreCase), XDocument.Load(Path.Combine(Root.FullName, "NvtFwCombiner.slnx"))
@@ -156,7 +156,7 @@ public sealed class EvaluatedProjectGraphTests
     }
     /// <summary>Evaluated edges match the exact accepted policy.</summary>
     [Fact]
-    public void GraphEvaluatedReferencesMatchesAllowedEdges()
+    public void Graph_EvaluatedReferences_MatchesAllowedEdges()
     {
         ValidateEdges(ReadGraph());
     }
@@ -167,7 +167,7 @@ public sealed class EvaluatedProjectGraphTests
     [InlineData("Debug", "win-x64")]
     [InlineData("Release", "")]
     [InlineData("Release", "win-x64")]
-    public void GraphEvaluatedTargetHasNoCycles(string configuration, string runtime)
+    public void Graph_EvaluatedTarget_HasNoCycles(string configuration, string runtime)
     {
         ValidateCycles(new XElement("inputs",
         ReadGraph().Elements("project").Where(item => Value(item, "configuration") == configuration && Value(item, "runtime") == runtime)));
@@ -175,7 +175,7 @@ public sealed class EvaluatedProjectGraphTests
 
     /// <summary>A forbidden edge confined to win-x64 is rejected.</summary>
     [Fact]
-    public void GraphWindowsOnlyForbiddenEdgeNamesRuleAndOffender()
+    public void Graph_WindowsOnlyForbiddenEdge_NamesRuleAndOffender()
     {
         XElement graph = Fixture();
         graph.Elements().Single(item => Value(item, "path") == ProjectPath("Domain")).Add(new XElement("reference", new XAttribute("path", ProjectPath("Application"))));
@@ -183,7 +183,7 @@ public sealed class EvaluatedProjectGraphTests
     }
     /// <summary>A Domain to Application cycle is rejected independently of edge policy.</summary>
     [Fact]
-    public void GraphDomainApplicationCycleNamesRuleAndOffender()
+    public void Graph_DomainApplicationCycle_NamesRuleAndOffender()
     {
         XElement graph = Fixture();
         graph.Elements().Single(item => Value(item, "path") == ProjectPath("Domain")).Add(new XElement("reference", new XAttribute("path", ProjectPath("Application"))));
@@ -193,13 +193,13 @@ public sealed class EvaluatedProjectGraphTests
     }
     /// <summary>The accepted graph is a positive control.</summary>
     [Fact]
-    public void GraphAcceptedEdgesPasses() { ValidateEdges(Fixture()); }
+    public void Graph_AcceptedEdges_Passes() { ValidateEdges(Fixture()); }
     /// <summary>The accepted graph is an independent cycle positive control.</summary>
     [Fact]
-    public void GraphAcceptedCyclesPasses() { ValidateCycles(Fixture()); }
+    public void Graph_AcceptedCycles_Passes() { ValidateCycles(Fixture()); }
     /// <summary>The same generator path cannot become a runtime reference.</summary>
     [Fact]
-    public void GraphGeneratorRuntimeReferenceNamesRuleAndOffender()
+    public void Graph_GeneratorRuntimeReference_NamesRuleAndOffender()
     {
         XElement graph = Fixture();
         graph.Descendants("reference").Single(item => Value(item, "path") == ProjectPath("PrebuiltProfileCatalogGenerator"))
@@ -208,7 +208,7 @@ public sealed class EvaluatedProjectGraphTests
     }
     /// <summary>Build-only inputs never become runtime assembly references.</summary>
     [Fact]
-    public void ArchitectureAssemblyBuildOnlyInputsHasNoProductionAssemblyReferences()
+    public void ArchitectureAssembly_BuildOnlyInputs_HasNoProductionAssemblyReferences()
     {
         using FileStream stream = File.OpenRead(typeof(EvaluatedProjectGraphTests).Assembly.Location);
         using var pe = new PEReader(stream);

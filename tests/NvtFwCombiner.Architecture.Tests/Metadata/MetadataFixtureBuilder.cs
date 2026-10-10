@@ -64,11 +64,34 @@ internal static class MetadataFixtureBuilder
             EventDefinitionHandle eventHandle = metadata.AddEvent(EventAttributes.None, metadata.GetOrAddString("Event"), target);
             metadata.AddEventMap(definition, eventHandle);
         }
+        (BlobBuilder bodies, int body) = CreateMethodBody(
+            metadata, scenario, objectType, target, fieldSignature, Signature, Class);
+        MethodDefinitionHandle methodHandle = metadata.AddMethodDefinition(MethodAttributes.Public | MethodAttributes.Static, MethodImplAttributes.IL, metadata.GetOrAddString("Probe"), methodSignature, body, MetadataTokens.ParameterHandle(1));
+        if (scenario is "TypeConstraint" or "MethodConstraint")
+        {
+            GenericParameterHandle generic = metadata.AddGenericParameter(scenario == "TypeConstraint" ? definition : methodHandle, GenericParameterAttributes.None, metadata.GetOrAddString("T"), 0);
+            _ = metadata.AddGenericParameterConstraint(generic, target);
+        }
+        AddScenarioAttributes(metadata, scenario, definition, Type, Signature, Class);
+        var image = new BlobBuilder();
+        _ = new ManagedPEBuilder(new PEHeaderBuilder(imageCharacteristics: Characteristics.Dll), new MetadataRootBuilder(metadata), bodies, deterministicIdProvider: _ => new BlobContentId(new Guid("b1111111-1111-1111-1111-111111111111"), 0)).Serialize(image);
+        return [.. image.ToArray()];
+    }
+
+    private static (BlobBuilder Bodies, int Offset) CreateMethodBody(
+        MetadataBuilder metadata,
+        string scenario,
+        TypeReferenceHandle objectType,
+        TypeReferenceHandle target,
+        BlobHandle fieldSignature,
+        Func<Action<BlobBuilder>, BlobHandle> addSignature,
+        Action<BlobBuilder, EntityHandle> writeClass)
+    {
         var il = new BlobBuilder();
         var flow = new ControlFlowBuilder();
         var code = new InstructionEncoder(il, flow);
         StandaloneSignatureHandle locals = default;
-        if (scenario == "Local") { locals = metadata.AddStandaloneSignature(Signature(blob => { blob.WriteByte(7); blob.WriteByte(1); Class(blob, target); })); }
+        if (scenario == "Local") { locals = metadata.AddStandaloneSignature(addSignature(blob => { blob.WriteByte(7); blob.WriteByte(1); writeClass(blob, target); })); }
         if (scenario == "Catch")
         {
             LabelHandle start = code.DefineLabel(), end = code.DefineLabel(), handler = code.DefineLabel(), handlerEnd = code.DefineLabel();
@@ -76,7 +99,7 @@ internal static class MetadataFixtureBuilder
             code.MarkLabel(end); code.MarkLabel(handler); code.OpCode(ILOpCode.Pop); code.Branch(ILOpCode.Leave_s, handlerEnd); code.MarkLabel(handlerEnd);
             flow.AddCatchRegion(start, end, handler, handlerEnd, target);
         }
-        if (scenario is "TypeToken" or "TypeSpecification") { code.OpCode(ILOpCode.Ldtoken); code.Token(scenario == "TypeSpecification" ? metadata.AddTypeSpecification(Signature(value => { value.WriteByte(0x1d); Class(value, target); })) : target); code.OpCode(ILOpCode.Pop); }
+        if (scenario is "TypeToken" or "TypeSpecification") { code.OpCode(ILOpCode.Ldtoken); code.Token(scenario == "TypeSpecification" ? metadata.AddTypeSpecification(addSignature(value => { value.WriteByte(0x1d); writeClass(value, target); })) : target); code.OpCode(ILOpCode.Pop); }
         if (scenario == "FieldToken")
         {
             MemberReferenceHandle field = metadata.AddMemberReference(objectType, metadata.GetOrAddString("ForbiddenField"), fieldSignature);
@@ -86,49 +109,54 @@ internal static class MetadataFixtureBuilder
         {
             bool allowedParent = scenario is "MemberReference" or "MethodSpecification";
             MemberReferenceHandle method = metadata.AddMemberReference(allowedParent ? objectType : target, metadata.GetOrAddString(scenario == "JsonParse" ? "Parse" : scenario.StartsWith("Json", StringComparison.Ordinal) ? scenario[4..] : "ForbiddenCall"),
-                Signature(blob =>
+                addSignature(blob =>
                 {
                     blob.WriteByte(scenario == "MethodSpecification" ? (byte)0x10 : (byte)0);
                     if (scenario == "MethodSpecification") { blob.WriteByte(1); }
                     blob.WriteByte(scenario == "MemberReference" ? (byte)1 : (byte)0);
                     blob.WriteByte(1);
-                    if (scenario == "MemberReference") { Class(blob, target); }
+                    if (scenario == "MemberReference") { writeClass(blob, target); }
                 }));
             EntityHandle token = method;
-            if (scenario == "MethodSpecification") { token = metadata.AddMethodSpecification(method, Signature(blob => { blob.WriteByte(0x0a); blob.WriteByte(1); Class(blob, target); })); }
+            if (scenario == "MethodSpecification") { token = metadata.AddMethodSpecification(method, addSignature(blob => { blob.WriteByte(0x0a); blob.WriteByte(1); writeClass(blob, target); })); }
             code.OpCode(ILOpCode.Call); code.Token(token);
         }
         if (scenario == "Calli")
         {
-            StandaloneSignatureHandle signature = metadata.AddStandaloneSignature(Signature(blob => { blob.WriteByte(0); blob.WriteByte(0); Class(blob, target); }));
+            StandaloneSignatureHandle signature = metadata.AddStandaloneSignature(addSignature(blob => { blob.WriteByte(0); blob.WriteByte(0); writeClass(blob, target); }));
             code.OpCode(ILOpCode.Ldc_i4_0); code.OpCode(ILOpCode.Conv_i); code.OpCode(ILOpCode.Calli); code.Token(signature); code.OpCode(ILOpCode.Pop);
         }
         code.OpCode(ILOpCode.Ret);
         var bodies = new BlobBuilder();
         int body = new MethodBodyStreamEncoder(bodies).AddMethodBody(code, localVariablesSignature: locals);
-        MethodDefinitionHandle methodHandle = metadata.AddMethodDefinition(MethodAttributes.Public | MethodAttributes.Static, MethodImplAttributes.IL, metadata.GetOrAddString("Probe"), methodSignature, body, MetadataTokens.ParameterHandle(1));
-        if (scenario is "TypeConstraint" or "MethodConstraint")
-        {
-            GenericParameterHandle generic = metadata.AddGenericParameter(scenario == "TypeConstraint" ? definition : methodHandle, GenericParameterAttributes.None, metadata.GetOrAddString("T"), 0);
-            _ = metadata.AddGenericParameterConstraint(generic, target);
-        }
+        return (bodies, body);
+    }
+
+    private static void AddScenarioAttributes(
+        MetadataBuilder metadata,
+        string scenario,
+        TypeDefinitionHandle definition,
+        Func<string, TypeReferenceHandle> addType,
+        Func<Action<BlobBuilder>, BlobHandle> addSignature,
+        Action<BlobBuilder, EntityHandle> writeClass)
+    {
         if (scenario is "Attribute" or "NamedAttribute" or "AttributeArray" or "AttributeEnum")
         {
             TypeDefinitionHandle enumType = default;
             if (scenario == "AttributeEnum")
             {
-                enumType = metadata.AddTypeDefinition(TypeAttributes.Public | TypeAttributes.Sealed, metadata.GetOrAddString("Fixtures"), metadata.GetOrAddString("ByteEnum"), Type("System.Enum"), MetadataTokens.FieldDefinitionHandle(1), MetadataTokens.MethodDefinitionHandle(2));
-                _ = metadata.AddFieldDefinition(FieldAttributes.Public | FieldAttributes.SpecialName | FieldAttributes.RTSpecialName, metadata.GetOrAddString("value__"), Signature(blob => { blob.WriteByte(6); blob.WriteByte(5); }));
+                enumType = metadata.AddTypeDefinition(TypeAttributes.Public | TypeAttributes.Sealed, metadata.GetOrAddString("Fixtures"), metadata.GetOrAddString("ByteEnum"), addType("System.Enum"), MetadataTokens.FieldDefinitionHandle(1), MetadataTokens.MethodDefinitionHandle(2));
+                _ = metadata.AddFieldDefinition(FieldAttributes.Public | FieldAttributes.SpecialName | FieldAttributes.RTSpecialName, metadata.GetOrAddString("value__"), addSignature(blob => { blob.WriteByte(6); blob.WriteByte(5); }));
             }
-            TypeReferenceHandle attributeType = Type("Fixtures.TypeArgumentAttribute");
-            TypeReferenceHandle systemType = Type("System.Type");
-            MemberReferenceHandle ctor = metadata.AddMemberReference(attributeType, metadata.GetOrAddString(".ctor"), Signature(blob =>
+            TypeReferenceHandle attributeType = addType("Fixtures.TypeArgumentAttribute");
+            TypeReferenceHandle systemType = addType("System.Type");
+            MemberReferenceHandle ctor = metadata.AddMemberReference(attributeType, metadata.GetOrAddString(".ctor"), addSignature(blob =>
             {
                 blob.WriteByte(0x20); blob.WriteByte(scenario == "NamedAttribute" ? (byte)0 : scenario == "AttributeEnum" ? (byte)2 : (byte)1); blob.WriteByte(1);
                 if (scenario == "AttributeEnum") { blob.WriteByte(0x11); blob.WriteCompressedInteger(MetadataTokens.GetRowNumber(enumType) << 2); }
-                if (scenario != "NamedAttribute") { if (scenario == "AttributeArray") { blob.WriteByte(0x1d); } Class(blob, systemType); }
+                if (scenario != "NamedAttribute") { if (scenario == "AttributeArray") { blob.WriteByte(0x1d); } writeClass(blob, systemType); }
             }));
-            _ = metadata.AddCustomAttribute(definition, ctor, Signature(blob =>
+            _ = metadata.AddCustomAttribute(definition, ctor, addSignature(blob =>
             {
                 blob.WriteUInt16(1);
                 if (scenario == "AttributeEnum") { blob.WriteByte(42); }
@@ -138,8 +166,5 @@ internal static class MetadataFixtureBuilder
                 if (scenario == "NamedAttribute") { blob.WriteByte(0x54); blob.WriteByte(0x50); blob.WriteSerializedString("Type"); blob.WriteSerializedString(Control + ", Fixtures"); }
             }));
         }
-        var image = new BlobBuilder();
-        _ = new ManagedPEBuilder(new PEHeaderBuilder(imageCharacteristics: Characteristics.Dll), new MetadataRootBuilder(metadata), bodies, deterministicIdProvider: _ => new BlobContentId(new Guid("b1111111-1111-1111-1111-111111111111"), 0)).Serialize(image);
-        return [.. image.ToArray()];
     }
 }
