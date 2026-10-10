@@ -52,6 +52,13 @@ internal sealed class WindowLifetimeCoordinator(
     private bool HasDeferredActivation =>
         _exitState.Handoff is HandoffIntent.RestartDeferred or HandoffIntent.RetryDeferred or HandoffIntent.FailedDeferred;
 
+    internal void ConnectGates(MainWindowViewModel viewModel, Func<bool> isWindowEnabled)
+    {
+        viewModel.Settings.SetWindowPublication(() => isWindowEnabled() && CanPublishSettings);
+        viewModel.RunSession.SetWindowPublication(() => CanPublishRunResult);
+        viewModel.RunSession.SetWindowAdmission(() => ClosePhase == WindowClosePhase.Open);
+    }
+
     internal CloseDecision RequestClose()
     {
         if (ClosePhase == WindowClosePhase.Closing)
@@ -171,6 +178,15 @@ internal sealed class WindowLifetimeCoordinator(
         _closeState = _closeState with { Phase = phase };
     }
 
+    private void RevokeRunThatOutlivedCloseDeadline()
+    {
+        if (currentViewModel() is { } timedOutViewModel &&
+            !timedOutViewModel.RunSession.ActiveRunCompletion.IsCompleted)
+        {
+            timedOutViewModel.RunSession.RevokeActiveRun();
+        }
+    }
+
     private async Task RunCloseAttemptAsync()
     {
         try
@@ -207,11 +223,7 @@ internal sealed class WindowLifetimeCoordinator(
             }
             finally
             {
-                if (currentViewModel() is { } timedOutViewModel &&
-                    !timedOutViewModel.RunSession.ActiveRunCompletion.IsCompleted)
-                {
-                    timedOutViewModel.RunSession.RevokeActiveRun();
-                }
+                RevokeRunThatOutlivedCloseDeadline();
             }
 
             SetPhase(WindowClosePhase.Sealing);
