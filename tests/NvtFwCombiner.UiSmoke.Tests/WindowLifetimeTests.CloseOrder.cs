@@ -14,6 +14,7 @@ using NvtFwCombiner.Presentation.Avalonia.Views;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+[Collection(UiProcessWideObservationCollection.Name)]
 public sealed partial class WindowLifetimeTests
 {
     /// <summary>Repeated requests share the running drain and produce exactly one final close.</summary>
@@ -101,6 +102,8 @@ public sealed partial class WindowLifetimeTests
         var historyFinished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var preferencesFinished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var order = new ConcurrentQueue<string>();
+        int historyWrites = 0;
+        int preferenceWrites = 0;
         ILocalFileStore files = DispatchProxy.Create<ILocalFileStore, LifetimeReportStorageProxy>();
         ((LifetimeReportStorageProxy)files).Call = (name, args) => name switch
         {
@@ -111,10 +114,14 @@ public sealed partial class WindowLifetimeTests
         async Task WriteAsync(string path)
         {
             bool history = Path.GetFileName(path) == "report-history.v1.json";
-            (history ? historyStarted : preferencesStarted).SetResult();
+            bool first = (history ? Interlocked.Increment(ref historyWrites) : Interlocked.Increment(ref preferenceWrites)) == 1;
+            _ = (history ? historyStarted : preferencesStarted).TrySetResult();
             await (history ? releaseHistory : releasePreferences).Task.ConfigureAwait(false);
-            order.Enqueue(history ? "history" : "preferences");
-            (history ? historyFinished : preferencesFinished).SetResult();
+            if (first)
+            {
+                order.Enqueue(history ? "history" : "preferences");
+            }
+            _ = (history ? historyFinished : preferencesFinished).TrySetResult();
         }
         (PresentationHostServices services, _) = await PresentationTestHost.CreateServicesAsync(files);
         var held = new TaskCompletionSource<IEventBufferFormatConfigurationSession>(
@@ -153,9 +160,12 @@ public sealed partial class WindowLifetimeTests
         window.Closed += (_, _) => _ = closed.TrySetResult();
         try
         {
-            window.Close();
+            CloseConfirmed(window, shell);
             Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
             Assert.False(sealing.Task.IsCompleted);
+            // Admission stays open while the drain runs: this newer snapshot must still be queued and written.
+            shell.SelectedTheme = "Light";
+            Dispatcher.UIThread.RunJobs();
             held.SetException(new InvalidOperationException("Controlled drain completion."));
             await sealing.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Assert.Equal(WindowClosePhase.Sealing, window.ClosePhase);
@@ -183,6 +193,10 @@ public sealed partial class WindowLifetimeTests
                 ? ["sealing", "preferences", "history", "closing"]
                 : ["sealing", "history", "preferences", "closing"];
             Assert.Equal(expectedOrder, order.ToArray());
+            if (!expire)
+            {
+                Assert.Equal(2, Volatile.Read(ref preferenceWrites));
+            }
         }
         finally
         {
@@ -285,7 +299,7 @@ public sealed partial class WindowLifetimeTests
         };
         try
         {
-            window.Close();
+            CloseConfirmed(window, shell);
             Assert.Equal(WindowClosePhase.Draining, window.ClosePhase);
             Assert.False(saving.IsCompleted);
             deadline.SetResult();
@@ -333,6 +347,15 @@ public sealed partial class WindowLifetimeTests
             GC.WaitForPendingFinalizers();
         }
         while (retired.Any(static task => task.IsAlive));
+    }
+
+    private static void CloseConfirmed(MainWindow window, MainWindowViewModel shell)
+    {
+        window.Close();
+        if (shell.Navigation.IsExitConfirmationOpen)
+        {
+            shell.Navigation.ConfirmNavigationAndClearCommand.Execute(null);
+        }
     }
 
     private static MainWindow CreateWindowWithHeldConfiguration(
