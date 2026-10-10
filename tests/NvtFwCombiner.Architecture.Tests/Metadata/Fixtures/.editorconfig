@@ -1,0 +1,3 @@
+[*.cs]
+# Fixture types deliberately use the namespaces of the production types they imitate.
+dotnet_style_namespace_match_folder = false
