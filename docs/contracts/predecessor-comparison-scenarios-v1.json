@@ -907,23 +907,133 @@
       "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k"
     ]
   },
-  "acceptedGaps": [],
+  "acceptedGaps": [
+    {
+      "routeId": "route-7-nt51919-15-ctrlram-replace-4-1-ic-21-nt51919-ab-merge-512k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-21-nt51919-ab-merge-512k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-21-nt51929-ab-merge-512k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    },
+    {
+      "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      },
+      "declarationEntryId": "RP-1.2.2-01"
+    }
+  ],
   "pendingAcceptedGaps": {
     "decision": "1.1.12 board decision 60",
     "status": "awaiting-owner-approval",
-    "routeIds": [
-      "route-7-nt51919-15-ctrlram-replace-4-1-ic-21-nt51919-ab-merge-512k",
-      "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-21-nt51919-ab-merge-512k",
-      "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
-      "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-21-nt51929-ab-merge-512k",
-      "route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k",
-      "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k",
-      "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
-      "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
-      "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
-      "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
-      "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k"
-    ]
+    "routeIds": []
   },
   "retiredScenarios": []
 }
