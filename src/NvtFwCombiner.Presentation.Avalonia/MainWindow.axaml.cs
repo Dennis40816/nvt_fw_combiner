@@ -28,13 +28,8 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly UiLaunchOptions _launchOptions;
     private readonly StartupTraceSession _startupTrace;
     private bool _isStartupShellEnabled;
-    private bool _isReportHistoryClosePending;
-    private bool _isReportHistoryPersistenceComplete;
-    private bool _localStateSealed;
     private bool _preferenceChangedWhileSealed;
     private bool _historyChangedWhileSealed;
-    private bool _isExitConfirmed;
-    private bool _isDisposed;
     private bool _isStartupLoadStarted;
     private bool _isStartupDurationReported;
     internal DesktopLaunchCoordinator LaunchCoordinator { get; }
@@ -100,20 +95,21 @@ public sealed partial class MainWindow : Window, IDisposable
             lifecycle => lifecycle.WindowPublication = _windowPublication);
         viewModel.Replace.InspectionLifecycles.ForEach(
             lifecycle => lifecycle.WindowPublication = _windowPublication);
-        viewModel.Settings.SetWindowPublication(() => !_isDisposed && IsEnabled && !_isReportHistoryClosePending);
-        viewModel.RunSession.SetWindowPublication(() => !_isDisposed && !_isReportHistoryPersistenceComplete);
-        viewModel.RunSession.SetWindowAdmission(() => ClosePhase == WindowClosePhase.Open);
         _localStateSave = new(() => viewModel.Text);
         _localStateSave.Attach(LocalStateSaveTarget.ReportHistory, _reportHistoryPersistence.TryRetry);
         _localStateSave.Attach(LocalStateSaveTarget.Preferences, _shellPreferencePersistence.TryRetry);
         LocalStateSaveNoticeHost.DataContext = _localStateSave;
         viewModel.Settings.UpdateSourceBrowseRequested += Settings_UpdateSourceBrowseRequested;
-        viewModel.Settings.ActivationRequested += Settings_ActivationRequested;
         _preloadSession = new(
             stage => PresentPreloadStage(viewModel, stage),
             viewModel.Text,
             _launchOptions.HasStartupReportStage);
-        LaunchCoordinator = new(this, launchOptions, startupTrace, hostServices, _preloadSession, viewModel, () => { _isExitConfirmed = true; Close(); });
+        _lifetime = CreateWindowLifetime();
+        viewModel.Settings.ActivationRequested += Settings_ActivationRequested;
+        viewModel.Settings.SetWindowPublication(() => IsEnabled && _lifetime.CanPublishSettings);
+        viewModel.RunSession.SetWindowPublication(() => _lifetime.CanPublishRunResult);
+        viewModel.RunSession.SetWindowAdmission(() => ClosePhase == WindowClosePhase.Open);
+        LaunchCoordinator = new(this, launchOptions, startupTrace, hostServices, _preloadSession, viewModel, _lifetime.ConfirmExitAndClose);
         viewModel.Reports.Persistence = LaunchCoordinator.Persistence;
         _preloadLoading = new(RetryStartupPreloadAsync, CancelStartupAsync);
         _preloadSession.SetReducedMotion(viewModel.IsReducedMotionEnabled);
@@ -149,57 +145,20 @@ public sealed partial class MainWindow : Window, IDisposable
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        if (ClosePhase == WindowClosePhase.Closing)
-        {
-            if (!_internalFinalClose)
-            {
-                e.Cancel = true;
-                return;
-            }
-            _internalFinalClose = false;
-            base.OnClosing(e);
-            return;
-        }
-
+        bool wasCancelled = e.Cancel;
         e.Cancel = true;
-        _isExitConfirmed |= LaunchCoordinator.CaptureSession.CancelForClose();
-        if (ClosePhase != WindowClosePhase.Open || _isDisposed)
+        WindowLifetimeCoordinator.CloseDecision decision = _lifetime.RequestClose();
+        e.Cancel = decision != WindowLifetimeCoordinator.CloseDecision.AuthorizeFinalClose || wasCancelled;
+        if (decision != WindowLifetimeCoordinator.CloseDecision.RejectFinalClose)
         {
             base.OnClosing(e);
-            return;
         }
-
-        if (_hasFailedStableLauncherHandoff)
-        {
-            _isExitConfirmed = true;
-            _closeAfterFailedHandoff = !_restartThroughStableLauncher;
-        }
-
-        if (!_isExitConfirmed && !_restartThroughStableLauncher &&
-            DataContext is MainWindowViewModel selectedViewModel && selectedViewModel.HasSelectedFiles)
-        {
-            selectedViewModel.Navigation.RequestExitConfirmation(() =>
-            {
-                _isExitConfirmed = true;
-                Close();
-            });
-            base.OnClosing(e);
-            return;
-        }
-
-        _isExitConfirmed = true;
-        ClosePhase = WindowClosePhase.Draining;
-        _isReportHistoryClosePending = true;
-        IsEnabled = false;
-        CloseAttempt = RunCloseAttemptAsync();
-        ObserveCloseAttempt(CloseAttempt);
-        base.OnClosing(e);
     }
 
     /// <inheritdoc />
     protected override void OnClosed(EventArgs e)
     {
-        ClosePhase = WindowClosePhase.Closed;
+        _lifetime.OnClosed();
         if (DataContext is INotifyPropertyChanged notifier)
         {
             notifier.PropertyChanged -= ViewModel_OnPropertyChanged;
@@ -222,18 +181,7 @@ public sealed partial class MainWindow : Window, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        _isDisposed = true;
-        ClosePhase = WindowClosePhase.Closed;
-        _windowPublication.Revoke();
-        _localStateSave.Detach();
-        _startupLoadCancellation.Cancel();
-        _preloadSession.StopAcceptingAndRevoke();
-        RetireSession(_startupLoadCancellation);
+        _lifetime.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -428,7 +376,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
     private Task RetryStartupPreloadAsync()
     {
-        return !_isDisposed && DataContext is MainWindowViewModel viewModel
+        return !_lifetime.IsDisposed && DataContext is MainWindowViewModel viewModel
             ? RunStartupPreloadAsync(viewModel, _startupLoadCancellation.Token)
             : Task.CompletedTask;
     }
@@ -595,11 +543,11 @@ public sealed partial class MainWindow : Window, IDisposable
 
         if (IsShellPreferenceProperty(e.PropertyName))
         {
-            if (_localStateSealed)
+            if (_lifetime.LocalStateSealed)
             {
                 _preferenceChangedWhileSealed = true;
             }
-            else if (!_isDisposed)
+            else if (!_lifetime.IsDisposed)
             {
                 LaunchCoordinator.Persistence.QueueLocalState(() => _shellPreferencePersistence.Queue(LaunchCoordinator.Persistence.ExportPreferences(viewModel)));
             }
@@ -669,11 +617,11 @@ public sealed partial class MainWindow : Window, IDisposable
 
         if (e.PropertyName == nameof(ReportPresentationViewModel.ReportHistoryCount))
         {
-            if (_localStateSealed)
+            if (_lifetime.LocalStateSealed)
             {
                 _historyChangedWhileSealed = true;
             }
-            else if (!_isDisposed)
+            else if (!_lifetime.IsDisposed)
             {
                 LaunchCoordinator.Persistence.QueueLocalState(() => _reportHistoryPersistence.Queue(reports.ExportReportHistory()));
             }

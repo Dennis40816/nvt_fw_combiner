@@ -534,12 +534,16 @@ public sealed partial class XamlControlStyleContractTests
     public void StableLauncherHandoffPrecedesTheFinalWindowClose()
     {
         string codeBehind = ReadPresentationFile("MainWindow.axaml.cs");
-        string lifetime = ReadPresentationFile("MainWindow.Lifetime.cs");
+        string lifetime = ReadPresentationFile("WindowLifetimeCoordinator.cs");
+        string adapters = ReadPresentationFile("MainWindow.Lifetime.cs");
         Assert.Contains("protected override void OnClosing", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("CloseAttempt = RunCloseAttemptAsync();", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("_lifetime.RequestClose()", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("CloseAttempt = RunCloseAttemptAsync();", lifetime, StringComparison.Ordinal);
         Assert.Contains("if (!await TryCompleteStableLauncherHandoffAsync())", lifetime, StringComparison.Ordinal);
-        Assert.Contains("_windowPublication.Revoke();", lifetime, StringComparison.Ordinal);
-        Assert.Contains("Dispatcher.UIThread.Post(() =>", lifetime, StringComparison.Ordinal);
+        Assert.Contains("revokePublication();\n        SetPhase(WindowClosePhase.Closing);",
+            lifetime.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Contains("post(() =>", lifetime, StringComparison.Ordinal);
+        Assert.Contains("Dispatcher.UIThread.Post(action)", adapters, StringComparison.Ordinal);
         Assert.DoesNotContain("TryCompleteStableLauncherHandoffAsync", codeBehind, StringComparison.Ordinal);
     }
 
