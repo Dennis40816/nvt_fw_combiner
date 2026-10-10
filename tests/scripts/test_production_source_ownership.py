@@ -444,6 +444,63 @@ class ProductionSourceOwnershipTests(unittest.TestCase):
 
         self.assertEqual([], errors)
 
+    def test_accepts_the_pinned_health_gate_analyzers_and_rejects_other_versions(
+        self,
+    ) -> None:
+        root = Path(self.temporary_directory.name)
+        pinned = (
+            (
+                "Microsoft.CodeAnalysis.BannedApiAnalyzers",
+                "3.3.4",
+                "analyzers/dotnet/cs/Microsoft.CodeAnalysis.BannedApiAnalyzers.dll",
+            ),
+            (
+                "Microsoft.CodeAnalysis.BannedApiAnalyzers",
+                "3.3.4",
+                "analyzers/dotnet/cs/Microsoft.CodeAnalysis.CSharp.BannedApiAnalyzers.dll",
+            ),
+            (
+                "Microsoft.VisualStudio.Threading.Analyzers",
+                "17.14.15",
+                "analyzers/cs/Microsoft.VisualStudio.Threading.Analyzers.CSharp.dll",
+            ),
+            (
+                "Microsoft.VisualStudio.Threading.Analyzers",
+                "17.14.15",
+                "analyzers/cs/Microsoft.VisualStudio.Threading.Analyzers.CodeFixes.dll",
+            ),
+            (
+                "Microsoft.VisualStudio.Threading.Analyzers",
+                "17.14.15",
+                "analyzers/cs/Microsoft.VisualStudio.Threading.Analyzers.dll",
+            ),
+        )
+        for package, version, relative_path in pinned:
+            for installed_version, expected_errors in ((version, 0), ("0.0.1", 1)):
+                analyzer = (
+                    root / ".packages" / package.casefold() / installed_version
+                ) / relative_path
+                analyzer.parent.mkdir(parents=True, exist_ok=True)
+                analyzer.write_bytes(b"pinned analyzer")
+                item = {
+                    "Identity": str(analyzer),
+                    "FullPath": str(analyzer),
+                    "NuGetPackageId": package,
+                    "NuGetPackageVersion": installed_version,
+                }
+                errors: list[str] = []
+
+                validate_evaluated_production_source_ownership(
+                    "src/Product/Product.csproj",
+                    self.project_directory,
+                    {"Compile": [], "Analyzer": [item]},
+                    self.sdks_directory,
+                    errors,
+                    root,
+                )
+
+                self.assertEqual(expected_errors, len(errors), (package, installed_version))
+
     def test_rejects_allowlisted_package_analyzer_through_external_link(
         self,
     ) -> None:

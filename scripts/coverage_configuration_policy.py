@@ -63,6 +63,31 @@ APPROVED_PACKAGE_ANALYZERS = frozenset(
             "3.0.1",
             "analyzers/dotnet/roslyn3.8/cs/Humanizer.Analyzers.dll",
         ),
+        (
+            "Microsoft.CodeAnalysis.BannedApiAnalyzers",
+            "3.3.4",
+            "analyzers/dotnet/cs/Microsoft.CodeAnalysis.BannedApiAnalyzers.dll",
+        ),
+        (
+            "Microsoft.CodeAnalysis.BannedApiAnalyzers",
+            "3.3.4",
+            "analyzers/dotnet/cs/Microsoft.CodeAnalysis.CSharp.BannedApiAnalyzers.dll",
+        ),
+        (
+            "Microsoft.VisualStudio.Threading.Analyzers",
+            "17.14.15",
+            "analyzers/cs/Microsoft.VisualStudio.Threading.Analyzers.CSharp.dll",
+        ),
+        (
+            "Microsoft.VisualStudio.Threading.Analyzers",
+            "17.14.15",
+            "analyzers/cs/Microsoft.VisualStudio.Threading.Analyzers.CodeFixes.dll",
+        ),
+        (
+            "Microsoft.VisualStudio.Threading.Analyzers",
+            "17.14.15",
+            "analyzers/cs/Microsoft.VisualStudio.Threading.Analyzers.dll",
+        ),
     )
 )
 SDK_ANALYZER_TARGET_PATH = ("targets/Microsoft.NET.Sdk.Analyzers.targets").casefold()

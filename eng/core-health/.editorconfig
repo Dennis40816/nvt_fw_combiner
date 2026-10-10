@@ -1,4 +1,3 @@
-# BEGIN CORE HEALTH MANAGED BLOCK
 root = true
 
 [*.cs]
@@ -73,33 +72,3 @@ dotnet_naming_rule.private_constants.severity = warning
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.xUnit1031.severity = warning
 dotnet_diagnostic.xUnit1051.severity = warning
-# END CORE HEALTH MANAGED BLOCK
-
-
-[*]
-charset = utf-8
-end_of_line = lf
-insert_final_newline = true
-trim_trailing_whitespace = true
-indent_style = space
-
-[*.cs]
-dotnet_style_qualification_for_field = false:suggestion
-dotnet_style_qualification_for_property = false:suggestion
-dotnet_style_qualification_for_method = false:suggestion
-csharp_style_namespace_declarations = file_scoped:warning
-csharp_style_var_for_built_in_types = false:suggestion
-csharp_style_var_when_type_is_apparent = true:suggestion
-
-[*.py]
-max_line_length = 100
-
-[*.md]
-trim_trailing_whitespace = false
-
-[*.cs]
-dotnet_diagnostic.CA2000.severity = warning
-dotnet_diagnostic.CA2016.severity = error
-dotnet_diagnostic.CA1062.severity = warning
-csharp_style_prefer_primary_constructors = false:silent
-

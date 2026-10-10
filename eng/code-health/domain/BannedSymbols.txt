@@ -1,0 +1,2 @@
+// Pure layer: no direct file-system access (Core health policy).
+T:System.IO.File
