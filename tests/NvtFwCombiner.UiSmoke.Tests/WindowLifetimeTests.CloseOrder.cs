@@ -14,6 +14,7 @@ using NvtFwCombiner.Presentation.Avalonia.Views;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+[Collection(UiProcessWideObservationCollection.Name)]
 public sealed partial class WindowLifetimeTests
 {
     /// <summary>Repeated requests share the running drain and produce exactly one final close.</summary>
@@ -341,7 +342,8 @@ public sealed partial class WindowLifetimeTests
         do
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await Task.Yield();
+            // A pause lets dispatcher timers (the toast timer) release the retired window before the next probe.
+            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
             GC.Collect();
             GC.WaitForPendingFinalizers();
         }
