@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import functools
 import hashlib
 import json
 import os
@@ -15,7 +16,7 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 from urllib.parse import unquote
 
 import yaml
@@ -546,7 +547,9 @@ _PUBLIC_POLICY_KEYS = {
 }
 
 
+@functools.lru_cache(maxsize=1 << 18)
 def public_content_sha256(text: str) -> str:
+    # Cached: a tree has a small vocabulary and the same word is hashed many times.
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
@@ -629,11 +632,32 @@ def load_public_content_policy(
 
 def public_content_fold(text: str) -> str:
     """NFKD-fold text for matching and drop format characters, combining marks and filler characters."""
+    if text.isascii():
+        return text  # NFKD changes nothing in ASCII, and ASCII has no format or combining characters
     return "".join(
         char
         for char in unicodedata.normalize("NFKD", text)
         if unicodedata.category(char) not in _PUBLIC_IGNORED_CATEGORIES and char not in _PUBLIC_FILLER_CHARS
     )
+
+
+@functools.lru_cache(maxsize=1 << 18)
+def _public_token_parts(raw: str) -> tuple[str, tuple[str, ...]]:
+    """The folded whole token and its folded camel-case parts; a single-case hex blob is not split."""
+    is_hex_blob = _PUBLIC_HEX_BLOB.fullmatch(raw) is not None and raw in (raw.lower(), raw.upper())
+    parts = [raw] if is_hex_blob else _PUBLIC_CAMEL_WORD.findall(raw)
+    return raw.casefold(), tuple(part.casefold() for part in parts)
+
+
+@functools.lru_cache(maxsize=8)
+def _public_restricted_check(word_hashes: frozenset[str]) -> Callable[[str], bool]:
+    """A memoized test "is this word restricted" for one set of word hashes."""
+
+    @functools.lru_cache(maxsize=1 << 18)
+    def is_restricted(word: str) -> bool:
+        return word.isascii() and public_content_sha256(word) in word_hashes
+
+    return is_restricted
 
 
 def public_content_match_count(text: str, workbook_name: re.Pattern[str], word_hashes: set[str]) -> int:
@@ -648,27 +672,33 @@ def public_content_match_count(text: str, workbook_name: re.Pattern[str], word_h
     """
     text = public_content_fold(text)
     hits = {match.group(0).casefold() for match in workbook_name.finditer(text)}
-    sequence: list[tuple[str, bool]] = []
-    candidates: set[str] = set()
+    is_restricted = _public_restricted_check(frozenset(word_hashes))
+    window: list[tuple[str, bool]] = []  # recent parts of this line with "joined to the previous part"
     previous_end = -1
     for token in _PUBLIC_WORD.finditer(text):
         raw = token.group()
-        joined = previous_end >= 0 and _PUBLIC_JOINER_GAP.fullmatch(text[previous_end:token.start()]) is not None
+        start = token.start()
+        joined = False
+        if previous_end >= 0 and start > previous_end and text[previous_end] in "_.-":
+            joined = _PUBLIC_JOINER_GAP.fullmatch(text, previous_end, start) is not None
         previous_end = token.end()
-        candidates.add(raw.casefold())
-        is_hex_blob = _PUBLIC_HEX_BLOB.fullmatch(raw) is not None and raw in (raw.lower(), raw.upper())
-        parts = [raw] if is_hex_blob else _PUBLIC_CAMEL_WORD.findall(raw)
+        whole, parts = _public_token_parts(raw)
+        if is_restricted(whole):
+            hits.add(whole)
         for index, part in enumerate(parts):
-            sequence.append((part.casefold(), joined if index == 0 else True))
-    for index, (word, _) in enumerate(sequence):
-        candidates.add(word)
-        combined = word
-        for follow in range(index + 1, min(index + _PUBLIC_MAX_JOINED_PARTS, len(sequence))):
-            if not sequence[follow][1]:
-                break
-            combined += sequence[follow][0]
-            candidates.add(combined)
-    hits |= {word for word in candidates if word.isascii() and public_content_sha256(word) in word_hashes}
+            joinable = joined if index == 0 else True
+            if is_restricted(part):
+                hits.add(part)
+            combined = part
+            link = joinable
+            back = len(window) - 1
+            while link and back >= 0 and len(window) - back < _PUBLIC_MAX_JOINED_PARTS:
+                combined = window[back][0] + combined
+                if is_restricted(combined):
+                    hits.add(combined)
+                link = window[back][1]
+                back -= 1
+            window.append((part, joinable))
     return len(hits)
 
 
@@ -739,6 +769,7 @@ def validate_public_content_names(
     legacy_lines: dict[str, dict[str, int]] = policy["legacyLines"]
     seen_names: set[str] = set()
     seen_paths: set[str] = set()
+    short_line_counts: dict[str, int] = {}  # short lines repeat across files (braces, usings, blanks)
     for path in files:
         relative = path.relative_to(root).as_posix()
         if relative == PUBLIC_CONTENT_POLICY:
@@ -763,7 +794,11 @@ def validate_public_content_names(
             continue
         remaining = dict(allowances or {})
         for line_number, text in enumerate(text_lines, 1):
-            found = public_content_match_count(text, workbook_name, word_hashes)
+            found = short_line_counts.get(text) if len(text) <= 120 else None
+            if found is None:
+                found = public_content_match_count(text, workbook_name, word_hashes)
+                if len(text) <= 120:
+                    short_line_counts[text] = found
             if found == 0:
                 continue
             line_hash = public_content_sha256(text)
