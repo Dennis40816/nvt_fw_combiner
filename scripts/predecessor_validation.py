@@ -398,7 +398,7 @@ def executor_closure_failures(expected: Mapping[str, str], observed: Mapping[str
     return []
 
 
-def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
+def _side_capture_failures(evidence: SideProcessEvidence, *, uncompiled_rejection: bool = False) -> list[Failure]:
     assert evidence.context is not None
     subject = evidence.process["stage"]
     expected_inputs = [
@@ -409,7 +409,13 @@ def _side_capture_failures(evidence: SideProcessEvidence) -> list[Failure]:
         return [_failure("REPORT_INVALID", subject, "report input identities differ from capture")]
     for reported, captured in zip(evidence.context["orderedInputs"], evidence.inputs):
         if (reported["artifactId"] != captured.get("expectedReportArtifactId")
-                or reported["addressSpaceId"] != captured.get("expectedReportAddressSpaceId")):
+                or reported["addressSpaceId"] != captured.get("expectedReportAddressSpaceId")) and not (
+            uncompiled_rejection and captured.get("expectedReportArtifactId") is not None
+            and captured.get("expectedReportAddressSpaceId") is not None
+            and isinstance(captured.get("path"), str) and captured.get("slotId") is not None
+            and reported["artifactId"] == PurePath(captured["path"]).name
+            and reported["addressSpaceId"] == captured["slotId"]
+        ):
             return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
     reported_output = evidence.context["output"]
     # A Preview, or a run that stops before it writes, describes the output it would write with
@@ -697,7 +703,15 @@ def side_execution_verdict(
             or projection["compilationFingerprint"] != authority["compilationFingerprint"]
         ):
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Build fingerprint absent or differs from Preview")])
-        failures = _side_capture_failures(evidence)
+        # v0.9.16's uncompiled rejection report names CLI slots and staged filenames.
+        # Keep compiled bindings strict; the no-write safety checks above still apply.
+        uncompiled_rejection = (
+            v0916_executor and stage.endswith("preview") and projection["compilationFingerprint"] is None
+            and process["exitCode"] != 0 and evidence.output is None
+            and any(issue["severity"] == "error" for issue in evidence.issues)
+            and (skipped_rejection or not projection["compiledOperations"])
+        )
+        failures = _side_capture_failures(evidence, uncompiled_rejection=uncompiled_rejection)
         if failures:
             return SideVerdict("invalid", stage, failures)
         if (stage.endswith("build") and evidence.output is not None
