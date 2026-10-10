@@ -524,7 +524,7 @@ PUBLIC_CONTENT_POLICY = "docs/governance/public-content-policy.json"
 # The policy file holds only SHA-256 values, so plain restricted words stay out of the tree. The hashes are not
 # secret: a dictionary reverses short words. This digest pins the whole file, so any change to the restricted
 # words, the workbook pattern or the legacy allowance is a change to this validator (R3) and shows in review.
-PUBLIC_CONTENT_POLICY_SHA256 = "89d3bf42605665858a5203f5785360ac6b6ee214c6ca7fbbea8043ea635e1a5b"
+PUBLIC_CONTENT_POLICY_SHA256 = "8dea056bca36f48599bc88e635efbde737273737b4c5ad603ecb775412b47ba1"
 _PUBLIC_WORD = re.compile(r"[A-Za-z0-9]+")
 _PUBLIC_CAMEL_WORD = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
 _PUBLIC_HEX_BLOB = re.compile(r"[0-9a-fA-F]{20,}")
