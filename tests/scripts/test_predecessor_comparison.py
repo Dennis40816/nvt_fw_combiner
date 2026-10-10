@@ -937,7 +937,7 @@ class ComparisonTests(unittest.TestCase):
                 else:
                     self.assertEqual("build", host.calls[-1][0][1])
 
-    def compilation_rejection_capture(self, change=None, *, exit_code=1):
+    def compilation_rejection_capture(self, change=None, *, exit_code=1, stage="preview"):
         work = self.root / f"compilation-rejection-{len(self.runner.captures)}"
         work.mkdir()
         payloads = {"normal": PAYLOAD, "vn": PAYLOAD, "diff": PAYLOAD}
@@ -972,10 +972,10 @@ class ComparisonTests(unittest.TestCase):
             return subprocess.CompletedProcess(argv, exit_code, "", "")
 
         self.runner.host = FakeProcessHost(cli)
-        return self.runner.run(stage="preview", argv=["synthetic"], staging_root=work, inputs=rows,
+        return self.runner.run(stage=stage, argv=["synthetic"], staging_root=work, inputs=rows,
                                report_path=report_path, report_version="v0916", expected_identity=request_identity_of(raw))
 
-    def test_SideExecutionVerdict_UncompiledCtrlRamRejection_AcceptsStagedIdentities(self):
+    def test_uncompiled_ctrlram_rejection_accepts_staged_identities(self):
         for planned in (True, False):
             with self.subTest(planned=planned):
                 capture = self.compilation_rejection_capture(None if planned else lambda raw: raw.update(Operations=[]))
@@ -988,7 +988,7 @@ class ComparisonTests(unittest.TestCase):
                                  (capture.report.context["orderedInputs"][0]["artifactId"],
                                   capture.report.context["orderedInputs"][0]["addressSpaceId"]))
 
-    def test_SideExecutionVerdict_UncompiledCtrlRamInputTampering_IsReportInvalid(self):
+    def test_uncompiled_ctrlram_input_tampering_is_report_invalid(self):
         changes = {
             "size": lambda raw: raw["Inputs"][0].update(Size=524287),
             "sha256": lambda raw: raw["Inputs"][0].update(Sha256="0" * 64),
@@ -1007,22 +1007,28 @@ class ComparisonTests(unittest.TestCase):
                           "report input binding differs from capture")
                 self.assertEqual(detail, result.failures[0].detail)
 
-    def test_SideExecutionVerdict_ReportsOutsideUncompiledRejection_KeepStrictBindings(self):
+    def test_reports_outside_uncompiled_ctrlram_rejection_keep_strict_bindings(self):
         cases = (
             ("compiled", lambda raw: raw.update(CompilationFingerprint="c" * 64), 1, True),
             ("other-executor", None, 1, False),
             ("successful", lambda raw: raw.update(Operations=[], Issues=[]), 0, True),
             ("missing-error", lambda raw: raw.update(Operations=[], Issues=[]), 1, True),
+            ("standard-merge", lambda raw: raw.update(ModeId="standard-merge", ExperienceId="standard-merge",
+                                                      CompositionKind="Merge"), 1, True),
+            ("mixed-binding-shapes", lambda raw: raw["Inputs"][0].update(
+                AddressSpaceId="reference-base", ArtifactId="reference-base"), 1, True),
+            ("precursor-preview", None, 1, True),
         )
         for scenario, change, exit_code, baseline in cases:
             with self.subTest(scenario=scenario):
-                capture = self.compilation_rejection_capture(change, exit_code=exit_code)
+                stage = "precursor-preview" if scenario == "precursor-preview" else "preview"
+                capture = self.compilation_rejection_capture(change, exit_code=exit_code, stage=stage)
                 result = comparison.assemble_side_result([capture], capacities={}, v0916_executor=baseline)
                 self.assertEqual("invalid", result.side["status"])
                 self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
                 self.assertEqual("report input binding differs from capture", result.failures[0].detail)
 
-    def test_V0916RouteVerdict_UnrecordedCompilationRejection_IsUnapprovedDifference(self):
+    def test_unrecorded_v0916_compilation_rejection_is_unapproved_difference(self):
         capture = self.compilation_rejection_capture()
         baseline = comparison.assemble_side_result([capture], capacities={}, v0916_executor=True)
         candidate = {**baseline.side, "status": "output", "stoppedAt": None, "issues": [],

@@ -19,6 +19,7 @@ rule, including declaration reproduction.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import subprocess
 import unittest
@@ -394,6 +395,21 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         self.assertEqual({"1.2.2"}, {row["approvedInVersion"] for row in self.ledger["acceptedGaps"]})
         self.assertEqual({"RP-1.2.2-01"}, {row["declarationEntryId"] for row in self.ledger["acceptedGaps"]})
         self.assertEqual("awaiting-owner-approval", self.ledger["pendingAcceptedGaps"]["status"])
+
+    def test_declaration_binds_this_ledger_and_its_accepted_gaps(self) -> None:
+        declaration = load_json(CONTRACTS / "predecessor-comparison-declarations" / "1.2.2.json")
+        ledger_bytes = (CONTRACTS / "predecessor-comparison-scenarios-v1.json").read_bytes()
+        self.assertEqual(hashlib.sha256(ledger_bytes).hexdigest(), declaration["ledgerSha256"])
+        (entry,) = [row for row in declaration["entries"] if row["kind"] == "accepted-gap"]
+        gaps = self.ledger["acceptedGaps"]
+        self.assertEqual([], entry["scenarioIds"])
+        self.assertEqual("RP-1.2.2-01", entry["id"])
+        self.assertEqual(sorted(entry["routeIds"]), sorted(row["routeId"] for row in gaps))
+        self.assertEqual(len(entry["routeIds"]), len(set(entry["routeIds"])))
+        self.assertEqual([entry["approval"]], [dict(approval) for approval in {
+            tuple(sorted(row["approval"].items())) for row in gaps}])
+        notes = validation.render_release_notes((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), "1.2.2")
+        self.assertRegex(notes, r"(?<![0-9A-Za-z.-])RP-1\.2\.2-01(?![0-9])")
 
     def test_debt_exemption_is_not_inherited_by_successor_routes(self) -> None:
         debt = set(self.ledger["debtSet"]["routeIds"])

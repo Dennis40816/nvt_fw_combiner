@@ -407,16 +407,21 @@ def _side_capture_failures(evidence: SideProcessEvidence, *, uncompiled_rejectio
     actual_inputs = [_identity(item) for item in evidence.context["orderedInputs"]]
     if actual_inputs != expected_inputs:
         return [_failure("REPORT_INVALID", subject, "report input identities differ from capture")]
-    for reported, captured in zip(evidence.context["orderedInputs"], evidence.inputs):
-        if (reported["artifactId"] != captured.get("expectedReportArtifactId")
-                or reported["addressSpaceId"] != captured.get("expectedReportAddressSpaceId")) and not (
-            uncompiled_rejection and captured.get("expectedReportArtifactId") is not None
-            and captured.get("expectedReportAddressSpaceId") is not None
-            and isinstance(captured.get("path"), str) and captured.get("slotId") is not None
-            and reported["artifactId"] == PurePath(captured["path"]).name
-            and reported["addressSpaceId"] == captured["slotId"]
-        ):
-            return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
+    pairs = list(zip(evidence.context["orderedInputs"], evidence.inputs))
+    compiled_bindings = all(
+        reported["artifactId"] == captured.get("expectedReportArtifactId")
+        and reported["addressSpaceId"] == captured.get("expectedReportAddressSpaceId")
+        for reported, captured in pairs)
+    # One report uses one binding shape: every row names compiled ids, or every row names staged CLI slots.
+    staged_bindings = uncompiled_rejection and all(
+        captured.get("expectedReportArtifactId") is not None
+        and captured.get("expectedReportAddressSpaceId") is not None
+        and isinstance(captured.get("path"), str) and captured.get("slotId") is not None
+        and reported["artifactId"] == PurePath(captured["path"]).name
+        and reported["addressSpaceId"] == captured["slotId"]
+        for reported, captured in pairs)
+    if not (compiled_bindings or staged_bindings):
+        return [_failure("REPORT_INVALID", subject, "report input binding differs from capture")]
     reported_output = evidence.context["output"]
     # A Preview, or a run that stops before it writes, describes the output it would write with
     # `Committed: false` and leaves no file; only a file identity can agree or disagree with a capture.
@@ -703,10 +708,12 @@ def side_execution_verdict(
             or projection["compilationFingerprint"] != authority["compilationFingerprint"]
         ):
             return SideVerdict("invalid", stage, [_failure("REPORT_INVALID", stage, "Build fingerprint absent or differs from Preview")])
-        # v0.9.16's uncompiled rejection report names CLI slots and staged filenames.
-        # Keep compiled bindings strict; the no-write safety checks above still apply.
+        # v0.9.16's CtrlRAM Replace rejection before compilation names CLI slots and staged filenames.
+        # Only the main Preview of that workflow is relaxed; every other report keeps compiled bindings.
+        # The no-write safety checks above still apply.
         uncompiled_rejection = (
-            v0916_executor and stage.endswith("preview") and projection["compilationFingerprint"] is None
+            v0916_executor and stage == "preview" and evidence.context.get("modeId") == "ctrlram-replace"
+            and projection["compilationFingerprint"] is None
             and process["exitCode"] != 0 and evidence.output is None
             and any(issue["severity"] == "error" for issue in evidence.issues)
             and (skipped_rejection or not projection["compiledOperations"])
