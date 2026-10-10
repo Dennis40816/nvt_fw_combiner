@@ -14,7 +14,6 @@ using NvtFwCombiner.Presentation.Avalonia.Views;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-[Collection(UiProcessWideObservationCollection.Name)]
 public sealed partial class WindowLifetimeTests
 {
     /// <summary>Repeated requests share the running drain and produce exactly one final close.</summary>
