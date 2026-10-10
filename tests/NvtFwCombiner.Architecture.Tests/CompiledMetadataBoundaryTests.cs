@@ -39,6 +39,7 @@ public sealed class CompiledMetadataBoundaryTests
         ["MainWindow"] = "View",
         ["ShellViewModelLocator"] = "View",
         ["DesktopLaunchCoordinator"] = "Lifecycle",
+        ["WindowLifetimeCoordinator"] = "Lifecycle",
         ["DesktopLaunchContext"] = "Lifecycle",
         ["DesktopCaptureSession"] = "Lifecycle",
         ["ShellPreloadSession"] = "Lifecycle",
@@ -231,6 +232,7 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData(".Views.SettingsModal", "View")]
     [InlineData(".Views.MemoryCoverageBar", "Control")]
     [InlineData(".DesktopLaunchCoordinator", "Lifecycle")]
+    [InlineData(".WindowLifetimeCoordinator", "Lifecycle")]
     [InlineData(".UnlistedCoordinator", "Other")]
     public void Role_ExplicitCategory_MatchesPolicy(string suffix, string expected) { Assert.Equal(expected, Role(Presentation + suffix)); }
 }

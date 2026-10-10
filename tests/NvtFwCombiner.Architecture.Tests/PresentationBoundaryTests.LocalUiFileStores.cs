@@ -45,11 +45,13 @@ public sealed partial class PresentationBoundaryTests
         AssertDoesNotContainAny(ReadPresentationSources(), "DllImport(", "LibraryImport(");
         AssertContainsAll(codec, "JsonSerializerOptions", "JsonSerializer.DeserializeAsync");
         AssertContainsAll(mainWindow, "_reportHistoryPersistence.Queue", "_shellPreferencePersistence.Queue",
-            "e.Cancel = true", "IsEnabled = false", "CloseAttempt = RunCloseAttemptAsync();");
-        string lifetime = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs");
-        AssertContainsAll(lifetime, "viewModel.RunSession.CancelActiveRun();",
-            "viewModel.RunSession.RevokeActiveRun();");
+            "e.Cancel = true");
+        string lifetime = ReadText("src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs");
+        AssertContainsAll(lifetime, "CloseAttempt = RunCloseAttemptAsync();", "setEnabled(false);",
+            "viewModel.RunSession.CancelActiveRun();", "timedOutViewModel.RunSession.RevokeActiveRun();",
+            "currentViewModel()?.RunSession.RevokeActiveRun();");
+        AssertContainsAll(ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs"),
+            "setEnabled: enabled => IsEnabled = enabled");
         AssertDoesNotContainAny(mainWindow, "ShellPreferenceFileStore.LoadInto(viewModel)",
             "ReportHistoryFileStore.Save(viewModel)", "ShellPreferenceFileStore.Save(viewModel)");
         AssertContainsAll(startupFactory,
