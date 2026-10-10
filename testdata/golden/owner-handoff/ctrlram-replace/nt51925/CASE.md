@@ -8,8 +8,8 @@ The four isolated provisional profiles are
 `nt51925-ctrlram-replace-fw200-runtime-single` and
 `nt51925-ctrlram-replace-fw200-runtime-cascade`, each version `0.1.0`.
 They belong to the NT51925-only `nt51925-ctrlram-replace-candidate` bundle.
-Copied numeric declarations are not NT51926 shared authority or independent
-NT51925 evidence. Policy is `Unavailable`/`Candidate`/`ContractOnly`.
+Geometry follows the owner TP overview and postbuild flow; it is not
+independent expected-output evidence or NT51926 shared authority. Policy is `Unavailable`/`Candidate`/`ContractOnly`.
 The profiles use the existing `compilable` stage; no authoring snapshot,
 exact executable resolution, execution or Build is admitted. The
 runtime-reference candidate exception used by other routes does not apply.
@@ -25,9 +25,9 @@ fw2.0.0/single/inputs/
 fw2.0.0/cascade/inputs/
 ```
 
-Declare the actual Cascade IC count in each case. The provisional typed choices
-are Single and generic Cascade; exact counts and supported FW versions await
-owner confirmation. The 1.4.1
+Declare the actual Cascade IC count in each case. The declared typed choices
+are Single (one IC) and Cascade (two or three ICs). Support promotion and
+independent expected-output evidence remain pending. The 1.x
 contract provisionally applies to `[1.0.0,2.0.0)` and the 2.0.0 contract to
 `[2.0.0,+infinity)`. Metadata and filenames do not establish topology authority.
 
@@ -39,15 +39,17 @@ its original filename), and commands/provenance at `notes.txt`:
 
 | Input / output | Provisional declared size / consumed extent |
 | --- | --- |
-| Actual TP input | Conventional TP-work image: 245,760 bytes (`0x3C000`); full-Flash reference route: 262,144 bytes (`0x40000`). Record the actual physical input and its exact size. |
+| Actual TP input | Conventional TP-work image: 196,608 bytes (`0x30000`); full-Flash reference route: 262,144 bytes (`0x40000`). Record the actual physical input and its exact size. |
 | Actual DP Initial Code input used to produce final FlashCode | Conventional address-bearing container: 262,144 bytes (`0x40000`); consumed DP window `[0x3E000,0x40000)`. |
-| `Normal_Ctrlram.bin` | Consumed prefix 11,264 bytes (`0x2C00`). |
-| `MP_Ctrlram.bin` | Consumed prefix 9,216 bytes (`0x2400`). |
-| `VN_Ctrlram.bin` | FW 1.4.1: 5,728 bytes (`0x1660`); FW 2.0.0: 5,278 bytes (`0x149E`). |
-| `NF_Ctrlram.bin` | Consumed prefix 11,728 bytes (`0x2DD0`). |
-| `DiffDLM.bin` | Cascade only: consumed prefix 10,240 bytes (`0x2800`); absent from the Single plan. |
+| `Normal_Ctrlram.bin` | FW 1.x: 10,240 bytes (`0x2800`); FW 2.0.0: 11,264 bytes (`0x2C00`). |
+| `MP_Ctrlram.bin` | FW 1.x: 8,192 bytes (`0x2000`); FW 2.0.0: 9,216 bytes (`0x2400`). |
+| `VN_Ctrlram.bin` | FW 1.x: 824 bytes (`0x338`); FW 2.0.0: 5,728 bytes (`0x1660`). |
+| `NF_Ctrlram.bin` | FW 1.x Single: 3,328 bytes (`0xD00`); FW 1.x Cascade: 7,856 bytes (`0x1EB0`); FW 2.0.0: 11,776 bytes (`0x2E00`). |
+| `DiffDLM.bin` | FW 2.0.0 Cascade only: 10,240 bytes (`0x2800`); absent from every other layout. |
+| Normal and MP CtrlRAM_S | FW 1.x Cascade only: 10,240 bytes (`0x2800`) and 8,192 bytes (`0x2000`); identify the actual replacement sources rather than inventing filenames. |
+| Vec Table | FW 1.x Cascade only: 400 bytes (`0x190`); preserved because no replacement source or processor write contract is declared. |
 | `expected.bin` | Complete official final FlashCode: 262,144 bytes (`0x40000`). |
-| Independent TP-only expected output, if supplied | 245,760 bytes (`0x3C000`), explicitly identified as an official TP-only output. A final FlashCode prefix is not automatically TP-only Golden evidence. |
+| Independent TP-only expected output, if supplied | 196,608 bytes (`0x30000`), explicitly identified as an official TP-only output. A final FlashCode prefix is not automatically TP-only Golden evidence. |
 | `notes.txt` | Text; no fixed size. Slot mapping, exact physical sizes and SHA-256, Common FW, declared topology/count, official commands and tool versions, expected name and source provenance. |
 
 The CtrlRAM sizes above are consumed prefixes, not required physical-file
@@ -82,10 +84,14 @@ appropriate expected outputs before claiming parity for both capacities.
 - Golden cases: Standard Merge at least one single; CtrlRAM Replace one for
   each FW version and each topology listed above.
 
-No official NT51925 map/postbuild or Golden is currently supplied. The
-`925&926` workbook is normal-header evidence only. Official evidence,
-independent full-output comparisons, exact write-range audit and firmware-owner
-R3 approval remain required before support promotion or release.
+The owner TP overview and postbuild flow now supply the candidate geometry.
+1.x Single: postbuild only, no real BIN. 1.x Cascade: postbuild plus two real
+BINs agree (owner-reported). 2.0.0 Single: postbuild only, no real BIN.
+2.0.0 Cascade: postbuild plus three real BINs agree (owner-reported). No layout
+has an independent expected output (Golden). Independent full-output
+comparisons, exact write-range audit and firmware-owner R3 approval remain
+required before support promotion or release. The TP end flag is `0x2FFFC`
+for all layouts; no `.data` or Project ID region is declared.
 
 A later family join requires the official NT51925 map proving identical facts
 and separate owner approval. NT51923/NT51926 v1.2.1 identities and Saved Rules

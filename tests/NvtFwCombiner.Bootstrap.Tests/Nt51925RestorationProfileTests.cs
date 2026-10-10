@@ -82,33 +82,57 @@ public sealed class Nt51925RestorationProfileTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, existing.Capability.CompiledComposition.Eligibility);
         Assert.Equal(CompiledProfilePromotionStage.Compilable,
             declaration.CompiledComposition.V2Details.Provenance.Promotion.Stage);
-        AssertSameBytePlan(existing.Capability.CompiledComposition.Plan, declaration.CompiledComposition.Plan);
+        AssertUnchangedOperationContract(existing.Capability.CompiledComposition.Plan, declaration.CompiledComposition.Plan);
+        Assert.Equal(new ByteRange(0, 0x30000), declaration.CompiledComposition.Plan.OrderedOperations[0].SourceRange);
+        Assert.Equal(new ByteRange(0, 0x30000), declaration.CompiledComposition.Plan.OrderedOperations[0].TargetRange);
+        Assert.Equal(new ByteRange(0x3E000, 0x2000), declaration.CompiledComposition.Plan.OrderedOperations[1].SourceRange);
+        Assert.Equal(new ByteRange(0x3E000, 0x2000), declaration.CompiledComposition.Plan.OrderedOperations[1].TargetRange);
+        Assert.Equal(0x40000, declaration.CompiledComposition.Plan.Initializations.Single().Capacity);
         ArgumentException rejected = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
             "prepared-standard", declaration.CompiledComposition, [], "prepared.bin"));
         Assert.Equal("compiledComposition", rejected.ParamName);
     }
 
-    /// <summary>Each declared capacity, Common FW version and topology retains the provisional copied values.</summary>
+    /// <summary>Each owner-declared capacity, Common FW line and topology compiles only as a blocked candidate.</summary>
     [Theory]
-    [InlineData("141", 1, 0x3C000)]
+    [InlineData("141", 1, 0x30000)]
     [InlineData("141", 1, 0x40000)]
-    [InlineData("141", 2, 0x3C000)]
+    [InlineData("141", 2, 0x30000)]
+    [InlineData("141", 3, 0x30000)]
     [InlineData("141", 2, 0x40000)]
-    [InlineData("200", 1, 0x3C000)]
+    [InlineData("141", 3, 0x40000)]
+    [InlineData("200", 1, 0x30000)]
     [InlineData("200", 1, 0x40000)]
-    [InlineData("200", 2, 0x3C000)]
+    [InlineData("200", 2, 0x30000)]
+    [InlineData("200", 3, 0x30000)]
     [InlineData("200", 2, 0x40000)]
-    public void RuntimeDeclarationsKeepCopiedValuesWithoutExecutionAdmission(string fw, int chipCount, int capacity)
+    [InlineData("200", 3, 0x40000)]
+    public void CompileRuntimeOwnerOverviewLayoutExecutionAndAuthoringRemainBlocked(string fw, int chipCount, int capacity)
     {
         CompiledComposition prepared = CompileRuntime("NT51925", "0.1.0", fw, chipCount, capacity);
-        CompiledComposition existing = CompileRuntime("NT51926", "0.4.0", fw, chipCount, capacity);
+        CompiledComposition existing = CompileRuntime("NT51926", "0.4.0", fw, chipCount,
+            capacity == 0x30000 ? 0x3C000 : capacity);
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, prepared.Eligibility);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, existing.Eligibility);
         Assert.Equal(CompiledProfilePromotionStage.Compilable, prepared.V2Details.Provenance.Promotion.Stage);
         Assert.Equal(CompiledProfilePromotionStage.Supported, existing.V2Details.Provenance.Promotion.Stage);
         Assert.NotEmpty(prepared.V2Details.Provenance.Promotion.Blockers);
-        AssertSameBytePlan(existing.Plan, prepared.Plan);
+        AssertUnchangedOperationContract(existing.Plan, prepared.Plan);
+        Assert.Equal(existing.Plan.OrderedOperations.Select(static item => item.SourceRange),
+            prepared.Plan.OrderedOperations.Select(static item => item.SourceRange));
+        Assert.Equal(capacity, prepared.Plan.Initializations.Single().Capacity);
+        long vnStart = fw == "200" ? 0x2D000 : chipCount == 1 ? 0x26F80 : 0x2B780;
+        Assert.Equal(new ByteRange(vnStart, 0x120), prepared.Plan.OrderedOperations[0].TargetRange);
+        CompositionOperation postbuild = prepared.Plan.OrderedOperations[1];
+        ByteRange[] expectedWrites = [new(0x18, 4), new(0x1C, 4), new(0x3C, 4), new(0x4C, 4), new(0x5C, 4), new(0xFC, 4),
+            new(vnStart, 0x120), new(0x2F000, fw == "141" ? 0x780 : 0x800),
+            .. fw == "200" ? new ByteRange[] { new(0x2E980, 0x100) } : []];
+        Assert.Equal(expectedWrites.OrderBy(static range => range.Start), postbuild.DeclaredWriteRanges);
+        Assert.Equal(expectedWrites.OrderBy(static range => range.Start), postbuild.ExternalProcessorInvocation!.AllowedWriteRanges);
+        Assert.Equal([new ByteRange(0, 0x30000)], postbuild.ExternalProcessorInvocation.AllowedReadRanges);
+        Assert.Equal(0x30000, Assert.Single(prepared.Plan.OrderedOperations,
+            static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor).TargetRange.Length);
         ArgumentException rejected = Assert.Throws<ArgumentException>(() => new CompositionRunRequest("prepared-runtime", prepared,
             [new InputArtifactBinding("reference-base", "reference-base", "reference", "reference.bin", CompiledInputArtifactClass.ReferenceImage),
              new InputArtifactBinding("vn-source", "vn-source", "replacement", "replacement.bin", CompiledInputArtifactClass.CtrlRamReplacement)],
@@ -135,7 +159,7 @@ public sealed class Nt51925RestorationProfileTests
 
         var identity = new CapabilityRouteIdentity("NT51925", ExperienceIds.CtrlRamReplace,
             chipCount == 1 ? "1-ic" : "2-plus-ic",
-            $"nt51925-ctrlram-fw{fw}-{(capacity == 0x3C000 ? "tp-work-240k" : "full-flash-256k")}");
+            $"nt51925-ctrlram-fw{fw}-{(chipCount == 1 ? "single" : "cascade")}-{(capacity == 0x30000 ? "tp-work-192k" : "full-flash-256k")}");
         CapabilityRouteResolutionResult resolution = BootstrapTestHost.Canonical.Catalog.ResolveDynamicRoute(identity.RouteId);
         Assert.False(resolution.Succeeded);
         Assert.Equal(CapabilityCatalogIssueCodes.AuthoringUnavailable, resolution.Issue!.Code);
@@ -170,8 +194,8 @@ public sealed class Nt51925RestorationProfileTests
                      new V2ExplicitMappingInputBinding("vn-source", "ctrlram-source", 0x120)],
                     [new ExplicitMapping("replace-vn", 100, ExplicitMappingOperationKind.ReplaceRange,
                         "vn-source", new ByteRange(0, 0x120), CompositionAddressSpaceIds.OutputImage,
-                        new ByteRange(0x315D0, 0x120), OverlapPolicy.Reject, alignment: 1,
-                        reason: "Synthetic prefix replacement for shared byte-contract comparison.")]));
+                        new ByteRange(ic == "NT51926" ? 0x315D0 : fw == "200" ? 0x2D000 : chipCount == 1 ? 0x26F80 : 0x2B780, 0x120), OverlapPolicy.Reject, alignment: 1,
+                        reason: "Synthetic prefix replacement inside the owner-declared NT51925 VN region.")]));
         Assert.True(result.IsCompiled, string.Join(Environment.NewLine, result.Issues.Select(static issue => issue.Message)));
         return Assert.IsType<CompiledComposition>(result.CompiledComposition);
     }
@@ -187,28 +211,18 @@ public sealed class Nt51925RestorationProfileTests
         return reference;
     }
 
-    private static void AssertSameBytePlan(CompositionPlan expected, CompositionPlan actual)
+    private static void AssertUnchangedOperationContract(CompositionPlan expected, CompositionPlan actual)
     {
         Assert.Equal(expected.OutputSpaceId, actual.OutputSpaceId);
         Assert.Equal(expected.Initializations.Select(static item =>
-            (item.Kind, item.TargetSpaceId, item.Capacity, item.FillByte, item.ReferenceSpaceId)),
+            (item.Kind, item.TargetSpaceId, item.FillByte, item.ReferenceSpaceId)),
             actual.Initializations.Select(static item =>
-            (item.Kind, item.TargetSpaceId, item.Capacity, item.FillByte, item.ReferenceSpaceId)));
-        Assert.Equal(expected.OrderedOperations.Count, actual.OrderedOperations.Count);
-        for (int index = 0; index < expected.OrderedOperations.Count; index++)
-        {
-            CompositionOperation first = expected.OrderedOperations[index];
-            CompositionOperation second = actual.OrderedOperations[index];
-            Assert.Equal((first.Sequence, first.Kind, first.SourceSpaceId, first.SourceRange,
-                first.TargetSpaceId, first.TargetRange, first.OverlapPolicy, first.FillByte),
-                (second.Sequence, second.Kind, second.SourceSpaceId, second.SourceRange,
-                second.TargetSpaceId, second.TargetRange, second.OverlapPolicy, second.FillByte));
-            Assert.Equal(first.PatchBytes.ToArray(), second.PatchBytes.ToArray());
-            Assert.Equal(first.DeclaredWriteRanges, second.DeclaredWriteRanges);
-            Assert.Equal(first.ExternalProcessorInvocation?.AllowedReadRanges,
-                second.ExternalProcessorInvocation?.AllowedReadRanges);
-            Assert.Equal(first.ExternalProcessorInvocation?.AllowedWriteRanges,
-                second.ExternalProcessorInvocation?.AllowedWriteRanges);
-        }
+            (item.Kind, item.TargetSpaceId, item.FillByte, item.ReferenceSpaceId)));
+        Assert.Equal(expected.OrderedOperations.Select(static item =>
+            (item.Sequence, item.Kind, item.SourceSpaceId, item.TargetSpaceId, item.OverlapPolicy, item.FillByte)),
+            actual.OrderedOperations.Select(static item =>
+            (item.Sequence, item.Kind, item.SourceSpaceId, item.TargetSpaceId, item.OverlapPolicy, item.FillByte)));
+        Assert.Equal(expected.OrderedOperations.Select(static item => Convert.ToHexString(item.PatchBytes.Span)),
+            actual.OrderedOperations.Select(static item => Convert.ToHexString(item.PatchBytes.Span)));
     }
 }

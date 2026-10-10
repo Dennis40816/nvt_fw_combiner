@@ -164,19 +164,24 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
         Assert.Equal(expectedIds.Split(','), display.Regions.Select(static region => region.RegionId));
     }
 
-    /// <summary>Create Display Unconfirmed Provisional Sources Produces No Input Slots.</summary>
+    /// <summary>Create Display Postbuild Backed Sources Project One Optional Slot Per Source File.</summary>
     [Theory]
-    [InlineData("1.0.0", "1")]
-    [InlineData("1.0.0", "2")]
-    [InlineData("1.0.0", "3")]
-    [InlineData("2.0.0", "1")]
-    [InlineData("2.0.0", "2")]
-    [InlineData("2.0.0", "3")]
-    public void CreateDisplayUnconfirmedProvisionalSourcesProducesNoInputSlots(string version, string count)
+    [InlineData("1.0.0", "1", "normal,mp,vn,nf")]
+    [InlineData("1.0.0", "2", "normal,mp,vn,nf")]
+    [InlineData("1.0.0", "3", "normal,mp,vn,nf")]
+    [InlineData("2.0.0", "1", "normal,mp,nf,vn")]
+    [InlineData("2.0.0", "2", "normal,mp,diff,nf,vn")]
+    [InlineData("2.0.0", "3", "normal,mp,diff,nf,vn")]
+    public void CreateDisplayPostbuildBackedSourcesProjectOneOptionalSlotPerSourceFile(string version, string count, string expectedSources)
     {
+        ArgumentNullException.ThrowIfNull(expectedSources);
         Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, version, out BuiltInCommonFwSelection? selected, out _));
         CtrlRamInspectionDisplay display = BuiltInCtrlRamAuthoringAdapter.CreateDisplay("NT51925", count, selected!.PostbuildProfile, version, true);
-        Assert.Empty(display.InputSlots);
+        // Slots follow the firmware range order of the postbuild source files, not the region display order.
+        Assert.Equal(
+            expectedSources.Split(',').Select(static id => "replace-ctrlram-" + id),
+            display.InputSlots.Select(static slot => slot.SlotId));
+        Assert.All(display.InputSlots, static slot => Assert.True(slot.IsOptional));
     }
 
     private static void AssertRegions(string version, string count, (string, long, long, TpFlashMapRegionVisibility)[] expected)

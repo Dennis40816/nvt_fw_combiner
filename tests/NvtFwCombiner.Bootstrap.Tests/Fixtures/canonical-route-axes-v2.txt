@@ -87,11 +87,11 @@ NT51951|ctrlram-replace|2-ic|nt51951-ab-merge-1024k
 
 # Proposed ADR 0084: nine NT51925 Candidate/ContractOnly declarations; owner evidence pending.
 NT51925|standard-merge|selector-free|nt51925-standard-merge-256k
-NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw141-tp-work-240k
-NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw141-full-flash-256k
-NT51925|ctrlram-replace|2-plus-ic|nt51925-ctrlram-fw141-tp-work-240k
-NT51925|ctrlram-replace|2-plus-ic|nt51925-ctrlram-fw141-full-flash-256k
-NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw200-tp-work-240k
-NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw200-full-flash-256k
-NT51925|ctrlram-replace|2-plus-ic|nt51925-ctrlram-fw200-tp-work-240k
-NT51925|ctrlram-replace|2-plus-ic|nt51925-ctrlram-fw200-full-flash-256k
+NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw141-single-tp-work-192k
+NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw141-single-full-flash-256k
+NT51925|ctrlram-replace|2-plus-ic|nt51925-ctrlram-fw141-cascade-tp-work-192k
+NT51925|ctrlram-replace|2-plus-ic|nt51925-ctrlram-fw141-cascade-full-flash-256k
+NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw200-single-tp-work-192k
+NT51925|ctrlram-replace|1-ic|nt51925-ctrlram-fw200-single-full-flash-256k
+NT51925|ctrlram-replace|2-plus-ic|nt51925-ctrlram-fw200-cascade-tp-work-192k
+NT51925|ctrlram-replace|2-plus-ic|nt51925-ctrlram-fw200-cascade-full-flash-256k
