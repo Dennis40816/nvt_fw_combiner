@@ -11,6 +11,7 @@ import stat
 import subprocess
 import sys
 import tomllib
+import unicodedata
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -516,6 +517,271 @@ def validate_private_user_profile_paths(
                 errors.append(f"private user-profile path in {relative}:{line_number}")
             else:
                 remaining_evidence[line_hash] = allowed_count - private_count
+
+
+PUBLIC_CONTENT_POLICY = "docs/governance/public-content-policy.json"
+# The policy file holds only SHA-256 values, so plain restricted words stay out of the tree. The hashes are not
+# secret: a dictionary reverses short words. This digest pins the whole file, so any change to the restricted
+# words, the workbook pattern or the legacy allowance is a change to this validator (R3) and shows in review.
+PUBLIC_CONTENT_POLICY_SHA256 = "89d3bf42605665858a5203f5785360ac6b6ee214c6ca7fbbea8043ea635e1a5b"
+_PUBLIC_WORD = re.compile(r"[A-Za-z0-9]+")
+_PUBLIC_CAMEL_WORD = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
+_PUBLIC_HEX_BLOB = re.compile(r"[0-9a-fA-F]{20,}")
+_PUBLIC_LINE_BREAK = re.compile(r"\r\n|\r|\n")
+# Filler code points that are not format characters or combining marks are removed as well: the Hangul fillers
+# and the blank Braille pattern. They are written as numbers so no invisible character sits in this file.
+_PUBLIC_FILLER_CHARS = frozenset(map(chr, (0x115F, 0x1160, 0x2800, 0x3164, 0xFFA0)))
+_PUBLIC_IGNORED_CATEGORIES = frozenset({"Cf", "Mn", "Me"})
+_PUBLIC_JOINER_GAP = re.compile(r"[_.\-]+")
+_PUBLIC_MAX_JOINED_PARTS = 4
+_PUBLIC_HEX64 = re.compile(r"[0-9a-f]{64}")
+_PUBLIC_BINARY_SUFFIXES = frozenset(
+    {
+        ".7z", ".bin", ".bmp", ".dll", ".docx", ".exe", ".gif", ".gz", ".ico", ".jpeg", ".jpg", ".nupkg", ".otf",
+        ".pdf", ".png", ".pptx", ".ttf", ".webp", ".woff", ".woff2", ".xls", ".xlsb", ".xlsm", ".xlsx", ".zip",
+    }
+)
+_PUBLIC_POLICY_KEYS = {
+    "schemaVersion", "kind", "workbookNamePattern", "restrictedTokenSha256", "legacyPathNames", "legacyLines",
+}
+
+
+def public_content_sha256(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def public_content_policy_digest(document: dict[str, Any]) -> str:
+    """Digest of the canonical JSON form of the policy document."""
+    return public_content_sha256(json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=True))
+
+
+def _reject_duplicate_policy_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    keys = [key for key, _ in pairs]
+    if len(set(keys)) != len(keys):
+        raise ValueError("duplicate key")
+    return dict(pairs)
+
+
+def load_public_content_policy(
+    root: Path, errors: list[str], *, expected_digest: str = PUBLIC_CONTENT_POLICY_SHA256
+) -> dict[str, Any] | None:
+    """Load the policy; every failure is an error, never an exception."""
+    path = root / PUBLIC_CONTENT_POLICY
+    if not path.is_file():
+        errors.append(f"missing public content policy: {PUBLIC_CONTENT_POLICY}")
+        return None
+    try:
+        document = json.loads(
+            path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_policy_keys
+        )
+    except (OSError, ValueError) as exc:
+        errors.append(f"invalid JSON {PUBLIC_CONTENT_POLICY}: {exc}")
+        return None
+    words = document.get("restrictedTokenSha256") if isinstance(document, dict) else None
+    names = document.get("legacyPathNames") if isinstance(document, dict) else None
+    lines = document.get("legacyLines") if isinstance(document, dict) else None
+    valid = (
+        isinstance(document, dict)
+        and set(document) == _PUBLIC_POLICY_KEYS
+        and document["schemaVersion"] == "1.0"
+        and document["kind"] == "public-content-policy"
+        and isinstance(document["workbookNamePattern"], str)
+        and isinstance(words, list)
+        and all(isinstance(item, str) and _PUBLIC_HEX64.fullmatch(item) for item in words)
+        and words == sorted(set(words))
+        and isinstance(names, dict)
+        and all(
+            _PUBLIC_HEX64.fullmatch(key) and isinstance(value, int) and not isinstance(value, bool) and value > 0
+            for key, value in names.items()
+        )
+        and isinstance(lines, dict)
+        and all(
+            _PUBLIC_HEX64.fullmatch(key)
+            and isinstance(value, dict)
+            and value
+            and all(
+                _PUBLIC_HEX64.fullmatch(line_key)
+                and isinstance(count, int)
+                and not isinstance(count, bool)
+                and count > 0
+                for line_key, count in value.items()
+            )
+            for key, value in lines.items()
+        )
+    )
+    if not valid:
+        errors.append(f"invalid public content policy shape: {PUBLIC_CONTENT_POLICY}")
+        return None
+    try:
+        re.compile(document["workbookNamePattern"])
+    except re.error as exc:
+        errors.append(f"invalid workbook name pattern in {PUBLIC_CONTENT_POLICY}: {exc}")
+        return None
+    actual_digest = public_content_policy_digest(document)
+    if actual_digest != expected_digest:
+        errors.append(
+            f"{PUBLIC_CONTENT_POLICY} differs from the digest pinned in the validator; "
+            f"review the change, then set PUBLIC_CONTENT_POLICY_SHA256 to {actual_digest}"
+        )
+        return None
+    return document
+
+
+def public_content_fold(text: str) -> str:
+    """NFKD-fold text for matching and drop format characters, combining marks and filler characters."""
+    return "".join(
+        char
+        for char in unicodedata.normalize("NFKD", text)
+        if unicodedata.category(char) not in _PUBLIC_IGNORED_CATEGORIES and char not in _PUBLIC_FILLER_CHARS
+    )
+
+
+def public_content_match_count(text: str, workbook_name: re.Pattern[str], word_hashes: set[str]) -> int:
+    """Count distinct hits in one string: workbook names plus restricted words.
+
+    Words are compared by SHA-256 of the lower-cased word, never by text. A token is split at camel-case
+    boundaries and each part is tried alone and joined with up to three following parts when only ``_``, ``.``
+    or ``-`` lies between tokens or when camel-case parts touch. Only single-case hexadecimal blobs of 20
+    characters or more are tried whole without splitting, so hashes do not match by chance. Text is folded with
+    NFKD first and format characters, combining marks and filler characters are dropped. Known limits: a word
+    split over two lines, look-alike letters from another script, and words that are not ASCII are not found.
+    """
+    text = public_content_fold(text)
+    hits = {match.group(0).casefold() for match in workbook_name.finditer(text)}
+    sequence: list[tuple[str, bool]] = []
+    candidates: set[str] = set()
+    previous_end = -1
+    for token in _PUBLIC_WORD.finditer(text):
+        raw = token.group()
+        joined = previous_end >= 0 and _PUBLIC_JOINER_GAP.fullmatch(text[previous_end:token.start()]) is not None
+        previous_end = token.end()
+        candidates.add(raw.casefold())
+        is_hex_blob = _PUBLIC_HEX_BLOB.fullmatch(raw) is not None and raw in (raw.lower(), raw.upper())
+        parts = [raw] if is_hex_blob else _PUBLIC_CAMEL_WORD.findall(raw)
+        for index, part in enumerate(parts):
+            sequence.append((part.casefold(), joined if index == 0 else True))
+    for index, (word, _) in enumerate(sequence):
+        candidates.add(word)
+        combined = word
+        for follow in range(index + 1, min(index + _PUBLIC_MAX_JOINED_PARTS, len(sequence))):
+            if not sequence[follow][1]:
+                break
+            combined += sequence[follow][0]
+            candidates.add(combined)
+    hits |= {word for word in candidates if word.isascii() and public_content_sha256(word) in word_hashes}
+    return len(hits)
+
+
+def public_content_split_lines(text: str) -> list[str]:
+    """Split on CR, LF and CRLF only, so line numbers agree with common editors."""
+    lines = _PUBLIC_LINE_BREAK.split(text)
+    if lines and lines[-1] == "":
+        lines.pop()
+    return lines
+
+
+def public_content_text_lines(path: Path) -> tuple[list[str] | None, str | None]:
+    """Decode a tracked file as text.
+
+    Returns ``(lines, None)`` for text, ``(None, None)`` for a known binary format, and ``(None, reason)`` when a
+    file that should be text cannot be read, so the caller reports it instead of skipping it.
+    """
+    if path.suffix.lower() in _PUBLIC_BINARY_SUFFIXES:
+        return None, None
+    try:
+        content = path.read_bytes()
+    except OSError:
+        return None, "unreadable file"
+    try:
+        if content.startswith((b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")):
+            try:
+                return public_content_split_lines(content.decode("utf-32")), None
+            except UnicodeDecodeError:
+                pass  # a UTF-16 file may start with a NUL character
+        if content.startswith((b"\xff\xfe", b"\xfe\xff")):
+            text = content.decode("utf-16")
+            if "\0" in text[1:]:  # a damaged UTF-32 file read as UTF-16 shows NUL characters between letters
+                return None, "undecodable UTF-16 or UTF-32 file"
+            return public_content_split_lines(text), None
+    except UnicodeDecodeError:
+        return None, "undecodable UTF-16 or UTF-32 file"
+    if b"\0" in content:
+        return None, (
+            "NUL byte in a file with an unlisted binary suffix; "
+            "for a real binary format add the suffix to _PUBLIC_BINARY_SUFFIXES with governance-owner review"
+        )
+    try:
+        return public_content_split_lines(content.decode("utf-8-sig")), None
+    except UnicodeDecodeError:
+        return public_content_split_lines(content.decode("latin-1")), None
+
+
+def validate_public_content_names(
+    files: Iterable[Path],
+    errors: list[str],
+    *,
+    root: Path = ROOT,
+    policy: dict[str, Any] | None = None,
+) -> None:
+    """Reject new workbook file names and restricted words in public file names and text.
+
+    Old occurrences are allowed only by hash: a path name by its path hash, a line by the hash of its file path
+    and of the whole line. An allowance that no longer matches is an error, so a cleaned line must leave the
+    policy. The policy file itself is pinned by ``PUBLIC_CONTENT_POLICY_SHA256``.
+    """
+    if policy is None:
+        policy = load_public_content_policy(root, errors)
+        if policy is None:
+            return
+    workbook_name = re.compile(policy["workbookNamePattern"], re.IGNORECASE)
+    word_hashes = set(policy["restrictedTokenSha256"])
+    legacy_names: dict[str, int] = policy["legacyPathNames"]
+    legacy_lines: dict[str, dict[str, int]] = policy["legacyLines"]
+    seen_names: set[str] = set()
+    seen_paths: set[str] = set()
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        if relative == PUBLIC_CONTENT_POLICY:
+            continue
+        path_hash = public_content_sha256(relative)
+        name_hits = public_content_match_count(relative, workbook_name, word_hashes)
+        if name_hits:
+            allowed_names = legacy_names.get(path_hash, 0)
+            if name_hits > allowed_names:
+                errors.append(f"restricted public name in file name {relative}")
+            elif name_hits < allowed_names:
+                errors.append(f"stale public content file name allowance {path_hash[:12]}")
+            seen_names.add(path_hash)
+        text_lines, problem = public_content_text_lines(path)
+        allowances = legacy_lines.get(path_hash)
+        seen_paths.add(path_hash)
+        if problem:
+            errors.append(f"cannot scan public content ({problem}): {relative}")
+        if text_lines is None:
+            if allowances and not problem:
+                errors.append(f"unscannable file has a public content allowance: {relative}")
+            continue
+        remaining = dict(allowances or {})
+        for line_number, text in enumerate(text_lines, 1):
+            found = public_content_match_count(text, workbook_name, word_hashes)
+            if found == 0:
+                continue
+            line_hash = public_content_sha256(text)
+            allowed = remaining.get(line_hash, 0)
+            if found > allowed:
+                errors.append(f"restricted public name in {relative}:{line_number}")
+            else:
+                remaining[line_hash] = allowed - found
+        stale = sorted(key[:12] for key, count in remaining.items() if count)
+        if stale:
+            errors.append(
+                f"stale public content allowance in {relative} (line hashes {', '.join(stale)}); "
+                f"remove the cleaned lines from {PUBLIC_CONTENT_POLICY} and delete the file key when no line is left"
+            )
+    for path_hash in sorted(set(legacy_lines) - seen_paths):
+        errors.append(f"stale public content allowance for a removed file {path_hash[:12]}")
+    for path_hash in sorted(set(legacy_names) - seen_names):
+        errors.append(f"stale public content file name allowance {path_hash[:12]}")
 
 
 def is_allowed_binary_payload(relative: Path) -> bool:
@@ -1961,6 +2227,7 @@ def validate() -> list[str]:
     validate_required_files(errors)
     validate_forbidden_tracked_content(files, errors)
     validate_private_user_profile_paths(files, errors)
+    validate_public_content_names(files, errors)
     validate_coverage_exclusion_policy(ROOT, files, errors)
     validate_structured_files(files, errors)
     validate_canonical_capability_policy_contract(errors)
