@@ -111,11 +111,23 @@ def difference(ranges: list[dict[str, int]]) -> dict[str, Any]:
     }
 
 
+def before_release_approval(ledger: dict[str, Any]) -> dict[str, Any]:
+    """The committed ledger with its accepted gaps put back as pending, so a world starts before any release approved them."""
+
+    restored = copy.deepcopy(ledger)
+    restored["pendingAcceptedGaps"]["routeIds"] = [
+        *restored["pendingAcceptedGaps"]["routeIds"],
+        *(row["routeId"] for row in restored["acceptedGaps"]),
+    ]
+    restored["acceptedGaps"] = []
+    return restored
+
+
 def rolling_world() -> dict[str, Any]:
     """A complete, valid rolling run: decision 96's gaps, one retirement, and three declared changes."""
 
-    baseline_ledger = copy.deepcopy(Sources.ledger)
-    ledger = copy.deepcopy(Sources.ledger)
+    baseline_ledger = before_release_approval(Sources.ledger)
+    ledger = before_release_approval(Sources.ledger)
     entries: list[dict[str, Any]] = []
 
     def entry(kind: str, scenario_ids: list[str], route_ids: list[str], **values: Any) -> dict[str, Any]:

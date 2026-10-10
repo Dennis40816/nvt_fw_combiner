@@ -23,6 +23,7 @@ Later changes remain assigned by the canonical roadmap.
 Internal and process changes:
 
 - Release comparison tooling (scripts, contracts and their tests) that compares a release candidate with the previous release and with an older reference build is now part of the 1.2.2 source. It is repository tooling. It reads release files, writes nothing to firmware and adds no product code. It adds one development-only Python package (`jsonschema` 4.25.1) for repository tests.
+- The release comparison does not compare 11 routes with 1.2.1, because no reference input exists for them. They are routes of NT51919, NT51929, NT51932, NT51950 and NT51951 that use an AB Merge image. The owner accepted this gap for 1.2.2 only (declaration entry `RP-1.2.2-01`).
 - Two agent instruction files were added: one for taking a new IC from private owner data to a blocked candidate, one for changing the pinned legacy Combiner. They are instructions only.
 - The packaging script now treats NT51925 as a candidate without owner-approved reference files, and it refuses to publish reference files for it.
 - CI also runs on pushes to every minor-line trunk and release branch, so pushes to the 1.2.2 branch are checked.
