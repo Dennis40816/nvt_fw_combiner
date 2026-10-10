@@ -128,7 +128,7 @@ jobs:
     name: dotnet / build
     if: github.event_name == 'push' || github.event.pull_request.draft == false
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -162,6 +162,27 @@ jobs:
         env:
           NFC_DOTNET_BUILD_LOG: ${{ runner.temp }}/dotnet-build.log
         run: python scripts/verify.py --ci-dotnet-build
+      - name: Verify enrolled C# code health
+        shell: pwsh
+        env:
+          NFC_EVENT_NAME: ${{ github.event_name }}
+          NFC_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          DOTNET_CLI_UI_LANGUAGE: en
+          VSLANG: '1033'
+          PreferredUILang: en-US
+          MSBUILDDISABLENODEREUSE: '1'
+          UseSharedCompilation: 'false'
+          DOTNET_CLI_USE_MSBUILD_SERVER: '0'
+        run: |
+          if ($env:NFC_EVENT_NAME -eq 'pull_request') {
+            if ([string]::IsNullOrWhiteSpace($env:NFC_PR_BASE_SHA)) {
+              throw 'Pull-request code-health verification requires a base SHA.'
+            }
+            pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx -BaseRef $env:NFC_PR_BASE_SHA
+          } else {
+            pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx
+          }
+          exit $LASTEXITCODE
       - name: Upload dotnet build evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -177,6 +198,15 @@ jobs:
         with:
           name: dotnet-build-log
           path: ${{ runner.temp }}/dotnet-build.log
+          if-no-files-found: ignore
+          retention-days: 3
+      - name: Upload code-health diagnostics
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: code-health-diagnostics
+          path: artifacts/code-health/
           if-no-files-found: ignore
           retention-days: 3
 

@@ -347,7 +347,7 @@ class CoverageCiContractTests(unittest.TestCase):
         self.assertIn("path: artifacts/coverage/python/", workflow)
         self.assertIn("name: dotnet-coverage", workflow)
         self.assertIn("path: artifacts/coverage/dotnet/", workflow)
-        self.assertEqual(5, workflow.count("retention-days: 3"))
+        self.assertEqual(6, workflow.count("retention-days: 3"))
 
     def test_collector_pin_matches_the_baseline_and_test_reference(self) -> None:
         errors: list[str] = []
