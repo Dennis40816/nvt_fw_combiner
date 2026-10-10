@@ -169,12 +169,17 @@ public sealed class Nt51925EndFlagSelectionTests
 
     /// <summary>Every declared postbuild block uses its selected candidate's geometry.</summary>
     [Theory]
-    [InlineData("141", "single", "1.0.0")]
-    [InlineData("141", "cascade", "1.0.0")]
-    [InlineData("200", "single", "2.0.0")]
-    [InlineData("200", "cascade", "2.0.0")]
-    public void GetPostbuildCatalogEachLayoutCommandRangesMatchCandidateFamily(string fw, string topology, string version)
+    [InlineData("141", "single", "1.0.0", "normal,mp,vn,nf,fw-config-backup")]
+    [InlineData("141", "cascade", "1.0.0", "normal,mp,vn,nf,fw-config-backup")]
+    [InlineData("200", "single", "2.0.0", "normal,mp,vn,nf,fw-config-backup,header-copy,header-copy-final")]
+    [InlineData("200", "cascade", "2.0.0", "normal,diff,mp,vn,nf,fw-config-backup,header-copy,header-copy-final")]
+    public void GetPostbuildCatalogEachLayoutCommandRangesMatchCandidateFamily(
+        string fw,
+        string topology,
+        string version,
+        string expectedBlocks)
     {
+        ArgumentNullException.ThrowIfNull(expectedBlocks);
         FirmwareImageMap map = CandidateMap(fw, topology, "tp-work-192k");
         using JsonDocument document = JsonDocument.Parse(File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
             "profiles/built-in/ctrlram-postbuild-v2/catalog.json")));
@@ -184,7 +189,9 @@ public sealed class Nt51925EndFlagSelectionTests
         JsonElement[] blocks = [.. profile.GetProperty(topology == "single" ? "singleCommands" : "cascadeCommands")
             .EnumerateArray().SelectMany(static command => command.GetProperty("blocks").EnumerateArray())];
 
-        Assert.NotEmpty(blocks);
+        Assert.Equal(
+            expectedBlocks.Split(','),
+            blocks.Select(static block => block.GetProperty("blockId").GetString()));
         Assert.All(blocks, block =>
         {
             string regionId = block.GetProperty("blockId").GetString() switch
@@ -202,6 +209,35 @@ public sealed class Nt51925EndFlagSelectionTests
             Assert.Equal(new ByteRange(block.GetProperty("targetStart").GetInt64(),
                 block.GetProperty("targetLength").GetInt64()), region.Range);
         });
+    }
+
+    /// <summary>Only the declared header, backup and CtrlRAM regions can be written; the end flag, reserved, unmapped, customer and DP regions cannot.</summary>
+    [Theory]
+    [InlineData("141", "single", "tp-work-192k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
+    [InlineData("141", "single", "full-flash-256k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
+    [InlineData("141", "cascade", "tp-work-192k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,normal-slave-ctrlram,mp-slave-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
+    [InlineData("141", "cascade", "full-flash-256k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,normal-slave-ctrlram,mp-slave-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
+    [InlineData("200", "single", "tp-work-192k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,nf-ctrlram,vn-ctrlram-fw200,header-copy,fw-config-backup")]
+    [InlineData("200", "single", "full-flash-256k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,nf-ctrlram,vn-ctrlram-fw200,header-copy,fw-config-backup")]
+    [InlineData("200", "cascade", "tp-work-192k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,diff-ctrlram,nf-ctrlram,vn-ctrlram-fw200,header-copy,fw-config-backup")]
+    [InlineData("200", "cascade", "full-flash-256k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,diff-ctrlram,nf-ctrlram,vn-ctrlram-fw200,header-copy,fw-config-backup")]
+    public void GetFirmwareFamilyEachLayoutOnlyDeclaredRegionsAreWritable(string fw, string topology, string shape, string expectedWritable)
+    {
+        ArgumentNullException.ThrowIfNull(expectedWritable);
+        FirmwareImageMap map = CandidateMap(fw, topology, shape);
+
+        Assert.Equal(
+            expectedWritable.Split(',').Order(StringComparer.Ordinal),
+            map.Regions
+                .Where(static region => region.WriteConstraint != FirmwareWriteConstraint.Forbidden)
+                .Select(static region => region.RegionId)
+                .Order(StringComparer.Ordinal));
+        Assert.All(
+            map.Regions.Where(static region => region.Kind is FirmwareRegionKind.Reserved or FirmwareRegionKind.Unmapped),
+            static region => Assert.Equal(FirmwareWriteConstraint.Forbidden, region.WriteConstraint));
+        FirmwareRegion endFlag = Assert.Single(map.Regions, static region => region.RegionId == "end-flag");
+        Assert.Equal(new ByteRange(0x2FFFC, 4), endFlag.Range);
+        Assert.Equal(FirmwareRegionKind.Reserved, endFlag.Kind);
     }
 
     /// <summary>Only the Common FW 2.0.0 layouts declare a copied header.</summary>
@@ -273,7 +309,7 @@ public sealed class Nt51925EndFlagSelectionTests
         });
     }
 
-    /// <summary>The Standard image partitions the owner TP prefix, explicit gap and DP window.</summary>
+    /// <summary>The Standard image partitions the owner TP prefix, explicit gap, customer data window and DP window.</summary>
     [Fact]
     public void GetFirmwareFamilyStandardMergeTpCodeLengthIs196608()
     {
@@ -282,7 +318,7 @@ public sealed class Nt51925EndFlagSelectionTests
         FirmwareImageMap map = Assert.Single(family.ImageMaps);
         (string Id, long Start, long Length)[] expected = [
             ("flash-image", 0, 0x40000), ("tp-code", 0, 196608),
-            ("unmapped-gap", 0x30000, 57344), ("dp-code", 253952, 8192)];
+            ("unmapped-gap", 0x30000, 0xD000), ("customer-info", 0x3D000, 0x1000), ("dp-code", 253952, 8192)];
 
         Assert.Equal(expected.OrderBy(static row => row.Id, StringComparer.Ordinal),
             map.Regions.Select(static region => (region.RegionId, region.Range.Start, region.Range.Length))

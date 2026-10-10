@@ -174,22 +174,6 @@
       }
     },
     {
-      "viewId": "normal-slave-ctrlram-output",
-      "spaceId": "output-image",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "normal-slave-ctrlram"
-      }
-    },
-    {
-      "viewId": "mp-slave-ctrlram-output",
-      "spaceId": "output-image",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "mp-slave-ctrlram"
-      }
-    },
-    {
       "viewId": "vn-ctrlram-output",
       "spaceId": "output-image",
       "selector": {
@@ -276,13 +260,13 @@
     },
     {
       "regionId": "normal-slave-ctrlram",
-      "access": "explicit-range",
-      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy at most 0x2800 bytes and preserve the reference tail when the immutable source is shorter."
+      "access": "read-only",
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: The postbuild flow declares no replacement source for this CtrlRAM_S range; preserve the reference bytes."
     },
     {
       "regionId": "mp-slave-ctrlram",
-      "access": "explicit-range",
-      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy at most 0x2000 bytes and preserve the reference tail when the immutable source is shorter."
+      "access": "read-only",
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: The postbuild flow declares no replacement source for this CtrlRAM_S range; preserve the reference bytes."
     },
     {
       "regionId": "vn-ctrlram-fw141",
@@ -363,8 +347,6 @@
       "allowedWriteViewIds": [
         "normal-ctrlram-output",
         "mp-ctrlram-output",
-        "normal-slave-ctrlram-output",
-        "mp-slave-ctrlram-output",
         "vn-ctrlram-output",
         "nf-ctrlram-output",
         "fw-config-backup-output",

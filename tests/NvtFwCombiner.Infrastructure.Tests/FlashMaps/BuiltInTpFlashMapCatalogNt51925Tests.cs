@@ -177,6 +177,7 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
         ArgumentNullException.ThrowIfNull(expectedSources);
         Assert.True(BuiltInCommonFwSelector.TrySelect("NT51925", true, version, out BuiltInCommonFwSelection? selected, out _));
         CtrlRamInspectionDisplay display = BuiltInCtrlRamAuthoringAdapter.CreateDisplay("NT51925", count, selected!.PostbuildProfile, version, true);
+        // Slots follow the firmware range order of the postbuild source files, not the region display order.
         Assert.Equal(
             expectedSources.Split(',').Select(static id => "replace-ctrlram-" + id),
             display.InputSlots.Select(static slot => slot.SlotId));

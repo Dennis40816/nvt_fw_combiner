@@ -50,10 +50,16 @@ as its own oracle.
   FW version and topology, collected in the corresponding CtrlRAM handoff.
 
 The owner TP overview and postbuild flow declare the 196,608-byte TP prefix
-and the end flag at `0x2FFFC`. The gap before DP is 57,344 bytes (`0xE000`),
-including the production-test customer-data window; it stays unmapped and
-zero-filled in this Merge candidate. The TP header metadata and TP SVN at
+and the end flag at `0x2FFFC`. The 53,248-byte gap (`0x30000` to `0x3CFFF`)
+stays unmapped and zero-filled in this Merge candidate. The production-test
+customer-data window (4,096 bytes at `0x3D000`) is declared as a forbidden
+customer region, as in the CtrlRAM Replace full-flash map, and also stays
+zero-filled. The TP header metadata and TP SVN at
 `0x24` are unchanged. No `.data` or Project ID region is declared.
+
+The five bytes `[0x2EA80, 0x2EA8B)` of the FW 2.0.0 output come from an owner
+insertion script that is not yet available. They are temporarily excluded from
+the Merge candidate claim until the owner provides that script.
 
 1.x Single: postbuild only, no real BIN. 1.x Cascade: postbuild plus two real
 BINs agree (owner-reported). 2.0.0 Single: postbuild only, no real BIN.

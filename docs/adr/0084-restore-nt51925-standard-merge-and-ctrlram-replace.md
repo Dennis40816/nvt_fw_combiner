@@ -39,6 +39,8 @@ The CtrlRAM Replace candidates below stay declared and are deferred until the
 owner supplies Golden cases, expected in the week of 2026-10-12. The owner plans
 to support different layouts by Common FW version. That decision needs a later
 amendment of this ADR, and this update does not change the geometry below.
+The 2026-10-10 amendments below replace that provisional geometry with the
+owner's TP overview; read the geometry there.
 
 ## Considered options
 
@@ -191,6 +193,13 @@ subject to independent expected-output evidence and owner review. Standard Merge
 blocked pending its later version-conditioned image-map work. This amendment
 makes no support, approval or Golden claim and does not change the ADR status.
 
+### Later items and completed follow-ups
+
+- Optional issue in the display record: triggered by this map change and the
+  PR #602 marker-display finding; the record and discovery propagation are
+  implemented here, while rendering the reason in the pending UI is deferred
+  because it requires more than a small binding.
+
 ## Amendment (2026-10-10): candidate geometry from the TP overview
 
 Status: Proposed. Owner decisions at 14:49 and 14:59 replace the borrowed
@@ -215,12 +224,12 @@ is unchanged; the removed NT51926 Header Copy locator supplies no authority.
 The Standard Merge TP SVN binding stays unchanged. No `.data` or Project ID
 region is declared. The unknown 1.x Single `.data` position is not guessed.
 
-### Later items and completed follow-ups
-
-- Optional issue in the display record: triggered by this map change and the
-  PR #602 marker-display finding; the record and discovery propagation are
-  implemented here, while rendering the reason in the pending UI is deferred
-  because it requires more than a small binding.
+Pending owner script: the five bytes `[0x2EA80, 0x2EA8B)` of the FW 2.0.0
+output are written by an owner insertion script that is not yet in the private
+asset repository. Until the owner provides it, this range is temporarily
+excluded from every Standard Merge claim. This is a pending item, not a
+missing layout region. Replace flows clone the reference image, so those bytes
+carry over unchanged.
 
 ## Required owner evidence and gates
 

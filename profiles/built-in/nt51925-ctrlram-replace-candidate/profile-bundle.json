@@ -3,7 +3,7 @@
   "bundleId": "nt51925-ctrlram-replace-candidate",
   "bundleVersion": "1.2.2-nt51925.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "4ea915ff081d3fd50a5536fb81839f6b451dfb27601cb9de5b3a9f33a9a16051",
+  "contentHash": "f3f1bf08072f1a404e7865db25e7ae81ff66b2c5d1d9e906af6813e0508ffc4b",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -39,7 +39,7 @@
       "kind": "composition-profile",
       "path": "profiles/nt51925-ctrlram-replace-fw141-runtime-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "e2b3b70e9d9e818fe75a0a24f5ed44ae5d628fecf8d0d781bde64e1fe8851b8f"
+      "contentHash": "56dd20a275452a006fc8f41bbbcb248f48f863b6cfcc9de30d726abfab7d0ba7"
     },
     {
       "entryId": "nt51925-ctrlram-replace-fw200-runtime-single-profile",

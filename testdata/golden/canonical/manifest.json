@@ -873,63 +873,63 @@
       "evidenceId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw141-single-full-flash-256k-evidence-nt51925-isolation-v2",
       "kind": "contract-only",
       "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw141-single-full-flash-256k",
-      "capabilityFingerprint": "16736a42c37f05e0834ae3ff108b6f6a6e115d51cc0ce7f82acda5ea6142dc5f",
+      "capabilityFingerprint": "b785239fa43e2c098c5a1cbfc8208deb0daa26cc94f58db1626f29308c11538c",
       "contractReference": "docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md"
     },
     {
       "evidenceId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw141-single-tp-work-192k-evidence-nt51925-isolation-v2",
       "kind": "contract-only",
       "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw141-single-tp-work-192k",
-      "capabilityFingerprint": "cf36edb4437a3871db990e657fde50a55da0c068ff2f462c9df1cd04d7ddc7c3",
+      "capabilityFingerprint": "95817dd2f607656ecc3931d487f05d29daed66df4eb59ce9629198b150e38caa",
       "contractReference": "docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md"
     },
     {
       "evidenceId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw200-single-full-flash-256k-evidence-nt51925-isolation-v2",
       "kind": "contract-only",
       "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw200-single-full-flash-256k",
-      "capabilityFingerprint": "fc99008bf39529c97a2743bf307c87bc39c95f876565130b47879ec1d4582c5f",
+      "capabilityFingerprint": "c352d7edf34d25a505780c0518e94b96c5497dd01436ca46a8e29451468d5de4",
       "contractReference": "docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md"
     },
     {
       "evidenceId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw200-single-tp-work-192k-evidence-nt51925-isolation-v2",
       "kind": "contract-only",
       "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw200-single-tp-work-192k",
-      "capabilityFingerprint": "59ce507f9b0da6b47d805269b0ecb5bed4f8e0a2229d0488abd43cc9172c4d1a",
+      "capabilityFingerprint": "ec269bf0b4594a26423f6e92060ada29d9c799334311bd5768156ac45091a8c8",
       "contractReference": "docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md"
     },
     {
       "evidenceId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw141-cascade-full-flash-256k-evidence-nt51925-isolation-v2",
       "kind": "contract-only",
       "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw141-cascade-full-flash-256k",
-      "capabilityFingerprint": "75a7a5282e02d7f9745a03ac8f97c601dfe19af3ec6e8e90465bb539df00c1a5",
+      "capabilityFingerprint": "0881f443e6f3bf33b1a0b9f1b0a1b03c9dad8675faff19ee0e41b4fc68e3cbec",
       "contractReference": "docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md"
     },
     {
       "evidenceId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw141-cascade-tp-work-192k-evidence-nt51925-isolation-v2",
       "kind": "contract-only",
       "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw141-cascade-tp-work-192k",
-      "capabilityFingerprint": "976742a92325cc3a7af135943f81441d1d2388da4b94ac58a3b4ce71d2a2b19f",
+      "capabilityFingerprint": "147a4ed51739c962c49343ba4d6d15dba97612b7d239852c39bab097ba03e9a4",
       "contractReference": "docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md"
     },
     {
       "evidenceId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw200-cascade-full-flash-256k-evidence-nt51925-isolation-v2",
       "kind": "contract-only",
       "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw200-cascade-full-flash-256k",
-      "capabilityFingerprint": "a98e7062328527b3c4156eed029bd8a4064af7752af7afd3f00e1450c86b773f",
+      "capabilityFingerprint": "24b20fc33ef38edaec7776b210426f6941f6c893f0354d812c856047777dd63a",
       "contractReference": "docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md"
     },
     {
       "evidenceId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw200-cascade-tp-work-192k-evidence-nt51925-isolation-v2",
       "kind": "contract-only",
       "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw200-cascade-tp-work-192k",
-      "capabilityFingerprint": "1a9fb989d00b60ed8136880e1fd16b9185848d4530b764e21ceb90260901d8d5",
+      "capabilityFingerprint": "ebd2917387172dfbfd44b7b9d0b04acee66f2a265b4d4f3c071a1502524d0ac4",
       "contractReference": "docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md"
     },
     {
       "evidenceId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k-evidence-nt51925-isolation-v2",
       "kind": "contract-only",
       "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-27-nt51925-standard-merge-256k",
-      "capabilityFingerprint": "7f1656ca48ecf1ef18699e9731d289cf6befbbc0868d24c28fe223fedfff7149",
+      "capabilityFingerprint": "29a5e483054ce849e86a937233a70c980a62111470e52c9fc7344475fa32f850",
       "contractReference": "docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md"
     }
   ],

@@ -8,17 +8,11 @@
       "sourceRecordStride": 5120,
       "targetBase": 184576,
       "targetRecordStride": 5120,
-      "writableRange": {
-        "start": 0,
-        "length": 2960
-      },
+      "writableRange": { "start": 0, "length": 2960 },
       "preservationMasks": [
         {
           "kind": "keep-reference",
-          "range": {
-            "start": 2960,
-            "length": 2160
-          }
+          "range": { "start": 2960, "length": 2160 }
         }
       ],
       "minimumIcCount": 2,
@@ -27,10 +21,7 @@
       "independentNfSourceFileName": "NF_Ctrlram.bin",
       "firmwareConfigBackupAlignment": 4096,
       "firmwareConfigBackupLength": 4096,
-      "firmwareConfigBackupAuthority": {
-        "start": 192512,
-        "length": 32768
-      },
+      "firmwareConfigBackupAuthority": { "start": 192512, "length": 32768 },
       "evidenceRefs": [
         "owner-confirmed NT51919/NT51929/NT51932 DiffDLM full-stride contract 2026-07-27",
         "nt51932-diffdlm-nf-mask-cascade4-20260727"
@@ -43,17 +34,11 @@
       "sourceRecordStride": 5120,
       "targetBase": 209408,
       "targetRecordStride": 5120,
-      "writableRange": {
-        "start": 0,
-        "length": 2320
-      },
+      "writableRange": { "start": 0, "length": 2320 },
       "preservationMasks": [
         {
           "kind": "keep-reference",
-          "range": {
-            "start": 2320,
-            "length": 2800
-          }
+          "range": { "start": 2320, "length": 2800 }
         }
       ],
       "minimumIcCount": 2,
@@ -62,10 +47,7 @@
       "independentNfSourceFileName": "NF_Ctrlram.bin",
       "firmwareConfigBackupAlignment": 4096,
       "firmwareConfigBackupLength": 1920,
-      "firmwareConfigBackupAuthority": {
-        "start": 221184,
-        "length": 1920
-      },
+      "firmwareConfigBackupAuthority": { "start": 221184, "length": 1920 },
       "fixedFirmwareConfigBackupStart": 221184,
       "evidenceRefs": [
         "owner-confirmed NT51950/NT51951 exact-2-IC PreserveActiveDiffNf geometry 2026-07-31",

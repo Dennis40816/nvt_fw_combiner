@@ -44,7 +44,19 @@
           "kind": "unmapped",
           "range": {
             "start": 196608,
-            "length": 57344
+            "length": 53248
+          },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "customer-info",
+          "parentRegionId": "flash-image",
+          "owner": "customer",
+          "kind": "customer-information",
+          "range": {
+            "start": 249856,
+            "length": 4096
           },
           "writeConstraint": "forbidden",
           "alignment": 1
@@ -503,8 +515,8 @@
         }
       ],
       "evidenceRefs": [
-        "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
-        "nt51925-isolated-candidate-pending-owner-evidence"
+        "gen-flash-bin-v2-51926-golden",
+        "tddi-flash-header-workbook-925-926"
       ]
     },
     {
@@ -536,8 +548,8 @@
         }
       ],
       "evidenceRefs": [
-        "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
-        "nt51925-isolated-candidate-pending-owner-evidence"
+        "gen-flash-bin-v2-51923-golden",
+        "gen-flash-bin-v2-51926-golden"
       ]
     },
     {
@@ -561,8 +573,8 @@
         }
       ],
       "evidenceRefs": [
-        "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
-        "nt51925-isolated-candidate-pending-owner-evidence"
+        "gen-flash-bin-v2-51923-golden",
+        "gen-flash-bin-v2-51926-golden"
       ]
     },
     {

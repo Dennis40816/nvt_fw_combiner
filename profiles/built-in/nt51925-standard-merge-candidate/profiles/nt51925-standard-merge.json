@@ -46,7 +46,7 @@
   "mapBinding": {
     "familyId": "nt51925-standard-merge",
     "familyVersion": "0.1.0",
-    "familyContentHash": "a5751b0739c9275b0985fabaf34ee200158d087acdd1f67745f49267491d498c",
+    "familyContentHash": "8ea45c0eb951defaa4d4b4ee211a9d97cc814eeba7d39021cb622201d9d74440",
     "mapIds": [
       "nt51925-standard-merge-256k"
     ],
@@ -273,7 +273,7 @@
     {
       "regionId": "tp-code",
       "access": "whole",
-      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy the declared 0x30000-byte TP prefix."
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy the declared 0x30000-byte TP prefix. The five bytes [0x2EA80, 0x2EA8B) of FW 2.0.0 outputs are outside every claim until the owner provides the insertion script."
     },
     {
       "regionId": "dp-code",
