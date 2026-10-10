@@ -93,8 +93,8 @@ No new executable, update endpoint, network surface or permission is added. The 
 
 Extract the portable package into a separate directory and preserve existing settings and outputs. Keep the prior stable package for rollback.
 
-- From any earlier customer version: install 1.2.2 directly. No intermediate version is needed.
-- From 1.2.1: the Support Matrix lists NT51925, and the license field and tooltip behave as described above. Settings and saved sessions are unaffected. Saved Rules made with 1.2.1 for NT51923 and NT51926 are still accepted.
+- From 1.2.1: install 1.2.2 directly. The update from an installed 1.2.1 is checked before this release is published.
+- What changes for you when you update from 1.2.1: the Support Matrix lists NT51925, and the license field and tooltip behave as described above. Settings and saved sessions are unaffected. Saved Rules made with 1.2.1 for NT51923 and NT51926 are still accepted.
 - From 1.2.0: the CtrlRAM Replace Build Settings Cancel fix of 1.2.1 also applies.
 - From an earlier version: the Upgrade and rollback text of every entry in between applies.
 - If you first installed NFC with the Launcher published for 1.2.1, install again from the 1.2.2 package. That Setup installs a start program that accepts only `MIT`, and an update does not replace it.
