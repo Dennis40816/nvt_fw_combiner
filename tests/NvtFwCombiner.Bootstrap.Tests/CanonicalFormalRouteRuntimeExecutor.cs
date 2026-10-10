@@ -54,7 +54,9 @@ internal static class CanonicalFormalRouteRuntimeExecutor
                     AssertWitnessProvenance(runtimeCase);
                     await ExecuteCaseAsync(host, canonical, runtimeCase, workspace);
                 }
-                catch (Exception exception)
+                catch (Exception exception) when (
+                    exception is not OperationCanceledException ||
+                    !TestContext.Current.CancellationToken.IsCancellationRequested)
                 {
                     throw new InvalidOperationException(
                         $"Formal runtime case '{runtimeCase.CaseId}' failed.",
@@ -113,25 +115,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
             new CompositionRunProgressFeed(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(preview.Succeeded, Failure(runtimeCase, preview));
-        Assert.True(build.Succeeded, Failure(runtimeCase, build));
-        Assert.Same(capability, preview.ResolvedCapability);
-        Assert.Same(capability, build.ResolvedCapability);
-        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
-        string computedOutputSha256 = Convert.ToHexStringLower(
-            SHA256.HashData(preview.OutputBytes.Span));
-        Assert.Equal(computedOutputSha256, preview.OutputSha256);
-        Assert.Equal(computedOutputSha256, build.OutputSha256);
-        Assert.Equal(preview.OutputBytes.Length, preview.OutputSize);
-        Assert.Equal(build.OutputBytes.Length, build.OutputSize);
-        Assert.Equal(preview.OutputSha256, build.OutputSha256);
-        Assert.Equal(preview.OutputSize, build.OutputSize);
-        Assert.Equal(preview.OutputBytes.ToArray(), File.ReadAllBytes(outputPath));
-        Assert.Equal(capability.CompiledComposition.CompilationFingerprint,
-            preview.Report.CompilationFingerprint);
-        Assert.Equal(preview.Report.CompilationFingerprint, build.Report.CompilationFingerprint);
-        AssertOperationsSucceededAndConstrained(preview);
-        AssertOperationsSucceededAndConstrained(build);
+        AssertPreviewAndBuildMatch(runtimeCase, capability, preview, build, outputPath);
         int processorOperationCount = capability.CompiledComposition.Plan.OrderedOperations.Count(
             static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor);
         Assert.Equal(processorOperationCount * 2, processor.Requests.Count);
@@ -154,6 +138,34 @@ internal static class CanonicalFormalRouteRuntimeExecutor
             Assert.Equal(baseLength, build.OutputSize);
         }
         Assert.All(originalInputHashes, pair => Assert.Equal(pair.Value, HashFile(pair.Key)));
+    }
+
+    private static void AssertPreviewAndBuildMatch(
+        CanonicalFormalRouteRuntimeCase runtimeCase,
+        ResolvedCapability capability,
+        CompositionRunResult preview,
+        CompositionRunResult build,
+        string outputPath)
+    {
+        Assert.True(preview.Succeeded, Failure(runtimeCase, preview));
+        Assert.True(build.Succeeded, Failure(runtimeCase, build));
+        Assert.Same(capability, preview.ResolvedCapability);
+        Assert.Same(capability, build.ResolvedCapability);
+        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
+        string computedOutputSha256 = Convert.ToHexStringLower(
+            SHA256.HashData(preview.OutputBytes.Span));
+        Assert.Equal(computedOutputSha256, preview.OutputSha256);
+        Assert.Equal(computedOutputSha256, build.OutputSha256);
+        Assert.Equal(preview.OutputBytes.Length, preview.OutputSize);
+        Assert.Equal(build.OutputBytes.Length, build.OutputSize);
+        Assert.Equal(preview.OutputSha256, build.OutputSha256);
+        Assert.Equal(preview.OutputSize, build.OutputSize);
+        Assert.Equal(preview.OutputBytes.ToArray(), ReadInputBytes(outputPath));
+        Assert.Equal(capability.CompiledComposition.CompilationFingerprint,
+            preview.Report.CompilationFingerprint);
+        Assert.Equal(preview.Report.CompilationFingerprint, build.Report.CompilationFingerprint);
+        AssertOperationsSucceededAndConstrained(preview);
+        AssertOperationsSucceededAndConstrained(build);
     }
 
     private static void AssertCanonicalMemoryProjection(
@@ -205,7 +217,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         if (workflowId == ExperienceIds.CtrlRamReplace &&
             runtimeCase.Fixture.Policy.Identity.MapVariant.Contains("-ab-merge-", StringComparison.Ordinal))
         {
-            byte[] abBase = File.ReadAllBytes(runtimeCase.SlotPaths[CompositionSlotIds.ReplaceBase]);
+            byte[] abBase = ReadInputBytes(runtimeCase.SlotPaths[CompositionSlotIds.ReplaceBase]);
             Assert.True(abBase.Length is 0x80000 or 0x100000);
             int bankLength = abBase.Length / 2;
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
@@ -229,7 +241,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         };
         Assert.All(metadataSlots, slotId =>
         {
-            byte[] bytes = File.ReadAllBytes(runtimeCase.SlotPaths[slotId]);
+            byte[] bytes = ReadInputBytes(runtimeCase.SlotPaths[slotId]);
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
                 bytes,
                 out FirmwareConfigMetadata metadata));
@@ -307,7 +319,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
 
         var bytes = runtimeCase.SlotPaths.ToDictionary(
             static pair => pair.Key,
-            static pair => File.ReadAllBytes(pair.Value),
+            static pair => ReadInputBytes(pair.Value),
             StringComparer.Ordinal);
         CtrlRamAuthoringSessionPreparation ctrlRam = canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace),
@@ -350,7 +362,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
             .. slotPaths.Select(static pair => new CompiledAuthoringSelectedInput(
                 pair.Key,
                 pair.Value,
-                File.ReadAllBytes(pair.Value))),
+                ReadInputBytes(pair.Value))),
         ];
     }
 
@@ -467,6 +479,14 @@ internal static class CanonicalFormalRouteRuntimeExecutor
     {
         return $"{runtimeCase.CaseId}{Environment.NewLine}" +
             CompositionRunReportJson.Serialize(result);
+    }
+
+    private static byte[] ReadInputBytes(string path)
+    {
+        using FileStream stream = File.OpenRead(path);
+        byte[] bytes = new byte[checked((int)stream.Length)];
+        stream.ReadExactly(bytes);
+        return bytes;
     }
 
     private static string HashFile(string path)
