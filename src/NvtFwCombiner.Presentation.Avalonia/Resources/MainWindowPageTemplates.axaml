@@ -282,7 +282,8 @@
       Focusable="True"
       FocusAdorner="{x:Null}"
       Height="46"
-      ToolTip.Placement="BottomEdgeAlignedLeft"
+      ToolTip.CustomPopupPlacementCallback="{x:Static behaviors:ClearOfTargetToolTipPlacement.Callback}"
+      ToolTip.Placement="Custom"
       ToolTip.ShowDelay="220"
       MinWidth="160">
     <ToolTip.Tip>
