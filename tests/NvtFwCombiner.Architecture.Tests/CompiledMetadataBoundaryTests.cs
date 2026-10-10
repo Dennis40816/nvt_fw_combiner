@@ -212,7 +212,7 @@ public sealed class CompiledMetadataBoundaryTests
     }
     /// <summary>Real MoveNext, closure and async-closure bodies retain their logical owner.</summary>
     [Theory]
-    [InlineData("AfterAwait(System.Threading.Tasks.Task)")]
+    [InlineData("AfterAwaitAsync(System.Threading.Tasks.Task)")]
     [InlineData("WithClosure(System.Object) [closure]")]
     [InlineData("AsyncClosure(System.Threading.Tasks.Task) [closure]")]
     [InlineData("Pick(System.String) [closure]")]
