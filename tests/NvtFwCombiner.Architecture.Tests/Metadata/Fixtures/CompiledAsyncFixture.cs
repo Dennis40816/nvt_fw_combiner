@@ -16,7 +16,13 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels
         }
         internal static Func<Task> AsyncClosure(Task completion)
         {
-            return async () => { GC.KeepAlive(completion); await Task.CompletedTask.ConfigureAwait(false); global::Avalonia.Controls.ForbiddenAsyncControl.Touch(); };
+            async Task InvokeAsync()
+            {
+                GC.KeepAlive(completion);
+                await Task.CompletedTask.ConfigureAwait(false);
+                global::Avalonia.Controls.ForbiddenAsyncControl.Touch();
+            }
+            return InvokeAsync;
         }
         internal static Action Pick(string value)
         {

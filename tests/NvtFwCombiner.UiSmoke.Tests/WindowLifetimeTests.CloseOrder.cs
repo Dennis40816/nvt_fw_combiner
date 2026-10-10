@@ -39,7 +39,7 @@ public sealed partial class WindowLifetimeTests
         {
             Assert.Equal(TimeSpan.FromSeconds(5), duration);
             deadlines++;
-            return deadline.Task;
+            return WaitForSignalAsync(deadline);
         };
         int finalClosings = 0;
         int closedEvents = 0;
@@ -72,12 +72,12 @@ public sealed partial class WindowLifetimeTests
                 _ = preload.RunCatalogAsync(services.CanonicalCatalogLoader,
                     _ => ValueTask.CompletedTask, retry: false, TestContext.Current.CancellationToken);
             });
-            Dispatcher.UIThread.RunJobs();
+            window.Dispatcher.RunJobs();
             Assert.Equal(0, finalClosings);
             held.SetException(new InvalidOperationException("Controlled configuration failure."));
             await closed.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             await attempt.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
+            window.Dispatcher.RunJobs();
             Assert.Equal(1, finalClosings);
             Assert.Equal(1, closedEvents);
         }
@@ -118,7 +118,7 @@ public sealed partial class WindowLifetimeTests
             bool history = Path.GetFileName(path) == "report-history.v1.json";
             bool first = (history ? Interlocked.Increment(ref historyWrites) : Interlocked.Increment(ref preferenceWrites)) == 1;
             _ = (history ? historyStarted : preferencesStarted).TrySetResult();
-            await (history ? releaseHistory : releasePreferences).Task.ConfigureAwait(false);
+            await WaitForSignalAsync(history ? releaseHistory : releasePreferences).ConfigureAwait(false);
             if (first)
             {
                 order.Enqueue(history ? "history" : "preferences");
@@ -153,7 +153,7 @@ public sealed partial class WindowLifetimeTests
                 order.Enqueue("sealing");
                 _ = sealing.TrySetResult();
             }
-            return deadline.Task;
+            return WaitForSignalAsync(deadline);
         };
         var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         window.Closing += (_, _) =>
@@ -172,7 +172,7 @@ public sealed partial class WindowLifetimeTests
             // Admission stays open while the drain runs: newer preference and history snapshots must still be queued and written.
             shell.SelectedTheme = "Light";
             shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "close-order-late"), "close-order-late.json");
-            Dispatcher.UIThread.RunJobs();
+            window.Dispatcher.RunJobs();
             held.SetException(new InvalidOperationException("Controlled drain completion."));
             await sealing.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Assert.Equal(WindowClosePhase.Sealing, window.ClosePhase);
@@ -189,7 +189,7 @@ public sealed partial class WindowLifetimeTests
                     .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
                 await (preferencesFirst ? preferencesFinished : historyFinished).Task
                     .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-                Dispatcher.UIThread.RunJobs();
+                window.Dispatcher.RunJobs();
                 Assert.Equal(WindowClosePhase.Sealing, window.ClosePhase);
                 Assert.False(window.CloseAttempt.IsCompleted);
                 (preferencesFirst ? releaseHistory : releasePreferences).SetResult();
@@ -246,7 +246,7 @@ public sealed partial class WindowLifetimeTests
         }
         finally
         {
-            stopCollect.Cancel();
+            await stopCollect.CancelAsync();
             try
             {
                 await collecting;
@@ -287,14 +287,12 @@ public sealed partial class WindowLifetimeTests
         MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
         shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "late-fault"), "late-fault.json");
         string toast = shell.Reports.ReportToastText;
-        var selected = new TaskCompletionSource<IStorageFile?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        IStorageProvider picker = DispatchProxy.Create<IStorageProvider, LifetimeReportStorageProxy>();
-        ((LifetimeReportStorageProxy)picker).Call = (name, _) => name == "SaveFilePickerAsync"
-            ? selected.Task : throw new NotSupportedException(name);
+        (IStorageProvider picker, Func<TaskCompletionSource<IStorageFile?>> getSelection) = CreatePendingSavePicker();
         var modal = new ReportModal { DataContext = shell.Reports };
         Task saving = modal.SaveReportAsync(picker);
+        TaskCompletionSource<IStorageFile?> selection = getSelection();
         var deadline = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        window.CloseDeadlineFactory = _ => deadline.Task;
+        window.CloseDeadlineFactory = _ => WaitForSignalAsync(deadline);
         var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         window.Closed += (_, _) => _ = closed.TrySetResult();
         int notifications = 0;
@@ -317,11 +315,11 @@ public sealed partial class WindowLifetimeTests
             Assert.False(discovery.Task.IsCompleted);
             discovery.SetException(new InvalidOperationException(fault));
             Assert.True(discovery.Task.IsFaulted);
-            selected.SetException(new InvalidOperationException(fault));
+            selection.SetException(new InvalidOperationException(fault));
             await saving.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             await shell.Reports.WhenSavesIdleAsync()
                 .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
+            window.Dispatcher.RunJobs();
             Assert.Equal(toast, shell.Reports.ReportToastText);
             Assert.Equal(0, notifications);
             bool started = false;
@@ -335,14 +333,38 @@ public sealed partial class WindowLifetimeTests
             Assert.Null(result);
             Assert.False(started);
             // Do not await or inspect the discovery fault; its window owners must observe the drain aggregates.
-            return [new WeakReference(discovery.Task), new WeakReference(selected.Task), new WeakReference(saving)];
+            return [new WeakReference(discovery.Task), new WeakReference(selection.Task), new WeakReference(saving)];
         }
         finally
         {
-            _ = selected.TrySetResult(null);
+            _ = selection.TrySetResult(null);
             _ = discovery.TrySetCanceled(TestContext.Current.CancellationToken);
             _ = deadline.TrySetResult();
         }
+    }
+
+    private static Task WaitForSignalAsync(TaskCompletionSource signal) =>
+        signal.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+    private static (IStorageProvider Picker, Func<TaskCompletionSource<IStorageFile?>> GetSelection)
+        CreatePendingSavePicker()
+    {
+        TaskCompletionSource<IStorageFile?>? selected = null;
+        IStorageProvider picker = DispatchProxy.Create<IStorageProvider, LifetimeReportStorageProxy>();
+        ((LifetimeReportStorageProxy)picker).Call = (name, _) =>
+        {
+            if (name != "SaveFilePickerAsync")
+            {
+                throw new NotSupportedException(name);
+            }
+            var completion = new TaskCompletionSource<IStorageFile?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            selected = completion;
+            return completion.Task;
+        };
+        return (picker, GetSelection);
+
+        TaskCompletionSource<IStorageFile?> GetSelection() => selected
+            ?? throw new InvalidOperationException("The save did not start its picker.");
     }
 
     private static async Task CollectRetiredTasksAsync(WeakReference[] retired, CancellationToken cancellationToken)
@@ -350,8 +372,8 @@ public sealed partial class WindowLifetimeTests
         do
         {
             cancellationToken.ThrowIfCancellationRequested();
-            // A pause lets dispatcher timers (the toast timer) release the retired window before the next probe.
-            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
+            // Yield to the dispatcher so pending callbacks and timers can release the retired window.
+            await Dispatcher.Yield();
             GC.Collect();
             GC.WaitForPendingFinalizers();
         }
@@ -377,7 +399,7 @@ public sealed partial class WindowLifetimeTests
             original.RawBinaryEditorFileSessions, original.CanonicalCatalogLoader,
             original.ExternalEnvironmentLoader, original.LocalFiles, original.LocalStateDirectory,
             versionManagement: null, managedApplicationStartup: null, stableLauncherHandoff: null,
-            eventBufferFormatConfigurationSessionFactory: _ => held.Task);
+            eventBufferFormatConfigurationSessionFactory: _ => held.Task.WaitAsync(TestContext.Current.CancellationToken));
         return new MainWindow(
             UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);
     }

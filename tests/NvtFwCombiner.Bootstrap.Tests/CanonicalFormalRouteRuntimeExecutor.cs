@@ -54,7 +54,9 @@ internal static class CanonicalFormalRouteRuntimeExecutor
                     AssertWitnessProvenance(runtimeCase);
                     await ExecuteCaseAsync(host, canonical, runtimeCase, workspace);
                 }
-                catch (Exception exception)
+                catch (Exception exception) when (
+                    exception is IOException or UnauthorizedAccessException or InvalidOperationException or
+                        ArgumentException or Xunit.Sdk.XunitException)
                 {
                     throw new InvalidOperationException(
                         $"Formal runtime case '{runtimeCase.CaseId}' failed.",
@@ -126,7 +128,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         Assert.Equal(build.OutputBytes.Length, build.OutputSize);
         Assert.Equal(preview.OutputSha256, build.OutputSha256);
         Assert.Equal(preview.OutputSize, build.OutputSize);
-        Assert.Equal(preview.OutputBytes.ToArray(), File.ReadAllBytes(outputPath));
+        Assert.Equal(preview.OutputBytes.ToArray(), ReadInputBytes(outputPath));
         Assert.Equal(capability.CompiledComposition.CompilationFingerprint,
             preview.Report.CompilationFingerprint);
         Assert.Equal(preview.Report.CompilationFingerprint, build.Report.CompilationFingerprint);
@@ -205,7 +207,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         if (workflowId == ExperienceIds.CtrlRamReplace &&
             runtimeCase.Fixture.Policy.Identity.MapVariant.Contains("-ab-merge-", StringComparison.Ordinal))
         {
-            byte[] abBase = File.ReadAllBytes(runtimeCase.SlotPaths[CompositionSlotIds.ReplaceBase]);
+            byte[] abBase = ReadInputBytes(runtimeCase.SlotPaths[CompositionSlotIds.ReplaceBase]);
             Assert.True(abBase.Length is 0x80000 or 0x100000);
             int bankLength = abBase.Length / 2;
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
@@ -229,7 +231,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         };
         Assert.All(metadataSlots, slotId =>
         {
-            byte[] bytes = File.ReadAllBytes(runtimeCase.SlotPaths[slotId]);
+            byte[] bytes = ReadInputBytes(runtimeCase.SlotPaths[slotId]);
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
                 bytes,
                 out FirmwareConfigMetadata metadata));
@@ -307,7 +309,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
 
         var bytes = runtimeCase.SlotPaths.ToDictionary(
             static pair => pair.Key,
-            static pair => File.ReadAllBytes(pair.Value),
+            static pair => ReadInputBytes(pair.Value),
             StringComparer.Ordinal);
         CtrlRamAuthoringSessionPreparation ctrlRam = canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace),
@@ -350,7 +352,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
             .. slotPaths.Select(static pair => new CompiledAuthoringSelectedInput(
                 pair.Key,
                 pair.Value,
-                File.ReadAllBytes(pair.Value))),
+                ReadInputBytes(pair.Value))),
         ];
     }
 
@@ -467,6 +469,14 @@ internal static class CanonicalFormalRouteRuntimeExecutor
     {
         return $"{runtimeCase.CaseId}{Environment.NewLine}" +
             CompositionRunReportJson.Serialize(result);
+    }
+
+    private static byte[] ReadInputBytes(string path)
+    {
+        using FileStream stream = File.OpenRead(path);
+        byte[] bytes = new byte[checked((int)stream.Length)];
+        stream.ReadExactly(bytes);
+        return bytes;
     }
 
     private static string HashFile(string path)

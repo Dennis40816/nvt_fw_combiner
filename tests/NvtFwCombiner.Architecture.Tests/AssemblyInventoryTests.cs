@@ -1,4 +1,3 @@
-#pragma warning disable CA1707 // Owner requires Method_Scenario_Expected names.
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Xml.Linq;
@@ -9,16 +8,16 @@ namespace NvtFwCombiner.Architecture.Tests;
 /// <summary>Acquisition must reject incomplete, stale or mismatched evidence.</summary>
 public sealed class AssemblyInventoryTests
 {
-    private static readonly BuildTuple Target = new("Release", "net10.0", "");
+    private static readonly BuildTuple _target = new("Release", "net10.0", "");
     private static XElement Entry(string project = "Fixture", string path = "Fixture.dll")
     {
         return new("project", new XAttribute("path", project + ".csproj"), new XAttribute("assembly", path),
-            new XAttribute("configuration", Target.Configuration), new XAttribute("framework", Target.Framework), new XAttribute("runtime", Target.Runtime),
+            new XAttribute("configuration", _target.Configuration), new XAttribute("framework", _target.Framework), new XAttribute("runtime", _target.Runtime),
             new XAttribute("sha256", Convert.ToHexString(SHA256.HashData(MetadataFixtureBuilder.Create(assembly: project).AsSpan()))));
     }
     private static ImmutableArray<AssemblyInput> Validate(XElement? manifest, Func<string, byte[]>? read = null)
     {
-        return AssemblyInventory.Validate(manifest, Target, ["Fixture.csproj", "Second.csproj"], read ?? (path => [.. MetadataFixtureBuilder.Create(assembly: Path.GetFileNameWithoutExtension(path))]));
+        return AssemblyInventory.Validate(manifest, _target, ["Fixture.csproj", "Second.csproj"], read ?? (path => [.. MetadataFixtureBuilder.Create(assembly: Path.GetFileNameWithoutExtension(path))]));
     }
 
     private static XElement Fixture()
@@ -28,15 +27,15 @@ public sealed class AssemblyInventoryTests
 
     /// <summary>The normal test build supplies every production assembly.</summary>
     [Fact]
-    public void Load_CurrentBuild_CoversProductionAssemblies() { Assert.Equal(15, AssemblyInventory.Load().Length); }
+    public void LoadCurrentBuildCoversProductionAssemblies() { Assert.Equal(15, AssemblyInventory.Load().Length); }
     /// <summary>A complete matching manifest is accepted.</summary>
     [Fact]
-    public void Validate_CompleteManifest_Passes() { Assert.Equal(2, Validate(Fixture()).Length); }
+    public void ValidateCompleteManifestPasses() { Assert.Equal(2, Validate(Fixture()).Length); }
     /// <summary>Absence and emptiness are distinct invalid input states.</summary>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void Validate_MissingOrEmptyManifest_NamesManifestRule(bool missing)
+    public void ValidateMissingOrEmptyManifestNamesManifestRule(bool missing)
     {
         Assert.Contains("Inputs.Manifest:", Assert.Throws<InvalidDataException>(() => Validate(missing ? null : new XElement("inputs"))).Message, StringComparison.Ordinal);
     }
@@ -46,7 +45,7 @@ public sealed class AssemblyInventoryTests
     [InlineData("Duplicate", "Inputs.Coverage: duplicate or unlisted project Fixture.csproj")]
     [InlineData("Unlisted", "Inputs.Coverage: duplicate or unlisted project Extra.csproj")]
     [InlineData("DuplicatePath", "Inputs.Duplicate: Fixture.dll")]
-    public void Validate_InvalidCoverage_NamesRuleAndOffender(string scenario, string expected)
+    public void ValidateInvalidCoverageNamesRuleAndOffender(string scenario, string expected)
     {
         XElement manifest = scenario switch
         {
@@ -62,7 +61,7 @@ public sealed class AssemblyInventoryTests
     [InlineData("Missing", "Inputs.Missing: Fixture.dll")]
     [InlineData("Empty", "Inputs.Empty: Fixture.dll")]
     [InlineData("Stale", "Inputs.Stale: Fixture.dll")]
-    public void Validate_InvalidAssembly_NamesRuleAndOffender(string scenario, string expected)
+    public void ValidateInvalidAssemblyNamesRuleAndOffender(string scenario, string expected)
     {
         byte[] Read(string path)
         {
@@ -78,7 +77,7 @@ public sealed class AssemblyInventoryTests
     [InlineData("runtime", "win-x64", 0)]
     [InlineData("configuration", "Debug", 1)]
     [InlineData("runtime", "win-x64", 1)]
-    public void Validate_WrongOrMixedTuple_NamesTargetRule(string attribute, string value, int index)
+    public void ValidateWrongOrMixedTupleNamesTargetRule(string attribute, string value, int index)
     {
         XElement manifest = Fixture();
         manifest.Elements().ElementAt(index).SetAttributeValue(attribute, value);

@@ -1,4 +1,3 @@
-#pragma warning disable CA1707 // Owner requires Method_Scenario_Expected names.
 using System.Collections.Immutable;
 using NvtFwCombiner.Architecture.Tests.Metadata;
 
@@ -18,7 +17,7 @@ public sealed class CompiledMetadataBoundaryTests
     private const string Presentation = MetadataFixtureBuilder.Presentation;
     // UiCompositionRunner is a ViewModel projection helper (accepted layering audit, memory-layout row).
     // Namespace roles are explicit; these reusable primitives historically reside under Views.
-    private static readonly ImmutableDictionary<string, string> ExactRoles = new Dictionary<string, string>(StringComparer.Ordinal)
+    private static readonly ImmutableDictionary<string, string> _exactRoles = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["Views.HexViewportControl"] = "Control",
         ["Views.MemoryCoverageBar"] = "Control",
@@ -49,7 +48,7 @@ public sealed class CompiledMetadataBoundaryTests
         string root = type.Split('+')[0];
         if (!root.StartsWith(Presentation + ".", StringComparison.Ordinal)) { return "Other"; }
         string relative = root[(Presentation.Length + 1)..];
-        return ExactRoles.TryGetValue(relative, out string? role)
+        return _exactRoles.TryGetValue(relative, out string? role)
             ? role
             : relative switch
             {
@@ -80,7 +79,7 @@ public sealed class CompiledMetadataBoundaryTests
     }
     // Reviewed N0a legacy findings only. Remove resolved entries; never add new allowances.
     // N0b moves these exact identities and reasons into its ratcheted baseline.
-    private static readonly ImmutableArray<(BoundaryFinding Finding, string Reason)> KnownViolations =
+    private static readonly ImmutableArray<(BoundaryFinding Finding, string Reason)> _knownViolations =
     [
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", ".ctor(System.Func`3<System.Action,System.TimeSpan,System.IDisposable>)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", ".ctor(System.Func`3<System.Action,System.TimeSpan,System.IDisposable>) [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem"),
@@ -155,10 +154,10 @@ public sealed class CompiledMetadataBoundaryTests
 
     /// <summary>Every acquired assembly is scanned and new or stale A2 allowances fail.</summary>
     [Fact]
-    public void Boundaries_CurrentAssemblies_MatchReviewedKnownViolations()
+    public void BoundariesCurrentAssembliesMatchReviewedKnownViolations()
     {
         ImmutableArray<BoundaryFinding> actual = Find(AssemblyInventory.Load().SelectMany(input => MetadataReferenceWalker.Read(input.Image, Path.GetDirectoryName(input.Path))));
-        Assert.True(KnownViolations.Select(item => item.Finding.ToString()).Order(StringComparer.Ordinal).SequenceEqual(actual.Select(item => item.ToString())), string.Join(Environment.NewLine, actual));
+        Assert.True(_knownViolations.Select(item => item.Finding.ToString()).Order(StringComparer.Ordinal).SequenceEqual(actual.Select(item => item.ToString())), string.Join(Environment.NewLine, actual));
     }
     /// <summary>Every metadata traversal surface can expose a forbidden Control.</summary>
     [Theory]
@@ -184,7 +183,7 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData("MemberReference")]
     [InlineData("MethodSpecification")]
     [InlineData("Calli")]
-    public void Boundaries_ForbiddenControl_NamesRuleAndLogicalOwner(string scenario)
+    public void BoundariesForbiddenControlNamesRuleAndLogicalOwner(string scenario)
     {
         ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read(MetadataFixtureBuilder.Create(scenario));
         Assert.Contains($"A2.ViewModelControls: {MetadataFixtureBuilder.ViewModel}", Assert.ThrowsAny<Exception>(() => RequireClean(references)).Message, StringComparison.Ordinal);
@@ -196,7 +195,7 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData("JsonDeserialize", ".Services.JsonCodec", "A2.PresentationRawJson")]
     [InlineData("JsonDeserializeAsync", ".Services.JsonCodec", "A2.PresentationRawJson")]
     [InlineData("JsonParse", ".Services.JsonCodec", "A2.PresentationRawJson")]
-    public void Boundaries_ForbiddenReference_NamesRuleAndOffender(string scenario, string owner, string rule)
+    public void BoundariesForbiddenReferenceNamesRuleAndOffender(string scenario, string owner, string rule)
     {
         ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read(MetadataFixtureBuilder.Create(scenario, Presentation + owner));
         Assert.Contains($"{rule}: {Presentation + owner}", Assert.ThrowsAny<Exception>(() => RequireClean(references)).Message, StringComparison.Ordinal);
@@ -207,7 +206,7 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData("Positive", ".Controls.CleanControl")]
     [InlineData("Positive", ".Services.CleanService")]
     [InlineData("View", ".Views.LegitimateView")]
-    public void Boundaries_AllowedReference_Passes(string scenario, string owner)
+    public void BoundariesAllowedReferencePasses(string scenario, string owner)
     {
         RequireClean(MetadataReferenceWalker.Read(MetadataFixtureBuilder.Create(scenario, Presentation + owner)));
     }
@@ -220,9 +219,9 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData("Pick(System.Int32) [closure]")]
     [InlineData("Generic`1(!!0) [closure]")]
     [InlineData("Generic`2(!!0) [closure]")]
-    public void Boundaries_CompiledGeneratedBody_NamesLogicalOwner(string member)
+    public void BoundariesCompiledGeneratedBodyNamesLogicalOwner(string member)
     {
-        ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read([.. File.ReadAllBytes(typeof(CompiledMetadataBoundaryTests).Assembly.Location)]);
+        ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read([.. AssemblyInventory.ReadBytes(typeof(CompiledMetadataBoundaryTests).Assembly.Location)]);
         Assert.Contains("A2.ViewModelControls: " + Presentation + ".ViewModels.AsyncBoundaryFixture | " + member,
             Assert.ThrowsAny<Exception>(() => RequireClean(references)).Message, StringComparison.Ordinal);
     }
@@ -234,5 +233,5 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData(".DesktopLaunchCoordinator", "Lifecycle")]
     [InlineData(".WindowLifetimeCoordinator", "Lifecycle")]
     [InlineData(".UnlistedCoordinator", "Other")]
-    public void Role_ExplicitCategory_MatchesPolicy(string suffix, string expected) { Assert.Equal(expected, Role(Presentation + suffix)); }
+    public void RoleExplicitCategoryMatchesPolicy(string suffix, string expected) { Assert.Equal(expected, Role(Presentation + suffix)); }
 }
