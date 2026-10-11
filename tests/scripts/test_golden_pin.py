@@ -176,7 +176,8 @@ class GoldenPinTests(unittest.TestCase):
     def test_real_public_tree_matches_committed_pin(self):
         pin = golden_pin.load_pin(ROOT / "scripts/ci/test-baseline.json")
         self.assertEqual({key: pin[key] for key in ("fileCount", "treeSha256")}, golden_pin.verify(ROOT, pin))
-        self.assertEqual("0" * 40, pin["assetsCommit"])
+        self.assertRegex(pin["assetsCommit"], r"\A[0-9a-f]{40}\Z")
+        self.assertNotEqual("0" * 40, pin["assetsCommit"])
 
     def test_export_and_from_directory_equal_pin_and_corrupt_sources_fail(self):
         export = self.work / "export"
