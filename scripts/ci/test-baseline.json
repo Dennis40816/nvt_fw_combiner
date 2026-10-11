@@ -24,7 +24,7 @@
   "pin": {
     "assetsRepo": "Dennis40816/nvt-testdata",
     "assetsPath": "nfc",
-    "assetsCommit": "0000000000000000000000000000000000000000",
+    "assetsCommit": "5c1e0eb687e9dd0fb63578378c1f7625d5dc5c22",
     "paths": [
       "testdata/golden",
       "docs/references"
