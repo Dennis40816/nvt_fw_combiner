@@ -11,9 +11,10 @@ describe the assets; they do not authorize firmware support or byte parity.
 
 `golden_pin.py compute` computes this identity. `verify` compares it to the pin.
 `write-pin` replaces only the numeric `fileCount` and the `treeSha256` token,
-preserving every other byte and the baseline layout. It never binds
-`assetsCommit`. That field remains all zeros until the owner supplies an
-actual private commit.
+preserving every other byte and the baseline layout. It never changes
+`assetsCommit`. A pull request sets that field by hand to the commit of
+`Dennis40816/nvt-testdata` that holds the same tree under `nfc/`. It is bound
+to `5c1e0eb68`, which holds 359 files with tree identity `f754e838a220`.
 
 `assemble-golden.ps1` defaults to `InTree`, which verifies the old public-tree
 layout. `FromDirectory` verifies the source under `nfc`, copies
@@ -87,7 +88,7 @@ pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode InTree
 $export = Join-Path $env:NFC_TEST_AREA_ROOT 'outputs/golden-assets-export'
 pwsh -NoProfile -File scripts/golden/export-assets-layout.ps1 -Destination $export
 
-# After the owner binds assetsCommit:
+# FromDirectory needs the bound assetsCommit (it is bound):
 pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode FromDirectory -Source $export
 
 # CI only, with the key supplied in this step's environment:
