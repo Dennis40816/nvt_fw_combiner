@@ -1,7 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
 
-using NvtFwCombiner.TestSupport;
-
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>Verifies the canonical typed General Merge blank-output initializer.</summary>

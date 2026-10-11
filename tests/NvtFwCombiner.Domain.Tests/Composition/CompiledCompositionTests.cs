@@ -1,7 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
 
-using NvtFwCombiner.TestSupport;
-
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>Tests atomic compiled-composition identity and fingerprint invariants.</summary>

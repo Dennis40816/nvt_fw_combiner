@@ -1,8 +1,6 @@
 using System.Numerics;
 using NvtFwCombiner.Domain.Composition;
 
-using NvtFwCombiner.TestSupport;
-
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 public sealed partial class CompositionEngineTests

@@ -1,8 +1,6 @@
 using System.Runtime.InteropServices;
 using NvtFwCombiner.Domain.Composition;
 
-using NvtFwCombiner.TestSupport;
-
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>Domain external-processor import ownership and full-buffer allocation tests.</summary>

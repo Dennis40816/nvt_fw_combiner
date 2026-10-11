@@ -1,7 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
 
-using NvtFwCombiner.TestSupport;
-
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>Immutable input normalization ownership and allocation tests.</summary>

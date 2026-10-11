@@ -1,8 +1,6 @@
 using System.Runtime.InteropServices;
 using NvtFwCombiner.Domain.Composition;
 
-using NvtFwCombiner.TestSupport;
-
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>External-processor staged-range ownership and allocation tests.</summary>

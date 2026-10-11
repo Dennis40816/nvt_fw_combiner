@@ -316,10 +316,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompositionIssue truncation = Assert.Single(result.Issues);
         Assert.Equal("normal-ctrlram-input", truncation.OperationId);
         Assert.Equal(CompositionIssueSeverity.Warning, truncation.Severity);
-        GoldenAssert.AssertAllGolden(originals, pair =>
-        {
-            GoldenAssert.AssertEqualsGolden(pair.Value, inputs[pair.Key], "input immutability");
-        });
+        GoldenAssert.AssertAllGolden(originals, pair => GoldenAssert.AssertEqualsGolden(pair.Value, inputs[pair.Key], "input immutability"));
 
         // CtrlRAM normalization never grants permission to truncate the immutable Reference.
         var oversizedReferenceInputs = inputs.ToDictionary(
@@ -345,10 +342,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.DoesNotContain(refused.Issues, static issue =>
             issue.Code == CompositionIssueCodes.InputAddressSpaceTruncated &&
             issue.OperationId == "reference-base");
-        GoldenAssert.AssertAllGolden(oversizedOriginals, pair =>
-        {
-            GoldenAssert.AssertEqualsGolden(pair.Value, oversizedReferenceInputs[pair.Key], "input immutability");
-        });
+        GoldenAssert.AssertAllGolden(oversizedOriginals, pair => GoldenAssert.AssertEqualsGolden(pair.Value, oversizedReferenceInputs[pair.Key], "input immutability"));
     }
 
     /// <summary>Proves the routed V2 profile matches the compiled candidate on approved owner inputs.</summary>
@@ -469,10 +463,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             Assert.All(differences.DifferenceCountByAllowedRange, count => Assert.Equal(4, count));
         }
 
-        GoldenAssert.AssertAllGolden(originalInputs, pair =>
-        {
-            GoldenAssert.AssertEqualsGolden(pair.Value, replacementInputs[pair.Key], "input immutability");
-        });
+        GoldenAssert.AssertAllGolden(originalInputs, pair => GoldenAssert.AssertEqualsGolden(pair.Value, replacementInputs[pair.Key], "input immutability"));
     }
 
     /// <summary>Retains TP-only compiled/routed parity separately from the full-Flash Golden case.</summary>

@@ -829,14 +829,9 @@ internal static class TrustedProfileBundleCatalogFactoryTestSupport
             actualProcessor.StagedArtifactBindings.Select(static binding =>
                 (binding.ArtifactId, binding.SourceSpaceId, binding.SourceRange)));
         Assert.Equal(expectedProcessor.OutputAssertions.Count, actualProcessor.OutputAssertions.Count);
-        for (int index = 0; index < expectedProcessor.OutputAssertions.Count; index++)
-        {
-            ExternalProcessorOutputAssertion expectedAssertion = expectedProcessor.OutputAssertions[index];
-            ExternalProcessorOutputAssertion actualAssertion = actualProcessor.OutputAssertions[index];
-            Assert.Equal(expectedAssertion.Range, actualAssertion.Range);
-            GoldenAssert.AssertEqualsGolden(expectedAssertion.ExpectedBytes.Span, actualAssertion.ExpectedBytes.Span,
-                "processor output assertion");
-        }
+        GoldenAssert.AssertAllGolden(
+            expectedProcessor.OutputAssertions.Zip(actualProcessor.OutputAssertions),
+            pair => { Assert.Equal(pair.First.Range, pair.Second.Range); GoldenAssert.AssertEqualsGolden(pair.First.ExpectedBytes.Span, pair.Second.ExpectedBytes.Span, "processor output assertion"); });
     }
 
     internal static string RegionChain(IEnumerable<FirmwareRegion> chain)

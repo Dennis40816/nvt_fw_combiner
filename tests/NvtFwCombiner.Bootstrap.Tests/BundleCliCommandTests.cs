@@ -154,11 +154,9 @@ public sealed partial class BundleCliCommandTests
         string canonicalBin = artifacts[0].GetProperty("DeliveredFileName").GetString()!;
         Assert.Matches("^NT51923_FlashCode_DB60DTA7C9_[0-9]{8}\\.bin$", canonicalBin);
         Assert.True(File.Exists(Path.Combine(firstDirectory, canonicalBin)));
-        GoldenAssert.AssertEqualsGolden(dp,
-            await GoldenFileIo.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(dp, await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(firstDirectory, "dp.bin"), TestContext.Current.CancellationToken), "firmware image");
-        GoldenAssert.AssertEqualsGolden(tp,
-            await GoldenFileIo.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(tp, await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(firstDirectory, "tp.bin"), TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(
             canonicalBin,
