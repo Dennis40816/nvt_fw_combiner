@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "test-baseline",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "measuredAtCommit",
+    "shards",
+    "pin"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "measuredAtCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "shards": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "minTotal",
+          "maxSkipped",
+          "exampleMinTests",
+          "requiredClasses"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "minTotal": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxSkipped": {
+            "const": 0
+          },
+          "exampleMinTests": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requiredClasses": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.]+$"
+            }
+          }
+        }
+      },
+      "propertyNames": {
+        "enum": [
+          "bootstrap",
+          "ui",
+          "core"
+        ]
+      }
+    },
+    "pin": {
+      "type": "object",
+      "required": [
+        "assetsRepo",
+        "assetsPath",
+        "assetsCommit",
+        "paths",
+        "fileCount",
+        "treeSha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "assetsRepo": {
+          "const": "Dennis40816/nvt-private-assets"
+        },
+        "assetsPath": {
+          "const": "nfc/golden-assembly"
+        },
+        "assetsCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "paths": {
+          "const": [
+            "testdata/golden",
+            "docs/references"
+          ]
+        },
+        "fileCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "treeSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

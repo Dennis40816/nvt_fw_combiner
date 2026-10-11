@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "measuredAtCommit": "13c3d11a9b7f6706320cd3749186befebb81d37f",
+  "shards": {
+    "bootstrap": {
+      "minTotal": 2295,
+      "maxSkipped": 0,
+      "exampleMinTests": 0,
+      "requiredClasses": []
+    },
+    "ui": {
+      "minTotal": 2306,
+      "maxSkipped": 0,
+      "exampleMinTests": 0,
+      "requiredClasses": []
+    },
+    "core": {
+      "minTotal": 4688,
+      "maxSkipped": 0,
+      "exampleMinTests": 0,
+      "requiredClasses": []
+    }
+  },
+  "pin": {
+    "assetsRepo": "Dennis40816/nvt-private-assets",
+    "assetsPath": "nfc/golden-assembly",
+    "assetsCommit": "0000000000000000000000000000000000000000",
+    "paths": [
+      "testdata/golden",
+      "docs/references"
+    ],
+    "fileCount": 359,
+    "treeSha256": "f754e838a2200442a67bae2f2eb204d11c60b5f453071ed908fdd59eaef70fa5"
+  }
+}
