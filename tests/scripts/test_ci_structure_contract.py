@@ -1,4 +1,7 @@
 """CI source binding and Windows structure contracts."""
+import json
+import os
+import shutil
 import tempfile
 import subprocess
 import unittest
@@ -129,6 +132,114 @@ class CiStructureContractTests(unittest.TestCase):
                     script.index("$ancestryStatus = $LASTEXITCODE"),
                     script.index("if ($ancestryStatus -ne 0)"),
                 )
+
+    def test_code_health_extends_the_restored_build_job_without_changing_checks(self) -> None:
+        expected_checks = {
+            "structure": "policy / polytail",
+            "python-worker": "python-worker / verify",
+            "repository-scripts": "python / repository policy (${{ matrix.shard }})",
+            "dotnet-build": "dotnet / build",
+            "dotnet-test": "dotnet / test (${{ matrix.shard }})",
+            "dotnet": "dotnet / build-test",
+        }
+        command = (
+            "pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify "
+            "-Repo nfc -Root . -Solution NvtFwCombiner.slnx"
+        )
+        paths = (ROOT / ".github/workflows/ci.yml",
+                 ROOT / "docs/ci/workflow-templates/ci.yml")
+        self.assertEqual(paths[0].read_bytes(), paths[1].read_bytes())
+        for path in paths:
+            with self.subTest(workflow=path):
+                workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+                jobs = workflow["jobs"]
+                self.assertEqual(expected_checks, {key: job["name"] for key, job in jobs.items()})
+                self.assertEqual({"contents": "read"}, workflow["permissions"])
+                self.assertNotIn("pull_request_target", path.read_text(encoding="utf-8"))
+                job = jobs["dotnet-build"]
+                self.assertEqual(30, job["timeout-minutes"])
+                steps = job["steps"]
+                checks = [step for owner in jobs.values() for step in owner["steps"]
+                          if "eng/core-health/repo-health.ps1" in step.get("run", "")]
+                self.assertEqual(1, len(checks))
+                health = checks[0]
+                build = next(step for step in steps
+                             if step.get("run") == "python scripts/verify.py --ci-dotnet-build")
+                self.assertEqual(health, steps[steps.index(build) + 1])
+                self.assertEqual("pwsh", health["shell"])
+                self.assertNotIn("if", health)
+                self.assertNotIn("continue-on-error", health)
+                self.assertEqual({
+                    "NFC_EVENT_NAME": "${{ github.event_name }}",
+                    "NFC_PR_BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+                    "DOTNET_CLI_UI_LANGUAGE": "en",
+                    "VSLANG": "1033",
+                    "PreferredUILang": "en-US",
+                    "MSBUILDDISABLENODEREUSE": "1",
+                    "UseSharedCompilation": "false",
+                    "DOTNET_CLI_USE_MSBUILD_SERVER": "0",
+                }, health["env"])
+                lines = [line.strip() for line in health["run"].splitlines()]
+                self.assertIn(command + " -BaseRef $env:NFC_PR_BASE_SHA", lines)
+                self.assertIn(command, lines)
+                self.assertNotIn("${{", health["run"])
+                self.assertEqual("exit $LASTEXITCODE", lines[-1])
+                uploads = [step for step in steps
+                           if step.get("with", {}).get("path") == "artifacts/code-health/"]
+                self.assertEqual(1, len(uploads))
+                artifact = uploads[0]
+                log = next(step for step in steps if step.get("name") == "Upload dotnet build log")
+                self.assertEqual("failure()", artifact["if"])
+                self.assertIs(True, artifact["continue-on-error"])
+                self.assertEqual(log["uses"], artifact["uses"])
+                self.assertEqual("ignore", artifact["with"]["if-no-files-found"])
+                self.assertEqual(log["with"]["retention-days"], artifact["with"]["retention-days"])
+
+    def test_code_health_uses_pr_base_fails_closed_and_propagates_verify_status(self) -> None:
+        shell = shutil.which("pwsh")
+        if shell is None:
+            self.skipTest("PowerShell is unavailable.")
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+        health = next(step for step in workflow["jobs"]["dotnet-build"]["steps"]
+                      if step.get("name") == "Verify enrolled C# code health")
+        checker = self.root / "eng/core-health/repo-health.ps1"
+        checker.parent.mkdir(parents=True)
+        checker.write_text(
+            "param([string]$Mode, [string]$Repo, [string]$Root, "
+            "[string]$Solution, [string]$BaseRef)\n"
+            "@{mode=$Mode; repo=$Repo; root=$Root; solution=$Solution; "
+            "base=$BaseRef; hasBase=$PSBoundParameters.ContainsKey('BaseRef')} "
+            "| ConvertTo-Json -Compress\nexit ([int]$env:NFC_STUB_EXIT)\n",
+            encoding="utf-8",
+        )
+        base = "a" * 40
+        cases = (("pull_request", base, 0), ("push", "", 0), ("push", "unused", 0),
+                 ("pull_request", "", 0), ("pull_request", " ", 0),
+                 ("pull_request", base, 7), ("push", "", 7))
+        for event, base_sha, exit_code in cases:
+            with self.subTest(event=event, base=base_sha, exit=exit_code):
+                environment = os.environ.copy()
+                environment.update(health["env"])
+                environment.update(NFC_EVENT_NAME=event, NFC_PR_BASE_SHA=base_sha,
+                                   NFC_STUB_EXIT=str(exit_code))
+                completed = subprocess.run(
+                    [shell, "-NoProfile", "-NonInteractive", "-Command",
+                     "[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)\n"
+                     + health["run"]],
+                    cwd=self.root, env=environment, capture_output=True,
+                    text=True, encoding="utf-8", timeout=30, check=False,
+                )
+                if event == "pull_request" and not base_sha.strip():
+                    self.assertNotEqual(0, completed.returncode)
+                    self.assertEqual("", completed.stdout.strip())
+                    continue
+                self.assertEqual(exit_code, completed.returncode, completed.stderr)
+                self.assertEqual({
+                    "mode": "Verify", "repo": "nfc", "root": ".",
+                    "solution": "NvtFwCombiner.slnx",
+                    "base": base_sha if event == "pull_request" else "",
+                    "hasBase": event == "pull_request",
+                }, json.loads(completed.stdout))
 
     def test_ci_workflow_validator_rejects_every_non_windows_topology(self) -> None:
         expected_jobs = {

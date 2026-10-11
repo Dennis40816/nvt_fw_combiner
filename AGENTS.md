@@ -115,6 +115,10 @@ ordinary Git or document inspection.
 
 ## Immutable architecture and firmware rules
 
+- New C# code and tests follow Core's
+  [conventions](https://github.com/Dennis40816/nvt_fw_core/blob/main/docs/core/conventions.md) and
+  [testing rules](https://github.com/Dennis40816/nvt_fw_core/blob/main/docs/core/testing.md). Existing code is
+  the baseline and may only go down.
 - Domain is pure. Application owns use cases through ports. Infrastructure
   implements adapters without redefining firmware semantics. UI/CLI send typed
   requests through the same Application services.
