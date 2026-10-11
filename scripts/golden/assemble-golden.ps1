@@ -50,6 +50,10 @@ function Invoke-QuietGit([string[]]$Arguments) {
 }
 
 try {
+    if ($Mode -ceq 'Clone' -and $env:NFC_ASSETS_KEY_FILE) {
+        # Named before any refusal, so the cleanup below also removes the key after an early failure.
+        $keyFile = [System.IO.Path]::GetFullPath($env:NFC_ASSETS_KEY_FILE)
+    }
     if ($args.Count -ne 0 -or $Mode -notin @('InTree', 'FromDirectory', 'Clone') -or
         ($Mode -eq 'FromDirectory' -and -not $Source) -or
         ($Mode -ne 'FromDirectory' -and $Source)) {
@@ -59,11 +63,7 @@ try {
     $pin = (Get-Content -LiteralPath $BaselinePath -Raw | ConvertFrom-Json).pin
     if ($pin.assetsRepo -cne 'Dennis40816/nvt-private-assets' -or
         $pin.assetsPath -cne 'nfc/golden-assembly' -or
-        $pin.assetsCommit -cnotmatch '^[0-9a-f]{40}$') { throw $failure }
-    if ($Mode -eq 'Clone' -and $env:NFC_ASSETS_KEY_FILE) {
-        # Named before any refusal, so the cleanup below also removes the key after an early failure.
-        $keyFile = [System.IO.Path]::GetFullPath($env:NFC_ASSETS_KEY_FILE)
-    }
+        $pin.assetsCommit -cnotmatch '\A[0-9a-f]{40}\z') { throw $failure }
     if ($Mode -ne 'InTree') {
         Assert-TrustedEvent
         if ($pin.assetsCommit -ceq ('0' * 40)) {
@@ -91,10 +91,10 @@ try {
             Assert-RegularPath $keyFile
             if ($keyFile -match '["\r\n]' -or -not (Test-Path -LiteralPath $keyFile -PathType Leaf)) { throw $failure }
             $cloneDirectory = Join-Path $runnerRoot ('nfc-assets-' + [guid]::NewGuid().ToString('N'))
-            foreach ($name in @('GIT_TRACE', 'GIT_TRACE_PACKET', 'GIT_TRACE_PACK_ACCESS',
-                'GIT_TRACE_PERFORMANCE', 'GIT_TRACE_SETUP', 'GIT_TRACE_SHALLOW',
-                'GIT_TRACE_CURL', 'GIT_CURL_VERBOSE', 'GIT_TRACE2', 'GIT_TRACE2_EVENT',
-                'GIT_TRACE2_PERF', 'GIT_SSH_COMMAND', 'GIT_TERMINAL_PROMPT')) {
+            $traceNames = @(Get-ChildItem Env: | Where-Object { $_.Name -like 'GIT_TRACE*' } |
+                ForEach-Object { $_.Name })
+            foreach ($name in @($traceNames + @('GIT_CURL_VERBOSE', 'GIT_SSH_COMMAND',
+                'GIT_TERMINAL_PROMPT', 'GIT_ASKPASS', 'SSH_ASKPASS'))) {
                 $previousEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
                 [Environment]::SetEnvironmentVariable($name, $null)
             }

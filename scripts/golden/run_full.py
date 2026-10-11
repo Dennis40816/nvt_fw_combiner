@@ -117,6 +117,10 @@ def run_full(*, shard: str, source: Path | None, keep: bool) -> int:
     for name in ("TEMP", "TMP", "TMPDIR"):
         environment[name] = str(area / "temp")
     commit = source_commit(ROOT)
+    status = subprocess.run(["git", "-c", f"safe.directory={ROOT.as_posix()}", "-C", str(ROOT),
+                             "status", "--porcelain", "--untracked-files=no"],
+                            capture_output=True, text=True, check=False)
+    dirty = status.returncode != 0 or bool(status.stdout.strip())
     environment.update(GITHUB_SHA=commit, GITHUB_RUN_ID=str(time_ns()), GITHUB_RUN_ATTEMPT="1")
     # The verifier requires the exact SDK of global.json. CI installs it into the checkout; locally, point
     # NFC_DOTNET_ROOT at a repository-scope install (a folder that holds dotnet.exe) when this tree has none.
@@ -189,7 +193,7 @@ def run_full(*, shard: str, source: Path | None, keep: bool) -> int:
                     raise ValueError(FAILURE)
                 shutil.rmtree(filesystem_path(resolved_work))
         finally:
-            metadata = dict(mode="FromDirectory" if source else "InTree", commit=commit, shards=rows,
+            metadata = dict(mode="FromDirectory" if source else "InTree", commit=commit, dirty=dirty, shards=rows,
                             snapshot=work.name if keep else None,
                             evidence=retained.relative_to(area).as_posix())
             (retained / "run.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")

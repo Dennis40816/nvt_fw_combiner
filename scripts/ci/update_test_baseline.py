@@ -55,7 +55,7 @@ def main() -> int:
         print(f"[update-test-baseline] minTotal {floor['minTotal']} exampleMinTests {floor['exampleMinTests']}"
               if changed else "[update-test-baseline] unchanged")
         return 0
-    except ValueError:
+    except (OSError, ValueError):
         print("Test baseline update failed.", file=sys.stderr)
         return 1
 

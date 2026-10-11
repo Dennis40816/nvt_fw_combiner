@@ -20,8 +20,10 @@ layout. `FromDirectory` verifies the source under `nfc/golden-assembly`, copies
 the pinned paths, and verifies both source and destination again. `Clone`
 uses a partial sparse Git checkout at the exact bound private commit, under
 `RUNNER_TEMP`, then applies the same verified copy. Private modes refuse an
-unbound commit with `pin is not bound to a private commit`; forks and
-Dependabot refuse with `unverified, cannot merge`.
+unbound commit with `pin is not bound to a private commit`. Private modes run
+only for a local run (no event name) and for the events `push`, `workflow_dispatch`,
+`schedule`, `merge_group` and a same-repository `pull_request`. Every other event,
+a fork and Dependabot refuse with `unverified, cannot merge`.
 
 Clone requires `NFC_ASSETS_KEY_FILE` to name the deploy-key file. The runner
 must already trust GitHub's SSH host key; interactive SSH and Git prompts and
@@ -66,6 +68,10 @@ evidence and is never an upload list. `last-run.json` points to the latest run
 using paths relative to the test area and records each shard's elapsed time.
 A real `FromDirectory` run needs a bound `assetsCommit`; synthetic policy tests
 use a bound fixture pin.
+
+The pin covers regular files only. An added empty directory or a file mode change
+is not part of the tree identity.
+
 ## Order and exact commands
 
 ```powershell

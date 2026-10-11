@@ -158,7 +158,9 @@ def write_pin(root: Path, baseline: Path) -> dict:
         updated = (text[:start] + block + text[end:]).encode("utf-8")
         if payload.startswith(b"\xef\xbb\xbf"):
             updated = b"\xef\xbb\xbf" + updated
-        baseline.write_bytes(updated)
+        temporary = baseline.with_name(baseline.name + ".tmp")
+        temporary.write_bytes(updated)
+        os.replace(temporary, baseline)
         return observed
     except (OSError, ValueError, TypeError):
         raise ValueError("Golden pin could not be written.") from None

@@ -266,6 +266,15 @@ if ($text.Trim() -cne $Expected) { throw 'Unexpected refusal message.' }
                                        environment=environment)
         self.assertFalse(key.exists())
 
+    def test_key_file_is_removed_after_an_argument_refusal(self):
+        key = self.work / "assets-key"
+        key.write_text("synthetic key", encoding="utf-8")
+        environment = dict(self.environment, NFC_ASSETS_KEY_FILE=str(key))
+        # Clone with a source is an invalid argument combination, refused before any pin or event check.
+        self.assert_powershell_refusal(mode="Clone", expected="Golden assembly arguments are invalid.",
+                                       environment=environment, source=self.work)
+        self.assertFalse(key.exists())
+
     def test_pin_loader_rejects_other_repository_path_paths_and_digest(self):
         self.assertEqual(self.pin, golden_pin.load_pin(self.baseline))
         changes = (("assetsRepo", "someone/else"), ("assetsPath", "other/path"),
