@@ -587,7 +587,7 @@ public sealed class AbCtrlRamReferencePlanTests
         var processor = new LegacyCombinerPostbuildProcessor(new ExternalCombinerToolRegistry([manifest]), toolRoot,
             workspace.PathFor("staging"), new SystemExternalProcessRunner());
         int calls = 0;
-        async ValueTask<CompositionExternalProcessorResult> Run(CompositionOperation operation, ReadOnlyMemory<byte> input,
+        async ValueTask<CompositionExternalProcessorResult> RunAsync(CompositionOperation operation, ReadOnlyMemory<byte> input,
             IReadOnlyList<ExternalProcessorStagedSource> sources, IReadOnlyList<ExternalProcessorStagedArtifact> artifacts, CancellationToken ct)
         {
             calls++;
@@ -600,7 +600,7 @@ public sealed class AbCtrlRamReferencePlanTests
         }
 
         CompositionExecutionResult output = await CompositionEngine.ExecuteAsync(prepared.Plan,
-            prepared.CreateExecutionInput(new Dictionary<string, byte[]> { ["source"] = [0xA5] }), Run, TestContext.Current.CancellationToken);
+            prepared.CreateExecutionInput(new Dictionary<string, byte[]> { ["source"] = [0xA5] }), RunAsync, TestContext.Current.CancellationToken);
         Assert.True(output.Status == CompositionExecutionStatus.Succeeded,
             "Golden assertion condition was not satisfied.");
         Assert.Equal(prepared.Banks.Count, calls);
@@ -619,7 +619,7 @@ public sealed class AbCtrlRamReferencePlanTests
 
             control[0x1FC00] = 0xA5;
             CompositionOperation tool = bank.LocalComposition.Plan.OrderedOperations.Single(static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor);
-            CompositionExternalProcessorResult processed = await Run(tool, control, [], [], TestContext.Current.CancellationToken);
+            CompositionExternalProcessorResult processed = await RunAsync(tool, control, [], [], TestContext.Current.CancellationToken);
             byte[] bytes = processed.OutputBytes.ToArray();
             if (bank.BankInstanceId == "b-bank")
             {

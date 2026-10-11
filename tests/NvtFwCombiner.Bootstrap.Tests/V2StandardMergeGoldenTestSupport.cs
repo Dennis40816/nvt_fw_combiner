@@ -183,7 +183,7 @@ internal static class V2StandardMergeGoldenTestSupport
             string schemaFileName = Path.GetFileName(entry.GetProperty("path").GetString()!);
             string contentHash = entry.GetProperty("contentHash").GetString()!;
             GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(ResolveContractSchemaPath(schemaFileName, contentHash)),
-            File.ReadAllBytes(Path.Combine(bundleRoot, "schemas", schemaFileName)), "firmware image");
+            GoldenFileIo.ReadAllBytes(Path.Combine(bundleRoot, "schemas", schemaFileName)), "firmware image");
         }
     }
 

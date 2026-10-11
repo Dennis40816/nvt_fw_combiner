@@ -71,7 +71,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
         Assert.True(result.Succeeded, result.OutcomeStatus);
         Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
         GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
-            File.ReadAllBytes(outputPath), GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString()!));
+            GoldenFileIo.ReadAllBytes(outputPath), GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString()!));
     }
 
     /// <inheritdoc/>
@@ -115,7 +115,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
         Assert.True(result.Succeeded, result.OutcomeStatus);
         Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
         GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
-            File.ReadAllBytes(outputPath), GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString()!));
+            GoldenFileIo.ReadAllBytes(outputPath), GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString()!));
         if (StringComparer.Ordinal.Equals(ic, "51929"))
         {
             VerifyNt51929CanonicalTrace(result);

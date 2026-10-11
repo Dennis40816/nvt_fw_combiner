@@ -615,7 +615,7 @@ public sealed partial class BundleCliCommandTests
         Assert.Equal(3, artifacts.Length);
         string outputName = artifacts[0].GetProperty("DeliveredFileName").GetString()!;
         GoldenAssert.AssertEqualsGolden(await GoldenFileIo.ReadAllBytesAsync(expectedPath, TestContext.Current.CancellationToken),
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
                 Path.Combine(workspace.Root, "ctrlram_bundle", outputName),
                 TestContext.Current.CancellationToken), "firmware image");
     }

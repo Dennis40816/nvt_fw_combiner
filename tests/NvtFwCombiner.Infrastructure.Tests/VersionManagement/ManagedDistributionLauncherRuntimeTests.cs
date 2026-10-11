@@ -139,7 +139,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             TestContext.Current.CancellationToken);
 
         Assert.True(swapBlocked);
-        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
+        Assert.True(result.IsSuccess, result.Issue.ToString());
         using IManagedPromotedFirstInstallation installation = result.Installation!;
         Assert.True(Directory.Exists(root));
         Assert.False(Directory.Exists(movedParent));
@@ -499,7 +499,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             seed,
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
+        Assert.True(result.IsSuccess, result.Issue.ToString());
         using IManagedPromotedFirstInstallation installation = result.Installation!;
         Assert.Equal(1, repository.InstallCount);
         Assert.Equal("distribution-launcher", await File.ReadAllTextAsync(
@@ -557,7 +557,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
+        Assert.True(result.IsSuccess, result.Issue.ToString());
         Assert.True(swapBlocked);
         result.Installation!.Dispose();
     }
@@ -632,7 +632,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
+        Assert.True(result.IsSuccess, result.Issue.ToString());
         using IManagedPromotedFirstInstallation installation = result.Installation!;
         Assert.True(swapBlocked);
         Assert.Equal("outside-owner", await File.ReadAllTextAsync(

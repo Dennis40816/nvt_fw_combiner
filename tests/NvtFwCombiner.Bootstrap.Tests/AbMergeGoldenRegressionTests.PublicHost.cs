@@ -203,8 +203,8 @@ public sealed partial class AbMergeGoldenRegressionTests
         GoldenAssert.AssertEqualsGolden(expected, output, "firmware image");
         Assert.Equal(Hash(expected), Hash(output));
         AssertPostbuildMpeg2Crc(output, bTpCodeStart: 0x8A000);
-        GoldenAssert.AssertEqualsGolden(originalDp, File.ReadAllBytes(dpPath), "firmware image");
-        GoldenAssert.AssertEqualsGolden(originalTp, File.ReadAllBytes(sharedTpPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(dpPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(sharedTpPath), "firmware image");
         using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath,
             TestContext.Current.CancellationToken));

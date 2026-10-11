@@ -74,7 +74,7 @@ public sealed partial class MergeWorkflowTests
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
         GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(expectedArtifact)),
-            File.ReadAllBytes(outputPath), "firmware image");
+            GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
         GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(selectedDpPath), "firmware image");
         GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(selectedTpPath), "firmware image");
         GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(canonicalDpPath), "firmware image");

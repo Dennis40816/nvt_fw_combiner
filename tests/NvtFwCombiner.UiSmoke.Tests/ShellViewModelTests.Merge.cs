@@ -543,7 +543,7 @@ public sealed partial class MergeWorkflowTests
         // thread-pool continuation can swallow a concurrent mapping edit
         // (BUG-20261001-general-merge-stale-preparation-overwrites-session).
         using var uiThread = new UiThreadTestContext();
-        await uiThread.InvokeAsync(async () =>
+        Func<Task> generalMergeScenario = async () =>
         {
             string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13, 0x14]);
             MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
@@ -622,7 +622,8 @@ public sealed partial class MergeWorkflowTests
             JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
             Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString());
             Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
-        });
+        };
+        await uiThread.InvokeAsync(generalMergeScenario);
     }
 
     /// <summary>Verifies Standard Merge Build validates the current context without a separate manual Preview.</summary>
