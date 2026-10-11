@@ -35,7 +35,6 @@ from unittest.loader import VALID_MODULE_NAME
 
 if __package__:
     from .canonical_golden_validation import validate_canonical_golden
-    from .ci.read_trx import INVALID_TRX, read_trx_results
     from .coverage_policy import (
         load_baseline,
         repository_relative_coverage_source,
@@ -43,7 +42,6 @@ if __package__:
     )
 else:
     from canonical_golden_validation import validate_canonical_golden
-    from ci.read_trx import INVALID_TRX, read_trx_results
     from coverage_policy import (
         load_baseline,
         repository_relative_coverage_source,
@@ -1005,6 +1003,14 @@ def ci_scrub_test_output_enabled() -> bool:
     return os.environ.get("NFC_CI_SCRUB_TEST_OUTPUT") == "1"
 
 
+def _load_trx_reader():
+    if __package__:
+        from .ci import read_trx
+    else:
+        from ci import read_trx
+    return read_trx
+
+
 def run_scrubbed_test(
     command: list[str],
     *,
@@ -1015,45 +1021,59 @@ def run_scrubbed_test(
     timeout_seconds: float | None,
     graceful_termination_seconds: float,
 ) -> None:
-    """Keep test output out of console and retained logs; reuse owned process custody."""
+    """Keep test output out of console and retained logs; reuse owned process custody.
+
+    The failure is recorded inside the handlers and raised after them, so the new exception
+    carries no `__context__` with the original command line.
+    """
     token = Path(command[0]).name
-    with tempfile.TemporaryDirectory(prefix="nfc-scrub-test-") as temporary:
-        capture = Path(temporary) / "output.log"
-        try:
-            _run_to_logs(
-                command, log_paths=(capture,), cwd=cwd, environment=environment,
-                echo=False, timeout_seconds=timeout_seconds,
-                graceful_termination_seconds=graceful_termination_seconds,
-            )
-        except subprocess.CalledProcessError as error:
-            print(f"{token} exit {error.returncode}", flush=True)
-            result_argument = next(
-                (arg.split(":", 1)[1] for arg in command
-                 if arg.startswith("--ResultsDirectory:")), None
-            )
+    exit_code: int | None = None
+    timeout: float | None = None
+    timed_out = False
+    try:
+        with tempfile.TemporaryDirectory(prefix="nfc-scrub-test-", ignore_cleanup_errors=True) as temporary:
             try:
-                if result_argument is None:
-                    raise ValueError(INVALID_TRX)
-                directory = Path(result_argument)
-                counts = read_trx_results(directory if directory.is_absolute() else cwd / directory)
-            except ValueError:
-                print(INVALID_TRX, flush=True)
-            else:
-                print(" ".join(f"{name.lower()} {counts[name]}" for name in
-                               ("Total", "Passed", "Failed", "Skipped", "NotExecuted")), flush=True)
-                for name in counts["FailedTests"]:
-                    print(name, flush=True)
-            # CalledProcessError's default string contains the full command/filter.
-            raise subprocess.CalledProcessError(error.returncode, [token]) from None
-        except subprocess.TimeoutExpired as error:
-            # Preserve the shard's fatal-timeout branch without exposing arguments/output.
-            raise subprocess.TimeoutExpired([token], error.timeout) from None
-        finally:
-            # Evidence still expects attempt.log. Retain a fixed placeholder, never child output.
-            for path in dict.fromkeys(p for p in (log_path, mirror_log_path) if p is not None):
+                _run_to_logs(
+                    command, log_paths=(Path(temporary) / "output.log",), cwd=cwd, environment=environment,
+                    echo=False, timeout_seconds=timeout_seconds,
+                    graceful_termination_seconds=graceful_termination_seconds,
+                )
+            except subprocess.CalledProcessError as error:
+                exit_code = error.returncode
+            except subprocess.TimeoutExpired as error:
+                timed_out, timeout = True, error.timeout
+    finally:
+        # Evidence still expects attempt.log. Retain a fixed placeholder, never child output.
+        for path in dict.fromkeys(p for p in (log_path, mirror_log_path) if p is not None):
+            try:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 with path.open("a", encoding="utf-8") as log:
                     log.write("Test output scrubbed.\n")
+            except OSError:
+                print("Test output placeholder could not be written.", flush=True)
+    if timed_out:
+        # Preserve the shard's fatal-timeout branch without exposing arguments/output.
+        raise subprocess.TimeoutExpired([token], timeout)
+    if exit_code is not None:
+        print(f"{token} exit {exit_code}", flush=True)
+        reader = _load_trx_reader()
+        result_argument = next(
+            (arg.split(":", 1)[1] for arg in command if arg.startswith("--ResultsDirectory:")), None
+        )
+        try:
+            if result_argument is None:
+                raise ValueError(reader.INVALID_TRX)
+            directory = Path(result_argument)
+            counts = reader.read_trx_results(directory if directory.is_absolute() else cwd / directory)
+        except ValueError:
+            print(reader.INVALID_TRX, flush=True)
+        else:
+            print(" ".join(f"{name.lower()} {counts[name]}" for name in
+                           ("Total", "Passed", "Failed", "Skipped", "NotExecuted")), flush=True)
+            for name in counts["FailedTests"]:
+                print(name, flush=True)
+        # CalledProcessError's default string contains the full command/filter.
+        raise subprocess.CalledProcessError(exit_code, [token])
 
 
 def run(
@@ -1067,7 +1087,7 @@ def run(
     graceful_termination_seconds: float = 0,
 ) -> None:
     if (ci_scrub_test_output_enabled() and len(command) > 1 and command[1] == "vstest"
-            and "--ListTests" not in command):
+            and any(arg.startswith("--ResultsDirectory:") for arg in command)):
         run_scrubbed_test(
             command, cwd=cwd, environment=environment, log_path=log_path,
             mirror_log_path=mirror_log_path, timeout_seconds=timeout_seconds,
@@ -7207,7 +7227,7 @@ def execute_verification(args: argparse.Namespace) -> int:
             subprocess.CalledProcessError,
         ) as exc:
             if ci_scrub_test_output_enabled():
-                print("\nVERIFICATION FAILED: Test verification failed.", file=sys.stderr)
+                print("\nVERIFICATION FAILED: Verification failed.", file=sys.stderr)
             else:
                 print(f"\nVERIFICATION FAILED: {exc}", file=sys.stderr)
             return 1
@@ -7280,7 +7300,7 @@ def main() -> int:
         return 128 + error.signal_number
     except (RuntimeError, ValueError, OSError, subprocess.CalledProcessError) as error:
         if ci_scrub_test_output_enabled():
-            print("\nVERIFICATION FAILED: Test verification failed.", file=sys.stderr)
+            print("\nVERIFICATION FAILED: Verification failed.", file=sys.stderr)
         else:
             print(f"\nVERIFICATION FAILED: {error}", file=sys.stderr)
         return 1

@@ -67,11 +67,15 @@ class ScrubTestOutputTests(unittest.TestCase):
         from tests.scripts.test_verify_orchestration import MODULE
         with patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "0"}), patch.object(MODULE, "run_scrubbed_test") as scrub:
             with patch.object(MODULE, "_run_to_logs"):
-                MODULE.run(["dotnet", "vstest", "test.dll"], log_path=Path("unused.log"))
+                MODULE.run(["dotnet", "vstest", "test.dll"], log_path=Path(tempfile.gettempdir()) / "nfc-unused-scrub.log")
             scrub.assert_not_called()
         with patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}), patch.object(MODULE, "run_scrubbed_test") as scrub:
             with patch.object(MODULE, "_run_to_logs"):
-                MODULE.run(["dotnet", "vstest", "test.dll", "--ListTests"], log_path=Path("unused.log"))
+                MODULE.run(["dotnet", "vstest", "test.dll", "--ListTests"], log_path=Path(tempfile.gettempdir()) / "nfc-unused-scrub.log")
+            scrub.assert_not_called()
+            with patch.object(MODULE, "_run_to_logs"):
+                MODULE.run(["dotnet", "vstest", "test.dll", "--ListFullyQualifiedTests",
+                            "--ListTestsTargetPath:names.txt"], log_path=Path(tempfile.gettempdir()) / "nfc-unused-scrub.log")
             scrub.assert_not_called()
 
     def test_scrub_preserves_fatal_timeout_type_without_private_arguments(self):
@@ -83,13 +87,68 @@ class ScrubTestOutputTests(unittest.TestCase):
                   patch.object(MODULE, "_run_to_logs", side_effect=
                                subprocess.TimeoutExpired(["dotnet", MARKER], 42, output=MARKER))):
                 with self.assertRaises(subprocess.TimeoutExpired) as caught:
-                    MODULE.run(["dotnet", "vstest", MARKER], log_path=log)
+                    MODULE.run(["dotnet", "vstest", MARKER, "--ResultsDirectory:results"], log_path=log)
             self.assertEqual(["dotnet"], caught.exception.cmd)
             self.assertEqual(42, caught.exception.timeout)
             self.assertIsNone(caught.exception.output)
             self.assertNotIn(MARKER, str(caught.exception) + log.read_text())
             self.assertTrue(directories)
             self.assertTrue(all(not directory.exists() for directory in directories))
+
+
+    def test_success_prints_nothing_and_keeps_only_the_placeholder(self):
+        from tests.scripts.test_verify_orchestration import MODULE
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            log = root / "attempt.log"
+            output, errors = io.StringIO(), io.StringIO()
+            original_start = MODULE.start_owned_process
+
+            def start_fake(command, **kwargs):
+                code = f"import sys; print('{MARKER}'); print('{MARKER}', file=sys.stderr)"
+                return original_start([sys.executable, "-c", code], **kwargs)
+
+            command = [sys.executable, "vstest", MARKER, f"--ResultsDirectory:{root / 'results'}"]
+            with (patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}),
+                  patch.object(MODULE, "start_owned_process", side_effect=start_fake),
+                  redirect_stdout(output), redirect_stderr(errors)):
+                MODULE.run(command, cwd=root, log_path=log)
+            self.assertEqual("", output.getvalue() + errors.getvalue())
+            self.assertEqual("Test output scrubbed.\n", log.read_text())
+
+    def test_raised_errors_carry_no_context_with_the_original_command(self):
+        from tests.scripts.test_verify_orchestration import MODULE
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            command = [sys.executable, "vstest", MARKER, f"--ResultsDirectory:{root / 'results'}"]
+            for failure in (subprocess.CalledProcessError(1, [MARKER]),
+                            subprocess.TimeoutExpired([MARKER], 7, output=MARKER)):
+                with self.subTest(kind=type(failure).__name__):
+                    with (patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}),
+                          patch.object(MODULE, "_run_to_logs", side_effect=failure),
+                          redirect_stdout(io.StringIO())):
+                        with self.assertRaises(type(failure)) as caught:
+                            MODULE.run(command, cwd=root, log_path=root / "attempt.log")
+                    self.assertIsNone(caught.exception.__context__)
+                    self.assertIsNone(caught.exception.__cause__)
+                    self.assertNotIn(MARKER, str(caught.exception))
+
+    def test_placeholder_write_failure_does_not_replace_the_original_error(self):
+        from tests.scripts.test_verify_orchestration import MODULE
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            blocker = root / "blocker"
+            blocker.write_text("file", encoding="utf-8")
+            log = blocker / "attempt.log"  # the parent is a file, so the placeholder cannot be written
+            output = io.StringIO()
+            with (patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}),
+                  patch.object(MODULE, "_run_to_logs", side_effect=subprocess.TimeoutExpired([MARKER], 9)),
+                  redirect_stdout(output)):
+                with self.assertRaises(subprocess.TimeoutExpired) as caught:
+                    MODULE.run([sys.executable, "vstest", MARKER, "--ResultsDirectory:r"], cwd=root, log_path=log)
+            self.assertEqual(9, caught.exception.timeout)
+            self.assertIn("Test output placeholder could not be written.", output.getvalue())
+            self.assertNotIn(MARKER, output.getvalue())
 
 
 if __name__ == "__main__":
