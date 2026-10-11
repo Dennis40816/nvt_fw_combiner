@@ -11,6 +11,9 @@ public static class GoldenAssert
 {
     private static readonly object _safeMismatchMarker = new();
 
+    // A hash prefix of a short value can be reversed by trying every value, so it is not printed.
+    public const int MinimumHashedLength = 32;
+
     /// <summary>Compares complete spans using only lengths, an offset and abbreviated hashes on failure.</summary>
     public static void AssertEqualsGolden(ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual, string label)
     {
@@ -47,12 +50,19 @@ public static class GoldenAssert
     private static XunitException CreateMismatch(
         ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual, string label, int offset)
     {
-        string expectedHash = Convert.ToHexStringLower(SHA256.HashData(expected))[..12];
-        string actualHash = Convert.ToHexStringLower(SHA256.HashData(actual))[..12];
+        string expectedHash = HashPrefix(expected);
+        string actualHash = HashPrefix(actual);
         var failure = new XunitException(FormattableString.Invariant(
             $"Golden mismatch [{label}]: expected {expected.Length} bytes, actual {actual.Length} bytes, first difference at offset 0x{offset:X}, expected sha256 {expectedHash}, actual sha256 {actualHash}."));
         failure.Data[_safeMismatchMarker] = true;
         return failure;
+    }
+
+    private static string HashPrefix(ReadOnlySpan<byte> value)
+    {
+        return value.Length < MinimumHashedLength
+            ? "omitted"
+            : Convert.ToHexStringLower(SHA256.HashData(value))[..12];
     }
 
     /// <summary>Checks every item while exposing only trusted golden mismatch diagnostics.</summary>
@@ -137,7 +147,10 @@ public static class GoldenDiagnostics
     public static string TextSummary(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        string hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..12];
+        byte[] bytes = Encoding.UTF8.GetBytes(value);
+        string hash = bytes.Length < GoldenAssert.MinimumHashedLength
+            ? "omitted"
+            : Convert.ToHexStringLower(SHA256.HashData(bytes))[..12];
         return FormattableString.Invariant($"length {value.Length}, sha256 {hash}");
     }
 

@@ -88,7 +88,7 @@ public sealed class CliReportReceiptTests
             cancellation.Token);
 
         Assert.True(cancellation.IsCancellationRequested);
-        Assert.True(exitCode == 0, error + Environment.NewLine + output);
+        Assert.True(exitCode == 0, GoldenDiagnostics.TextSummary(error + Environment.NewLine + output));
         _ = await AssertCommittedReceiptAsync(output.ToString(), outputPath);
         AssertReportFailedAfterCommit(output.ToString(), error.ToString(), reportPath);
         Assert.False(File.Exists(reportPath));

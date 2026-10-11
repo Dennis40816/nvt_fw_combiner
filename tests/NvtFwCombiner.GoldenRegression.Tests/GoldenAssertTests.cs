@@ -1,4 +1,5 @@
 // Copyright (c) 2026 Dennis Liu. All rights reserved.
+using System.Security.Cryptography;
 using NvtFwCombiner.TestSupport;
 using Xunit.Sdk;
 
@@ -33,8 +34,22 @@ public sealed class GoldenAssertTests
         XunitException failure = Assert.Throws<XunitException>(() =>
             GoldenAssert.AssertEqualsGolden(new byte[] { 1, 2, 3 }, new byte[] { 1, 9, 3 }, "header magic"));
 
-        Assert.StartsWith("Golden mismatch [header magic]: expected 3 bytes, actual 3 bytes, first difference at offset 0x1, expected sha256 039058c6f2c0, actual sha256 ", failure.Message, StringComparison.Ordinal);
-        Assert.Matches("actual sha256 [0-9a-f]{12}\\.$", failure.Message);
+        Assert.Equal("Golden mismatch [header magic]: expected 3 bytes, actual 3 bytes, first difference at offset 0x1, expected sha256 omitted, actual sha256 omitted.", failure.Message);
+    }
+
+    [Fact]
+    public void AssertEqualsGolden_LongImageDifference_ReportsHashPrefixOfBothSides()
+    {
+        byte[] expected = new byte[GoldenAssert.MinimumHashedLength];
+        byte[] actual = new byte[GoldenAssert.MinimumHashedLength];
+        actual[7] = 1;
+
+        XunitException failure = Assert.Throws<XunitException>(() =>
+            GoldenAssert.AssertEqualsGolden(expected, actual, "long image"));
+
+        string expectedHash = Convert.ToHexStringLower(SHA256.HashData(expected))[..12];
+        string actualHash = Convert.ToHexStringLower(SHA256.HashData(actual))[..12];
+        Assert.Equal($"Golden mismatch [long image]: expected 32 bytes, actual 32 bytes, first difference at offset 0x7, expected sha256 {expectedHash}, actual sha256 {actualHash}.", failure.Message);
     }
 
     [Fact]
@@ -120,17 +135,18 @@ public sealed class GoldenAssertTests
         XunitException failure = Assert.Throws<XunitException>(() =>
             GoldenAssert.AssertEqualsGolden((byte[]?)null, Array.Empty<byte>(), "optional image"));
 
-        Assert.Equal("Golden mismatch [optional image]: expected 0 bytes, actual 0 bytes, first difference at offset 0x0, expected sha256 e3b0c44298fc, actual sha256 e3b0c44298fc.", failure.Message);
+        Assert.Equal("Golden mismatch [optional image]: expected 0 bytes, actual 0 bytes, first difference at offset 0x0, expected sha256 omitted, actual sha256 omitted.", failure.Message);
     }
 
     [Fact]
     public void TextSummary_PrivateOutput_ReportsOnlyLengthAndHash()
     {
-        const string output = "secret-DEADBEEF/customer.bin";
+        const string output = "secret-DEADBEEF/customer.bin/segment-two";
 
         string summary = GoldenDiagnostics.TextSummary(output);
 
-        Assert.Equal("length 28, sha256 f8a4979243a8", summary);
+        Assert.Equal("length 40, sha256 e945324154a5", summary);
+        Assert.Equal("length 4, sha256 omitted", GoldenDiagnostics.TextSummary("abcd"));
         Assert.DoesNotContain("DEADBEEF", summary, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("customer.bin", summary, StringComparison.Ordinal);
     }

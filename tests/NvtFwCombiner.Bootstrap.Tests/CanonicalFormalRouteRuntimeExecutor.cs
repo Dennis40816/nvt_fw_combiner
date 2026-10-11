@@ -59,7 +59,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
                     !TestContext.Current.CancellationToken.IsCancellationRequested)
                 {
                     throw new InvalidOperationException(
-                        $"Formal runtime case '{runtimeCase.CaseId}' failed.",
+                        $"Formal runtime case '{GoldenDiagnostics.Label(runtimeCase.CaseId)}' failed.",
                         exception);
                 }
                 executedCases++;

@@ -9,8 +9,6 @@ using Avalonia.Threading;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.DistributionLauncher;
 
-using NvtFwCombiner.TestSupport;
-
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Measured geometry regressions for the standalone distribution Launcher.</summary>

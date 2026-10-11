@@ -303,7 +303,7 @@ public sealed class CliReportAtomicWriteTests
             cancellation.Token);
 
         Assert.True(cancellation.IsCancellationRequested);
-        Assert.True(exitCode == 0, error + Environment.NewLine + output);
+        Assert.True(exitCode == 0, GoldenDiagnostics.TextSummary(error + Environment.NewLine + output));
         AssertCommittedReportFailed(output.ToString(), error.ToString(), reportPath);
         AssertEarlierReportKept(reportPath);
     }
