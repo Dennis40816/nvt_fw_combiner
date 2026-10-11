@@ -1,14 +1,17 @@
 """Raise test floors only from complete, passing, zero-skip TRX runs."""
+import os
 from pathlib import Path
 import sys
 
 if __package__:
     from .fixed_argparse import FixedArgumentParser
-    from .baseline_contract import ROOT, SHARDS, load_baseline, source_commit, validate_baseline, write_json
+    from .baseline_contract import (ROOT, SHARDS, UPDATE_MODE_VARIABLES, load_baseline, source_commit,
+                                    validate_baseline, write_json)
     from .read_trx import get_example_data_test_names, read_trx_results
 else:
     from fixed_argparse import FixedArgumentParser
-    from baseline_contract import ROOT, SHARDS, load_baseline, source_commit, validate_baseline, write_json
+    from baseline_contract import (ROOT, SHARDS, UPDATE_MODE_VARIABLES, load_baseline, source_commit,
+                                   validate_baseline, write_json)
     from read_trx import get_example_data_test_names, read_trx_results
 
 
@@ -19,7 +22,9 @@ def update_test_baseline(*, shard: str, results_directory: Path, baseline_path: 
         floor = baseline["shards"][shard]
         counts = read_trx_results(results_directory)
         if (not counts["Completed"] or counts["Failed"] or counts["Skipped"]
-                or counts["NotExecuted"] or counts["Total"] < floor["minTotal"]):
+                or counts["NotExecuted"] or counts["Passed"] != counts["Total"]
+                or counts["Total"] < floor["minTotal"]
+                or any(name in os.environ for name in UPDATE_MODE_VARIABLES)):
             raise ValueError("Unsuccessful tests.")
         example_floor = floor["exampleMinTests"]
         if example_data_present:

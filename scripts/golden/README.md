@@ -54,9 +54,9 @@ lives in the sibling folder `NvtFwCombiner-GoldenRun`, next to the folder that
 `TEMP`, `TMP`, and `TMPDIR` to the `temp` child of the test area, assembles, and
 runs exactly `python scripts/verify.py --ci-dotnet-test-shard <shard>` followed
 by the shard checker. Each shard has the requested 45-minute operational limit.
-This limit is not a timing-test assertion. The raw child output is captured in
-the run folder and deleted, unless `-Keep` is supplied and a shard failed. The
-whole run folder, which holds the golden files, is deleted unless `-Keep` is
+This limit is not a timing-test assertion. The raw child output goes to a log in
+the run folder, and the run deletes that log. With `-Keep` and a failed shard,
+a copy of the log goes to the retained evidence folder first. The whole run folder, which holds the golden files, is deleted unless `-Keep` is
 supplied. A run that ends by an unexpected process kill can leave the folder
 behind; delete it by hand.
 
@@ -65,7 +65,9 @@ Local evidence and summaries remain beneath
 raw upload folder of each shard (TRX, discovery list, coverage), so it can
 contain test names, theory arguments and `ErrorInfo`. It is private local
 evidence and is never an upload list. `last-run.json` points to the latest run
-using paths relative to the test area and records each shard's elapsed time.
+using paths relative to the test area and records each shard's elapsed time and
+a `dirty` flag. The flag is true when a tracked file differs from `HEAD`; the
+shard summaries still name `HEAD` as the commit.
 A real `FromDirectory` run needs a bound `assetsCommit`; synthetic policy tests
 use a bound fixture pin.
 

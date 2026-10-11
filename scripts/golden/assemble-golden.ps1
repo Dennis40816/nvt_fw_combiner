@@ -50,7 +50,7 @@ function Invoke-QuietGit([string[]]$Arguments) {
 }
 
 try {
-    if ($Mode -ceq 'Clone' -and $env:NFC_ASSETS_KEY_FILE) {
+    if ($Mode -eq 'Clone' -and $env:NFC_ASSETS_KEY_FILE) {
         # Named before any refusal, so the cleanup below also removes the key after an early failure.
         $keyFile = [System.IO.Path]::GetFullPath($env:NFC_ASSETS_KEY_FILE)
     }
@@ -93,8 +93,9 @@ try {
             $cloneDirectory = Join-Path $runnerRoot ('nfc-assets-' + [guid]::NewGuid().ToString('N'))
             $traceNames = @(Get-ChildItem Env: | Where-Object { $_.Name -like 'GIT_TRACE*' } |
                 ForEach-Object { $_.Name })
-            foreach ($name in @($traceNames + @('GIT_CURL_VERBOSE', 'GIT_SSH_COMMAND',
-                'GIT_TERMINAL_PROMPT', 'GIT_ASKPASS', 'SSH_ASKPASS'))) {
+            foreach ($name in @($traceNames + @('GIT_CURL_VERBOSE', 'GIT_SSH_COMMAND', 'GIT_SSH',
+                'GIT_TERMINAL_PROMPT', 'GIT_ASKPASS', 'SSH_ASKPASS', 'GIT_CONFIG_COUNT',
+                'GIT_CONFIG_PARAMETERS', 'GIT_DIR', 'GIT_WORK_TREE'))) {
                 $previousEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
                 [Environment]::SetEnvironmentVariable($name, $null)
             }

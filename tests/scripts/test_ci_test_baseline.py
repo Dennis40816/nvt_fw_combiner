@@ -175,6 +175,16 @@ class CiTestBaselineTests(unittest.TestCase):
         self.assertTrue(summary["checks"]["belowFloor"])
         self.assertEqual("unverified", self.check("--unverified")[1]["outcome"])
 
+    def test_updater_refuses_when_an_update_mode_variable_is_present(self):
+        write_trx(self.results, ("Passed",) * 4)
+        saved = self.baseline.read_bytes()
+        for value in ("1", "0", ""):
+            with self.subTest(value=value), patch.dict(
+                    os.environ, {baseline_contract.UPDATE_MODE_VARIABLES[0]: value}):
+                result = self.update()
+                self.assertEqual(1, result.returncode)
+                self.assertEqual(saved, self.baseline.read_bytes())
+
     def test_updater_raises_only_and_rejected_run_preserves_bytes(self):
         write_trx(self.results, ("Passed",) * 4)
         before = deepcopy(self.document)

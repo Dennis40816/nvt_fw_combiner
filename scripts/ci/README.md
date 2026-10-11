@@ -87,4 +87,5 @@ python -m pytest tests/scripts/test_ci_test_baseline.py tests/scripts/test_golde
 
 `read_trx.py` emits only counters and parameter-free method outcomes. Raw TRX,
 coverage, discovery and attempt artifacts retain their existing formats and
-are not made safe for public upload by writing a summary. Do not enable private asset assembly in public CI before the owner approves a workflow change.
+are not made safe for public upload by writing a summary. Do not enable
+private asset assembly in public CI before the owner approves a workflow change.
