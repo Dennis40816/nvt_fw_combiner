@@ -35,7 +35,7 @@
     <HealthBaselineWarningIds>CA1031;RS0030;VSTHRD002</HealthBaselineWarningIds>
   </PropertyGroup>
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.Bootstrap.Tests'">
-    <HealthBaselineWarningIds>EnableGenerateDocumentationFile;IDE1006;RS0030;VSTHRD002;VSTHRD003;VSTHRD103;VSTHRD200</HealthBaselineWarningIds>
+    <HealthBaselineWarningIds>EnableGenerateDocumentationFile;IDE1006;RS0030;VSTHRD002;VSTHRD003;VSTHRD103</HealthBaselineWarningIds>
   </PropertyGroup>
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NvtFwCombiner.CatalogProbe'">
     <HealthBaselineWarningIds>CA1031;IDE1006;RS0030</HealthBaselineWarningIds>

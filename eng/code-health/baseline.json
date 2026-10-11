@@ -4147,7 +4147,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 87
+        "methodLines": 86
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4315,7 +4315,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 103
+        "methodLines": 102
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4385,7 +4385,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 88
+        "methodLines": 86
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4399,7 +4399,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 180
+        "methodLines": 179
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4511,7 +4511,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 197
+        "methodLines": 193
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4581,7 +4581,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 82
+        "methodLines": 81
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4693,7 +4693,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "fileLines": 887
+        "fileLines": 885
       },
       "kind": "file",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4721,7 +4721,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 115
+        "methodLines": 113
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4763,7 +4763,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "fileLines": 854
+        "fileLines": 846
       },
       "kind": "file",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4831,7 +4831,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 180
+        "methodLines": 179
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -5771,7 +5771,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "fileLines": 845
+        "fileLines": 842
       },
       "kind": "file",
       "project": "NvtFwCombiner.ProfileContract.Tests",
@@ -5813,7 +5813,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 117
+        "methodLines": 116
       },
       "kind": "member",
       "project": "NvtFwCombiner.ProfileContract.Tests",
@@ -21044,17 +21044,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbCtrlRamAuthoringTests.AcceptedSessionBuildUsesBankDraft(AbCtrlRamBankSelection,bool,bool)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "7791dc585b3c7866fd230a45a5fb5cf3f63710205df489c65dfd0cad671cb552",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamAuthoringTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.AbCtrlRamAuthoringTests.CascadeAuthoringAcceptsThreeIcReference(string)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -21238,17 +21227,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "8cf40a5c70ef8f654108a3ae5cd5704477d9dad870e45420a4cdd6f6f42532e0",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamFullInputCandidateTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbCtrlRamFullInputCandidateTests.RealSourcesProduceBankIsolatedCandidate(AbCtrlRamBankSelection,string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "b08a931be195ff77b165cd9c4eb70d21f6983eeda5fe47c3dffde4ac3af267fc",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamFullInputCandidateTests.cs",
       "count": 1
     },
@@ -21660,17 +21638,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeDpOuterLengthWarningTests.BothFormatsBuildWithExactCommonDpCapacityAsync(string,string?,byte,int)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "dc754e3284687f5c0cdb914ede52adf366da1bc0043853f08276d73d46b88c04",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeDpOuterLengthWarningTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeFormatAdmissionTests.PersistedConfigurationIsAcceptedByFormatAdmissionAsync(bool,byte,string,string)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -21787,28 +21754,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "123714cf06ce6dc754381d0ce00ce0ffe04ac725585b91cfe5b965b0efb228bb",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51951SharedTpPublicHostEnforcesPrimaryValidityAsync(bool)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "19d6c54e203a739319b6c3600e6fc27789587e98376f6049345d725c24b5b2d6",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.Nt51951SharedTpPublicHostEnforcesPrimaryValidityAsync(bool)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "a38077a6fe43f137d0e46d7fe3056b5f816fba81f49a897c0e1f8aa9afab5049",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
       "count": 1
@@ -21842,51 +21787,7 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "19d6c54e203a739319b6c3600e6fc27789587e98376f6049345d725c24b5b2d6",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.RunNt51950CanonicalPublicHostAsync(string,string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "25b28a1f49bc5418733d497082f9e846c7619bbbe6c6bcba694667fb02ae21e4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.RunNt51950CanonicalPublicHostAsync(string,string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "a38077a6fe43f137d0e46d7fe3056b5f816fba81f49a897c0e1f8aa9afab5049",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.RunNt51950CanonicalPublicHostAsync(string,string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "b957c004a2c05892647e8baa6fa87f8bf391eff0b04478ce3d3cf3d82b70ce75",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeGoldenRegressionTests.RunNt51950CanonicalPublicHostAsync(string,string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "c2219719b03fd6c38fe6ac2b7c13ba03b7a7b3a7983bc9ce301a064315f2f983",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.PublicHost.cs",
       "count": 1
     },
@@ -21999,17 +21900,6 @@
       "syntaxHash": "2d547ac871dde2c1192c27b63fcd018d85ae09d021b9c70d7ebb21f293bf7a77",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.AFlashCodeOutputProtection.cs",
       "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeRuntimeAdmissionTests.CompleteDpAbRejectsTrailingBytesAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "754f609048f0a4e72005889112baa2d5281767609542c6b15944348e49b09d6b",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.SourceViews.cs",
-      "count": 1
     },
     {
       "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeRuntimeAdmissionTests.CompleteDpAbRejectsTrailingBytesAsync()",
@@ -22144,17 +22034,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeRuntimeAdmissionTests.ExactBuildCommitsOutputAndPreservesSourcesAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "3b282cc2fa5614e3eb7a4aa6de62e7d0b33b161446ce16e701d9a160e2315ec4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeRuntimeAdmissionTests.ExplicitDpModeEnforcesSessionMembership(AbMergeDpMode,bool,bool)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -22163,17 +22042,6 @@
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "bd8eecf3e67c746a0f918bb687362ed9845b418fb241de438f76927cf10c9adb",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.DummyDp.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeRuntimeAdmissionTests.OneByteShortInputBlocksWithoutOutputAsync(string,int,string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "07abc94eae3edb1b37442127e4eb49210edc3724622fe4d5880edf58b59020a4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.cs",
       "count": 1
     },
     {
@@ -22210,17 +22078,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeRuntimeAdmissionTests.RenderedAutomaticOutputNameCannotAliasInputAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "c0a9582073d9889cb44e796ec245f63613e7917608df9d9b11f7ca4bcc681a4a",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeRuntimeAdmissionTests.TpSourceViewIgnoresTrailingBytesWithoutChangingOutputAsync(string)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -22228,17 +22085,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "aeb4c5bc1c5432f476a38e81fa00576a4a88da6eefffc0069fcbaad44c4e3ee9",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbMergeRuntimeAdmissionTests.TpSourceViewIgnoresTrailingBytesWithoutChangingOutputAsync(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "beb6f4bb7b06f9e91f5067e6890162f4c7805c67a166c2a649f86b204126a27c",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbMergeRuntimeAdmissionTests.cs",
       "count": 1
     },
@@ -22392,17 +22238,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "e83b0183029c5534d466b630235299d26a95f4eff8aa583ba2f25c19dbd01203",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AcceptedSessionFileIdentityTests.CtrlRam.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AcceptedSessionFileIdentityTests.CtrlRamReplaceAcceptedSessionBuildsBundleAfterSourceMutation(bool)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "efd56fbc415cca4e81634988f0b240023314304d1040370b7df0526a28e92798",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/AcceptedSessionFileIdentityTests.CtrlRam.cs",
       "count": 1
@@ -22470,17 +22305,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "babfed8820249e483d34d907132d45ae011473275a7b070566d77cf45471a142",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AcceptedSessionFileIdentityTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AcceptedSessionFileIdentityTests.StandardMergeAcceptedSessionSharesOnePathAcrossLogicalSlots()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "e8b27cb0340473dbc4aec9e6f2228d2d56765deb2ab68af88f9699e3f23966c6",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/AcceptedSessionFileIdentityTests.cs",
       "count": 1
     },
@@ -22612,62 +22436,7 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "0145a1f32d57b11c3ddc1bb6a78ae73bc09ead7fa4fde87c42f6b3cc1c26323b",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BuiltInV2StandardMergeRoutingTests.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BuiltInV2StandardMergeRoutingTests.EveryProductionDeploymentMaterializesManifestPinnedEntries()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "6490c183b3cccaf7261a0d4cf1d895e399c13c0384aa9583c97077d10afe0475",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BuiltInV2StandardMergeRoutingTests.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BuiltInV2StandardMergeRoutingTests.EveryProductionDeploymentMaterializesManifestPinnedEntries()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "678c2de90e7023d5ed2537f638669007698bf0d95ee26927e409b0e1a942faf5",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BuiltInV2StandardMergeRoutingTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BuiltInV2StandardMergeRoutingTests.EveryProductionDeploymentMaterializesManifestPinnedEntries()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "9e6c1fb548133f3ff5dd92cd5a1207ebe11f01cc5a22ee01cd1f2d7c3272bba4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BuiltInV2StandardMergeRoutingTests.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BuiltInV2StandardMergeRoutingTests.EveryProductionDeploymentMaterializesManifestPinnedEntries()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "d5e77daf06b8bd6e02daa29fed54492b86aaa09b10829c734bcd2ce9d168f156",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BuiltInV2StandardMergeRoutingTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BuiltInV2StandardMergeRoutingTests.EveryProductionDeploymentMaterializesManifestPinnedEntries()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "f8427a51edb8d000504647a06d6c95bb2af1e115ff74ae307879bd143bd4ee03",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/BuiltInV2StandardMergeRoutingTests.cs",
       "count": 1
     },
@@ -22679,17 +22448,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllText(System.String)",
       "syntaxHash": "934b61007369d32a488e1c1b5cb532a5c351ade35f4148bc35f1790c16b90b9b",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BuiltInV2StandardMergeRoutingTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BuiltInV2StandardMergeRoutingTests.Nt51928StandardMergeBuildsTheSelectedCapacityWithoutImplicitLdcAsync(string,bool,int)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "97104b4858f1d7daeec95502e0cbe1867054d4c44d939ab4e87394bfa3593052",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/BuiltInV2StandardMergeRoutingTests.cs",
       "count": 1
     },
@@ -22776,28 +22534,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "94b56cfec2b89a119c643628af47ff85a353392a408e4fb2fb89ce8561b5f392",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.Replace.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BundleCliCommandTests.AutomaticAndExplicitOutputRetainDistinctNamingIdentity(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "f8c607abc74fa13f788d7c65b843e1e663386e7a83a803c33059a36fd3b01b03",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.Replace.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BundleCliCommandTests.AutomaticAndExplicitOutputRetainDistinctNamingIdentity(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "03ebc396c4bc091bbea9b7068385d80745ce8bebcd7c98cec5362aa539c62e0c",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.Replace.cs",
@@ -22820,30 +22556,8 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "6387fcf414af60ed2ee2b7597f45988ef09c859d79c9962be9a0c9aa941cce52",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BundleCliCommandTests.CtrlRamReplaceBuildCommitsReadinessBoundBundle()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "b3fa0f98c53fe8d865b551387865f1cf155f8b9c9cb1ca42ea6395a3caa35b33",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BundleCliCommandTests.GeneralMergeBuildCommitsBundleWithoutLooseOutput()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "fd754b174ef4892e8ac1d0b0c1cfa3c9c3c84a4e5dbd93a8416dad75a2dc78d8",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.cs",
       "count": 1
     },
@@ -22856,17 +22570,6 @@
       "symbol": "M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "b3fa0f98c53fe8d865b551387865f1cf155f8b9c9cb1ca42ea6395a3caa35b33",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BundleCliCommandTests.GeneralReplaceBuildCommitsCanonicalBundleOutput()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "4852eeac67042e1801488283f7e9127fa1db09c4b9a9ad8d6e2a4c3a5a3cb798",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.Replace.cs",
       "count": 1
     },
     {
@@ -22922,28 +22625,6 @@
       "symbol": "M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "b3fa0f98c53fe8d865b551387865f1cf155f8b9c9cb1ca42ea6395a3caa35b33",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.Replace.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BundleCliCommandTests.StandardMergeBundleUsesProposalSupportsEditAndReportsCollisionReceipt()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "3c9d59ac4beafc08b5cdb4d43bbe93402472e63663e9878b4c11f03c228b0c0d",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.BundleCliCommandTests.StandardMergeBundleUsesProposalSupportsEditAndReportsCollisionReceipt()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "ef863ede7561cc72835d671fe53f6ae6ac05ab3dc5fbce1bcfa06dcee0bd73be",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/BundleCliCommandTests.cs",
       "count": 1
     },
     {
@@ -23108,17 +22789,6 @@
       "rule": "RS0030",
       "symbol": "M:System.Environment.GetEnvironmentVariable(System.String)",
       "syntaxHash": "7801477077030aa1f9da47d2c3f351bc3feb9f45d1247e2d36c93efe0c4b83e9",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalInputReadFailureRegressionTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CanonicalInputReadFailureRegressionTests.CanonicalNt51929RunReturnsInjectedArtifactReadFailureWithoutOutputAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "e623fdcb1e58af10278e06b60f6fc39d5e69160e87d47586bf4750018c6691ef",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalInputReadFailureRegressionTests.cs",
       "count": 1
     },
@@ -23387,28 +23057,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CliGoldenByteEvidence.EqualGolden(JsonElement,byte[])",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "176843d28c284aa10d1034a8ec21bc0375ab0cb382b0537b93bc90d0a1d96a86",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CliGoldenByteEvidence.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CliReportAtomicWriteTests.AssertEarlierReportKept(string,StringWriter?,string?)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "6b6f44bb9a3bae9da186b59423ea9857b3bcb7a7262738355636313f21a704c2",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CliReportAtomicWriteTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.CliReportAtomicWriteTests.CommittedBuildReplacesTheEarlierReport()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -23427,39 +23075,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "6f055277f59dd947b2001fa452808a135eaff3505aaacfac20dcc36c876f5bc8",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CliReportAtomicWriteTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CliReportAtomicWriteTests.ExistingFileWithTheStagingNameIsNeitherDeletedNorChanged()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "5f439f8c477d673250dded1c33772f69306f980f06249b7f9b5e9f865e9d8e04",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CliReportAtomicWriteTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CliReportAtomicWriteTests.ExistingFileWithTheStagingNameIsNeitherDeletedNorChanged()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "7d08181d3cb70e8631d8f92eda65f95953440371bb3fdebfb5a568290db5af7b",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CliReportAtomicWriteTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CliReportAtomicWriteTests.SuccessfulWriteStoresTheExactReportBytes(bool)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "687b4851ce7e87bab6385a8a3cb2c6b01fa9ef37713fea92744b26a10d884ee4",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/CliReportAtomicWriteTests.cs",
       "count": 1
     },
@@ -23486,17 +23101,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CliReportReceiptTests.CommittedBuildReceiptSurvivesReportWriteFailure(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "d10d37c5732d80e6c09be3d381b86951d5f7ae4d1e05757fe804cc11fccea08a",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CliReportReceiptTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.CliReportReceiptTests.CommittedBuildWritesReportAfterReceipt(string)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -23516,28 +23120,6 @@
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "4fbfe7d71a5593c1e7dcf83ccc8b02833cd64a875f582915964bc2c134bcee2e",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/CliReportReceiptTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CliReportReceiptTests.ReportNamingBundleSourceCopyDoesNotOverwriteIt()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "3fe7b8a0c03b33db293995004c5a49b86cbaf45312d38e32c9515adae3cd265d",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CliReportReceiptTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CompositionOutputBundleDestinationValidationTests.PreviewAndCommitShareAdditionalThenSourceCollisionOrder()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "ea7be26cb5822cb223a8e2affa19a364c87d3f33a4f553f4ce0ee1b9c71fab6b",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CompositionOutputBundleDestinationValidationTests.cs",
       "count": 1
     },
     {
@@ -24207,17 +23789,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "49af20e64f1507633bfb788f41297b06e09f43a76aac38378f0867b96dcf9a1e",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.CtrlRamAdoption.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.FirmwareInspectionSnapshotTests.Nt51950ReportlessCtrlRamReferenceUsesOneBoundedDpcmiQuery()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "4ecbd64276ddffe1166a94a76beee44d4d7997ffd846af82c480a25e084e3ef8",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/FirmwareInspectionSnapshotTests.CtrlRamAdoption.cs",
       "count": 1
@@ -24251,29 +23822,7 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.FocusedCompositionAdaptersTests.CtrlRamReplaceBuildAppliesFirmwareVersionBeforePostbuild()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "dbe8d11ff1f334e648d68508782599a552141e91e0ce9aea3ac6cc148938a5cb",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.FocusedCompositionAdaptersTests.CtrlRamReplaceBuildRejectsUnpropagatedFirmwareVersion()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
       "count": 1
     },
@@ -24296,17 +23845,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "a589cef7b96a4263c5d630c40e2852c6d93b4f5e64a4fac34d29cec728538ff7",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.FocusedCompositionAdaptersTests.CtrlRamReplaceBuildWithFirmwareCountMismatchFailsClosed()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
       "count": 1
     },
@@ -24355,17 +23893,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.FocusedCompositionAdaptersTests.GeneralReplaceBuildFailsClosedWithoutMutatingTheBase()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.FocusedCompositionAdaptersTests.GeneralReplaceBuildRejectsOutputPathThatAliasesInput()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -24373,17 +23900,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "55fd8078bd30bad3a6492cb18b0e15e8a91a7457f46c208539d2e45fa7e0d432",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.FocusedCompositionAdaptersTests.GeneralReplaceBuildRejectsOutputPathThatAliasesInput()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
       "count": 1
     },
@@ -24406,17 +23922,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "2e02fadebb9bbce1a0f76541310ea8487451fa1aa89b3ebc0d40b2f3d3815f32",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.FocusedCompositionAdaptersTests.GeneralReplaceTpPreviewFailsClosed()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/FocusedCompositionAdaptersTests.cs",
       "count": 1
     },
@@ -24482,44 +23987,11 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "2a4359eb8373e794cd0448cc5e722acadf269819003d207af1a77d6eda0dbbda",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/FullImageMetadataSourceTests.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.FullImageMetadataSourceTests.FullImageNeutralProvidersHaveClosedMetadataOnlyInventory(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "95d0bf82c31c23851efd2a09164a87c5359370726b136ab9f3b1cd18a4bd168c",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/FullImageMetadataSourceTests.cs",
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.GeneralMergeCliCommandTests.GeneralMergeBuildReplacesExistingOutputWithoutOverwriteFlag()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "5eda1ef273b11a59ffcee01079563eda18e39bdbc6aa21c4290e42600e92e5e3",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/GeneralMergeCliCommandTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.GeneralMergeCliCommandTests.GeneralMergeBuildUsesCanonicalFillByte(string,int)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "93e2acc434fcb9474a6c850f0eb1be4938dbf9de683399b7dfc2b437342a51ed",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/GeneralMergeCliCommandTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.GeneralMergeCliCommandTests.GeneralMergeBuildUsesCanonicalFillByte(string,int)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -24536,30 +24008,8 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "217979e97e7a006a887d608af2c112833b287a228ed8bb0c2653c92634d2cf7c",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/GeneralMergeCliCommandTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.GeneralMergeCliCommandTests.GeneralMergeBuildWritesExplicitMappingsOverBlankOutput()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "b7af707e0c6dcf7ccd85e2aa8a145ad6d307da4ea40c2f4ec746d1263df6c369",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/GeneralMergeCliCommandTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.GeneralMergeCliCommandTests.GeneralMergeV2DefaultRouteAppliesDeclaredSyntheticMappings(string,string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "879f0b8edb05f6908551cba8662df9f1d29045d6df7052268bb78feabde273de",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/GeneralMergeCliCommandTests.cs",
       "count": 1
     },
@@ -24616,39 +24066,6 @@
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "f8cb1ed65ea8d7758525bf8c4ec94f2c0a3fd781e7af260aaff7e30828ce8996",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/GeneralOutputConfirmationTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.GeneralReplacePostbuildReadinessTests.MissingRuntimeToolCreatesDiagnosticWithoutEngineOutputOrMutation()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "6c40c74410bc510a9460a823328269885c263d5f9cf486ad7c0ffe0163b14ebb",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/GeneralReplacePostbuildReadinessTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.GeneralReplacePostbuildReadinessTests.MissingRuntimeToolCreatesDiagnosticWithoutEngineOutputOrMutation()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "f0c75eeb6ae4484111ab9c3405b701e33e1577bd14179185c129504a9c220598",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/GeneralReplacePostbuildReadinessTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.GeneralSelectedFileExecutionLifecycleTests.GeneralMergeBuildReusesAcceptedBytesAfterSelectedPathChanges()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "9425736c40c9bb4eb6a8653420fbdc076cd620aeec8ca7a0cbfc348a9e0fd632",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/GeneralSelectedFileExecutionLifecycleTests.cs",
       "count": 1
     },
     {
@@ -24813,17 +24230,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "1c611a7ff53ec8353c99c406e37c8c31898050db87c93fa24bb705a887eeb894",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51923CtrlRamFw141EvidenceTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51923CtrlRamFw141EvidenceTests.ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync(string,string,string,byte,ushort,string,string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "c9eeed94bf7b01fa5956e3bcc33d27afdc2ca61c81d9a0bfbf1ea3254e20b3e6",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51923CtrlRamFw141EvidenceTests.cs",
       "count": 1
     },
@@ -25021,28 +24427,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "877eb3e7ec583585d1db52c4c6fdf5bada870cd5ce8179de54fae3d39cbd7ba8",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51926CtrlRamReplaceCandidateProfileTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51926CtrlRamReplaceCandidateProfileTests.RegisteredCascadeFullFlashMatchesOwnerApprovedSelfReplacementGoldenAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "991b2a197bd697e4d692ed849021fd2b032a8cc0f3c0109b6128e46dfdff8123",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51926CtrlRamReplaceCandidateProfileTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51926CtrlRamReplaceCandidateProfileTests.RegisteredCascadeFullFlashMatchesOwnerApprovedSelfReplacementGoldenAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "a38077a6fe43f137d0e46d7fe3056b5f816fba81f49a897c0e1f8aa9afab5049",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51926CtrlRamReplaceCandidateProfileTests.cs",
       "count": 1
@@ -25056,28 +24440,6 @@
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "8b12e2d55d467b4e25dc1d6e59ea6a4f27cc0c880b63affa5a58c9d9f438e2ab",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51926CtrlRamReplaceCandidateProfileTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51926GeneralReplaceCandidateProfileTests.RoutedCandidateMatchesCompiledGeneralReplaceDpOnlyOutputBytesAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "4b31adda6a9ba716c7a83ed82efee500aacd3452af5ecf919ba7b52ba78364f4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51926GeneralReplaceCandidateProfileTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51926GeneralReplaceCandidateProfileTests.RoutedCandidateMatchesCompiledGeneralReplaceDpOnlyOutputBytesAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "ea7aaa5101f4b37dbdc1c75811e9f30163ddc28b778b2989544c2d48feffd67e",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51926GeneralReplaceCandidateProfileTests.cs",
       "count": 1
     },
     {
@@ -25253,17 +24615,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "1c611a7ff53ec8353c99c406e37c8c31898050db87c93fa24bb705a887eeb894",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51927CtrlRamFw141SingleEvidenceTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51927CtrlRamFw141SingleEvidenceTests.VerifyLockedV2EvidenceAsync(string,string,string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "c9eeed94bf7b01fa5956e3bcc33d27afdc2ca61c81d9a0bfbf1ea3254e20b3e6",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51927CtrlRamFw141SingleEvidenceTests.cs",
       "count": 1
     },
@@ -25466,50 +24817,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51929CtrlRamFw200SingleEvidenceTests.FirmwareVersionEditBuildPropagatesPrimaryToBackupAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "59a9a9dbe933fea90b859997ad8cdf34d99af68dff804d69a889c375b7ec75a1",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51929CtrlRamFw200SingleEvidenceTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51929CtrlRamFw200SingleEvidenceTests.FirmwareVersionEditRejectsProcessorThatDoesNotPropagateToBackupAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "59a9a9dbe933fea90b859997ad8cdf34d99af68dff804d69a889c375b7ec75a1",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51929CtrlRamFw200SingleEvidenceTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51929CtrlRamFw200SingleEvidenceTests.NfReplacementPropagatesIntoCompleteBackupAndPreservesOtherBytes(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "3518e862168467969da7ba63f19e1a38f176549e0e002e8c3fec7fff40488d26",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51929CtrlRamFw200SingleEvidenceTests.Backup.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51929CtrlRamFw200SingleEvidenceTests.NfReplacementPropagatesIntoCompleteBackupAndPreservesOtherBytes(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "69e83c5a7eee409e3a6bebe06eb4e463664bb4aaa13f3778e2bf660e5c5bb51b",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51929CtrlRamFw200SingleEvidenceTests.Backup.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.Nt51929CtrlRamFw200SingleEvidenceTests.NfReplacementPropagatesIntoCompleteBackupAndPreservesOtherBytes(string)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -25598,17 +24905,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51929CtrlRamFw200SingleEvidenceTests.WritesImmediatelyOutsideBackupAreRejected(int)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "69e83c5a7eee409e3a6bebe06eb4e463664bb4aaa13f3778e2bf660e5c5bb51b",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51929CtrlRamFw200SingleEvidenceTests.Backup.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.Nt51932CtrlRamFw200EvidenceTests.AssertProcessEvidence(JsonElement)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -25691,17 +24987,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "04bc972fda6859dfe870075af1b87edd1eab6b8b448357237beebc91c99b529d",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51932CtrlRamFw200EvidenceTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51932CtrlRamFw200EvidenceTests.SameMetadataWithDifferentBaseBytesUsesExactV2RouteAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytes(System.String,System.Byte[])",
       "syntaxHash": "325ff26dad79f5e97455f9c8584a1a8f8a2bcd51656c2f309cead3c9dd3cd477",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51932CtrlRamFw200EvidenceTests.cs",
@@ -25715,17 +25000,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "42bdcb74cc841a786110261e7e1f6de916ede21ecbaf5589c5daa3b26354bdcf",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51932CtrlRamFw200EvidenceTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51932CtrlRamFw200EvidenceTests.SinglePlanBuildsWithoutDiffDlmAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "9e465d0bb6f40812e4d75b7acfe2ae695452ea570a2296b4e4119597465ab282",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51932CtrlRamFw200EvidenceTests.cs",
       "count": 1
     },
@@ -25895,17 +25169,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51950CtrlRamFw200EvidenceTests.FirmwareVersionEditBuildPropagatesPrimaryToBackupAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "59a9a9dbe933fea90b859997ad8cdf34d99af68dff804d69a889c375b7ec75a1",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950CtrlRamFw200EvidenceTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.Nt51950CtrlRamFw200EvidenceTests.ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(string,byte,byte,byte,byte,ushort)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -25924,17 +25187,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "4ecbd64276ddffe1166a94a76beee44d4d7997ffd846af82c480a25e084e3ef8",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950CtrlRamFw200EvidenceTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51950CtrlRamFw200EvidenceTests.SameMetadataWithDifferentBaseBytesUsesExactV2RouteAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "04bc972fda6859dfe870075af1b87edd1eab6b8b448357237beebc91c99b529d",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950CtrlRamFw200EvidenceTests.cs",
       "count": 1
     },
@@ -26005,17 +25257,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.MixedInactiveSourceRecordDoesNotGainRuntimeAuthorityAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "cc3cfa039a9fdf513300fb9767ed13748f7602b38299801ef34deec5520ff5a3",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.NonzeroActivePrefixWritesOnlyDeclaredDlmAsync()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -26034,50 +25275,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "a38077a6fe43f137d0e46d7fe3056b5f816fba81f49a897c0e1f8aa9afab5049",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.Nt51950CascadeEnvelopeReproducesTheOwnerExpectedAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "cc3cfa039a9fdf513300fb9767ed13748f7602b38299801ef34deec5520ff5a3",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.Nt51950CascadeEnvelopeTailNvtMarkerIsIgnoredAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "1e7eafed08ae16bc389b44e787976e3b35f4b7eefb060ac1f836e5bc7aeb8336",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.Nt51950CascadeNonstandardEnvelopeKeepsEveryByteAndWarnsAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "1e7eafed08ae16bc389b44e787976e3b35f4b7eefb060ac1f836e5bc7aeb8336",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.PassThroughPostbuildReproducesCompleteOwnerExpectedAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "cc3cfa039a9fdf513300fb9767ed13748f7602b38299801ef34deec5520ff5a3",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51950Nt51951DiffDlmMaskCascade2GoldenTests.cs",
       "count": 1
     },
@@ -26177,17 +25374,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "4ecbd64276ddffe1166a94a76beee44d4d7997ffd846af82c480a25e084e3ef8",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51951CtrlRamFw200EvidenceTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51951CtrlRamFw200EvidenceTests.SameMetadataWithDifferentBaseBytesUsesExactV2RouteAsync()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "04bc972fda6859dfe870075af1b87edd1eab6b8b448357237beebc91c99b529d",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51951CtrlRamFw200EvidenceTests.cs",
       "count": 1
     },
@@ -26478,28 +25664,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReleasePayloadExtractionTests.ExactCommandExtractsOnlyTheTwoEmbeddedReleasePayloads()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "8ef6a0899584a5c7eabaef00992d9523e6d6c54678592f2d539d98289a230729",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReleasePayloadExtractionTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReleasePayloadExtractionTests.ExactCommandExtractsOnlyTheTwoEmbeddedReleasePayloads()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "c9493f5e0ecd8aa15bb9d5dc92e2cef84d6a76803984c697306c80f748a8c3aa",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReleasePayloadExtractionTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.ReleasePayloadExtractionTests.NonEmptyOutputDirectoryIsRejectedWithoutMutation()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -26530,28 +25694,6 @@
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "a2dd3dedd3c5c7f1a4c3940790825fd75a2a4f9c8a6c8ab0259097af5d016a50",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.CtrlRam.GoldenBytes.TestSupport.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.AssertCtrlRamChoiceRefusalAsync(bool,string,string,string[],bool)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "53d8ac2b11c0038af6bbc80e8303fee52e731d4bed310efbcfcbfbc5c92f7368",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.CtrlRam.Choices.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.AssertCtrlRamChoiceRefusalAsync(bool,string,string,string[],bool)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "68ccbbea778151c7f9a9583f4f62ed3cdb1751de300361a8c075ac03e59da391",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.CtrlRam.Choices.cs",
       "count": 1
     },
     {
@@ -26610,28 +25752,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.CtrlRamPreviewVersionOptionsAreUsageErrorsAsync(params string[])",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "2608bc496c96ecbaa5653ff7c7b9f6bdce3a29e1df8c287d0bd264475ba7423c",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.CtrlRam.Choices.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.CtrlRamPreviewVersionOptionsAreUsageErrorsAsync(params string[])",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "f778d5be5146fca0254f80fc3982214e4146164cd9d93e609a7f552c044d1d80",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.CtrlRam.Choices.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.CtrlRamReplacePreviewAcceptsRepeatedWorkbenchSlotInputs()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -26665,17 +25785,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.GeneralReplaceBuildRejectsOutputPathThatAliasesBase()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "e481e3cf57d873c1d1d972fae0ba3114a263cecaab0fc164f25a8840c4b835c8",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.General.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.GeneralReplaceBuildRejectsOutputPathThatAliasesInput()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -26683,17 +25792,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "aaaa08b56117ebb5db444cc0bb9c55dad79e56063e72a98ee017a4c31d24c078",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.Validation.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.GeneralReplaceBuildRejectsOutputPathThatAliasesInput()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "15ae2b020efe80d8a9858bf9f64063884880fc3cecf18b2b9606227ef89c181f",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.Validation.cs",
       "count": 1
     },
@@ -26742,28 +25840,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.GeneralReplaceBuildWithRepeatedWorkbenchMappingsFailsClosed()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "e481e3cf57d873c1d1d972fae0ba3114a263cecaab0fc164f25a8840c4b835c8",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.General.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.GeneralReplaceBuildWithVirtualPatchAndFillFailsClosed()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "e481e3cf57d873c1d1d972fae0ba3114a263cecaab0fc164f25a8840c4b835c8",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.General.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.GeneralReplacePreviewWithWorkbenchTpMappingFailsClosed()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -26793,17 +25869,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "39269f24161d15a73736ac362712bc1ff26cc11a2c1f33ff555c6c6aad323fd5",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.CtrlRam.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.Nt51926CtrlRamReplaceAcceptsTpAndFullFlashBasesWithTheSameTpResult()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "864176a67458d433938aa81acb509e05f70e7231c1b22c2e543b1db1c047cb7f",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.CtrlRam.cs",
       "count": 1
     },
@@ -26901,17 +25966,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "e481e3cf57d873c1d1d972fae0ba3114a263cecaab0fc164f25a8840c4b835c8",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.General.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.Nt51926GeneralReplaceDpOnlyBuildUsesV2Candidate()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "b7af707e0c6dcf7ccd85e2aa8a145ad6d307da4ea40c2f4ec746d1263df6c369",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.General.cs",
@@ -26940,17 +25994,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.Nt51926GeneralReplaceSavedRuleBuildUsesExactParent()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "e481e3cf57d873c1d1d972fae0ba3114a263cecaab0fc164f25a8840c4b835c8",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.General.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.ReplacePreviewRejectsMissingIcNumber()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -26959,28 +26002,6 @@
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "40ab1484b130b8e71fc9297c662a06c9f5a684021d0f56542289246563548d8c",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.Validation.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.RetiredDpReplaceRejectsWithoutInputOrDeliverySideEffects(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "5c0817cdc838eea2cef0744fae3a8d122538243a2313b7fcbd479ad40f683f68",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.Dp.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.ReplaceCliCommandTests.RetiredDpReplaceRejectsWithoutInputOrDeliverySideEffects(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "aef26762a91c131fef0a9a0770acdd9054b0c23cebd5b360546c5e35688433de",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.Dp.cs",
       "count": 1
     },
     {
@@ -27025,17 +26046,6 @@
       "symbol": "M:System.IO.File.WriteAllTextAsync(System.String,System.String,System.Threading.CancellationToken)",
       "syntaxHash": "f6a3bb389bc5a13be395770ca3777c48ad38d90727dd2d97ca125922807cfe5f",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/SavedRuleCliCommandTests.SchemaMigration.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.SavedRuleCliCommandTests.GeneralMergeSavedRuleDefaultsOmittedFillToZero()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "ea91df7cb0ba26de4f1d7c0a84763ed3b80e48cb1882e2871d532930f578986a",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/SavedRuleCliCommandTests.GeneralMerge.cs",
       "count": 1
     },
     {
@@ -27105,17 +26115,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.SharedDpcmiMetadataProviderTests.SourceAndDeployedProvidersPreserveCompleteFamilyBytesWithoutDpRuntime()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "b9c65dee09441fefa9779eb96d8c17efb7cdbbd39595c8ee83e86cbd82c5c373",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/SharedDpcmiMetadataProviderTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.StandardMergeCliCommandTests.StandardMergeBuildPreservesNonstandardDpOuterLength(string,int)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -27134,17 +26133,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "b3fa0f98c53fe8d865b551387865f1cf155f8b9c9cb1ca42ea6395a3caa35b33",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/StandardMergeCliCommandTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.StandardMergeCliCommandTests.StandardMergeBuildRejectsOutputPathThatAliasesInput()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "5b2c5a65969fd2c47b8eb8665741e484afa3c3ac57659088392ee6d8b4d410ed",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/StandardMergeCliCommandTests.cs",
       "count": 1
     },
@@ -27248,17 +26236,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.StandardMergeCliCommandTests.StandardMergePreviewRejectsReportPathThatAliasesInput()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "5b2c5a65969fd2c47b8eb8665741e484afa3c3ac57659088392ee6d8b4d410ed",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/StandardMergeCliCommandTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.StandardMergeCliCommandTests.StandardMergePreviewWritesReportJson(string)",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -27266,17 +26243,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "b7af707e0c6dcf7ccd85e2aa8a145ad6d307da4ea40c2f4ec746d1263df6c369",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/StandardMergeCliCommandTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.StandardMergeCliCommandTests.WorkbenchStandardMergeBuildRejectsOutputPathThatAliasesInput()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "5b2c5a65969fd2c47b8eb8665741e484afa3c3ac57659088392ee6d8b4d410ed",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/StandardMergeCliCommandTests.cs",
       "count": 1
     },
@@ -27429,17 +26395,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "81c117f106538affa029d5b04118156b8cb9cb2a3f37da38ee085fd513b746b1",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/V2StandardMergeGoldenTestSupport.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.V2StandardMergeGoldenTestSupport.AssertSchemaSnapshotsMatchManifest(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllText(System.String)",
       "syntaxHash": "c642e68e5a4d16f25859ea3c9509d0ea413422ef4484d9c4499c5c47d3ad3947",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/V2StandardMergeGoldenTestSupport.cs",
@@ -27479,17 +26434,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.WorkbenchCtrlRamPhysicalInputTests.FirmwareChipCountMismatchFailsBeforeProcessorInvocation()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/WorkbenchCtrlRamPhysicalInputTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.WorkbenchCtrlRamPhysicalInputTests.ZeroFirmwareChipCountWarnsWithoutBlockingCountInvariantPlan()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -27501,17 +26445,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Bootstrap.Tests.WorkbenchCtrlRamPhysicalInputTests.ZeroFirmwareChipCountWarnsWithoutBlockingCountInvariantPlan()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/WorkbenchCtrlRamPhysicalInputTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Bootstrap.Tests.WorkbenchGeneralReplacePatchTests.GeneralReplaceManyMappingsFailClosed()",
       "project": "NvtFwCombiner.Bootstrap.Tests",
       "owner": "NFC",
@@ -27519,39 +26452,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "11d29033af6a81b54a487ad10d11b59c7e50b6e8f12b6bf72a5a8e3ade450a7b",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/WorkbenchGeneralReplacePatchTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.WorkbenchGeneralReplacePatchTests.GeneralReplaceVirtualAndFileMappingsFailClosedAndKeepBaseImmutable(string)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "c023e3acdce43f70b148656c71a25eb23b11e78d9ba677dc6c8a0d3073f6d6b9",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/WorkbenchGeneralReplacePatchTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.WorkbenchGeneralReplacePatchTests.GeneralReplaceVirtualFillRejectsTargetOutsideBaseBeforeMaterialization()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/WorkbenchGeneralReplacePatchTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.WorkbenchGeneralReplacePatchTests.GeneralReplaceVirtualPatchRejectsMalformedAndProtectedInput()",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d8f7d601cdd5568b436438d307305fea89831ac3f5eac8fee55659fba33c4f4",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/WorkbenchGeneralReplacePatchTests.cs",
       "count": 1
     },
@@ -27831,17 +26731,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.GoldenRegression.Tests.StandardMergeWorkbenchGoldenTests.VerifyGoldenCaseAsync(string,string,JsonElement)",
-      "project": "NvtFwCombiner.GoldenRegression.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "00b423140483a865d5301ccb298d2da3eb0288e71a3e72f1000baa265c279178",
-      "path": "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs",
-      "count": 2
-    },
-    {
       "member": "NvtFwCombiner.GoldenRegression.Tests.StandardMergeWorkbenchGoldenTests.WorkbenchBuildStandardMergeAliasMatchesReferenceGoldenBytes(string,string)",
       "project": "NvtFwCombiner.GoldenRegression.Tests",
       "owner": "NFC",
@@ -27851,17 +26740,6 @@
       "syntaxHash": "dcb26ade3bffd62d915a5a2459341fe8d45f975bdef26432f991bd661882732b",
       "path": "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs",
       "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.GoldenRegression.Tests.StandardMergeWorkbenchGoldenTests.WorkbenchBuildStandardMergeAliasMatchesReferenceGoldenBytes(string,string)",
-      "project": "NvtFwCombiner.GoldenRegression.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "00b423140483a865d5301ccb298d2da3eb0288e71a3e72f1000baa265c279178",
-      "path": "tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs",
-      "count": 2
     },
     {
       "member": "NvtFwCombiner.Infrastructure.Tests.Bundles.AbBundleSourceHashTests.AbBundlePinsMatchSourceBytes(string)",
@@ -28016,17 +26894,6 @@
       "syntaxHash": "69d10affc63f713e20c46a579a5b8a2d54e1672a00bd6193892dfb947b9549e8",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/PrebuiltProfileCatalogGenerationTests.cs",
       "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Bundles.PrebuiltProfileCatalogGenerationTests.GeneratorReproducesEveryRawDocumentAndManifestByte()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "ff572413d669bb6ebb48fd7f2daec8a816be375719debfb6eb00bd2bea5f7387",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Bundles/PrebuiltProfileCatalogGenerationTests.cs",
-      "count": 2
     },
     {
       "member": "NvtFwCombiner.Infrastructure.Tests.Bundles.PredecessorComparisonSchemaContractTests.LoadSchema(string)",
@@ -28541,17 +27408,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "4fea61f1da7eebab4afeb2da9c5112214654500770e210a8e89bfa51910b402a",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Configuration/ToolchainRuntimeConfigurationStorageTests.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Configuration.ToolchainRuntimeConfigurationStorageTests.SemanticValuesRoundTripButOversizeAndInvalidUnicodeFail()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "52508230780ff83dbf44a127c220987b3162c0a731c335ccddf3786749d71ea6",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Configuration/ToolchainRuntimeConfigurationStorageTests.cs",
       "count": 1
@@ -28661,17 +27517,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "c76c626726f99c14f9a4ffd121858ec5bf9ce58be76dcfc1a49316762d6336d7",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.ExternalCombinerProcessorTests.RejectedExistingStagingPreservesSentinelWithoutLaunchingTool()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "367cac6ad14bbbfb111e0439421c6a76aa1acd0529c8612e4f5be9e5a3d43ac2",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs",
@@ -28696,28 +27541,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytes(System.String,System.ReadOnlySpan{System.Byte})",
       "syntaxHash": "173897d189bdddc216ca709da7031646320738128cd9dea98883ca55a4744a95",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.ExternalCombinerProcessorTests.TransformMaterializesNamedArtifactsAndPreservesTheirBytes()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "4a155b9aa6bce5352bdd2882fe9de64b85d0ffa9dee768a43a3f36431ab3a999",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.ExternalCombinerProcessorTests.TransformMaterializesNamedArtifactsAndPreservesTheirBytes()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "67b4aa9713a09d3c05366978181192af547f0fac298e9dda6963774e762a9003",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs",
       "count": 1
     },
@@ -28806,17 +27629,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytes(System.String,System.ReadOnlySpan{System.Byte})",
       "syntaxHash": "173897d189bdddc216ca709da7031646320738128cd9dea98883ca55a4744a95",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.ExternalCombinerProcessorTests.UserRuntimeDeploymentIsUsedAndCleanedAfterTransform()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "10559118f8d04fb1814cb94fc9dba4fae2fceb663b66fd623a0c95fa2649eed5",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalCombinerProcessorTests.cs",
       "count": 1
     },
@@ -29030,50 +27842,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.ExternalRuntimeDeploymentTests.UserSelectionCreatesAndCleansPrivateDeployment()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "431e9787e7660853b9d0d3dde2af5177d669945f90d0e7a09cf67a84556ce15b",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalRuntimeDeploymentTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.ExternalRuntimeDeploymentTests.UserSelectionCreatesAndCleansPrivateDeployment()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "77332ffccacac6250fb92dc7b86b68cccdc0e40f0c79fcd45d0807308ba81629",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalRuntimeDeploymentTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.ExternalRuntimeDeploymentTests.UserSelectionCreatesAndCleansPrivateDeployment()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "7885b781f195ea0422b57053ce1385a64ce1e8a633d36a0dfd94e51ba671894a",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalRuntimeDeploymentTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.ExternalRuntimeDeploymentTests.UserSelectionCreatesAndCleansPrivateDeployment()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "def18251d2e9c137574caa0856b3f92f21ac7e5c6ece739e7b12d8b271fcbd5f",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/ExternalRuntimeDeploymentTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.ExternalStagingDirectoryTests.ContendingAcquisitionsHaveOneOwner()",
       "project": "NvtFwCombiner.Infrastructure.Tests",
       "owner": "NFC",
@@ -29135,17 +27903,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "70cd25a8d3b1d7f8564040b69e0a69393a05a7bc955eea257a1cb46bb4bf0e35",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildProcessorTests.MultiCommandTransformKeepsSelectedRuntimeDeploymentUntilCompletion()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "ad9b4127e3e2359f683a3b204d43e248275c80df2afb491fadb18a940ead1ae4",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
       "count": 1
@@ -29170,17 +27927,6 @@
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "6c66071764bdf598f4389424f6f2447f65b00e16032e6b7111f595e869ac9e67",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildProcessorTests.RejectedExistingStagingPreservesSentinelWithoutLaunchingTool()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "c76c626726f99c14f9a4ffd121858ec5bf9ce58be76dcfc1a49316762d6336d7",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.Failure.cs",
       "count": 1
     },
     {
@@ -29257,17 +28003,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytes(System.String,System.Byte[])",
       "syntaxHash": "7f8377792a295389740c74cf91c8bc8344fb8f75c290405fcd29a9034a912692",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildProcessorTests.TransformPreservesShortExactStagedFile()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "ff11906c6f3e36182140151d62bc84d01dcde817d9cea4731a7bd0532f2f2ca0",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
       "count": 1
     },
@@ -29387,17 +28122,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "c89e85e99351d6117cc4fa79aaf71d608a6772c7b5faf38b8b980878b8cb1828",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildProcessorTests.TransformStagesBinFilesAndAcceptsDeclaredChanges()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytes(System.String,System.Byte[])",
       "syntaxHash": "d56eca4771584b0e975e756e978aa45c9a679afe4498dd10b75dfb906ed1de6d",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
@@ -29443,40 +28167,7 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "1d38091d67e9b957abdbcbf748dd6caeddd0affe30c1719a4f174c6d85d8dc8e",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildProcessorTests.TransformStagesImmutableArtifactsWithoutPrePaste()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "2e279117d0953a1af47efc9d12a7d586d9b81bd703e693792acf4ddd1644ea9f",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildProcessorTests.TransformStagesImmutableArtifactsWithoutPrePaste()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "c3fbde7f40136ec94c564abc947575ced11dd8037d8e4224efcaeb90b66b0578",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildProcessorTests.TransformStagesImmutableArtifactsWithoutPrePaste()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "f267bceb91b3b256e0b8d3bb12e53e8b8a55a7776c0daaa9e1e03dc915edeac4",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
       "count": 1
     },
@@ -29541,28 +28232,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "e4f96aaed2e6393ba1b6e414a926702732d0fad16a0395c22afae0588b48b557",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildProcessorTests.TransformUsesStagedSourceOverridesWithoutPrePaste()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "f267bceb91b3b256e0b8d3bb12e53e8b8a55a7776c0daaa9e1e03dc915edeac4",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildProcessorTests.TransformUsesStagedSourceOverridesWithoutPrePaste()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytes(System.String,System.Byte[])",
       "syntaxHash": "2affa79bc894ed53cf8b4b71a3ac4cecd258988926b63515b7057caac94349c8",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildProcessorTests.cs",
@@ -29576,17 +28245,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "712c89336fb2d88b24e4b54194f148397cdda759d4783713e3780aae3a196ca2",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildRealToolSmokeTests.FirmwareVersionRouting.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildRealToolSmokeTests.BlocklessModesHaveEvidenceLockedFirmwareConfigPropagation(string,string,string,IcNumberInputMode,string)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "9766ac3110a3e42105b91440fff00622c8c75ef98157fd735a17a480af940bbb",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildRealToolSmokeTests.FirmwareVersionRouting.cs",
       "count": 1
     },
@@ -29827,17 +28485,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "dd8af6d31605ddaa4fb72266314b910daa1676cf9b2c765bbb5f07a06fabf273",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildRealToolSmokeTests.Nt51929FirmwareVersion.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.LegacyCombinerPostbuildRealToolSmokeTests.Nt51929ModePropagatesPrimaryFirmwareVersionToBackup()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.Path.GetTempPath",
       "syntaxHash": "ed66ef2dc0388cb2a6f9973964254dcfb557045da1999eb390b43403bcf93461",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/LegacyCombinerPostbuildRealToolSmokeTests.Nt51929FirmwareVersion.cs",
@@ -29906,17 +28553,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "415591443f6a6e1c8d7fd364fa1386b5583e14bd456996ab39f0f44b16970d23",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/RuntimeTrustProbeTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.ExternalTools.RuntimeTrustProbeTests.UnsignedAndChangedBytesFailClosed(bool)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "48902b12cb7523ebc35234029ba89f22f5ffadf32c2cfc17261383e5b322017e",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/ExternalTools/RuntimeTrustProbeTests.cs",
       "count": 1
     },
@@ -30251,50 +28887,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitAcceptsBoundaryDestinationWithoutHypotheticalCollision()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "24acd4a5644bb0f0fe47a61aca8aaa38b141fddeb417f19614d546fdee72ab04",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitLongFolderNameStagesCompleteBundleWithoutNameInflation(bool)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "016fc67ad181c3656ec6fe94c3efc07372e1a604bdefbbe6782bdc194737741f",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitLongFolderNameStagesCompleteBundleWithoutNameInflation(bool)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "37b7c8884dc0b388558759d5e1153d182b20a10f71f2d1d15b0cd692d3f0c668",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitLongFolderNameStagesCompleteBundleWithoutNameInflation(bool)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "d024e372aed8fbc9f136665ad1a8bf1947400bf12ac872d18fab41664f518f1f",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitLongFolderNameStagesCompleteBundleWithoutNameInflation(bool)",
       "project": "NvtFwCombiner.Infrastructure.Tests",
       "owner": "NFC",
@@ -30306,28 +28898,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitStagesAdditionalDeliveryAndSourcesInOneManifest()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "150e966b6401c3bb029a1aa0d22b92eb658d500c245cf186a9514b3d5dd61e46",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitStagesAdditionalDeliveryAndSourcesInOneManifest()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "235c613c8b6a2e396df0e4bd6fe21a66ada24d1aec96422ac60c941609caa9ec",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitSuffixesFolderCollision()",
       "project": "NvtFwCombiner.Infrastructure.Tests",
       "owner": "NFC",
@@ -30335,39 +28905,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "21aaebcaecda3f1987c478c77874041dbbc46a1bfab7a4f42bd3e8c277d3ed07",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitWritesOutputAndSourcesWithDeterministicBasenameSuffixes()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "158b6a20f4e6ad443fd97c80d3a89e7949c53c60219cfbd58f5996b6185f59f2",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitWritesOutputAndSourcesWithDeterministicBasenameSuffixes()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "8ba4fb250533c458441a4c76f2da0ae45def415c8a0e9eaa30d2f23fed85e7b8",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicBundleCompositionOutputWriterTests.CommitWritesOutputAndSourcesWithDeterministicBasenameSuffixes()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "b043b124c5ed56b2e7fcca50748e4410f375d6169e503254ff4489d1c1d6a81a",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicBundleCompositionOutputWriterTests.cs",
       "count": 1
     },
@@ -30388,17 +28925,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "d7c04f3488e363557d39d7ac434947d4a06928dcf43c032210ef605548d29a43",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicFileCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicFileCompositionOutputWriterTests.CommitAsyncDoesNotOverwriteByDefault()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "b2464e4af5cc7fb607afdf4e6a4faf3f1057d70143d539c4cb6dd16191b8af6d",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicFileCompositionOutputWriterTests.cs",
@@ -30410,41 +28936,8 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "856a4bea61f27cb21b04cf2da8fda51d94817845514dc4ac1dd51b096e83b359",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicFileCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicFileCompositionOutputWriterTests.CommitAsyncOverwritesWhenAllowed()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "b2464e4af5cc7fb607afdf4e6a4faf3f1057d70143d539c4cb6dd16191b8af6d",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicFileCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicFileCompositionOutputWriterTests.CommitAsyncWritesOutputUnderConfiguredRoot()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "11c4b124a04591e13d227bf76049dbb5522852714fec7f8edeceb6a15921dc9c",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicFileCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicFileCompositionOutputWriterTests.CommitMaximumLengthFileNamePreservesBytesAndCleansStaging(bool)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "7fbb5c831fe64ddf381a76f344104151597df4f1d13c40bc6042cfdd3101d405",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicFileCompositionOutputWriterTests.cs",
       "count": 1
     },
@@ -30456,17 +28949,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "7412af8116dc328ed6e444838b9cdd397c69d3ebc7f0b66121d5a1fcbb778129",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicFileCompositionOutputWriterTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.AtomicFileCompositionOutputWriterTests.FailedLongNameCommitPreservesExistingOutput(bool)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "2d30407be0e5d4cedf05121f7583f839d7a7f6b0083b9c3abc0addc8f083d277",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/AtomicFileCompositionOutputWriterTests.cs",
       "count": 1
     },
@@ -30526,72 +29008,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.CreateNewPreservesExistingDestinationAndCleansFailedStaging()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "507977d6e80a2a5e0c43982a5a2f2742681b9bfee9e5b04c3b9def13c265abcc",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/LocalFileStoreTests.IdentityAndPublication.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.CreateNewPublishesAbsentDestinationWithoutStagingArtifacts()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "3442b5644e0d15e7a3ac82a41c5f8e0b882a18c19edf7846b872db8ba6ddf438",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/LocalFileStoreTests.IdentityAndPublication.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.IdentityRecognizesHardLinks()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "657cabad9c3138c9f9fed548c719904dacce3cb8d7c29fe8f78c90b3c326c644",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/LocalFileStoreTests.IdentityAndPublication.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.InspectDestinationReportsFileAndDirectoryWithoutMutation()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "6fb3ef2170fe50e55420c71ecfc55d2a6e19733215585149fd8e0a7eb8392fef",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/LocalFileStoreTests.IdentityAndPublication.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.LegacyWriteCreatesParentAndReplacesDestination()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "c096de7db91c295b51849097c52a8f2324422fc432ff1312d3c55cd6c842eed3",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/LocalFileStoreTests.IdentityAndPublication.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.LockedReplacementPreservesDestinationAndCleansStaging()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "507977d6e80a2a5e0c43982a5a2f2742681b9bfee9e5b04c3b9def13c265abcc",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/LocalFileStoreTests.IdentityAndPublication.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.ReadAsyncKeepsSnapshotAcrossPathReplacement()",
       "project": "NvtFwCombiner.Infrastructure.Tests",
       "owner": "NFC",
@@ -30625,50 +29041,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.ReplacementStillPublishesCompleteBytes(bool)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "3442b5644e0d15e7a3ac82a41c5f8e0b882a18c19edf7846b872db8ba6ddf438",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/LocalFileStoreTests.IdentityAndPublication.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.RequireExistingParentPublishesOnlyAnAbsentDestination()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "f788c8dd773236a3c6e14f25d2290ce433d51cba57c01ec1f4b0bd562a3e2fe9",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/LocalFileStoreTests.IdentityAndPublication.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.LocalFileStoreTests.WriteAtomicallyAsyncPreservesPreviousFileWhenCancelled()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "657cabad9c3138c9f9fed548c719904dacce3cb8d7c29fe8f78c90b3c326c644",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/LocalFileStoreTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.CanceledSavePreservesOriginalWithoutTemporaryArtifact()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "bb602dc0ec798af72f9bb8c9cdd8e7590c6ada9eccdee2074b1c63d3af530f91",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.CanceledSavePreservesOriginalWithoutTemporaryArtifact()",
       "project": "NvtFwCombiner.Infrastructure.Tests",
       "owner": "NFC",
@@ -30676,28 +29048,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "c34bb35bd989c2bc6f1af08c00efa3e61f3120d9ec05a0147424f3920e2ea98b",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.CatalogEditLeavesInstalledBytesUntouchedAndCreatesWorkingCopy()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "4ae72b764d0236f3e2a19188432fd3192b7fff6d9b8f7b4762c4fd690dd2fcbe",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.CatalogEditLeavesInstalledBytesUntouchedAndCreatesWorkingCopy()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "6876b50b800dadfd8ba4e013aee68170ac6a4b802230cc8e5eb6405dcff7ada2",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
       "count": 1
     },
@@ -30718,31 +29068,9 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "fc318084560512879306fa601109ca6a10865599247097f8c1d0c8764a461ec8",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.CatalogSaveInPlaceIsRejectedWithoutChangingBytes()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "b08eca5826f76df6edebf25af1010abbd9d7325cbf03822d408d9a2a3250a8f5",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.FailedWindowsPromotionRemovesTemporaryArtifact()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "23e5244a9978e53f18b823aaf1f6422dccdc7c076ee07b7b199dc9c44a0a67ed",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.Security.cs",
       "count": 1
     },
     {
@@ -30762,17 +29090,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "fc318084560512879306fa601109ca6a10865599247097f8c1d0c8764a461ec8",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.HostResolvedStorageAuthorityRejectsCallerClassificationMismatch()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "b08eca5826f76df6edebf25af1010abbd9d7325cbf03822d408d9a2a3250a8f5",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
@@ -30784,30 +29101,8 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "b77594724e44470c7e01da3513535498b73c8c078e4180ff4e6a42204cd32b64",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.LocalSemanticEditSavesInPlaceAndInvalidatesPublicationClaims()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "c34bb35bd989c2bc6f1af08c00efa3e61f3120d9ec05a0147424f3920e2ea98b",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.SaveRejectsDocumentThatDoesNotSatisfyTheV2Schema()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "bb602dc0ec798af72f9bb8c9cdd8e7590c6ada9eccdee2074b1c63d3af530f91",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
       "count": 1
     },
@@ -30820,17 +29115,6 @@
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "c34bb35bd989c2bc6f1af08c00efa3e61f3120d9ec05a0147424f3920e2ea98b",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.StorageRejectsOverlapEscapeAndResolvedTargetReparse()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "bec0f88ff1b6c9737547af496535149ad4b9fa521c11dee265d23321595d912b",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.Security.cs",
       "count": 1
     },
     {
@@ -30841,17 +29125,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "7277680c6feebf16d817ea06150de906d6c735be1dae793e4234909bc7146b55",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.Security.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.Files.SavedRuleDocumentStorageTests.WindowsStorageDoesNotRequireDirectoryDeleteAuthority()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "6d42712345a38182a0ffccca349df8669f0b9454a8f299bb94bc3fd270c07d36",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/Files/SavedRuleDocumentStorageTests.Security.cs",
       "count": 1
     },
@@ -34200,28 +32473,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Infrastructure.Tests.VersionManagement.BootstrapProgramSeedExitTests.MissingOrMalformedStateAndSeedExitInvalidStateWithoutChangingFiles(bool,bool)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "3f4449f91d7cee5f191b5e381c4aee969453f5244a1184cc5c264a9136725ae2",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/BootstrapProgramSeedExitTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.VersionManagement.BootstrapProgramSeedExitTests.MissingOrMalformedStateAndSeedExitInvalidStateWithoutChangingFiles(bool,bool)",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "c290b9dd556d855199f413ab0065e088c94601ba4215e3b825c6eb617087f386",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/BootstrapProgramSeedExitTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Infrastructure.Tests.VersionManagement.BootstrapProgramSeedExitTests.RunBootstrapAsync(string,string,string)",
       "project": "NvtFwCombiner.Infrastructure.Tests",
       "owner": "NFC",
@@ -34240,28 +32491,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "38cf687b3f9af06bd5315bb79bcc69e0e109f230cfa15dd074e85080f1b502ef",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/BootstrapProgramSeedExitTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.VersionManagement.BootstrapProgramSeedExitTests.StateBoundToAnotherRootExitsManagedRootMismatchWithoutChangingFiles()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "39e83a7b210bac3fa07e1300f3888b7d5138ce943d966e699e7cc8fd01335227",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/BootstrapProgramSeedExitTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.VersionManagement.BootstrapProgramSeedExitTests.StateBoundToAnotherRootExitsManagedRootMismatchWithoutChangingFiles()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "882df24350c8b338ae2f24f61acd27213685d13428c1b248b9fa3cfe36c0ea55",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/BootstrapProgramSeedExitTests.cs",
       "count": 1
     },
@@ -34922,17 +33151,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.Move(System.String,System.String)",
       "syntaxHash": "6b542e2fd1770c33527e4c4ca757494d6e946d68168adcec3698c21e0ebb221c",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/FileSystemManagedVersionRepositoryTests.WriteCustody.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.VersionManagement.FileSystemManagedVersionRepositoryTests.PreparedTreeRejectsAndPreservesSubstitutedDescendant()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "66d74281cdee3f6318db141f26d852294bda616d47d2a861d40db42bf56d7758",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/FileSystemManagedVersionRepositoryTests.WriteCustody.cs",
       "count": 1
     },
@@ -37374,28 +35592,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "bdc747dc6f9e6979169b26c523b903d0e011d443f51846de3db98f66c25d6536",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/ManagedSetupRecoveryMutationGuardTests.MutationGuards.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.VersionManagement.ManagedSetupRecoveryMutationGuardTests.ConvergeReadyPreservesExactRootAndBothStates()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "c53ffbf4ef13c425fccd98fb3bba8f0bf0d24b38d0bba2e0d0666af53d1021ed",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/ManagedSetupRecoveryMutationGuardTests.MutationGuards.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.VersionManagement.ManagedSetupRecoveryMutationGuardTests.ConvergeReadyPreservesExactRootAndBothStates()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
       "syntaxHash": "edde82203945173b055d5806d98e969fa1ee15f0732e13f82afaf72910aab3dc",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/ManagedSetupRecoveryMutationGuardTests.MutationGuards.cs",
       "count": 1
@@ -37980,17 +36176,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytes(System.String,System.ReadOnlySpan{System.Byte})",
       "syntaxHash": "700be312f552ba2fceb81ae77a666839e423d14acb92fd1f7a6f6be229137e7a",
-      "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/WindowsStablePathCustodyTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Infrastructure.Tests.VersionManagement.WindowsStablePathCustodyTests.ImmutableTreeCancellationReleasesPartialCustody()",
-      "project": "NvtFwCombiner.Infrastructure.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "f2c07cac559697dc466515f9798cdad34d71c35f7da36cb9e00236028c6a1eb4",
       "path": "tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/WindowsStablePathCustodyTests.cs",
       "count": 1
     },
@@ -40283,28 +38468,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.UiSmoke.Tests.BuildOutcomeTests.FinalCloseDiscardsLateBuildReceiptButPreservesCommittedFile()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "abc9c7c8abacca5ffcd0f687537c6a27a285885248d65f9758d33f5142f06776",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/BuildOutcomeTests.WorkflowRunOwnership.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.BuildOutcomeTests.LateBuildReceiptAfterFailedHandoffRecoveryIsDiscarded()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "c39c387104e64dd5e05588646f4133d845a830a3b8327d53a38b6161553d3347",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/BuildOutcomeTests.BuildCompleted.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.UiSmoke.Tests.BuildOutcomeTests.LateBuildReceiptAfterFailedHandoffRecoveryIsDiscarded()",
       "project": "NvtFwCombiner.UiSmoke.Tests",
       "owner": "NFC",
@@ -40435,17 +38598,6 @@
       "syntaxHash": "92a520b72daebdb8e0484d9cf79de9eb58a108bca1082c1f3232c9d1e5f53dc4",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/CtrlRamCascadeMemoryLayoutTests.cs",
       "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.CtrlRamExternalGoldenTests.CanonicalNt51926SelectiveVnPreviewAndBuildMatchArchivedOutput()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "f43212a10849297c36446a79b46c31e9ef23a7db201eca1b73231d19dfeed84e",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.CtrlRamReplaceFixtures.cs",
-      "count": 2
     },
     {
       "member": "NvtFwCombiner.UiSmoke.Tests.CtrlRamLaunchTests.RealStartupLoadsCtrlRamAndStopsBeforeAnyRun()",
@@ -40861,17 +39013,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "377829cc833688bcea3d56f619049fba75b224f97bd42b42a7165b21663d046f",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.FirmwareNumberMismatch.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.CtrlRamWorkflowTests.FirmwareNumberMismatchCancelThenBuildRemainsFailClosed()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "7aaf5042c148a2a222de3d601af4867cd942dca4926d5e1a2d0dc20ffbd79161",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.FirmwareNumberMismatch.cs",
       "count": 1
@@ -40932,28 +39073,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureProcessTests.DefaultStateHardLinkExits64WithoutChangingAnyFiles()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "23ba2c5ee80377d4c426ed0a9d2f315f3d61122af66f69def5c583c99d9df822",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.ProtectedInputs.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureProcessTests.DefaultStateHardLinkExits64WithoutChangingAnyFiles()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "7dfba6d862ff5063f357010ef3b43a37161e5cdaed939ab07d6f3ae13fc6463b",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.ProtectedInputs.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureProcessTests.HashLocalState(string)",
       "project": "NvtFwCombiner.UiSmoke.Tests",
       "owner": "NFC",
@@ -40962,28 +39081,6 @@
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "590273757d27051e59ef0d0fb8ab549ffdd6a7ac0f9ac4ac68d3c9a01ee1e33e",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureProcessTests.HostLocalInputAliasesExit64WithoutChangingInput(string,string)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "85dcf8a9844c5cc30c5bd685b587fceec414ccebc0ead8e4850a0ceba0de3f04",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.ProtectedInputs.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureProcessTests.HostLocalInputAliasesExit64WithoutChangingInput(string,string)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "b8e1a7194bb8d55b4dc81414265422880b568c6b11154dcf065a609117674403",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.ProtectedInputs.cs",
       "count": 1
     },
     {
@@ -41020,50 +39117,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureProcessTests.SavedReportCapturePreservesPendingVersionRecoveryWithoutWriterFiles()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "db83610441f81ca3543a25b6de1aa390461724e0be74a1c230aed0a818bb7bdb",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureProcessTests.SavedReportCapturePublishesPngAndProcessExitsZero()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "104cb3351103662dcba610a27554c17abd5ae3e54d5470bbe24ab33d6a879a18",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureProcessTests.SavedReportCapturePublishesPngAndProcessExitsZero()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "e3227f3d86c7a188cb420c6db29eac388ca64c5521b6c2d3a62fe63971697494",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureProcessTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.CaptureCannotOverwriteHistoryOrPreferencesAliases(bool)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "53f1e4b5bb92b3547c8515f44d802c436e4b97b35b9c24dc44bc3bd8dcab477d",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.CaptureCannotOverwriteHistoryOrPreferencesAliases(bool)",
       "project": "NvtFwCombiner.UiSmoke.Tests",
       "owner": "NFC",
@@ -41082,17 +39135,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllTextAsync(System.String,System.String,System.Threading.CancellationToken)",
       "syntaxHash": "628702e1ffbd90bcb4d700131d862d2c60704163930c2947cc5450e357441d23",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.CaptureFailuresPreserveOldBytesCleanStagingAndCloseOnce(string,int)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "a1c10ba0a923790926ebe34e8d0ece9c76adb26519d5350d17dc7749994053d8",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
       "count": 1
     },
@@ -41125,17 +39167,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "48902b12cb7523ebc35234029ba89f22f5ffadf32c2cfc17261383e5b322017e",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.CaptureLeavesHistoryPreferencesAndLocalStateByteIdentical(string,int)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "e4ee04c6f5ba238f122a9896b7ab1a6859383206fdf832189d400c1a09441baa",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
       "count": 1
@@ -41152,17 +39183,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.DifferentlySpelledReportAliasIsRefusedEvenWithOverwrite()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "04f8140eb97d2828de61b3623c1561e4259b987b2c95a8908eaf1db2356808eb",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.DriveFrame(MainWindow)",
       "project": "NvtFwCombiner.UiSmoke.Tests",
       "owner": "NFC",
@@ -41172,28 +39192,6 @@
       "syntaxHash": "92a520b72daebdb8e0484d9cf79de9eb58a108bca1082c1f3232c9d1e5f53dc4",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
       "count": 3
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.ExplicitManagedStateAliasesExit64WithoutChangingState(string)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "66bf8a5f42ebeabde7286d5377e8ff6868a8f22c0e638398b7f2deb851ae25bb",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.ManagedHostInputs.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.ExplicitManagedStateAliasesExit64WithoutChangingState(string)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "e574617098d82e835b924262ff13b5ea063369647fecd7d145ad92c8b3ab72db",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.ManagedHostInputs.cs",
-      "count": 1
     },
     {
       "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.FailedReportLoadsExit1WithoutPngAndCloseOnce(string)",
@@ -41218,50 +39216,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.HardLinkReportAliasIsRefusedEvenWithOverwrite()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "04f8140eb97d2828de61b3623c1561e4259b987b2c95a8908eaf1db2356808eb",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.InvalidDestinationsAndExistingFilesAreRefusedWithoutWrites()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "04f8140eb97d2828de61b3623c1561e4259b987b2c95a8908eaf1db2356808eb",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.InvalidDestinationsAndExistingFilesAreRefusedWithoutWrites()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "873b5cd854ccce75842bfe3c14150838104175d9978d90ffba99594057da3c40",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.LockedPromotionPreservesOldPngCleansStagingAndClosesOnce()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "a1c10ba0a923790926ebe34e8d0ece9c76adb26519d5350d17dc7749994053d8",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.OrdinaryReportLaunchStaysInteractive()",
       "project": "NvtFwCombiner.UiSmoke.Tests",
       "owner": "NFC",
@@ -41269,17 +39223,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllTextAsync(System.String,System.String,System.Threading.CancellationToken)",
       "syntaxHash": "628702e1ffbd90bcb4d700131d862d2c60704163930c2947cc5450e357441d23",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.DesktopCaptureTests.PublicationHonorsOverwriteAndDestinationCreationRace(bool)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "fd6d6640a936be7b84768a445a9bc249e8d416cdfa2816ccfd1244edda154e72",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/DesktopCaptureTests.cs",
       "count": 1
     },
@@ -41895,17 +39838,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "a8b4abbb1dcbf8803c7ad0a5bfe7e10cd1302a5de3dd1f0e087f4d7ebcde7c39",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputDeliveryRename.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.FirmwareInspectionSlotTests.BundlePrimaryOverrideMatchesAutomaticBytesAndReport()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "ce9793636f1632b1d20b3f633c7a568cfd99514c80a8add6c08d0ea69f5ef819",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.OutputDeliveryRename.cs",
       "count": 1
@@ -41994,39 +39926,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "25b28a1f49bc5418733d497082f9e846c7619bbbe6c6bcba694667fb02ae21e4",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.FirmwareSlots.StandardMergeGolden.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.FirmwareInspectionSlotTests.Nt51951StandardMergeDpFirstPublicLifecycleBuildsDirectGolden()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "55e17271716b1dbba50fdf53a8554fdd75411898d3745059de86d53c76b11a3f",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.FirmwareSlots.StandardMergeGolden.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.FirmwareInspectionSlotTests.Nt51951StandardMergeDpFirstPublicLifecycleBuildsDirectGolden()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "9dcd16a4894464919f7edb40bfaf70433ec68242758cf77c2cdcd238329833dc",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.FirmwareSlots.StandardMergeGolden.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.FirmwareInspectionSlotTests.Nt51951StandardMergeDpFirstPublicLifecycleBuildsDirectGolden()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "a0216d208b3cd3fc38e0e7006f01e12537c7f63354e928ad5fd6ad50a0de6140",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.FirmwareSlots.StandardMergeGolden.cs",
       "count": 1
@@ -42039,28 +39938,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "b1c709ebc345585226c340d9392e199837961078a7f82aa4323d186ce647eafe",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.FirmwareSlots.StandardMergeGolden.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.FirmwareInspectionSlotTests.Nt51951StandardMergeDpFirstPublicLifecycleBuildsDirectGolden()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "b957c004a2c05892647e8baa6fa87f8bf391eff0b04478ce3d3cf3d82b70ce75",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.FirmwareSlots.StandardMergeGolden.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.FirmwareInspectionSlotTests.Nt51951StandardMergeDpFirstPublicLifecycleBuildsDirectGolden()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "e315fe78a6f5c6248399470cabd66dfaf9b07c0abff68c586d5ac85a49a33ea5",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.FirmwareSlots.StandardMergeGolden.cs",
       "count": 1
     },
@@ -42367,63 +40244,8 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "5b95a222e4aa041d491a345e9863ab8481619890a196e9a39524dbd56c2d27b6",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.GeneralReplace.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.GeneralWorkflowTests.GeneralReplaceBuildReusesAcceptedBaseAfterPathMutation()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "65b59061cb0a2344eb8607f88e5f3e9f838766ebfe73c141ecf9abdaae32c2f2",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.GeneralReplace.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.GeneralWorkflowTests.GeneralReplaceBuildReusesAcceptedBaseAfterPathMutation()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "8614d758835619f3cad4c2a95f64db13e110b6133ae60d6f1ec6d27f1efc466b",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.GeneralReplace.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.GeneralWorkflowTests.GeneralReplaceNt51926DpOnlyBuildUsesV2Candidate()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "5b95a222e4aa041d491a345e9863ab8481619890a196e9a39524dbd56c2d27b6",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.GeneralReplace.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.GeneralWorkflowTests.GeneralReplaceNt51926DpOnlyBuildUsesV2Candidate()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "aa46d76e6871d290a14854acd3390e5daafd83f75c4489e4b03417c3a4ed6635",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.GeneralReplace.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.GeneralWorkflowTests.GeneralReplaceNt51926DpOnlyBuildUsesV2Candidate()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "e9ae2ecc827e97852cd4fa520013babc15cea0c297df38e08543ef53878ce2f1",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.GeneralReplace.cs",
       "count": 1
     },
@@ -42488,17 +40310,6 @@
       "owner": "NFC",
       "removeBy": "2026-10-31",
       "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "edd92d94458747ecc3903ad2d592879f9f1fc1781d7d989ea5f4c1ee5d61ff47",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/HexEditorLoadOrderingTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.HexEditorLoadOrderingTests.CommittedLoadAndDisplayedSourceRemainCoherent(string)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "02285692dce9042d4caa9c3b4eea9defb40b7b34c22870b7b63e93dc035b160a",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/HexEditorLoadOrderingTests.cs",
@@ -42527,17 +40338,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.UiSmoke.Tests.HexEditorLoadOrderingTests.LateSaveAsResultDoesNotReplaceNewerEditorState()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytesAsync(System.String,System.Threading.CancellationToken)",
-      "syntaxHash": "c8cae4f9d5cb6e12ae4f9682d23433c5fc53636cd81cc9c2e29ae8e44ba39d33",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/HexEditorLoadOrderingTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.UiSmoke.Tests.HexEditorLoadOrderingTests.PendingBrowseDoesNotSupersedeNewerHexEditorLoad()",
       "project": "NvtFwCombiner.UiSmoke.Tests",
       "owner": "NFC",
@@ -42578,17 +40378,6 @@
       "rule": "RS0030",
       "symbol": "P:Avalonia.Threading.Dispatcher.UIThread",
       "syntaxHash": "92a520b72daebdb8e0484d9cf79de9eb58a108bca1082c1f3232c9d1e5f53dc4",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/HexEditorLoadOrderingTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.HexEditorLoadOrderingTests.SaveAsPickerRejectsAnEditedDocumentAndAcceptsCurrentSelection()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "689314fe634b9c7fc4cf2e9bde7f4c0e1cc4c4fa77eccf041ebc15c6d40b5d64",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/HexEditorLoadOrderingTests.cs",
       "count": 1
     },
@@ -43352,17 +41141,6 @@
       "count": 4
     },
     {
-      "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.AbAdditionalOutputNameLooseSelectionPreservesExplicitIdentity(bool)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "a3bc88e966d2c2ff029f8507d5809ac780b27ebf8e1fedb1a1cbb1c40daad57f",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/MergeWorkflowTests.OutputDeliveryAdditionalRename.cs",
-      "count": 2
-    },
-    {
       "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.AbMergeInputsInspectOnLoadAndPreviewThroughSharedRuntime()",
       "project": "NvtFwCombiner.UiSmoke.Tests",
       "owner": "NFC",
@@ -43371,17 +41149,6 @@
       "symbol": "M:System.IO.File.WriteAllBytesAsync(System.String,System.Byte[],System.Threading.CancellationToken)",
       "syntaxHash": "2d547ac871dde2c1192c27b63fcd018d85ae09d021b9c70d7ebb21f293bf7a77",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.Merge.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.AbOutputNameOverridesReachAtomicBundleAndReport(string,string,string)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "26ae5e89e17a51f1752687c85a9c4e3bc295353259cef13e17f5e6ececd1d55f",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/MergeWorkflowTests.OutputDeliveryAdditionalRename.cs",
       "count": 1
     },
     {
@@ -43405,28 +41172,6 @@
       "syntaxHash": "aabea01a0240b019b3c3cdacf94b8c1dc803376cb5bc73dcb70f83d41064cb1e",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/MergeWorkflowTests.OutputDeliveryAdditionalRename.cs",
       "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.AbOutputNameOverridesReachAtomicBundleAndReport(string,string,string)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "d06bb4dd6c6ce39c3826b820875876913d72712c33ba4f594c6a4559573d89d5",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/MergeWorkflowTests.OutputDeliveryAdditionalRename.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.BuildMergeFromViewModelMatchesRepresentativeGolden(string)",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "f43212a10849297c36446a79b46c31e9ef23a7db201eca1b73231d19dfeed84e",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.Merge.cs",
-      "count": 2
     },
     {
       "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.BuildStandardMergeValidatesCurrentInputsWithoutManualPreview()",
@@ -43501,39 +41246,6 @@
       "removeBy": "2026-10-31",
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "25b28a1f49bc5418733d497082f9e846c7619bbbe6c6bcba694667fb02ae21e4",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbGolden.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.Nt51929AbPublicSelectorLifecycleBuildsDirectGoldenFromOneTpFile()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "92aac072912f82301c01bbdcd209cb9213b55f1b9bb01d02b58ae1aa1a91237f",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbGolden.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.Nt51929AbPublicSelectorLifecycleBuildsDirectGoldenFromOneTpFile()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "9dcd16a4894464919f7edb40bfaf70433ec68242758cf77c2cdcd238329833dc",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbGolden.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.Nt51929AbPublicSelectorLifecycleBuildsDirectGoldenFromOneTpFile()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "a0216d208b3cd3fc38e0e7006f01e12537c7f63354e928ad5fd6ad50a0de6140",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbGolden.cs",
       "count": 1
@@ -43546,28 +41258,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
       "syntaxHash": "a8c24dae1cb147b50ed1793992f6f9eed1e4928ab4631316a3cb6ef46a44492b",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbGolden.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.Nt51929AbPublicSelectorLifecycleBuildsDirectGoldenFromOneTpFile()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "b53ba0ceaa27a595c91c34b7296b8d449a10ccbe49c74032d8599ed66cf2f3de",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbGolden.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.MergeWorkflowTests.Nt51929AbPublicSelectorLifecycleBuildsDirectGoldenFromOneTpFile()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "b957c004a2c05892647e8baa6fa87f8bf391eff0b04478ce3d3cf3d82b70ce75",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.AbGolden.cs",
       "count": 1
     },
@@ -44778,28 +42468,6 @@
       "rule": "RS0030",
       "symbol": "T:System.Diagnostics.Stopwatch",
       "syntaxHash": "3a7affa571cdc4baa94d3622cb3fecc563287234e5d9c7fb1dbbe2e657a0b518",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/RunAndHexEditorTests.HexEditor.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.RunAndHexEditorTests.HexEditorUsesStableViewportAndExportsOnlyANewBin()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "3bff4b73fd93936c38b233c77275598d7f2341b953dd394ad7ccdb02fe637ce5",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/RunAndHexEditorTests.HexEditor.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.RunAndHexEditorTests.HexEditorUsesStableViewportAndExportsOnlyANewBin()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "cadffdc5b7a24d278aea3035eb7a531d7d42128aff3de30ee6d5de450b22682b",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/RunAndHexEditorTests.HexEditor.cs",
       "count": 1
     },
@@ -66581,17 +64249,6 @@
       "symbol": "VSTHRD200",
       "syntaxHash": "4e639dbda3937acf882807982d51f6fb2b06088a4e5e69573e651f9a4ddd85f1",
       "path": "tests/NvtFwCombiner.Application.Tests/VersionManagement/ManagedFirstInstallationExperienceTestSupport.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.AbCtrlRamReferencePlanTests.RealCombinerMatchesIndependentLocalControls(bool,bool).local:Run(CompositionOperation,ReadOnlyMemory<byte>,IReadOnlyList<ExternalProcessorStagedSource>,IReadOnlyList<ExternalProcessorStagedArtifact>,CancellationToken)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "VSTHRD200",
-      "symbol": "VSTHRD200",
-      "syntaxHash": "c59719014431cbc53fe885d7569442108c1a215a7414566f45514995b2698dad",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamReferencePlanTests.cs",
       "count": 1
     },
     {
