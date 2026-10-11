@@ -53,14 +53,14 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.Equal(OwnerExpectedSha256, Hash(evidence.Expected.Bytes));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(evidence.Expected.Bytes, out FirmwareConfigMetadata metadata));
         Assert.Equal("2.0.0", metadata.CommonFwVersion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[3], [metadata.ChipNumber], GoldenDiagnostics.Label(CaseId));
+        Assert.Equal(3, metadata.ChipNumber);
         Assert.Equal(0x5601, metadata.ProjectId);
 
         FirmwareContextSuggestion suggestion = Assert.IsType<FirmwareContextSuggestion>(
             FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51932", outputPath));
         Assert.Equal(IcNumberSelectionTokens.CascadeTwoToEight, suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[metadata.ChipNumber], [suggestion.ChipNumber], GoldenDiagnostics.Label(CaseId));
+        Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
         Assert.Equal(metadata.ProjectId, suggestion.ProjectId);
     }
 
@@ -81,10 +81,10 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
             evidence.Expected.Bytes,
             out FirmwareConfigMetadata referenceMetadata));
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[3], [referenceMetadata.ChipNumber], GoldenDiagnostics.Label(CaseId));
+        Assert.Equal(3, referenceMetadata.ChipNumber);
         FirmwareConfigMetadataSnapshot workbenchReferenceMetadata = Assert.IsType<FirmwareConfigMetadataSnapshot>(
             BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical.Projection, "NT51932", evidence.Expected.Path));
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[3], [workbenchReferenceMetadata.ChipNumber], GoldenDiagnostics.Label(CaseId));
+        Assert.Equal(3, workbenchReferenceMetadata.ChipNumber);
         using var workspace = TempWorkspace.Create("nfc-nt51932-fw200-parity");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(evidence, evidence.Expected.Path);
         string v2Path = workspace.PathFor("v2.bin");

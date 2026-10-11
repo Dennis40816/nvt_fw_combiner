@@ -216,7 +216,7 @@ public static class CanonicalGoldenTestData
                         $"Canonical alias '{GoldenDiagnostics.Label(caseId)}' must use the fact-scoped-alias disposition.");
                 }
 
-                aliases.Add((caseId, ic, goldenCase.GetProperty("alias").GetProperty("sourceCaseId").GetString() ?? string.Empty));
+                aliases.Add((caseId, ic, goldenCase.GetProperty("alias").GetProperty("sourceCaseId").GetString()!));
             }
         }
 
@@ -283,7 +283,7 @@ public static class CanonicalGoldenTestData
         string[] routeBlockingEvidenceRefs = disposition.TryGetProperty(
             "routeBlockingEvidenceRefs",
             out JsonElement routeRefs)
-            ? [.. routeRefs.EnumerateArray().Select(reference => reference.GetString() ?? string.Empty)]
+            ? [.. routeRefs.EnumerateArray().Select(reference => reference.GetString()!)]
             : [];
         return new CanonicalGoldenTestDisposition(
             kind,

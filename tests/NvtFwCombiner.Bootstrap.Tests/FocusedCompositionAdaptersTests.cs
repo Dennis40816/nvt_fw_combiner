@@ -134,7 +134,7 @@ public sealed class FocusedCompositionAdaptersTests
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
         Assert.Equal(backup.StructureStart, metadata.FirmwareConfigBackupStart);
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x02], [metadata.ChipNumber], "firmware image");
+        Assert.Equal(0x02, metadata.ChipNumber);
         Assert.Equal("51926_1.4.1", metadata.PostbuildCategory);
     }
 
@@ -148,7 +148,7 @@ public sealed class FocusedCompositionAdaptersTests
 
         Assert.NotNull(suggestion);
         Assert.Equal("NT51926", suggestion.IcId);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x02], [suggestion.ChipNumber], "firmware image");
+        Assert.Equal((byte)0x02, suggestion.ChipNumber);
         Assert.Equal("cascade", suggestion.NumberToken);
         Assert.Equal("1.4.1", suggestion.CommonFwVersion);
     }
@@ -169,7 +169,7 @@ public sealed class FocusedCompositionAdaptersTests
             path);
 
         Assert.NotNull(suggestion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x02], [suggestion.ChipNumber], "firmware image");
+        Assert.Equal((byte)0x02, suggestion.ChipNumber);
         Assert.Equal("cascade", suggestion.NumberToken);
         Assert.Equal("1.4.1", suggestion.CommonFwVersion);
     }

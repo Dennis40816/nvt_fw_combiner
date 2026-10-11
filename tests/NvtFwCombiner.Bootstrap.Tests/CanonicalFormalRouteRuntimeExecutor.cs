@@ -247,7 +247,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
                 out FirmwareConfigMetadata metadata));
             if (runtimeCase.ExpectedFirmwareConfigChipCounts is { } expectedBySlot)
             {
-                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(expectedBySlot[slotId]))], [metadata.ChipNumber], "firmware image");
+                Assert.Equal(expectedBySlot[slotId], metadata.ChipNumber);
                 return;
             }
 

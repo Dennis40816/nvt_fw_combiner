@@ -387,8 +387,8 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x42], [facts.TpFirmwareVersion], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xBD], [facts.TpFirmwareVersionComplement], "firmware image");
         Assert.True(facts.IsTpFirmwareVersionComplementValid);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[18], [facts.SensorCountX], "firmware image");
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[32], [facts.SensorCountY], "firmware image");
+        Assert.Equal(18, facts.SensorCountX);
+        Assert.Equal(32, facts.SensorCountY);
         Assert.Equal(1920, facts.DisplayResolutionX);
         Assert.Equal(1080, facts.DisplayResolutionY);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[10], [facts.MaximumOperableFingers], "firmware image");

@@ -57,8 +57,8 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x5A], [facts.TpFirmwareVersion], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xA5], [facts.TpFirmwareVersionComplement], "firmware image");
         Assert.True(facts.IsTpFirmwareVersionComplementValid);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)18], [facts.SensorCountX], "firmware image");
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)32], [facts.SensorCountY], "firmware image");
+        Assert.Equal((byte)18, facts.SensorCountX);
+        Assert.Equal((byte)32, facts.SensorCountY);
         Assert.Equal((ushort)1920, facts.DisplayResolutionX);
         Assert.Equal((ushort)1080, facts.DisplayResolutionY);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)10], [facts.MaximumOperableFingers], "firmware image");

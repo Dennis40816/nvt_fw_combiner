@@ -28,7 +28,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
         Assert.Equal(BaseSha256, Hash(reference));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
         Assert.Equal("1.3.2", metadata.CommonFwVersion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[2], [metadata.ChipNumber], "firmware image");
+        Assert.Equal(2, metadata.ChipNumber);
         Assert.Equal(0xF206, metadata.ProjectId);
 
         OwnerArtifact[] replacements = ReadReplacementInputs();

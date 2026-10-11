@@ -50,7 +50,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             ownerCase.Expected.Bytes,
             out FirmwareConfigMetadata metadata));
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1], [metadata.ChipNumber], "firmware image");
+        Assert.Equal(1, metadata.ChipNumber);
         Assert.Equal(0x5709, metadata.ProjectId);
 
         var immutableHashes = ownerCase.Artifacts.ToDictionary(

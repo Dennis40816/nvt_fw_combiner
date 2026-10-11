@@ -40,7 +40,7 @@ public sealed class TpSvnInputInspectionTests
 
         Assert.Equal(new FirmwareAddressedRange("flash", new ByteRange(offset, 4)), stamp.Range);
         GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(tp, (int)offset, 4)), Convert.FromHexString(Hex(stamp)), "header field");
-        Assert.Equal(expected, Hex(stamp));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(expected), Convert.FromHexString(Hex(stamp)), "svn stamp");
         Assert.Equal(expected == "00000000" ? TpSvnAnomaly.NotStamped
             : expected.StartsWith("C3", StringComparison.Ordinal) ? TpSvnAnomaly.UndefinedFlagBits : TpSvnAnomaly.None,
             stamp.Anomaly);
@@ -60,7 +60,7 @@ public sealed class TpSvnInputInspectionTests
         TpSvnObservation stamp = Assert.IsType<TpSvnObservation>(InspectStandard("NT51950", tp, dp).StandardTpSvn);
 
         Assert.Equal(new ByteRange(0xA024, 4), stamp.Range.Range);
-        Assert.Equal("C0194914", Hex(stamp));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("C0194914"), Convert.FromHexString(Hex(stamp)), "svn stamp");
         Assert.Equal("194914", stamp.RevisionDigits);
         Assert.Equal(TpSvnAnomaly.None, stamp.Anomaly);
     }
@@ -108,7 +108,7 @@ public sealed class TpSvnInputInspectionTests
         TpSvnObservation stamp = Assert.IsType<TpSvnObservation>(inspection.StandardTpSvn);
         Assert.Equal(new ByteRange(0x24, 4), stamp.Range.Range);
         GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(image, 0x24, 4)), Convert.FromHexString(Hex(stamp)), "header field");
-        Assert.Equal(expected, Hex(stamp));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(expected), Convert.FromHexString(Hex(stamp)), "svn stamp");
         Assert.Equal(anomaly, stamp.Anomaly);
         Assert.Equal(revision, stamp.RevisionDigits);
     }
@@ -130,7 +130,7 @@ public sealed class TpSvnInputInspectionTests
 
         TpSvnObservation stamp = Assert.IsType<TpSvnObservation>(after.StandardTpSvn);
         Assert.Equal(new ByteRange(0x24, 4), stamp.Range.Range);
-        Assert.Equal("60183151", Hex(stamp));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("60183151"), Convert.FromHexString(Hex(stamp)), "svn stamp");
         Assert.Equal(TpSvnAnomaly.None, stamp.Anomaly);
         CtrlRamBaseInspection first = Assert.IsType<CtrlRamBaseInspection>(before.CtrlRamBaseInspection);
         CtrlRamBaseInspection second = Assert.IsType<CtrlRamBaseInspection>(after.CtrlRamBaseInspection);
@@ -165,8 +165,8 @@ public sealed class TpSvnInputInspectionTests
         TpSvnObservation stampB = Assert.IsType<TpSvnObservation>(batch.Facts["b"].TpSvn);
         Assert.Equal(new ByteRange(offset, 4), stampA.Range.Range);
         Assert.Equal(new ByteRange(offset, 4), stampB.Range.Range);
-        Assert.Equal(expected, Hex(stampA));
-        Assert.Equal("00000000", Hex(stampB));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(expected), Convert.FromHexString(Hex(stampA)), "svn stamp A");
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("00000000"), Convert.FromHexString(Hex(stampB)), "svn stamp B");
         Assert.Equal(TpSvnAnomaly.NotStamped, stampB.Anomaly);
         Assert.Equal(batch.Statuses["a"].BlocksBuild, batch.Statuses["b"].BlocksBuild);
     }

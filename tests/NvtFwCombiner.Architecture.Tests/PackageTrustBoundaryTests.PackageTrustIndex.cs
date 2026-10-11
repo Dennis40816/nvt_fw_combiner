@@ -109,7 +109,7 @@ public sealed partial class PackageTrustBoundaryTests
     {
         MaterializationResult result = GetTrustIndexMaterializationResult(mutation);
 
-        Assert.True(result.Failed, result.Output);
+        Assert.True(result.Failed, "Expected package trust materialization to fail.");
         Assert.True(GoldenDiagnostics.Contains(
             mutation switch
             {
@@ -143,7 +143,7 @@ public sealed partial class PackageTrustBoundaryTests
     {
         MaterializationResult result = GetMaterializationResult(EntryHashDriftCaseId);
 
-        Assert.True(result.Failed, result.Output);
+        Assert.True(result.Failed, "Expected package trust materialization to fail.");
         Assert.True(GoldenDiagnostics.Contains("content hash", result.Output, StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
     }
 
@@ -155,7 +155,7 @@ public sealed partial class PackageTrustBoundaryTests
     {
         MaterializationResult result = GetManifestMaterializationResult(mutation);
 
-        Assert.True(result.Failed, result.Output);
+        Assert.True(result.Failed, "Expected package trust materialization to fail.");
         Assert.True(GoldenDiagnostics.Contains("entry identity", result.Output, StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
     }
 

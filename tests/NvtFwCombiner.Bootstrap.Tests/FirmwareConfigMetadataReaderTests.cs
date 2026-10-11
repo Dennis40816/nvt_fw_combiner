@@ -74,7 +74,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareVersion], [metadata.FirmwareVersion], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareVersionBar], [metadata.FirmwareVersionBar], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareSubVersion], [metadata.FirmwareSubVersion], "firmware image");
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[chipNumber], [metadata.ChipNumber], "firmware image");
+        Assert.Equal(chipNumber, metadata.ChipNumber);
         Assert.Equal(projectId, metadata.ProjectId);
         Assert.True(metadata.IsFirmwareVersionBarValid);
     }
@@ -115,8 +115,8 @@ public sealed class FirmwareConfigMetadataReaderTests
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [hardware.FreeRunMode], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x12], [hardware.SyncType], "firmware image");
         Assert.Equal(0x13, hardware.SenseTerminalCount);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x14], [hardware.TouchPanelTerminalCountNormal], "firmware image");
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x15], [hardware.TouchPanelTerminalCountSelf], "firmware image");
+        Assert.Equal(0x14, hardware.TouchPanelTerminalCountNormal);
+        Assert.Equal(0x15, hardware.TouchPanelTerminalCountSelf);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x16], [hardware.I2cDeviceAddress], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x17], [hardware.InterpolationStepX], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x18], [hardware.InterpolationStepY], "firmware image");
@@ -150,7 +150,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[primary.FirmwareVersionBar], [backup.FirmwareVersionBar], "firmware image");
         Assert.Equal(primary.IsFirmwareVersionBarValid, backup.IsFirmwareVersionBarValid);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[primary.FirmwareSubVersion], [backup.FirmwareSubVersion], "firmware image");
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[primary.ChipNumber], [backup.ChipNumber], "firmware image");
+        Assert.Equal(primary.ChipNumber, backup.ChipNumber);
         Assert.Equal(primary.CommonFwVersion, backup.CommonFwVersion);
         Assert.Equal(primary.ProjectId, backup.ProjectId);
         Assert.Equal(primary.Hardware, backup.Hardware);

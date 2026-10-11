@@ -43,7 +43,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
 
         FirmwareConfigMetadataSnapshot firmwareConfig = Assert.IsType<FirmwareConfigMetadataSnapshot>(
             inspection.FirmwareConfig);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1], [firmwareConfig.ChipNumber], GoldenDiagnostics.Label(CaseId));
+        Assert.Equal(1, firmwareConfig.ChipNumber);
         CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode);
         Assert.Equal("8600", cmi.VersionToken);
 
@@ -73,14 +73,14 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         Assert.Equal(OwnerExpectedSha256, Hash(evidence.Expected.Bytes));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(evidence.Expected.Bytes, out FirmwareConfigMetadata metadata));
         Assert.Equal("2.0.0", metadata.CommonFwVersion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1], [metadata.ChipNumber], GoldenDiagnostics.Label(CaseId));
+        Assert.Equal(1, metadata.ChipNumber);
         Assert.Equal(0x4A06, metadata.ProjectId);
 
         FirmwareContextSuggestion suggestion = Assert.IsType<FirmwareContextSuggestion>(
             FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51950", outputPath));
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[metadata.ChipNumber], [suggestion.ChipNumber], GoldenDiagnostics.Label(CaseId));
+        Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
         Assert.Equal(metadata.ProjectId, suggestion.ProjectId);
     }
 

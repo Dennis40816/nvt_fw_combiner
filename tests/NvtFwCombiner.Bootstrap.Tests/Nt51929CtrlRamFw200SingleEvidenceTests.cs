@@ -57,14 +57,14 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         Assert.Equal(OwnerExpectedSha256, Hash(evidence.Expected.Bytes));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(evidence.Expected.Bytes, out FirmwareConfigMetadata metadata));
         Assert.Equal("2.0.0", metadata.CommonFwVersion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1], [metadata.ChipNumber], GoldenDiagnostics.Label(CaseId));
+        Assert.Equal(1, metadata.ChipNumber);
         Assert.Equal(0x4703, metadata.ProjectId);
 
         FirmwareContextSuggestion suggestion = Assert.IsType<FirmwareContextSuggestion>(
             FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(icId, outputPath));
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[metadata.ChipNumber], [suggestion.ChipNumber], GoldenDiagnostics.Label(CaseId));
+        Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
         Assert.Equal(metadata.ProjectId, suggestion.ProjectId);
         Assert.Equal(
             "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
@@ -319,9 +319,9 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         byte[] output = File.ReadAllBytes(outputPath);
         GoldenAssert.AssertEqualsGolden(diff.AsSpan(0, 0x0B90).ToArray(), output.AsSpan(0x2D100, 0x0B90).ToArray(), GoldenDiagnostics.Label(CaseId));
         GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x2DC90, 0x0870).ToArray(),
-            output.AsSpan(0x2DC90, 0x0870).ToArray(), "firmware image");
+            output.AsSpan(0x2DC90, 0x0870).ToArray(), GoldenDiagnostics.Label(CaseId));
         GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x2E500, 0x7800).ToArray(),
-            output.AsSpan(0x2E500, 0x7800).ToArray(), "firmware image");
+            output.AsSpan(0x2E500, 0x7800).ToArray(), GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, expectedProfileId, icId);
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));

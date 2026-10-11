@@ -332,7 +332,7 @@ public sealed class AbCtrlRamAutoDetectionTests
         Assert.Equal(id, bank.BankId);
         Assert.Empty(bank.Issues);
         Assert.True(bank.FirmwareConfig!.IsFirmwareVersionBarValid);
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1], [bank.FirmwareConfig.ChipNumber], "firmware image");
+        Assert.Equal(1, bank.FirmwareConfig.ChipNumber);
         Assert.NotEmpty(bank.FirmwareConfig.CommonFwVersion);
         Assert.True(bank.TpVersion!.IsKnown);
         Assert.True(bank.DpVersion!.IsKnown);

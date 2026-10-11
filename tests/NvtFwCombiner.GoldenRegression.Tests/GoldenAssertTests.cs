@@ -1,6 +1,4 @@
 // Copyright (c) 2026 Dennis Liu. All rights reserved.
-using System.Text;
-using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.TestSupport;
 using Xunit.Sdk;
 
@@ -143,48 +141,36 @@ public sealed class GoldenAssertTests
     [InlineData("true")]
     [InlineData(" 1 ")]
     [InlineData("1")]
-    public async Task Label_DefaultAndVerbose_HidesIdUnlessExplicitlyEnabled(string? verbose)
+    public void Label_DefaultAndVerbose_HidesIdUnlessExplicitlyEnabled(string? verbose)
     {
-        string root = RepositoryPaths.FindRepositoryRoot();
-        string project = Path.Combine(root, "tests", "NvtFwCombiner.GoldenRegression.Tests", "NvtFwCombiner.GoldenRegression.Tests.csproj");
+        string? previous = Environment.GetEnvironmentVariable("NFC_GOLDEN_VERBOSE");
         string expected = verbose == "1" ? "customer-private-case" : "case-ae9de91e8329";
-        string script = $$"""
-            $previous = $env:NFC_GOLDEN_VERBOSE
-            try {
-                $env:NFC_GOLDEN_VERBOSE = '{{verbose ?? string.Empty}}'
-                $env:NFC_GOLDEN_LABEL_PROBE = '1'
-                $env:NFC_GOLDEN_EXPECTED_LABEL = '{{expected}}'
-                & dotnet test '{{project.Replace("'", "''", StringComparison.Ordinal)}}' --no-build --nologo --filter FullyQualifiedName=NvtFwCombiner.GoldenRegression.Tests.GoldenAssertTests.Label_ControlledChildProcess_ReturnsExpectedLabel
-                $testExit = $LASTEXITCODE
-            }
-            finally {
-                $env:NFC_GOLDEN_VERBOSE = $previous
-            }
-            exit $testExit
-            """;
-        var startInfo = new ExternalProcessStartInfo(
-            "powershell.exe", root,
-            ["-NoProfile", "-NonInteractive", "-EncodedCommand", Convert.ToBase64String(Encoding.Unicode.GetBytes(script))],
-            TimeSpan.FromMinutes(5));
-        var runner = new SystemExternalProcessRunner();
+        try
+        {
+            Environment.SetEnvironmentVariable("NFC_GOLDEN_VERBOSE", verbose);
 
-        ExternalProcessResult result = await runner.RunAsync(startInfo, TestContext.Current.CancellationToken);
-        string output = GoldenDiagnostics.TextSummary(result.StandardOutput);
-        string error = GoldenDiagnostics.TextSummary(result.StandardError);
-
-        Assert.True(result.ExitCode == 0, $"Label subprocess exit {result.ExitCode}; output {output}; error {error}.");
+            Assert.Equal(expected, GoldenDiagnostics.Label("customer-private-case"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NFC_GOLDEN_VERBOSE", previous);
+        }
     }
 
     [Fact]
     public void Label_ControlledChildProcess_ReturnsExpectedLabel()
     {
-        if (Environment.ExpandEnvironmentVariables("%NFC_GOLDEN_LABEL_PROBE%") != "1")
+        string? previous = Environment.GetEnvironmentVariable("NFC_GOLDEN_VERBOSE");
+        try
         {
-            return;
-        }
+            Environment.SetEnvironmentVariable("NFC_GOLDEN_VERBOSE", "1");
 
-        Assert.Equal(Environment.ExpandEnvironmentVariables("%NFC_GOLDEN_EXPECTED_LABEL%"),
-            GoldenDiagnostics.Label("customer-private-case"));
+            Assert.Equal("customer-private-case", GoldenDiagnostics.Label("customer-private-case"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NFC_GOLDEN_VERBOSE", previous);
+        }
     }
 
     [Fact]

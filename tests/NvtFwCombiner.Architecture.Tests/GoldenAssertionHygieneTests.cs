@@ -13,13 +13,29 @@ public sealed class GoldenAssertionHygieneTests
     {
         Assert.True(HasUnsafeEquality("Assert.Equal(File.ReadAllBytes(path), actual);"));
         Assert.True(HasUnsafeEquality("Assert.Equal(\"0102\", Convert.ToHexString(image, 0, 2));"));
+        Assert.True(HasUnsafeEquality("Assert.Equal(expectedHex, Hex(stamp));"));
+        Assert.True(HasUnsafeEquality("Assert.Equal(expectedSha256, Hex(image));"));
+        Assert.True(HasUnsafeEquality("Assert.Equal(expectedSha256, ToHexStringLower(image));"));
+        Assert.True(HasUnsafeEquality("Assert.Equal(expectedSha256, Convert.ToHexStringLower(image));"));
+        Assert.True(HasUnsafeEquality("Assert.Equal(expectedHex,\n Hex(stamp));"));
+        Assert.True(HasUnsafeEquality("Assert.Equal(\"0102\", ToHexString(image));"));
+        Assert.True(HasUnsafeEquality("Assert.Equal(\"0102\", Convert.ToHexStringLower(image));"));
         Assert.True(HasUnsafeEquality("Assert.Equal(expected, image.AsSpan(0, 2).ToArray());"));
         Assert.True(HasUnsafeEquality("Assert.Equal(expected, image.AsSpan(0, 2).ToArray()); Hash(image);"));
         Assert.True(HasUnsafeEquality("Hash(image); Assert.Equal(File.ReadAllBytes(path), actual);"));
         Assert.True(HasUnsafeMessage("Assert.True(ok, Serialize(report));"));
+        Assert.True(HasUnsafeMessage("Assert.True(result.Failed, result.Output);"));
+        Assert.True(HasUnsafeMessage("Assert.False(Check(a, b),\n result.Output);"));
         Assert.True(HasUnsafeMessage("Assert.True(Check(a, b),\n result.StandardOutput);"));
         Assert.False(HasUnsafeEquality("Assert.Equal(expectedSha, Convert.ToHexString(SHA256.HashData(image)));"));
+        Assert.False(HasUnsafeEquality("Assert.Equal(expectedSha, Convert.ToHexStringLower(SHA256.HashData(image)));"));
+        Assert.False(HasUnsafeEquality("Assert.Equal(expectedSha256, Convert.ToHexStringLower(actual));"));
+        Assert.False(HasUnsafeEquality("Assert.Equal(expectedSha, PinnedJsonCatalogLoader.ComputeSha256(File.ReadAllBytes(path)));"));
         Assert.False(HasUnsafeMessage("Assert.True(result.StandardOutput.Length == 0, \"Expected empty output.\");"));
+
+        Assert.False(HasUnsafeMessage("Assert.True(result.Output.Length == 0, \"Expected empty output.\");"));
+        Assert.False(HasUnsafeMessage("Assert.False(result.Output.Length == 0, GoldenDiagnostics.TextSummary(result.Output));"));
+        Assert.False(HasUnsafeMessage("Assert.True(ok, \"Expected result.Output\");"));
 
         Assert.Empty(FindViolations());
     }
@@ -39,13 +55,10 @@ public sealed class GoldenAssertionHygieneTests
             }
 
             string[] lines = RepositoryBoundaryTestSupport.ReadLines(relative);
-            for (int index = 0; index < lines.Length; index++)
+            if (HasUnsafeEquality(string.Join('\n', lines)) &&
+                !_knownException.Contains(relative, StringComparer.Ordinal))
             {
-                string key = $"{relative}:{index + 1}";
-                if (HasUnsafeEquality(lines[index]) && !_knownException.Contains(key, StringComparer.Ordinal))
-                {
-                    violations.Add(key + ": unsafe firmware equality diagnostic");
-                }
+                violations.Add(relative + ": unsafe firmware equality diagnostic");
             }
 
             if (HasUnsafeMessage(string.Join('\n', lines)) &&
@@ -66,9 +79,11 @@ public sealed class GoldenAssertionHygieneTests
             string call = match.Groups["call"].Value;
             if (!call.Contains("SHA256.HashData(", StringComparison.Ordinal) &&
                 !call.Contains("Sha256Hex(", StringComparison.Ordinal) &&
+                !call.Contains("PinnedJsonCatalogLoader.ComputeSha256(", StringComparison.Ordinal) &&
                 !call.Contains("Hash(", StringComparison.Ordinal) &&
+                !Regex.IsMatch(call, @"\A\s*expectedSha256\s*,\s*Convert\.ToHexStringLower\(\s*actual\s*\)\s*\z") &&
                 (call.Contains("ReadAllBytes(", StringComparison.Ordinal) ||
-                 call.Contains("Convert.ToHexString(", StringComparison.Ordinal) ||
+                 Regex.IsMatch(call, @"\b(?:Hex|ToHexString|ToHexStringLower)\s*\(") ||
                  (call.Contains(".ToArray()", StringComparison.Ordinal) &&
                   (call.Contains(".AsSpan(", StringComparison.Ordinal) || call.Contains(".Span", StringComparison.Ordinal)) &&
                   Regex.IsMatch(call, @"\b(?:image|output|expected|actual|reference|[A-Za-z_]*[Bb]ytes|[A-Za-z_]*[Ii]mage)\b"))))
@@ -83,7 +98,7 @@ public sealed class GoldenAssertionHygieneTests
     private static bool HasUnsafeMessage(string source)
     {
         foreach (Match match in Regex.Matches(source,
-                     @"Assert\.True\((?<call>(?:[^()]|\((?<depth>)|\)(?<-depth>))*)(?(depth)(?!))\)",
+                     @"Assert\.(?:True|False)\((?<call>(?:[^()]|\((?<depth>)|\)(?<-depth>))*)(?(depth)(?!))\)",
                      RegexOptions.Singleline))
         {
             string arguments = match.Groups["call"].Value;
@@ -103,7 +118,8 @@ public sealed class GoldenAssertionHygieneTests
                     {
                         string message = arguments[(index + 1)..];
                         if (message.Contains("Serialize(", StringComparison.Ordinal) ||
-                            message.Contains("StandardOutput", StringComparison.Ordinal))
+                            message.Contains("StandardOutput", StringComparison.Ordinal) ||
+                            Regex.IsMatch(message, @"\.Output\s*$"))
                         {
                             return true;
                         }
