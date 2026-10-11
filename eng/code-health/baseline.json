@@ -14357,17 +14357,6 @@
     },
     {
       "member": "MSBuild",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "suppressions",
-      "symbol": "WarningsNotAsErrors:VSTHRD200",
-      "syntaxHash": "27099c24eba1604aedca43b9014bdc9515e896e67df661c943f668c4a446b1c1",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj",
-      "count": 1
-    },
-    {
-      "member": "MSBuild",
       "project": "NvtFwCombiner.CatalogProbe",
       "owner": "NFC",
       "removeBy": "2026-10-31",
