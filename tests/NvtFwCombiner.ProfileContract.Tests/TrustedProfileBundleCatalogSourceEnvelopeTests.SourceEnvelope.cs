@@ -35,8 +35,7 @@ public sealed partial class TrustedProfileBundleCatalogSourceEnvelopeTests
             "nt51950-standard-merge-dp-perspective", "0.8.0", "NT51950",
             "standard-merge", capacity, requestedTopology: null,
             resolutionArtifacts: []);
-        Assert.True(compilation.IsCompiled, string.Join("; ",
-            compilation.Issues.Select(static issue => issue.Message)));
+        Assert.True(compilation.IsCompiled, "Golden assertion condition was not satisfied.");
         CompiledComposition compiled = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
         Assert.Equal($"nt51950-standard-merge-{mapSuffix}",
             compiled.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -68,8 +67,7 @@ public sealed partial class TrustedProfileBundleCatalogSourceEnvelopeTests
         byte[] dp = [.. Enumerable.Range(0, length).Select(index => (byte)(index % 251))];
         byte[] tp = [.. Enumerable.Repeat((byte)0xA5, 0x37000)];
         V2CompositionPlanCompileResult result = CompileStandardEnvelope(catalog, dp, tp, length);
-        Assert.True(result.IsCompiled, string.Join("; ", result.Issues.Select(static issue =>
-            $"{issue.Code}: {issue.Message}")));
+        Assert.True(result.IsCompiled, "Golden assertion condition was not satisfied.");
 
         CompiledComposition compiled = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         SourceEnvelopeExtent envelope = Assert.IsType<SourceEnvelopeExtent>(
@@ -93,7 +91,7 @@ public sealed partial class TrustedProfileBundleCatalogSourceEnvelopeTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
         byte[] expected = [.. dp];
         Array.Copy(tp, 0xA000, expected, 0xA000, 0x2D000);
-        Assert.Equal(expected, execution.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, execution.OutputBytes.ToArray(), "firmware image");
         _ = Assert.Single(execution.Issues, static issue =>
             issue.Code == "DP_NONSTANDARD_SIZE_WARNING" &&
             issue.Severity == CompositionIssueSeverity.Warning);
@@ -110,8 +108,7 @@ public sealed partial class TrustedProfileBundleCatalogSourceEnvelopeTests
         byte[] tp = [.. Enumerable.Repeat((byte)0xA5, 0x37000)];
         V2CompositionPlanCompileResult result = CompileStandardEnvelope(catalog, dp, tp, dp.Length);
 
-        Assert.True(result.IsCompiled, string.Join("; ", result.Issues.Select(static issue =>
-            $"{issue.Code}: {issue.Message}")));
+        Assert.True(result.IsCompiled, "Golden assertion condition was not satisfied.");
         CompiledComposition compiled = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         CompiledOutputNamingRequirement naming = compiled.V2Details.OutputNamingRequirement;
         Assert.Equal(CompiledOutputNamingRequirement.NormalFlashCodeV1RuleId, naming.RuleId);
@@ -130,7 +127,7 @@ public sealed partial class TrustedProfileBundleCatalogSourceEnvelopeTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
         byte[] expected = [.. dp];
         Array.Copy(tp, 0xA000, expected, 0xA000, 0x2D000);
-        Assert.Equal(expected, execution.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, execution.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Keeps the existing physical-map path for a declared capacity.</summary>
@@ -144,8 +141,7 @@ public sealed partial class TrustedProfileBundleCatalogSourceEnvelopeTests
         byte[] dp = [.. Enumerable.Range(0, length).Select(index => (byte)(index % 251))];
         byte[] tp = [.. Enumerable.Repeat((byte)0xA5, 0x37000)];
         V2CompositionPlanCompileResult result = CompileStandardEnvelope(catalog, dp, tp, dp.Length);
-        Assert.True(result.IsCompiled, string.Join("; ", result.Issues.Select(static issue =>
-            $"{issue.Code}: {issue.Message}")));
+        Assert.True(result.IsCompiled, "Golden assertion condition was not satisfied.");
 
         CompiledComposition compiled = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.Null(Assert.IsType<ResolvedMapV2CompilationContext>(
@@ -164,7 +160,7 @@ public sealed partial class TrustedProfileBundleCatalogSourceEnvelopeTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
         byte[] expected = [.. dp];
         Array.Copy(tp, 0xA000, expected, 0xA000, 0x2D000);
-        Assert.Equal(expected, execution.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, execution.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Only a captured complete DP matching the requested nonstandard extent may enter the template path.</summary>

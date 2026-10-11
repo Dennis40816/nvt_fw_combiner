@@ -101,17 +101,17 @@ public sealed partial class AbMergeCliCommandTests
         string[] args = CreateFormatCliArguments(workspace, selector, format);
         CliRunResult result = await CliTestHarness.RunAbAsync(host, args, TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == expectedExit, result.Error + result.Output);
+        Assert.True(result.ExitCode == expectedExit, "Golden assertion condition was not satisfied.");
         if (expectedExit == 0)
         {
-            Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+            Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
             Assert.True(File.Exists(workspace.PathFor("report.json")));
         }
         else
         {
-            Assert.Contains(selector, result.Error, StringComparison.Ordinal);
-            if (expectedExit == 1) { Assert.Contains("nt51950-ab-merge-cascade", result.Error, StringComparison.Ordinal); }
-            Assert.DoesNotContain("Status: Succeeded", result.Output, StringComparison.Ordinal);
+            Assert.True(GoldenDiagnostics.Contains(selector, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+            if (expectedExit == 1) { Assert.True(GoldenDiagnostics.Contains("nt51950-ab-merge-cascade", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check."); }
+            Assert.True(!GoldenDiagnostics.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
             Assert.False(File.Exists(workspace.PathFor("report.json")));
         }
         Assert.False(File.Exists(workspace.PathFor("output.bin")));

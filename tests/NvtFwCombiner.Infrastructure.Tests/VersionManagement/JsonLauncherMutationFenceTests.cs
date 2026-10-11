@@ -37,7 +37,7 @@ public sealed class JsonLauncherMutationFenceTests
         Assert.True(result.HasPendingActivation);
         Assert.Equal(ToAdmission(active), result.ActiveOwner);
         Assert.Contains(ToAdmission(candidate), result.PendingOwners);
-        Assert.Equal(before, after);
+        GoldenAssert.AssertEqualsGolden(before, after, "firmware image");
     }
 
     /// <summary>Confirmed LKG retirement rehomes rollback to active under the same journal.</summary>

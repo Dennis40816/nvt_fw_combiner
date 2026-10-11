@@ -1,6 +1,8 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Verifies the canonical typed General mapping draft and range codec.</summary>
@@ -194,7 +196,7 @@ public sealed class GeneralMappingDraftStateTests
         Assert.True(resolved, issue?.Message);
         Assert.Null(issue);
         Assert.Equal(expectedCapacity, initializer!.Capacity);
-        Assert.Equal(expectedFill, initializer.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(expectedFill))], [initializer.FillByte], "firmware image");
     }
 
     /// <summary>Out-of-domain fill text fails with the same stable adapter issue.</summary>

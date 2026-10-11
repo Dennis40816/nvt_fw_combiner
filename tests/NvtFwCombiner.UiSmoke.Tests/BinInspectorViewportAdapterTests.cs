@@ -24,7 +24,7 @@ public sealed class BinInspectorViewportAdapterTests
             .SelectMany(static row => row.Cells)
             .Single(static cell => cell.Address == 0x82);
 
-        Assert.Equal((byte)0x82, versionCell.PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x82], [versionCell.PrimaryValue], "firmware image");
         Assert.Same(snapshot, inspector.Inspection);
         Assert.Same(HexViewportCapabilityProfile.BinInspector, inspector.ViewportSnapshot.Profile);
         Assert.Equal("flash", inspector.ViewportSnapshot.AddressSpaceId);

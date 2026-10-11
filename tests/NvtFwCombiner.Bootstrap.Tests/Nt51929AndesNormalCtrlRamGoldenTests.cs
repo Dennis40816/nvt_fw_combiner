@@ -51,7 +51,7 @@ public sealed class Nt51929AndesNormalCtrlRamGoldenTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(OutputSha256, Hash(output));
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
@@ -80,12 +80,10 @@ public sealed class Nt51929AndesNormalCtrlRamGoldenTests
         OwnerArtifact control110 = ownerCase.RequireRole("ctrlram-normal-control-110us");
         OwnerArtifact replacement115 = ownerCase.RequireRole("ctrlram-normal-input-115us");
 
-        Assert.Equal(
-            control110.Bytes.AsSpan(0, NormalLength).ToArray(),
-            base110.Bytes.AsSpan(NormalStart, NormalLength).ToArray());
-        Assert.Equal(
-            replacement115.Bytes.AsSpan(0, NormalLength).ToArray(),
-            ownerCase.Expected.Bytes.AsSpan(NormalStart, NormalLength).ToArray());
+        GoldenAssert.AssertEqualsGolden(control110.Bytes.AsSpan(0, NormalLength).ToArray(),
+            base110.Bytes.AsSpan(NormalStart, NormalLength).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(replacement115.Bytes.AsSpan(0, NormalLength).ToArray(),
+            ownerCase.Expected.Bytes.AsSpan(NormalStart, NormalLength).ToArray(), "firmware image");
         Assert.NotEqual(
             Hash(control110.Bytes.AsSpan(0, NormalLength)),
             Hash(replacement115.Bytes.AsSpan(0, NormalLength)));

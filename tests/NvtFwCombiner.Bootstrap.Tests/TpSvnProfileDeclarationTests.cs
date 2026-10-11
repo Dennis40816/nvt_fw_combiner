@@ -124,11 +124,11 @@ public sealed class TpSvnProfileDeclarationTests
         FirmwareResolvedMetadataStructure resolved = ResolveHeaderCopy(family, map, image);
 
         Assert.Equal(new FirmwareAddressedRange("flash", new ByteRange(ownerOffset, 4)), resolved.LocatorOutcome.ResolvedRange);
-        Assert.Equal(Convert.ToHexString(image, (int)ownerOffset, 4), StampHex(resolved));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(image, (int)ownerOffset, 4)), Convert.FromHexString(StampHex(resolved)), "header field");
         if (otherVariantBytes is not null)
         {
             long otherOffset = ownerOffset == 0x32F74 ? 0x32A94 : 0x32F74;
-            Assert.Equal(otherVariantBytes, Convert.ToHexString(image, (int)otherOffset, 4));
+            GoldenAssert.AssertEqualsGolden(Convert.FromHexString(otherVariantBytes), Convert.FromHexString(Convert.ToHexString(image, (int)otherOffset, 4)), "header field");
             Assert.NotEqual(otherVariantBytes, StampHex(resolved));
         }
     }
@@ -161,7 +161,7 @@ public sealed class TpSvnProfileDeclarationTests
             FirmwareResolvedMetadataStructure resolved = ResolveHeaderCopy(family, map, bankBytes);
             Assert.Equal(new ByteRange(ownerOffset, 4), resolved.LocatorOutcome.ResolvedRange.Range);
             stamps[bank] = StampHex(resolved);
-            Assert.Equal(Convert.ToHexString(image, (int)((bank * bankLength) + ownerOffset), 4), stamps[bank]);
+            GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(image, (int)((bank * bankLength) + ownerOffset), 4)), Convert.FromHexString(stamps[bank]), "header field");
         }
 
         if (goldenPath is null)

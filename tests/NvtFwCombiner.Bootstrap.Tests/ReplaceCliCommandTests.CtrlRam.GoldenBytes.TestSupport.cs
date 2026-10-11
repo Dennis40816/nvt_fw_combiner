@@ -3,6 +3,8 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
@@ -19,8 +21,8 @@ public sealed partial class ReplaceCliCommandTests
         ByteRange outputRange = ProjectPublishedRange(publish,
             CliGoldenByteEvidence.Range(replacement.GetProperty("TargetRange")));
         Assert.Equal(sourceRange.Length, outputRange.Length);
-        Assert.Equal(source.AsSpan(checked((int)sourceRange.Start), checked((int)sourceRange.Length)).ToArray(),
-            output.AsSpan(checked((int)outputRange.Start), checked((int)outputRange.Length)).ToArray());
+        GoldenAssert.AssertEqualsGolden(source.AsSpan(checked((int)sourceRange.Start), checked((int)sourceRange.Length)).ToArray(),
+            output.AsSpan(checked((int)outputRange.Start), checked((int)outputRange.Length)).ToArray(), "firmware image");
     }
 
     private static void AssertVersionDifferencesAreDeclared(
@@ -123,9 +125,9 @@ public sealed partial class ReplaceCliCommandTests
         long structureStart = checked(range.Start - (versionAndBar
             ? FirmwareConfigLayout.FirmwareVersionOffset : FirmwareConfigLayout.FirmwareSubVersionOffset));
         Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(output, structureStart, out FirmwareConfigMetadata metadata));
-        Assert.Equal(expected.FirmwareVersion, metadata.FirmwareVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[expected.FirmwareVersion], [metadata.FirmwareVersion], "firmware image");
         Assert.True(metadata.IsFirmwareVersionBarValid);
-        Assert.Equal(expected.FirmwareSubVersion, metadata.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[expected.FirmwareSubVersion], [metadata.FirmwareSubVersion], "firmware image");
     }
 
     private static ByteRange ProjectOperationRange(
@@ -158,10 +160,10 @@ public sealed partial class ReplaceCliCommandTests
         var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         CtrlRamAuthoringSessionPreparation prepared = host.CtrlRamAuthoring.PrepareSession(
             session, "NT51929", "single", paths, bytes);
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         CtrlRamAuthoringTransitionResult transitioned = host.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
             session, "NT51929", "single", paths, draft);
-        Assert.True(transitioned.Succeeded, string.Join("; ", transitioned.Issues.Select(static issue => issue.Message)));
+        Assert.True(transitioned.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot accepted = transitioned.Session!;
         Assert.Equal(report.GetProperty("CompilationFingerprint").GetString(), accepted.CompilationFingerprint);
         JsonElement naming = report.GetProperty("OutputNaming");

@@ -21,14 +21,11 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Rule: copy-display-window 1.0.0", result.Output, StringComparison.Ordinal);
-        Assert.Contains($"Content SHA256: {expectedHash}", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Lifecycle: Draft", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Trusted: False", result.Output, StringComparison.Ordinal);
-        Assert.Contains(
-            "Parent: nt51950-nt51951-general-merge-logical-candidate / nt51950-general-merge-logical-candidate",
-            result.Output,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Rule: copy-display-window 1.0.0", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains($"Content SHA256: {expectedHash}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Lifecycle: Draft", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Trusted: False", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Parent: nt51950-nt51951-general-merge-logical-candidate / nt51950-general-merge-logical-candidate", result.Output, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>Headless v2 mapping projection reuses the canonical General mapping draft.</summary>
@@ -41,10 +38,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "mappings", rule]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains(
-            "--mapping 0x0+0x1+0x1=<source-bin>",
-            result.Output,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--mapping 0x0+0x1+0x1=<source-bin>", result.Output, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>Normal Preview and Build reject v2 documents outside the complete reviewed contract.</summary>
@@ -193,7 +187,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync([.. args]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(expectedIssueCode, result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains(expectedIssueCode, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(workspace.PathFor("rejected.bin")));
     }
 
@@ -219,10 +213,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(
-            "--fill cannot override a saved-rule initializer",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--fill cannot override a saved-rule initializer", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>A normal v2 saved-rule run cannot accept an out-of-band capacity override.</summary>
@@ -247,10 +238,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(
-            "--size cannot override a saved-rule initializer",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--size cannot override a saved-rule initializer", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>Rejects processor-dependent General Merge saved rules until processor fragments are actually supported.</summary>
@@ -275,7 +263,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(ProcessorDependencyUnsupported, result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains(ProcessorDependencyUnsupported, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Rejects a v2 access envelope that broadens the logical General output.</summary>
@@ -301,10 +289,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(
-            MappingRowTargetRegionUnsupported,
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains(MappingRowTargetRegionUnsupported, result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>
@@ -332,10 +317,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains(
-            "general.admission.saved-rule-broadens-parent",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("general.admission.saved-rule-broadens-parent", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>Rejects a schema-valid mapping ceiling that cannot be represented by runtime admission.</summary>
@@ -360,7 +342,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(RangeOverflow, result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains(RangeOverflow, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Requires a saved-rule compatibility envelope to match IC, derived profile id, and mode.</summary>
@@ -399,7 +381,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(expectedError, result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.True(GoldenDiagnostics.Contains(expectedError, result.Error, StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Documents that manual initializer flags are absent from both v2 rule forms.</summary>
@@ -447,10 +429,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains(
-            "saved-rule.lifecycle.execution-not-trusted-published",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("saved-rule.lifecycle.execution-not-trusted-published", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>Normal v2 rule consumption closes over output bytes, report values, and Preview/Build identity.</summary>
@@ -483,10 +462,10 @@ public sealed partial class SavedRuleCliCommandTests
                 TestContext.Current.CancellationToken,
                 output);
 
-        Assert.True(preview.Succeeded, CompositionRunReportJson.Serialize(preview));
-        Assert.True(build.Succeeded, CompositionRunReportJson.Serialize(build));
+        Assert.True(preview.Succeeded, $"Composition result: status={preview.Status}, succeeded={preview.Succeeded}.");
+        Assert.True(build.Succeeded, $"Composition result: status={build.Status}, succeeded={build.Succeeded}.");
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal([0xA5, 0x10, 0xA5, 0xA5], outputBytes);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0x10, 0xA5, 0xA5], outputBytes, "firmware image");
 
         using var previewDocument = JsonDocument.Parse(CompositionRunReportJson.Serialize(preview));
         using var buildDocument = JsonDocument.Parse(CompositionRunReportJson.Serialize(build));
@@ -567,12 +546,11 @@ public sealed partial class SavedRuleCliCommandTests
                 TestContext.Current.CancellationToken,
                 output);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.Equal(
-            [0x00, 0x10, 0x00],
-            await File.ReadAllBytesAsync(
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
+        GoldenAssert.AssertEqualsGolden((byte[])[0x00, 0x10, 0x00],
+            await GoldenFileIo.ReadAllBytesAsync(
                 output,
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Rejects saved-rule report paths that would overwrite the reviewed rule JSON.</summary>
@@ -597,7 +575,7 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("Report path must not overwrite saved-rule input", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Report path must not overwrite saved-rule input", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.Contains("\"ruleId\":\"copy-display-window\"", await File.ReadAllTextAsync(
             rule,
             TestContext.Current.CancellationToken), StringComparison.Ordinal);
@@ -636,8 +614,8 @@ public sealed partial class SavedRuleCliCommandTests
                 build: false,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(first.Succeeded, CompositionRunReportJson.Serialize(first));
-        Assert.True(second.Succeeded, CompositionRunReportJson.Serialize(second));
+        Assert.True(first.Succeeded, $"Composition result: status={first.Status}, succeeded={first.Succeeded}.");
+        Assert.True(second.Succeeded, $"Composition result: status={second.Status}, succeeded={second.Succeeded}.");
         Assert.NotEqual(
             first.Report.GeneralAdmission?.SavedRule?.ContentHash,
             second.Report.GeneralAdmission?.SavedRule?.ContentHash);
@@ -662,9 +640,7 @@ public sealed partial class SavedRuleCliCommandTests
                     registration.ProfileId));
         Assert.True(
             load.IsValid,
-            string.Join(
-                Environment.NewLine,
-                load.Issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         var lifecycle = new SavedRuleLifecycleSnapshot(
             load.ExecutionIdentity!,
             SavedRuleStorageKind.TrustedCatalog,

@@ -23,7 +23,7 @@ public sealed partial class CompositionEngineTests
             new CompositionExecutionInput(new Dictionary<string, byte[]> { ["dp-input"] = [1, 2, 3, 4, 5] }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, actual.Status);
-        Assert.Equal([1, 2, 3, 4, 5], actual.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4, 5], actual.OutputBytes.ToArray(), "firmware image");
         CompositionIssue warning = Assert.Single(actual.Issues);
         Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", warning.Code);
         Assert.Equal(CompositionIssueSeverity.Warning, warning.Severity);

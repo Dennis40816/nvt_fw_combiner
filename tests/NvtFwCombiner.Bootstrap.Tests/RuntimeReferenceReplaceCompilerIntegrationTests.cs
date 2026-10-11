@@ -98,9 +98,9 @@ public sealed class RuntimeReferenceReplaceCompilerIntegrationTests
         byte[] expected = [.. originalReference];
         expected[VnStart] = 0xCC;
         expected[VnStart + 1] = 0xDD;
-        Assert.Equal(expected, preview.OutputBytes.ToArray());
-        Assert.Equal(originalReference, reference);
-        Assert.Equal(originalSource, source);
+        GoldenAssert.AssertEqualsGolden(expected, preview.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalReference, reference, "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalSource, source, "firmware image");
         Assert.Equal(composition.CompilationFingerprint, preview.Report.CompilationFingerprint);
         Assert.Equal(
             ["reference-base", "source-a"],

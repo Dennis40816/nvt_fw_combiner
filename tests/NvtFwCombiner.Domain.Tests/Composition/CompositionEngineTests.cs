@@ -29,7 +29,7 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0xFF, 0xFF, 20, 30, 0xFF, 0xFF], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xFF, 20, 30, 0xFF, 0xFF], result.OutputBytes.ToArray(), "firmware image");
         MutationRecord mutation = Assert.Single(result.Mutations);
         Assert.Equal([new ByteRange(2, 2)], mutation.ChangedRanges);
     }
@@ -60,8 +60,8 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([1, 9, 8, 4], result.OutputBytes.ToArray());
-        Assert.Equal([1, 2, 3, 4], reference);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 9, 8, 4], result.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4], reference, "firmware image");
     }
 
     /// <summary>Verifies profile-declared input padding extends shorter inputs before copy operations read them.</summary>
@@ -88,7 +88,7 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x11, 0x22, 0xFF, 0xFF], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11, 0x22, 0xFF, 0xFF], result.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies profile-declared allowed input lengths reject unexpected source artifact sizes.</summary>
@@ -215,7 +215,7 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x11, 0x22], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11, 0x22], result.OutputBytes.ToArray(), "firmware image");
         CompositionIssue issue = Assert.Single(result.Issues);
         Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthUnexpected, issue.Code);
         Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
@@ -252,7 +252,7 @@ public sealed partial class CompositionEngineTests
             new CompositionExecutionInput(new Dictionary<string, byte[]> { ["input"] = [0x11] }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, expected.Status);
-        Assert.Equal([0x11, 0x22], expected.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11, 0x22], expected.OutputBytes.ToArray(), "firmware image");
         Assert.Empty(expected.Issues);
         Assert.Equal(CompositionExecutionStatus.Failed, tooShort.Status);
         Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, Assert.Single(tooShort.Issues).Code);
@@ -286,7 +286,7 @@ public sealed partial class CompositionEngineTests
             new CompositionExecutionInput(new Dictionary<string, byte[]> { ["input"] = [0x11, 0x22, 0x33] }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x11, 0x22], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11, 0x22], result.OutputBytes.ToArray(), "firmware image");
         CompositionIssue issue = Assert.Single(result.Issues);
         Assert.Equal("DP_SIZE_WARNING", issue.Code);
         Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
@@ -344,7 +344,7 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray(), "firmware image");
         CompositionIssue issue = Assert.Single(result.Issues);
         Assert.Equal(CompositionIssueCodes.InputAddressSpaceTruncated, issue.Code);
         Assert.Equal(CompositionIssueSeverity.Warning, issue.Severity);
@@ -422,7 +422,7 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0xFF, 0xAA, 0xBB, 0xFF], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xAA, 0xBB, 0xFF], result.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies mutation hashes use lowercase hex for report contract compatibility.</summary>
@@ -469,7 +469,7 @@ public sealed partial class CompositionEngineTests
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
         CompositionIssue issue = Assert.Single(result.Issues);
         Assert.Equal(CompositionIssueCodes.InputAddressSpaceMissing, issue.Code);
-        Assert.Empty(result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), result.OutputBytes.ToArray(), "empty firmware output");
     }
 
     /// <summary>Verifies non-output mutable spaces are initialized by the engine before operations.</summary>
@@ -511,7 +511,7 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x5A, 0x5A, 0, 0], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x5A, 0x5A, 0, 0], result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(["output-image", "scratch"], result.Mutations.Select(item => item.TargetSpaceId));
     }
 

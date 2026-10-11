@@ -217,8 +217,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
         CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode);
         CmiDpCodeMetadata typedCmi = Assert.IsType<CmiDpCodeMetadata>(
             typedInspection.CmiDpCode);
-        Assert.Equal((byte)0x01, cmi.MajorVersionByte);
-        Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x01], [cmi.MajorVersionByte], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x00], [cmi.MinorVersionNibble], "firmware image");
         Assert.Equal((ushort)597, cmi.JiraNumber);
         Assert.Equal(cmi, typedCmi);
         Assert.Null(typedInspection.DpMetadataPrerequisite);
@@ -425,8 +425,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal("CC00", distinctPaths.DpVersion?.VersionToken);
         CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(
             distinctPaths.CmiDpCode);
-        Assert.Equal((byte)0xCC, cmi.MajorVersionByte);
-        Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xCC], [cmi.MajorVersionByte], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x00], [cmi.MinorVersionNibble], "firmware image");
         Assert.Equal((ushort)0x0240, cmi.JiraNumber);
         Assert.Equal(0x3B016, cmi.Register16Offset);
         Assert.Equal(["dp.bin", "tp.bin"], reads);
@@ -646,7 +646,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             readFirmwareImage: Read);
         CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(withTp.CmiDpCode);
         Assert.Equal(0x3B016, cmi.Register16Offset);
-        Assert.Equal((byte)0x12, cmi.MajorVersionByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x12], [cmi.MajorVersionByte], "firmware image");
 
         FirmwareInspectionSnapshot withoutTp = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51950", "dp.bin", "missing-tp.bin", ctrlRamRequest: null,

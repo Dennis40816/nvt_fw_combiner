@@ -57,8 +57,9 @@ public sealed partial class BuildOutcomeTests
         Assert.False(shell.RunSession.IsRunInProgress);
         Assert.False(shell.BuildResult.IsOpen);
         Assert.False(shell.BuildResult.HasLatestCommittedOutput);
-        Assert.Equal([0x42, 0x17], await File.ReadAllBytesAsync(outputPath,
-            TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden((byte[])[0x42, 0x17],
+            await GoldenFileIo.ReadAllBytesAsync(outputPath,
+            TestContext.Current.CancellationToken), "firmware image");
     }
 
     private sealed class FailingReceiptHandoff : IStableLauncherHandoff

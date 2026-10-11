@@ -170,8 +170,8 @@ public sealed partial class DesktopCaptureTests
         {
             AssertRefused(["--report", report, "--open-report", "--capture", destination], "--capture");
         }
-        Assert.Equal([1, 2, 3], File.ReadAllBytes(report));
-        Assert.Equal([4, 5, 6], File.ReadAllBytes(old));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3], GoldenFileIo.ReadAllBytes(report), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[4, 5, 6], GoldenFileIo.ReadAllBytes(old), "firmware image");
         Assert.Empty(Directory.GetFiles(workspace.Root, "*.tmp"));
         Assert.False(Directory.Exists(workspace.PathFor("missing")));
     }
@@ -187,7 +187,7 @@ public sealed partial class DesktopCaptureTests
 
         AssertRefused(["--report", report, "--open-report", "--capture", destination, "--overwrite-capture"], "aliases");
 
-        Assert.Equal([1, 2, 3], File.ReadAllBytes(report));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3], GoldenFileIo.ReadAllBytes(report), "firmware image");
     }
 
     /// <summary>Windows physical file IDs reject a differently named hard-link destination.</summary>
@@ -201,7 +201,7 @@ public sealed partial class DesktopCaptureTests
             : CreateUnixHardLink(UnixPath(report), UnixPath(destination)) == 0;
         Assert.True(linked, new Win32Exception(Marshal.GetLastPInvokeError()).Message);
         AssertRefused(["--report", report, "--open-report", "--capture", destination, "--overwrite-capture"], "aliases");
-        Assert.Equal([1, 2, 3], File.ReadAllBytes(report));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3], GoldenFileIo.ReadAllBytes(report), "firmware image");
     }
 
     /// <summary>Capture refuses hard links to either persisted state owner before host composition.</summary>
@@ -227,7 +227,7 @@ public sealed partial class DesktopCaptureTests
             ["--report=report.json", "--open-report", $"--capture={destination}", "--overwrite-capture"]);
         Assert.Equal(64, exit);
         Assert.Equal(0, constructions);
-        Assert.Equal([4, 3, 2, 1], File.ReadAllBytes(protectedPath));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[4, 3, 2, 1], GoldenFileIo.ReadAllBytes(protectedPath), "firmware image");
     }
 
     /// <summary>The real XAML modal is rendered to a decodable full-size PNG and closes once.</summary>
@@ -319,7 +319,7 @@ public sealed partial class DesktopCaptureTests
         else { Assert.Empty(observedFiles.Writes); }
         Assert.Equal(before.Keys.Order(), Directory.GetFiles(workspace.Root, "*", SearchOption.AllDirectories)
             .Where(path => path != destination).Order());
-        foreach ((string path, byte[] bytes) in before) { Assert.Equal(bytes, File.ReadAllBytes(path)); }
+        foreach ((string path, byte[] bytes) in before) { GoldenAssert.AssertEqualsGolden(bytes, GoldenFileIo.ReadAllBytes(path), "firmware image"); }
     }
 
     /// <summary>Malformed, oversized, directory and missing reports fail without a retry prompt or PNG.</summary>
@@ -501,7 +501,7 @@ public sealed partial class DesktopCaptureTests
         Assert.Equal(expectedExit, window.LaunchCoordinator.CaptureSession.CaptureExitCode);
         Assert.Equal(1, closed);
         Assert.Contains(destination, error.ToString(), StringComparison.Ordinal);
-        Assert.Equal([9, 8, 7, 6], File.ReadAllBytes(destination));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[9, 8, 7, 6], GoldenFileIo.ReadAllBytes(destination), "firmware image");
         Assert.Empty(Directory.GetFiles(workspace.Root, "*.tmp"));
     }
 
@@ -532,7 +532,7 @@ public sealed partial class DesktopCaptureTests
         else
         {
             Assert.Equal(1, window.LaunchCoordinator.CaptureSession.CaptureExitCode);
-            Assert.Equal([5, 4, 3], File.ReadAllBytes(destination));
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[5, 4, 3], GoldenFileIo.ReadAllBytes(destination), "firmware image");
         }
         Assert.Empty(Directory.GetFiles(workspace.Root, "*.tmp"));
     }
@@ -586,7 +586,7 @@ public sealed partial class DesktopCaptureTests
         Assert.Equal(1, window.LaunchCoordinator.CaptureSession.CaptureExitCode);
         Assert.Equal(1, closed);
         Assert.Contains("publish --capture", error.ToString(), StringComparison.Ordinal);
-        Assert.Equal([9, 8, 7, 6], File.ReadAllBytes(destination));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[9, 8, 7, 6], GoldenFileIo.ReadAllBytes(destination), "firmware image");
         string[] expectedFiles = [destination, report];
         Assert.Equal(expectedFiles.Order(), Directory.GetFiles(workspace.Root).Order());
     }

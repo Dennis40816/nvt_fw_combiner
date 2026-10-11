@@ -94,7 +94,7 @@ internal static partial class ManagedSetupRecoveryExecutionTestSupport
                         sourceRoot,
                         package,
                         TestContext.Current.CancellationToken);
-                Assert.True(installed.IsSuccess, installed.Issue.ToString());
+                Assert.True(installed.IsSuccess, "Golden assertion condition was not satisfied.");
                 ManagedVersionAdmission admission = installed.Admission!;
                 string repositoryStaging = Path.Combine(
                     root,
@@ -155,7 +155,7 @@ internal static partial class ManagedSetupRecoveryExecutionTestSupport
                                 pending: null,
                                 failed: launcher),
                         TestContext.Current.CancellationToken);
-                    Assert.True(saved.IsSuccess, saved.Issue.ToString());
+                    Assert.True(saved.IsSuccess, "Golden assertion condition was not satisfied.");
                     launcherStateStore = durableLauncherStore;
                 }
                 else

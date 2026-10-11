@@ -82,7 +82,7 @@ public sealed class AbMergeAuthoringDefinitionTests
             "built-in-profile-bundle-v2");
         bool loaded = bundle.TryGetAbAuthoringDefinition(profileId, profileVersion,
             out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues);
-        Assert.True(loaded, string.Join(" | ", issues.Select(static issue => issue.Message)));
+        Assert.True(loaded, "Golden assertion condition was not satisfied.");
         Assert.Empty(issues);
         Assert.NotNull(definition);
         Assert.Equal(profileId, definition.ProfileId);

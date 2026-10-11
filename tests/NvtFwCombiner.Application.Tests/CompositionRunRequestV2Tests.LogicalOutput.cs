@@ -181,8 +181,8 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
         Assert.Null(preview.Report.MapId);
         Assert.Null(build.Report.MapId);
-        Assert.Equal([0xA1, 0xA2, 0x00, 0x00, 0xB1, 0xB2], preview.OutputBytes.ToArray());
-        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA2, 0x00, 0x00, 0xB1, 0xB2], preview.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray(), "firmware image");
         Assert.True(writer.WasCalled);
     }
 

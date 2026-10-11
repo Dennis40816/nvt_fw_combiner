@@ -23,7 +23,7 @@ public sealed class CtrlRamV2RouteRegistryTests
 
             Assert.True(
                 issues.Count == 0,
-                $"Route '{route.Key}' did not normalize: {string.Join(" | ", issues.Select(static issue => $"{issue.Code}: {issue.Message}"))}");
+                "Golden assertion condition was not satisfied.");
             Assert.NotEmpty(maps);
         }
     }

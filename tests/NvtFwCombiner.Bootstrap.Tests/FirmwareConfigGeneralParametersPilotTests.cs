@@ -115,7 +115,7 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         dp[0] = 0x13;
         Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(icId, dp,
             ["dp-input", "tp-input"], out _, out ResolvedCapability? capability, out IReadOnlyList<CompositionIssue> issues),
-            string.Join(" | ", issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         Assert.NotNull(capability);
         MetadataPlanEntry entry = capability.MetadataPlan.Entries.Single(static item =>
             item.Definition.StructureDefinition.StructureId == "firmware-config-general-parameters").Definition;
@@ -384,24 +384,24 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
                 snapshot,
                 out FirmwareConfigGeneralParametersFacts facts));
 
-        Assert.Equal(0x42, facts.TpFirmwareVersion);
-        Assert.Equal(0xBD, facts.TpFirmwareVersionComplement);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x42], [facts.TpFirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xBD], [facts.TpFirmwareVersionComplement], "firmware image");
         Assert.True(facts.IsTpFirmwareVersionComplementValid);
         Assert.Equal(18, facts.SensorCountX);
         Assert.Equal(32, facts.SensorCountY);
         Assert.Equal(1920, facts.DisplayResolutionX);
         Assert.Equal(1080, facts.DisplayResolutionY);
-        Assert.Equal(10, facts.MaximumOperableFingers);
-        Assert.Equal(0x10, facts.ReportIrqType);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[10], [facts.MaximumOperableFingers], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10], [facts.ReportIrqType], "firmware image");
         Assert.Equal(FirmwareConfigReportIrqMode.LevelLow, facts.ReportIrqMode);
-        Assert.Equal(7, facts.TpFirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[7], [facts.TpFirmwareSubVersion], "firmware image");
         Assert.Equal(4096, facts.TpResolutionX);
         Assert.Equal(2560, facts.TpResolutionY);
         Assert.Equal(3, facts.ObservedIcCount);
-        Assert.Equal(1, facts.OutermostIcMasterEnable);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1], [facts.OutermostIcMasterEnable], "firmware image");
         Assert.True(facts.IsOutermostIcMasterEnableValid);
         Assert.True(facts.UseOutermostIcAsMaster);
-        Assert.Equal(1, facts.CascadeEnable);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1], [facts.CascadeEnable], "firmware image");
         Assert.Equal("2.5.9", facts.CommonFirmwareVersion);
         Assert.Equal(0x0927, facts.Pid);
 
@@ -410,24 +410,16 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
                 tp,
                 out FirmwareConfigMetadata legacy));
         Assert.Equal(BackupStart, legacy.StructureStart);
-        Assert.Equal(legacy.FirmwareVersion, facts.TpFirmwareVersion);
-        Assert.Equal(
-            legacy.FirmwareVersionBar,
-            facts.TpFirmwareVersionComplement);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[legacy.FirmwareVersion], [facts.TpFirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[legacy.FirmwareVersionBar], [facts.TpFirmwareVersionComplement], "firmware image");
         Assert.Equal(
             legacy.IsFirmwareVersionBarValid,
             facts.IsTpFirmwareVersionComplementValid);
-        Assert.Equal(legacy.FirmwareSubVersion, facts.TpFirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[legacy.FirmwareSubVersion], [facts.TpFirmwareSubVersion], "firmware image");
         Assert.Equal(legacy.ChipNumber, facts.ObservedIcCount);
-        Assert.Equal(
-            legacy.CommonFwMajorVersion,
-            facts.CommonFirmwareMajorVersion);
-        Assert.Equal(
-            legacy.CommonFwMinorVersion,
-            facts.CommonFirmwareMinorVersion);
-        Assert.Equal(
-            legacy.CommonFwAdditionalVersion,
-            facts.CommonFirmwareAdditionalVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[legacy.CommonFwMajorVersion], [facts.CommonFirmwareMajorVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[legacy.CommonFwMinorVersion], [facts.CommonFirmwareMinorVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[legacy.CommonFwAdditionalVersion], [facts.CommonFirmwareAdditionalVersion], "firmware image");
         Assert.Equal(legacy.ProjectId, facts.Pid);
     }
 
@@ -446,7 +438,7 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
                 snapshot,
                 out FirmwareConfigGeneralParametersFacts facts));
         Assert.False(facts.IsTpFirmwareVersionComplementValid);
-        Assert.Equal(0x42, facts.TpFirmwareVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x42], [facts.TpFirmwareVersion], "firmware image");
         Assert.Equal(1920, facts.DisplayResolutionX);
     }
 

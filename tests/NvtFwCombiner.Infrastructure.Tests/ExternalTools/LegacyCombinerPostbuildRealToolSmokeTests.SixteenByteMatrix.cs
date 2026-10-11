@@ -53,8 +53,8 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         byte[] baseBytes = File.ReadAllBytes(FindGoldenExpectedOutput(manifestIc));
         byte[] singleRegionBytes = CreateSelfReplacementBytes(baseBytes, [mappedRegions[0]]);
         byte[] multipleRegionBytes = CreateSelfReplacementBytes(baseBytes, mappedRegions);
-        Assert.Equal(baseBytes, singleRegionBytes);
-        Assert.Equal(baseBytes, multipleRegionBytes);
+        GoldenAssert.AssertEqualsGolden(baseBytes, singleRegionBytes, "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, multipleRegionBytes, "firmware image");
 
         List<ByteRange> expectedChangedRanges = DecodeRanges(expectedChangedRangeValues);
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-direct-combiner-16byte-{Guid.NewGuid():N}");
@@ -83,7 +83,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
                 $"{icId}-{selectionToken}-multiple-regions",
                 CancellationToken.None);
 
-            Assert.Equal(singleOutput, multipleOutput);
+            GoldenAssert.AssertEqualsGolden(singleOutput, multipleOutput, "firmware image");
 
             IReadOnlyList<ByteRange> changedRanges = ByteDiff.FindChangedRanges(baseBytes, singleOutput);
             Assert.Equal(expectedChangedRanges, changedRanges);

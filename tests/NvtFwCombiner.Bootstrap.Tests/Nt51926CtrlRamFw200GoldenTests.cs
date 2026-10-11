@@ -66,8 +66,8 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             TestContext.Current.CancellationToken,
             referencePath);
 
-        Assert.True(standardMerge.Succeeded, CompositionRunReportJson.Serialize(standardMerge));
-        Assert.Equal("nt51926-standard-merge-gen-flash", ReadProfileId(CompositionRunReportJson.Serialize(standardMerge)));
+        Assert.True(standardMerge.Succeeded, $"Composition result: status={standardMerge.Status}, succeeded={standardMerge.Succeeded}.");
+        Assert.True(StringComparer.Ordinal.Equals("nt51926-standard-merge-gen-flash", ReadProfileId(CompositionRunReportJson.Serialize(standardMerge))), "Captured text differs from the expected text.");
         byte[] reference = File.ReadAllBytes(referencePath);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
         Assert.Equal("2.0.0", metadata.CommonFwVersion);
@@ -98,7 +98,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
+        Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         Assert.Equal(currentOutputSha256, Hash(v2Bytes));
         Assert.Equal(currentOutputSha256, v2.OutputSha256);
@@ -122,7 +122,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
                 new ByteRange(0x32B6C, 4),
             ],
             ownerDifferenceRanges);
-        Assert.True(reference.AsSpan(TpWorkCapacity).SequenceEqual(v2Bytes.AsSpan(TpWorkCapacity)));
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(TpWorkCapacity), v2Bytes.AsSpan(TpWorkCapacity), GoldenDiagnostics.Label(caseId));
 
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, v2ProfileId);
@@ -162,7 +162,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             build: true,
             TestContext.Current.CancellationToken,
             referencePath);
-        Assert.True(standardMerge.Succeeded, CompositionRunReportJson.Serialize(standardMerge));
+        Assert.True(standardMerge.Succeeded, $"Composition result: status={standardMerge.Status}, succeeded={standardMerge.Succeeded}.");
 
         byte[] reference = File.ReadAllBytes(referencePath);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
@@ -196,7 +196,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(File.Exists(outputPath));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal(
@@ -235,7 +235,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51926-ctrlram-replace-fw200-runtime-cascade");
     }

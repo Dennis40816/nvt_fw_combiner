@@ -31,18 +31,18 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("output-image", snapshot.OutputSpaceId);
         Assert.Equal("output-reference", snapshot.ReferenceSpaceId);
         Assert.Equal(result.Report.Output.Sha256, snapshot.OutputSha256);
-        Assert.Equal([0x10, 0x20, 0x30, 0x40], snapshot.ReferenceBytes.ToArray());
-        Assert.Equal([0x10, 0x99, 0x30, 0x40], snapshot.OutputBytes.ToArray());
-        Assert.Equal(result.OutputBytes.ToArray(), snapshot.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30, 0x40], snapshot.ReferenceBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x99, 0x30, 0x40], snapshot.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(result.OutputBytes.ToArray(), snapshot.OutputBytes.ToArray(), "firmware image");
         Assert.True(MemoryMarshal.TryGetArray(result.OutputBytes, out ArraySegment<byte> resultOutput));
         Assert.True(MemoryMarshal.TryGetArray(snapshot.OutputBytes, out ArraySegment<byte> inspectionOutput));
         Assert.True(MemoryMarshal.TryGetArray(snapshot.ReferenceBytes, out ArraySegment<byte> inspectionReference));
-        Assert.Same(resultOutput.Array, inspectionOutput.Array);
-        Assert.NotSame(selectedReference, inspectionReference.Array);
+        Assert.True(ReferenceEquals(resultOutput.Array, inspectionOutput.Array), "Expected firmware buffer ownership.");
+        Assert.True(!ReferenceEquals(selectedReference, inspectionReference.Array), "Expected firmware buffer ownership.");
 
         selectedReference.AsSpan().Fill(0xFF);
         nonOutputReference.AsSpan().Fill(0xEE);
-        Assert.Equal([0x10, 0x20, 0x30, 0x40], snapshot.ReferenceBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30, 0x40], snapshot.ReferenceBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies Merge and Replace executions without an output do not claim complete inspection bytes.</summary>
@@ -85,11 +85,11 @@ public sealed partial class CompositionRunServiceTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.True(writer.WasCalled);
-        Assert.Equal([0x10, 0x99, 0x30, 0x40], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x99, 0x30, 0x40], result.OutputBytes.ToArray(), "firmware image");
         CompositionRunInspectionSnapshot inspection = Assert.IsType<CompositionRunInspectionSnapshot>(
             result.InspectionSnapshot);
-        Assert.Equal([0x10, 0x20, 0x30, 0x40], inspection.ReferenceBytes.ToArray());
-        Assert.Equal([0x10, 0x99, 0x30, 0x40], inspection.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30, 0x40], inspection.ReferenceBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x99, 0x30, 0x40], inspection.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(result.Report.Output.Sha256, inspection.OutputSha256);
         Assert.Empty(result.Report.Issues);
     }

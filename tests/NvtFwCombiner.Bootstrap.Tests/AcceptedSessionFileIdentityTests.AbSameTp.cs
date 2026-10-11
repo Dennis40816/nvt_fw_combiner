@@ -27,10 +27,10 @@ public sealed partial class AcceptedSessionFileIdentityTests
         CompositionRunResult shared = await ExecuteAsync(sharedSession, sharedPaths);
         CompositionRunResult distinct = await ExecuteAsync(distinctSession, distinctPaths);
 
-        Assert.True(shared.Succeeded, CompositionRunReportJson.Serialize(shared));
-        Assert.True(distinct.Succeeded, CompositionRunReportJson.Serialize(distinct));
+        Assert.True(shared.Succeeded, $"Composition result: status={shared.Status}, succeeded={shared.Succeeded}.");
+        Assert.True(distinct.Succeeded, $"Composition result: status={distinct.Status}, succeeded={distinct.Succeeded}.");
         Assert.Equal(distinct.OutputSha256, shared.OutputSha256);
-        Assert.Equal(distinct.OutputBytes.ToArray(), shared.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(distinct.OutputBytes.ToArray(), shared.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(
             distinct.Report.Operations.Select(static operation => (
                 operation.Kind,

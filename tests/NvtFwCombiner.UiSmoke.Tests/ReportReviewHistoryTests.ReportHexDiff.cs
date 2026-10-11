@@ -6,6 +6,8 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ReportReviewHistoryTests
@@ -43,7 +45,7 @@ public sealed partial class ReportReviewHistoryTests
         HexViewportCell currentChangedCell = report.HexDiff.ViewportSnapshot.Rows
             .SelectMany(static row => row.Cells)
             .Single(cell => cell.Address == ReportFixtureTargetStart);
-        Assert.Equal((byte)0xA5, currentChangedCell.PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xA5], [currentChangedCell.PrimaryValue], "firmware image");
         _ = Assert.NotNull(currentChangedCell.ComparisonValue);
         Assert.True(currentChangedCell.IsDataChanged);
         Assert.Equal(0, report.HexDiff.RangeScrollMaximum);
@@ -59,7 +61,7 @@ public sealed partial class ReportReviewHistoryTests
         HexViewportCell reopenedChangedCell = reopened.HexDiff.ViewportSnapshot.Rows
             .SelectMany(static row => row.Cells)
             .Single(cell => cell.Address == ReportFixtureTargetStart);
-        Assert.Equal(currentChangedCell.PrimaryValue, reopenedChangedCell.PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[currentChangedCell.PrimaryValue], [reopenedChangedCell.PrimaryValue], "firmware image");
         Assert.Equal(currentChangedCell.ComparisonValue, reopenedChangedCell.ComparisonValue);
         Assert.Equal(currentChangedCell.Decorations, reopenedChangedCell.Decorations);
         Assert.False(reopened.HexDiff.ViewportSnapshot.ShowComparisonRows);
@@ -68,8 +70,8 @@ public sealed partial class ReportReviewHistoryTests
         reopened.HexDiff.ShowOriginalRows = true;
         Assert.True(reopened.HexDiff.ViewportSnapshot.ShowComparisonRows);
         Assert.Contains("original", reopened.HexDiff.SelectedByteAccessibleLabel, StringComparison.Ordinal);
-        Assert.Contains("\"Replay\"", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal);
-        Assert.DoesNotContain("InspectionSnapshot", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("\"Replay\"", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("InspectionSnapshot", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal), "Captured text did not match the expected marker check.");
 
         string noDifferenceJson = ReportJsonSamples.Succeeded(
             runId: result.InspectionSnapshot!.RunId,

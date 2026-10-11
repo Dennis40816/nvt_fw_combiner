@@ -405,7 +405,7 @@ public sealed class WindowsStablePathCustodyTests
         Directory.Move(root, released);
         string releasedPayload = Path.Combine(released, "payload.bin");
         File.WriteAllBytes(releasedPayload, [4, 5, 6]);
-        Assert.Equal([4, 5, 6], File.ReadAllBytes(releasedPayload));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[4, 5, 6], GoldenFileIo.ReadAllBytes(releasedPayload), "firmware image");
     }
 
     /// <summary>The declared installed-file ceiling including admission remains admissible.</summary>

@@ -1,5 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests immutable map-independent v2 input slot policy.</summary>
@@ -82,7 +84,7 @@ public sealed class CompositionProfileV2InputTests
             "CTRLRAM_TRUNCATED",
             "truncation-evidence");
 
-        Assert.Equal(0xFF, padding.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF], [padding.FillByte], "firmware image");
         Assert.Equal("padding-evidence", padding.EvidenceRef);
         Assert.Equal("CTRLRAM_TRUNCATED", truncation.WarningIssueCode);
         Assert.Equal("truncation-evidence", truncation.EvidenceRef);

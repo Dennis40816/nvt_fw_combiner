@@ -201,12 +201,12 @@ public sealed class SystemExternalProcessRunnerTests
         Assert.False(result.TimedOut);
         Assert.Equal(BoundedProcessOutputReader.MaximumCapturedCharacters, result.StandardOutput.Length);
         Assert.Equal(BoundedProcessOutputReader.MaximumCapturedCharacters, result.StandardError.Length);
-        Assert.StartsWith(new string('A', 256), result.StandardOutput, StringComparison.Ordinal);
-        Assert.StartsWith(new string('B', 256), result.StandardError, StringComparison.Ordinal);
-        Assert.Contains(BoundedProcessOutputReader.TruncationMarker, result.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains(BoundedProcessOutputReader.TruncationMarker, result.StandardError, StringComparison.Ordinal);
-        Assert.EndsWith("OUT-END", result.StandardOutput, StringComparison.Ordinal);
-        Assert.EndsWith("ERR-END", result.StandardError, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.StartsWith(new string('A', 256), result.StandardOutput, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
+        Assert.True(GoldenDiagnostics.StartsWith(new string('B', 256), result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
+        Assert.True(GoldenDiagnostics.Contains(BoundedProcessOutputReader.TruncationMarker, result.StandardOutput, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains(BoundedProcessOutputReader.TruncationMarker, result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.EndsWith("OUT-END", result.StandardOutput, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
+        Assert.True(GoldenDiagnostics.EndsWith("ERR-END", result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
     }
 
     /// <summary>Timeout waits for killed-stream drainage and retains bounded partial diagnostics.</summary>
@@ -244,8 +244,8 @@ public sealed class SystemExternalProcessRunnerTests
         Assert.True(result.TimedOut);
         Assert.Equal(BoundedProcessOutputReader.MaximumCapturedCharacters, result.StandardOutput.Length);
         Assert.Equal(BoundedProcessOutputReader.MaximumCapturedCharacters, result.StandardError.Length);
-        Assert.EndsWith("OUT-PARTIAL-END", result.StandardOutput, StringComparison.Ordinal);
-        Assert.EndsWith("ERR-PARTIAL-END", result.StandardError, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.EndsWith("OUT-PARTIAL-END", result.StandardOutput, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
+        Assert.True(GoldenDiagnostics.EndsWith("ERR-PARTIAL-END", result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
     }
 
     private static ExternalProcessStartInfo CreateStartInfo(string root, string scriptPath, TimeSpan timeout)
@@ -320,9 +320,7 @@ public sealed class SystemExternalProcessRunnerTests
             }
 
             ExternalProcessResult result = await run;
-            Assert.Fail(
-                "The test process exited before publishing readiness: " +
-                $"exit={result.ExitCode}, timedOut={result.TimedOut}, stderr={result.StandardError}");
+            Assert.Fail("External process result did not meet the expected outcome.");
         }
 
         await connection;

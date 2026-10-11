@@ -61,8 +61,8 @@ public sealed class NvtEndFlagTpInputTests
         (CompositionRunResult baseline, byte[] baselineOutput) = await BuildStandardAsync(workspace, icId, dp, tp, "baseline");
         (CompositionRunResult result, byte[] output) = await BuildStandardAsync(workspace, icId, dp, tpWithMarkers, "markers");
 
-        Assert.Equal(expected, baselineOutput);
-        Assert.Equal(expectedWithMarker, output);
+        GoldenAssert.AssertEqualsGolden(expected, baselineOutput, GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(expectedWithMarker, output, GoldenDiagnostics.Label(caseId));
         Assert.Equal(NamingTokens(baseline), NamingTokens(result));
         Assert.Contains(NamingTokens(result), static token => token.TokenId == "tp-version" && token.IsKnown);
     }
@@ -142,7 +142,7 @@ public sealed class NvtEndFlagTpInputTests
         ], TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("cli.retired-experience", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("cli.retired-experience", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(outputPath));
     }
 
@@ -204,7 +204,7 @@ public sealed class NvtEndFlagTpInputTests
         string outputPath = workspace.PathFor($"{name}-output.bin");
         CompositionRunResult result = await StandardMergeTestSupport.RunAsync(
             BootstrapTestHost.Services, icId, paths, build: true, TestContext.Current.CancellationToken, outputPath);
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         return (result, File.ReadAllBytes(outputPath));
     }
 

@@ -1,6 +1,8 @@
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Golden migration evidence for canonical V2 Standard Merge families.</summary>
@@ -145,7 +147,7 @@ public sealed class CanonicalV2StandardMergeGoldenTests
         Assert.Equal(CompositionAddressSpaceIds.OutputImage, plan.OutputSpaceId);
         Assert.Equal(ImageInitializationKind.Blank, plan.OutputInitialization.Kind);
         Assert.Equal(expectedCapacity, plan.OutputInitialization.Capacity);
-        Assert.Equal(0, plan.OutputInitialization.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0], [plan.OutputInitialization.FillByte], "firmware image");
 
         string[] expectedOperationIds = expectsLdc
             ? ["copy-tp", "copy-dp", "copy-ldc"]

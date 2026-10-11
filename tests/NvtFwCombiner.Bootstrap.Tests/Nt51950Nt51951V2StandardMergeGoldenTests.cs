@@ -46,13 +46,13 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.Equal("nt51950-standard-merge-dp-perspective", ReadProfileId(CompositionRunReportJson.Serialize(result)));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
+        Assert.True(StringComparer.Ordinal.Equals("nt51950-standard-merge-dp-perspective", ReadProfileId(CompositionRunReportJson.Serialize(result))), "Captured text differs from the expected text.");
         byte[] expected = File.ReadAllBytes(PathForRole("expected-final-output"));
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(expectedSha256, result.OutputSha256);
         Assert.Equal(expectedSha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant());
-        Assert.Equal(expected, output);
+        GoldenAssert.AssertEqualsGolden(expected, output, GoldenDiagnostics.Label(caseId));
     }
 
     /// <summary>Runs the two owner-approved DP Perspective fixtures through the V2 compiler and shared engine.</summary>
@@ -119,9 +119,8 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, v2Result.Status);
         byte[] expected = ConstructDpPerspectiveOutput(inputs["dp-input"], inputs["tp-input"]);
-        Assert.Equal(expectedSha256, Convert.ToHexString(
-            System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant());
-        Assert.Equal(expected, v2Result.OutputBytes.ToArray());
+        Assert.Equal(expectedSha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant());
+        GoldenAssert.AssertEqualsGolden(expected, v2Result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(expectedSha256, v2Result.OutputSha256);
     }
 
@@ -151,7 +150,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(v2, inputs);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(ConstructDpPerspectiveOutput(dp, tp), result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(ConstructDpPerspectiveOutput(dp, tp), result.OutputBytes.ToArray(), "firmware image");
     }
 
     private static void WriteSyntheticTpBackup(byte[] tp)
@@ -180,7 +179,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
         Assert.Equal(CompositionAddressSpaceIds.OutputImage, plan.OutputSpaceId);
         Assert.Equal(ImageInitializationKind.Blank, plan.OutputInitialization.Kind);
         Assert.Equal(capacity, plan.OutputInitialization.Capacity);
-        Assert.Equal(0, plan.OutputInitialization.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0], [plan.OutputInitialization.FillByte], "firmware image");
         Assert.Equal(
             ["copy-dp-container", "overlay-tp"],
             plan.OrderedOperations.Select(static operation => operation.OperationId));

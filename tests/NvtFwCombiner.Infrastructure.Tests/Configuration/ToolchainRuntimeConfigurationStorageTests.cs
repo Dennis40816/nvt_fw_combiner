@@ -64,10 +64,10 @@ public sealed class ToolchainRuntimeConfigurationStorageTests
         byte[] saved = File.ReadAllBytes(path);
         _ = await Assert.ThrowsAsync<ToolchainRuntimeConfigurationFormatException>(() => storage.WriteAsync(
             future with { Path = "\uD800" }, TestContext.Current.CancellationToken).AsTask());
-        Assert.Equal(saved, File.ReadAllBytes(path));
+        GoldenAssert.AssertEqualsGolden(saved, GoldenFileIo.ReadAllBytes(path), "firmware image");
         _ = await Assert.ThrowsAsync<ToolchainRuntimeConfigurationFormatException>(() => storage.WriteAsync(
             future with { Path = new('x', 65537) }, TestContext.Current.CancellationToken).AsTask());
-        Assert.Equal(saved, File.ReadAllBytes(path));
+        GoldenAssert.AssertEqualsGolden(saved, GoldenFileIo.ReadAllBytes(path), "firmware image");
         _ = workspace.Write("runtime.json", Encoding.UTF8.GetBytes(Valid.PadRight(65537)));
         _ = await Assert.ThrowsAsync<LocalFileTooLargeException>(() => storage.ReadAsync(TestContext.Current.CancellationToken).AsTask());
     }

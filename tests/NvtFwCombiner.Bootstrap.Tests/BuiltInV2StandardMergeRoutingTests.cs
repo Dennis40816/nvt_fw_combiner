@@ -47,7 +47,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
 
-        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.True(compiled, "Golden assertion condition was not satisfied.");
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(
@@ -94,8 +94,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         CapabilityCatalogReloadResult terminal = Assert.IsType<CapabilityCatalogReloadResult>(result);
         Assert.True(
             terminal.Succeeded,
-            string.Join(Environment.NewLine, terminal.Issues.Select(static issue =>
-                $"{issue.Code}: {issue.Message} [{issue.Subject}]")));
+            "Golden assertion condition was not satisfied.");
     }
 
     /// <summary>Verifies every registered IC selects one deployed V2 artifact without legacy fallback.</summary>
@@ -131,7 +130,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
 
-        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.True(compiled, "Golden assertion condition was not satisfied.");
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
@@ -170,7 +169,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
 
-        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.True(compiled, "Golden assertion condition was not satisfied.");
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(0x80000, artifact.Plan.OutputInitialization.Capacity);
@@ -217,7 +216,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] expected = new byte[expectedCapacity];
         tp.AsSpan(0, 0x35000).CopyTo(expected.AsSpan(0, 0x35000));
         dp.AsSpan(0x3C000, 0x4000).CopyTo(expected.AsSpan(0x3C000, 0x4000));
@@ -226,7 +225,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             ldc.AsSpan(0x40000, 0x22000).CopyTo(expected.AsSpan(0x40000, 0x22000));
         }
 
-        Assert.Equal(expected, File.ReadAllBytes(outputPath));
+        GoldenAssert.AssertEqualsGolden(expected, GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
     }
 
     /// <summary>Verifies DP Perspective routing selects the trusted map that exactly matches the supplied DP container length.</summary>
@@ -244,7 +243,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
 
-        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.True(compiled, "Golden assertion condition was not satisfied.");
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
@@ -323,8 +322,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         }
 
         List<string> deployedFiles = ["package-trust-index.json", "prebuilt-profile-catalog.pack", "ctrlram-postbuild-v2/catalog.json", "ctrlram-postbuild-v2/flash-map.json"];
-        Assert.Equal(File.ReadAllBytes(Path.Combine(materializedBuiltInRoot, "prebuilt-profile-catalog.pack")),
-            File.ReadAllBytes(Path.Combine(deployedBuiltInRoot, "prebuilt-profile-catalog.pack")));
+        GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(Path.Combine(materializedBuiltInRoot, "prebuilt-profile-catalog.pack")),
+            GoldenFileIo.ReadAllBytes(Path.Combine(deployedBuiltInRoot, "prebuilt-profile-catalog.pack")), "firmware image");
         foreach (string bundleDirectory in bundleDirectories)
         {
             string sourceBundleRoot = Path.Combine(builtInRoot, bundleDirectory);
@@ -334,8 +333,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             string sourceManifestPath = Path.Combine(sourceBundleRoot, "profile-bundle.json");
             string materializedManifestPath = Path.Combine(materializedRoot, "profile-bundle.json");
             string deployedManifestPath = Path.Combine(deployedRoot, "profile-bundle.json");
-            Assert.Equal(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(materializedManifestPath));
-            Assert.Equal(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(deployedManifestPath));
+            GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(sourceManifestPath), GoldenFileIo.ReadAllBytes(materializedManifestPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(sourceManifestPath), GoldenFileIo.ReadAllBytes(deployedManifestPath), "firmware image");
 
             using var manifest = JsonDocument.Parse(File.ReadAllText(sourceManifestPath));
             Assert.False(
@@ -368,8 +367,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 Assert.True(File.Exists(deployedPath), $"Deployed bundle entry is missing: {deployedPath}");
                 byte[] sourceBytes = File.ReadAllBytes(sourcePath);
                 Assert.Equal(contentHash, Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant());
-                Assert.Equal(sourceBytes, File.ReadAllBytes(materializedPath));
-                Assert.Equal(sourceBytes, File.ReadAllBytes(deployedPath));
+                GoldenAssert.AssertEqualsGolden(sourceBytes, GoldenFileIo.ReadAllBytes(materializedPath), "firmware image");
+                GoldenAssert.AssertEqualsGolden(sourceBytes, GoldenFileIo.ReadAllBytes(deployedPath), "firmware image");
             }
 
             _ = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
@@ -415,7 +414,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             snapshots.Add(snapshot);
         }
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(progress.IsAttached);
         Assert.Equal(
             [

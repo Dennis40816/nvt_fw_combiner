@@ -71,9 +71,9 @@ public sealed class FirmwareConfigMetadataReaderTests
             $"NT{ic} golden image must expose one valid NVT FWConfig Backup.");
 
         Assert.Equal(commonFwVersion, metadata.CommonFwVersion);
-        Assert.Equal(firmwareVersion, metadata.FirmwareVersion);
-        Assert.Equal(firmwareVersionBar, metadata.FirmwareVersionBar);
-        Assert.Equal(firmwareSubVersion, metadata.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareVersion], [metadata.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareVersionBar], [metadata.FirmwareVersionBar], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareSubVersion], [metadata.FirmwareSubVersion], "firmware image");
         Assert.Equal(chipNumber, metadata.ChipNumber);
         Assert.Equal(projectId, metadata.ProjectId);
         Assert.True(metadata.IsFirmwareVersionBarValid);
@@ -112,14 +112,14 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(image, 0, out FirmwareConfigMetadata metadata));
 
         FirmwareConfigHardwareMetadata hardware = metadata.Hardware;
-        Assert.Equal(0x11, hardware.FreeRunMode);
-        Assert.Equal(0x12, hardware.SyncType);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [hardware.FreeRunMode], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x12], [hardware.SyncType], "firmware image");
         Assert.Equal(0x13, hardware.SenseTerminalCount);
         Assert.Equal(0x14, hardware.TouchPanelTerminalCountNormal);
         Assert.Equal(0x15, hardware.TouchPanelTerminalCountSelf);
-        Assert.Equal(0x16, hardware.I2cDeviceAddress);
-        Assert.Equal(0x17, hardware.InterpolationStepX);
-        Assert.Equal(0x18, hardware.InterpolationStepY);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x16], [hardware.I2cDeviceAddress], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x17], [hardware.InterpolationStepX], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x18], [hardware.InterpolationStepY], "firmware image");
         Assert.Equal(0xABCD, hardware.S2dSensorDots);
         Assert.Equal(0x19, hardware.MaxZoneCount);
         Assert.Equal((sbyte)-2, hardware.InterpolationStartOffsetX);
@@ -146,10 +146,10 @@ public sealed class FirmwareConfigMetadataReaderTests
         int nvtTerminal = Assert.Single(FindNvtEndFlagTerminals(image));
         Assert.Equal(nvtTerminal - 0xFFF, backup.StructureStart);
 
-        Assert.Equal(primary.FirmwareVersion, backup.FirmwareVersion);
-        Assert.Equal(primary.FirmwareVersionBar, backup.FirmwareVersionBar);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[primary.FirmwareVersion], [backup.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[primary.FirmwareVersionBar], [backup.FirmwareVersionBar], "firmware image");
         Assert.Equal(primary.IsFirmwareVersionBarValid, backup.IsFirmwareVersionBarValid);
-        Assert.Equal(primary.FirmwareSubVersion, backup.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[primary.FirmwareSubVersion], [backup.FirmwareSubVersion], "firmware image");
         Assert.Equal(primary.ChipNumber, backup.ChipNumber);
         Assert.Equal(primary.CommonFwVersion, backup.CommonFwVersion);
         Assert.Equal(primary.ProjectId, backup.ProjectId);

@@ -80,7 +80,7 @@ public sealed partial class MergeWorkflowTests
             report.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
         Assert.Equal(0, delivery.GetProperty("SourceRange").GetProperty("Start").GetInt64());
         Assert.Equal(additionalBytes.LongLength, delivery.GetProperty("SourceRange").GetProperty("Length").GetInt64());
-        Assert.True(primaryBytes.AsSpan(0, additionalBytes.Length).SequenceEqual(additionalBytes));
+        GoldenAssert.AssertEqualsGolden(primaryBytes.AsSpan(0, additionalBytes.Length), additionalBytes, "firmware image");
         Assert.Equal(
             Convert.ToHexStringLower(SHA256.HashData(additionalBytes)),
             delivery.GetProperty("Sha256").GetString());

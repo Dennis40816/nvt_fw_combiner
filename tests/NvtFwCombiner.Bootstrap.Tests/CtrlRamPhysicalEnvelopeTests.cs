@@ -50,7 +50,7 @@ public sealed class CtrlRamPhysicalEnvelopeTests
         Dictionary<string, byte[]> bytes = paths.ToDictionary(pair => pair.Key, pair => File.ReadAllBytes(pair.Value));
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), ic, "cascade", paths, bytes);
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot session = prepared.AcceptedSession!;
         CtrlRamInspectionDisplay display = BootstrapTestHost.Canonical.CtrlRamAuthoring
             .GetDiscoveryDisplayFromAcceptedBase(ic, "cascade", bytes["replace-base"]);

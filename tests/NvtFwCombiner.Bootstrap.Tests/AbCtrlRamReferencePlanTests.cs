@@ -32,7 +32,7 @@ public sealed class AbCtrlRamReferencePlanTests
             binding.Definition.Layout.ProfileVersion, "NT51950", ExperienceIds.AbMerge, reference.LongLength,
             new TopologySelection(1, "single", TopologySelectionSource.Requested, "test"),
             [new FirmwareArtifactPayload("dp-ab-input", reference)], selectedInputSlotIds: ["dp-ab-input"]);
-        Assert.True(layout.IsCompiled, string.Join("; ", layout.Issues.Select(static issue => issue.Message)));
+        Assert.True(layout.IsCompiled, "Golden assertion condition was not satisfied.");
         CompiledComposition composition = layout.CompiledComposition!;
         Assert.Equal(0x80000, composition.V2Details.Provenance.ResolvedMap.CapacityBytes);
         Assert.Equal(reference.LongLength,
@@ -74,7 +74,7 @@ public sealed class AbCtrlRamReferencePlanTests
             binding.Definition.Layout.ProfileVersion, "NT51950", ExperienceIds.AbMerge, 0x80000,
             new TopologySelection(1, "single", TopologySelectionSource.Requested, "test"), [],
             selectedInputSlotIds: ["dp-ab-input"]);
-        Assert.True(layout.IsCompiled, string.Join("; ", layout.Issues.Select(static issue => issue.Message)));
+        Assert.True(layout.IsCompiled, "Golden assertion condition was not satisfied.");
         LegacyCombinerPostbuildProfile postbuild = BuiltInPostbuildProfileCatalog.GetProfiles("NT51950").Single();
         LegacyCombinerPostbuildCommandPlan command = postbuild.ResolvePlan(
             postbuild.PlanSelectors.Single(static selector => selector.Branch == LegacyCombinerPostbuildBranch.SingleChip));
@@ -152,7 +152,7 @@ public sealed class AbCtrlRamReferencePlanTests
         V2CompositionPlanCompileResult layout = ab.Compile(definition.Layout.ProfileId,
             definition.Layout.ProfileVersion, member, ExperienceIds.AbMerge, reference.LongLength,
             layoutTopology, [], selectedInputSlotIds: ["dp-ab-input"]);
-        Assert.True(layout.IsCompiled, string.Join("; ", layout.Issues.Select(static issue => issue.Message)));
+        Assert.True(layout.IsCompiled, "Golden assertion condition was not satisfied.");
         LegacyCombinerPostbuildProfile postbuild = BuiltInPostbuildProfileCatalog.GetProfiles(member).Single();
         LegacyCombinerPostbuildCommandPlan command = postbuild.ResolvePlan(
             postbuild.PlanSelectors.Single(selector => selector.Branch ==
@@ -273,7 +273,7 @@ public sealed class AbCtrlRamReferencePlanTests
         V2CompositionPlanCompileResult layout = ab.Compile(definition.Layout.ProfileId,
             definition.Layout.ProfileVersion, member, ExperienceIds.AbMerge, 0x80000, null, [],
             selectedInputSlotIds: ["dp-ab-input"]);
-        Assert.True(layout.IsCompiled, string.Join("; ", layout.Issues.Select(static issue => issue.Message)));
+        Assert.True(layout.IsCompiled, "Golden assertion condition was not satisfied.");
         var replace = new V2RuntimeReferenceReplaceCompileRequest(
             [new("reference-base", "reference-base", 0x40000), new("source", "ctrlram-source", 1)],
             [new ExplicitMapping("replace-nf", 100, ExplicitMappingOperationKind.ReplaceRange, "source",
@@ -397,9 +397,9 @@ public sealed class AbCtrlRamReferencePlanTests
                 V2RuntimeReferenceBankReplaceBinding bank = prepared.Banks.Single(binding => binding.WorkspaceId == operation.TargetSpaceId);
                 calls.Add(bank.BankInstanceId);
                 Assert.Equal(0x40000, input.Length);
-                Assert.Equal(frozen.AsSpan(0x7164, 12).ToArray(), input.Span.Slice(0x7164, 12).ToArray());
-                Assert.Equal(frozen[checked((int)bank.OutputRange.Start) + 0x3000], input.Span[0x3000]);
-                Assert.Equal(0xA5, input.Span[0x1FC00]);
+                GoldenAssert.AssertEqualsGolden(frozen.AsSpan(0x7164, 12).ToArray(), input.Span.Slice(0x7164, 12).ToArray(), "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[frozen[checked((int)bank.OutputRange.Start) + 0x3000]], [input.Span[0x3000]], "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5], [input.Span[0x1FC00]], "firmware image");
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(input));
             }, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
@@ -414,10 +414,10 @@ public sealed class AbCtrlRamReferencePlanTests
             expected[0x5FC00] = 0xA5;
         }
 
-        Assert.Equal(expected, result.OutputBytes.ToArray());
-        Assert.Equal(new byte[] { 0xA5 }, source);
+        GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(new byte[] { 0xA5 }, source, "firmware image");
         Assert.Equal(prepared.Banks.Select(static bank => bank.BankInstanceId), calls);
-        Assert.Equal(frozen, prepared.Reference.Bytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(frozen, prepared.Reference.Bytes.ToArray(), "firmware image");
         Assert.DoesNotContain(prepared.Plan.OrderedOperations, static operation => operation.OperationId.Contains("dp-ab", StringComparison.Ordinal));
     }
 
@@ -501,10 +501,10 @@ public sealed class AbCtrlRamReferencePlanTests
         Assert.Equal(CompiledValidationStage.FinalOutput, validation.Stage);
         Assert.Equal("test.version-mismatch", validation.IssueCode);
         Assert.Equal("test.invalid-backup", validation.InvalidIssueCode);
-        Assert.Equal(0x21, validation.FirmwareVersion);
-        Assert.Equal(0x32, validation.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x21], [validation.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x32], [validation.FirmwareSubVersion], "firmware image");
         Assert.Equal(0x40000, bank.OutputRange.Start);
-        Assert.Equal(prepared.Reference.Bytes.Slice(0x40000, 0x40000).ToArray(), bank.Reference.Bytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(prepared.Reference.Bytes.Slice(0x40000, 0x40000).ToArray(), bank.Reference.Bytes.ToArray(), "firmware image");
         Assert.Contains(prepared.Plan.AddressSpaces, space => space.AddressSpaceId == bank.WorkspaceId);
     }
 
@@ -587,7 +587,7 @@ public sealed class AbCtrlRamReferencePlanTests
         var processor = new LegacyCombinerPostbuildProcessor(new ExternalCombinerToolRegistry([manifest]), toolRoot,
             workspace.PathFor("staging"), new SystemExternalProcessRunner());
         int calls = 0;
-        async ValueTask<CompositionExternalProcessorResult> Run(CompositionOperation operation, ReadOnlyMemory<byte> input,
+        async ValueTask<CompositionExternalProcessorResult> RunAsync(CompositionOperation operation, ReadOnlyMemory<byte> input,
             IReadOnlyList<ExternalProcessorStagedSource> sources, IReadOnlyList<ExternalProcessorStagedArtifact> artifacts, CancellationToken ct)
         {
             calls++;
@@ -595,14 +595,14 @@ public sealed class AbCtrlRamReferencePlanTests
             ExternalProcessorResult result = await processor.TransformAsync(new ExternalProcessorRequest($"bank-{calls}",
                 invocation.ProcessorId, invocation.ToolBindingId, input, invocation.AllowedWriteRanges, selection,
                 sources, stagedArtifacts: artifacts, protocolPlan: invocation.ProtocolPlan), ct);
-            Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(static issue => issue.Message)));
+            Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
             return CompositionExternalProcessorResult.Success(result.OutputBytes);
         }
 
         CompositionExecutionResult output = await CompositionEngine.ExecuteAsync(prepared.Plan,
-            prepared.CreateExecutionInput(new Dictionary<string, byte[]> { ["source"] = [0xA5] }), Run, TestContext.Current.CancellationToken);
+            prepared.CreateExecutionInput(new Dictionary<string, byte[]> { ["source"] = [0xA5] }), RunAsync, TestContext.Current.CancellationToken);
         Assert.True(output.Status == CompositionExecutionStatus.Succeeded,
-            string.Join("; ", output.Issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         Assert.Equal(prepared.Banks.Count, calls);
         byte[] expected = [.. original];
         foreach (V2RuntimeReferenceBankReplaceBinding bank in prepared.Banks)
@@ -619,7 +619,7 @@ public sealed class AbCtrlRamReferencePlanTests
 
             control[0x1FC00] = 0xA5;
             CompositionOperation tool = bank.LocalComposition.Plan.OrderedOperations.Single(static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor);
-            CompositionExternalProcessorResult processed = await Run(tool, control, [], [], TestContext.Current.CancellationToken);
+            CompositionExternalProcessorResult processed = await RunAsync(tool, control, [], [], TestContext.Current.CancellationToken);
             byte[] bytes = processed.OutputBytes.ToArray();
             if (bank.BankInstanceId == "b-bank")
             {
@@ -633,8 +633,8 @@ public sealed class AbCtrlRamReferencePlanTests
             bytes.CopyTo(expected, checked((int)bank.OutputRange.Start));
         }
 
-        Assert.Equal(expected, output.OutputBytes.ToArray());
-        Assert.Equal(original, prepared.Reference.Bytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, output.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(original, prepared.Reference.Bytes.ToArray(), "firmware image");
         ExportCandidateEvidence(selectA, selectB, original, output.OutputBytes.ToArray(), manifest.Sha256);
     }
 

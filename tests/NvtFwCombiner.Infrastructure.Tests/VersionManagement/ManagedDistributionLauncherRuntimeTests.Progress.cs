@@ -84,7 +84,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             new InlineProgress<ManagedFirstInstallationProgress>(updates.Add),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         result.Installation!.Dispose();
         ManagedFirstInstallationProgressStage[] stages =
         [

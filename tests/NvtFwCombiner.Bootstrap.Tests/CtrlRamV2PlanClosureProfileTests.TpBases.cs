@@ -232,12 +232,12 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
 
         Assert.True(
             result.Status == CompositionExecutionStatus.Succeeded,
-            string.Join(Environment.NewLine, result.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         Assert.Equal(fullCapacity, result.OutputBytes.Length);
-        Assert.Equal((byte)0xC3, result.OutputBytes.Span[targetStart]);
-        Assert.Equal(originalReference.AsSpan(tpCapacity).ToArray(), result.OutputBytes.Span[tpCapacity..].ToArray());
-        Assert.Equal(originalReference, reference);
-        Assert.Equal(originalSource, source);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xC3], [result.OutputBytes.Span[targetStart]], "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalReference.AsSpan(tpCapacity).ToArray(), result.OutputBytes.Span[tpCapacity..].ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalReference, reference, "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalSource, source, "firmware image");
     }
 
     /// <summary>Every direct TP-prefix evidence view is an immutable slice of its owner expected output.</summary>
@@ -278,7 +278,7 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
                 RequireArtifactById(goldenCase, identicalTpArtifactId));
             Assert.Equal("input", tpArtifact.Role);
             Assert.Equal(length, tpArtifact.Bytes.Length);
-            Assert.Equal(expectedView, tpArtifact.Bytes);
+            GoldenAssert.AssertEqualsGolden(expectedView, tpArtifact.Bytes, GoldenDiagnostics.Label(caseId));
         }
 
         Assert.Equal(expectedArtifact.ManifestSha256, Hash(File.ReadAllBytes(expectedArtifact.Path)));
@@ -344,8 +344,8 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
             TestContext.Current.CancellationToken,
             tpOutputPath);
 
-        Assert.True(full.Succeeded, CompositionRunReportJson.Serialize(full));
-        Assert.True(tp.Succeeded, CompositionRunReportJson.Serialize(tp));
+        Assert.True(full.Succeeded, $"Composition result: status={full.Status}, succeeded={full.Succeeded}.");
+        Assert.True(tp.Succeeded, $"Composition result: status={tp.Status}, succeeded={tp.Succeeded}.");
         byte[] fullOutput = File.ReadAllBytes(fullOutputPath);
         byte[] tpOutput = File.ReadAllBytes(tpOutputPath);
         Assert.Equal("fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9", Hash(fullOutput));
@@ -355,7 +355,7 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
             fullOutput);
         Assert.Equal(24, differences.DifferenceCount);
         Assert.Equal(0x35000, tpOutput.Length);
-        Assert.Equal(fullOutput.AsSpan(0, 0x35000).ToArray(), tpOutput);
+        GoldenAssert.AssertEqualsGolden(fullOutput.AsSpan(0, 0x35000).ToArray(), tpOutput, "firmware image");
         Assert.All(
             artifacts,
             artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));

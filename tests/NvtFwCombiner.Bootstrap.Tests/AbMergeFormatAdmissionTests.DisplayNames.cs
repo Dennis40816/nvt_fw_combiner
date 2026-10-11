@@ -4,6 +4,8 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class AbMergeFormatAdmissionTests
@@ -40,7 +42,7 @@ public sealed partial class AbMergeFormatAdmissionTests
         {
             EventBufferFormatObservation observation = Assert.IsType<EventBufferFormatObservation>(
                 AbMergeAuthoringExperience.ProjectEventBufferFormat(space, selection));
-            Assert.Equal(raw, observation.RawByte);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[raw], [observation.RawByte], "firmware image");
             Assert.Equal(name, observation.DetectedDisplayName);
             Assert.Equal(selection.DisplayName, observation.DisplayName);
             Assert.Equal(configuration.Generation, observation.ConfigurationGeneration);

@@ -24,7 +24,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             candidate,
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
             TestContext.Current.CancellationToken);
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         return (result, FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(root));
     }
 

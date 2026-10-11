@@ -3,6 +3,8 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Runtime-admission evidence for the fixed NT51919/NT51929/NT51932 AB Merge profiles.</summary>
@@ -140,7 +142,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
         WriteUInt32(expectedTpb, TpbScalarOffset - TpCodeStart + sizeof(uint), 0x00ABCDEF + Relocation);
         WriteUInt32(expectedTpb, TpbScalarOffset - TpCodeStart + (2 * sizeof(uint)), 0x0000C0DE + Relocation);
         AssertRangeEquals(expectedTpb, 0, output, TpbOutputStart, TpCodeLength);
-        Assert.Equal(originalTpB, tpB);
+        GoldenAssert.AssertEqualsGolden(originalTpB, tpB, "firmware image");
     }
 
     /// <inheritdoc/>
@@ -186,9 +188,8 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
 
     private static void AssertRangeEquals(byte[] expected, int expectedStart, byte[] actual, int actualStart, int length)
     {
-        Assert.Equal(
-            expected.AsSpan(expectedStart, length).ToArray(),
-            actual.AsSpan(actualStart, length).ToArray());
+        GoldenAssert.AssertEqualsGolden(expected.AsSpan(expectedStart, length).ToArray(),
+            actual.AsSpan(actualStart, length).ToArray(), "firmware image");
     }
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)

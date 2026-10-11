@@ -34,7 +34,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
-        Assert.Equal([0, 0xAA, 0xBB, 0, 0, 0], execution.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 0xAA, 0xBB, 0, 0, 0], execution.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies the logical compiler cannot mint an artifact below the compilable promotion boundary.</summary>
@@ -331,9 +331,8 @@ catalog.CompileLogicalOutput(
                 ["source-a"] = [0xAA, 0xBB, 0xCC, 0xDD],
             }));
 
-        Assert.Equal(
-            [checked((byte)fillByte), 0xAA, 0xBB, checked((byte)fillByte), checked((byte)fillByte), checked((byte)fillByte)],
-            execution.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)fillByte), 0xAA, 0xBB, checked((byte)fillByte), checked((byte)fillByte), checked((byte)fillByte)],
+            execution.OutputBytes.ToArray(), "firmware image");
         if (fillByte != 0)
         {
             CompiledComposition zero = Assert.IsType<CompiledComposition>(

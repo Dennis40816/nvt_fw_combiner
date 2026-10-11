@@ -1,5 +1,7 @@
 using NvtFwCombiner.Application.Configuration;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Configuration;
 
 /// <summary>Behavioral coverage of scoped configuration admission without firmware execution authority.</summary>
@@ -46,7 +48,7 @@ public sealed class EventBufferFormatConfigurationAdmissionTests
     {
         EventBufferFormatConfiguration config = Admit(new EventBufferFormatDraftEntry("format-a", null, [255, 0]));
 
-        Assert.Equal<byte>([0, 255], Assert.Single(config.Entries).RecognitionValues);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 255], (Assert.Single(config.Entries).RecognitionValues).ToArray(), "firmware image");
         Assert.NotNull(config.Match(Scope, byte.MinValue));
         Assert.NotNull(config.Match(Scope, byte.MaxValue));
     }
@@ -151,8 +153,8 @@ public sealed class EventBufferFormatConfigurationAdmissionTests
             new("format-b", "B", values), new("format-a", "A", [0xFF, 0]));
 
         Assert.Equal(["format-a", "format-b"], config.Entries.Select(entry => entry.UniqueId));
-        Assert.Equal<byte>([0, 0xFF], config.Entries[0].RecognitionValues);
-        Assert.Equal<byte>([0x97, 0xA6], config.Entries[1].RecognitionValues);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 0xFF], (config.Entries[0].RecognitionValues).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x97, 0xA6], (config.Entries[1].RecognitionValues).ToArray(), "firmware image");
         Assert.Equal([0xA6, 0x97], values);
     }
 
@@ -173,7 +175,7 @@ public sealed class EventBufferFormatConfigurationAdmissionTests
 
         Assert.Equal("Original", config.Match(Scope, 0x97)!.DisplayName);
         Assert.Null(config.Match(Scope, 0xA6));
-        Assert.Equal<byte>([0x97], Assert.Single(config.Entries).RecognitionValues);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x97], (Assert.Single(config.Entries).RecognitionValues).ToArray(), "firmware image");
         _ = Assert.Throws<NotSupportedException>(() =>
             ((IList<byte>)config.Entries[0].RecognitionValues)[0] = 0);
         _ = Assert.Throws<NotSupportedException>(() =>

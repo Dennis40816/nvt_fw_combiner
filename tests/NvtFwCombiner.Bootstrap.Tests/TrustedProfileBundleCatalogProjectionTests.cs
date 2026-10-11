@@ -181,7 +181,7 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(Enumerable.Range(0, 16).Select(static value => (byte)value).ToArray(), result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(Enumerable.Range(0, 16).Select(static value => (byte)value).ToArray(), result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(artifact.CompilationFingerprint, result.Report.CompilationFingerprint);
     }
 

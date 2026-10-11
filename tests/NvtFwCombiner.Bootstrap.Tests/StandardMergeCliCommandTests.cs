@@ -46,7 +46,7 @@ public sealed class StandardMergeCliCommandTests
                 return result;
             }
             capturedCalls++;
-            Assert.Equal(dp, ((ReadOnlyMemory<byte>)args![1]!).ToArray());
+            GoldenAssert.AssertEqualsGolden(dp, ((ReadOnlyMemory<byte>)args![1]!).ToArray(), "firmware image");
             Assert.Equal([CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
                 ((IReadOnlyCollection<string>)args[2]!).Order(StringComparer.Ordinal));
             CompiledAuthoringSelectionSnapshot pending = host.StandardMergeAuthoring
@@ -142,8 +142,8 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Report:", result.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Report:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
             TestContext.Current.CancellationToken));
@@ -190,8 +190,8 @@ public sealed class StandardMergeCliCommandTests
         Assert.True(File.Exists(outputPath));
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, output.Length);
-        Assert.Equal(0x22, output[0]);
-        Assert.Equal(0x11, output[0x3E000]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x22], [output[0]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [output[0x3E000]], "firmware image");
         using JsonDocument report = JsonDocument.Parse(
             await File.ReadAllTextAsync(
                 reportPath,
@@ -247,7 +247,7 @@ public sealed class StandardMergeCliCommandTests
             ]);
 
             Assert.Equal(0, result.ExitCode);
-            Assert.Contains($"Output: {expectedFileName}", result.Output, StringComparison.Ordinal);
+            Assert.True(GoldenDiagnostics.Contains($"Output: {expectedFileName}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
             Assert.True(File.Exists(expectedPath));
             using JsonDocument report = JsonDocument.Parse(
                 await File.ReadAllTextAsync(
@@ -301,8 +301,8 @@ public sealed class StandardMergeCliCommandTests
         Assert.True(File.Exists(outputPath));
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, output.Length);
-        Assert.Equal(0x11, output[0]);
-        Assert.Equal(0x22, output[0x7000]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [output[0]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x22], [output[0x7000]], "firmware image");
     }
 
     /// <summary>Verifies the NT51917 alias and NT51927 direct V2 routes accept their approved two-mebibyte DP container without an extraction warning.</summary>
@@ -336,12 +336,12 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.DoesNotContain("Issues:", result.Output, StringComparison.Ordinal);
+        Assert.True(!GoldenDiagnostics.Contains("Issues:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(File.Exists(outputPath));
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, output.Length);
-        Assert.Equal(0x22, output[0]);
-        Assert.Equal(0x11, output[0x3C000]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x22], [output[0]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [output[0x3C000]], "firmware image");
     }
 
     /// <summary>Verifies the NT51928 V2 profile binds the required LDC BIN through the generic Standard Merge CLI.</summary>
@@ -381,9 +381,9 @@ public sealed class StandardMergeCliCommandTests
         Assert.True(File.Exists(outputPath));
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x80000, output.Length);
-        Assert.Equal(0x22, output[0]);
-        Assert.Equal(0x11, output[0x3C000]);
-        Assert.Equal(0x33, output[0x40000]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x22], [output[0]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [output[0x3C000]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x33], [output[0x40000]], "firmware image");
     }
 
     /// <summary>Verifies omitted NT51928 LDC selects the 256-KiB Initial-Code/TP variant.</summary>
@@ -409,9 +409,9 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("DP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("TP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal);
-        Assert.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("DP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("TP_UNIFORM_CONTENT_WARNING", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Unknown Standard Merge selectors remain a usage error.</summary>
@@ -426,7 +426,7 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("unknown standard merge profile 'NT00000'", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("unknown standard merge profile 'NT00000'", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Required input validation still runs before DP-length specialization.</summary>
@@ -446,7 +446,7 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--tp is required for address space 'tp-input'", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--tp is required for address space 'tp-input'", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>DP Perspective read failures retain the adapter's missing-versus-unreadable classification.</summary>
@@ -471,8 +471,8 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("input.artifact.read-failed [dp-input]", result.Error, StringComparison.Ordinal);
-        Assert.Contains("Selected DP BIN path does not exist", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("input.artifact.read-failed [dp-input]", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Selected DP BIN path does not exist", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
 
         CliRunResult unreadable = await RunCliAsync([
             "standard-merge",
@@ -538,7 +538,7 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--ldc is not used by this profile", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--ldc is not used by this profile", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Rejects report paths that would overwrite an input BIN.</summary>
@@ -566,8 +566,8 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("Report path must not overwrite input artifact", result.Error, StringComparison.Ordinal);
-        Assert.Equal(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken));
+        Assert.True(GoldenDiagnostics.Contains("Report path must not overwrite input artifact", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        GoldenAssert.AssertEqualsGolden(dp, await GoldenFileIo.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Rejects Standard Merge build outputs that would overwrite an input BIN.</summary>
@@ -595,8 +595,8 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("Output path must not overwrite input artifact", result.Error, StringComparison.Ordinal);
-        Assert.Equal(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken));
+        Assert.True(GoldenDiagnostics.Contains("Output path must not overwrite input artifact", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        GoldenAssert.AssertEqualsGolden(dp, await GoldenFileIo.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Rejects report paths that would overwrite a successfully built firmware image.</summary>
@@ -627,7 +627,7 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("Report path must not overwrite built firmware output", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Report path must not overwrite built firmware output", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(outputPath));
     }
 
@@ -656,7 +656,7 @@ public sealed class StandardMergeCliCommandTests
                 .AsTask());
 
         Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
-        Assert.Equal(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(dp, await GoldenFileIo.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Verifies DP Perspective Standard Merge build uses the selected DP BIN length.</summary>
@@ -681,14 +681,14 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Profile: nt51950-standard-merge-dp-perspective (NT51950)", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal);
-        Assert.DoesNotContain("Issues:", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Profile: nt51950-standard-merge-dp-perspective (NT51950)", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("Issues:", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         byte[] actual = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         byte[] expected = await File.ReadAllBytesAsync(golden.ExpectedPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, actual.Length);
-        Assert.Equal(expected, actual);
+        GoldenAssert.AssertEqualsGolden(expected, actual, "firmware image");
     }
 
     /// <summary>Nonstandard DP containers retain every byte outside the declared TP overlay.</summary>
@@ -716,12 +716,12 @@ public sealed class StandardMergeCliCommandTests
             "--report", reportPath,
         ]);
 
-        Assert.True(result.ExitCode == 0, result.Error);
-        Assert.Contains("DP_NONSTANDARD_SIZE_WARNING", result.Error, StringComparison.Ordinal);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
+        Assert.True(GoldenDiagnostics.Contains("DP_NONSTANDARD_SIZE_WARNING", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         byte[] actual = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         byte[] expected = (byte[])dp.Clone();
         tp.AsSpan(0xA000, 0x2D000).CopyTo(expected.AsSpan(0xA000));
-        Assert.Equal(expected, actual);
+        GoldenAssert.AssertEqualsGolden(expected, actual, "firmware image");
         using JsonDocument report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath, TestContext.Current.CancellationToken));
         JsonElement envelope = report.RootElement.GetProperty("SourceEnvelope");
@@ -755,8 +755,8 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("profile.v2.plan.invalid-view", result.Error, StringComparison.Ordinal);
-        Assert.Contains("tp-overlay", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("profile.v2.plan.invalid-view", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("tp-overlay", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>An oversized sparse source is rejected from file metadata before the CLI can allocate its payload or create outputs.</summary>
@@ -786,10 +786,10 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("input.artifact.read-failed [dp-input]", result.Error, StringComparison.Ordinal);
-        Assert.Contains("100000001", result.Error, StringComparison.Ordinal);
-        Assert.Contains("100000000-byte limit", result.Error, StringComparison.Ordinal);
-        Assert.Empty(result.Output);
+        Assert.True(GoldenDiagnostics.Contains("input.artifact.read-failed [dp-input]", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("100000001", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("100000000-byte limit", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         Assert.False(File.Exists(outputPath));
         Assert.False(File.Exists(reportPath));
     }
@@ -809,8 +809,8 @@ public sealed class StandardMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(100_000_000, bytes.LongLength);
-        Assert.Equal(0, bytes[0]);
-        Assert.Equal(0, bytes[^1]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0], [bytes[0]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0], [bytes[^1]], "firmware image");
     }
 
     private static void StampValidSingleIcFirmwareConfig(byte[] tp)

@@ -42,7 +42,7 @@ public sealed class AbCtrlRamFullInputCandidateTests
         var state = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             state, "NT51929", "single", paths, bytes, new AbCtrlRamDraftState(selection));
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         using TempWorkspace workspace = TempWorkspace.Create("ab-full-input-candidate");
         CompositionRunResult result = await CtrlRamReplaceTestSupport.ExecuteAcceptedWithProcessorAsync(
             BootstrapTestHost.Canonical, prepared.AcceptedSession!, paths, true, workspace.PathFor("result.bin"),
@@ -50,14 +50,14 @@ public sealed class AbCtrlRamFullInputCandidateTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         byte[] output = result.OutputBytes.ToArray();
         Assert.Equal(0x80000, output.Length);
-        Assert.Equal(output, File.ReadAllBytes(workspace.PathFor("result.bin")));
+        GoldenAssert.AssertEqualsGolden(output, GoldenFileIo.ReadAllBytes(workspace.PathFor("result.bin")), "firmware image");
         if (selection == AbCtrlRamBankSelection.A)
         {
-            Assert.Equal(reference[0x40000..], output[0x40000..]);
+            GoldenAssert.AssertEqualsGolden(reference[0x40000..], output[0x40000..], "firmware image");
         }
         if (selection == AbCtrlRamBankSelection.B)
         {
-            Assert.Equal(reference[..0x40000], output[..0x40000]);
+            GoldenAssert.AssertEqualsGolden(reference[..0x40000], output[..0x40000], "firmware image");
         }
 
         string? evidenceRoot = Environment.GetEnvironmentVariable("NFC_AB_CTRLRAM_FULL_INPUT_DIR");

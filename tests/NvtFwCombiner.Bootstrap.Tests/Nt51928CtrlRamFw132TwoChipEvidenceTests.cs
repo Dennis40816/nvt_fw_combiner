@@ -42,10 +42,10 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
             "NT51928", "2", ExperienceIds.CtrlRamReplace, slots, true,
             TestContext.Current.CancellationToken, v2Path);
 
-        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
+        Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
         byte[] v2Bytes = File.ReadAllBytes(v2Path);
         Assert.Equal(OutputSha256, Hash(v2Bytes));
-        Assert.Equal(reference.AsSpan(0x34800).ToArray(), v2Bytes.AsSpan(0x34800).ToArray());
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x34800).ToArray(), v2Bytes.AsSpan(0x34800).ToArray(), "firmware image");
 
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement);
@@ -95,7 +95,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(File.Exists(outputPath));
         using (var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result)))
         {
@@ -145,9 +145,9 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(reference.AsSpan(0x34800).ToArray(), output.AsSpan(0x34800).ToArray());
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x34800).ToArray(), output.AsSpan(0x34800).ToArray(), "firmware image");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal(expectedProfileId, ReadProfileId(report.RootElement));
     }

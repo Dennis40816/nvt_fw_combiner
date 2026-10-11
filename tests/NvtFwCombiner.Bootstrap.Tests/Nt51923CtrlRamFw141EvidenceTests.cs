@@ -75,13 +75,13 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             build: true,
             TestContext.Current.CancellationToken,
             referencePath);
-        Assert.True(standardMerge.Succeeded, CompositionRunReportJson.Serialize(standardMerge));
+        Assert.True(standardMerge.Succeeded, $"Composition result: status={standardMerge.Status}, succeeded={standardMerge.Succeeded}.");
         using (var standardMergeReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(standardMerge)))
         {
             Assert.Equal("nt51923-standard-merge-gen-flash", ReadProfileId(standardMergeReport.RootElement));
         }
 
-        Assert.Equal(ownerCase.Expected.Bytes, File.ReadAllBytes(referencePath));
+        GoldenAssert.AssertEqualsGolden(ownerCase.Expected.Bytes, GoldenFileIo.ReadAllBytes(referencePath), GoldenDiagnostics.Label(caseId));
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
@@ -93,7 +93,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
+        Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         Assert.Equal(outputSha256, Hash(v2Bytes));
         Assert.Equal(outputSha256, v2.OutputSha256);
@@ -164,7 +164,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(
             report.RootElement,

@@ -37,11 +37,11 @@ public sealed partial class ReplaceCliCommandTests
                 policy,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] outputBytes = await File.ReadAllBytesAsync(
             output,
             TestContext.Current.CancellationToken);
-        Assert.Equal(baseBytes[..2], outputBytes[0x3E020..0x3E022]);
+        GoldenAssert.AssertEqualsGolden(baseBytes[..2], outputBytes[0x3E020..0x3E022], "firmware image");
     }
 
     /// <summary>The Parent reference slot cannot be rebound independently from --base.</summary>
@@ -73,7 +73,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("reference is reserved for --base", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("reference is reserved for --base", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(output));
     }
 
@@ -102,7 +102,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("collides with exact Parent slot", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("collides with exact Parent slot", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(output));
     }
 }

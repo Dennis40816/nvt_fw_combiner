@@ -69,7 +69,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             protocolPlan: profile.ResolvePlan(selection).ProtocolPlan);
 
         ExternalProcessorResult result = await processor.TransformAsync(request, cancellationToken).ConfigureAwait(false);
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         if (assertChangedRanges)
         {
             Assert.Equal(expectedChangedRanges, result.ChangedRanges);

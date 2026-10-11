@@ -32,7 +32,7 @@ public sealed class TpSvnHeaderCopyReportFallbackTests
         }
 
         byte[] reference = File.ReadAllBytes(Path("tp-input"));
-        Assert.Equal(Convert.ToHexString(reference, 0x24, 4), Convert.ToHexString(reference, HeaderCopyStamp, 4));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(reference, 0x24, 4)), Convert.FromHexString(Convert.ToHexString(reference, HeaderCopyStamp, 4)), GoldenDiagnostics.Label(CaseId));
         reference.AsSpan(HeaderCopyStamp, 4).Clear();
         using TempWorkspace workspace = TempWorkspace.Create("nfc-tp-svn-header-copy-report");
         var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -48,7 +48,7 @@ public sealed class TpSvnHeaderCopyReportFallbackTests
             BootstrapTestHost.Canonical, "NT51923", IcNumberSelectionTokens.SingleChip, ExperienceIds.CtrlRamReplace,
             slotPaths, build: false, TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         OutputDifferenceSummary difference = Assert.Single(result.Report.OutputDifferences, static item =>
             item.Range.Start < HeaderCopyStamp + 4 && HeaderCopyStamp < item.Range.EndExclusive);
         Assert.Equal(new ByteRange(HeaderCopyStamp, 4), difference.Range);

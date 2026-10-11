@@ -50,7 +50,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         {
             Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
             Assert.Contains(result.Report.Issues, issue => issue.Code == issueCode && issue.Severity == CompositionIssueSeverity.Error);
-            Assert.Empty(result.OutputBytes.ToArray());
+            GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), result.OutputBytes.ToArray(), "empty firmware output");
             Assert.Null(result.CommittedOutputId);
             Assert.Empty(result.Report.Mutations);
         }

@@ -23,7 +23,7 @@ public sealed partial class CompositionRunServiceTests
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4, 9, 8, 7, 6], result.OutputBytes.ToArray(), "firmware image");
         Assert.Null(result.CommittedOutputId);
         Assert.False(result.Report.Output.Committed);
         Assert.Equal("synthetic-standard-merge", result.Report.ProfileId);
@@ -110,7 +110,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("committed:synthetic-standard-merge.bin", result.CommittedOutputId);
         Assert.True(result.Report.Output.Committed);
         Assert.Equal("synthetic-standard-merge.bin", writer.FileName);
-        Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes, "firmware image");
     }
 
     /// <summary>A TP maximum compatibility source reuses source-view snapshots through Preview and Build.</summary>
@@ -182,7 +182,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("committed:synthetic-standard-merge.bin", result.CommittedOutputId);
         Assert.True(result.Report.Output.Committed);
         Assert.Equal("synthetic-standard-merge.bin", writer.FileName);
-        Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes, "firmware image");
     }
 
     /// <summary>Verifies Build revalidates and commits without a preview token.</summary>
@@ -297,7 +297,7 @@ public sealed partial class CompositionRunServiceTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x11, 0x22, 0xFF, 0xFF], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11, 0x22, 0xFF, 0xFF], result.OutputBytes.ToArray(), "firmware image");
         InputArtifactSummary input = Assert.Single(
             result.Report.Inputs,
             static input => input.AddressSpaceId == "short-input");
@@ -322,7 +322,7 @@ public sealed partial class CompositionRunServiceTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 0xAA, 0xBB, 0], result.OutputBytes.ToArray(), "firmware image");
         Assert.Contains(result.Report.Inputs, input => input.AddressSpaceId == "ctrlram-input" && input.Size == 4);
         CompositionIssue issue = Assert.Single(result.Report.Issues);
         Assert.Equal(CompositionIssueCodes.InputAddressSpaceTruncated, issue.Code);
@@ -344,7 +344,7 @@ public sealed partial class CompositionRunServiceTests
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0, 3, 0, 0], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 3, 0, 0], result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal("v2-test-input", Assert.Single(result.Report.Inputs).AddressSpaceId);
     }
 
@@ -396,7 +396,7 @@ public sealed partial class CompositionRunServiceTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(1, reader.ReadCount);
-        Assert.Equal([.. sharedBytes, .. sharedBytes], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[.. sharedBytes, .. sharedBytes], result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(["dp-input", "tp-input"], result.Report.Inputs.Select(input => input.AddressSpaceId));
         _ = Assert.Single(result.Report.Inputs.Select(input => input.Sha256).Distinct(StringComparer.Ordinal));
     }

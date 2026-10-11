@@ -215,10 +215,10 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         Assert.True(
             ctrlRamResult.IsCompiled,
-            string.Join(Environment.NewLine, ctrlRamResult.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         Assert.True(
             alternateResult.IsCompiled,
-            string.Join(Environment.NewLine, alternateResult.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         CompiledComposition ctrlRam = Assert.IsType<CompiledComposition>(ctrlRamResult.CompiledComposition);
         CompiledComposition alternate = Assert.IsType<CompiledComposition>(alternateResult.CompiledComposition);
         Assert.Equal(ExperienceIds.CtrlRamReplace, ctrlRam.V2Details.ExperienceId);

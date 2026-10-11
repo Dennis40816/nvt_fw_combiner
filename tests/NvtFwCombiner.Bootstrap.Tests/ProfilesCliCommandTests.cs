@@ -72,7 +72,7 @@ public sealed class ProfilesCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
-        Assert.Equal(expected, result.Output);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(StringComparer.Ordinal.Equals(expected, result.Output), "Captured text differs from the expected text.");
     }
 }

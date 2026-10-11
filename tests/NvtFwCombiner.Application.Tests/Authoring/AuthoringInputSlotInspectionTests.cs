@@ -4,6 +4,8 @@ using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Tests the headless per-slot readiness and inspection publication contract.</summary>
@@ -249,8 +251,8 @@ public sealed partial class AuthoringInputSlotInspectionTests
             source);
         source[0] = 0xff;
 
-        Assert.Equal(0x10, result.AcceptedBytes!.Value.Span[0]);
-        Assert.NotSame(source, result.AcceptedByteArray);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10], [result.AcceptedBytes!.Value.Span[0]], "firmware image");
+        Assert.True(!ReferenceEquals(source, result.AcceptedByteArray), "Expected firmware buffer ownership.");
     }
 
     /// <summary>A short concrete CtrlRAM source is terminal Error rather than endless Checking.</summary>

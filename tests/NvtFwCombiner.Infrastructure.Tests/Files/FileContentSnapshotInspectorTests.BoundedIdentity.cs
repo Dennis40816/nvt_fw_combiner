@@ -28,9 +28,9 @@ public sealed partial class FileContentSnapshotInspectorTests
             SelectedFileContentInspectionMode.CaptureBytes);
 
         Assert.Equal(expected, identity.FileStamp);
-        Assert.Null(identity.AcceptedBytes);
+        Assert.True(identity.AcceptedBytes is null, "Expected no accepted firmware content.");
         Assert.Equal(expected, capture.FileStamp);
-        Assert.Equal(bytes, capture.AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden(bytes, capture.AcceptedBytes!.Value.ToArray(), "firmware image");
         Assert.Equal(identity.DisplayNameHint, capture.DisplayNameHint);
     }
 
@@ -46,7 +46,7 @@ public sealed partial class FileContentSnapshotInspectorTests
         byte[] actual = await FileContentSnapshotInspector.HashExactLengthAsync(
             stream, length, TestContext.Current.CancellationToken);
 
-        Assert.Equal(SHA256.HashData(expectedBytes), actual);
+        GoldenAssert.AssertEqualsGolden(SHA256.HashData(expectedBytes), actual, "firmware image");
         Assert.Equal(length, stream.Position);
         Assert.Equal(length, stream.TotalBytesRead);
         Assert.True(stream.MaximumRequested <= 65536);
@@ -64,7 +64,7 @@ public sealed partial class FileContentSnapshotInspectorTests
             stream, length, SelectedFileContentInspectionMode.IdentityOnly,
             TestContext.Current.CancellationToken);
 
-        Assert.Null(acceptedBytes);
+        Assert.True(acceptedBytes is null, "Expected no accepted firmware content.");
         Assert.Equal(expectedSha256, Convert.ToHexStringLower(actual));
         Assert.Equal(length, stream.Position);
         Assert.Equal(length, stream.TotalBytesRead);
@@ -106,8 +106,8 @@ public sealed partial class FileContentSnapshotInspectorTests
             stream, length, SelectedFileContentInspectionMode.CaptureBytes,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(expectedBytes, acceptedBytes);
-        Assert.Equal(SHA256.HashData(expectedBytes), actual);
+        GoldenAssert.AssertEqualsGolden(expectedBytes, acceptedBytes, "firmware image");
+        GoldenAssert.AssertEqualsGolden(SHA256.HashData(expectedBytes), actual, "firmware image");
         Assert.Equal(length, stream.TotalBytesRead);
         Assert.Equal(5, stream.ReadCalls);
         Assert.Equal(length, stream.Position);
@@ -154,16 +154,16 @@ public sealed partial class FileContentSnapshotInspectorTests
             stream, length, mode, TestContext.Current.CancellationToken);
 
         Assert.False(stream.CanSeek);
-        Assert.Equal(SHA256.HashData(expectedBytes), actual);
+        GoldenAssert.AssertEqualsGolden(SHA256.HashData(expectedBytes), actual, "firmware image");
         Assert.Equal(length, stream.TotalBytesRead);
         Assert.Equal(2, stream.ReadCalls);
         if (mode == SelectedFileContentInspectionMode.CaptureBytes)
         {
-            Assert.Equal(expectedBytes, acceptedBytes);
+            GoldenAssert.AssertEqualsGolden(expectedBytes, acceptedBytes, "firmware image");
         }
         else
         {
-            Assert.Null(acceptedBytes);
+            Assert.True(acceptedBytes is null, "Expected no accepted firmware content.");
         }
     }
 

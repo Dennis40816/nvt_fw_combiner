@@ -53,8 +53,8 @@ public sealed class CompositionRunResultOwnershipTests
             $"RUN_RESULT_OWNERSHIP outputBytes={OutputByteCount} allocated={allocated}");
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(OutputByteCount, result.OutputBytes.Length);
-        Assert.Equal(0x5A, result.OutputBytes.Span[0]);
-        Assert.Equal(0xFF, result.OutputBytes.Span[^1]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x5A], [result.OutputBytes.Span[0]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF], [result.OutputBytes.Span[^1]], "firmware image");
         Assert.InRange(allocated, 0, ((long)OutputByteCount * 2) + (64 * 1024));
     }
 

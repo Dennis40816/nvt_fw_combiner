@@ -80,10 +80,8 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal(1, authoring.AdoptInspectedBatchCalls);
         (AuthoringInputSlotStatus[] inspected, ActiveSessionSnapshot accepted) =
             authoring.SingleSuccessfulAdoption;
-        Assert.All(inspected, status => Assert.Same(
-            status.AcceptedByteArray,
-            accepted.InputSlotStatuses.Single(adopted =>
-                adopted.SlotId == status.SlotId).AcceptedByteArray));
+        Assert.All(inspected, status => Assert.True(ReferenceEquals(status.AcceptedByteArray, accepted.InputSlotStatuses.Single(adopted =>
+                adopted.SlotId == status.SlotId).AcceptedByteArray), "Expected firmware buffer ownership."));
         Assert.Equal(WorkflowInspectionAttemptState.Succeeded, viewModel.Replace.Inspection.State);
     }
 

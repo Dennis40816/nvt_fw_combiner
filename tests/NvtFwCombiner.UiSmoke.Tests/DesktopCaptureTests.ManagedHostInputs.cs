@@ -66,8 +66,8 @@ public sealed partial class DesktopCaptureTests
         Assert.Equal(string.Empty, output.ToString());
         Assert.Contains("aliases protected input", error.ToString(), StringComparison.Ordinal);
         Assert.Contains(state, error.ToString(), StringComparison.Ordinal);
-        Assert.Equal([4, 3, 2, 1], File.ReadAllBytes(state));
-        Assert.Equal([4, 3, 2, 1], File.ReadAllBytes(Path.GetFullPath(capture)));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[4, 3, 2, 1], GoldenFileIo.ReadAllBytes(state), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[4, 3, 2, 1], GoldenFileIo.ReadAllBytes(Path.GetFullPath(capture)), "firmware image");
         Assert.Equal(before, Directory.GetFiles(workspace.Root).Order(StringComparer.Ordinal).ToArray());
     }
 

@@ -45,10 +45,10 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
             string expectedHash = testCase.GetProperty("expectedSha256").GetString()!;
 
             Assert.Equal(expectedHash, Sha256Hex(expectedBytes));
-            Assert.Equal(replacementBytes[0x09FFF], expectedBytes[0x09FFF]);
-            Assert.Equal(baseBytes[TpStart], expectedBytes[TpStart]);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[replacementBytes[0x09FFF]], [expectedBytes[0x09FFF]], "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[baseBytes[TpStart]], [expectedBytes[TpStart]], "firmware image");
             Assert.Equal(baseBytes[TpStart + TpLength - 1], expectedBytes[TpStart + TpLength - 1]);
-            Assert.Equal(ReplacementOrPadding(replacementBytes, CustomerInfoStart), expectedBytes[CustomerInfoStart]);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[ReplacementOrPadding(replacementBytes, CustomerInfoStart)], [expectedBytes[CustomerInfoStart]], "firmware image");
             Assert.Equal(ReplacementOrPadding(replacementBytes, CustomerInfoStart + CustomerInfoLength - 1), expectedBytes[CustomerInfoStart + CustomerInfoLength - 1]);
             Assert.Equal(0, expectedBytes[replacementLength]);
 

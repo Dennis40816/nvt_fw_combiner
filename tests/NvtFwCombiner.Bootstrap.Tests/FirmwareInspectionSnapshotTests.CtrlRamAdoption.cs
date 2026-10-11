@@ -145,7 +145,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal("D86-00", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).DisplayValue);
         Assert.Equal("8600", Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode).VersionToken);
         Assert.Null(inspection.DpMetadataPrerequisite);
-        Assert.Equal(FileStamp.FromBytes(File.ReadAllBytes(basePath)), inspection.FileStamp);
+        FileStamp expectedFileStamp = FileStamp.FromBytes(GoldenFileIo.ReadAllBytes(basePath));
+        Assert.Equal(expectedFileStamp, inspection.FileStamp);
         Assert.Null(batch.InspectionsById["nf"].DpVersion);
         Assert.Null(batch.InspectionsById["nf"].CmiDpCode);
     }
@@ -247,13 +248,11 @@ public sealed partial class FirmwareInspectionSnapshotTests
             session,
             firstCatalog,
             firstStatuses);
-        Assert.True(first.Succeeded, first.Issue?.Message);
+        Assert.True(first.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot firstSnapshot = first.Snapshot!;
         Assert.Equal(new AuthoringRevision(2), firstSnapshot.AuthoringRevision);
-        Assert.All(firstStatuses, status => Assert.Same(
-            status.AcceptedByteArray,
-            firstSnapshot.InputSlotStatuses.Single(adopted =>
-                adopted.SlotId == status.SlotId).AcceptedByteArray));
+        Assert.All(firstStatuses, status => Assert.True(ReferenceEquals(status.AcceptedByteArray, firstSnapshot.InputSlotStatuses.Single(adopted =>
+                adopted.SlotId == status.SlotId).AcceptedByteArray), "Expected firmware buffer ownership."));
 
         (AuthoringCapabilityCatalogSnapshot secondCatalog,
             AuthoringInputSlotStatus[] secondStatuses) = await InspectAsync(
@@ -264,17 +263,15 @@ public sealed partial class FirmwareInspectionSnapshotTests
             session,
             secondCatalog,
             secondStatuses);
-        Assert.True(second.Succeeded, second.Issue?.Message);
+        Assert.True(second.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot secondSnapshot = second.Snapshot!;
         Assert.Equal(new AuthoringRevision(3), secondSnapshot.AuthoringRevision);
         Assert.Same(firstSnapshot.ExactCapability, secondSnapshot.ExactCapability);
         Assert.Equal(
             [secondBasePath, secondNormalPath],
             secondSnapshot.Slots.Select(static slot => slot.SelectedPath).Order(StringComparer.Ordinal));
-        Assert.All(secondStatuses, status => Assert.Same(
-            status.AcceptedByteArray,
-            secondSnapshot.InputSlotStatuses.Single(adopted =>
-                adopted.SlotId == status.SlotId).AcceptedByteArray));
+        Assert.All(secondStatuses, status => Assert.True(ReferenceEquals(status.AcceptedByteArray, secondSnapshot.InputSlotStatuses.Single(adopted =>
+                adopted.SlotId == status.SlotId).AcceptedByteArray), "Expected firmware buffer ownership."));
 
         (AuthoringCapabilityCatalogSnapshot concurrentSecondCatalog,
             AuthoringInputSlotStatus[] concurrentSecondStatuses) = await InspectAsync(
@@ -345,7 +342,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace),
             Assert.IsType<AuthoringCapabilityCatalogSnapshot>(countedBatch.Catalog),
             [.. countedBatch.Statuses.Values]);
-        Assert.True(countedAdoption.Succeeded, countedAdoption.Issue?.Message);
+        Assert.True(countedAdoption.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(callsAfterInspection, countingAdapter.Counts);
     }
 

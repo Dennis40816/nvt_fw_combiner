@@ -22,7 +22,7 @@ public sealed class CompositionInputNormalizationOwnershipTests
         TestContext.Current.TestOutputHelper?.WriteLine(
             $"INPUT_NORMALIZATION_OWNERSHIP inputBytes={InputByteCount} allocated={allocated}");
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x5A], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x5A], result.OutputBytes.ToArray(), "firmware image");
         Assert.InRange(allocated, 0, 32_768);
     }
 

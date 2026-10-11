@@ -22,7 +22,7 @@ public sealed partial class FileContentSnapshotInspectorTests
             CancellationToken.None);
 
         Assert.Equal(FileStamp.FromBytes([1, 2, 3, 4]), result.FileStamp);
-        Assert.Equal([1, 2, 3, 4], result.AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4], result.AcceptedBytes!.Value.ToArray(), "firmware image");
         Assert.Equal("input.bin", result.DisplayNameHint);
         Assert.Null(result.LastWriteTimeUtcHint);
     }
@@ -146,13 +146,13 @@ public sealed partial class FileContentSnapshotInspectorTests
         Assert.Equal(FileStamp.FromBytes([1, 2, 9, 4]), second.FileStamp);
         if (mode == SelectedFileContentInspectionMode.CaptureBytes)
         {
-            Assert.Equal([1, 2, 3, 4], first.AcceptedBytes!.Value.ToArray());
-            Assert.Equal([1, 2, 9, 4], second.AcceptedBytes!.Value.ToArray());
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4], first.AcceptedBytes!.Value.ToArray(), "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 9, 4], second.AcceptedBytes!.Value.ToArray(), "firmware image");
         }
         else
         {
-            Assert.Null(first.AcceptedBytes);
-            Assert.Null(second.AcceptedBytes);
+            Assert.True(first.AcceptedBytes is null, "Expected no accepted firmware content.");
+            Assert.True(second.AcceptedBytes is null, "Expected no accepted firmware content.");
         }
     }
 

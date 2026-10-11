@@ -6,6 +6,8 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 public sealed partial class LegacyCombinerPostbuildProcessorTests
@@ -69,11 +71,11 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             Assert.NotNull(observed);
             Assert.Equal(0, observed.ExitCode);
             Assert.False(observed.TimedOut);
-            Assert.Equal("drain-out\r\n", observed.StandardOutput);
-            Assert.Equal("drain-err \r\n", observed.StandardError);
-            Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
+            Assert.True(StringComparer.Ordinal.Equals("drain-out\r\n", observed.StandardOutput), "Captured text differs from the expected text.");
+            Assert.True(StringComparer.Ordinal.Equals("drain-err \r\n", observed.StandardError), "Captured text differs from the expected text.");
+            Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
             Assert.Equal(ExternalProcessCleanup.Complete, observed.Cleanup);
-            Assert.Equal(input, result.OutputBytes.ToArray());
+            GoldenAssert.AssertEqualsGolden(input, result.OutputBytes.ToArray(), "firmware image");
             Assert.Empty(result.ChangedRanges);
             Assert.Empty(result.Issues);
             Assert.Equal(1, runner.RunCount);
@@ -189,7 +191,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal("external-tool.staging.exists", Assert.Single(result.Issues).Code);
         Assert.Equal(0, runner.RunCount);
         Assert.True(File.Exists(sentinel));
-        Assert.Equal(expected, await File.ReadAllBytesAsync(sentinel, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(expected, await GoldenFileIo.ReadAllBytesAsync(sentinel, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([sentinel], Directory.GetFiles(directory));
     }
 

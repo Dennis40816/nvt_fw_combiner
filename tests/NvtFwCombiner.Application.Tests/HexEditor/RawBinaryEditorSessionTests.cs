@@ -1,5 +1,7 @@
 using NvtFwCombiner.Application.HexEditor;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.HexEditor;
 
 /// <summary>Behavioral coverage for the profile-independent, memory-only raw BIN editor.</summary>
@@ -19,16 +21,16 @@ public sealed class RawBinaryEditorSessionTests
         Assert.True(session.FillRange("0x1", "0x2", "FF").Succeeded);
 
         Assert.True(session.TryCopyWorkingBytes(out byte[]? changed));
-        Assert.Equal([0xA5, 0xFF, 0xFF, 0x40], changed);
-        Assert.Equal([0x10, 0x20, 0x30, 0x40], source);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0xFF, 0xFF, 0x40], changed, "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30, 0x40], source, "firmware image");
 
         Assert.True(session.Undo().Succeeded);
         Assert.True(session.TryCopyWorkingBytes(out byte[]? afterUndo));
-        Assert.Equal([0xA5, 0x20, 0x00, 0x40], afterUndo);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0x20, 0x00, 0x40], afterUndo, "firmware image");
 
         Assert.True(session.Redo().Succeeded);
         Assert.True(session.TryCopyWorkingBytes(out byte[]? afterRedo));
-        Assert.Equal(changed, afterRedo);
+        GoldenAssert.AssertEqualsGolden(changed, afterRedo, "firmware image");
     }
 
     /// <summary>Writes a supplied sequence from Start and leaves unused selected bytes unchanged.</summary>
@@ -42,7 +44,7 @@ public sealed class RawBinaryEditorSessionTests
 
         Assert.True(result.Succeeded);
         Assert.True(session.TryCopyWorkingBytes(out byte[]? bytes));
-        Assert.Equal([0xA5, 0x20, 0x30], bytes);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0x20, 0x30], bytes, "firmware image");
     }
 
     /// <summary>Derives dirty state from byte identity instead of retained undo history.</summary>
@@ -81,7 +83,7 @@ public sealed class RawBinaryEditorSessionTests
         Assert.False(result.Succeeded);
         Assert.Equal(RawBinaryEditorIssueCode.InputExceedsRange, result.Issue?.Code);
         Assert.True(session.TryCopyWorkingBytes(out byte[]? bytes));
-        Assert.Equal([0x10, 0x20, 0x30], bytes);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30], bytes, "firmware image");
     }
 
     /// <summary>Separates retained source identity from the opened source value at the same display address.</summary>
@@ -95,19 +97,19 @@ public sealed class RawBinaryEditorSessionTests
         RawBinaryEditorViewport viewport = session.CreatePage(0, maximumRows: 1);
         RawBinaryEditorViewportRow row = Assert.Single(viewport.Rows);
 
-        Assert.Equal((byte)0x11, row.Bytes[0].CurrentValue);
-        Assert.Equal((byte)0x11, row.Bytes[0].OriginalValue);
-        Assert.Equal((byte)0x00, row.Bytes[1].CurrentValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x11], [row.Bytes[0].CurrentValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x11], [row.Bytes[0].OriginalValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x00], [row.Bytes[1].CurrentValue], "firmware image");
         Assert.Null(row.Bytes[1].OriginalAddress);
         Assert.False(row.Bytes[1].IsDataChanged);
         Assert.True(row.Bytes[1].IsChanged);
-        Assert.Equal((byte)0x22, row.Bytes[2].CurrentValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x22], [row.Bytes[2].CurrentValue], "firmware image");
         Assert.Equal(1, row.Bytes[2].OriginalAddress);
         Assert.Equal((byte)0x33, row.Bytes[2].OriginalValueAtAddress);
         Assert.False(row.Bytes[2].IsDataChanged);
         Assert.True(row.Bytes[2].IsStructuralChanged);
         Assert.True(row.Bytes[2].IsChanged);
-        Assert.Equal((byte)0x33, row.Bytes[3].CurrentValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x33], [row.Bytes[3].CurrentValue], "firmware image");
         Assert.Equal(2, row.Bytes[3].OriginalAddress);
         Assert.Null(row.Bytes[3].OriginalValueAtAddress);
         Assert.Contains(row.Bytes, static value => value.IsChanged);
@@ -198,7 +200,7 @@ public sealed class RawBinaryEditorSessionTests
         Assert.True(session.OverwriteByte("0x3", "A5").Succeeded);
 
         Assert.True(session.TryCopyWorkingBytes(out byte[]? bytes));
-        Assert.Equal([0x10, 0x00, 0x00, 0xA5, 0x30], bytes);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x00, 0x00, 0xA5, 0x30], bytes, "firmware image");
         RawBinaryEditorChangedRange range = Assert.Single(session.GetChangedRanges());
         RawBinaryEditorStructuralChange insertion = Assert.Single(range.StructuralChanges);
         Assert.Equal(RawBinaryEditorStructuralChangeKind.Insert, insertion.Kind);
@@ -207,13 +209,13 @@ public sealed class RawBinaryEditorSessionTests
         RawBinaryEditorValueChange valueChange = Assert.Single(range.ValueChanges);
         Assert.Equal(3, valueChange.Start);
         Assert.Equal(4, valueChange.EndExclusive);
-        Assert.Equal((byte)0x20, valueChange.FirstOriginalValue);
-        Assert.Equal((byte)0xA5, valueChange.FirstCurrentValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x20], [valueChange.FirstOriginalValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xA5], [valueChange.FirstCurrentValue], "firmware image");
 
         Assert.True(session.Undo().Succeeded);
         Assert.True(session.Undo().Succeeded);
         Assert.True(session.TryCopyWorkingBytes(out byte[]? restored));
-        Assert.Equal([0x10, 0x20, 0x30], restored);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30], restored, "firmware image");
     }
 
     /// <summary>Reports exact deletion address/count and rejects unbounded insert counts.</summary>
@@ -272,7 +274,7 @@ public sealed class RawBinaryEditorSessionTests
         AssertIssue(session.Undo(), RawBinaryEditorIssueCode.NoDocument);
         AssertIssue(session.Redo(), RawBinaryEditorIssueCode.NoDocument);
         Assert.False(session.TryCopyWorkingBytes(out byte[]? missing));
-        Assert.Null(missing);
+        Assert.True(missing is null, "Expected no accepted firmware content.");
 
         _ = session.Load([]);
         Assert.Equal(
@@ -400,7 +402,7 @@ public sealed class RawBinaryEditorSessionTests
         Assert.Equal(6, range.EndExclusive);
         Assert.Equal(RawBinaryEditorChangeKind.Data, range.ChangeKind);
         Assert.True(session.TryCopyWorkingBytes(out byte[]? bytes));
-        Assert.Equal([0xA5, 0x5A, 0x01, 0xFF, 0x12, 0x34], bytes);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0x5A, 0x01, 0xFF, 0x12, 0x34], bytes, "firmware image");
     }
 
     /// <summary>Keeps a stable immutable changed-range snapshot while local value edits split and merge runs.</summary>
@@ -568,8 +570,8 @@ public sealed class RawBinaryEditorSessionTests
         Assert.NotSame(before, after);
         Assert.Equal(expectedRangeCount, after.Count);
         Assert.NotSame(before[0], after[0]);
-        Assert.Equal((byte)0xFF, before[0].ValueChanges[0].FirstCurrentValue);
-        Assert.Equal((byte)0xFE, after[0].ValueChanges[0].FirstCurrentValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xFF], [before[0].ValueChanges[0].FirstCurrentValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xFE], [after[0].ValueChanges[0].FirstCurrentValue], "firmware image");
         Assert.Same(before[1], after[1]);
         Assert.Same(before[^1], after[^1]);
         Assert.Same(after, session.GetChangedRanges());

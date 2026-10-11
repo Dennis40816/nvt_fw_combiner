@@ -183,7 +183,7 @@ public sealed class Nt51950AbDpRegionTests
             $"{ic.ToLowerInvariant()}-ab-merge{suffix}", version, ic, ExperienceIds.AbMerge, capacity,
             count == 0 ? null : new TopologySelection(count, $"{count} IC", TopologySelectionSource.Requested, "test"),
             [], selectedInputSlotIds: dummy ? [] : ["dp-ab-input"]);
-        Assert.True(result.IsCompiled, string.Join(" | ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(result.IsCompiled, "Golden assertion condition was not satisfied.");
         return Assert.IsType<CompiledComposition>(result.CompiledComposition);
     }
 }

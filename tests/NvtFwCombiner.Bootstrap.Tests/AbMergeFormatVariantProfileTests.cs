@@ -58,10 +58,10 @@ public sealed class AbMergeFormatVariantProfileTests
             {
                 calls++;
                 Assert.Empty(sources);
-                Assert.Equal(expectedTransport, bytes.ToArray());
+                GoldenAssert.AssertEqualsGolden(expectedTransport, bytes.ToArray(), "firmware image");
                 Assert.Equal(["a-bank", "b-bank"], artifacts.Select(artifact => artifact.ArtifactId));
-                Assert.Equal(expectedTransport.AsSpan(0, bankLength).ToArray(), artifacts[0].Bytes.ToArray());
-                Assert.Equal(expectedTransport.AsSpan(bankLength, bankLength).ToArray(), artifacts[1].Bytes.ToArray());
+                GoldenAssert.AssertEqualsGolden(expectedTransport.AsSpan(0, bankLength).ToArray(), artifacts[0].Bytes.ToArray(), "firmware image");
+                GoldenAssert.AssertEqualsGolden(expectedTransport.AsSpan(bankLength, bankLength).ToArray(), artifacts[1].Bytes.ToArray(), "firmware image");
                 Assert.Equal(format == "desay"
                     ? "nfc-nt51950-ab-merge-combiner-v1"
                     : "nfc-nt51951-ab-merge-combiner-v1", invocation.ExternalProcessorInvocation!.ProcessorId);
@@ -88,10 +88,10 @@ public sealed class AbMergeFormatVariantProfileTests
 
         Assert.Equal(1, calls);
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(expected, result.OutputBytes.ToArray());
-        Assert.Equal(originals[0], dp);
-        Assert.Equal(originals[1], tpA);
-        Assert.Equal(originals[2], tpB);
+        GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originals[0], dp, "firmware image");
+        GoldenAssert.AssertEqualsGolden(originals[1], tpA, "firmware image");
+        GoldenAssert.AssertEqualsGolden(originals[2], tpB, "firmware image");
     }
 
     /// <summary>Cascade rejects a missing or single topology.</summary>
@@ -135,13 +135,13 @@ public sealed class AbMergeFormatVariantProfileTests
         if (delta < 0)
         {
             Assert.NotEqual(CompositionExecutionStatus.Succeeded, result.Status);
-            Assert.Empty(result.OutputBytes.ToArray());
+            GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), result.OutputBytes.ToArray(), "empty firmware output");
         }
         else
         {
             Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
             Assert.Equal(Capacity, result.OutputBytes.Length);
-            Assert.Equal(dp.AsSpan(0x77000, Capacity - 0x77000).ToArray(), result.OutputBytes.Span[0x77000..].ToArray());
+            GoldenAssert.AssertEqualsGolden(dp.AsSpan(0x77000, Capacity - 0x77000).ToArray(), result.OutputBytes.Span[0x77000..].ToArray(), "firmware image");
         }
     }
 
@@ -181,7 +181,7 @@ public sealed class AbMergeFormatVariantProfileTests
     private static CompiledComposition Compile(TempWorkspace workspace, string ic, string format, int count, bool dummy)
     {
         V2CompositionPlanCompileResult result = CompileResult(workspace, ic, format, count, dummy);
-        Assert.True(result.IsCompiled, string.Join(" | ", result.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
+        Assert.True(result.IsCompiled, "Golden assertion condition was not satisfied.");
         return Assert.IsType<CompiledComposition>(result.CompiledComposition);
     }
 

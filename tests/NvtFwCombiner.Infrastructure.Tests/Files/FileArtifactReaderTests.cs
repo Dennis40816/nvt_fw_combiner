@@ -16,7 +16,7 @@ public sealed class FileArtifactReaderTests
 
         ReadOnlyMemory<byte> bytes = await reader.ReadAsync(artifactPath, CancellationToken.None);
 
-        Assert.Equal([1, 2, 3], bytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3], bytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies artifact reads fail closed when the path is outside configured roots.</summary>

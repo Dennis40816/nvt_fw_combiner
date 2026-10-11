@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 using NvtFwCombiner.Application.ExternalTools;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests;
 
 /// <summary>External-processor result ownership and full-buffer allocation tests.</summary>
@@ -20,9 +22,9 @@ public sealed class ExternalProcessorResultTests
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
 
         Assert.True(MemoryMarshal.TryGetArray(result.OutputBytes, out ArraySegment<byte> resultBytes));
-        Assert.NotSame(callerBytes, resultBytes.Array);
+        Assert.True(!ReferenceEquals(callerBytes, resultBytes.Array), "Expected firmware buffer ownership.");
         Assert.InRange(allocated, byteCount, byteCount + 32_768);
         callerBytes[0] = 0xFF;
-        Assert.Equal(0x10, result.OutputBytes.Span[0]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10], [result.OutputBytes.Span[0]], "firmware image");
     }
 }

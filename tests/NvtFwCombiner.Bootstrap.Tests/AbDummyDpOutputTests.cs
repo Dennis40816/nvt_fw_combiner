@@ -2,6 +2,8 @@ using System.Buffers.Binary;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Independent accepted-map expected bytes; not certified product Golden evidence.</summary>
@@ -49,8 +51,8 @@ public sealed class AbDummyDpOutputTests
             }));
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Issues);
-        Assert.Equal(expected, result.OutputBytes.ToArray());
-        Assert.Equal(originalTpB, tpB);
+        GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalTpB, tpB, "firmware image");
         Assert.Equal(
             [new ByteRange(0x7164, 4), new ByteRange(0x7168, 4), new ByteRange(0x716C, 4)],
             result.Mutations.Where(mutation => mutation.OperationKind == CompositionOperationKind.TransformScalar)

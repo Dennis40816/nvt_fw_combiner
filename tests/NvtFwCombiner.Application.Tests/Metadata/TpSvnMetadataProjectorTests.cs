@@ -32,10 +32,10 @@ public sealed class TpSvnMetadataProjectorTests
         TpSvnObservation observation = Assert.IsType<TpSvnObservation>(
             TpSvnMetadataProjector.Read(CreatePlan(0x24), SpaceId, image));
 
-        Assert.Equal(stamp, observation.RawBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(stamp, observation.RawBytes.ToArray(), "firmware image");
         Assert.Equal(new FirmwareAddressedRange("flash", new ByteRange(0x24, 4)), observation.Range);
         Assert.Equal(flags, observation.Flags);
-        Assert.Equal(undefinedBits, observation.UndefinedFlagBits);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[undefinedBits], [observation.UndefinedFlagBits], "firmware image");
         Assert.Equal(revision, observation.RevisionDigits);
         Assert.Equal(anomaly, observation.Anomaly);
     }
@@ -71,7 +71,7 @@ public sealed class TpSvnMetadataProjectorTests
             [flagByte, first, second, third]);
 
         Assert.Equal((TpSvnBuildOrigin)(flagByte & 0xE0), observation.Flags);
-        Assert.Equal((byte)(flagByte & 0x1F), observation.UndefinedFlagBits);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)(flagByte & 0x1F)], [observation.UndefinedFlagBits], "firmware image");
         Assert.Equal(revision, observation.RevisionDigits);
         Assert.Equal(anomaly, observation.Anomaly);
     }

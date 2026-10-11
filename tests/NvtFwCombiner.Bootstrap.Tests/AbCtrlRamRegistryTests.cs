@@ -48,7 +48,7 @@ public sealed class AbCtrlRamRegistryTests(ITestOutputHelper output)
         CanonicalDynamicRoute definition = CanonicalDynamicRouteInventory.Resolve(identity);
         output.WriteLine($"{identity.RouteId} {definition.CapabilityFingerprint}");
         CapabilityRouteResolutionResult resolution = Catalog().ResolveDynamicRoute(identity.RouteId);
-        Assert.True(resolution.Succeeded, resolution.Issue?.Message);
+        Assert.True(resolution.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(CapabilityPublicationStatus.Candidate, resolution.Route!.Publication.Value);
         Assert.Equal(CapabilityEvidenceStatus.ContractOnly, resolution.Route.Evidence.Value);
     }
@@ -76,7 +76,7 @@ public sealed class AbCtrlRamRegistryTests(ITestOutputHelper output)
         CanonicalCapabilityCatalog catalog = Catalog();
         var identity = new CapabilityRouteIdentity("NT51929", ExperienceIds.CtrlRamReplace, "1-ic", "nt51929-ab-merge-512k");
         CapabilityRouteResolutionResult resolution = catalog.ResolveDynamicRoute(identity.RouteId);
-        Assert.True(resolution.Succeeded, resolution.Issue?.Message);
+        Assert.True(resolution.Succeeded, "Golden assertion condition was not satisfied.");
         ResolvedCapabilityRoute route = resolution.Route!;
         Assert.Equal(CapabilityPublicationStatus.Candidate, route.Publication.Value);
         Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
@@ -169,7 +169,7 @@ public sealed class AbCtrlRamRegistryTests(ITestOutputHelper output)
             CanonicalCompiledRouteInventory.Resolve, CanonicalDynamicRouteInventory.CreateResolver,
             CanonicalCapabilityDisclosureInventory.Create, CanonicalFullImageMetadataInventory.Create));
         CapabilityCatalogReloadResult load = catalog.Reload(TestContext.Current.CancellationToken);
-        Assert.True(load.Succeeded, string.Join("; ", load.Issues.Select(static issue => issue.Message)));
+        Assert.True(load.Succeeded, "Golden assertion condition was not satisfied.");
         return catalog;
     }
 }

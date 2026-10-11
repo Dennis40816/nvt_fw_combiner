@@ -4,6 +4,8 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 public sealed partial class AuthoringInputSlotInspectionTests
@@ -58,7 +60,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
 
         Assert.True(
             prepared.Succeeded,
-            $"session={prepared.SessionIssue?.Code}:{prepared.SessionIssue?.Message}; selection={string.Join(',', prepared.Selection.Issues.Select(static issue => issue.Code))}; inspection={string.Join(',', prepared.Inspection?.Issues.Select(static issue => issue.Code) ?? [])}; current={prepared.Snapshot?.HasCurrentInputInspection}");
+            "Golden assertion condition was not satisfied.");
         Assert.Null(prepared.SessionIssue);
         Assert.Empty(prepared.Issues);
         ActiveSessionSnapshot snapshot = Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot);
@@ -98,7 +100,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
 
         Array.Fill(sourceBytes, (byte)0x00);
         Assert.All(snapshot.InputSlotStatuses, static status =>
-            Assert.DoesNotContain((byte)0x00, status.AcceptedBytes!.Value.ToArray()));
+            Assert.True(Array.IndexOf(status.AcceptedBytes!.Value.ToArray(), (byte)0x00) < 0, "Expected accepted firmware content excludes the reserved marker."));
         Assert.All(metadata.ArtifactIdentities, static identity =>
             Assert.NotEqual(new string('0', 64), identity.Sha256));
     }
@@ -169,12 +171,12 @@ public sealed partial class AuthoringInputSlotInspectionTests
             string.Join(" | ", acceptedSecond.Issues.Select(static issue => issue.Code)));
         Assert.Equal(2, resolver.CapturedCalls);
         Assert.Equal(0, resolver.LengthOnlyCalls);
-        Assert.Equal([1, 2, 3, 4], resolver.CapturedInputs[0]);
-        Assert.Equal(second, resolver.CapturedInputs[1]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4], resolver.CapturedInputs[0], "firmware image");
+        GoldenAssert.AssertEqualsGolden(second, resolver.CapturedInputs[1], "firmware image");
         Assert.NotSame(acceptedFirst.Snapshot, acceptedSecond.Snapshot);
         Assert.Same(acceptedSecond.Snapshot, session.CurrentSnapshot);
-        Assert.Equal([1, 2, 3, 4], acceptedFirst.Snapshot!.InputSlotStatuses.Single().AcceptedBytes!.Value.ToArray());
-        Assert.Equal(second, acceptedSecond.Snapshot!.InputSlotStatuses.Single().AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4], acceptedFirst.Snapshot!.InputSlotStatuses.Single().AcceptedBytes!.Value.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(second, acceptedSecond.Snapshot!.InputSlotStatuses.Single().AcceptedBytes!.Value.ToArray(), "firmware image");
     }
 
     /// <summary>An exact result from another publication cannot satisfy the reviewed transition.</summary>

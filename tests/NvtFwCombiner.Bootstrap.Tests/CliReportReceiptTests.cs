@@ -32,18 +32,15 @@ public sealed class CliReportReceiptTests
             [.. CreateArguments(command, "build", workspace), "--output", outputPath, "--report", reportPath],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         string sha256 = await AssertCommittedReceiptAsync(result.Output, outputPath);
         using JsonDocument report = JsonDocument.Parse(
             await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         Assert.Equal(sha256, report.RootElement.GetProperty("Output").GetProperty("Sha256").GetString());
         int committedLine = result.Output.IndexOf($"Committed: {outputPath}", StringComparison.Ordinal);
         int reportLine = result.Output.IndexOf($"Report: {reportPath}", StringComparison.Ordinal);
-        Assert.True(committedLine >= 0 && reportLine > committedLine, result.Output);
-        Assert.DoesNotContain(
-            CliCompositionRunSupport.CommittedReportFailedIssueCode,
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(committedLine >= 0 && reportLine > committedLine, "Golden assertion condition was not satisfied.");
+        Assert.True(!GoldenDiagnostics.Contains(CliCompositionRunSupport.CommittedReportFailedIssueCode, result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>A report that cannot be written after commit leaves the committed receipt and reports a partial success.</summary>
@@ -61,13 +58,12 @@ public sealed class CliReportReceiptTests
             [.. CreateArguments(command, "build", workspace), "--output", outputPath, "--report", reportPath],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         _ = await AssertCommittedReceiptAsync(result.Output, outputPath);
         AssertReportFailedAfterCommit(result.Output, result.Error, reportPath);
         Assert.False(File.Exists(reportPath));
-        Assert.Equal(
-            [0x42],
-            await File.ReadAllBytesAsync(blockingFile, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden((byte[])[0x42],
+            await GoldenFileIo.ReadAllBytesAsync(blockingFile, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Cancellation after commit stops only the report; the committed receipt is still printed.</summary>
@@ -92,7 +88,7 @@ public sealed class CliReportReceiptTests
             cancellation.Token);
 
         Assert.True(cancellation.IsCancellationRequested);
-        Assert.True(exitCode == 0, error + Environment.NewLine + output);
+        Assert.True(exitCode == 0, GoldenDiagnostics.TextSummary(error + Environment.NewLine + output));
         _ = await AssertCommittedReceiptAsync(output.ToString(), outputPath);
         AssertReportFailedAfterCommit(output.ToString(), error.ToString(), reportPath);
         Assert.False(File.Exists(reportPath));
@@ -120,12 +116,12 @@ public sealed class CliReportReceiptTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         string bundleDirectory = Path.Combine(bundleParent, "receipt_bundle");
         Assert.True(Directory.Exists(bundleDirectory));
-        Assert.Contains("Committed: ", result.Output, StringComparison.Ordinal);
-        Assert.Contains($"Bundle: {bundleDirectory}", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Bundle artifacts:", result.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Committed: ", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains($"Bundle: {bundleDirectory}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Bundle artifacts:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         AssertReportFailedAfterCommit(result.Output, result.Error, reportPath);
     }
 
@@ -160,13 +156,10 @@ public sealed class CliReportReceiptTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         _ = await AssertCommittedReceiptAsync(result.Output, committedPath);
         AssertReportFailedAfterCommit(result.Output, result.Error, committedPath);
-        Assert.Contains(
-            "Report path must not overwrite committed firmware output.",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Report path must not overwrite committed firmware output.", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>A report naming the DP source copy inside the committed bundle is refused; the copy keeps its receipt SHA-256.</summary>
@@ -190,16 +183,12 @@ public sealed class CliReportReceiptTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         await AssertBundleArtifactMatchesReceiptAsync(result.Output, "source", sourceCopyPath);
-        Assert.Equal(
-            CreateStandardMergeDp(),
-            await File.ReadAllBytesAsync(sourceCopyPath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(CreateStandardMergeDp(),
+            await GoldenFileIo.ReadAllBytesAsync(sourceCopyPath, TestContext.Current.CancellationToken), "firmware image");
         AssertReportFailedAfterCommit(result.Output, result.Error, sourceCopyPath);
-        Assert.Contains(
-            "Report path must not overwrite committed bundle source artifact 'dp.bin'.",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Report path must not overwrite committed bundle source artifact 'dp.bin'.", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>A report naming the bundled A-bank FlashCode additional delivery is refused; the file keeps its receipt SHA-256.</summary>
@@ -219,7 +208,7 @@ public sealed class CliReportReceiptTests
         CliRunResult probe = await CliTestHarness.RunAsync(
             [.. arguments, "--bundle-name", "probe_bundle"],
             TestContext.Current.CancellationToken);
-        Assert.True(probe.ExitCode == 0, probe.Error + Environment.NewLine + probe.Output);
+        Assert.True(probe.ExitCode == 0, "Golden assertion condition was not satisfied.");
         string deliveryFileName = ReadReceiptArtifactFileName(probe.Output, "additional-delivery");
         string deliveryPath = Path.Combine(bundleParent, "guarded_bundle", deliveryFileName);
 
@@ -227,13 +216,10 @@ public sealed class CliReportReceiptTests
             [.. arguments, "--bundle-name", "guarded_bundle", "--report", deliveryPath],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         await AssertBundleArtifactMatchesReceiptAsync(result.Output, "additional-delivery", deliveryPath);
         AssertReportFailedAfterCommit(result.Output, result.Error, deliveryPath);
-        Assert.Contains(
-            $"Report path must not overwrite committed bundle additional-delivery artifact '{deliveryFileName}'.",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains($"Report path must not overwrite committed bundle additional-delivery artifact '{deliveryFileName}'.", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>Without a committed output the report still precedes the result and its failure keeps the existing software-error exit.</summary>
@@ -249,12 +235,9 @@ public sealed class CliReportReceiptTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.StartsWith("error: ", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Status:", result.Output, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            CliCompositionRunSupport.CommittedReportFailedIssueCode,
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.StartsWith("error: ", result.Error, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
+        Assert.True(!GoldenDiagnostics.Contains("Status:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains(CliCompositionRunSupport.CommittedReportFailedIssueCode, result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     private static string[] CreateArguments(string command, string action, TempWorkspace workspace)

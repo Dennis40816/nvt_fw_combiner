@@ -4,6 +4,8 @@ using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using System.Security.Cryptography;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Composition;
 
 /// <summary>Tests immutable accepted source evidence retained for atomic delivery.</summary>
@@ -175,7 +177,7 @@ public sealed class CompositionExecutionBundleDeliveryTests
         Assert.Equal("dp.bin", source.Summary.OriginalFileName);
         Assert.Equal(stamp.AcceptedLength, source.Summary.Size);
         Assert.Equal(stamp.Sha256, source.Summary.Sha256);
-        Assert.Equal([1, 2, 3], source.Bytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3], source.Bytes.ToArray(), "firmware image");
         Assert.Equal("opaque-canonical-identity", source.AcceptedIdentity);
     }
 

@@ -17,8 +17,8 @@ public sealed partial class CompositionPlanTests
             new CompositionExecutionInput(new Dictionary<string, byte[]> { ["reference"] = reference }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(new byte[] { 10, 11, 12, 42, 0, 15, 42, 0 }, result.OutputBytes.ToArray());
-        Assert.Equal(new byte[] { 10, 11, 12, 13, 0, 15, 42, 0 }, reference);
+        GoldenAssert.AssertEqualsGolden(new byte[] { 10, 11, 12, 42, 0, 15, 42, 0 }, result.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(new byte[] { 10, 11, 12, 13, 0, 15, 42, 0 }, reference, "firmware image");
     }
 
     /// <summary>Explicit replacement cannot claim coverage from an adjacent or absent seed.</summary>

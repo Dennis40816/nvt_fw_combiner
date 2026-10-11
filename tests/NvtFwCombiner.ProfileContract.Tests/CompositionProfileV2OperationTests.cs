@@ -2,6 +2,8 @@ using System.Numerics;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests immutable map-independent v2 operation algebra values.</summary>
@@ -34,7 +36,7 @@ public sealed class CompositionProfileV2OperationTests
 
         Assert.Equal(CompositionOperationKind.CopyRange, copy.Kind);
         Assert.Equal("target", replace.TargetViewId);
-        Assert.Equal(0xFF, fill.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF], [fill.FillByte], "firmware image");
         Assert.Equal("0102", patch.PatchBytes.Hex);
         Assert.Equal(ScalarTransformWidth.FourBytes, transform.TransformWidth);
         Assert.Equal(-16, transform.Addend);

@@ -4,6 +4,8 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Compares deterministic automatic-Build counters and parity before and after orchestration optimization.</summary>
@@ -54,9 +56,8 @@ public sealed class CompositionRunExecutionMetricsTests
                 CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(
-            CreateExpectedReferenceCloneOutput(referenceBytes, replacementBytes),
-            result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(CreateExpectedReferenceCloneOutput(referenceBytes, replacementBytes),
+            result.OutputBytes.ToArray(), "firmware image");
         AssertRunParity(baseline, result);
         Assert.Equal(2, baselineClock.RunCount);
         Assert.Equal(4, baselineReader.CallCount);
@@ -169,7 +170,7 @@ public sealed class CompositionRunExecutionMetricsTests
                 CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(replacementBytes, result.OutputBytes[..ctrlRamLength].ToArray());
+        GoldenAssert.AssertEqualsGolden(replacementBytes, result.OutputBytes[..ctrlRamLength].ToArray(), "firmware image");
         AssertRunParity(baseline, result);
         Assert.Equal(2, baselineClock.RunCount);
         Assert.Equal(4, baselineReader.CallCount);
@@ -200,7 +201,7 @@ public sealed class CompositionRunExecutionMetricsTests
     private static void AssertRunParity(CompositionRunResult baseline, CompositionRunResult optimized)
     {
         Assert.Equal(baseline.Status, optimized.Status);
-        Assert.Equal(baseline.OutputBytes.ToArray(), optimized.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(baseline.OutputBytes.ToArray(), optimized.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(baseline.Report.Output.Size, optimized.Report.Output.Size);
         Assert.Equal(baseline.Report.Output.Sha256, optimized.Report.Output.Sha256);
         Assert.Equal(

@@ -52,7 +52,7 @@ public sealed class DistributionLauncherLayoutTests
         Assert.InRange(pencil.Bounds.Width, 33.5, 34.5);
         Assert.True(
             pencil.Bounds.Left >= path.Bounds.Right,
-            $"Expected external pencil after path field, got field {path.Bounds} and pencil {pencil.Bounds}.");
+            "Golden assertion condition was not satisfied.");
     }
 
     /// <summary>The action row follows the approved setup content axis and centers both button labels.</summary>

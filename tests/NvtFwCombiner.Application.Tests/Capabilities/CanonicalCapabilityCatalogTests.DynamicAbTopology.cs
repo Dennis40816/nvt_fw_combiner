@@ -63,7 +63,7 @@ public sealed partial class CanonicalCapabilityCatalogTests
         var catalog = new CanonicalCapabilityCatalog(new QueueCapabilitySource(CapabilityCatalogLoadResult.Success(
             new CanonicalCapabilityCatalogCandidate("test", "1", new string('b', 64), [], [cascade, single, selectorFree]))));
         CapabilityCatalogReloadResult load = catalog.Reload(TestContext.Current.CancellationToken);
-        Assert.True(load.Succeeded, string.Join(" | ", load.Issues.Select(static issue => issue.Message)));
+        Assert.True(load.Succeeded, "Golden assertion condition was not satisfied.");
         CapabilitySelectorPublication selector = load.Snapshot!.SelectorPublication;
         Assert.Equal(["single", "cascade"], selector.GetAbMergeTopologyChoices("NT51950").Select(static choice => choice.Token));
         Assert.Empty(selector.GetAbMergeTopologyChoices("NT51929"));

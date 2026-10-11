@@ -34,7 +34,7 @@ public sealed class LocalStateIsolationTests
         Assert.Contains(files.Writes, static path => Path.GetFileName(path) == "preferences.v1.json");
         Assert.All(files.Paths, path => Assert.True(
             IsolatedLocalState.Contains(directory, path),
-            $"Local state escaped the host directory {directory}: {path}"));
+            "Golden assertion condition was not satisfied."));
     }
 
     /// <summary>The UI test assembly declares the current user's local-state folder forbidden.</summary>

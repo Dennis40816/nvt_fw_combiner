@@ -190,7 +190,7 @@ public sealed class OutputDeliverySourceTooltipTests
         GeneralAuthoringSessionPreparation prepared = await host.GeneralAuthoring.PrepareMergeSessionAsync(
             new AuthoringSessionState(ExperienceIds.GeneralMerge), "NT51926",
             new GeneralMergeDraftState(new GeneralMergeOutputInitializer(16), mappings), TestContext.Current.CancellationToken);
-        Assert.True(prepared.Succeeded, string.Join(Environment.NewLine, prepared.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(
             prepared.AcceptedSession!, TestContext.Current.CancellationToken);
         var vm = new OutputDeliveryConfirmationViewModel(host.CompositionOutputNaming,

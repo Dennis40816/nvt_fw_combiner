@@ -167,7 +167,7 @@ public sealed partial class FreshInstallationCandidateTests
         FreshInstallationCandidateResult result = await experience.InspectFreshInstallationAsync(
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal(ManagedAppVersion.Parse("0.10.6"), result.Candidate!.Package.Version);
         Assert.Equal(latest, result.Candidate.Identity.SourceRoot);
         Assert.Equal(10, result.Candidate.Identity.RegistryRevision);
@@ -201,7 +201,7 @@ public sealed partial class FreshInstallationCandidateTests
         FreshInstallationCandidateResult result = await experience.InspectFreshInstallationAsync(
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal(available, result.Candidate!.Identity.SourceRoot);
         Assert.Equal([latest, available], healthyRepository.VerifiedRoots);
     }
@@ -336,7 +336,7 @@ public sealed partial class FreshInstallationCandidateTests
         FreshInstallationCandidateResult reverified = await experience
             .ReverifyFreshInstallationAsync(captured.Candidate!, TestContext.Current.CancellationToken);
 
-        Assert.True(reverified.IsSuccess, reverified.Issue.ToString());
+        Assert.True(reverified.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal(captured.Candidate!.Identity, reverified.Candidate!.Identity);
         Assert.Equal(2, repository.VerifiedRoots.Count);
     }

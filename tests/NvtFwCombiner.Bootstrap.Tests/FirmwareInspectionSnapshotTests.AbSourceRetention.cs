@@ -130,7 +130,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
             result.InspectionsById["dp-ab-input"].InputSlotStatus);
-        Assert.Equal(dp, status.AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden(dp, status.AcceptedBytes!.Value.ToArray(), "firmware image");
         Assert.False(status.BlocksBuild);
         Assert.Equal("DP_NONSTANDARD_SIZE_WARNING", status.InspectionIssueCode);
         Assert.Equal(FileStamp.FromBytes(dp), result.FileStamps[dpPath]);

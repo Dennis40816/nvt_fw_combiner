@@ -52,7 +52,7 @@ public sealed class AbCtrlRamAutoDetectionTests
         var state = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         AuthoringSessionTransitionResult adopted = BootstrapTestHost.Canonical.CtrlRamAuthoring.AdoptInspectedBatch(
             state, batch.Catalog!, [.. batch.Statuses.Values], facts);
-        Assert.True(adopted.Succeeded, adopted.Issue?.Message);
+        Assert.True(adopted.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot accepted = adopted.Snapshot!;
         Assert.Equal(facts.EffectiveDraft, accepted.DraftState);
         Assert.Equal(facts.EffectiveDraft, accepted.ExactCapability!.CtrlRamExecutionPlan!.Draft);
@@ -225,7 +225,7 @@ public sealed class AbCtrlRamAutoDetectionTests
         Assert.Contains(inspection.CtrlRamDisplay!.InputSlots, static slot => slot.SlotId == "replace-ctrlram-nf");
         byte version = inspection.CtrlRamBaseInspection.Banks[0].FirmwareConfig!.FirmwareVersion;
         Array.Clear(bytes[CompositionSlotIds.ReplaceBase]);
-        Assert.Equal(version, inspection.CtrlRamBaseInspection.Banks[0].FirmwareConfig!.FirmwareVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[version], [inspection.CtrlRamBaseInspection.Banks[0].FirmwareConfig!.FirmwareVersion], "firmware image");
     }
 
     /// <summary>A completed old publication cannot restore a current accepted session after reload.</summary>
@@ -270,7 +270,7 @@ public sealed class AbCtrlRamAutoDetectionTests
         ICtrlRamAuthoring owner = BootstrapTestHost.Canonical.CtrlRamAuthoring;
         AuthoringSessionTransitionResult initial = owner.AdoptInspectedBatch(state, first.Catalog!,
             [.. first.Statuses.Values], first.CtrlRamBaseInspection);
-        Assert.True(initial.Succeeded, initial.Issue?.Message);
+        Assert.True(initial.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot accepted = initial.Snapshot!;
         FirmwareInspectionStatusBatch current = Inspect(bytes, true, draft, revision: accepted.AuthoringRevision.Value);
         if (!mixDraft)

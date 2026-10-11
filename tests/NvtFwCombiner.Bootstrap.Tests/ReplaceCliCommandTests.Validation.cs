@@ -55,10 +55,10 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(0, result.ExitCode);
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, outputBytes.Length);
-        Assert.Equal(0x3C, outputBytes[0x3E020]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x3C], [outputBytes[0x3E020]], "firmware image");
         byte[] expected = await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken);
         dpBytes.CopyTo(expected, 0x3E020);
-        Assert.Equal(expected, outputBytes);
+        GoldenAssert.AssertEqualsGolden(expected, outputBytes, "firmware image");
     }
 
     /// <summary>Rejects Replace build outputs that would overwrite an input BIN.</summary>
@@ -86,8 +86,8 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("Output path must not overwrite input artifact", result.Error, StringComparison.Ordinal);
-        Assert.Equal(referenceBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
+        Assert.True(GoldenDiagnostics.Contains("Output path must not overwrite input artifact", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        GoldenAssert.AssertEqualsGolden(referenceBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Rejects Replace report paths that would overwrite the build output.</summary>
@@ -117,7 +117,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("Report path must not overwrite built firmware output", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Report path must not overwrite built firmware output", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(output));
     }
 
@@ -141,7 +141,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--ic-num is required", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--ic-num is required", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>An unavailable General Replace route rejects before request-field validation.</summary>
@@ -156,9 +156,9 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("--ic-num is required", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("--base is required", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("--ic-num is required", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("--base is required", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Verifies each Replace workflow rejects firmware options owned by another workflow.</summary>
@@ -173,7 +173,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("unknown option '--dp'", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("unknown option '--dp'", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
 }

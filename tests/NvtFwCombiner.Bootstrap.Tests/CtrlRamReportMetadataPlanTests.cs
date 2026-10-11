@@ -478,7 +478,7 @@ public sealed class CtrlRamReportMetadataPlanTests
             BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
                 "NT51950", candidate, ["dp-input", "tp-input"],
                 out _, out ResolvedCapability? capability, out IReadOnlyList<CompositionIssue> issues),
-            string.Join(" | ", issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         var resolver = new FirmwareArtifactClassificationResolver(
             BootstrapTestHost.Canonical.Catalog, BootstrapTestHost.Services.Compiler);
 
@@ -524,7 +524,7 @@ public sealed class CtrlRamReportMetadataPlanTests
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51950", "single", slotPaths, inputBytes);
 
         Assert.True(preparation.AcceptedSession is not null,
-            string.Join("; ", preparation.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         Assert.DoesNotContain(preparation.Issues, static issue =>
             issue.Code.StartsWith("input.bank-reference.", StringComparison.Ordinal));
     }

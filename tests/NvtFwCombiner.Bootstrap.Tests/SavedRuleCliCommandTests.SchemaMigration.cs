@@ -26,10 +26,10 @@ public sealed partial class SavedRuleCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(SchemaVersionUnsupported, result.Error, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.True(GoldenDiagnostics.Contains(SchemaVersionUnsupported, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains(
             "Saved Rule v1 is retired; migrate the document to Saved Rule v2",
             result.Error,
-            StringComparison.Ordinal);
+            StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 }

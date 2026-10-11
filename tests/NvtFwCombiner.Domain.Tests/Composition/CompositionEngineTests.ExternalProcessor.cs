@@ -18,7 +18,7 @@ public sealed partial class CompositionEngineTests
             (operation, inputBytes, stagedSources, stagedArtifacts, _) =>
             {
                 Assert.Equal("run-crc", operation.OperationId);
-                Assert.Equal([0xFF, 0xFF, 0xFF, 0xFF], inputBytes.ToArray());
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xFF, 0xFF, 0xFF], inputBytes.ToArray(), "firmware image");
                 Assert.Empty(stagedSources);
                 Assert.Empty(stagedArtifacts);
                 byte[] output = inputBytes.ToArray();
@@ -28,7 +28,7 @@ public sealed partial class CompositionEngineTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0xFF, 0xFF, 0x44, 0xFF], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xFF, 0x44, 0xFF], result.OutputBytes.ToArray(), "firmware image");
         MutationRecord mutation = Assert.Single(result.Mutations);
         Assert.Equal(CompositionOperationKind.RunExternalProcessor, mutation.OperationKind);
         Assert.Equal([new ByteRange(2, 1)], mutation.ChangedRanges);
@@ -115,11 +115,11 @@ public sealed partial class CompositionEngineTests
             input,
             (_, inputBytes, stagedSources, stagedArtifacts, _) =>
             {
-                Assert.Equal([0x10, 0x20, 0x30, 0x40], inputBytes.ToArray());
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30, 0x40], inputBytes.ToArray(), "firmware image");
                 Assert.Empty(stagedArtifacts);
                 ExternalProcessorStagedSource stagedSource = Assert.Single(stagedSources);
                 Assert.Equal(new ByteRange(1, 2), stagedSource.FirmwareRange);
-                Assert.Equal([0xAA, 0xBB], stagedSource.Bytes.ToArray());
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xAA, 0xBB], stagedSource.Bytes.ToArray(), "firmware image");
                 byte[] output = inputBytes.ToArray();
                 stagedSource.Bytes.CopyTo(output.AsMemory((int)stagedSource.FirmwareRange.Start));
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
@@ -127,7 +127,7 @@ public sealed partial class CompositionEngineTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray(), "firmware image");
         Assert.Contains(result.Issues, issue => issue.Code == CompositionIssueCodes.InputAddressSpaceTruncated);
     }
 
@@ -281,7 +281,7 @@ public sealed partial class CompositionEngineTests
             EmptyInput(),
             (_, inputBytes, _, _, _) =>
             {
-                Assert.Equal([0xFF, 0xFF, 0xFF], inputBytes.ToArray());
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xFF, 0xFF], inputBytes.ToArray(), "firmware image");
                 byte[] output = inputBytes.ToArray();
                 output[1] = 0x44;
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(output));
@@ -289,7 +289,7 @@ public sealed partial class CompositionEngineTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0xFF, 0x44, 0xFF, 0xFF], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0x44, 0xFF, 0xFF], result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(new ByteRange(0, 3), Assert.Single(result.Mutations).TargetRange);
     }
 
@@ -356,15 +356,15 @@ public sealed partial class CompositionEngineTests
                 Assert.Equal(
                     ["a-bank", "b-bank"],
                     stagedArtifacts.Select(static artifact => artifact.ArtifactId));
-                Assert.Equal([0xA1, 0xA1], stagedArtifacts[0].Bytes.ToArray());
-                Assert.Equal([0xB2, 0xB2], stagedArtifacts[1].Bytes.ToArray());
-                Assert.Equal([0, 0, 0, 0], inputBytes.ToArray());
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA1], stagedArtifacts[0].Bytes.ToArray(), "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xB2, 0xB2], stagedArtifacts[1].Bytes.ToArray(), "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 0, 0, 0], inputBytes.ToArray(), "firmware image");
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(new byte[] { 0xA1, 0xA1, 0xB2, 0xB2 }));
             },
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0xA1, 0xA1, 0xB2, 0xB2], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA1, 0xB2, 0xB2], result.OutputBytes.ToArray(), "firmware image");
     }
 
     private static CompositionOperation CreateExternalOperation()

@@ -31,8 +31,8 @@ public sealed partial class AcceptedSessionFileIdentityTests
         CompositionRunResult expected = await ExecuteAsync(accepted, paths);
         CompositionRunResult actual = await ExecuteAsync(accepted, swapped);
 
-        Assert.True(expected.Succeeded, CompositionRunReportJson.Serialize(expected));
-        Assert.True(actual.Succeeded, CompositionRunReportJson.Serialize(actual));
+        Assert.True(expected.Succeeded, $"Composition result: status={expected.Status}, succeeded={expected.Succeeded}.");
+        Assert.True(actual.Succeeded, $"Composition result: status={actual.Status}, succeeded={actual.Succeeded}.");
         Assert.Equal(expected.OutputSha256, actual.OutputSha256);
     }
 
@@ -53,8 +53,8 @@ public sealed partial class AcceptedSessionFileIdentityTests
         CompositionRunResult afterMutation = await ExecuteAsync(accepted, paths);
         CompositionRunResult refreshed = await ExecuteAsync(await AcceptStandardSessionAsync(paths), paths);
 
-        Assert.True(beforeMutation.Succeeded, CompositionRunReportJson.Serialize(beforeMutation));
-        Assert.True(afterMutation.Succeeded, CompositionRunReportJson.Serialize(afterMutation));
+        Assert.True(beforeMutation.Succeeded, $"Composition result: status={beforeMutation.Status}, succeeded={beforeMutation.Succeeded}.");
+        Assert.True(afterMutation.Succeeded, $"Composition result: status={afterMutation.Status}, succeeded={afterMutation.Succeeded}.");
         Assert.Equal(beforeMutation.OutputSha256, afterMutation.OutputSha256);
         Assert.NotEqual(beforeMutation.OutputSha256, refreshed.OutputSha256);
         AssertAcceptedSourceByteProjected(
@@ -80,8 +80,8 @@ public sealed partial class AcceptedSessionFileIdentityTests
             build: true,
             outputPath: outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.Equal(result.OutputBytes.ToArray(), File.ReadAllBytes(outputPath));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
+        GoldenAssert.AssertEqualsGolden(result.OutputBytes.ToArray(), GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
         Assert.Equal(
             [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
             result.Report.Inputs.Select(static input => input.AddressSpaceId).Order(StringComparer.Ordinal));
@@ -114,10 +114,10 @@ public sealed partial class AcceptedSessionFileIdentityTests
         CompositionRunResult shared = await ExecuteAsync(sharedSession, sharedPaths);
         CompositionRunResult distinct = await ExecuteAsync(distinctSession, distinctPaths);
 
-        Assert.True(shared.Succeeded, CompositionRunReportJson.Serialize(shared));
-        Assert.True(distinct.Succeeded, CompositionRunReportJson.Serialize(distinct));
+        Assert.True(shared.Succeeded, $"Composition result: status={shared.Status}, succeeded={shared.Succeeded}.");
+        Assert.True(distinct.Succeeded, $"Composition result: status={distinct.Status}, succeeded={distinct.Succeeded}.");
         Assert.Equal(distinct.OutputSha256, shared.OutputSha256);
-        Assert.Equal(distinct.OutputBytes.ToArray(), shared.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(distinct.OutputBytes.ToArray(), shared.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(
             distinct.Report.Inputs.Select(static input => input.AddressSpaceId).Order(StringComparer.Ordinal),
             shared.Report.Inputs.Select(static input => input.AddressSpaceId).Order(StringComparer.Ordinal));
@@ -143,8 +143,8 @@ public sealed partial class AcceptedSessionFileIdentityTests
         CompositionRunResult expected = await ExecuteAsync(accepted, paths);
         CompositionRunResult actual = await ExecuteAsync(accepted, swapped);
 
-        Assert.True(expected.Succeeded, CompositionRunReportJson.Serialize(expected));
-        Assert.True(actual.Succeeded, CompositionRunReportJson.Serialize(actual));
+        Assert.True(expected.Succeeded, $"Composition result: status={expected.Status}, succeeded={expected.Succeeded}.");
+        Assert.True(actual.Succeeded, $"Composition result: status={actual.Status}, succeeded={actual.Succeeded}.");
         Assert.Equal(expected.OutputSha256, actual.OutputSha256);
     }
 
@@ -165,8 +165,8 @@ public sealed partial class AcceptedSessionFileIdentityTests
         CompositionRunResult afterMutation = await ExecuteAsync(accepted, paths);
         CompositionRunResult refreshed = await ExecuteAsync(await AcceptAbSessionAsync(paths), paths);
 
-        Assert.True(beforeMutation.Succeeded, CompositionRunReportJson.Serialize(beforeMutation));
-        Assert.True(afterMutation.Succeeded, CompositionRunReportJson.Serialize(afterMutation));
+        Assert.True(beforeMutation.Succeeded, $"Composition result: status={beforeMutation.Status}, succeeded={beforeMutation.Succeeded}.");
+        Assert.True(afterMutation.Succeeded, $"Composition result: status={afterMutation.Status}, succeeded={afterMutation.Succeeded}.");
         Assert.Equal(beforeMutation.OutputSha256, afterMutation.OutputSha256);
         Assert.NotEqual(beforeMutation.OutputSha256, refreshed.OutputSha256);
         AssertAcceptedSourceByteProjected(
@@ -187,7 +187,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
 
         CompositionRunResult result = await ExecuteAsync(accepted, paths);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(3, result.Report.Inputs.Count);
         InputArtifactSummary tpA = Assert.Single(result.Report.Inputs, static input =>
             input.AddressSpaceId == CompositionAddressSpaceIds.TpAInput);
@@ -281,9 +281,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         CompositionOperation operation = accepted.ExactCapability!.CompiledComposition.Plan
             .OrderedOperations.Single(candidate => candidate.SourceSpaceId is not null &&
                 candidate.SourceSpaceId != accepted.ExactCapability.CompiledComposition.Plan.OutputInitialization.ReferenceSpaceId);
-        Assert.Equal(
-            replacement.AcceptedBytes!.Value.Span[0],
-            result.OutputBytes.Span[checked((int)operation.TargetRange.Start)]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[replacement.AcceptedBytes!.Value.Span[0]], [result.OutputBytes.Span[checked((int)operation.TargetRange.Start)]], "firmware image");
     }
 
     private Task<ActiveSessionSnapshot> AcceptStandardSessionAsync(
@@ -343,7 +341,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
                             OverlapPolicy.Reject, 1, "Accepted source identity fixture."),
                     ])),
                 TestContext.Current.CancellationToken);
-        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.NotNull(prepared.AcceptedSession);
         return prepared;
     }
@@ -359,7 +357,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         Assert.True(session.Activate(catalog).Succeeded);
         AuthoringSlotInspectionBatchStartResult started =
             session.BeginSlotFileInspections(paths);
-        Assert.True(started.Succeeded, started.Issue?.Message);
+        Assert.True(started.Succeeded, "Golden assertion condition was not satisfied.");
         ResolvedCapability exact = Assert.IsType<ResolvedCapability>(
             started.Leases[0].ExactCapability);
         FirmwareInspectionSnapshotInput[] inputs =
@@ -395,12 +393,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
                 started.Leases,
                 statuses);
         Assert.True(completed.Succeeded,
-            $"{completed.Issue?.Message} | selected={started.Snapshot!.SelectedRouteId} " +
-            $"fingerprint={started.Snapshot.CompilationFingerprint} " +
-            $"inspected={string.Join(", ", exactCatalog.Routes.Select(static route =>
-                $"{route.Identity.RouteId}/{route.CompilationFingerprint}"))} " +
-            $"issues={string.Join(", ", inspected.InspectionsById.Values.SelectMany(static result =>
-                result.AuthoringCompilationIssues).Select(static issue => issue.Code))}");
+            "Golden assertion condition was not satisfied.");
         Assert.NotNull(completed.Snapshot!.GetAcceptedCapability(
             AuthoringDerivedResultKind.Inspection));
         Assert.True(
@@ -578,9 +571,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             : addressSpaceId;
         CompositionOperation operation = accepted.ExactCapability!.CompiledComposition.Plan
             .OrderedOperations.Last(candidate => candidate.SourceSpaceId == operationSource);
-        Assert.Equal(
-            status.AcceptedBytes!.Value.Span[checked((int)operation.SourceRange!.Value.Start)],
-            result.OutputBytes.Span[checked((int)operation.TargetRange.Start)]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[status.AcceptedBytes!.Value.Span[checked((int)operation.SourceRange!.Value.Start)]], [result.OutputBytes.Span[checked((int)operation.TargetRange.Start)]], "firmware image");
     }
 
     private static void MutateFirstByte(string path)
@@ -627,8 +618,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
         CapabilityCatalogReloadResult reload =
             _host.Catalog.Reload(
                 TestContext.Current.CancellationToken);
-        Assert.True(reload.Succeeded, string.Join(
-            "; ", reload.Issues.Select(static issue => issue.Message)));
+        Assert.True(reload.Succeeded, "Golden assertion condition was not satisfied.");
     }
 
     private enum FixedInspectionKind

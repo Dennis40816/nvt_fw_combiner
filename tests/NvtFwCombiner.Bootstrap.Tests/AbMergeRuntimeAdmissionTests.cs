@@ -207,9 +207,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             prepared.Issues,
             issue => issue.Code == expectedIssueCode);
         Assert.Equal(shortAddressSpaceId, issue.OperationId);
-        Assert.Equal(shortBytes, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(shortBytes,
+            await GoldenFileIo.ReadAllBytesAsync(
             paths[shortAddressSpaceId],
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Each accepted TP source view preserves full identity and ignores its non-authoritative tail.</summary>
@@ -226,7 +227,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             paths,
             build: false,
             TestContext.Current.CancellationToken);
-        Assert.True(exact.Succeeded, CompositionRunReportJson.Serialize(exact));
+        Assert.True(exact.Succeeded, $"Composition result: status={exact.Status}, succeeded={exact.Succeeded}.");
 
         byte[] original = await File.ReadAllBytesAsync(
             paths[oversizedAddressSpaceId],
@@ -239,7 +240,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.True(tailed.Succeeded, CompositionRunReportJson.Serialize(tailed));
+        Assert.True(tailed.Succeeded, $"Composition result: status={tailed.Status}, succeeded={tailed.Succeeded}.");
         Assert.Equal(exact.OutputSha256, tailed.OutputSha256);
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(tailed));
         Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
@@ -256,9 +257,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.Equal(1, snapshot.GetProperty("IgnoredTrailingBytes").GetInt64());
         Assert.Equal(original.LongLength, snapshot.GetProperty("IgnoredTrailingRange").GetProperty("Start").GetInt64());
         Assert.Equal(oversized.LongLength, snapshot.GetProperty("IgnoredTrailingRange").GetProperty("EndExclusive").GetInt64());
-        Assert.Equal(oversized, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(oversized,
+            await GoldenFileIo.ReadAllBytesAsync(
             paths[oversizedAddressSpaceId],
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Build commits the exact supported output while preserving every selected source.</summary>
@@ -282,8 +284,8 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             outputPath: outputPath,
             aFlashCodeOutputPath: aFlashCodePath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.True(result.IsDeliveryComplete, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
+        Assert.True(result.IsDeliveryComplete, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(DpLength, result.OutputSize);
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(result.OutputSha256, Sha256(output));
@@ -308,7 +310,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
         byte[] aFlashCode = await File.ReadAllBytesAsync(aFlashCodePath, TestContext.Current.CancellationToken);
         Assert.Equal(DpLength / 2, aFlashCodeDelivery.OutputSize);
-        Assert.Equal(output[..(DpLength / 2)], aFlashCode);
+        GoldenAssert.AssertEqualsGolden(output[..(DpLength / 2)], aFlashCode, "firmware image");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal(Path.GetFileName(outputPath), report.RootElement.GetProperty("Output").GetProperty("FileName").GetString());
         JsonElement reportDelivery = Assert.Single(report.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
@@ -317,9 +319,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
         foreach ((string addressSpaceId, string path) in paths)
         {
-            Assert.Equal(originals[addressSpaceId], await File.ReadAllBytesAsync(
+            GoldenAssert.AssertEqualsGolden(originals[addressSpaceId],
+            await GoldenFileIo.ReadAllBytesAsync(
                 path,
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken), "firmware image");
         }
     }
 
@@ -376,9 +379,8 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 topologySelection: null).AsTask());
 
         Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
-        Assert.Equal(
-            originalDpBytes,
-            await File.ReadAllBytesAsync(aliasedDpPath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(originalDpBytes,
+            await GoldenFileIo.ReadAllBytesAsync(aliasedDpPath, TestContext.Current.CancellationToken), "firmware image");
         var phases = new List<CompositionRunPhase>();
         await foreach (CompositionRunProgressSnapshot snapshot in progress.ReadAllAsync(TestContext.Current.CancellationToken))
         {
@@ -405,7 +407,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             outputPath: outputPath,
             aFlashCodeOutputPath: directoryPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.False(result.IsDeliveryComplete);
         Assert.True(File.Exists(outputPath));
         Assert.False(string.IsNullOrWhiteSpace(result.DeliveryFailureMessage));

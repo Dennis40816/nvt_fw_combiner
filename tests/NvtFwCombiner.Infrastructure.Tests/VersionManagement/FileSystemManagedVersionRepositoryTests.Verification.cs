@@ -21,7 +21,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         ManagedPackageVerificationResult verified = await new FileSystemManagedVersionRepository()
             .VerifyPackageAsync(sourceRoot, package, TestContext.Current.CancellationToken);
 
-        Assert.True(verified.IsVerified, verified.Issue.ToString());
+        Assert.True(verified.IsVerified, "Golden assertion condition was not satisfied.");
     }
 
     /// <summary>Verification preserves the launchability distinction between historical and managed packages.</summary>
@@ -42,9 +42,9 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             CreatePackage(managedRoot, "1.0.4", includeManagedLauncher: true),
             TestContext.Current.CancellationToken);
 
-        Assert.True(legacy.IsVerified, legacy.Issue.ToString());
+        Assert.True(legacy.IsVerified, "Golden assertion condition was not satisfied.");
         Assert.False(legacy.HasSupportedManagedLauncher);
-        Assert.True(managed.IsVerified, managed.Issue.ToString());
+        Assert.True(managed.IsVerified, "Golden assertion condition was not satisfied.");
         Assert.True(managed.HasSupportedManagedLauncher);
     }
 
@@ -63,7 +63,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         ManagedPackageVerificationResult verified = await new FileSystemManagedVersionRepository()
             .VerifyPackageAsync(sourceRoot, package, TestContext.Current.CancellationToken);
 
-        Assert.True(verified.IsVerified, verified.Issue.ToString());
+        Assert.True(verified.IsVerified, "Golden assertion condition was not satisfied.");
         Assert.True(verified.HasSupportedManagedLauncher);
     }
 

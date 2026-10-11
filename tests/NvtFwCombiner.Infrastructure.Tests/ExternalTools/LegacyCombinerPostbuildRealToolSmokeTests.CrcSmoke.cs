@@ -82,9 +82,9 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
             ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
-            Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
+            Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
             Assert.Empty(result.ChangedRanges);
-            Assert.Equal(goldenBytes, result.OutputBytes.ToArray());
+            GoldenAssert.AssertEqualsGolden(goldenBytes, result.OutputBytes.ToArray(), "firmware image");
         }
         finally
         {

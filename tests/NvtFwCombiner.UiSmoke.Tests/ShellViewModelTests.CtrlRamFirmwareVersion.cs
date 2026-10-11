@@ -324,9 +324,9 @@ public sealed partial class CtrlRamWorkflowTests
         FirmwareConfigMetadataSnapshot? outputMetadata =
             BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, "NT51926", outputPath);
         Assert.NotNull(outputMetadata);
-        Assert.Equal(0x2A, outputMetadata.FirmwareVersion);
-        Assert.Equal(0xD5, outputMetadata.FirmwareVersionBar);
-        Assert.Equal(0x0C, outputMetadata.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x2A], [outputMetadata.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xD5], [outputMetadata.FirmwareVersionBar], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x0C], [outputMetadata.FirmwareSubVersion], "firmware image");
         Assert.True(viewModel.Reports.HasLoadedReport);
         using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
@@ -507,8 +507,8 @@ public sealed partial class CtrlRamWorkflowTests
                 TestProjection,
                 "NT51926",
                 outputPath));
-        Assert.Equal(0x2A, outputMetadata.FirmwareVersion);
-        Assert.Equal(0x0C, outputMetadata.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x2A], [outputMetadata.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x0C], [outputMetadata.FirmwareSubVersion], "firmware image");
     }
 
     private static void MutateAcceptedPath(string path, string mutation)

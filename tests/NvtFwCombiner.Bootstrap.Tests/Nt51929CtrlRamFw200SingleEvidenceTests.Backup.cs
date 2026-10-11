@@ -51,22 +51,22 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             BootstrapTestHost.Canonical, icId, "single", ExperienceIds.CtrlRamReplace,
             slots, true, TestContext.Current.CancellationToken, outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(Capacity, output.Length);
-        Assert.Equal(replacement, output[NfStart]);
-        Assert.Equal(replacement, output[0x2EA00]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[replacement], [output[NfStart]], GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[replacement], [output[0x2EA00]], GoldenDiagnostics.Label(CaseId));
         byte[] expectedBackup = output.AsSpan(0x1F200, 0x1000).ToArray();
         new byte[] { 0x00, 0x4E, 0x56, 0x54 }.CopyTo(expectedBackup, 0xFFC);
-        Assert.Equal(expectedBackup, output.AsSpan(0x2E000, 0x1000).ToArray());
+        GoldenAssert.AssertEqualsGolden(expectedBackup, output.AsSpan(0x2E000, 0x1000).ToArray(), GoldenDiagnostics.Label(CaseId));
         ByteRange[] allowedDifferences =
         [
             new(NfStart, 1), new(0x2EA00, 1),
             new(0x7100, 4), new(0x7118, 4), new(0x27FF0, 4), new(0x28008, 4),
         ];
         Assert.Equal(0, CountDifferencesOutside(evidence.Expected.Bytes, output, allowedDifferences));
-        Assert.Equal(evidence.Expected.Bytes, File.ReadAllBytes(referencePath));
-        Assert.Equal(new[] { replacement }, File.ReadAllBytes(sourcePath));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, GoldenFileIo.ReadAllBytes(referencePath), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(new[] { replacement }, GoldenFileIo.ReadAllBytes(sourcePath), GoldenDiagnostics.Label(CaseId));
     }
 
     /// <summary>The adjacent bytes remain protected even when the processor claims an empty diff.</summary>
@@ -85,10 +85,10 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             true, outputPath, null, processor, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, processor.CallCount);
-        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.False(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Null(result.CommittedOutputId);
         Assert.False(File.Exists(outputPath));
-        Assert.Equal(evidence.Expected.Bytes, File.ReadAllBytes(referencePath));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, GoldenFileIo.ReadAllBytes(referencePath), GoldenDiagnostics.Label(CaseId));
     }
 
     private sealed class OutOfBackupProcessor(int offset) : IExternalProcessor

@@ -43,7 +43,7 @@ public sealed partial class AbMergeCliCommandTests
             request.AcceptedSession.Slots.Select(static slot => slot.DefinitionId).Order(StringComparer.Ordinal));
         if (dummy)
         {
-            Assert.Equal((byte)0xFF, request.AcceptedSession.ExactCapability!.CompiledComposition.Plan.OutputInitialization.FillByte);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xFF], [request.AcceptedSession.ExactCapability!.CompiledComposition.Plan.OutputInitialization.FillByte], "firmware image");
             Assert.DoesNotContain(CompositionAddressSpaceIds.DpAbInput, request.SlotPaths.Keys);
         }
 
@@ -69,13 +69,13 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(expectedExit, result.ExitCode);
-        Assert.Empty(result.Output);
-        Assert.StartsWith("error:", result.Error, StringComparison.Ordinal);
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(GoldenDiagnostics.StartsWith("error:", result.Error, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
         Assert.False(File.Exists(bin));
         Assert.False(File.Exists(report));
         if (options.Length == 2 && options[0] == "--dp-mode" && options[1] == "dummy")
         {
-            Assert.Contains("0xFF replaces every non-TP output", result.Error, StringComparison.Ordinal);
+            Assert.True(GoldenDiagnostics.Contains("0xFF replaces every non-TP output", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         }
     }
 
@@ -100,8 +100,8 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Equal("error: --dp-ab is not used with --dp-mode dummy" + Environment.NewLine, result.Error);
-        Assert.Empty(result.Output);
+        Assert.True(StringComparer.Ordinal.Equals("error: --dp-ab is not used with --dp-mode dummy" + Environment.NewLine, result.Error), "Captured text differs from the expected text.");
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         Assert.False(File.Exists(bin));
         Assert.False(File.Exists(report));
     }
@@ -124,8 +124,8 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(expectedError, result.Error, StringComparison.Ordinal);
-        Assert.Empty(result.Output);
+        Assert.True(GoldenDiagnostics.Contains(expectedError, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         Assert.False(File.Exists(bin));
         Assert.False(File.Exists(report));
     }

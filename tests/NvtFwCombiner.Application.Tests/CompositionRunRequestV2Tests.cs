@@ -221,8 +221,8 @@ public sealed partial class CompositionRunRequestV2Tests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
         Assert.Equal(CompositionExecutionStatus.Succeeded, build.Status);
-        Assert.Equal([1, 2, 3, 4], preview.OutputBytes.ToArray());
-        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4], preview.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(composition.CompilationFingerprint, preview.Report.CompilationFingerprint);
         Assert.Equal(composition.CompilationFingerprint, build.Report.CompilationFingerprint);
         Assert.Equal("map", preview.Report.MapId);
@@ -335,8 +335,8 @@ public sealed partial class CompositionRunRequestV2Tests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
         Assert.Equal(CompositionExecutionStatus.Succeeded, build.Status);
-        Assert.Equal([0xA0, 0xB0, 0x00, 0x00], preview.OutputBytes.ToArray());
-        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA0, 0xB0, 0x00, 0x00], preview.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(CompositionOperationKind.ReplaceRange, Assert.Single(preview.Report.Mutations).Kind);
         Assert.True(writer.WasCalled);
     }

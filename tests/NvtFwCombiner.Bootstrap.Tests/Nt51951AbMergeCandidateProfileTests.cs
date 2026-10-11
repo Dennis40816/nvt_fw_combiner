@@ -142,10 +142,10 @@ public sealed class Nt51951AbMergeCandidateProfileTests
                 Assert.Equal(["a-bank", "b-bank"], stagedArtifacts.Select(static artifact => artifact.ArtifactId));
                 Assert.Equal(BankLength, stagedArtifacts[0].Bytes.Length);
                 Assert.Equal(BankLength, stagedArtifacts[1].Bytes.Length);
-                Assert.Equal(0xA1, stagedArtifacts[0].Bytes.Span[0]);
-                Assert.Equal(0xC3, stagedArtifacts[0].Bytes.Span[TpCodeStart]);
-                Assert.Equal(0xB2, stagedArtifacts[1].Bytes.Span[0]);
-                Assert.Equal(0xD4, stagedArtifacts[1].Bytes.Span[TpCodeStart]);
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1], [stagedArtifacts[0].Bytes.Span[0]], "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xC3], [stagedArtifacts[0].Bytes.Span[TpCodeStart]], "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xB2], [stagedArtifacts[1].Bytes.Span[0]], "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xD4], [stagedArtifacts[1].Bytes.Span[TpCodeStart]], "firmware image");
                 Assert.Equal(
                     0x123C5678u,
                     BinaryPrimitives.ReadUInt32LittleEndian(stagedArtifacts[1].Bytes.Span.Slice(0xA120, sizeof(uint))));
@@ -154,15 +154,15 @@ public sealed class Nt51951AbMergeCandidateProfileTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(originalTpB, tpB);
-        Assert.Equal(0xC3, result.OutputBytes.Span[TpCodeStart]);
+        GoldenAssert.AssertEqualsGolden(originalTpB, tpB, "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xC3], [result.OutputBytes.Span[TpCodeStart]], "firmware image");
         Assert.Equal(0xD4, result.OutputBytes.Span[BankLength + TpCodeStart]);
         Assert.Equal(
             0x123C5678u,
             BinaryPrimitives.ReadUInt32LittleEndian(result.OutputBytes.Span.Slice(BankLength + 0xA120, sizeof(uint))));
-        Assert.Equal(dp.AsSpan(0, TpCodeStart).ToArray(), result.OutputBytes.Span[..TpCodeStart].ToArray());
-        Assert.Equal(dp.AsSpan(0x37000, 0x53000).ToArray(), result.OutputBytes.Span.Slice(0x37000, 0x53000).ToArray());
-        Assert.Equal(dp.AsSpan(0xB7000).ToArray(), result.OutputBytes.Span[0xB7000..].ToArray());
+        GoldenAssert.AssertEqualsGolden(dp.AsSpan(0, TpCodeStart).ToArray(), result.OutputBytes.Span[..TpCodeStart].ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(dp.AsSpan(0x37000, 0x53000).ToArray(), result.OutputBytes.Span.Slice(0x37000, 0x53000).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(dp.AsSpan(0xB7000).ToArray(), result.OutputBytes.Span[0xB7000..].ToArray(), "firmware image");
     }
 
     private static CompiledComposition CompileCandidate(TempWorkspace workspace)

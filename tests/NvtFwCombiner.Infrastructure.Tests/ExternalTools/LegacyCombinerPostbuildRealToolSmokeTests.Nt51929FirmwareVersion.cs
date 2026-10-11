@@ -75,10 +75,10 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
                 assertChangedRanges: false);
 
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(output, out FirmwareConfigMetadata updatedBackup));
-            Assert.Equal(firmwareVersion, updatedBackup.FirmwareVersion);
-            Assert.Equal(unchecked((byte)~firmwareVersion), updatedBackup.FirmwareVersionBar);
-            Assert.Equal(firmwareSubVersion, updatedBackup.FirmwareSubVersion);
-            Assert.Equal(ownerGolden, File.ReadAllBytes(FindGoldenExpectedOutput("51929")));
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareVersion], [updatedBackup.FirmwareVersion], "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[unchecked((byte)~firmwareVersion)], [updatedBackup.FirmwareVersionBar], "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareSubVersion], [updatedBackup.FirmwareSubVersion], "firmware image");
+            GoldenAssert.AssertEqualsGolden(ownerGolden, GoldenFileIo.ReadAllBytes(FindGoldenExpectedOutput("51929")), "firmware image");
         }
         finally
         {

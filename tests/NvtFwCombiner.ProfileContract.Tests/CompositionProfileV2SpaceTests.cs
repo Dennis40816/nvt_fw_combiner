@@ -1,5 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests immutable v2 spaces, views, metadata bindings, and access policy.</summary>
@@ -18,7 +20,7 @@ public sealed class CompositionProfileV2SpaceTests
         _ = Assert.IsType<ResolvedMapProfileCapacity>(resolved);
         Assert.Equal(4096, fixedCapacity.Bytes);
         _ = Assert.IsType<RuntimeRequestProfileCapacity>(runtimeRequest);
-        Assert.Equal(0xFF, blank.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF], [blank.FillByte], "firmware image");
         Assert.Equal("reference-input", clone.SourceSlotId);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FixedProfileCapacity(0));
         _ = Assert.Throws<ArgumentException>(() => new CloneProfileInitializer("Reference"));

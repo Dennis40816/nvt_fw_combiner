@@ -47,8 +47,8 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.Equal("nt51932-standard-merge-gen-flash", ReadProfileId(CompositionRunReportJson.Serialize(result)));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
+        Assert.True(StringComparer.Ordinal.Equals("nt51932-standard-merge-gen-flash", ReadProfileId(CompositionRunReportJson.Serialize(result))), "Captured text differs from the expected text.");
         Assert.Equal(OwnerExpectedSha256, Hash(File.ReadAllBytes(outputPath)));
         Assert.Equal(OwnerExpectedSha256, Hash(evidence.Expected.Bytes));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(evidence.Expected.Bytes, out FirmwareConfigMetadata metadata));
@@ -92,7 +92,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             "NT51932", IcNumberSelectionTokens.CascadeTwoToEight, ExperienceIds.CtrlRamReplace, slots, true,
             TestContext.Current.CancellationToken, v2Path);
 
-        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
+        Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
         byte[] v2Bytes = File.ReadAllBytes(v2Path);
         Assert.Equal(CurrentOutputSha256, Hash(v2Bytes));
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
@@ -133,7 +133,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
 
         OwnerArtifact composite = evidence.Require("NF_Ctrlram.bin");
         AssertArtifact(composite, 1758, "a76cc832e496b3866fa6fc73c749098b72c1549ce8ccf7bb0d2675b8e519b99b");
-        Assert.Equal(diffNf[0].Bytes, composite.Bytes);
+        GoldenAssert.AssertEqualsGolden(diffNf[0].Bytes, composite.Bytes, GoldenDiagnostics.Label(CaseId));
 
         string toolRoot = RepositoryPaths.FromRepositoryRoot("external-tools", "diff-nf-merge", "1.0.0");
         Assert.Equal(
@@ -180,7 +180,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             "NT51932", number, CreateSlotPaths(evidence, referencePath), true,
             outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(File.Exists(outputPath));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade");
@@ -204,8 +204,8 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             "NT51932", IcNumberSelectionTokens.CascadeTwoToEight, CreateSlotPaths(evidence, referencePath), true,
             outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.Equal(reference[0x100], File.ReadAllBytes(outputPath)[0x100]);
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[reference[0x100]], [GoldenFileIo.ReadAllBytes(outputPath)[0x100]], GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade");
     }
@@ -235,9 +235,9 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         OwnerArtifact nf = evidence.Require("NF_Ctrlram.bin");
-        Assert.Equal(nf.Bytes, File.ReadAllBytes(outputPath).AsSpan(NfStart, nf.Bytes.Length).ToArray());
+        GoldenAssert.AssertEqualsGolden(nf.Bytes, GoldenFileIo.ReadAllBytes(outputPath).AsSpan(NfStart, nf.Bytes.Length).ToArray(), GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw1x-single");
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
@@ -256,7 +256,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             icId, IcNumberSelectionTokens.CascadeTwoToEight, CreateSlotPaths(evidence, evidence.Expected.Path), true,
             workspace.PathFor("alias.bin"), null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade");
     }
@@ -283,9 +283,9 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         OwnerArtifact normal = evidence.Require("Normal_Ctrlram.bin");
         OwnerArtifact vn = evidence.Require("VN_Ctrlram.bin");
         OwnerArtifact diff = evidence.Require("DiffDLM.bin");
-        Assert.Equal(nf.Bytes, output.AsSpan(NfStart, nf.Bytes.Length).ToArray());
-        Assert.Equal(normal.Bytes.AsSpan(0, NormalLength).ToArray(), output.AsSpan(NormalStart, NormalLength).ToArray());
-        Assert.Equal(vn.Bytes, output.AsSpan(VnStart, vn.Bytes.Length).ToArray());
+        GoldenAssert.AssertEqualsGolden(nf.Bytes, output.AsSpan(NfStart, nf.Bytes.Length).ToArray(), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(normal.Bytes.AsSpan(0, NormalLength).ToArray(), output.AsSpan(NormalStart, NormalLength).ToArray(), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(vn.Bytes, output.AsSpan(VnStart, vn.Bytes.Length).ToArray(), GoldenDiagnostics.Label(CaseId));
         ReadOnlySpan<byte> header = output.AsSpan(0x7000, HeaderCopyLength);
         ReadOnlySpan<byte> headerCopy = output.AsSpan(HeaderCopyStart, HeaderCopyLength);
         Assert.Equal(8, CountDifferences(header, headerCopy));
@@ -301,7 +301,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             if (diff.Bytes[index] != output[DiffStart + index])
             {
                 Assert.InRange(index, 0x2F00, 0x3EFF);
-                Assert.Equal(0xFF, diff.Bytes[index]);
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF], [diff.Bytes[index]], GoldenDiagnostics.Label(CaseId));
             }
         }
     }
@@ -315,8 +315,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             expectedArguments.Length == actualArguments.Length &&
             expectedArguments.Zip(actualArguments).All(static pair =>
                 pair.First.SequenceEqual(pair.Second, StringComparer.Ordinal)),
-            $"Expected arguments: {JsonSerializer.Serialize(expectedArguments)}{Environment.NewLine}" +
-            $"Actual arguments: {JsonSerializer.Serialize(actualArguments)}");
+            "Golden assertion condition was not satisfied.");
         Assert.Equal(2, session.GetProperty("ExecutedCommands").GetArrayLength());
         AssertProcessorIdentity(session);
         Assert.Equal([new ByteRange(0, Capacity)], ReadRanges(session, "ProcessorAllowedReadRanges"));
@@ -330,8 +329,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         IReadOnlyList<ByteRange> actualWrites = ReadRanges(session, "ProcessorAllowedWriteRanges");
         Assert.True(
             expectedWrites.SequenceEqual(actualWrites),
-            $"Expected writes: {JsonSerializer.Serialize(expectedWrites)}{Environment.NewLine}" +
-            $"Actual writes: {JsonSerializer.Serialize(actualWrites)}");
+            "Golden assertion condition was not satisfied.");
         string executable = session.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;
         Assert.Equal(RegisteredCombinerSha256, Hash(File.ReadAllBytes(executable)));
         Assert.DoesNotContain("DiffNFMerge", session.GetRawText(), StringComparison.OrdinalIgnoreCase);

@@ -192,7 +192,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             candidate,
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
             TestContext.Current.CancellationToken);
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         using IManagedPromotedFirstInstallation installation = result.Installation!;
         armed = true;
 
@@ -414,7 +414,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             candidate,
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
             TestContext.Current.CancellationToken);
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         IManagedPromotedFirstInstallation installation = Assert.IsType<
             IManagedPromotedFirstInstallation>(result.Installation, exactMatch: false);
         Assert.Equal(

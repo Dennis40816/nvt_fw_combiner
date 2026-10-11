@@ -33,7 +33,7 @@ public sealed class AbCtrlRamAuthoringTests
         CtrlRamAuthoringSessionPreparation result = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), "NT51950", "single", paths, bytes,
             new AbCtrlRamDraftState(AbCtrlRamBankSelection.B));
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(static issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         RuntimeReferenceBankReplaceV2CompilationContext context = Assert.IsType<RuntimeReferenceBankReplaceV2CompilationContext>(
             result.AcceptedSession!.ExactCapability!.CompiledComposition.V2Details.Provenance.Context);
         Assert.Equal("b-bank", Assert.Single(context.Banks).BankId);
@@ -43,10 +43,10 @@ public sealed class AbCtrlRamAuthoringTests
             BootstrapTestHost.Canonical, result.AcceptedSession, paths, true, workspace.PathFor("result.bin"),
             ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, built.Status);
-        Assert.Equal(reference[..0x40000], built.OutputBytes[..0x40000].ToArray());
-        Assert.Equal(bytes["replace-ctrlram-normal"][0], built.OutputBytes.Span[0x40000 + 0x25610]);
-        Assert.Equal(reference.AsSpan(0x4A100, 4).ToArray(), built.OutputBytes.Slice(0x4A100, 4).ToArray());
-        Assert.Equal(reference.AsSpan(0x4A110, 4).ToArray(), built.OutputBytes.Slice(0x4A110, 4).ToArray());
+        GoldenAssert.AssertEqualsGolden(reference[..0x40000], built.OutputBytes[..0x40000].ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[bytes["replace-ctrlram-normal"][0]], [built.OutputBytes.Span[0x40000 + 0x25610]], "firmware image");
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x4A100, 4).ToArray(), built.OutputBytes.Slice(0x4A100, 4).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x4A110, 4).ToArray(), built.OutputBytes.Slice(0x4A110, 4).ToArray(), "firmware image");
         await AssertMatchesLocalControlsAsync("NT51950", "single", AbCtrlRamBankSelection.B,
             reference, paths, bytes, built.OutputBytes, 0x40000, 0x40000);
     }
@@ -72,20 +72,20 @@ public sealed class AbCtrlRamAuthoringTests
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), "NT51950", "single", paths, bytes,
             new AbCtrlRamDraftState(selection));
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         using TempWorkspace workspace = TempWorkspace.Create("ab-950-selection-build");
         CompositionRunResult built = await CtrlRamReplaceTestSupport.ExecuteAcceptedWithProcessorAsync(
             BootstrapTestHost.Canonical, prepared.AcceptedSession!, paths, true, workspace.PathFor("result.bin"),
             ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, built.Status);
-        Assert.Equal(bytes["replace-ctrlram-normal"][0], built.OutputBytes.Span[0x25610]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[bytes["replace-ctrlram-normal"][0]], [built.OutputBytes.Span[0x25610]], "firmware image");
         if (selection == AbCtrlRamBankSelection.A)
         {
-            Assert.Equal(reference[0x40000..], built.OutputBytes[0x40000..].ToArray());
+            GoldenAssert.AssertEqualsGolden(reference[0x40000..], built.OutputBytes[0x40000..].ToArray(), "firmware image");
         }
         else
         {
-            Assert.Equal(bytes["replace-ctrlram-normal"][0], built.OutputBytes.Span[0x40000 + 0x25610]);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[bytes["replace-ctrlram-normal"][0]], [built.OutputBytes.Span[0x40000 + 0x25610]], "firmware image");
         }
         await AssertMatchesLocalControlsAsync("NT51950", "single", selection,
             reference, paths, bytes, built.OutputBytes, 0x40000, 0x40000);
@@ -133,18 +133,18 @@ public sealed class AbCtrlRamAuthoringTests
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), member, number, paths, bytes,
             new AbCtrlRamDraftState(AbCtrlRamBankSelection.B));
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         using TempWorkspace workspace = TempWorkspace.Create("ab-partial-build");
         CompositionRunResult built = await CtrlRamReplaceTestSupport.ExecuteAcceptedWithProcessorAsync(
             BootstrapTestHost.Canonical, prepared.AcceptedSession!, paths, true, workspace.PathFor("result.bin"),
             ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, built.Status);
-        Assert.Equal(reference[..bankLength], built.OutputBytes[..bankLength].ToArray());
+        GoldenAssert.AssertEqualsGolden(reference[..bankLength], built.OutputBytes[..bankLength].ToArray(), "firmware image");
         Assert.Equal(bytes["replace-ctrlram-normal"][0], built.OutputBytes.Span[bankLength + 0x25610]);
         if (localLength < bankLength)
         {
-            Assert.Equal(reference.AsSpan(bankLength + localLength, bankLength - localLength).ToArray(),
-                built.OutputBytes.Slice(bankLength + localLength, bankLength - localLength).ToArray());
+            GoldenAssert.AssertEqualsGolden(reference.AsSpan(bankLength + localLength, bankLength - localLength).ToArray(),
+            built.OutputBytes.Slice(bankLength + localLength, bankLength - localLength).ToArray(), "firmware image");
         }
         await AssertMatchesLocalControlsAsync(member, number, AbCtrlRamBankSelection.B,
             reference, paths, bytes, built.OutputBytes, localLength, bankLength);
@@ -166,7 +166,7 @@ public sealed class AbCtrlRamAuthoringTests
         var state = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         CtrlRamAuthoringSessionPreparation result = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             state, member, "cascade_2to8", paths, bytes, new AbCtrlRamDraftState(AbCtrlRamBankSelection.B));
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(static issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         RuntimeReferenceBankReplaceV2CompilationContext context = Assert.IsType<RuntimeReferenceBankReplaceV2CompilationContext>(
             result.AcceptedSession!.ExactCapability!.CompiledComposition.V2Details.Provenance.Context);
         Assert.Equal("b-bank", Assert.Single(context.Banks).BankId);
@@ -192,21 +192,21 @@ public sealed class AbCtrlRamAuthoringTests
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), "NT51932", "cascade_2to8", paths, bytes,
             new AbCtrlRamDraftState(AbCtrlRamBankSelection.B));
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         using TempWorkspace workspace = TempWorkspace.Create("ab-cascade-build");
         CompositionRunResult result = await CtrlRamReplaceTestSupport.ExecuteAcceptedWithProcessorAsync(
             BootstrapTestHost.Canonical, prepared.AcceptedSession!, paths, true, workspace.PathFor("result.bin"),
             ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(original[..0x40000], result.OutputBytes[..0x40000].ToArray());
-        Assert.Equal(bytes["replace-ctrlram-normal"][0], result.OutputBytes.Span[0x40000 + 0x21B90]);
-        Assert.Equal(bytes["replace-ctrlram-normal"][1], result.OutputBytes.Span[0x40000 + 0x21B91]);
-        Assert.Equal(original.AsSpan(0x40000 + 0x2D100, 0x1400).ToArray(),
-            result.OutputBytes.Slice(0x40000 + 0x2D100, 0x1400).ToArray());
+        GoldenAssert.AssertEqualsGolden(original[..0x40000], result.OutputBytes[..0x40000].ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[bytes["replace-ctrlram-normal"][0]], [result.OutputBytes.Span[0x40000 + 0x21B90]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[bytes["replace-ctrlram-normal"][1]], [result.OutputBytes.Span[0x40000 + 0x21B91]], "firmware image");
+        GoldenAssert.AssertEqualsGolden(original.AsSpan(0x40000 + 0x2D100, 0x1400).ToArray(),
+            result.OutputBytes.Slice(0x40000 + 0x2D100, 0x1400).ToArray(), "firmware image");
         foreach (int offset in new[] { 0x7164, 0x7168, 0x716C })
         {
-            Assert.Equal(original.AsSpan(0x40000 + offset, 4).ToArray(),
-                result.OutputBytes.Slice(0x40000 + offset, 4).ToArray());
+            GoldenAssert.AssertEqualsGolden(original.AsSpan(0x40000 + offset, 4).ToArray(),
+            result.OutputBytes.Slice(0x40000 + offset, 4).ToArray(), "firmware image");
         }
         RuntimeReferenceBankReplaceV2CompilationContext context = Assert.IsType<RuntimeReferenceBankReplaceV2CompilationContext>(
             prepared.AcceptedSession!.ExactCapability!.CompiledComposition.V2Details.Provenance.Context);
@@ -224,7 +224,7 @@ public sealed class AbCtrlRamAuthoringTests
             new ExternalProcessorRequest("cascade-local-control", invocation.ProcessorId, invocation.ToolBindingId,
                 control, invocation.AllowedWriteRanges, IcNumberSelection.FromToken("cascade_2to8"),
                 resolvedIcCount: 3, protocolPlan: invocation.ProtocolPlan), TestContext.Current.CancellationToken);
-        Assert.True(processed.Succeeded, string.Join("; ", processed.Issues.Select(static issue => issue.Message)));
+        Assert.True(processed.Succeeded, "Golden assertion condition was not satisfied.");
         byte[] expectedB = processed.OutputBytes.ToArray();
         foreach (int offset in new[] { 0x7164, 0x7168, 0x716C })
         {
@@ -232,7 +232,7 @@ public sealed class AbCtrlRamAuthoringTests
             BinaryPrimitives.WriteUInt32LittleEndian(expectedB.AsSpan(offset, 4), address + 0x40000);
         }
         byte[] expected = [.. original.AsSpan(0, 0x40000).ToArray(), .. expectedB];
-        Assert.Equal(expected, result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>NT51932 Single copies the exact 4 KiB FWConfig page into B Backup and preserves its adjacent bytes.</summary>
@@ -248,19 +248,19 @@ public sealed class AbCtrlRamAuthoringTests
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), "NT51932", "single", paths, bytes,
             new AbCtrlRamDraftState(AbCtrlRamBankSelection.B));
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         using TempWorkspace workspace = TempWorkspace.Create("ab-single-32-backup");
         CompositionRunResult result = await CtrlRamReplaceTestSupport.ExecuteAcceptedWithProcessorAsync(
             BootstrapTestHost.Canonical, prepared.AcceptedSession!, paths, true, workspace.PathFor("result.bin"),
             ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(original[..0x40000], result.OutputBytes[..0x40000].ToArray());
+        GoldenAssert.AssertEqualsGolden(original[..0x40000], result.OutputBytes[..0x40000].ToArray(), "firmware image");
         byte[] expectedBackup = original.AsSpan(0x40000 + 0x1F200, 0x1000).ToArray();
         expectedBackup[0xA00] = bytes["replace-ctrlram-nf"][0];
         "\0NVT"u8.CopyTo(expectedBackup.AsSpan(0xFFC));
-        Assert.Equal(expectedBackup, result.OutputBytes.Slice(0x40000 + 0x2E000, 0x1000).ToArray());
-        Assert.Equal(original[0x40000 + 0x2DFFF], result.OutputBytes.Span[0x40000 + 0x2DFFF]);
-        Assert.Equal(original[0x40000 + 0x2F000], result.OutputBytes.Span[0x40000 + 0x2F000]);
+        GoldenAssert.AssertEqualsGolden(expectedBackup, result.OutputBytes.Slice(0x40000 + 0x2E000, 0x1000).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[original[0x40000 + 0x2DFFF]], [result.OutputBytes.Span[0x40000 + 0x2DFFF]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[original[0x40000 + 0x2F000]], [result.OutputBytes.Span[0x40000 + 0x2F000]], "firmware image");
     }
 
     /// <summary>Pre-input disclosure uses only the exact AB route and never inherits Standard evidence.</summary>
@@ -323,7 +323,7 @@ public sealed class AbCtrlRamAuthoringTests
         var state = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = Inputs();
         CtrlRamAuthoringSessionPreparation result = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(state, "NT51929", "single", paths, bytes, draft);
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(static issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot accepted = result.AcceptedSession!;
         Assert.Equal(draft, accepted.DraftState);
         ResolvedCapability capability = accepted.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection)!;
@@ -357,28 +357,28 @@ public sealed class AbCtrlRamAuthoringTests
         var draft = new AbCtrlRamDraftState(banks, editA ? new(0x21, 0x32) : null, editB ? new(0x29, 0x41) : null);
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             state, "NT51929", "single", paths, bytes, draft);
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         using TempWorkspace workspace = TempWorkspace.Create("ab-authoring-build");
         CompositionRunResult output = await CtrlRamReplaceTestSupport.ExecuteAcceptedWithProcessorAsync(
             BootstrapTestHost.Canonical, prepared.AcceptedSession!, paths, true, workspace.PathFor("result.bin"),
             ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, output.Status);
-        Assert.Equal(output.OutputBytes.ToArray(), File.ReadAllBytes(workspace.PathFor("result.bin")));
+        GoldenAssert.AssertEqualsGolden(output.OutputBytes.ToArray(), GoldenFileIo.ReadAllBytes(workspace.PathFor("result.bin")), "firmware image");
         if (banks == AbCtrlRamBankSelection.B)
         {
-            Assert.Equal(original[..0x40000], output.OutputBytes[..0x40000].ToArray());
+            GoldenAssert.AssertEqualsGolden(original[..0x40000], output.OutputBytes[..0x40000].ToArray(), "firmware image");
         }
         if (banks == AbCtrlRamBankSelection.A)
         {
-            Assert.Equal(original[0x40000..], output.OutputBytes[0x40000..].ToArray());
+            GoldenAssert.AssertEqualsGolden(original[0x40000..], output.OutputBytes[0x40000..].ToArray(), "firmware image");
         }
         foreach (int start in new[] { 0, 0x40000 })
         {
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(original.AsSpan(start, 0x40000), out FirmwareConfigMetadata before));
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(output.OutputBytes.Span.Slice(start, 0x40000), out FirmwareConfigMetadata after));
             bool edited = start == 0 ? editA : editB;
-            Assert.Equal(edited ? start == 0 ? 0x21 : 0x29 : before.FirmwareVersion, after.FirmwareVersion);
-            Assert.Equal(edited ? start == 0 ? 0x32 : 0x41 : before.FirmwareSubVersion, after.FirmwareSubVersion);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edited ? start == 0 ? 0x21 : 0x29 : before.FirmwareVersion))], [after.FirmwareVersion], "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edited ? start == 0 ? 0x32 : 0x41 : before.FirmwareSubVersion))], [after.FirmwareSubVersion], "firmware image");
         }
     }
 
@@ -415,7 +415,7 @@ public sealed class AbCtrlRamAuthoringTests
         ActiveSessionSnapshot isolated = owner.PrepareSession(second, "NT51929", "single", paths, bytes, new AbCtrlRamDraftState()).AcceptedSession!;
         var desired = new AbCtrlRamDraftState(AbCtrlRamBankSelection.B, bVersion: new(0x29, 0x41));
         CtrlRamAuthoringTransitionResult changed = owner.TransitionFirmwareVersionCompilation(first, "NT51929", "single", paths, desired);
-        Assert.True(changed.Succeeded, string.Join("; ", changed.Issues.Select(static issue => issue.Message)));
+        Assert.True(changed.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(desired, changed.Session!.DraftState);
         Assert.NotEqual(before.AuthoringRevision, changed.Session.AuthoringRevision);
         Assert.False(owner.IsFirmwareVersionConfirmationLeaseCurrent(changed.Session, before));
@@ -437,7 +437,7 @@ public sealed class AbCtrlRamAuthoringTests
         CtrlRamFirmwareVersionDraftState? draft = edit ? new(0x21, 0x32) : null;
         CtrlRamAuthoringSessionPreparation result = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), "NT51929", "single", paths, bytes, draft);
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(static issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(draft, result.AcceptedSession!.DraftState);
         _ = Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(result.AcceptedSession.ExactCapability!.CompiledComposition.V2Details.Provenance.Context);
     }
@@ -578,7 +578,7 @@ public sealed class AbCtrlRamAuthoringTests
             CtrlRamAuthoringSessionPreparation localPrepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
                 new AuthoringSessionState(ExperienceIds.CtrlRamReplace), member, number, paths, localBytes);
             Assert.True(localPrepared.Succeeded,
-                string.Join("; ", localPrepared.Issues.Select(static issue => issue.Message)));
+                "Golden assertion condition was not satisfied.");
             Assert.IsNotType<RuntimeReferenceBankReplaceV2CompilationContext>(
                 localPrepared.AcceptedSession!.ExactCapability!.CompiledComposition.V2Details.Provenance.Context);
             using TempWorkspace workspace = TempWorkspace.Create("ab-partial-local-control");
@@ -603,7 +603,7 @@ public sealed class AbCtrlRamAuthoringTests
             BinaryPrimitives.WriteUInt32LittleEndian(expected.AsSpan(bankBase + 0xA130, sizeof(uint)), crc);
             Assert.Equal(crc, BinaryPrimitives.ReadUInt32LittleEndian(actual.Span.Slice(bankBase + 0xA130, sizeof(uint))));
         }
-        Assert.Equal(expected, actual.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, actual.ToArray(), "firmware image");
     }
 
     internal static (Dictionary<string, string> Paths, Dictionary<string, byte[]> Bytes) Inputs()

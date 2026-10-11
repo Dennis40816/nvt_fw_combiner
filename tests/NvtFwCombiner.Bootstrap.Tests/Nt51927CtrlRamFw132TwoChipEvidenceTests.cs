@@ -84,7 +84,7 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
+        Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "6f0bbde7662dc6701cfe0a242d4cc363cd24c7056a52611fbba965c7d7fb5f58";
         Assert.Equal(outputSha256, Hash(v2Bytes));
@@ -158,7 +158,7 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(File.Exists(outputPath));
         using (var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result)))
         {

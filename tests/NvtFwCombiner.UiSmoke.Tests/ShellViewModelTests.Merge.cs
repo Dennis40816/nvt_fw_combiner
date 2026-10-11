@@ -522,8 +522,8 @@ public sealed partial class MergeWorkflowTests
             viewModel.Reports.LoadedReport.OutputSha256[..Math.Min(12, viewModel.Reports.LoadedReport.OutputSha256.Length)],
             viewModel.RunSession.LastRunResult.Detail,
             StringComparison.Ordinal);
-        Assert.True(File.Exists(outputPath), outputPath);
-        Assert.Equal(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath));
+        Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
+        GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(expectedPath), GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(outputPath, viewModel.Reports.LoadedReport.OutputArtifactPath);
@@ -682,7 +682,7 @@ public sealed partial class MergeWorkflowTests
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal("Build succeeded", viewModel.RunSession.LastRunResult.Title);
-        Assert.True(File.Exists(outputPath), outputPath);
+        Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
     }

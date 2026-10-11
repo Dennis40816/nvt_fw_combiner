@@ -39,9 +39,9 @@ public sealed class AbMergeLaunchTests
         Assert.Equal(ShellPage.Merge, options.Page);
         Assert.Null(options.CtrlRam);
         AbMergeLaunchRequest request = Assert.IsType<AbMergeLaunchRequest>(options.AbMerge);
-        Assert.Equal(inline ? Path.GetFullPath("folder with spaces/dp=1.bin") : Dp, request.DpPath);
-        Assert.Equal(inline ? Path.GetFullPath("a.bin") : Tp, request.TpAPath);
-        Assert.Equal(inline ? Path.GetFullPath("b.bin") : Tp, request.TpBPath);
+        Assert.True(StringComparer.Ordinal.Equals(inline ? Path.GetFullPath("folder with spaces/dp=1.bin") : Dp, request.DpPath), "AB input path must match the selected input.");
+        Assert.True(StringComparer.Ordinal.Equals(inline ? Path.GetFullPath("a.bin") : Tp, request.TpAPath), "AB input path must match the selected input.");
+        Assert.True(StringComparer.Ordinal.Equals(inline ? Path.GetFullPath("b.bin") : Tp, request.TpBPath), "AB input path must match the selected input.");
     }
 
     /// <summary>Partial or conflicting requests cannot fall back to another input workflow.</summary>
@@ -122,9 +122,10 @@ public sealed class AbMergeLaunchTests
             Assert.Equal(ExperienceIds.AbMerge, shell.Merge.SelectedMergeMode);
             Assert.False(shell.Merge.UseDummyDpForAbMerge);
             Assert.False(shell.Merge.UseSameTpForAbMerge);
-            Assert.Equal([Dp, Tp, Tp], new[] { CompositionAddressSpaceIds.DpAbInput,
+            Assert.True(new[] { Dp, Tp, Tp }.SequenceEqual(new[] { CompositionAddressSpaceIds.DpAbInput,
                 CompositionAddressSpaceIds.TpAInput, CompositionAddressSpaceIds.TpBInput }
-                .Select(id => shell.Merge.AbMergeSlotsByAddressSpace[id].FilePath));
+                .Select(id => shell.Merge.AbMergeSlotsByAddressSpace[id].FilePath), StringComparer.Ordinal),
+                "AB input paths must match the selected inputs.");
             Assert.All(shell.Merge.AbMergeSlots, slot => Assert.NotNull(slot.CurrentInspectionProjection));
             foreach (string id in new[] { CompositionAddressSpaceIds.TpAInput, CompositionAddressSpaceIds.TpBInput })
             {
@@ -172,7 +173,7 @@ public sealed class AbMergeLaunchTests
         string path = truncated ? workspace.Write("short.bin", new byte[8]) : workspace.PathFor("missing.bin");
         AbMergeLaunchRequest request = UiLaunchOptions.Parse(Arguments).AbMerge! with { DpPath = path };
         await MainWindow.ApplyAbMergeLaunchAsync(shell, request, TestContext.Current.CancellationToken);
-        Assert.Equal(path, shell.Merge.AbMergeSlotsByAddressSpace[CompositionAddressSpaceIds.DpAbInput].FilePath);
+        Assert.True(StringComparer.Ordinal.Equals(path, shell.Merge.AbMergeSlotsByAddressSpace[CompositionAddressSpaceIds.DpAbInput].FilePath), "DP input path must be retained.");
         Assert.True(shell.Merge.AbMergeSlotsByAddressSpace[CompositionAddressSpaceIds.DpAbInput].BlocksBuild);
         Assert.Equal(truncated, shell.Merge.AbMergeSlotsByAddressSpace[CompositionAddressSpaceIds.TpAInput].HasFile);
         Assert.Equal(truncated, shell.Merge.AbMergeSlotsByAddressSpace[CompositionAddressSpaceIds.TpBInput].HasFile);

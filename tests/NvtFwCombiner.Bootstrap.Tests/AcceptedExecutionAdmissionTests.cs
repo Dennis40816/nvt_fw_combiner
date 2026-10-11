@@ -66,11 +66,11 @@ public sealed class AcceptedExecutionAdmissionTests
             new CompositionRunProgressFeed(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(outputPath, result.CommittedOutputId);
         byte[] committed = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(accepted.OutputLength, committed.Length);
-        Assert.Equal(Replacement, committed.AsSpan(TargetStart, Replacement.Length).ToArray());
+        GoldenAssert.AssertEqualsGolden(Replacement, committed.AsSpan(TargetStart, Replacement.Length).ToArray(), "firmware image");
         Assert.Equal(1, destinations.Calls);
 
         string nextOutputPath = workspace.PathFor("next.bin");

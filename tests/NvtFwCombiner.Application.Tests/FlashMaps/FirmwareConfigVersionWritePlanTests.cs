@@ -1,6 +1,8 @@
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.FlashMaps;
 
 /// <summary>Tests canonical FWConfig version field write planning.</summary>
@@ -17,12 +19,12 @@ public sealed class FirmwareConfigVersionWritePlanTests
         Assert.Equal(0x3B000, plan.SourceStructureStart);
         Assert.Equal(0x3B000, plan.CanonicalBackupStructureStart);
         Assert.Equal(new ByteRange(0x3B000, 2), plan.SourceFirmwareVersionAndBarRange);
-        Assert.Equal(0x27, plan.FirmwareVersion);
-        Assert.Equal(0xD8, plan.FirmwareVersionBar);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x27], [plan.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xD8], [plan.FirmwareVersionBar], "firmware image");
         Assert.Equal(new ByteRange(0x3B011, 1), plan.SourceFirmwareSubVersionRange);
         Assert.Equal(new ByteRange(0x3B000, 2), plan.CanonicalBackupFirmwareVersionAndBarRange);
         Assert.Equal(new ByteRange(0x3B011, 1), plan.CanonicalBackupFirmwareSubVersionRange);
-        Assert.Equal(0x04, plan.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x04], [plan.FirmwareSubVersion], "firmware image");
     }
 
     /// <summary>Rejects a Backup whose existing version complement is malformed.</summary>
@@ -51,10 +53,10 @@ public sealed class FirmwareConfigVersionWritePlanTests
         Assert.Equal(0x22000, sourcePlan.SourceStructureStart);
         Assert.Equal(0x3B000, sourcePlan.CanonicalBackupStructureStart);
         Assert.Equal(new ByteRange(0x22000, 2), sourcePlan.SourceFirmwareVersionAndBarRange);
-        Assert.Equal(0x18, sourcePlan.FirmwareVersion);
-        Assert.Equal(0xE7, sourcePlan.FirmwareVersionBar);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x18], [sourcePlan.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xE7], [sourcePlan.FirmwareVersionBar], "firmware image");
         Assert.Equal(new ByteRange(0x22011, 1), sourcePlan.SourceFirmwareSubVersionRange);
-        Assert.Equal(0x03, sourcePlan.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x03], [sourcePlan.FirmwareSubVersion], "firmware image");
         Assert.Equal(new ByteRange(0x3B000, 2), sourcePlan.CanonicalBackupFirmwareVersionAndBarRange);
         Assert.Equal(new ByteRange(0x3B011, 1), sourcePlan.CanonicalBackupFirmwareSubVersionRange);
     }

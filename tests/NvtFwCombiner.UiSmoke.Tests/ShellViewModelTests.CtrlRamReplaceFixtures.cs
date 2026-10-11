@@ -36,7 +36,7 @@ public sealed partial class CtrlRamExternalGoldenTests
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
-        Assert.True(File.Exists(outputPath), outputPath);
+        Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
         Assert.Equal(0x40000, new FileInfo(outputPath).Length);
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.LoadedReport.HasOutputArtifactPath);
@@ -82,7 +82,7 @@ public sealed partial class CtrlRamExternalGoldenTests
 
         await viewModel.Replace.BuildReplaceAsync(outputPath);
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-        Assert.True(File.Exists(outputPath), outputPath);
+        Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
     }
 
     /// <summary>
@@ -145,8 +145,8 @@ public sealed partial class CtrlRamExternalGoldenTests
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
-        Assert.True(File.Exists(outputPath), outputPath);
-        Assert.Equal(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath));
+        Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
+        GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(expectedPath), GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
     }
 
 }

@@ -38,11 +38,10 @@ public sealed partial class AbMergeGoldenRegressionTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Issues);
-        Assert.Equal(expected, result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span));
-        Assert.Equal(
-            inputs["tp-a-input"].AsSpan(0x7000, 0x39000).ToArray(),
-            result.OutputBytes.Span.Slice(0x7000, 0x39000).ToArray());
+        GoldenAssert.AssertEqualsGolden(inputs["tp-a-input"].AsSpan(0x7000, 0x39000).ToArray(),
+            result.OutputBytes.Span.Slice(0x7000, 0x39000).ToArray(), "firmware image");
         Assert.Equal(
             [
                 ("relocate-tpb-ilm", "tp-b-work", new ByteRange(0x7164, sizeof(uint))),
@@ -56,7 +55,7 @@ public sealed partial class AbMergeGoldenRegressionTests
                     mutation.OperationId,
                     mutation.TargetSpaceId,
                     mutation.TargetRange)));
-        Assert.Equal(originalTpB, inputs["tp-b-input"]);
+        GoldenAssert.AssertEqualsGolden(originalTpB, inputs["tp-b-input"], "firmware image");
     }
 
     /// <summary>
@@ -79,7 +78,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         Assert.Empty(applicability.GetProperty("notEstablishedMemberIds").EnumerateArray());
         CanonicalGoldenAlias alias = CanonicalGoldenTestData.LoadWorkflowAliases("ab-merge")
             .Single(item => StringComparer.Ordinal.Equals(item.Ic, icId));
-        Assert.Equal("nt51929-ab-t05-d06", alias.SourceCaseId);
+        Assert.True(StringComparer.Ordinal.Equals("nt51929-ab-t05-d06", alias.SourceCaseId), "Expected canonical alias source.");
         Assert.Equal("NT51929", alias.SourceIc);
         CompiledComposition composition = CompileProfile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
@@ -95,7 +94,7 @@ public sealed partial class AbMergeGoldenRegressionTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Issues);
-        Assert.Equal(expected, result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span));
     }
 
@@ -115,7 +114,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             CanonicalGoldenTestData.LoadWorkflowAliases("ab-merge");
 
         Assert.Equal(expected.Count, aliases.Count);
-        Assert.All(aliases, alias => Assert.Equal(expected[alias.CaseId], alias.SourceCaseId));
+        Assert.True(aliases.All(alias => StringComparer.Ordinal.Equals(expected[alias.CaseId], alias.SourceCaseId)), "Expected canonical alias sources.");
     }
 
     /// <summary>
@@ -166,9 +165,9 @@ public sealed partial class AbMergeGoldenRegressionTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Issues);
         Assert.Equal(expectedSha256, Hash(pythonReferenceOutput));
-        Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(pythonReferenceOutput, result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(expectedSha256, Hash(result.OutputBytes.Span));
-        Assert.Equal(originalTpB, tpB);
+        GoldenAssert.AssertEqualsGolden(originalTpB, tpB, "firmware image");
     }
 
     /// <summary>Verifies the approved 51950 Combiner command reproduces each owner-approved AB output byte-for-byte.</summary>
@@ -211,7 +210,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             inputs["tp-a-input"],
             inputs["tp-b-input"],
             TestContext.Current.CancellationToken);
-        Assert.Equal(expected, pythonReferenceOutput);
+        GoldenAssert.AssertEqualsGolden(expected, pythonReferenceOutput, GoldenDiagnostics.Label(caseId));
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-{caseId}-{Guid.NewGuid():N}");
         ExternalProcessorResult? externalResult = null;
@@ -260,10 +259,10 @@ public sealed partial class AbMergeGoldenRegressionTests
 
             Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
             Assert.Empty(result.Issues);
-            Assert.Equal(expected, result.OutputBytes.ToArray());
-            Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
+            GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), GoldenDiagnostics.Label(caseId));
+            GoldenAssert.AssertEqualsGolden(pythonReferenceOutput, result.OutputBytes.ToArray(), GoldenDiagnostics.Label(caseId));
             Assert.Equal(ExpectedArtifact(goldenCase).GetProperty("sha256").GetString(), Hash(result.OutputBytes.Span));
-            Assert.Equal(originalTpB, inputs["tp-b-input"]);
+            GoldenAssert.AssertEqualsGolden(originalTpB, inputs["tp-b-input"], GoldenDiagnostics.Label(caseId));
             AssertPostbuildMpeg2Crc(result.OutputBytes.Span, bTpCodeStart: 0x4A000);
 
             ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);
@@ -378,9 +377,9 @@ public sealed partial class AbMergeGoldenRegressionTests
             Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
             Assert.Empty(result.Issues);
             Assert.Equal(expectedSha256, Hash(result.OutputBytes.Span));
-            Assert.Equal(pythonReferenceOutput, result.OutputBytes.ToArray());
-            Assert.Equal(originalTpA, tpA);
-            Assert.Equal(originalTpB, tpB);
+            GoldenAssert.AssertEqualsGolden(pythonReferenceOutput, result.OutputBytes.ToArray(), "firmware image");
+            GoldenAssert.AssertEqualsGolden(originalTpA, tpA, "firmware image");
+            GoldenAssert.AssertEqualsGolden(originalTpB, tpB, "firmware image");
             AssertPostbuildMpeg2Crc(result.OutputBytes.Span, bTpCodeStart: 0x8A000);
             ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);
             Assert.Equal(

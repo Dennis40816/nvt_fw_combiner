@@ -167,7 +167,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             {
                 invoked = true;
                 Assert.Equal(Capacity, inputBytes.Length);
-                Assert.Equal(referenceBase, inputBytes.ToArray());
+                GoldenAssert.AssertEqualsGolden(referenceBase, inputBytes.ToArray(), "firmware image");
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(inputBytes));
             },
             CancellationToken.None);
@@ -175,7 +175,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.True(invoked);
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(Capacity, result.OutputBytes.Length);
-        Assert.Equal(referenceBase, result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(referenceBase, result.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>The full-Flash form stages the same TP prefix and preserves every byte outside that prefix.</summary>
@@ -230,7 +230,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             {
                 invoked = true;
                 Assert.Equal(Capacity, inputBytes.Length);
-                Assert.Equal(referenceBase.AsSpan(0, Capacity).ToArray(), inputBytes.ToArray());
+                GoldenAssert.AssertEqualsGolden(referenceBase.AsSpan(0, Capacity).ToArray(), inputBytes.ToArray(), "firmware image");
                 byte[] transformed = inputBytes.ToArray();
                 transformed[0x22800] ^= 0xFF;
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(transformed));
@@ -240,9 +240,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.True(invoked);
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(FullFlashCapacity, result.OutputBytes.Length);
-        Assert.Equal(originalTail, result.OutputBytes.Span[Capacity..].ToArray());
-        Assert.Equal((byte)(referenceBase[0x22800] ^ 0xFF), result.OutputBytes.Span[0x22800]);
-        Assert.Equal(originalReference, referenceBase);
+        GoldenAssert.AssertEqualsGolden(originalTail, result.OutputBytes.Span[Capacity..].ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)(referenceBase[0x22800] ^ 0xFF)], [result.OutputBytes.Span[0x22800]], "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalReference, referenceBase, "firmware image");
     }
 
     /// <summary>The exact TP artifact produces stable, reviewable resolved-map and compilation identities.</summary>
@@ -302,7 +302,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                 invoked = true;
                 Assert.Equal(Capacity, inputBytes.Length);
                 Assert.Empty(stagedSources);
-                Assert.Equal(normal, Slice(inputBytes.ToArray(), NormalCtrlRamRange));
+                GoldenAssert.AssertEqualsGolden(normal, Slice(inputBytes.ToArray(), NormalCtrlRamRange), "firmware image");
                 return ValueTask.FromResult(CompositionExternalProcessorResult.Success(inputBytes));
             },
             CancellationToken.None);
@@ -316,7 +316,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompositionIssue truncation = Assert.Single(result.Issues);
         Assert.Equal("normal-ctrlram-input", truncation.OperationId);
         Assert.Equal(CompositionIssueSeverity.Warning, truncation.Severity);
-        Assert.All(originals, pair => Assert.Equal(pair.Value, inputs[pair.Key]));
+        GoldenAssert.AssertAllGolden(originals, pair => GoldenAssert.AssertEqualsGolden(pair.Value, inputs[pair.Key], "input immutability"));
 
         // CtrlRAM normalization never grants permission to truncate the immutable Reference.
         var oversizedReferenceInputs = inputs.ToDictionary(
@@ -342,7 +342,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.DoesNotContain(refused.Issues, static issue =>
             issue.Code == CompositionIssueCodes.InputAddressSpaceTruncated &&
             issue.OperationId == "reference-base");
-        Assert.All(oversizedOriginals, pair => Assert.Equal(pair.Value, oversizedReferenceInputs[pair.Key]));
+        GoldenAssert.AssertAllGolden(oversizedOriginals, pair => GoldenAssert.AssertEqualsGolden(pair.Value, oversizedReferenceInputs[pair.Key], "input immutability"));
     }
 
     /// <summary>Proves the routed V2 profile matches the compiled candidate on approved owner inputs.</summary>
@@ -414,7 +414,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             build: true,
             TestContext.Current.CancellationToken,
             routedOutputPath);
-        Assert.True(routed.Succeeded, CompositionRunReportJson.Serialize(routed));
+        Assert.True(routed.Succeeded, $"Composition result: status={routed.Status}, succeeded={routed.Succeeded}.");
         using (var routedReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(routed)))
         {
             Assert.Equal(
@@ -445,12 +445,12 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.All(v2.Issues, static issue => Assert.Equal(
             CompositionIssueCodes.InputAddressSpaceTruncated,
             issue.Code));
-        Assert.Equal(routedOutput, v2.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(routedOutput, v2.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(routed.OutputSha256, Hash(v2.OutputBytes.Span));
-        Assert.Equal(originalReference, referenceBase);
+        GoldenAssert.AssertEqualsGolden(originalReference, referenceBase, "firmware image");
         if (fullFlashBase)
         {
-            Assert.Equal(originalReference[Capacity..], v2.OutputBytes.Span[Capacity..].ToArray());
+            GoldenAssert.AssertEqualsGolden(originalReference[Capacity..], v2.OutputBytes.Span[Capacity..].ToArray(), "firmware image");
             JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
                 "ctrlram-replace",
                 "nt51926-fw141-cascade2-auto-prj-597-20260717");
@@ -463,9 +463,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             Assert.All(differences.DifferenceCountByAllowedRange, count => Assert.Equal(4, count));
         }
 
-        Assert.All(
-            originalInputs,
-            pair => Assert.Equal(pair.Value, replacementInputs[pair.Key]));
+        GoldenAssert.AssertAllGolden(originalInputs, pair => GoldenAssert.AssertEqualsGolden(pair.Value, replacementInputs[pair.Key], "input immutability"));
     }
 
     /// <summary>Retains TP-only compiled/routed parity separately from the full-Flash Golden case.</summary>
@@ -522,7 +520,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
-        Assert.True(routed.Succeeded, CompositionRunReportJson.Serialize(routed));
+        Assert.True(routed.Succeeded, $"Composition result: status={routed.Status}, succeeded={routed.Succeeded}.");
         using (var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(routed)))
         {
             Assert.Equal("nt51926-ctrlram-replace-fw141-runtime-cascade",
@@ -540,23 +538,23 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         // R54 retirement plan step 4 moves those Golden evidence references to this test before
         // deleting the comparator; the fixed expectations and approved range bounds remain here.
         Assert.Equal("a2169f9fc908207dae0820ebff2b88879fa68795a311337a87c0a4e8a30c8222", Hash(output));
-        Assert.Equal<byte>([0x3E, 0x6F, 0x40, 0x88], output[0x1C..0x20]);
-        Assert.Equal<byte>([0x00, 0xEA, 0x10, 0x60], output[0xFC..0x100]);
-        Assert.Equal<byte>([0x51, 0x0F, 0xF4, 0x42], output[0x32F6C..0x32F70]);
-        Assert.Equal<byte>([0xD2, 0xB1, 0xB2, 0xF6], output[0x3304C..0x33050]);
-        Assert.Equal(originalReference[Capacity..], output[Capacity..]);
+        GoldenAssert.AssertEqualsGolden((byte[])[0x3E, 0x6F, 0x40, 0x88], output[0x1C..0x20], "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[0x00, 0xEA, 0x10, 0x60], output[0xFC..0x100], "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[0x51, 0x0F, 0xF4, 0x42], output[0x32F6C..0x32F70], "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[0xD2, 0xB1, 0xB2, 0xF6], output[0x3304C..0x33050], "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalReference[Capacity..], output[Capacity..], "firmware image");
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace", "nt51926-fw141-cascade2-auto-prj-597-20260717");
         CanonicalGoldenDifferenceResult differences = CanonicalGoldenTestData.AssertAllowedByteDifferences(
             goldenCase, originalReference, output);
         Assert.Equal(16, differences.DifferenceCount);
         Assert.All(differences.DifferenceCountByAllowedRange, static count => Assert.Equal(4, count));
-        Assert.Equal(originalReference, baseFile.Bytes);
-        Assert.Equal(originalReference, File.ReadAllBytes(baseFile.Path));
-        Assert.All(originalInputs, pair =>
+        GoldenAssert.AssertEqualsGolden(originalReference, baseFile.Bytes, "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalReference, GoldenFileIo.ReadAllBytes(baseFile.Path), "firmware image");
+        GoldenAssert.AssertAllGolden(originalInputs, pair =>
         {
-            Assert.Equal(pair.Value, intakeFiles[pair.Key].Bytes);
-            Assert.Equal(pair.Value, File.ReadAllBytes(intakeFiles[pair.Key].Path));
+            GoldenAssert.AssertEqualsGolden(pair.Value, intakeFiles[pair.Key].Bytes, "input immutability");
+            GoldenAssert.AssertEqualsGolden(pair.Value, GoldenFileIo.ReadAllBytes(intakeFiles[pair.Key].Path), "input immutability");
         });
     }
 
@@ -587,10 +585,10 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Issues);
-        Assert.Equal(evidence.Expected.Bytes, result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(Hash(evidence.Expected.Bytes), Hash(result.OutputBytes.Span));
-        Assert.Equal(originalReference, referenceBase);
-        Assert.Equal(originalVn, evidence.Vn.Bytes);
+        GoldenAssert.AssertEqualsGolden(originalReference, referenceBase, "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalVn, evidence.Vn.Bytes, "firmware image");
     }
 
     /// <summary>Verifies zero or multiple universal markers reject the candidate before a plan can be minted.</summary>

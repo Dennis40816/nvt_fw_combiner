@@ -22,12 +22,12 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", action, rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains(SchemaVersionUnsupported, result.Error, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.True(GoldenDiagnostics.Contains(SchemaVersionUnsupported, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains(
             "Saved Rule v1 is retired; migrate the document to Saved Rule v2",
             result.Error,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("Rule:", result.Output, StringComparison.Ordinal);
+            StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("Rule:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>An unknown future schema is rejected without being mislabeled as v1.</summary>
@@ -42,9 +42,9 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains(SchemaVersionUnsupported, result.Error, StringComparison.Ordinal);
-        Assert.Contains("schemaVersion must be '2.0'", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("v1 is retired", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains(SchemaVersionUnsupported, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("schemaVersion must be '2.0'", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("v1 is retired", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>V2-only inspection preserves actionable storage and JSON failure categories.</summary>
@@ -68,7 +68,7 @@ public sealed partial class SavedRuleCliCommandTests
         CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains(expectedCode, result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Rule:", result.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains(expectedCode, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("Rule:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 }

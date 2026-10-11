@@ -25,8 +25,14 @@ public sealed class ProfileBundleLoaderPrebuiltTests
         Array.Fill(copy, (byte)0);
         File.WriteAllText(path, "replaced");
         TrustedProfileBundleDocumentProjection second = ProfileBundleLoader.Load(accepted, directory).CreateDocumentProjection();
-        Assert.Equal(expected, second.ManifestSnapshot.Content.ToArray());
-        Assert.Equal(first.Documents.Select(d => d.FileSnapshot.Content.ToArray()), second.Documents.Select(d => d.FileSnapshot.Content.ToArray()));
+        GoldenAssert.AssertEqualsGolden(expected, second.ManifestSnapshot.Content.ToArray(), "firmware image");
+        byte[][] expectedDocuments = first.Documents.Select(d => d.FileSnapshot.Content.ToArray()).ToArray();
+        byte[][] actualDocuments = second.Documents.Select(d => d.FileSnapshot.Content.ToArray()).ToArray();
+        Assert.Equal(expectedDocuments.Length, actualDocuments.Length);
+        for (int documentIndex = 0; documentIndex < expectedDocuments.Length; documentIndex++)
+        {
+            GoldenAssert.AssertEqualsGolden(expectedDocuments[documentIndex], actualDocuments[documentIndex], "profile document immutability");
+        }
         _ = Assert.Throws<KeyNotFoundException>(() => ProfileBundleLoader.Load(accepted, "unlisted"));
         Assert.All(typeof(AcceptedPrebuiltProfileCatalog).GetConstructors(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic), c => Assert.True(c.IsPrivate));
     }

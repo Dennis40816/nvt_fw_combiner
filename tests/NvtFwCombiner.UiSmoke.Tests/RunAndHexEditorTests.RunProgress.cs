@@ -285,7 +285,7 @@ public sealed partial class RunAndHexEditorTests
         string sha256 = Convert.ToHexString(SHA256.HashData(committedBytes)).ToLowerInvariant();
         UiRunResultViewModel result = viewModel.RunSession.LastRunResult;
         Assert.Equal(title, result.Title);
-        Assert.Equal(outputPath, result.Output);
+        Assert.True(StringComparer.Ordinal.Equals(outputPath, result.Output), "Captured text differs from the expected text.");
         Assert.Contains($"{committedBytes.Length} {sizeUnit}", result.Detail, StringComparison.Ordinal);
         Assert.Contains(sha256, result.Detail, StringComparison.Ordinal);
         Assert.EndsWith(reportFailure, result.Detail, StringComparison.Ordinal);
@@ -353,7 +353,7 @@ public sealed partial class RunAndHexEditorTests
             $"{committed.OutputSize} bytes / SHA-256 {committed.OutputSha256}. " +
                 "Report unavailable: Synthetic report publication failure.",
             result.Detail);
-        Assert.Equal(outputPath, result.Output);
+        Assert.True(StringComparer.Ordinal.Equals(outputPath, result.Output), "Captured text differs from the expected text.");
         Assert.False(result.Succeeded);
         Assert.False(harness.BuildResult.IsOpen);
         Assert.Equal(outputPath, harness.BuildResult.LatestCommittedOutputPath);
@@ -599,7 +599,7 @@ public sealed partial class RunAndHexEditorTests
         Assert.Same(context.Owner.LastRunResult, result);
         Assert.Equal("Build failed", result.Title);
         Assert.Equal("Synthetic pre-commit failure.", result.Detail);
-        Assert.Equal("No output", result.Output);
+        Assert.True(StringComparer.Ordinal.Equals("No output", result.Output), "Captured text differs from the expected text.");
         Assert.False(result.Succeeded);
         Assert.Equal(("Build", "Synthetic pre-commit failure."), Assert.Single(errorReports));
         Assert.False(viewModel.BuildResult.IsOpen);

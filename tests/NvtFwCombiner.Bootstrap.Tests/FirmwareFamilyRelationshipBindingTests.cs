@@ -309,10 +309,7 @@ public sealed class FirmwareFamilyRelationshipBindingTests
                 out IReadOnlyList<CompositionIssue> capacityIssues);
         Assert.True(
             capacityIssues.Count == 0,
-            string.Join(
-                Environment.NewLine,
-                capacityIssues.Select(static issue =>
-                    $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         Assert.NotEmpty(capacities);
         long capacity = capacities[0];
         registration.TryCompile(
@@ -321,10 +318,7 @@ public sealed class FirmwareFamilyRelationshipBindingTests
             out IReadOnlyList<CompositionIssue> issues);
         Assert.True(
             issues.Count == 0,
-            string.Join(
-                Environment.NewLine,
-                issues.Select(static issue =>
-                    $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         CompiledComposition compiled =
             Assert.IsType<CompiledComposition>(composition);
         return registration.CreateMetadataPlan(compiled);

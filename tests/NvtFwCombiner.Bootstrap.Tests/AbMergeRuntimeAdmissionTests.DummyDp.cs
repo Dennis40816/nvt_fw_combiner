@@ -49,7 +49,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 new AcceptedCompositionExecutionRequest(prepared.Snapshot!, paths, false,
                     previewOutputFileName: "customer.bin", actionReadiness: readiness),
                 new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-            Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+            Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
             Assert.Equal("customer.bin", result.OutputNaming!.ActualFileName);
             Assert.True(result.OutputNaming.IsExplicitOverride);
             Assert.Equal(summary.Tokens.Where(static token => token.TokenId is "dp-a" or "dp-b"),
@@ -63,7 +63,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 new AcceptedCompositionExecutionRequest(prepared.Snapshot!, paths, true,
                     outputPath: outputPath, actionReadiness: readiness),
                 new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-            Assert.True(build.Succeeded, CompositionRunReportJson.Serialize(build));
+            Assert.True(build.Succeeded, $"Composition result: status={build.Status}, succeeded={build.Succeeded}.");
             Assert.True(File.Exists(outputPath));
             Assert.Equal("customer.bin", build.OutputNaming!.ActualFileName);
             Assert.True(build.OutputNaming.IsExplicitOverride);

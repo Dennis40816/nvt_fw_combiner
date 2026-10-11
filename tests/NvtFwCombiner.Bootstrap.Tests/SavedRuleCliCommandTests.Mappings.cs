@@ -20,11 +20,11 @@ public sealed partial class SavedRuleCliCommandTests
             ["saved-rule", "mappings", rule]);
 
         Assert.Equal(0, validation.ExitCode);
-        Assert.Equal(string.Empty, validation.Error);
-        Assert.Contains(
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, validation.Error), "Captured text differs from the expected text.");
+        Assert.True(GoldenDiagnostics.Contains(
             "Parent: nt51926-ctrlram-replace-candidate / nt51926-general-replace-dp-single-candidate / nt51926-ctrlram-replace / nt51926-general-replace-full-flash-256k",
             validation.Output,
-            StringComparison.Ordinal);
+            StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.Equal(0, mappings.ExitCode);
         Assert.Equal(string.Empty, mappings.Error);
         Assert.Contains("Mappings: 1", mappings.Output, StringComparison.Ordinal);
@@ -67,7 +67,7 @@ public sealed partial class SavedRuleCliCommandTests
             ["saved-rule", "validate", rule]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains(expectedMessage, result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Mappings:", result.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains(expectedMessage, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("Mappings:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 }

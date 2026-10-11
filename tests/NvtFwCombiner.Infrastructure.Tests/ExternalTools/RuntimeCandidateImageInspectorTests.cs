@@ -3,6 +3,8 @@ using System.Collections.Immutable;
 using System.Reflection.PortableExecutable;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 /// <summary>Header observations never confer compatibility or execute candidate code.</summary>
@@ -23,7 +25,7 @@ public sealed class RuntimeCandidateImageInspectorTests
 
         Assert.False(result.IsMalformed);
         Assert.Equal(new RuntimeCandidateImageFacts(machine, dll, false, magic), result.Facts);
-        Assert.Equal(bytes, snapshot.ToArray());
+        GoldenAssert.AssertEqualsGolden(bytes, snapshot.ToArray(), "firmware image");
     }
 
     /// <summary>A real compiled managed DLL is observed as managed, not accepted as a native runtime.</summary>

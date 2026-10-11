@@ -20,9 +20,9 @@ public sealed class CompositionExternalProcessorResultTests
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
 
         Assert.True(MemoryMarshal.TryGetArray(result.OutputBytes, out ArraySegment<byte> resultBytes));
-        Assert.NotSame(hookBytes, resultBytes.Array);
+        Assert.True(!ReferenceEquals(hookBytes, resultBytes.Array), "Expected firmware buffer ownership.");
         Assert.InRange(allocated, byteCount, byteCount + 32_768);
         hookBytes[0] = 0xFF;
-        Assert.Equal(0x20, result.OutputBytes.Span[0]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x20], [result.OutputBytes.Span[0]], "firmware image");
     }
 }

@@ -41,10 +41,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains(
-            "saved-rule.lifecycle.execution-not-trusted-published",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("saved-rule.lifecycle.execution-not-trusted-published", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
         Assert.False(File.Exists(output));
     }
 
@@ -75,14 +72,15 @@ public sealed partial class ReplaceCliCommandTests
                 policy,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
+        GoldenAssert.AssertEqualsGolden(baseBytes,
+            await GoldenFileIo.ReadAllBytesAsync(
             reference,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
         byte[] outputBytes = await File.ReadAllBytesAsync(
             output,
             TestContext.Current.CancellationToken);
-        Assert.Equal([0xA5, 0x5A], outputBytes[0x3E020..0x3E022]);
+        GoldenAssert.AssertEqualsGolden((byte[])[0xA5, 0x5A], outputBytes[0x3E020..0x3E022], "firmware image");
         using var document = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement root = document.RootElement;
         Assert.Equal(
@@ -150,10 +148,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(
-            "saved-rule.v2.parent-narrowing-invalid",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("saved-rule.v2.parent-narrowing-invalid", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
         Assert.False(File.Exists(output));
     }
 
@@ -225,10 +220,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(
-            "mapping-row.target-region-unsupported",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("mapping-row.target-region-unsupported", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
         Assert.False(File.Exists(output));
     }
 
@@ -263,9 +255,9 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal([0xA5, 0x5A], outputBytes[0x3E020..0x3E022]);
+        GoldenAssert.AssertEqualsGolden((byte[])[0xA5, 0x5A], outputBytes[0x3E020..0x3E022], "firmware image");
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
             TestContext.Current.CancellationToken));
@@ -308,7 +300,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         AssertGeneralReplaceUnavailableBeforeRun(result, report, output);
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Verifies retired TP-touching General Replace preview fails closed.</summary>
@@ -424,7 +416,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Verifies valid CLI patches fail closed after legacy General Replace retirement.</summary>
@@ -457,7 +449,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         AssertGeneralReplaceUnavailableBeforeRun(result, report, output);
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>An unavailable General Replace route cannot reach output-path handling or mutate its base.</summary>
@@ -484,8 +476,8 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
+        Assert.True(GoldenDiagnostics.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>An unavailable General Replace route rejects before parsing virtual patch bytes.</summary>
@@ -509,7 +501,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Rejects retired fixed-profile range options at the workflow allowlist.</summary>
@@ -539,7 +531,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Rejects General Replace-only mapping and patch options in other Replace command groups.</summary>
@@ -555,7 +547,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     private static void AssertGeneralReplaceWorkflowNotSupported(
@@ -564,7 +556,7 @@ public sealed partial class ReplaceCliCommandTests
         string? outputPath)
     {
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(reportPath));
         if (outputPath is not null)
         {
@@ -578,7 +570,7 @@ public sealed partial class ReplaceCliCommandTests
         string? outputPath)
     {
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(reportPath));
         if (outputPath is not null)
         {

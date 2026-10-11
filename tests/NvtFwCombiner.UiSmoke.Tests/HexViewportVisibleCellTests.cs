@@ -135,12 +135,12 @@ public sealed class HexViewportVisibleCellTests
         HexViewportSnapshot original = editor.ViewportSnapshot;
         Assert.True(editor.TryGetViewportCell(0, out HexViewportCell loaded));
         Assert.Equal(original.Rows[0].Cells[0], loaded);
-        Assert.Equal((byte)0x11, loaded.PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x11], [loaded.PrimaryValue], "firmware image");
 
         editor.SetByteToFfCommand.Execute(0);
         Assert.True(editor.TryGetViewportCell(0, out HexViewportCell edited));
         Assert.Equal(editor.ViewportSnapshot.Rows[0].Cells[0], edited);
-        Assert.Equal((byte)0xFF, edited.PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xFF], [edited.PrimaryValue], "firmware image");
         Assert.Equal((byte?)0x11, edited.ComparisonValue);
         Assert.True(edited.IsDataChanged);
         Assert.True(original.TryGetVisibleCell(0, out HexViewportCell retained));

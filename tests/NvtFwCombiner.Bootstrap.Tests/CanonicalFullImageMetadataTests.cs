@@ -5,6 +5,8 @@ using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Infrastructure.Capabilities;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Read-only views retain independently frozen pre-migration metadata behavior without DP execution.</summary>
@@ -122,7 +124,7 @@ public sealed class CanonicalFullImageMetadataTests
         MetadataInspectionResult dpcmi = Dpcmi(snapshot);
         Assert.Equal(new ByteRange(expectedStart, 3), dpcmi.Resolution!.Resolved!.LocatorOutcome.ResolvedRange.Range);
         Assert.True(DpcmiMetadataProjector.TryProject(snapshot, out DpcmiMetadataFacts facts));
-        Assert.Equal(expectedStart == 0x3B016 ? (byte)0x12 : (byte)0x56, facts.MajorVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[expectedStart == 0x3B016 ? (byte)0x12 : (byte)0x56], [facts.MajorVersion], "firmware image");
         _ = Assert.Throws<ArgumentException>(() => FirmwareMetadataInspector.Inspect(plan,
             [new("reference-base", image), captured]));
     }

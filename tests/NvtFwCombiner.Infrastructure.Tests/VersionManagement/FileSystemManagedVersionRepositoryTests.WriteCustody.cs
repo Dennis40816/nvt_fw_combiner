@@ -347,7 +347,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         Assert.Equal(WindowsStableCustodyIssue.Changed, captured.Issue);
         Assert.Equal(WindowsStableCustodyIssue.Changed, tree.RollbackPromotionAndCleanup());
         Assert.Equal("foreign", File.ReadAllText(Path.Combine(finalPath, "nested", "payload.bin")));
-        Assert.Equal([1, 2, 3, 4], File.ReadAllBytes(releasedOriginal));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4], GoldenFileIo.ReadAllBytes(releasedOriginal), "firmware image");
     }
 
     private static bool WriteWasBlocked(string path)

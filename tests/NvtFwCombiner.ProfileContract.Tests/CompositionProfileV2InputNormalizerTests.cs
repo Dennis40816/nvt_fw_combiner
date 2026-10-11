@@ -3,6 +3,8 @@ using NvtFwCombiner.Contracts.Profiles;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests DTO normalization for v2 input slots and acceptance policies.</summary>
@@ -84,7 +86,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
         CompiledTruncateCtrlRamInputNormalization truncation = Assert.IsType<CompiledTruncateCtrlRamInputNormalization>(
             Normalize("ctrlram-replacement", Bounded("1", "16"), TruncateCtrlRam()).Normalization);
 
-        Assert.Equal(0xFF, padding.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF], [padding.FillByte], "firmware image");
         Assert.Equal("dp-padding-evidence", padding.EvidenceRef);
         Assert.Equal("CTRLRAM_TRUNCATED", truncation.WarningIssueCode);
         Assert.Equal("ctrlram-truncation-evidence", truncation.EvidenceRef);

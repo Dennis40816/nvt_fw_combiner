@@ -104,9 +104,9 @@ public sealed class CompositionReportPerformanceBaselineTests
         Assert.True(
             reportJson.AsSpan().SequenceEqual(repeatedReportJson),
             "Repeated report serialization must preserve the exact JSON text.");
-        Assert.Contains("\"OutputDifferences\": [", reportJson, StringComparison.Ordinal);
-        Assert.Contains("\"ExecutionSnapshot\"", reportJson, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"DeliveryArtifacts\"", reportJson, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("\"OutputDifferences\": [", reportJson, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("\"ExecutionSnapshot\"", reportJson, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("\"DeliveryArtifacts\"", reportJson, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
 
     }
 
@@ -236,8 +236,8 @@ public sealed class CompositionReportPerformanceBaselineTests
     {
         Assert.Equal(differenceId, difference.DifferenceId);
         Assert.Equal(new ByteRange(start, 1), difference.Range);
-        Assert.Equal("00", difference.BeforeHexPreview);
-        Assert.Equal(afterPreview, difference.AfterHexPreview);
+        Assert.True(StringComparer.Ordinal.Equals("00", difference.BeforeHexPreview), "Captured text differs from the expected text.");
+        Assert.True(StringComparer.Ordinal.Equals(afterPreview, difference.AfterHexPreview), "Captured text differs from the expected text.");
     }
 
     private static void AssertReplay(
@@ -249,12 +249,10 @@ public sealed class CompositionReportPerformanceBaselineTests
         Assert.Equal(expectedRange, replay.Range);
         Assert.Equal(expectedRange.Length, replay.BeforeBytes.Length);
         Assert.Equal(expectedRange.Length, replay.AfterBytes.Length);
-        Assert.Equal(0, replay.BeforeBytes.Span[expectedDifferenceOffset]);
-        Assert.Equal(
-            byte.Parse(
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0], [replay.BeforeBytes.Span[expectedDifferenceOffset]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[byte.Parse(
                 difference.AfterHexPreview,
                 System.Globalization.NumberStyles.HexNumber,
-                System.Globalization.CultureInfo.InvariantCulture),
-            replay.AfterBytes.Span[expectedDifferenceOffset]);
+                System.Globalization.CultureInfo.InvariantCulture)], [replay.AfterBytes.Span[expectedDifferenceOffset]], "firmware image");
     }
 }

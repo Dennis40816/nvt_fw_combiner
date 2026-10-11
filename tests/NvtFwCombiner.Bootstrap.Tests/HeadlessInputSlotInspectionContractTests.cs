@@ -264,7 +264,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         CapabilityCatalogReloadResult reload =
             _host.Catalog.Reload(
                 TestContext.Current.CancellationToken);
-        Assert.True(reload.Succeeded, string.Join("; ", reload.Issues.Select(static issue => issue.Message)));
+        Assert.True(reload.Succeeded, "Golden assertion condition was not satisfied.");
     }
 
     private static (CompiledInputSpaceBinding Binding, CompiledInputSlotRequirement Slot, AddressSpace Space)

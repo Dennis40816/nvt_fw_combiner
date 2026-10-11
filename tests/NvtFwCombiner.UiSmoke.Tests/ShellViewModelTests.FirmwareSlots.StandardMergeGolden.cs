@@ -80,11 +80,11 @@ public sealed partial class FirmwareInspectionSlotTests
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
-        Assert.Equal(golden.ReadExpectedOutput(goldenCase), File.ReadAllBytes(outputPath));
-        Assert.Equal(originalDp, File.ReadAllBytes(selectedDpPath));
-        Assert.Equal(originalTp, File.ReadAllBytes(selectedTpPath));
-        Assert.Equal(originalDp, File.ReadAllBytes(canonicalDpPath));
-        Assert.Equal(originalTp, File.ReadAllBytes(canonicalTpPath));
+        GoldenAssert.AssertEqualsGolden(golden.ReadExpectedOutput(goldenCase), GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(selectedDpPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(selectedTpPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(canonicalDpPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(canonicalTpPath), "firmware image");
         using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         Assert.Equal("NT51951", report.RootElement.GetProperty("IcId").GetString());
         Assert.Equal(

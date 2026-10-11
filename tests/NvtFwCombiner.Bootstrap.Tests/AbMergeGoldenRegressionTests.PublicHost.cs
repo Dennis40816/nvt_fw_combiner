@@ -104,16 +104,16 @@ public sealed partial class AbMergeGoldenRegressionTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
-        Assert.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
+        Assert.True(GoldenDiagnostics.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         byte[] output = File.ReadAllBytes(outputPath);
         byte[] expected = ReadExpected(goldenCase);
-        Assert.Equal(expected, output);
+        GoldenAssert.AssertEqualsGolden(expected, output, GoldenDiagnostics.Label(caseId));
         Assert.Equal(Hash(expected), Hash(output));
-        Assert.Equal(originalDp, File.ReadAllBytes(selectedDpPath));
-        Assert.Equal(originalTp, File.ReadAllBytes(selectedTpPath));
-        Assert.Equal(originalDp, File.ReadAllBytes(dpPath));
-        Assert.Equal(originalTp, File.ReadAllBytes(tpAPath));
+        GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(selectedDpPath), GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(selectedTpPath), GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(dpPath), GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(tpAPath), GoldenDiagnostics.Label(caseId));
         string reportJson = await File.ReadAllTextAsync(
             reportPath, TestContext.Current.CancellationToken);
         return (output, reportJson);
@@ -190,21 +190,21 @@ public sealed partial class AbMergeGoldenRegressionTests
         if (!validPrimary)
         {
             Assert.Equal(1, result.ExitCode);
-            Assert.Contains("AB_FORMAT_PRIMARY_INVALID", result.Error + result.Output, StringComparison.Ordinal);
+            Assert.True(GoldenDiagnostics.Contains("AB_FORMAT_PRIMARY_INVALID", result.Error + result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
             Assert.False(File.Exists(outputPath));
             Assert.False(File.Exists(reportPath));
-            Assert.Equal(originalDp, File.ReadAllBytes(dpPath));
-            Assert.Equal(originalTp, File.ReadAllBytes(sharedTpPath));
+            GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(dpPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(sharedTpPath), "firmware image");
             return;
         }
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
-        Assert.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
+        Assert.True(GoldenDiagnostics.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(expected, output);
+        GoldenAssert.AssertEqualsGolden(expected, output, "firmware image");
         Assert.Equal(Hash(expected), Hash(output));
         AssertPostbuildMpeg2Crc(output, bTpCodeStart: 0x8A000);
-        Assert.Equal(originalDp, File.ReadAllBytes(dpPath));
-        Assert.Equal(originalTp, File.ReadAllBytes(sharedTpPath));
+        GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(dpPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(sharedTpPath), "firmware image");
         using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath,
             TestContext.Current.CancellationToken));
@@ -360,7 +360,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             $"Python AB reference failed for NT{icId}. Exit={process.ExitCode}{Environment.NewLine}" +
             $"stdout:{Environment.NewLine}{output}{Environment.NewLine}" +
             $"stderr:{Environment.NewLine}{error}");
-        Assert.True(File.Exists(outputPath), $"Python AB reference did not produce {outputPath}.");
+        Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
         return File.ReadAllBytes(outputPath);
     }
 }

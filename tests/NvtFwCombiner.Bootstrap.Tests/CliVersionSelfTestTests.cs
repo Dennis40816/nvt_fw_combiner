@@ -1,5 +1,7 @@
 using NvtFwCombiner.Application.VersionManagement;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Protects the CLI wrapper over the exact Version-page self-test use case.</summary>
@@ -14,13 +16,13 @@ public sealed class CliVersionSelfTestTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Registry: UnsafeLocator", result.Output, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.True(GoldenDiagnostics.Contains("Registry: UnsafeLocator", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains(
             "Registry replica 1: Role=Primary; Issue=UnsafeLocator; Revision=; Selected=False",
             result.Output,
-            StringComparison.Ordinal);
-        Assert.Equal(string.Empty, result.Error);
-        Assert.DoesNotContain("unsafe.example", result.Output, StringComparison.Ordinal);
+            StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.Error), "Captured text differs from the expected text.");
+        Assert.True(!GoldenDiagnostics.Contains("unsafe.example", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>The adapter prints typed admission results without exposing private source roots.</summary>
@@ -100,7 +102,7 @@ public sealed class CliVersionSelfTestTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Equal(string.Empty, result.Output);
-        Assert.Contains("usage: nvt_fw_combiner version-self-test", result.Error, StringComparison.Ordinal);
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.Output), "Captured text differs from the expected text.");
+        Assert.True(GoldenDiagnostics.Contains("usage: nvt_fw_combiner version-self-test", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 }

@@ -39,8 +39,8 @@ public sealed class TpSvnInputInspectionTests
         TpSvnObservation stamp = Assert.IsType<TpSvnObservation>(InspectStandard(icId, tp, dp).StandardTpSvn);
 
         Assert.Equal(new FirmwareAddressedRange("flash", new ByteRange(offset, 4)), stamp.Range);
-        Assert.Equal(Convert.ToHexString(tp, (int)offset, 4), Hex(stamp));
-        Assert.Equal(expected, Hex(stamp));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(tp, (int)offset, 4)), Convert.FromHexString(Hex(stamp)), "header field");
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(expected), Convert.FromHexString(Hex(stamp)), "svn stamp");
         Assert.Equal(expected == "00000000" ? TpSvnAnomaly.NotStamped
             : expected.StartsWith("C3", StringComparison.Ordinal) ? TpSvnAnomaly.UndefinedFlagBits : TpSvnAnomaly.None,
             stamp.Anomaly);
@@ -55,12 +55,12 @@ public sealed class TpSvnInputInspectionTests
     {
         byte[] tp = ReadGolden("NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs/nt51950_fw_T80.bin");
         byte[] dp = ReadGolden("NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/inputs/nt51950-dp-input.bin");
-        Assert.Equal("00000000", Convert.ToHexString(tp, 0x24, 4));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("00000000"), Convert.FromHexString(Convert.ToHexString(tp, 0x24, 4)), "header field");
 
         TpSvnObservation stamp = Assert.IsType<TpSvnObservation>(InspectStandard("NT51950", tp, dp).StandardTpSvn);
 
         Assert.Equal(new ByteRange(0xA024, 4), stamp.Range.Range);
-        Assert.Equal("C0194914", Hex(stamp));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("C0194914"), Convert.FromHexString(Hex(stamp)), "svn stamp");
         Assert.Equal("194914", stamp.RevisionDigits);
         Assert.Equal(TpSvnAnomaly.None, stamp.Anomaly);
     }
@@ -107,8 +107,8 @@ public sealed class TpSvnInputInspectionTests
         Assert.True(baseInspection.Kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash, baseInspection.Kind.ToString());
         TpSvnObservation stamp = Assert.IsType<TpSvnObservation>(inspection.StandardTpSvn);
         Assert.Equal(new ByteRange(0x24, 4), stamp.Range.Range);
-        Assert.Equal(Convert.ToHexString(image, 0x24, 4), Hex(stamp));
-        Assert.Equal(expected, Hex(stamp));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(image, 0x24, 4)), Convert.FromHexString(Hex(stamp)), "header field");
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(expected), Convert.FromHexString(Hex(stamp)), "svn stamp");
         Assert.Equal(anomaly, stamp.Anomaly);
         Assert.Equal(revision, stamp.RevisionDigits);
     }
@@ -122,7 +122,7 @@ public sealed class TpSvnInputInspectionTests
     {
         byte[] original = ReadGolden("NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/expected/NT51927_Flashcode_TM_TL113UFKS01_GM_D04T01_20260612.bin");
         byte[] changed = (byte[])original.Clone();
-        Assert.Equal(Convert.ToHexString(original, 0x24, 4), Convert.ToHexString(original, 0x32DE4, 4));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(original, 0x24, 4)), Convert.FromHexString(Convert.ToHexString(original, 0x32DE4, 4)), "header field");
         changed.AsSpan(0x32DE4, 4).Clear();
 
         FirmwareInspectionSnapshot before = InspectBase("NT51927", original);
@@ -130,7 +130,7 @@ public sealed class TpSvnInputInspectionTests
 
         TpSvnObservation stamp = Assert.IsType<TpSvnObservation>(after.StandardTpSvn);
         Assert.Equal(new ByteRange(0x24, 4), stamp.Range.Range);
-        Assert.Equal("60183151", Hex(stamp));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("60183151"), Convert.FromHexString(Hex(stamp)), "svn stamp");
         Assert.Equal(TpSvnAnomaly.None, stamp.Anomaly);
         CtrlRamBaseInspection first = Assert.IsType<CtrlRamBaseInspection>(before.CtrlRamBaseInspection);
         CtrlRamBaseInspection second = Assert.IsType<CtrlRamBaseInspection>(after.CtrlRamBaseInspection);
@@ -165,8 +165,8 @@ public sealed class TpSvnInputInspectionTests
         TpSvnObservation stampB = Assert.IsType<TpSvnObservation>(batch.Facts["b"].TpSvn);
         Assert.Equal(new ByteRange(offset, 4), stampA.Range.Range);
         Assert.Equal(new ByteRange(offset, 4), stampB.Range.Range);
-        Assert.Equal(expected, Hex(stampA));
-        Assert.Equal("00000000", Hex(stampB));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(expected), Convert.FromHexString(Hex(stampA)), "svn stamp A");
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("00000000"), Convert.FromHexString(Hex(stampB)), "svn stamp B");
         Assert.Equal(TpSvnAnomaly.NotStamped, stampB.Anomaly);
         Assert.Equal(batch.Statuses["a"].BlocksBuild, batch.Statuses["b"].BlocksBuild);
     }
@@ -199,8 +199,8 @@ public sealed class TpSvnInputInspectionTests
         TpSvnObservation stampB = Assert.IsType<TpSvnObservation>(bankB.TpSvn);
         Assert.Equal(new ByteRange(localOffset, 4), stampA.Range.Range);
         Assert.Equal(new ByteRange(localOffset, 4), stampB.Range.Range);
-        Assert.Equal(Convert.ToHexString(image, localOffset, 4), Hex(stampA));
-        Assert.Equal(Convert.ToHexString(image, bankStart + localOffset, 4), Hex(stampB));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(image, localOffset, 4)), Convert.FromHexString(Hex(stampA)), "header field");
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(image, bankStart + localOffset, 4)), Convert.FromHexString(Hex(stampB)), "header field");
         if (referencePath is null)
         {
             Assert.NotEqual(Hex(stampA), Hex(stampB));
@@ -232,7 +232,7 @@ public sealed class TpSvnInputInspectionTests
             new AuthoringSessionState(ExperienceIds.AbMerge), icId, topology,
             [new("tp-a-input", a, File.ReadAllBytes(a)), new("tp-b-input", b, File.ReadAllBytes(b))],
             AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
-        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(mapId,
             prepared.Snapshot!.ExactCapability!.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         CapabilityActionReadinessSnapshot? readiness = await host.AbMergeAuthoring.GetActionReadinessAsync(
@@ -243,13 +243,13 @@ public sealed class TpSvnInputInspectionTests
                 new Dictionary<string, string> { ["tp-a-input"] = a, ["tp-b-input"] = b },
                 build: true, outputPath: output, actionReadiness: readiness),
             new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-        Assert.True(run.Succeeded, CompositionRunReportJson.Serialize(run));
+        Assert.True(run.Succeeded, $"Composition result: status={run.Status}, succeeded={run.Succeeded}.");
         Assert.Equal("desay", run.Report.AbMergeFormat!.FormatId);
 
         byte[] image = File.ReadAllBytes(output);
         Assert.Equal(0x100000, image.Length);
-        Assert.Equal("C0202601", Convert.ToHexString(image, 0xA024, 4));
-        Assert.Equal("80202602", Convert.ToHexString(image, 0x8A024, 4));
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("C0202601"), Convert.FromHexString(Convert.ToHexString(image, 0xA024, 4)), "header field");
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("80202602"), Convert.FromHexString(Convert.ToHexString(image, 0x8A024, 4)), "header field");
         Assert.NotEqual("80202602", Convert.ToHexString(image, 0x4A024, 4));
     }
 

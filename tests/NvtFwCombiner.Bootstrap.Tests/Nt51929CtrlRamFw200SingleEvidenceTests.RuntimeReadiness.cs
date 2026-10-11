@@ -64,7 +64,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             TestContext.Current.CancellationToken);
 
         Assert.False(blocked.Build.IsAvailable);
-        Assert.True(recovered.Succeeded, CompositionRunReportJson.Serialize(recovered));
+        Assert.True(recovered.Succeeded, $"Composition result: status={recovered.Status}, succeeded={recovered.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
         Assert.True(File.Exists(outputPath));
         Assert.Equal([20, 21], readinessProvider.ObservedGenerations);

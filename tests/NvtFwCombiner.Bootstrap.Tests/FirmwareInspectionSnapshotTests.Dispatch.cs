@@ -409,7 +409,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         var catalog = new CanonicalCapabilityCatalog(
             CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult load = catalog.Reload(TestContext.Current.CancellationToken);
-        Assert.True(load.Succeeded, string.Join(" | ", load.Issues.Select(static issue => issue.Message)));
+        Assert.True(load.Succeeded, "Golden assertion condition was not satisfied.");
         var resolver = new FirmwareArtifactClassificationResolver(
             catalog,
             new CanonicalCapabilityCompilerAdapter(

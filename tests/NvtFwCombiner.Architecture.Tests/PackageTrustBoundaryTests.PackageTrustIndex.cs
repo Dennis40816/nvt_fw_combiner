@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Feature-scoped PackageTrustBoundaryTests repository checks.</summary>
@@ -107,8 +109,8 @@ public sealed partial class PackageTrustBoundaryTests
     {
         MaterializationResult result = GetTrustIndexMaterializationResult(mutation);
 
-        Assert.True(result.Failed, result.Output);
-        Assert.Contains(
+        Assert.True(result.Failed, "Expected package trust materialization to fail.");
+        Assert.True(GoldenDiagnostics.Contains(
             mutation switch
             {
                 "legacy-schema" => "Unsupported profile bundle package trust-index schema",
@@ -132,7 +134,7 @@ public sealed partial class PackageTrustBoundaryTests
                 _ => throw new InvalidOperationException("Unknown trust-index mutation."),
             },
             result.Output,
-            StringComparison.OrdinalIgnoreCase);
+            StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Build materialization verifies the exact bytes named by each trusted bundle manifest.</summary>
@@ -141,8 +143,8 @@ public sealed partial class PackageTrustBoundaryTests
     {
         MaterializationResult result = GetMaterializationResult(EntryHashDriftCaseId);
 
-        Assert.True(result.Failed, result.Output);
-        Assert.Contains("content hash", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.True(result.Failed, "Expected package trust materialization to fail.");
+        Assert.True(GoldenDiagnostics.Contains("content hash", result.Output, StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Build materialization rejects manifest authority outside its normative schema.</summary>
@@ -153,8 +155,8 @@ public sealed partial class PackageTrustBoundaryTests
     {
         MaterializationResult result = GetManifestMaterializationResult(mutation);
 
-        Assert.True(result.Failed, result.Output);
-        Assert.Contains("entry identity", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.True(result.Failed, "Expected package trust materialization to fail.");
+        Assert.True(GoldenDiagnostics.Contains("entry identity", result.Output, StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
     }
 
     private static string CalculateBundleEntryArrayHash(JsonArray entries)
