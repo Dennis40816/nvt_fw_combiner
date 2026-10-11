@@ -110,7 +110,7 @@ Example:
       "role": "goldenFixture"
     },
     {
-      "path": "reference/docs/references/ic-flashmap/IC_FlashMap_20260701.xlsx",
+      "path": "reference/docs/references/ic-flashmap/flashmap-workbook.xlsx",
       "size": 1,
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "role": "reference"

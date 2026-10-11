@@ -36,7 +36,7 @@ potentially incomplete output. Atomic replacement remains deferred F21 scope.
 With canonical test-area TEMP/TMP/TMPDIR configured,
 `dotnet test tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj --no-restore --filter "FullyQualifiedName~RunReportsListTests|FullyQualifiedName~ReportPresentation|FullyQualifiedName~ShellViewModelTests.Report"`
 passed **21/21**, zero skips. Evidence directory:
-`D:/NvtFwCombiner-TestArea/evidence/v118-f20`, files `f20-red.trx`
+`<test-area>/evidence/v118-f20`, files `f20-red.trx`
 (6 failed before fix), `f20-green.trx` (6 passed) and
 `f20-report-regression.trx` (21 passed, including 10 save cases).
 This is targeted local evidence, not fresh full-suite, candidate Golden,
@@ -55,7 +55,7 @@ Owner approved bringing the shared-review F19 blocker forward from the future
 audit schedule into the unpublished `1.1.8` candidate. Source base:
 `cb9349dd71644f10f177e4edf46aaca038fe33a3`. Both adapter regressions failed
 because rejecting an existing run removed its sentinel; retained evidence:
-`D:/NvtFwCombiner-TestArea/evidence/v118-f19/f19-red.trx` (2 failed).
+`<test-area>/evidence/v118-f19/f19-red.trx` (2 failed).
 The shared helper now acquires a directory with an exclusive native creation
 operation and returns a disposable owner only on success. Both adapters use
 that owner; no unowned cleanup remains. Acquisition contention and repeated
@@ -79,7 +79,7 @@ The assertions now require both adapters to acquire the shared disposable owner,
 reject direct/unowned deletion, and retain one-shot cleanup checks; they do not
 replace F19's existing behavioral sentinel/concurrency tests. The entire
 Architecture project passed **256/256**, zero skips, in
-`D:/NvtFwCombiner-TestArea/evidence/v118-f19/staging-architecture-green.trx`.
+`<test-area>/evidence/v118-f19/staging-architecture-green.trx`.
 No production code or expected firmware outputs changed in this follow-up.
 
 The original untagged candidate from main
@@ -282,7 +282,7 @@ SysWOW64, or the packaged Combiner directory. App startup and the separate CRC
 Worker self-test therefore did not establish external Combiner readiness.
 
 Local evidence is retained under
-`D:/NvtFwCombiner-TestArea/evidence/v118-release-sandbox/output/`, including
+`<test-area>/evidence/v118-release-sandbox/output/`, including
 `gui-build-failure-evidence.json` and `gui-build-failed-report.json`; the latter
 has SHA-256
 `2adc31f92eba205df2a5cabcea97da5cd5f02ab0697eda1301b9aa00cfdacccf`.
@@ -570,7 +570,7 @@ The published provenance records source commit
 `40cf3be5162b3c5b9c266654b4993bc5b9669b5e`, tag `v1.1.0`, builder
 `scripts/package.ps1 manual-only operator build`, and RID `win-x64`.
 Fresh downloads matched all three hashes. Closed-package smoke and visible
-Application startup passed from the fixed `D:\NvtFwCombiner-TestArea` test area
+Application startup passed from the fixed test area
 on the current Windows host; this is not a clean-Windows claim. After LF
 normalization and outer trimming, the rendered release-note content exactly
 matches the equivalently normalized published body; that normalized content has
@@ -586,8 +586,8 @@ The first long-path local package attempt failed before build. The short-path
 retry passed. Release run `33454068996` belongs to the frozen `v1.0.8`
 predecessor evidence and failed on shadow-output repository-root discovery; it
 was not a `v1.1.0` retry. The local command
-`python scripts/verify.py --structure-only`, run from the owner's local
-`.codex/worktrees/1100/nvt_fw_combiner` checkout (not in the repository)
+`python scripts/verify.py --structure-only`, run from a local worktree whose
+path is outside the repository
 between 09:21:50 and 09:31:50 Asia/Taipei, reached the 600-second
 capability-history timeout. That
 local timeout is distinct from post-merge `main` CI run `33462718850`, whose
@@ -1118,8 +1118,8 @@ passed during M3. A clean short-path detached worktree at `c58711ce` passed
 `python scripts/verify.py --structure-only`, including Polytail fast checks.
 
 The exact code and metadata candidate `22f8f517` then passed the canonical
-`python scripts/verify.py --all` gate in clean short-path detached worktree
-`C:\n11v-all-22f8`. Release build completed with zero warnings and errors.
+`python scripts/verify.py --all` gate in a clean short-path detached worktree.
+Release build completed with zero warnings and errors.
 Repository policy tests passed `107/107`; Python CRC Worker passed `28/28` at
 98.88% branch coverage. .NET results were Domain `357/357`, Application
 `186/186`, ProfileContract `351/351`, Architecture `99/99`, GoldenRegression
@@ -1127,8 +1127,8 @@ Repository policy tests passed `107/107`; Python CRC Worker passed `28/28` at
 Bootstrap `622/622`, and UI Smoke `271/271`. The CtrlRAM fixture manifest and
 payload hashes also passed.
 
-Independent R2/R3 and owner review, the existing `總代理` conversation review,
-protected CI, reviewed-main packaging, clean Windows x64 execution without
+Independent R2/R3 and owner review, the existing coordinating-agent conversation
+review, protected CI, reviewed-main packaging, clean Windows x64 execution without
 separately installed .NET/Python, representative firmware UAT,
 accessibility/visual review, signing, and immutable release publication remain
 mandatory. This evidence-only follow-up does not change the verified executable
