@@ -183,6 +183,22 @@ class ScrubTestOutputTests(unittest.TestCase):
             self.assertIn("TRX results missing or invalid.", output.getvalue())
             self.assertNotIn(MARKER, output.getvalue())
 
+    def test_a_vstest_run_without_a_results_directory_is_scrubbed_too(self):
+        from tests.scripts.test_verify_orchestration import MODULE
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = io.StringIO()
+            with (patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}),
+                  patch.object(MODULE, "_run_to_logs", side_effect=subprocess.CalledProcessError(2, [MARKER])),
+                  redirect_stdout(output)):
+                with self.assertRaises(subprocess.CalledProcessError) as caught:
+                    MODULE.run([sys.executable, "vstest", MARKER, "/Parallel"], cwd=root,
+                               log_path=root / "attempt.log")
+            self.assertEqual(2, caught.exception.returncode)
+            self.assertIn("exit 2", output.getvalue())
+            self.assertIn("TRX results missing or invalid.", output.getvalue())
+            self.assertNotIn(MARKER, output.getvalue())
+
     def test_discovery_forms_are_never_scrubbed_even_with_a_results_directory(self):
         from tests.scripts.test_verify_orchestration import MODULE
         with patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}), \

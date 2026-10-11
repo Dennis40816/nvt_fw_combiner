@@ -1097,9 +1097,9 @@ def run(
     timeout_seconds: float | None = None,
     graceful_termination_seconds: float = 0,
 ) -> None:
+    # Every VSTest run except a discovery listing is scrubbed, so an unexpected command shape fails closed.
     if (ci_scrub_test_output_enabled() and len(command) > 1 and command[1] == "vstest"
-            and any(arg.startswith("--ResultsDirectory:") for arg in command)
-            and not any(arg.startswith("--List") for arg in command)):
+            and not any(arg.lower().lstrip("-/").startswith("list") for arg in command[2:])):
         run_scrubbed_test(
             command, cwd=cwd, environment=environment, log_path=log_path,
             mirror_log_path=mirror_log_path, timeout_seconds=timeout_seconds,
