@@ -150,6 +150,39 @@ class ScrubTestOutputTests(unittest.TestCase):
                     self.assertTrue(caught.exception.__suppress_context__)
                     self.assertNotIn(MARKER, (root / "attempt.log").read_text())
 
+    def test_termination_request_passes_through_the_scrubbed_runner(self):
+        from tests.scripts.test_verify_orchestration import MODULE
+        import signal
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for interruption in (KeyboardInterrupt(), MODULE.VerificationTerminationRequested(signal.SIGTERM)):
+                with self.subTest(kind=type(interruption).__name__):
+                    with (patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}),
+                          patch.object(MODULE, "_run_to_logs", side_effect=interruption),
+                          redirect_stdout(io.StringIO())):
+                        with self.assertRaises(type(interruption)):
+                            MODULE.run([sys.executable, "vstest", f"--ResultsDirectory:{root / 'r'}"],
+                                       cwd=root, log_path=root / "attempt.log")
+                    self.assertEqual("Test output scrubbed.\n", (root / "attempt.log").read_text())
+                    (root / "attempt.log").unlink()
+
+    def test_unreadable_trx_prints_one_fixed_line_and_keeps_the_test_failure(self):
+        from tests.scripts.test_verify_orchestration import MODULE
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "results").mkdir()
+            (root / "results" / "broken.trx").write_text(f"<TestRun>{MARKER}", encoding="utf-8")
+            output = io.StringIO()
+            with (patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}),
+                  patch.object(MODULE, "_run_to_logs", side_effect=subprocess.CalledProcessError(3, [MARKER])),
+                  redirect_stdout(output)):
+                with self.assertRaises(subprocess.CalledProcessError) as caught:
+                    MODULE.run([sys.executable, "vstest", f"--ResultsDirectory:{root / 'results'}"],
+                               cwd=root, log_path=root / "attempt.log")
+            self.assertEqual(3, caught.exception.returncode)
+            self.assertIn("TRX results missing or invalid.", output.getvalue())
+            self.assertNotIn(MARKER, output.getvalue())
+
     def test_discovery_forms_are_never_scrubbed_even_with_a_results_directory(self):
         from tests.scripts.test_verify_orchestration import MODULE
         with patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}), \

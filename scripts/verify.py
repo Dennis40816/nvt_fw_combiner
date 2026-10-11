@@ -1076,7 +1076,7 @@ def run_scrubbed_test(
                 raise ValueError("TRX results missing or invalid.")
             directory = Path(result_argument)
             counts = reader.read_trx_results(directory if directory.is_absolute() else cwd / directory)
-        except (ImportError, OSError, ValueError):
+        except Exception:  # a reader failure must not replace the test failure
             print("TRX results missing or invalid.", flush=True)
         else:
             print(" ".join(f"{name.lower()} {counts[name]}" for name in
