@@ -30,6 +30,45 @@ VALIDATOR = load_validator_module()
 REPOSITORY_ROOT = VALIDATOR_PATH.parents[1]
 
 
+class CanonicalGoldenDecodeDiagnosticsTests(unittest.TestCase):
+    """A decode failure names the kind of file and a byte offset, never a path, label or content."""
+
+    def test_json_decode_failure_reports_only_offset(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "synthetic-private.json"
+            path.write_bytes(b"prefix\xffSYNTHETIC_SECRET")
+            errors = []
+            self.assertIsNone(VALIDATOR._load_object(path, root, "private label", errors))
+            self.assertEqual(["Cannot decode UTF-8 of canonical JSON file at offset 6."], errors)
+
+    def test_test_reference_decode_failure_reports_only_offset(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "tests/synthetic.py"
+            path.parent.mkdir()
+            path.write_bytes(b"prefix\xffSYNTHETIC_SECRET")
+            errors = []
+            VALIDATOR._validate_test_evidence_refs(
+                root, ["tests/synthetic.py#synthetic_test"], "private label", errors
+            )
+            self.assertEqual(["Cannot decode UTF-8 of test evidence reference at offset 6."], errors)
+
+    def test_synthetic_hash_binding_decode_failure_reports_only_offset(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "tests/synthetic.py"
+            path.parent.mkdir()
+            path.write_bytes(b"prefix\xffSYNTHETIC_SECRET")
+            errors = []
+            VALIDATOR._validate_synthetic_hash_binding(
+                root, "tests/synthetic.py#synthetic_test", "a" * 64, "private label", errors
+            )
+            self.assertEqual(
+                ["Cannot decode UTF-8 of synthetic hash binding reference at offset 6."], errors
+            )
+
+
 class CanonicalGoldenValidationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()

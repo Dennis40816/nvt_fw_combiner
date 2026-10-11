@@ -65,6 +65,7 @@ python scripts/ci/check_test_shard.py --shard core --results-directory artifacts
 Public summaries are outside the producer evidence directory because the
 existing finalizer enforces a closed file inventory and content hashes.
 These entries are not wired into `verify.py` or a workflow as floor checks.
+Inside `verify.py`, the TRX reader is used only by the opt-in output scrubber.
 
 ## Local measurement and inspection
 
