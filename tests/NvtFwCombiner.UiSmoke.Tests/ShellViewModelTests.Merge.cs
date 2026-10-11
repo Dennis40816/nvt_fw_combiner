@@ -543,7 +543,7 @@ public sealed partial class MergeWorkflowTests
         // thread-pool continuation can swallow a concurrent mapping edit
         // (BUG-20261001-general-merge-stale-preparation-overwrites-session).
         using var uiThread = new UiThreadTestContext();
-        async Task GeneralMergeScenarioAsync()
+        await uiThread.InvokeAsync(async () =>
         {
             string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13, 0x14]);
             MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
@@ -591,14 +591,15 @@ public sealed partial class MergeWorkflowTests
             Assert.True(viewModel.Merge.CanBuildMerge);
             Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
             string outputPath = workspace.PathFor("general-merge.bin");
-            await GoldenFileIo.WriteAllBytesAsync(
+            await File.WriteAllBytesAsync(
                 source,
                 [0x10, 0x11, 0x99, 0x13, 0x14],
                 TestContext.Current.CancellationToken);
             await viewModel.Merge.BuildMergeAsync(outputPath);
             Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x12, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
-            GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
+            Assert.Equal(
+                [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x12, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
+                File.ReadAllBytes(outputPath));
 
             await viewModel.WorkflowSession.SetSlotFileAsync(
                 mapping.MappingId,
@@ -610,8 +611,9 @@ public sealed partial class MergeWorkflowTests
             await viewModel.Merge.BuildMergeAsync(outputPath);
             Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
             Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
-            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x99, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
-            GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
+            Assert.Equal(
+                [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x99, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
+                File.ReadAllBytes(outputPath));
             using var document = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
             JsonElement root = document.RootElement;
             Assert.Equal("nt51950-general-merge-logical-candidate", root.GetProperty("ProfileId").GetString());
@@ -622,8 +624,7 @@ public sealed partial class MergeWorkflowTests
             JsonElement operation = Assert.Single(root.GetProperty("Operations").EnumerateArray());
             Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString());
             Assert.Equal("Succeeded", operation.GetProperty("Status").GetString());
-        }
-        await uiThread.InvokeAsync(GeneralMergeScenarioAsync);
+        });
     }
 
     /// <summary>Verifies Standard Merge Build validates the current context without a separate manual Preview.</summary>

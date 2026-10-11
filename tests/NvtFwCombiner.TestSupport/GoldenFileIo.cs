@@ -33,20 +33,6 @@ public static class GoldenFileIo
         return bytes;
     }
 
-    /// <summary>Creates or replaces a file with the given bytes.</summary>
-    public static async Task WriteAllBytesAsync(string path, byte[] bytes, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(bytes);
-        await using FileStream stream = new(
-            path,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.Read,
-            bufferSize: 4096,
-            FileOptions.Asynchronous);
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
-    }
-
     /// <summary>Reads a text file asynchronously, detecting a byte order mark and defaulting to UTF-8.</summary>
     public static async Task<string> ReadAllTextAsync(string path, CancellationToken cancellationToken)
     {
