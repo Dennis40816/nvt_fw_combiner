@@ -246,8 +246,10 @@ if ($text.Trim() -cne $Expected) { throw 'Unexpected refusal message.' }
         environment = dict(self.environment, GITHUB_EVENT_NAME="pull_request", GITHUB_EVENT_PATH=str(event),
                            GITHUB_REPOSITORY="upstream/repository")
         self.assert_powershell_refusal(mode="Clone", expected="unverified, cannot merge", environment=environment)
-        environment = dict(self.environment, GITHUB_ACTOR="dependabot[bot]")
-        self.assert_powershell_refusal(mode="Clone", expected="unverified, cannot merge", environment=environment)
+        for actor in ("dependabot[bot]", "dependabot-preview[bot]"):
+            environment = dict(self.environment, GITHUB_ACTOR=actor)
+            self.assert_powershell_refusal(mode="Clone", expected="unverified, cannot merge",
+                                           environment=environment)
 
     def test_events_outside_the_allow_list_refuse_and_the_key_file_is_removed(self):
         for event in ("workflow_run", "issue_comment", "pull_request_review", "pull_request_target"):

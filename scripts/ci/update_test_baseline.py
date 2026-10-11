@@ -1,17 +1,17 @@
 """Raise test floors only from complete, passing, zero-skip TRX runs."""
-import os
 from pathlib import Path
 import sys
+import tempfile
 
 if __package__:
     from .fixed_argparse import FixedArgumentParser
-    from .baseline_contract import (ROOT, SHARDS, UPDATE_MODE_VARIABLES, load_baseline, source_commit,
-                                    validate_baseline, write_json)
+    from .baseline_contract import ROOT, SHARDS, load_baseline, source_commit, validate_baseline, write_json
+    from .check_test_shard import check_test_shard
     from .read_trx import get_example_data_test_names, read_trx_results
 else:
     from fixed_argparse import FixedArgumentParser
-    from baseline_contract import (ROOT, SHARDS, UPDATE_MODE_VARIABLES, load_baseline, source_commit,
-                                   validate_baseline, write_json)
+    from baseline_contract import ROOT, SHARDS, load_baseline, source_commit, validate_baseline, write_json
+    from check_test_shard import check_test_shard
     from read_trx import get_example_data_test_names, read_trx_results
 
 
@@ -20,31 +20,32 @@ def update_test_baseline(*, shard: str, results_directory: Path, baseline_path: 
     try:
         baseline = load_baseline(baseline_path)
         floor = baseline["shards"][shard]
-        counts = read_trx_results(results_directory)
-        if (not counts["Completed"] or counts["Failed"] or counts["Skipped"]
-                or counts["NotExecuted"] or counts["Passed"] != counts["Total"]
-                or counts["Total"] < floor["minTotal"]
-                or any(name in os.environ for name in UPDATE_MODE_VARIABLES)):
+        commit = measured_at_commit or source_commit()
+        # One decision: the checker that gates a shard also gates a floor raise.
+        with tempfile.TemporaryDirectory(prefix="nfc-floor-check-") as scratch:
+            summary = check_test_shard(shard=shard, results_directory=results_directory,
+                                       baseline_path=baseline_path,
+                                       summary_path=Path(scratch) / "shard-summary.json",
+                                       example_data_present=example_data_present, commit=commit)
+        if summary["outcome"] != "passed":
             raise ValueError("Unsuccessful tests.")
+        counts = read_trx_results(results_directory)
         example_floor = floor["exampleMinTests"]
         if example_data_present:
             names = get_example_data_test_names(ROOT / "tests")
             executed = len({r["MethodName"] for r in counts["Results"]
                             if r["Outcome"] == "Passed" and r["MethodName"] in names})
-            if executed < example_floor:
-                raise ValueError("Lower example count refused.")
-            example_floor = executed
+            example_floor = max(example_floor, executed)
         if counts["Total"] == floor["minTotal"] and example_floor == floor["exampleMinTests"]:
             return False
         floor["minTotal"] = counts["Total"]
         floor["exampleMinTests"] = example_floor
-        baseline["measuredAtCommit"] = measured_at_commit or source_commit()
+        baseline["measuredAtCommit"] = commit
         validate_baseline(baseline)
         write_json(baseline_path, baseline)
         return True
     except (OSError, ValueError, KeyError, TypeError):
         raise ValueError("Test baseline update failed.") from None
-
 
 def main() -> int:
     parser = FixedArgumentParser(description=__doc__, allow_abbrev=False)

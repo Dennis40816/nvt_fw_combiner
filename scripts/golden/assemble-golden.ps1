@@ -30,7 +30,7 @@ function Assert-RegularPath([string]$Path) {
 function Assert-TrustedEvent {
     # Allow-list: a local run has no event name. Every other event refuses before a key or network use.
     $trustedEvents = @('', 'push', 'workflow_dispatch', 'schedule', 'merge_group', 'pull_request')
-    if (([string]$env:GITHUB_EVENT_NAME) -cnotin $trustedEvents -or $env:GITHUB_ACTOR -eq 'dependabot[bot]') {
+    if (([string]$env:GITHUB_EVENT_NAME) -cnotin $trustedEvents -or $env:GITHUB_ACTOR -like 'dependabot*') {
         $script:failure = 'unverified, cannot merge'
         throw $script:failure
     }
@@ -89,7 +89,7 @@ try {
             if (-not (Test-Path -LiteralPath $runnerRoot -PathType Container)) { throw $failure }
             $keyFile = [System.IO.Path]::GetFullPath($env:NFC_ASSETS_KEY_FILE)
             Assert-RegularPath $keyFile
-            if ($keyFile -match '["\r\n]' -or -not (Test-Path -LiteralPath $keyFile -PathType Leaf)) { throw $failure }
+            if ($keyFile -match '["\r\n$`]' -or -not (Test-Path -LiteralPath $keyFile -PathType Leaf)) { throw $failure }
             $cloneDirectory = Join-Path $runnerRoot ('nfc-assets-' + [guid]::NewGuid().ToString('N'))
             $traceNames = @(Get-ChildItem Env: | Where-Object { $_.Name -like 'GIT_TRACE*' } |
                 ForEach-Object { $_.Name })
