@@ -31,6 +31,27 @@ REPOSITORY_ROOT = VALIDATOR_PATH.parents[1]
 
 
 class CanonicalGoldenValidationTests(unittest.TestCase):
+    def test_json_decode_failure_reports_only_offset(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "synthetic-private.json"
+            path.write_bytes(b"prefix\xffSYNTHETIC_SECRET")
+            errors = []
+            self.assertIsNone(VALIDATOR._load_object(path, root, "private label", errors))
+            self.assertEqual(["Cannot decode UTF-8 at offset 6."], errors)
+
+    def test_test_reference_decode_failure_reports_only_offset(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "tests/synthetic.py"
+            path.parent.mkdir()
+            path.write_bytes(b"prefix\xffSYNTHETIC_SECRET")
+            errors = []
+            VALIDATOR._validate_test_evidence_refs(
+                root, ["tests/synthetic.py#synthetic_test"], "private label", errors
+            )
+            self.assertEqual(["Cannot decode UTF-8 at offset 6."], errors)
+
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary_directory.name)

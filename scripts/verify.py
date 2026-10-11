@@ -35,6 +35,7 @@ from unittest.loader import VALID_MODULE_NAME
 
 if __package__:
     from .canonical_golden_validation import validate_canonical_golden
+    from .ci.read_trx import INVALID_TRX, read_trx_results
     from .coverage_policy import (
         load_baseline,
         repository_relative_coverage_source,
@@ -42,6 +43,7 @@ if __package__:
     )
 else:
     from canonical_golden_validation import validate_canonical_golden
+    from ci.read_trx import INVALID_TRX, read_trx_results
     from coverage_policy import (
         load_baseline,
         repository_relative_coverage_source,
@@ -999,6 +1001,61 @@ def command_timing_line(started_at: float) -> str:
     return f"Command timing: {monotonic() - started_at:.1f}s"
 
 
+def ci_scrub_test_output_enabled() -> bool:
+    return os.environ.get("NFC_CI_SCRUB_TEST_OUTPUT") == "1"
+
+
+def run_scrubbed_test(
+    command: list[str],
+    *,
+    cwd: Path,
+    environment: dict[str, str] | None,
+    log_path: Path | None,
+    mirror_log_path: Path | None,
+    timeout_seconds: float | None,
+    graceful_termination_seconds: float,
+) -> None:
+    """Keep test output out of console and retained logs; reuse owned process custody."""
+    token = Path(command[0]).name
+    with tempfile.TemporaryDirectory(prefix="nfc-scrub-test-") as temporary:
+        capture = Path(temporary) / "output.log"
+        try:
+            _run_to_logs(
+                command, log_paths=(capture,), cwd=cwd, environment=environment,
+                echo=False, timeout_seconds=timeout_seconds,
+                graceful_termination_seconds=graceful_termination_seconds,
+            )
+        except subprocess.CalledProcessError as error:
+            print(f"{token} exit {error.returncode}", flush=True)
+            result_argument = next(
+                (arg.split(":", 1)[1] for arg in command
+                 if arg.startswith("--ResultsDirectory:")), None
+            )
+            try:
+                if result_argument is None:
+                    raise ValueError(INVALID_TRX)
+                directory = Path(result_argument)
+                counts = read_trx_results(directory if directory.is_absolute() else cwd / directory)
+            except ValueError:
+                print(INVALID_TRX, flush=True)
+            else:
+                print(" ".join(f"{name.lower()} {counts[name]}" for name in
+                               ("Total", "Passed", "Failed", "Skipped", "NotExecuted")), flush=True)
+                for name in counts["FailedTests"]:
+                    print(name, flush=True)
+            # CalledProcessError's default string contains the full command/filter.
+            raise subprocess.CalledProcessError(error.returncode, [token]) from None
+        except subprocess.TimeoutExpired as error:
+            # Preserve the shard's fatal-timeout branch without exposing arguments/output.
+            raise subprocess.TimeoutExpired([token], error.timeout) from None
+        finally:
+            # Evidence still expects attempt.log. Retain a fixed placeholder, never child output.
+            for path in dict.fromkeys(p for p in (log_path, mirror_log_path) if p is not None):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open("a", encoding="utf-8") as log:
+                    log.write("Test output scrubbed.\n")
+
+
 def run(
     command: list[str],
     *,
@@ -1009,6 +1066,14 @@ def run(
     timeout_seconds: float | None = None,
     graceful_termination_seconds: float = 0,
 ) -> None:
+    if (ci_scrub_test_output_enabled() and len(command) > 1 and command[1] == "vstest"
+            and "--ListTests" not in command):
+        run_scrubbed_test(
+            command, cwd=cwd, environment=environment, log_path=log_path,
+            mirror_log_path=mirror_log_path, timeout_seconds=timeout_seconds,
+            graceful_termination_seconds=graceful_termination_seconds,
+        )
+        return
     if log_path is None:
         command_started_at = monotonic()
         print(f"\n> {' '.join(command)}", flush=True)
@@ -5309,6 +5374,8 @@ def report_ci_test_failure_details(
     Both attempts share the identity cap; duplicate results cannot multiply output.
     """
 
+    if ci_scrub_test_output_enabled():
+        return
     failures: dict[tuple[str, str], dict[str, TrxTestFailure]] = {}
     for project, attempt, trx in reports:
         details: list[TrxTestFailure] = []
@@ -5378,7 +5445,7 @@ def report_ci_failed_tests(
     test output and raw collection exception text are never printed here.
     """
 
-    if not failed_projects:
+    if ci_scrub_test_output_enabled() or not failed_projects:
         return
     console = [f"\n.NET CI shard {shard} failed projects:"]
     summary = [f"### .NET CI shard `{shard}` failures", ""]
@@ -7139,7 +7206,10 @@ def execute_verification(args: argparse.Namespace) -> int:
             OSError,
             subprocess.CalledProcessError,
         ) as exc:
-            print(f"\nVERIFICATION FAILED: {exc}", file=sys.stderr)
+            if ci_scrub_test_output_enabled():
+                print("\nVERIFICATION FAILED: Test verification failed.", file=sys.stderr)
+            else:
+                print(f"\nVERIFICATION FAILED: {exc}", file=sys.stderr)
             return 1
         print("\nRelease Golden verification passed (not full verification)."
               if args.release_golden else "\nVerification passed.")
@@ -7209,7 +7279,10 @@ def main() -> int:
     except VerificationTerminationRequested as error:
         return 128 + error.signal_number
     except (RuntimeError, ValueError, OSError, subprocess.CalledProcessError) as error:
-        print(f"\nVERIFICATION FAILED: {error}", file=sys.stderr)
+        if ci_scrub_test_output_enabled():
+            print("\nVERIFICATION FAILED: Test verification failed.", file=sys.stderr)
+        else:
+            print(f"\nVERIFICATION FAILED: {error}", file=sys.stderr)
         return 1
 
 

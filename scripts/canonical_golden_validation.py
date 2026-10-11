@@ -130,7 +130,10 @@ def _load_object(
         return None
     try:
         value = json.loads(payload.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+    except UnicodeDecodeError as error:
+        errors.append(f"Cannot decode UTF-8 at offset {error.start}.")
+        return None
+    except json.JSONDecodeError as error:
         errors.append(f"invalid JSON in {label} {path}: {error}")
         return None
     if not isinstance(value, dict):
@@ -212,7 +215,7 @@ def _validate_test_evidence_refs(
         try:
             source = payload.decode("utf-8")
         except UnicodeDecodeError as error:
-            errors.append(f"cannot decode {reference_label}: {error}")
+            errors.append(f"Cannot decode UTF-8 at offset {error.start}.")
             continue
         if symbol not in source:
             errors.append(
@@ -287,7 +290,7 @@ def _validate_synthetic_hash_binding(
     try:
         source = payload.decode("utf-8")
     except UnicodeDecodeError as error:
-        errors.append(f"cannot decode {label}.testReference: {error}")
+        errors.append(f"Cannot decode UTF-8 at offset {error.start}.")
         return
     if expected_sha256 not in source:
         errors.append(
@@ -1440,7 +1443,10 @@ def validate_canonical_release_allowlist(
     allowlist_path = repository_root / Path(CANONICAL_RELEASE_ALLOWLIST)
     try:
         allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+    except UnicodeDecodeError as error:
+        errors.append(f"Cannot decode UTF-8 at offset {error.start}.")
+        return
+    except (OSError, json.JSONDecodeError) as error:
         errors.append(f"cannot read canonical release allowlist: {error}")
         return
     if not isinstance(allowlist, dict):
