@@ -228,10 +228,9 @@ public sealed partial class WindowLifetimeTests
         MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
         shell.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "late-fault"), "late-fault.json");
         string toast = shell.Reports.ReportToastText;
-        (IStorageProvider picker, Func<TaskCompletionSource<IStorageFile?>> getSelection) = CreatePendingSavePicker();
+        (IStorageProvider picker, TaskCompletionSource<IStorageFile?> selection) = CreatePendingSavePicker();
         var modal = new ReportModal { DataContext = shell.Reports };
         Task saving = modal.SaveReportAsync(picker);
-        TaskCompletionSource<IStorageFile?> selection = getSelection();
         var deadline = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         window.CloseDeadlineFactory = _ => WaitForSignalAsync(deadline);
         var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -384,25 +383,20 @@ public sealed partial class WindowLifetimeTests
     private static Task WaitForSignalAsync(TaskCompletionSource signal) =>
         signal.Task.WaitAsync(TestContext.Current.CancellationToken);
 
-    private static (IStorageProvider Picker, Func<TaskCompletionSource<IStorageFile?>> GetSelection)
-        CreatePendingSavePicker()
+    private static (IStorageProvider Picker, TaskCompletionSource<IStorageFile?> Selection) CreatePendingSavePicker()
     {
-        TaskCompletionSource<IStorageFile?>? selected = null;
+        var selected = new TaskCompletionSource<IStorageFile?>(TaskCreationOptions.RunContinuationsAsynchronously);
         IStorageProvider picker = DispatchProxy.Create<IStorageProvider, LifetimeReportStorageProxy>();
-        ((LifetimeReportStorageProxy)picker).Call = (name, _) =>
-        {
-            if (name != "SaveFilePickerAsync")
-            {
-                throw new NotSupportedException(name);
-            }
-            var completion = new TaskCompletionSource<IStorageFile?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            selected = completion;
-            return completion.Task;
-        };
-        return (picker, GetSelection);
+        ((LifetimeReportStorageProxy)picker).Call = (name, _) => name == "SaveFilePickerAsync"
+            ? selected.Task : throw new NotSupportedException(name);
+        return (picker, selected);
+    }
 
-        TaskCompletionSource<IStorageFile?> GetSelection() => selected
-            ?? throw new InvalidOperationException("The save did not start its picker.");
+    private static Task PauseOnDispatcherAsync(TimeSpan delay)
+    {
+        var paused = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        DispatcherTimer.RunOnce(() => paused.TrySetResult(), delay);
+        return paused.Task;
     }
 
     private static async Task CollectRetiredTasksAsync(WeakReference[] retired, CancellationToken cancellationToken)
@@ -410,8 +404,8 @@ public sealed partial class WindowLifetimeTests
         do
         {
             cancellationToken.ThrowIfCancellationRequested();
-            // Yield to the dispatcher so pending callbacks and timers can release the retired window.
-            await Dispatcher.Yield();
+            // A pause lets dispatcher timers (the toast timer) release the retired window before the next probe.
+            await PauseOnDispatcherAsync(TimeSpan.FromMilliseconds(50)).WaitAsync(cancellationToken);
             GC.Collect();
             GC.WaitForPendingFinalizers();
         }

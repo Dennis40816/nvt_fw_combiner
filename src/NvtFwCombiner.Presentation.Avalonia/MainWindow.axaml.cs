@@ -106,9 +106,7 @@ public sealed partial class MainWindow : Window, IDisposable
             _launchOptions.HasStartupReportStage);
         _lifetime = CreateWindowLifetime();
         viewModel.Settings.ActivationRequested += Settings_ActivationRequested;
-        viewModel.Settings.SetWindowPublication(() => IsEnabled && _lifetime.CanPublishSettings);
-        viewModel.RunSession.SetWindowPublication(() => _lifetime.CanPublishRunResult);
-        viewModel.RunSession.SetWindowAdmission(() => ClosePhase == WindowClosePhase.Open);
+        ConnectLifetimeGates(viewModel);
         LaunchCoordinator = new(this, launchOptions, startupTrace, hostServices, _preloadSession, viewModel, _lifetime.ConfirmExitAndClose);
         viewModel.Reports.Persistence = LaunchCoordinator.Persistence;
         _preloadLoading = new(RetryStartupPreloadAsync, CancelStartupAsync);

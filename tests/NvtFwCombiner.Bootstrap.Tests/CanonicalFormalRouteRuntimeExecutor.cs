@@ -55,8 +55,8 @@ internal static class CanonicalFormalRouteRuntimeExecutor
                     await ExecuteCaseAsync(host, canonical, runtimeCase, workspace);
                 }
                 catch (Exception exception) when (
-                    exception is IOException or UnauthorizedAccessException or InvalidOperationException or
-                        ArgumentException or Xunit.Sdk.XunitException)
+                    exception is not OperationCanceledException ||
+                    !TestContext.Current.CancellationToken.IsCancellationRequested)
                 {
                     throw new InvalidOperationException(
                         $"Formal runtime case '{runtimeCase.CaseId}' failed.",

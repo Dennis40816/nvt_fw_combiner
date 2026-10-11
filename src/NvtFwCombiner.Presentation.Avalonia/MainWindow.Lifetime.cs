@@ -17,6 +17,9 @@ public sealed partial class MainWindow
         set => _lifetime.CloseDeadlineFactory = value;
     }
 
+    private void ConnectLifetimeGates(ViewModels.MainWindowViewModel viewModel) =>
+        _lifetime.ConnectGates(viewModel, () => IsEnabled);
+
     private WindowLifetimeCoordinator CreateWindowLifetime()
     {
         return new(
