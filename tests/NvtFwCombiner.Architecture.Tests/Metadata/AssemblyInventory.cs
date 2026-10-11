@@ -18,8 +18,16 @@ internal static class AssemblyInventory
             .ToDictionary(item => item.Key, item => item.Value ?? string.Empty, StringComparer.Ordinal);
         var target = new BuildTuple(values["Architecture.Configuration"], values["Architecture.Framework"], values["Architecture.Runtime"]);
         string manifest = Path.Combine(AppContext.BaseDirectory, "architecture-assemblies.xml");
-        return LoadManifest(manifest, target, EvaluatedProjectGraphTests.ProductionProjects.Select(EvaluatedProjectGraphTests.ProjectPath), File.ReadAllBytes);
+        return LoadManifest(manifest, target, EvaluatedProjectGraphTests.ProductionProjects.Select(EvaluatedProjectGraphTests.ProjectPath), ReadBytes);
     }
+    internal static byte[] ReadBytes(string path)
+    {
+        using FileStream stream = File.OpenRead(path);
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return buffer.ToArray();
+    }
+
     internal static ImmutableArray<AssemblyInput> LoadManifest(string path, BuildTuple target, IEnumerable<string> expected, Func<string, byte[]> read)
     {
         return !File.Exists(path) ? throw new InvalidDataException($"Inputs.Manifest: missing {Path.GetFileName(path)}")

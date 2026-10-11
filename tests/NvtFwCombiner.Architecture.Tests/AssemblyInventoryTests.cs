@@ -1,4 +1,3 @@
-#pragma warning disable CA1707 // Owner requires Method_Scenario_Expected names.
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Xml.Linq;
@@ -9,16 +8,16 @@ namespace NvtFwCombiner.Architecture.Tests;
 /// <summary>Acquisition must reject incomplete, stale or mismatched evidence.</summary>
 public sealed class AssemblyInventoryTests
 {
-    private static readonly BuildTuple Target = new("Release", "net10.0", "");
+    private static readonly BuildTuple _target = new("Release", "net10.0", "");
     private static XElement Entry(string project = "Fixture", string path = "Fixture.dll")
     {
         return new("project", new XAttribute("path", project + ".csproj"), new XAttribute("assembly", path),
-            new XAttribute("configuration", Target.Configuration), new XAttribute("framework", Target.Framework), new XAttribute("runtime", Target.Runtime),
+            new XAttribute("configuration", _target.Configuration), new XAttribute("framework", _target.Framework), new XAttribute("runtime", _target.Runtime),
             new XAttribute("sha256", Convert.ToHexString(SHA256.HashData(MetadataFixtureBuilder.Create(assembly: project).AsSpan()))));
     }
     private static ImmutableArray<AssemblyInput> Validate(XElement? manifest, Func<string, byte[]>? read = null)
     {
-        return AssemblyInventory.Validate(manifest, Target, ["Fixture.csproj", "Second.csproj"], read ?? (path => [.. MetadataFixtureBuilder.Create(assembly: Path.GetFileNameWithoutExtension(path))]));
+        return AssemblyInventory.Validate(manifest, _target, ["Fixture.csproj", "Second.csproj"], read ?? (path => [.. MetadataFixtureBuilder.Create(assembly: Path.GetFileNameWithoutExtension(path))]));
     }
 
     private static XElement Fixture()

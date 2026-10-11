@@ -1,4 +1,3 @@
-#pragma warning disable CA1707 // Owner requires Method_Scenario_Expected names for these tests.
 using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -31,10 +30,10 @@ public sealed class EvaluatedProjectGraphTests
             ["DistributionLauncher"] = ["Bootstrap", "VersionManagement.Application"],
             ["PrebuiltProfileCatalogGenerator"] = ["Infrastructure"],
         }.ToImmutableDictionary(StringComparer.Ordinal);
-    private static readonly string[] Configurations = ["Debug", "Release"];
-    private static readonly string[] Runtimes = ["", "win-x64"];
+    private static readonly string[] _configurations = ["Debug", "Release"];
+    private static readonly string[] _runtimes = ["", "win-x64"];
     // All ordinary references use SDK runtime defaults. Bootstrap's generator is build-only.
-    private static readonly ImmutableDictionary<string, string> GeneratorMetadata =
+    private static readonly ImmutableDictionary<string, string> _generatorMetadata =
         new Dictionary<string, string> { ["ReferenceOutputAssembly"] = "false", ["PrivateAssets"] = "all", ["Private"] = "false", ["OutputItemType"] = "_NfcCatalogTool" }.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
     internal static IEnumerable<string> ProductionProjects => AllowedEdges.Keys.Where(name => name != "PrebuiltProfileCatalogGenerator");
     internal static string ProjectPath(string name)
@@ -78,10 +77,10 @@ public sealed class EvaluatedProjectGraphTests
             {
                 var metadata = edge.Elements("metadata").ToDictionary(item => Value(item, "name"), item => item.Value, StringComparer.OrdinalIgnoreCase);
                 bool generator = name == "Bootstrap" && Value(edge, "path") == ProjectPath("PrebuiltProfileCatalogGenerator");
-                foreach (string key in GeneratorMetadata.Keys)
+                foreach (string key in _generatorMetadata.Keys)
                 {
                     string value = metadata.GetValueOrDefault(key, string.Empty);
-                    string allowed = generator ? GeneratorMetadata[key] : key == "ReferenceOutputAssembly" ? "true" : string.Empty;
+                    string allowed = generator ? _generatorMetadata[key] : key == "ReferenceOutputAssembly" ? "true" : string.Empty;
                     Assert.True(value == allowed || (!generator && key == "ReferenceOutputAssembly" && value.Length == 0), $"Graph.ReferenceMetadata: {name} -> {Value(edge, "path")} {key}={value}");
                 }
             }
@@ -89,13 +88,13 @@ public sealed class EvaluatedProjectGraphTests
     }
     internal static void ValidateCoverage(XElement graph)
     {
-        string[] expected = [.. AllowedEdges.Keys.SelectMany(name => Configurations.SelectMany(configuration => Runtimes.Select(runtime => $"{ProjectPath(name)}|{configuration}|net10.0|{runtime}"))).Order(StringComparer.Ordinal)];
+        string[] expected = [.. AllowedEdges.Keys.SelectMany(name => _configurations.SelectMany(configuration => _runtimes.Select(runtime => $"{ProjectPath(name)}|{configuration}|net10.0|{runtime}"))).Order(StringComparer.Ordinal)];
         string[] actual = [.. graph.Elements("project").Select(item => $"{Value(item, "path")}|{Value(item, "configuration")}|{Value(item, "framework")}|{Value(item, "runtime")}").Order(StringComparer.Ordinal)];
         Assert.True(expected.SequenceEqual(actual, StringComparer.Ordinal), $"Graph.Coverage: missing [{string.Join(", ", expected.Except(actual))}], duplicate [{string.Join(", ", actual.GroupBy(item => item).Where(group => group.Count() > 1).Select(group => group.Key))}], unlisted [{string.Join(", ", actual.Except(expected))}]");
     }
     private static XElement InvalidCoverage(string scenario)
     {
-        XElement graph = new("inputs", Configurations.SelectMany(configuration => Runtimes.SelectMany(runtime => Fixture(runtime, configuration).Elements())));
+        XElement graph = new("inputs", _configurations.SelectMany(configuration => _runtimes.SelectMany(runtime => Fixture(runtime, configuration).Elements())));
         XElement entry = graph.Elements().First(item => Value(item, "path") == ProjectPath("Domain"));
         return scenario switch { "Missing" => new("inputs", graph.Elements().Where(item => item != entry)), "Duplicate" => new("inputs", graph.Elements(), entry), _ => new("inputs") };
     }
@@ -143,7 +142,7 @@ public sealed class EvaluatedProjectGraphTests
         new XElement("project", new XAttribute("path", ProjectPath(pair.Key)), new XAttribute("configuration", configuration),
             new XAttribute("framework", "net10.0"), new XAttribute("runtime", runtime),
             pair.Value.Select(name => new XElement("reference", new XAttribute("path", ProjectPath(name)),
-                name == "PrebuiltProfileCatalogGenerator" ? GeneratorMetadata.Select(item => new XElement("metadata", new XAttribute("name", item.Key), item.Value)) : [])))));
+                name == "PrebuiltProfileCatalogGenerator" ? _generatorMetadata.Select(item => new XElement("metadata", new XAttribute("name", item.Key), item.Value)) : [])))));
     }
 
     /// <summary>All shipped projects have all four required evaluations.</summary>
