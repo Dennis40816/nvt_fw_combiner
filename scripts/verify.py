@@ -1030,6 +1030,8 @@ def run_scrubbed_test(
     exit_code: int | None = None
     timeout: float | None = None
     timed_out = False
+    unexpected = False
+    capture_left = False
     try:
         with tempfile.TemporaryDirectory(prefix="nfc-scrub-test-", ignore_cleanup_errors=True) as temporary:
             try:
@@ -1042,6 +1044,11 @@ def run_scrubbed_test(
                 exit_code = error.returncode
             except subprocess.TimeoutExpired as error:
                 timed_out, timeout = True, error.timeout
+            except Exception:
+                # OSError and RuntimeError text can carry the command line. A termination request is a
+                # KeyboardInterrupt and passes through.
+                unexpected = True
+        capture_left = Path(temporary).exists()
     finally:
         # Evidence still expects attempt.log. Retain a fixed placeholder, never child output.
         for path in dict.fromkeys(p for p in (log_path, mirror_log_path) if p is not None):
@@ -1051,29 +1058,33 @@ def run_scrubbed_test(
                     log.write("Test output scrubbed.\n")
             except OSError:
                 print("Test output placeholder could not be written.", flush=True)
+    if capture_left:
+        print("Scrubbed test capture could not be removed.", flush=True)
+    if unexpected:
+        raise RuntimeError("Scrubbed test command failed.") from None
     if timed_out:
         # Preserve the shard's fatal-timeout branch without exposing arguments/output.
-        raise subprocess.TimeoutExpired([token], timeout)
+        raise subprocess.TimeoutExpired([token], timeout) from None
     if exit_code is not None:
         print(f"{token} exit {exit_code}", flush=True)
-        reader = _load_trx_reader()
         result_argument = next(
             (arg.split(":", 1)[1] for arg in command if arg.startswith("--ResultsDirectory:")), None
         )
         try:
+            reader = _load_trx_reader()
             if result_argument is None:
-                raise ValueError(reader.INVALID_TRX)
+                raise ValueError("TRX results missing or invalid.")
             directory = Path(result_argument)
             counts = reader.read_trx_results(directory if directory.is_absolute() else cwd / directory)
-        except ValueError:
-            print(reader.INVALID_TRX, flush=True)
+        except (ImportError, OSError, ValueError):
+            print("TRX results missing or invalid.", flush=True)
         else:
             print(" ".join(f"{name.lower()} {counts[name]}" for name in
                            ("Total", "Passed", "Failed", "Skipped", "NotExecuted")), flush=True)
             for name in counts["FailedTests"]:
                 print(name, flush=True)
         # CalledProcessError's default string contains the full command/filter.
-        raise subprocess.CalledProcessError(exit_code, [token])
+        raise subprocess.CalledProcessError(exit_code, [token]) from None
 
 
 def run(
@@ -1087,7 +1098,8 @@ def run(
     graceful_termination_seconds: float = 0,
 ) -> None:
     if (ci_scrub_test_output_enabled() and len(command) > 1 and command[1] == "vstest"
-            and any(arg.startswith("--ResultsDirectory:") for arg in command)):
+            and any(arg.startswith("--ResultsDirectory:") for arg in command)
+            and not any(arg.startswith("--List") for arg in command)):
         run_scrubbed_test(
             command, cwd=cwd, environment=environment, log_path=log_path,
             mirror_log_path=mirror_log_path, timeout_seconds=timeout_seconds,

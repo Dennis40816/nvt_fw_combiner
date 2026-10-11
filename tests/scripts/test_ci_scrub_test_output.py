@@ -67,7 +67,8 @@ class ScrubTestOutputTests(unittest.TestCase):
         from tests.scripts.test_verify_orchestration import MODULE
         with patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "0"}), patch.object(MODULE, "run_scrubbed_test") as scrub:
             with patch.object(MODULE, "_run_to_logs"):
-                MODULE.run(["dotnet", "vstest", "test.dll"], log_path=Path(tempfile.gettempdir()) / "nfc-unused-scrub.log")
+                MODULE.run(["dotnet", "vstest", "test.dll", "--ResultsDirectory:r"],
+                           log_path=Path(tempfile.gettempdir()) / "nfc-unused-scrub.log")
             scrub.assert_not_called()
         with patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}), patch.object(MODULE, "run_scrubbed_test") as scrub:
             with patch.object(MODULE, "_run_to_logs"):
@@ -132,6 +133,31 @@ class ScrubTestOutputTests(unittest.TestCase):
                     self.assertIsNone(caught.exception.__context__)
                     self.assertIsNone(caught.exception.__cause__)
                     self.assertNotIn(MARKER, str(caught.exception))
+
+    def test_unexpected_runner_error_is_replaced_by_a_fixed_text(self):
+        from tests.scripts.test_verify_orchestration import MODULE
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for failure in (FileNotFoundError(2, "missing", MARKER), RuntimeError(MARKER)):
+                with self.subTest(kind=type(failure).__name__):
+                    with (patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}),
+                          patch.object(MODULE, "_run_to_logs", side_effect=failure),
+                          redirect_stdout(io.StringIO())):
+                        with self.assertRaises(RuntimeError) as caught:
+                            MODULE.run([MARKER, "vstest", f"--ResultsDirectory:{root / 'r'}"], cwd=root,
+                                       log_path=root / "attempt.log")
+                    self.assertEqual("Scrubbed test command failed.", str(caught.exception))
+                    self.assertTrue(caught.exception.__suppress_context__)
+                    self.assertNotIn(MARKER, (root / "attempt.log").read_text())
+
+    def test_discovery_forms_are_never_scrubbed_even_with_a_results_directory(self):
+        from tests.scripts.test_verify_orchestration import MODULE
+        with patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "1"}), \
+                patch.object(MODULE, "run_scrubbed_test") as scrub, patch.object(MODULE, "_run_to_logs"):
+            for option in ("--ListTests", "--ListFullyQualifiedTests", "--ListDiscoverers"):
+                MODULE.run(["dotnet", "vstest", "test.dll", option, "--ResultsDirectory:r"],
+                           log_path=Path(tempfile.gettempdir()) / "nfc-unused-scrub.log")
+            scrub.assert_not_called()
 
     def test_placeholder_write_failure_does_not_replace_the_original_error(self):
         from tests.scripts.test_verify_orchestration import MODULE
