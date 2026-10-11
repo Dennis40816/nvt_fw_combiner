@@ -34,8 +34,7 @@ always-cleanup step for failures before the clone is created.
 `export-assets-layout.ps1` verifies the working tree, copies it to
 `<Destination>/nfc/...`, and verifies the export. It does not
 delete or move source files. The owner can commit this layout to the private
-test-data repository (Dennis40816/nvt-testdata, folder 
-fc) and then bind the
+test-data repository (`Dennis40816/nvt-testdata`, folder `nfc`) and then bind the
 public pin.
 
 `run-full.ps1` snapshots `git ls-files -z` from the working tree, including
