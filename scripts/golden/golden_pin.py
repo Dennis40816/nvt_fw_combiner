@@ -119,8 +119,8 @@ def verify(root: Path | str, pin: dict) -> dict:
 def load_pin(baseline: Path) -> dict:
     try:
         pin = json.loads(baseline.read_text(encoding="utf-8-sig"))["pin"]
-        if (pin["assetsRepo"] != "Dennis40816/nvt-private-assets"
-                or pin["assetsPath"] != "nfc/golden-assembly"
+        if (pin["assetsRepo"] != "Dennis40816/nvt-testdata"
+                or pin["assetsPath"] != "nfc"
                 or pin["paths"] != list(DEFAULT_PATHS)
                 or re.fullmatch(r"[0-9a-f]{40}", pin["assetsCommit"]) is None
                 or type(pin["fileCount"]) is not int or pin["fileCount"] < 0

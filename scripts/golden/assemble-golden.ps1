@@ -61,8 +61,8 @@ try {
         throw $failure
     }
     $pin = (Get-Content -LiteralPath $BaselinePath -Raw | ConvertFrom-Json).pin
-    if ($pin.assetsRepo -cne 'Dennis40816/nvt-private-assets' -or
-        $pin.assetsPath -cne 'nfc/golden-assembly' -or
+    if ($pin.assetsRepo -cne 'Dennis40816/nvt-testdata' -or
+        $pin.assetsPath -cne 'nfc' -or
         $pin.assetsCommit -cnotmatch '\A[0-9a-f]{40}\z') { throw $failure }
     if ($Mode -ne 'InTree') {
         Assert-TrustedEvent

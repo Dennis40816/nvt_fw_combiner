@@ -16,7 +16,7 @@ preserving every other byte and the baseline layout. It never binds
 actual private commit.
 
 `assemble-golden.ps1` defaults to `InTree`, which verifies the old public-tree
-layout. `FromDirectory` verifies the source under `nfc/golden-assembly`, copies
+layout. `FromDirectory` verifies the source under `nfc`, copies
 the pinned paths, and verifies both source and destination again. `Clone`
 uses a partial sparse Git checkout at the exact bound private commit, under
 `RUNNER_TEMP`, then applies the same verified copy. Private modes refuse an
@@ -32,9 +32,11 @@ Git trace output are disabled. Clone output is discarded. Its temporary clone
 always-cleanup step for failures before the clone is created.
 
 `export-assets-layout.ps1` verifies the working tree, copies it to
-`<Destination>/nfc/golden-assembly/...`, and verifies the export. It does not
+`<Destination>/nfc/...`, and verifies the export. It does not
 delete or move source files. The owner can commit this layout to the private
-assets repository and then bind the public pin.
+test-data repository (Dennis40816/nvt-testdata, folder 
+fc) and then bind the
+public pin.
 
 `run-full.ps1` snapshots `git ls-files -z` from the working tree, including
 uncommitted edits of tracked files. Newly added helpers must be tracked

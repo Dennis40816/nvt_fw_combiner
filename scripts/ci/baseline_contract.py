@@ -36,8 +36,8 @@ def validate_baseline(document: dict) -> None:
             raise ValueError("Invalid baseline.")
     pin = document["pin"]
     if (set(pin) != {"assetsRepo", "assetsPath", "assetsCommit", "paths", "fileCount", "treeSha256"}
-            or pin["assetsRepo"] != "Dennis40816/nvt-private-assets"
-            or pin["assetsPath"] != "nfc/golden-assembly"
+            or pin["assetsRepo"] != "Dennis40816/nvt-testdata"
+            or pin["assetsPath"] != "nfc"
             or pin["paths"] != ["testdata/golden", "docs/references"]
             or re.fullmatch(r"[0-9a-f]{40}", pin["assetsCommit"]) is None
             or re.fullmatch(r"[0-9a-f]{64}", pin["treeSha256"]) is None

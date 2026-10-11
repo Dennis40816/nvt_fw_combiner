@@ -72,10 +72,10 @@
       "additionalProperties": false,
       "properties": {
         "assetsRepo": {
-          "const": "Dennis40816/nvt-private-assets"
+          "const": "Dennis40816/nvt-testdata"
         },
         "assetsPath": {
-          "const": "nfc/golden-assembly"
+          "const": "nfc"
         },
         "assetsCommit": {
           "type": "string",

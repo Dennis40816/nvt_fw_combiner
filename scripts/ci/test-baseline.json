@@ -22,8 +22,8 @@
     }
   },
   "pin": {
-    "assetsRepo": "Dennis40816/nvt-private-assets",
-    "assetsPath": "nfc/golden-assembly",
+    "assetsRepo": "Dennis40816/nvt-testdata",
+    "assetsPath": "nfc",
     "assetsCommit": "0000000000000000000000000000000000000000",
     "paths": [
       "testdata/golden",
