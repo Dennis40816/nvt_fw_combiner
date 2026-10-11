@@ -139,7 +139,7 @@ public sealed class WindowLifetimeCoordinatorTests
         TaskCompletionSource session = NewSignal();
         TaskCompletionSource deadline = NewSignal();
         var host = new LifetimeHost { Preload = preload.Task, Work = [session.Task] };
-        host.Owner.CloseDeadlineFactory = _ => deadline.Task;
+        host.Owner.CloseDeadlineFactory = _ => deadline.Task.WaitAsync(TestContext.Current.CancellationToken);
         try
         {
             Assert.Equal(WindowLifetimeCoordinator.CloseDecision.Cancel, host.Owner.RequestClose());
@@ -165,7 +165,12 @@ public sealed class WindowLifetimeCoordinatorTests
     public async Task MissingViewModelRecoveryReopensThenOrdinaryExitIgnoresRacingActivation()
     {
         TaskCompletionSource handoff = NewSignal();
-        var host = new LifetimeHost { StartLauncher = async () => { await handoff.Task; return false; } };
+        async Task<bool> StartLauncherAsync()
+        {
+            await handoff.Task.WaitAsync(TestContext.Current.CancellationToken);
+            return false;
+        }
+        var host = new LifetimeHost { StartLauncher = StartLauncherAsync };
         host.Owner.RequestStableLauncherRestart();
         Assert.Equal(WindowLifetimeCoordinator.CloseDecision.Cancel, host.Owner.RequestClose());
         Task first = host.Owner.CloseAttempt;
@@ -348,12 +353,12 @@ public sealed class WindowLifetimeCoordinatorTests
                 sessionTasks: () => Work,
                 cancelStartup: () => Record("cancel-startup"),
                 stopPreload: () => Record("stop-preload"),
-                preloadUsersSettled: () => Preload,
+                preloadUsersSettled: () => Preload.WaitAsync(TestContext.Current.CancellationToken),
                 completeLocalState: () =>
                 {
                     Record("complete");
                     _ = SealingEntered.TrySetResult();
-                    return Persistence;
+                    return Persistence.WaitAsync(TestContext.Current.CancellationToken);
                 },
                 reopenLocalState: () =>
                 {
@@ -389,7 +394,7 @@ public sealed class WindowLifetimeCoordinatorTests
                 close: () => { CloseCalls++; Closing?.Invoke(); },
                 disposeResources: () => Record("dispose"))
             {
-                CloseDeadlineFactory = _ => new TaskCompletionSource().Task,
+                CloseDeadlineFactory = _ => NewSignal().Task.WaitAsync(TestContext.Current.CancellationToken),
             };
         }
 

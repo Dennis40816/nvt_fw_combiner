@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "measurementVersion": "roslyn-physical-v1",
-  "snapshotCommit": "28e240414835115ddfa9d2f9f7845807de9196e3",
+  "snapshotCommit": "65797034f7e85f26819f7028fea02d58a73cffb2",
   "limits": {
     "stateMembers": 30,
     "methodLines": 80,
@@ -1525,7 +1525,7 @@
       "owner": "NFC",
       "ceilings": {
         "partialFiles": 10,
-        "viewTypeLines": 1998
+        "viewTypeLines": 1691
       },
       "kind": "type",
       "project": "NvtFwCombiner.Presentation.Avalonia",
@@ -1543,12 +1543,12 @@
         "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs"
       ],
       "issue": "health-refactor/2026-10-31",
-      "contentHash": "5a458af2bff02b9f29a305790a31a2cd83aee6154b57164ae5daea97d6bdc37a"
+      "contentHash": "1d56b476ddb382758e46482e66c4c0bc38621c39fe1a715f95e8917d0a5f4f89"
     },
     {
       "owner": "NFC",
       "ceilings": {
-        "axamlCodeBehindLines": 793
+        "axamlCodeBehindLines": 739
       },
       "kind": "file",
       "project": "NvtFwCombiner.Presentation.Avalonia",
@@ -1557,12 +1557,12 @@
         "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs"
       ],
       "issue": "health-refactor/2026-10-31",
-      "contentHash": "99d723eb4a697bebbcbf9f055a13227114abee479c8b1e2373870e3c20372eb3"
+      "contentHash": "a089cd0d0bb02117eff1b60588330a2be11e0ab1b7a84672581ae5ec0c96e1c5"
     },
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 95
+        "methodLines": 94
       },
       "kind": "member",
       "project": "NvtFwCombiner.Presentation.Avalonia",
@@ -1571,7 +1571,7 @@
         "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs"
       ],
       "issue": "health-refactor/2026-10-31",
-      "contentHash": "11aa6d2a5e913968ec0c1583444db2a09f77c44c6dc6d4cfc73c061efb3f73c6"
+      "contentHash": "0bff4853c90172edf4452bc7d32b11a2e3b120d7ecb9fc9260e52e984a832e03"
     },
     {
       "owner": "NFC",
@@ -1590,20 +1590,6 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 83
-      },
-      "kind": "member",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "symbol": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunCloseAttemptAsync()",
-      "locations": [
-        "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs"
-      ],
-      "issue": "health-refactor/2026-10-31",
-      "contentHash": "5bcd27cf215501cdad917eb895f7b2ea964175110467311edcc7bdd3045cc4fa"
-    },
-    {
-      "owner": "NFC",
-      "ceilings": {
         "methodLines": 88
       },
       "kind": "member",
@@ -1614,20 +1600,6 @@
       ],
       "issue": "health-refactor/2026-10-31",
       "contentHash": "723e45528b77fe3c397f1a0abcb8b14c222119591e6f12adb7e5ff554b3db005"
-    },
-    {
-      "owner": "NFC",
-      "ceilings": {
-        "methodLines": 85
-      },
-      "kind": "member",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "symbol": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ReportStableLauncherHandoffFailureAsync()",
-      "locations": [
-        "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs"
-      ],
-      "issue": "health-refactor/2026-10-31",
-      "contentHash": "ee3a28b86d5f6e42edcf1d9b0e07f78cd206868ee34c840fe930a2f658c30b32"
     },
     {
       "owner": "NFC",
@@ -3965,7 +3937,7 @@
         "tests/NvtFwCombiner.Architecture.Tests/PresentationBoundaryTests.SupportMatrixStructure.cs"
       ],
       "issue": "health-refactor/2026-10-31",
-      "contentHash": "9a19d8277d9767dd90ef9cccca2c578647036dcbcc210563b48d2d3c1a8fe989"
+      "contentHash": "7bc3b8d8d35d65d1660cd6049ac494e485734ff2537c1260c5f90d15225c11bc"
     },
     {
       "owner": "NFC",
@@ -4072,7 +4044,7 @@
         "tests/NvtFwCombiner.Architecture.Tests/RepositoryBoundaryTests.WorkbenchStructure.cs"
       ],
       "issue": "health-refactor/2026-10-31",
-      "contentHash": "7075ff3b742cf7a0e118c46575b89a41aecf6d396970219e4598f3bc3c4259c7"
+      "contentHash": "731b718beeb937026bddf6e001fc2e869441c0be29df335a192444bbfe6b4e18"
     },
     {
       "owner": "NFC",
@@ -4451,20 +4423,6 @@
       ],
       "issue": "health-refactor/2026-10-31",
       "contentHash": "5885d2836ad9967dcbcb4d3269704c4fbd1b5f285c1cb1dbcc6706cde6c9517f"
-    },
-    {
-      "owner": "NFC",
-      "ceilings": {
-        "methodLines": 87
-      },
-      "kind": "member",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "symbol": "NvtFwCombiner.Bootstrap.Tests.CanonicalFormalRouteRuntimeClosureTests.ExecuteCaseAsync(CompositionHostServices,CanonicalTestContext,CanonicalFormalRouteRuntimeCase,TempWorkspace)",
-      "locations": [
-        "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalFormalRouteRuntimeClosureTests.cs"
-      ],
-      "issue": "health-refactor/2026-10-31",
-      "contentHash": "402a140006d01d1b8af0d75e0a7691ed88b88682253a5a09032e9320bec14abf"
     },
     {
       "owner": "NFC",
@@ -7370,7 +7328,7 @@
         "tests/NvtFwCombiner.UiSmoke.Tests/XamlControlStyleContractTests.TpSvnValueNote.cs"
       ],
       "issue": "health-refactor/2026-10-31",
-      "contentHash": "09a65e8ae1e50763a416ccc98d9b4b457d733c560c10b81b8f88210f3372ba40"
+      "contentHash": "002d5bea07361752c8f0d809772610975e6e8c42510c9bb906491c94dacded32"
     },
     {
       "owner": "NFC",
@@ -9764,17 +9722,6 @@
       "symbol": "WaitAll",
       "syntaxHash": "a210fc0258b533678422ea4f84dea9d8c999262b8318143f1c3462aea9aff561",
       "path": "tests/NvtFwCombiner.Architecture.Tests/PackageTrustBoundaryTests.PackageTrustMaterializationBatch.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Architecture.Tests.ProjectDependencyTests",
-      "project": "NvtFwCombiner.Architecture.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "workspaceDuplicates",
-      "symbol": "NvtFwCombiner.Architecture.Tests.ProjectDependencyTests",
-      "syntaxHash": "3f4585911fca9a146939885fc1d9767587614d6f4eb8aff2502ae3d11a358b16",
-      "path": "tests/NvtFwCombiner.Architecture.Tests/ProjectDependencyTests.cs",
       "count": 1
     },
     {
@@ -15113,17 +15060,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.DrainAdmittedWindowWorkAsync(MainWindowViewModel,CancellationToken)",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "CA1031",
-      "symbol": "CA1031",
-      "syntaxHash": "ff7f53aa5b636c4a797ad2525c10cc5070e910dd87ec200efc904ecbe1117762",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.LoadReportJsonCoreAsync(Control?,IStorageProvider,CancellationToken)",
       "project": "NvtFwCombiner.Presentation.Avalonia",
       "owner": "NFC",
@@ -15190,61 +15126,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ObserveRecoveryAndDisposeAsync(Task<PendingActivationRecoveryStatus>,CancellationTokenSource)",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "CA1031",
-      "symbol": "CA1031",
-      "syntaxHash": "5a273318b75c130e7206ded677faf10db4fc5f7924eb63aea946599bfab9a91e",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ReportStableLauncherHandoffFailureAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "CA1031",
-      "symbol": "CA1031",
-      "syntaxHash": "2520fb447ab476aaccc6ceeb6542f71b3e1a003f6ef06212467c6c2f535a42aa",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunCloseAttemptAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "CA1031",
-      "symbol": "CA1031",
-      "syntaxHash": "2d3a2f698b72c07ad9844f9e9db1d562089e331b95f4c6a99e04c6798f239700",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunCloseAttemptAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "CA1031",
-      "symbol": "CA1031",
-      "syntaxHash": "31b007e14d8d1042084dd22d57bcb328a2218aa9c666cd4c2781dc3ba351f3aa",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunCloseAttemptAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "CA1031",
-      "symbol": "CA1031",
-      "syntaxHash": "386f1d3a57bd38d4436f4c866712365d8614735c0081d8ad81f74e55ed2878c2",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunStartupAfterOpenedAsync(MainWindowViewModel,CancellationToken)",
       "project": "NvtFwCombiner.Presentation.Avalonia",
       "owner": "NFC",
@@ -15264,17 +15145,6 @@
       "symbol": "CA1031",
       "syntaxHash": "8fa87a09f1d58470cefd3b094184d79bd43e404b593105daff72b3d12093569f",
       "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.TryCompleteStableLauncherHandoffAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "CA1031",
-      "symbol": "CA1031",
-      "syntaxHash": "39b72b471d5824ccc6cb7f9b4bd98759dfd7adc6dded51fca9eab329c07d303c",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
       "count": 1
     },
     {
@@ -17079,17 +16949,6 @@
       "symbol": "IDE1006",
       "syntaxHash": "cbd93a7a057d66b015a0349d6d501b16c2f0d608f6db8eff6496db513de5083d",
       "path": "tests/NvtFwCombiner.Architecture.Tests/PackageTrustBoundaryTests.PackageTrustMaterializationBatch.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Architecture.Tests.ProjectDependencyTests.fields:SourceRoots",
-      "project": "NvtFwCombiner.Architecture.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "IDE1006",
-      "symbol": "IDE1006",
-      "syntaxHash": "2b7fdc3327067af1fafce043f2161b80b891b75ad7a08fadea5d7cfde82d8a42",
-      "path": "tests/NvtFwCombiner.Architecture.Tests/ProjectDependencyTests.cs",
       "count": 1
     },
     {
@@ -20745,17 +20604,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Architecture.Tests.ProjectDependencyTests.AssertSourceConsumersReferenceOwner(DirectoryInfo,string,string,string)",
-      "project": "NvtFwCombiner.Architecture.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllText(System.String)",
-      "syntaxHash": "0baae0cce9e0fe3af2875dd3b67e77805f14795c352a94a2ec838e65937527e1",
-      "path": "tests/NvtFwCombiner.Architecture.Tests/ProjectDependencyTests.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Architecture.Tests.ProjectDependencyTests.CliTestsInjectOnlyTheirIsolatedLocalStatePathsIntoTheProductionCompositionRoot()",
       "project": "NvtFwCombiner.Architecture.Tests",
       "owner": "NFC",
@@ -20785,28 +20633,6 @@
       "rule": "RS0030",
       "symbol": "M:System.IO.File.ReadAllText(System.String)",
       "syntaxHash": "fb6834e270cfe4e324cca1b8f46a30e72d92412141e5856408d5fece7923b682",
-      "path": "tests/NvtFwCombiner.Architecture.Tests/ProjectDependencyTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Architecture.Tests.ProjectDependencyTests.SharedRepositoryPathsPreservesUnsetUpwardDiscovery()",
-      "project": "NvtFwCombiner.Architecture.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.WriteAllText(System.String,System.String)",
-      "syntaxHash": "119b1e7e54bea48b4e1dbb51f00246551606a16608506ab00ac278a45231abdc",
-      "path": "tests/NvtFwCombiner.Architecture.Tests/ProjectDependencyTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Architecture.Tests.ProjectDependencyTests.SharedRepositoryPathsPreservesUnsetUpwardDiscovery()",
-      "project": "NvtFwCombiner.Architecture.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.Path.GetTempPath",
-      "syntaxHash": "139bd9b7bb090385265e9804acedfe47631594d276afb5180862f73c3ecacc90",
       "path": "tests/NvtFwCombiner.Architecture.Tests/ProjectDependencyTests.cs",
       "count": 1
     },
@@ -23173,61 +22999,6 @@
       "symbol": "M:System.IO.File.ReadAllText(System.String)",
       "syntaxHash": "b0d280b074eeade4e9203d844d9db566121c6cdf8e7829c1616da52df7709f22",
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalCapabilityCatalogMigrationTests.DynamicCompilation.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CanonicalFormalRouteRuntimeClosureTests.AssertExpectedFirmwareConfigChipCount(CanonicalFormalRouteRuntimeCase)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "39065a41de7b51978be730c5f4aa2547290d9cf4a4e26617163bfb1d5ff40f14",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalFormalRouteRuntimeClosureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CanonicalFormalRouteRuntimeClosureTests.AssertExpectedFirmwareConfigChipCount(CanonicalFormalRouteRuntimeCase)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "8ffac714dfda00846974cd44c490891619d84ff89b74437759c6d939418487fc",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalFormalRouteRuntimeClosureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CanonicalFormalRouteRuntimeClosureTests.ExecuteCaseAsync(CompositionHostServices,CanonicalTestContext,CanonicalFormalRouteRuntimeCase,TempWorkspace)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "2707c6d5e575ca34b2ad3c4b64928cbcd2b308ffbdde6e7b3003af06153e26bb",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalFormalRouteRuntimeClosureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CanonicalFormalRouteRuntimeClosureTests.PrepareAsync(CompositionHostServices,CanonicalTestContext,CanonicalFormalRouteRuntimeCase)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "0e154c42d4bf94712bc78c12b309f351ddeee89a422fc3ea18e38b4e9ad45cbc",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalFormalRouteRuntimeClosureTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Bootstrap.Tests.CanonicalFormalRouteRuntimeClosureTests.ReadSelectedInputs(IReadOnlyDictionary<string, string>)",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "2d3968cc75787fcabcb50559db6e6d4c71b199183811a41f07d04ee80746dad0",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/CanonicalFormalRouteRuntimeClosureTests.cs",
       "count": 1
     },
     {
@@ -38763,28 +38534,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.CloseDeadlineFactory",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.Threading.Tasks.Task.Delay(System.TimeSpan)",
-      "syntaxHash": "76e69ad9134cb341472cbe5cc38d3811a0b0b619cbe4e16000e86147e87cdeed",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.DrainAdmittedWindowWorkAsync(MainWindowViewModel,CancellationToken)",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "T:System.Diagnostics.Trace",
-      "syntaxHash": "241274cfc3f77f3ff447316c6a2094e6ea412d1bf5486002e835eace3de19785",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ObserveAndReleaseSessionAsync(CancellationTokenSource,Task[],bool)",
       "project": "NvtFwCombiner.Presentation.Avalonia",
       "owner": "NFC",
@@ -38818,17 +38567,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ObserveCloseAttempt(Task)",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "T:System.Diagnostics.Trace",
-      "syntaxHash": "2ac19eb59dc25e736b6381455396c146f4ea89d30e437228ad0b556d3d1c0390",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ObserveLauncherAndDisposeAsync(Task<StableLauncherStartResult>,CancellationTokenSource)",
       "project": "NvtFwCombiner.Presentation.Avalonia",
       "owner": "NFC",
@@ -38837,28 +38575,6 @@
       "symbol": "T:System.Diagnostics.Trace",
       "syntaxHash": "7457d844d7f18531bd8b80bdba2505fd1a454b8281863118e50473dcf5bbf91a",
       "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ObserveRecoveryAndDisposeAsync(Task<PendingActivationRecoveryStatus>,CancellationTokenSource)",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "T:System.Diagnostics.Trace",
-      "syntaxHash": "5939ddfcc78df929faa7e135026a528a46c080d680e608d96ae8ec1d81325f39",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.PostFinalClose()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "P:Avalonia.Threading.Dispatcher.UIThread",
-      "syntaxHash": "e1ccbedaa40d278bdaba5e91f477422b7bd0dd85a92fd7e885e53d1b315f9b52",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
       "count": 1
     },
     {
@@ -38884,28 +38600,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ReportStableLauncherHandoffFailureAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "P:Avalonia.Threading.Dispatcher.UIThread",
-      "syntaxHash": "f0ffec900d5ed8405e9e3550d8e351ae78a7e21406b2a8513852111cb5ef54d7",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ReportStableLauncherHandoffFailureAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "T:System.Diagnostics.Trace",
-      "syntaxHash": "4753c859f0fab932de9e956bb1cbd6597aad3d1b1d6da7bfc9eb4554de9120c6",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ReportStartupFileProgress(Action<long, long>,LocalFileReadProgress,CancellationToken)",
       "project": "NvtFwCombiner.Presentation.Avalonia",
       "owner": "NFC",
@@ -38925,39 +38619,6 @@
       "symbol": "P:Avalonia.Threading.Dispatcher.UIThread",
       "syntaxHash": "8d470568b218873e5faa67149b60a145bd006d2590f79eb17a15762dc1263107",
       "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Report.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunCloseAttemptAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "T:System.Diagnostics.Trace",
-      "syntaxHash": "7e2d141b85cc27b21391585a76a0936fe1700eadf211668c2eb1b83f0bcfb588",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunCloseAttemptAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "T:System.Diagnostics.Trace",
-      "syntaxHash": "87d2c6a57814628f87cb89d24ab3bcd62349d991fce2dd171fd50deb14fb7166",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunCloseAttemptAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "T:System.Diagnostics.Trace",
-      "syntaxHash": "a9a6b092a2631d1383537d7a3832f31b5a763ce95a1feea444f76bd49a782309",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
       "count": 1
     },
     {
@@ -39002,17 +38663,6 @@
       "symbol": "T:System.Diagnostics.Trace",
       "syntaxHash": "5b6ab57616ef6befad3f282547d9c71a0cf099d2f2d414fb2cb43b3d2aecd9a7",
       "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.TryCompleteStableLauncherHandoffAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "T:System.Diagnostics.Trace",
-      "syntaxHash": "de3ad3fd553d7a5d4667fe544b43141c44211f48943f188f60268f72ac2a3a8a",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
       "count": 1
     },
     {
@@ -51419,17 +51069,6 @@
       "removeBy": "2026-10-31",
       "rule": "suppressionScopes",
       "symbol": "attribute:CA2000",
-      "syntaxHash": "8a8e2fff3690f921ca7bc31c205ff05a39cf78eba6d3de9cf7884695e46ab436",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.TryStartStableLauncherAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "suppressionScopes",
-      "symbol": "attribute:CA2000",
       "syntaxHash": "8becd8afd65ff5762f9c0dfc6e556ea5d610447cea603ad48509b0dc5fd73ef3",
       "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
       "count": 1
@@ -63645,28 +63284,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ObserveRecoveryAndDisposeAsync(Task<PendingActivationRecoveryStatus>,CancellationTokenSource)",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "VSTHRD003",
-      "symbol": "VSTHRD003",
-      "syntaxHash": "539be313f0e528100f0dedef559ede3ecc43cb006fa6caf0f659b729e5361493",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.WaitWithinCloseDeadlineAsync(Task)",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "VSTHRD003",
-      "symbol": "VSTHRD003",
-      "syntaxHash": "c83d470f8fa60d1705e18e2f6f56ba62dff99939a8e7e4ecd1e6fa2260761f74",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Presentation.Avalonia.ShellPreloadSession.DrainWithinDeadlineAsync(Task)",
       "project": "NvtFwCombiner.Presentation.Avalonia",
       "owner": "NFC",
@@ -66494,50 +66111,6 @@
       "count": 1
     },
     {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ReportStableLauncherHandoffFailureAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "VSTHRD103",
-      "symbol": "VSTHRD103",
-      "syntaxHash": "a436ae62f30aa04bf92a23600d82b4fa727831e1d01b9e34fe934e80120ddef0",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 2
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.ReportStableLauncherHandoffFailureAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "VSTHRD103",
-      "symbol": "VSTHRD103",
-      "syntaxHash": "e77656c870585d24a26a9221f95320b7869684a64de33566cb31e4d0c36be3b5",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunCloseAttemptAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "VSTHRD103",
-      "symbol": "VSTHRD103",
-      "syntaxHash": "1f2c89843f2edd020a96ea8362e100dab4dff14a1efb75e3c8a9687472d22cc3",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.RunCloseAttemptAsync()",
-      "project": "NvtFwCombiner.Presentation.Avalonia",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "VSTHRD103",
-      "symbol": "VSTHRD103",
-      "syntaxHash": "e63032ae63519c402518bbbb52b700c623cad9d18d1818c2274ab771a0caf1df",
-      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
-      "count": 1
-    },
-    {
       "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.TryStartStableLauncherAsync()",
       "project": "NvtFwCombiner.Presentation.Avalonia",
       "owner": "NFC",
@@ -67338,6 +66911,259 @@
       "symbol": "VSTHRD200",
       "syntaxHash": "9648e94a8cd602fafe956b5d93684266602eafe84336ccb2919694c5f14e68f0",
       "path": "src/NvtFwCombiner.VersionManagement.Infrastructure/VersionManagement/StableLauncherHandoff.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.DrainAdmittedWindowWorkAsync(MainWindowViewModel,CancellationToken)",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "CA1031",
+      "symbol": "CA1031",
+      "syntaxHash": "ff7f53aa5b636c4a797ad2525c10cc5070e910dd87ec200efc904ecbe1117762",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.ObserveRecoveryAndDisposeAsync(Task<PendingActivationRecoveryStatus>,CancellationTokenSource)",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "CA1031",
+      "symbol": "CA1031",
+      "syntaxHash": "5a273318b75c130e7206ded677faf10db4fc5f7924eb63aea946599bfab9a91e",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.ReportStableLauncherHandoffFailureAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "CA1031",
+      "symbol": "CA1031",
+      "syntaxHash": "2520fb447ab476aaccc6ceeb6542f71b3e1a003f6ef06212467c6c2f535a42aa",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.RunCloseAttemptAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "CA1031",
+      "symbol": "CA1031",
+      "syntaxHash": "4d4abdfc59be9f15882f03a2ce3071025dcc0c4fcd33aba37bdf436d9defee19",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.RunCloseAttemptAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "CA1031",
+      "symbol": "CA1031",
+      "syntaxHash": "54ee8acbe6bf2d1de60325b4a8a54baed655889ca380defd9b44bbfbb1cdd2c0",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.RunCloseAttemptAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "CA1031",
+      "symbol": "CA1031",
+      "syntaxHash": "b984dcddb10281c4a10c6e9658be3cdc29eaad4a25571b1034f11795f315de03",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.TryCompleteStableLauncherHandoffAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "CA1031",
+      "symbol": "CA1031",
+      "syntaxHash": "085aedddf4f5c00188b96556ca6503e17b96fe8298ea555566c77ee39ee07044",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.CreateWindowLifetime()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "P:Avalonia.Threading.Dispatcher.UIThread",
+      "syntaxHash": "7c62c1af02242ee22495edfc59dadd959c5ec0a5a5b2a135cdfa2e83667b678c",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.CloseDeadlineFactory",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "M:System.Threading.Tasks.Task.Delay(System.TimeSpan)",
+      "syntaxHash": "76e69ad9134cb341472cbe5cc38d3811a0b0b619cbe4e16000e86147e87cdeed",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.DrainAdmittedWindowWorkAsync(MainWindowViewModel,CancellationToken)",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "T:System.Diagnostics.Trace",
+      "syntaxHash": "241274cfc3f77f3ff447316c6a2094e6ea412d1bf5486002e835eace3de19785",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.ObserveCloseAttempt(Task)",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "T:System.Diagnostics.Trace",
+      "syntaxHash": "2ac19eb59dc25e736b6381455396c146f4ea89d30e437228ad0b556d3d1c0390",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.ObserveRecoveryAndDisposeAsync(Task<PendingActivationRecoveryStatus>,CancellationTokenSource)",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "T:System.Diagnostics.Trace",
+      "syntaxHash": "5939ddfcc78df929faa7e135026a528a46c080d680e608d96ae8ec1d81325f39",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.ReportStableLauncherHandoffFailureAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "T:System.Diagnostics.Trace",
+      "syntaxHash": "4753c859f0fab932de9e956bb1cbd6597aad3d1b1d6da7bfc9eb4554de9120c6",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.RunCloseAttemptAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "T:System.Diagnostics.Trace",
+      "syntaxHash": "7e2d141b85cc27b21391585a76a0936fe1700eadf211668c2eb1b83f0bcfb588",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.RunCloseAttemptAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "T:System.Diagnostics.Trace",
+      "syntaxHash": "87d2c6a57814628f87cb89d24ab3bcd62349d991fce2dd171fd50deb14fb7166",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.RunCloseAttemptAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "T:System.Diagnostics.Trace",
+      "syntaxHash": "a9a6b092a2631d1383537d7a3832f31b5a763ce95a1feea444f76bd49a782309",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.TryCompleteStableLauncherHandoffAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "RS0030",
+      "symbol": "T:System.Diagnostics.Trace",
+      "syntaxHash": "de3ad3fd553d7a5d4667fe544b43141c44211f48943f188f60268f72ac2a3a8a",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.TryStartStableLauncherAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "suppressionScopes",
+      "symbol": "attribute:CA2000",
+      "syntaxHash": "ce48dd2e4d03991a9f8725f55a77709a41e1d250aa6145068770f4f5c851b32f",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.VersionManagement.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.MainWindow.CreateWindowLifetime()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "VSTHRD003",
+      "symbol": "VSTHRD003",
+      "syntaxHash": "7c62c1af02242ee22495edfc59dadd959c5ec0a5a5b2a135cdfa2e83667b678c",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.Lifetime.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.ObserveRecoveryAndDisposeAsync(Task<PendingActivationRecoveryStatus>,CancellationTokenSource)",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "VSTHRD003",
+      "symbol": "VSTHRD003",
+      "syntaxHash": "539be313f0e528100f0dedef559ede3ecc43cb006fa6caf0f659b729e5361493",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.WaitWithinCloseDeadlineAsync(Task)",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "VSTHRD003",
+      "symbol": "VSTHRD003",
+      "syntaxHash": "c83d470f8fa60d1705e18e2f6f56ba62dff99939a8e7e4ecd1e6fa2260761f74",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 1
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.ReportStableLauncherHandoffFailureAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "VSTHRD103",
+      "symbol": "VSTHRD103",
+      "syntaxHash": "a436ae62f30aa04bf92a23600d82b4fa727831e1d01b9e34fe934e80120ddef0",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
+      "count": 2
+    },
+    {
+      "member": "NvtFwCombiner.Presentation.Avalonia.WindowLifetimeCoordinator.RunCloseAttemptAsync()",
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "owner": "NFC",
+      "removeBy": "2026-10-31",
+      "rule": "VSTHRD103",
+      "symbol": "VSTHRD103",
+      "syntaxHash": "e63032ae63519c402518bbbb52b700c623cad9d18d1818c2274ab771a0caf1df",
+      "path": "src/NvtFwCombiner.Presentation.Avalonia/WindowLifetimeCoordinator.cs",
       "count": 1
     }
   ]

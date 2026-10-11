@@ -1,7 +1,6 @@
 // Copyright (c) 2026 Dennis Liu. All rights reserved.
 
 using System.Collections.Immutable;
-using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap.Tests;

@@ -14,9 +14,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels
         {
             return () => { GC.KeepAlive(capture); global::Avalonia.Controls.ForbiddenAsyncControl.Touch(); };
         }
-        internal static Func<Task> AsyncClosure(Task completion)
+        internal static System.Func<System.Threading.Tasks.Task> AsyncClosure(System.Threading.Tasks.Task completion)
         {
-            return async () => { GC.KeepAlive(completion); await Task.CompletedTask.ConfigureAwait(false); global::Avalonia.Controls.ForbiddenAsyncControl.Touch(); };
+            return async () => { GC.KeepAlive(completion); await System.Threading.Tasks.Task.CompletedTask.ConfigureAwait(false); global::Avalonia.Controls.ForbiddenAsyncControl.Touch(); };
         }
         internal static Action Pick(string value)
         {

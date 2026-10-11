@@ -1,4 +1,3 @@
-#pragma warning disable CA1707 // Owner requires Method_Scenario_Expected names.
 using System.Collections.Immutable;
 using NvtFwCombiner.Architecture.Tests.Metadata;
 
@@ -18,7 +17,7 @@ public sealed class CompiledMetadataBoundaryTests
     private const string Presentation = MetadataFixtureBuilder.Presentation;
     // UiCompositionRunner is a ViewModel projection helper (accepted layering audit, memory-layout row).
     // Namespace roles are explicit; these reusable primitives historically reside under Views.
-    private static readonly ImmutableDictionary<string, string> ExactRoles = new Dictionary<string, string>(StringComparer.Ordinal)
+    private static readonly ImmutableDictionary<string, string> _exactRoles = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["Views.HexViewportControl"] = "Control",
         ["Views.MemoryCoverageBar"] = "Control",
@@ -49,7 +48,7 @@ public sealed class CompiledMetadataBoundaryTests
         string root = type.Split('+')[0];
         if (!root.StartsWith(Presentation + ".", StringComparison.Ordinal)) { return "Other"; }
         string relative = root[(Presentation.Length + 1)..];
-        return ExactRoles.TryGetValue(relative, out string? role)
+        return _exactRoles.TryGetValue(relative, out string? role)
             ? role
             : relative switch
             {
@@ -80,7 +79,7 @@ public sealed class CompiledMetadataBoundaryTests
     }
     // Reviewed N0a legacy findings only. Remove resolved entries; never add new allowances.
     // N0b moves these exact identities and reasons into its ratcheted baseline.
-    private static readonly ImmutableArray<(BoundaryFinding Finding, string Reason)> KnownViolations =
+    private static readonly ImmutableArray<(BoundaryFinding Finding, string Reason)> _knownViolations =
     [
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", ".ctor(System.Func`3<System.Action,System.TimeSpan,System.IDisposable>)", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageSegmentViewModel"),
         .. Known("A2.ControlViewModels", "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar", ".ctor(System.Func`3<System.Action,System.TimeSpan,System.IDisposable>) [closure]", "Legacy shared coverage primitive consumes ViewModels display models; N0b owns its exact debt.", "NvtFwCombiner.Presentation.Avalonia.ViewModels.MemoryCoverageBarItem"),
@@ -158,7 +157,7 @@ public sealed class CompiledMetadataBoundaryTests
     public void Boundaries_CurrentAssemblies_MatchReviewedKnownViolations()
     {
         ImmutableArray<BoundaryFinding> actual = Find(AssemblyInventory.Load().SelectMany(input => MetadataReferenceWalker.Read(input.Image, Path.GetDirectoryName(input.Path))));
-        Assert.True(KnownViolations.Select(item => item.Finding.ToString()).Order(StringComparer.Ordinal).SequenceEqual(actual.Select(item => item.ToString())), string.Join(Environment.NewLine, actual));
+        Assert.True(_knownViolations.Select(item => item.Finding.ToString()).Order(StringComparer.Ordinal).SequenceEqual(actual.Select(item => item.ToString())), string.Join(Environment.NewLine, actual));
     }
     /// <summary>Every metadata traversal surface can expose a forbidden Control.</summary>
     [Theory]
@@ -222,7 +221,7 @@ public sealed class CompiledMetadataBoundaryTests
     [InlineData("Generic`2(!!0) [closure]")]
     public void Boundaries_CompiledGeneratedBody_NamesLogicalOwner(string member)
     {
-        ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read([.. File.ReadAllBytes(typeof(CompiledMetadataBoundaryTests).Assembly.Location)]);
+        ImmutableArray<MetadataReference> references = MetadataReferenceWalker.Read([.. AssemblyInventory.ReadBytes(typeof(CompiledMetadataBoundaryTests).Assembly.Location)]);
         Assert.Contains("A2.ViewModelControls: " + Presentation + ".ViewModels.AsyncBoundaryFixture | " + member,
             Assert.ThrowsAny<Exception>(() => RequireClean(references)).Message, StringComparison.Ordinal);
     }

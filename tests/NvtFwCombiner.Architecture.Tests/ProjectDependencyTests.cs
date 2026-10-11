@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Architecture.Tests;
 /// <summary>Architecture boundary tests for project references and source inclusion.</summary>
 public sealed class ProjectDependencyTests
 {
-    private static readonly string[] SourceRoots = ["src", "tests"];
+    private static readonly string[] _sourceRoots = ["src", "tests"];
 
     /// <summary>Verifies that the domain project remains free of project references.</summary>
     [Fact]
@@ -91,14 +91,14 @@ public sealed class ProjectDependencyTests
     {
         string[] consumerProjects =
         [
-            .. SourceRoots
+            .. _sourceRoots
                 .SelectMany(directory => Directory.EnumerateFiles(
                     Path.Combine(root.FullName, directory),
                     "*.cs",
                     SearchOption.AllDirectories))
                 .Where(path => !path.Split(Path.DirectorySeparatorChar)
                     .Any(part => part is "bin" or "obj"))
-                .Where(path => File.ReadAllText(path).Contains(
+                .Where(path => ReadSourceText(path).Contains(
                     ownedNamespace,
                     StringComparison.Ordinal))
                 .Select(FindOwningProject)
@@ -203,12 +203,13 @@ public sealed class ProjectDependencyTests
     [Fact]
     public void SharedRepositoryPathsPreservesUnsetUpwardDiscovery()
     {
-        string owner = Path.Combine(
-            Path.GetTempPath(),
-            $"nvt-fw-combiner-architecture-root-{Guid.NewGuid():N}");
+        string owner = Directory.CreateTempSubdirectory("nvt-fw-combiner-architecture-root-").FullName;
         string nested = Path.Combine(owner, "nested", "output");
         _ = Directory.CreateDirectory(nested);
-        File.WriteAllText(Path.Combine(owner, "NvtFwCombiner.slnx"), string.Empty);
+        using (File.Create(Path.Combine(owner, "NvtFwCombiner.slnx")))
+        {
+        }
+
         try
         {
             Assert.Equal(
@@ -323,6 +324,12 @@ public sealed class ProjectDependencyTests
             "return Create(new ExternalProcessorEnvironmentLoader(session), loadPolicy, localStateDirectory,",
             bootstrap,
             StringComparison.Ordinal);
+    }
+
+    private static string ReadSourceText(string path)
+    {
+        using StreamReader reader = File.OpenText(path);
+        return reader.ReadToEnd();
     }
 
     private static DirectoryInfo FindRepositoryRoot()
