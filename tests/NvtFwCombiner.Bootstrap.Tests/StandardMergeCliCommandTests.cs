@@ -567,7 +567,7 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.Equal(70, result.ExitCode);
         Assert.True(GoldenDiagnostics.Contains("Report path must not overwrite input artifact", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        GoldenAssert.AssertEqualsGolden(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(dp, await GoldenFileIo.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Rejects Standard Merge build outputs that would overwrite an input BIN.</summary>
@@ -596,7 +596,7 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.Equal(70, result.ExitCode);
         Assert.True(GoldenDiagnostics.Contains("Output path must not overwrite input artifact", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        GoldenAssert.AssertEqualsGolden(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(dp, await GoldenFileIo.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Rejects report paths that would overwrite a successfully built firmware image.</summary>
@@ -656,7 +656,7 @@ public sealed class StandardMergeCliCommandTests
                 .AsTask());
 
         Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
-        GoldenAssert.AssertEqualsGolden(dp, await File.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(dp, await GoldenFileIo.ReadAllBytesAsync(dpPath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Verifies DP Perspective Standard Merge build uses the selected DP BIN length.</summary>

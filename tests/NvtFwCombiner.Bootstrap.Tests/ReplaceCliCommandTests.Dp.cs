@@ -29,7 +29,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.True(GoldenDiagnostics.Contains("cli.retired-experience", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         Assert.Equal(before, Directory.GetFileSystemEntries(workspace.Root).Order(StringComparer.Ordinal));
-        GoldenAssert.AssertEqualsGolden(outputSentinel, await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken), "firmware image");
-        GoldenAssert.AssertEqualsGolden(reportSentinel, await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(outputSentinel, await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(reportSentinel, await GoldenFileIo.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken), "firmware image");
     }
 }

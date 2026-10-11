@@ -156,7 +156,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
                 firmwareSubVersion));
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), GoldenDiagnostics.Label(CaseId));
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51950", out TpFlashMapProfile? flashMap));
         Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(
@@ -230,7 +230,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         CompositionRunResult result = await RunWithPassThroughAsync(evidence, "single", referencePath, outputPath);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[reference[0x100]], [File.ReadAllBytes(outputPath)[0x100]], GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[reference[0x100]], [GoldenFileIo.ReadAllBytes(outputPath)[0x100]], GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51950-ctrlram-replace-fw200-single");
     }

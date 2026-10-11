@@ -153,40 +153,27 @@ public sealed class GoldenAssertTests
 
     [Theory]
     [InlineData(null)]
+    [InlineData("")]
     [InlineData("0")]
     [InlineData("true")]
     [InlineData(" 1 ")]
+    [InlineData("%NFC_GOLDEN_VERBOSE%")]
     [InlineData("1")]
-    public void Label_DefaultAndVerbose_HidesIdUnlessExplicitlyEnabled(string? verbose)
+    public void Label_DefaultAndVerbose_HidesIdUnlessExplicitlyEnabled(string? setting)
     {
-        string? previous = Environment.GetEnvironmentVariable("NFC_GOLDEN_VERBOSE");
-        string expected = verbose == "1" ? "customer-private-case" : "case-ae9de91e8329";
-        try
-        {
-            Environment.SetEnvironmentVariable("NFC_GOLDEN_VERBOSE", verbose);
+        string expected = setting == "1" ? "customer-private-case" : "case-ae9de91e8329";
 
-            Assert.Equal(expected, GoldenDiagnostics.Label("customer-private-case"));
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("NFC_GOLDEN_VERBOSE", previous);
-        }
+        Assert.Equal(expected, GoldenDiagnostics.Label("customer-private-case", GoldenDiagnostics.IsVerbose(setting)));
     }
 
     [Fact]
-    public void Label_ControlledChildProcess_ReturnsExpectedLabel()
+    public void Label_EnvironmentSetting_UsesTheSameRuleAsTheExplicitOverload()
     {
-        string? previous = Environment.GetEnvironmentVariable("NFC_GOLDEN_VERBOSE");
-        try
-        {
-            Environment.SetEnvironmentVariable("NFC_GOLDEN_VERBOSE", "1");
+        string setting = Environment.ExpandEnvironmentVariables("%NFC_GOLDEN_VERBOSE%");
 
-            Assert.Equal("customer-private-case", GoldenDiagnostics.Label("customer-private-case"));
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("NFC_GOLDEN_VERBOSE", previous);
-        }
+        Assert.Equal(
+            GoldenDiagnostics.Label("customer-private-case", GoldenDiagnostics.IsVerbose(setting)),
+            GoldenDiagnostics.Label("customer-private-case"));
     }
 
     [Fact]

@@ -548,7 +548,7 @@ public sealed partial class SavedRuleCliCommandTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         GoldenAssert.AssertEqualsGolden((byte[])[0x00, 0x10, 0x00],
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
                 output,
                 TestContext.Current.CancellationToken), "firmware image");
     }

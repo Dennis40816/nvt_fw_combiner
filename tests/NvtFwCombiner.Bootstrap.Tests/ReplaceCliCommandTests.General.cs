@@ -74,7 +74,7 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         GoldenAssert.AssertEqualsGolden(baseBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             reference,
             TestContext.Current.CancellationToken), "firmware image");
         byte[] outputBytes = await File.ReadAllBytesAsync(
@@ -255,7 +255,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         GoldenAssert.AssertEqualsGolden((byte[])[0xA5, 0x5A], outputBytes[0x3E020..0x3E022], "firmware image");
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
@@ -300,7 +300,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         AssertGeneralReplaceUnavailableBeforeRun(result, report, output);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Verifies retired TP-touching General Replace preview fails closed.</summary>
@@ -449,7 +449,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         AssertGeneralReplaceUnavailableBeforeRun(result, report, output);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>An unavailable General Replace route cannot reach output-path handling or mutate its base.</summary>
@@ -477,7 +477,7 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.True(GoldenDiagnostics.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>An unavailable General Replace route rejects before parsing virtual patch bytes.</summary>

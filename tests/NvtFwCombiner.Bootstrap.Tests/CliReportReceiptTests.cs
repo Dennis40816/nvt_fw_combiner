@@ -63,7 +63,7 @@ public sealed class CliReportReceiptTests
         AssertReportFailedAfterCommit(result.Output, result.Error, reportPath);
         Assert.False(File.Exists(reportPath));
         GoldenAssert.AssertEqualsGolden((byte[])[0x42],
-            await File.ReadAllBytesAsync(blockingFile, TestContext.Current.CancellationToken), "firmware image");
+            await GoldenFileIo.ReadAllBytesAsync(blockingFile, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Cancellation after commit stops only the report; the committed receipt is still printed.</summary>
@@ -186,7 +186,7 @@ public sealed class CliReportReceiptTests
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         await AssertBundleArtifactMatchesReceiptAsync(result.Output, "source", sourceCopyPath);
         GoldenAssert.AssertEqualsGolden(CreateStandardMergeDp(),
-            await File.ReadAllBytesAsync(sourceCopyPath, TestContext.Current.CancellationToken), "firmware image");
+            await GoldenFileIo.ReadAllBytesAsync(sourceCopyPath, TestContext.Current.CancellationToken), "firmware image");
         AssertReportFailedAfterCommit(result.Output, result.Error, sourceCopyPath);
         Assert.True(GoldenDiagnostics.Contains("Report path must not overwrite committed bundle source artifact 'dp.bin'.", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }

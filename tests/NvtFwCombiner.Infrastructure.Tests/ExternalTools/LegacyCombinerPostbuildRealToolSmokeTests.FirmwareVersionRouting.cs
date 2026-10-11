@@ -115,7 +115,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareVersion], [updatedBackup.FirmwareVersion], "firmware image");
             GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[unchecked((byte)~firmwareVersion)], [updatedBackup.FirmwareVersionBar], "firmware image");
             GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareSubVersion], [updatedBackup.FirmwareSubVersion], "firmware image");
-            GoldenAssert.AssertEqualsGolden(ownerGolden, File.ReadAllBytes(goldenPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(ownerGolden, GoldenFileIo.ReadAllBytes(goldenPath), "firmware image");
         }
         finally
         {

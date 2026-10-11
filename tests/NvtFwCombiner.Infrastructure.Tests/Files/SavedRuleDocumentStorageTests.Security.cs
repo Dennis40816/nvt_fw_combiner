@@ -48,7 +48,7 @@ public sealed partial class SavedRuleDocumentStorageTests
                 Document("after"),
                 TestContext.Current.CancellationToken));
         GoldenAssert.AssertEqualsGolden(Document("outside"),
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
                 outsidePath,
                 TestContext.Current.CancellationToken), "firmware image");
     }
@@ -132,7 +132,7 @@ public sealed partial class SavedRuleDocumentStorageTests
                 TestContext.Current.CancellationToken);
 
             GoldenAssert.AssertEqualsGolden(Document("after"),
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
                     targetPath,
                     TestContext.Current.CancellationToken), "firmware image");
         }
@@ -183,7 +183,7 @@ public sealed partial class SavedRuleDocumentStorageTests
         }
 
         GoldenAssert.AssertEqualsGolden(original,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             targetPath,
             TestContext.Current.CancellationToken), "firmware image");
         Assert.DoesNotContain(

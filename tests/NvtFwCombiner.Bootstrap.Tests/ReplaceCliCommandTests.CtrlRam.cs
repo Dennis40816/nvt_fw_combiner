@@ -202,7 +202,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(0x40000, fullFlashOutput.Length);
         GoldenAssert.AssertEqualsGolden(tpOutput, fullFlashOutput[..0x3C000], "firmware image");
         GoldenAssert.AssertEqualsGolden(fullFlashBase[0x3C000..], fullFlashOutput[0x3C000..], "firmware image");
-        GoldenAssert.AssertEqualsGolden(fullFlashBase, File.ReadAllBytes(fullFlashPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(fullFlashBase, GoldenFileIo.ReadAllBytes(fullFlashPath), "firmware image");
     }
 
     /// <summary>Verifies CtrlRAM base validation does not describe the input as Flash Code only.</summary>

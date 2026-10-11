@@ -98,7 +98,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         byte[] expected = [.. originalBase];
         replacement.CopyTo(expected, targetStart);
         GoldenAssert.AssertEqualsGolden(expected, execution.OutputBytes.ToArray(), "firmware image");
-        GoldenAssert.AssertEqualsGolden(originalBase, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalBase, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
         GoldenAssert.AssertEqualsGolden(originalBase, baseBytes, "firmware image");
 
         string routedOutputPath = workspace.PathFor("routed.bin");
@@ -128,7 +128,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
 
         Assert.True(routed.Succeeded, $"Composition result: status={routed.Status}, succeeded={routed.Succeeded}.");
         GoldenAssert.AssertEqualsGolden(execution.OutputBytes.ToArray(),
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             routedOutputPath,
             TestContext.Current.CancellationToken), "firmware image");
         using var routedReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(routed));

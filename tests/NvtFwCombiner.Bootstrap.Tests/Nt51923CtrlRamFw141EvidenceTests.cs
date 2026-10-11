@@ -81,7 +81,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             Assert.Equal("nt51923-standard-merge-gen-flash", ReadProfileId(standardMergeReport.RootElement));
         }
 
-        GoldenAssert.AssertEqualsGolden(ownerCase.Expected.Bytes, File.ReadAllBytes(referencePath), GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(ownerCase.Expected.Bytes, GoldenFileIo.ReadAllBytes(referencePath), GoldenDiagnostics.Label(caseId));
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,

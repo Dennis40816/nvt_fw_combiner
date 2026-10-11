@@ -50,7 +50,7 @@ public sealed class AbCtrlRamFullInputCandidateTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         byte[] output = result.OutputBytes.ToArray();
         Assert.Equal(0x80000, output.Length);
-        GoldenAssert.AssertEqualsGolden(output, File.ReadAllBytes(workspace.PathFor("result.bin")), "firmware image");
+        GoldenAssert.AssertEqualsGolden(output, GoldenFileIo.ReadAllBytes(workspace.PathFor("result.bin")), "firmware image");
         if (selection == AbCtrlRamBankSelection.A)
         {
             GoldenAssert.AssertEqualsGolden(reference[0x40000..], output[0x40000..], "firmware image");

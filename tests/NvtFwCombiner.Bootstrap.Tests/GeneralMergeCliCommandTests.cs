@@ -42,7 +42,7 @@ public sealed partial class GeneralMergeCliCommandTests
 
         Assert.Equal(0, result.ExitCode);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)expectedFill), 0x10, 0x11, checked((byte)expectedFill)],
-            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
+            await GoldenFileIo.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
 
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
@@ -144,7 +144,7 @@ public sealed partial class GeneralMergeCliCommandTests
         Assert.True(GoldenDiagnostics.Contains("Experience: general-merge", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(!GoldenDiagnostics.Contains("Issues:", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         GoldenAssert.AssertEqualsGolden((byte[])[0, 0, 0, 0, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
+            await GoldenFileIo.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
 
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
@@ -285,7 +285,7 @@ public sealed partial class GeneralMergeCliCommandTests
             output);
 
         Assert.True(result.Succeeded);
-        GoldenAssert.AssertEqualsGolden((byte[])[0x10, 0x11, 0x00, 0x00], await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[0x10, 0x11, 0x00, 0x00], await GoldenFileIo.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Rejects overlapping General Merge targets through Application admission.</summary>
@@ -451,7 +451,7 @@ public sealed partial class GeneralMergeCliCommandTests
         Assert.True(result.Succeeded);
         Assert.Equal(candidateProfileId, result.ProfileId);
         GoldenAssert.AssertEqualsGolden((byte[])[0x11, 0x12, 0x13, 0, 0, 0, 0x20, 0x21, 0x10, 0, 0, 0, 0, 0, 0, 0],
-            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
+            await GoldenFileIo.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
 
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement root = report.RootElement;

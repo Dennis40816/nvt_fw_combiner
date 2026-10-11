@@ -140,7 +140,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             delivery.Artifacts,
             static artifact => artifact.Role == "output");
         GoldenAssert.AssertEqualsGolden(built.OutputBytes.ToArray(),
-            File.ReadAllBytes(Path.Combine(delivery.ResolvedDirectory, output.DeliveredFileName)), "firmware image");
+            GoldenFileIo.ReadAllBytes(Path.Combine(delivery.ResolvedDirectory, output.DeliveredFileName)), "firmware image");
         foreach (CompositionOutputBundleSourceSummary source in proposal.Sources)
         {
             CompositionOutputBundleDeliveredArtifactSummary delivered = Assert.Single(

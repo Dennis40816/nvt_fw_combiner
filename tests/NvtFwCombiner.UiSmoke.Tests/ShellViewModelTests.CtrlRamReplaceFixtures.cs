@@ -146,7 +146,7 @@ public sealed partial class CtrlRamExternalGoldenTests
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
         Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
-        GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(expectedPath), GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
     }
 
 }

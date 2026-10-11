@@ -93,7 +93,7 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         string customPath = Path.Combine(destination.Root, "custom", "customer.bin");
         Assert.True(File.Exists(customPath));
-        GoldenAssert.AssertEqualsGolden(automaticBytes, File.ReadAllBytes(customPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(automaticBytes, GoldenFileIo.ReadAllBytes(customPath), "firmware image");
         Assert.False(File.Exists(Path.Combine(destination.Root, "custom", automaticName)));
         foreach (CompositionOutputBundleSourceSummary source in viewModel.OutputDelivery.Sources)
         {

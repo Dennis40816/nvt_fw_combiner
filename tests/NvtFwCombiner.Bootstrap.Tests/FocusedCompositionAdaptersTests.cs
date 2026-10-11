@@ -265,7 +265,7 @@ public sealed class FocusedCompositionAdaptersTests
             prepared.Issues,
             issue => issue.Code == ReplaceWorkflowNotSupported);
         Assert.False(File.Exists(outputPath));
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>General Replace TP mappings do not fall back to the retired V1 compiler.</summary>
@@ -298,7 +298,7 @@ public sealed class FocusedCompositionAdaptersTests
         Assert.Contains(
             prepared.Issues,
             issue => issue.Code == ReplaceWorkflowNotSupported);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Unsupported General Replace rows fail at routing after input parsing succeeds.</summary>
@@ -356,7 +356,7 @@ public sealed class FocusedCompositionAdaptersTests
                 .AsTask());
 
         Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>FW/bar validity cannot block Common FW interval selection during CtrlRAM Preview.</summary>
@@ -435,7 +435,7 @@ public sealed class FocusedCompositionAdaptersTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
         byte[] outputBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x27], [outputBytes[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionOffset]], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xD8], [outputBytes[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionBarOffset]], "firmware image");
@@ -488,7 +488,7 @@ public sealed class FocusedCompositionAdaptersTests
         Assert.False(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.False(File.Exists(outputPath));
         Assert.Equal(1, processor.CallCount);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
         using var document = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Contains(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -529,7 +529,7 @@ public sealed class FocusedCompositionAdaptersTests
         Assert.Null(preparation.AcceptedSession);
         Assert.False(File.Exists(outputPath));
         Assert.Equal(ReplaceCtrlRamIcNumberMismatch, Assert.Single(preparation.Issues).Code);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Verifies TP FW version editing is rejected for a CtrlRAM preview before any firmware processing starts.</summary>

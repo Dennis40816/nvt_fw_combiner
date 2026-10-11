@@ -47,7 +47,7 @@ public sealed partial class SavedRuleDocumentStorageTests
         Assert.True(result.Decision.SemanticContentChanged);
         Assert.True(result.Decision.RequiresNewRuleVersionForPublication);
         GoldenAssert.AssertEqualsGolden(editedBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             rulePath,
             TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(SavedRuleLifecycleState.Draft, result.Decision.Snapshot!.State);
@@ -92,11 +92,11 @@ public sealed partial class SavedRuleDocumentStorageTests
 
         Assert.True(result.Succeeded);
         GoldenAssert.AssertEqualsGolden(catalogBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             catalogPath,
             TestContext.Current.CancellationToken), "firmware image");
         GoldenAssert.AssertEqualsGolden(catalogBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             workingCopyPath,
             TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(SavedRuleStorageKind.UserOwned, result.Decision.Snapshot!.StorageKind);
@@ -140,7 +140,7 @@ public sealed partial class SavedRuleDocumentStorageTests
             "saved-rule.lifecycle.catalog-read-only",
             Assert.Single(result.Decision.Issues).Code);
         GoldenAssert.AssertEqualsGolden(originalBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             catalogPath,
             TestContext.Current.CancellationToken), "firmware image");
     }
@@ -181,7 +181,7 @@ public sealed partial class SavedRuleDocumentStorageTests
             "saved-rule.lifecycle.storage-authority-mismatch",
             Assert.Single(result.Decision.Issues).Code);
         GoldenAssert.AssertEqualsGolden(originalBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             catalogPath,
             TestContext.Current.CancellationToken), "firmware image");
     }
@@ -226,7 +226,7 @@ public sealed partial class SavedRuleDocumentStorageTests
             "saved-rule.lifecycle.document-invalid",
             Assert.Single(result.Decision.Issues).Code);
         GoldenAssert.AssertEqualsGolden(originalBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             rulePath,
             TestContext.Current.CancellationToken), "firmware image");
     }
@@ -266,7 +266,7 @@ public sealed partial class SavedRuleDocumentStorageTests
                 cancellation.Token));
 
         GoldenAssert.AssertEqualsGolden(originalBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             rulePath,
             TestContext.Current.CancellationToken), "firmware image");
         Assert.DoesNotContain(

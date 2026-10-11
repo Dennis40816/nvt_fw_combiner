@@ -135,8 +135,8 @@ public sealed partial class MergeWorkflowTests
         await model.OutputDelivery.ConfirmBundleAsync();
         Assert.True(model.RunSession.LastRunResult.Succeeded, model.RunSession.LastRunResult.Detail);
         string bundle = Path.Combine(destination.Root, "renamed");
-        GoldenAssert.AssertEqualsGolden(baseline, File.ReadAllBytes(Path.Combine(bundle, primaryName)), "firmware image");
-        GoldenAssert.AssertEqualsGolden(baseline[..0x40000], File.ReadAllBytes(Path.Combine(bundle, deliveredAdditional)), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseline, GoldenFileIo.ReadAllBytes(Path.Combine(bundle, primaryName)), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseline[..0x40000], GoldenFileIo.ReadAllBytes(Path.Combine(bundle, deliveredAdditional)), "firmware image");
         using var report = JsonDocument.Parse(model.Reports.LoadedReportJson);
         JsonElement delivery = Assert.Single(report.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
         Assert.Contains(deliveredAdditional, delivery.GetRawText(), StringComparison.Ordinal);
@@ -243,7 +243,7 @@ public sealed partial class MergeWorkflowTests
         else
         {
             Assert.True(model.RunSession.LastRunResult.Succeeded, model.RunSession.LastRunResult.Detail);
-            GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(primary)[..0x40000], File.ReadAllBytes(additional), "firmware image");
+            GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(primary)[..0x40000], GoldenFileIo.ReadAllBytes(additional), "firmware image");
             Assert.Equal(2, Directory.EnumerateFiles(destination.Root).Count());
         }
     }

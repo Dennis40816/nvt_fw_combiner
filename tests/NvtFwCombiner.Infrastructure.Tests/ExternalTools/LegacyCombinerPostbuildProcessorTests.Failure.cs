@@ -191,7 +191,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.Equal("external-tool.staging.exists", Assert.Single(result.Issues).Code);
         Assert.Equal(0, runner.RunCount);
         Assert.True(File.Exists(sentinel));
-        GoldenAssert.AssertEqualsGolden(expected, await File.ReadAllBytesAsync(sentinel, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(expected, await GoldenFileIo.ReadAllBytesAsync(sentinel, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([sentinel], Directory.GetFiles(directory));
     }
 

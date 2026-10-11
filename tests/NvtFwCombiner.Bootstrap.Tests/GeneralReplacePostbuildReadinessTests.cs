@@ -35,11 +35,11 @@ public sealed class GeneralReplacePostbuildReadinessTests
         Assert.False(prepared.Succeeded);
         Assert.Null(prepared.AcceptedSession);
         GoldenAssert.AssertEqualsGolden(referenceBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             referencePath,
             TestContext.Current.CancellationToken), "firmware image");
         GoldenAssert.AssertEqualsGolden(sourceBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             sourcePath,
             TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(

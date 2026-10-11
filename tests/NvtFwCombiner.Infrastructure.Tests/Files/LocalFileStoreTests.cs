@@ -277,7 +277,7 @@ public sealed partial class LocalFileStoreTests
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             store.WriteAsync(path, new byte[] { 4, 5, 6 }, cancellation.Token).AsTask());
 
-        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await GoldenFileIo.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
         Assert.Empty(Directory.GetFiles(workspace.Root, "*.tmp"));
     }
 

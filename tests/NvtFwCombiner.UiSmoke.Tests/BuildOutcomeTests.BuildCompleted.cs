@@ -58,7 +58,7 @@ public sealed partial class BuildOutcomeTests
         Assert.False(shell.BuildResult.IsOpen);
         Assert.False(shell.BuildResult.HasLatestCommittedOutput);
         GoldenAssert.AssertEqualsGolden((byte[])[0x42, 0x17],
-            await File.ReadAllBytesAsync(outputPath,
+            await GoldenFileIo.ReadAllBytesAsync(outputPath,
             TestContext.Current.CancellationToken), "firmware image");
     }
 

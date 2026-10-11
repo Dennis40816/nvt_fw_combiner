@@ -80,7 +80,7 @@ public sealed partial class BuildOutcomeTests
 
         Assert.Same(before, context.Owner.LastRunResult);
         Assert.True(File.Exists(output));
-        GoldenAssert.AssertEqualsGolden(new byte[] { 0x13, 0x37 }, File.ReadAllBytes(output), "firmware image");
+        GoldenAssert.AssertEqualsGolden(new byte[] { 0x13, 0x37 }, GoldenFileIo.ReadAllBytes(output), "firmware image");
     }
 
     /// <summary>Revocation suppresses a late committed receipt while completing run bookkeeping.</summary>

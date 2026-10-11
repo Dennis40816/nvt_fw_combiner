@@ -56,7 +56,7 @@ public sealed class AtomicBundleCompositionOutputWriterTests
             "output.bin", new byte[] { 1, 2 }, TestContext.Current.CancellationToken);
 
         Assert.Equal(outputPath, receipt.OutputId);
-        GoldenAssert.AssertEqualsGolden((byte[])[1, 2], await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[1, 2], await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken), "firmware image");
         _ = Assert.Single(Directory.EnumerateFileSystemEntries(workspace.Root));
     }
 
@@ -84,16 +84,16 @@ public sealed class AtomicBundleCompositionOutputWriterTests
 
         string destination = collision ? originalFolder + " (2)" : originalFolder;
         Assert.Equal(Path.Combine(destination, "output.bin"), receipt.OutputId);
-        GoldenAssert.AssertEqualsGolden((byte[])[1, 2], await File.ReadAllBytesAsync(receipt.OutputId, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[1, 2], await GoldenFileIo.ReadAllBytesAsync(receipt.OutputId, TestContext.Current.CancellationToken), "firmware image");
         GoldenAssert.AssertEqualsGolden((byte[])[3, 4],
-            await File.ReadAllBytesAsync(Path.Combine(destination, "output (2).bin"),
+            await GoldenFileIo.ReadAllBytesAsync(Path.Combine(destination, "output (2).bin"),
             TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(collision ? 2 : 1, Directory.EnumerateFileSystemEntries(workspace.Root).Count());
         Assert.Equal(2, Directory.EnumerateFileSystemEntries(destination).Count());
         if (collision)
         {
             GoldenAssert.AssertEqualsGolden((byte[])[7],
-            await File.ReadAllBytesAsync(Path.Combine(originalFolder, "keep.bin"),
+            await GoldenFileIo.ReadAllBytesAsync(Path.Combine(originalFolder, "keep.bin"),
                 TestContext.Current.CancellationToken), "firmware image");
         }
     }
@@ -139,11 +139,11 @@ public sealed class AtomicBundleCompositionOutputWriterTests
             [null, "ab-a-flashcode", "source"],
             bundle.Artifacts.Select(static artifact => artifact.BindingId));
         GoldenAssert.AssertEqualsGolden((byte[])[9],
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(bundle.ResolvedDirectory, "output.bin"),
             TestContext.Current.CancellationToken), "firmware image");
         GoldenAssert.AssertEqualsGolden((byte[])[8, 7],
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(bundle.ResolvedDirectory, "output (2).bin"),
             TestContext.Current.CancellationToken), "firmware image");
     }
@@ -169,12 +169,12 @@ public sealed class AtomicBundleCompositionOutputWriterTests
         string outputPath = receipt.OutputId;
         string folder = Path.Combine(workspace.Root, "bundle");
         Assert.Equal(Path.Combine(folder, "output.bin"), outputPath);
-        GoldenAssert.AssertEqualsGolden((byte[])[9], await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[9], await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken), "firmware image");
         GoldenAssert.AssertEqualsGolden((byte[])[1],
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(folder, "output (2).bin"), TestContext.Current.CancellationToken), "firmware image");
         GoldenAssert.AssertEqualsGolden((byte[])[2],
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(folder, "output (3).bin"), TestContext.Current.CancellationToken), "firmware image");
         CompositionOutputBundleCommitReceipt bundle = receipt.Bundle ??
             throw new Xunit.Sdk.XunitException("Bundle commit did not return promotion evidence.");

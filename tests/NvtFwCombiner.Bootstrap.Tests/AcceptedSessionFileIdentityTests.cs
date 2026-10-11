@@ -81,7 +81,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             outputPath: outputPath);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        GoldenAssert.AssertEqualsGolden(result.OutputBytes.ToArray(), File.ReadAllBytes(outputPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(result.OutputBytes.ToArray(), GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
         Assert.Equal(
             [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
             result.Report.Inputs.Select(static input => input.AddressSpaceId).Order(StringComparer.Ordinal));

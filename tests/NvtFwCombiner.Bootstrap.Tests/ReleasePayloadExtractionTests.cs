@@ -28,9 +28,9 @@ public sealed class ReleasePayloadExtractionTests
 
         Assert.Equal(0, exitCode);
         GoldenAssert.AssertEqualsGolden(descriptor,
-            File.ReadAllBytes(Path.Combine(output, ReleasePayloadExtraction.DescriptorFileName)), "firmware image");
+            GoldenFileIo.ReadAllBytes(Path.Combine(output, ReleasePayloadExtraction.DescriptorFileName)), "firmware image");
         GoldenAssert.AssertEqualsGolden(bootstrap,
-            File.ReadAllBytes(Path.Combine(output, ReleasePayloadExtraction.BootstrapFileName)), "firmware image");
+            GoldenFileIo.ReadAllBytes(Path.Combine(output, ReleasePayloadExtraction.BootstrapFileName)), "firmware image");
         Assert.Equal(
             [ReleasePayloadExtraction.BootstrapFileName, ReleasePayloadExtraction.DescriptorFileName],
             Directory.EnumerateFiles(output).Select(Path.GetFileName).Order(StringComparer.Ordinal));

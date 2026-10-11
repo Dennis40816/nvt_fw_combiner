@@ -87,7 +87,7 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.Equal(70, result.ExitCode);
         Assert.True(GoldenDiagnostics.Contains("Output path must not overwrite input artifact", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        GoldenAssert.AssertEqualsGolden(referenceBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(referenceBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Rejects Replace report paths that would overwrite the build output.</summary>

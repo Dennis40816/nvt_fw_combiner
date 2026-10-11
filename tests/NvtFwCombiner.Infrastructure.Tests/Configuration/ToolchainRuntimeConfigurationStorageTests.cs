@@ -64,7 +64,7 @@ public sealed class ToolchainRuntimeConfigurationStorageTests
         byte[] saved = File.ReadAllBytes(path);
         _ = await Assert.ThrowsAsync<ToolchainRuntimeConfigurationFormatException>(() => storage.WriteAsync(
             future with { Path = "\uD800" }, TestContext.Current.CancellationToken).AsTask());
-        GoldenAssert.AssertEqualsGolden(saved, File.ReadAllBytes(path), "firmware image");
+        GoldenAssert.AssertEqualsGolden(saved, GoldenFileIo.ReadAllBytes(path), "firmware image");
         _ = await Assert.ThrowsAsync<ToolchainRuntimeConfigurationFormatException>(() => storage.WriteAsync(
             future with { Path = new('x', 65537) }, TestContext.Current.CancellationToken).AsTask());
         GoldenAssert.AssertEqualsGolden(saved, File.ReadAllBytes(path), "firmware image");

@@ -55,11 +55,11 @@ public sealed partial class ManagedSetupRecoveryMutationGuardTests
             $"Outcome {outcome}; deletes {deletes}; marker {File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(fixture.ManagedRoot))}");
         Assert.Equal(rootProof, DirectoryProof(fixture.ManagedRoot));
         GoldenAssert.AssertEqualsGolden(appBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             fixture.Transaction.StatePathIdentity,
             TestContext.Current.CancellationToken), "firmware image");
         GoldenAssert.AssertEqualsGolden(launcherBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             launcherState,
             TestContext.Current.CancellationToken), "firmware image");
         Assert.False(File.Exists(FileSystemManagedInstallationRootProbe

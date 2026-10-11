@@ -225,7 +225,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             ldc.AsSpan(0x40000, 0x22000).CopyTo(expected.AsSpan(0x40000, 0x22000));
         }
 
-        GoldenAssert.AssertEqualsGolden(expected, File.ReadAllBytes(outputPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(expected, GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
     }
 
     /// <summary>Verifies DP Perspective routing selects the trusted map that exactly matches the supplied DP container length.</summary>
@@ -322,7 +322,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         }
 
         List<string> deployedFiles = ["package-trust-index.json", "prebuilt-profile-catalog.pack", "ctrlram-postbuild-v2/catalog.json", "ctrlram-postbuild-v2/flash-map.json"];
-        GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(Path.Combine(materializedBuiltInRoot, "prebuilt-profile-catalog.pack")),
+        GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(Path.Combine(materializedBuiltInRoot, "prebuilt-profile-catalog.pack")),
             File.ReadAllBytes(Path.Combine(deployedBuiltInRoot, "prebuilt-profile-catalog.pack")), "firmware image");
         foreach (string bundleDirectory in bundleDirectories)
         {
@@ -333,8 +333,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             string sourceManifestPath = Path.Combine(sourceBundleRoot, "profile-bundle.json");
             string materializedManifestPath = Path.Combine(materializedRoot, "profile-bundle.json");
             string deployedManifestPath = Path.Combine(deployedRoot, "profile-bundle.json");
-            GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(materializedManifestPath), "firmware image");
-            GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(sourceManifestPath), File.ReadAllBytes(deployedManifestPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(sourceManifestPath), GoldenFileIo.ReadAllBytes(materializedManifestPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(sourceManifestPath), GoldenFileIo.ReadAllBytes(deployedManifestPath), "firmware image");
 
             using var manifest = JsonDocument.Parse(File.ReadAllText(sourceManifestPath));
             Assert.False(
@@ -367,8 +367,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 Assert.True(File.Exists(deployedPath), $"Deployed bundle entry is missing: {deployedPath}");
                 byte[] sourceBytes = File.ReadAllBytes(sourcePath);
                 Assert.Equal(contentHash, Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant());
-                GoldenAssert.AssertEqualsGolden(sourceBytes, File.ReadAllBytes(materializedPath), "firmware image");
-                GoldenAssert.AssertEqualsGolden(sourceBytes, File.ReadAllBytes(deployedPath), "firmware image");
+                GoldenAssert.AssertEqualsGolden(sourceBytes, GoldenFileIo.ReadAllBytes(materializedPath), "firmware image");
+                GoldenAssert.AssertEqualsGolden(sourceBytes, GoldenFileIo.ReadAllBytes(deployedPath), "firmware image");
             }
 
             _ = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(

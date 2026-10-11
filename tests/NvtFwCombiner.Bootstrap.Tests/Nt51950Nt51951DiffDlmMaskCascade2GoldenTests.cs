@@ -77,7 +77,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
-        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, File.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, GoldenFileIo.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal("nt51951-ctrlram-replace-fw1x-cascade", report.RootElement.GetProperty("ProfileId").GetString());
     }
@@ -108,7 +108,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
-        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, File.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, GoldenFileIo.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal("nt51950-ctrlram-replace-fw1x-cascade", report.RootElement.GetProperty("ProfileId").GetString());
     }
@@ -132,7 +132,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
-        GoldenAssert.AssertEqualsGolden(reference, File.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(reference, GoldenFileIo.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement warning = Assert.Single(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -205,7 +205,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
-        GoldenAssert.AssertEqualsGolden(reference, File.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(reference, GoldenFileIo.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         _ = Assert.Single(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -337,7 +337,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
             new CountingPassThroughProcessor());
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, File.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, GoldenFileIo.ReadAllBytes(outputPath), GoldenDiagnostics.Label(CaseId));
     }
 
     /// <summary>A complete active source record is mandatory even though only its DLM prefix is writable.</summary>

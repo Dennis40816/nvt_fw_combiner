@@ -70,7 +70,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
         string outputPath = result.CommittedOutputId ?? result.OutputFileName;
         Assert.True(result.Succeeded, result.OutcomeStatus);
         Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
-        GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
+        GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
             File.ReadAllBytes(outputPath), GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString()!));
     }
 
@@ -114,7 +114,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
         string outputPath = result.CommittedOutputId ?? result.OutputFileName;
         Assert.True(result.Succeeded, result.OutcomeStatus);
         Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
-        GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
+        GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
             File.ReadAllBytes(outputPath), GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString()!));
         if (StringComparer.Ordinal.Equals(ic, "51929"))
         {

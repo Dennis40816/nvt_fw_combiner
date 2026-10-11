@@ -363,7 +363,7 @@ public sealed class AbCtrlRamAuthoringTests
             BootstrapTestHost.Canonical, prepared.AcceptedSession!, paths, true, workspace.PathFor("result.bin"),
             ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, output.Status);
-        GoldenAssert.AssertEqualsGolden(output.OutputBytes.ToArray(), File.ReadAllBytes(workspace.PathFor("result.bin")), "firmware image");
+        GoldenAssert.AssertEqualsGolden(output.OutputBytes.ToArray(), GoldenFileIo.ReadAllBytes(workspace.PathFor("result.bin")), "firmware image");
         if (banks == AbCtrlRamBankSelection.B)
         {
             GoldenAssert.AssertEqualsGolden(original[..0x40000], output.OutputBytes[..0x40000].ToArray(), "firmware image");

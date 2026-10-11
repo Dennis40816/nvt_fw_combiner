@@ -523,7 +523,7 @@ public sealed partial class MergeWorkflowTests
             viewModel.RunSession.LastRunResult.Detail,
             StringComparison.Ordinal);
         Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
-        GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(expectedPath), GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(outputPath, viewModel.Reports.LoadedReport.OutputArtifactPath);
@@ -598,7 +598,7 @@ public sealed partial class MergeWorkflowTests
             await viewModel.Merge.BuildMergeAsync(outputPath);
             Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
             GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x12, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
-            File.ReadAllBytes(outputPath), "firmware image");
+            GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
 
             await viewModel.WorkflowSession.SetSlotFileAsync(
                 mapping.MappingId,
@@ -611,7 +611,7 @@ public sealed partial class MergeWorkflowTests
             Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
             Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
             GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x99, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
-            File.ReadAllBytes(outputPath), "firmware image");
+            GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
             using var document = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
             JsonElement root = document.RootElement;
             Assert.Equal("nt51950-general-merge-logical-candidate", root.GetProperty("ProfileId").GetString());

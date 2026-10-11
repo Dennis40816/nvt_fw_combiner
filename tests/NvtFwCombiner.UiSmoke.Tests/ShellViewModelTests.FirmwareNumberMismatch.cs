@@ -324,7 +324,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.False(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
         Assert.False(File.Exists(outputPath));
-        GoldenAssert.AssertEqualsGolden(immutableBase, File.ReadAllBytes(basePath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(immutableBase, GoldenFileIo.ReadAllBytes(basePath), "firmware image");
         Assert.True(viewModel.Reports.IsReportModalOpen);
         using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         Assert.Contains(

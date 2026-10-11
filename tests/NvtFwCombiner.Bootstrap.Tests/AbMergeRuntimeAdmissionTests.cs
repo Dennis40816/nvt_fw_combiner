@@ -208,7 +208,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             issue => issue.Code == expectedIssueCode);
         Assert.Equal(shortAddressSpaceId, issue.OperationId);
         GoldenAssert.AssertEqualsGolden(shortBytes,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             paths[shortAddressSpaceId],
             TestContext.Current.CancellationToken), "firmware image");
     }
@@ -258,7 +258,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.Equal(original.LongLength, snapshot.GetProperty("IgnoredTrailingRange").GetProperty("Start").GetInt64());
         Assert.Equal(oversized.LongLength, snapshot.GetProperty("IgnoredTrailingRange").GetProperty("EndExclusive").GetInt64());
         GoldenAssert.AssertEqualsGolden(oversized,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             paths[oversizedAddressSpaceId],
             TestContext.Current.CancellationToken), "firmware image");
     }
@@ -320,7 +320,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         foreach ((string addressSpaceId, string path) in paths)
         {
             GoldenAssert.AssertEqualsGolden(originals[addressSpaceId],
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
                 path,
                 TestContext.Current.CancellationToken), "firmware image");
         }
@@ -380,7 +380,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
         Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
         GoldenAssert.AssertEqualsGolden(originalDpBytes,
-            await File.ReadAllBytesAsync(aliasedDpPath, TestContext.Current.CancellationToken), "firmware image");
+            await GoldenFileIo.ReadAllBytesAsync(aliasedDpPath, TestContext.Current.CancellationToken), "firmware image");
         var phases = new List<CompositionRunPhase>();
         await foreach (CompositionRunProgressSnapshot snapshot in progress.ReadAllAsync(TestContext.Current.CancellationToken))
         {

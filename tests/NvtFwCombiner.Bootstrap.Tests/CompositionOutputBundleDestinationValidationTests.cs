@@ -167,7 +167,7 @@ public sealed class CompositionOutputBundleDestinationValidationTests
         for (int index = 0; index < expected.Length; index++)
         {
             GoldenAssert.AssertEqualsGolden(expected[index],
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
                 Path.Combine(receipt.Bundle.ResolvedDirectory, receipt.Bundle.Artifacts[index].DeliveredFileName),
                 TestContext.Current.CancellationToken), "firmware image");
         }

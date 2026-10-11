@@ -110,10 +110,10 @@ public sealed partial class AbMergeGoldenRegressionTests
         byte[] expected = ReadExpected(goldenCase);
         GoldenAssert.AssertEqualsGolden(expected, output, GoldenDiagnostics.Label(caseId));
         Assert.Equal(Hash(expected), Hash(output));
-        GoldenAssert.AssertEqualsGolden(originalDp, File.ReadAllBytes(selectedDpPath), GoldenDiagnostics.Label(caseId));
-        GoldenAssert.AssertEqualsGolden(originalTp, File.ReadAllBytes(selectedTpPath), GoldenDiagnostics.Label(caseId));
-        GoldenAssert.AssertEqualsGolden(originalDp, File.ReadAllBytes(dpPath), GoldenDiagnostics.Label(caseId));
-        GoldenAssert.AssertEqualsGolden(originalTp, File.ReadAllBytes(tpAPath), GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(selectedDpPath), GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(selectedTpPath), GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(dpPath), GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(tpAPath), GoldenDiagnostics.Label(caseId));
         string reportJson = await File.ReadAllTextAsync(
             reportPath, TestContext.Current.CancellationToken);
         return (output, reportJson);
@@ -193,8 +193,8 @@ public sealed partial class AbMergeGoldenRegressionTests
             Assert.True(GoldenDiagnostics.Contains("AB_FORMAT_PRIMARY_INVALID", result.Error + result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
             Assert.False(File.Exists(outputPath));
             Assert.False(File.Exists(reportPath));
-            GoldenAssert.AssertEqualsGolden(originalDp, File.ReadAllBytes(dpPath), "firmware image");
-            GoldenAssert.AssertEqualsGolden(originalTp, File.ReadAllBytes(sharedTpPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(dpPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(sharedTpPath), "firmware image");
             return;
         }
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");

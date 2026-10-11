@@ -68,7 +68,7 @@ public sealed partial class LocalFileStoreTests
         Assert.True(linked, new Win32Exception(error).Message);
 
         Assert.True(await new LocalFileStore().RefersToSameFileAsync(path, alias, TestContext.Current.CancellationToken));
-        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await GoldenFileIo.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Create-only publication writes complete bytes and removes its staging artifacts.</summary>
@@ -81,7 +81,7 @@ public sealed partial class LocalFileStoreTests
 
         await new LocalFileStore().WriteAsync(path, bytes, LocalFileWriteMode.CreateNew, TestContext.Current.CancellationToken);
 
-        GoldenAssert.AssertEqualsGolden(bytes, await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(bytes, await GoldenFileIo.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([path], Directory.GetFiles(workspace.Root));
     }
 
@@ -97,7 +97,7 @@ public sealed partial class LocalFileStoreTests
         _ = await Assert.ThrowsAsync<IOException>(() =>
             store.WriteAsync(path, attempted, LocalFileWriteMode.CreateNew, TestContext.Current.CancellationToken).AsTask());
 
-        GoldenAssert.AssertEqualsGolden((byte[])[9, 8, 7], await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[9, 8, 7], await GoldenFileIo.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([path], Directory.GetFiles(workspace.Root));
     }
 
@@ -131,7 +131,7 @@ public sealed partial class LocalFileStoreTests
             ? store.WriteAsync(path, bytes, LocalFileWriteMode.ReplaceExisting, TestContext.Current.CancellationToken)
             : store.WriteAsync(path, bytes, TestContext.Current.CancellationToken));
 
-        GoldenAssert.AssertEqualsGolden(bytes, await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(bytes, await GoldenFileIo.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([path], Directory.GetFiles(workspace.Root));
     }
 
@@ -146,7 +146,7 @@ public sealed partial class LocalFileStoreTests
         await store.WriteAsync(path, new byte[] { 1, 2 }, TestContext.Current.CancellationToken);
         await store.WriteAsync(path, new byte[] { 3, 4 }, TestContext.Current.CancellationToken);
 
-        GoldenAssert.AssertEqualsGolden((byte[])[3, 4], await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[3, 4], await GoldenFileIo.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([path], Directory.GetFiles(Path.GetDirectoryName(path)!));
     }
 
@@ -187,7 +187,7 @@ public sealed partial class LocalFileStoreTests
         _ = await Assert.ThrowsAsync<IOException>(() =>
             store.WriteAsync(path, new byte[] { 4, 5 }, options, token).AsTask());
 
-        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await File.ReadAllBytesAsync(path, token), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await GoldenFileIo.ReadAllBytesAsync(path, token), "firmware image");
         Assert.Equal([path], Directory.GetFiles(workspace.Root));
     }
 
@@ -205,7 +205,7 @@ public sealed partial class LocalFileStoreTests
         Assert.Equal(new LocalFileDestinationInfo(true, false, true, true), await store.InspectDestinationAsync(file, token));
         Assert.Equal(new LocalFileDestinationInfo(true, true, false, true), await store.InspectDestinationAsync(directory, token));
         Assert.Equal([file, directory], Directory.GetFileSystemEntries(workspace.Root).OrderBy(path => path, StringComparer.Ordinal));
-        GoldenAssert.AssertEqualsGolden((byte[])[9, 8], await File.ReadAllBytesAsync(file, token), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[9, 8], await GoldenFileIo.ReadAllBytesAsync(file, token), "firmware image");
     }
 
     /// <summary>A locked destination survives failed replacement and leaves no staging artifacts.</summary>
@@ -227,7 +227,7 @@ public sealed partial class LocalFileStoreTests
             Assert.True(failure is IOException or UnauthorizedAccessException);
         }
 
-        GoldenAssert.AssertEqualsGolden((byte[])[9, 8, 7], await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[9, 8, 7], await GoldenFileIo.ReadAllBytesAsync(path, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([path], Directory.GetFiles(workspace.Root));
     }
 

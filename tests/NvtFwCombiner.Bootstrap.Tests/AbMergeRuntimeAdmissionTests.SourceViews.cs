@@ -28,7 +28,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             prepared.Issues,
             static issue => issue.Code == CompositionIssueCodes.InputAddressSpaceLengthMismatch);
         GoldenAssert.AssertEqualsGolden(oversized,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             paths[CompositionAddressSpaceIds.DpAbInput],
             TestContext.Current.CancellationToken), "firmware image");
     }

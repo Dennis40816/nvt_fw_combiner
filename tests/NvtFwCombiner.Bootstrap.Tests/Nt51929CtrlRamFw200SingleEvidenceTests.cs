@@ -165,7 +165,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         Assert.Null(result.CommittedOutputId);
         Assert.False(File.Exists(outputPath));
         Assert.Equal(1, processor.CallCount);
-        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), GoldenDiagnostics.Label(CaseId));
 
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement issue = Assert.Single(
@@ -204,7 +204,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(outputPath, result.CommittedOutputId);
-        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), GoldenDiagnostics.Label(CaseId));
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(Capacity, output.Length);
         Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51929", out TpFlashMapProfile? flashMap));

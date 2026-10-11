@@ -30,8 +30,8 @@ public sealed partial class DesktopCaptureProcessTests
         Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardOutput), "Captured text differs from the expected text.");
         Assert.True(GoldenDiagnostics.Contains("aliases protected input", result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(GoldenDiagnostics.Contains(state, result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        GoldenAssert.AssertEqualsGolden(original, File.ReadAllBytes(state), "firmware image");
-        GoldenAssert.AssertEqualsGolden(original, File.ReadAllBytes(capture), "firmware image");
+        GoldenAssert.AssertEqualsGolden(original, GoldenFileIo.ReadAllBytes(state), "firmware image");
+        GoldenAssert.AssertEqualsGolden(original, GoldenFileIo.ReadAllBytes(capture), "firmware image");
         AssertLocalStateUnchanged(before, workspace.Root);
     }
 
@@ -71,8 +71,8 @@ public sealed partial class DesktopCaptureProcessTests
         Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardOutput), "Captured text differs from the expected text.");
         Assert.True(GoldenDiagnostics.Contains("aliases protected input", result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(GoldenDiagnostics.Contains(input, result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        GoldenAssert.AssertEqualsGolden(original, File.ReadAllBytes(input), "firmware image");
-        GoldenAssert.AssertEqualsGolden(original, File.ReadAllBytes(Path.GetFullPath(capture, host)), "firmware image");
+        GoldenAssert.AssertEqualsGolden(original, GoldenFileIo.ReadAllBytes(input), "firmware image");
+        GoldenAssert.AssertEqualsGolden(original, GoldenFileIo.ReadAllBytes(Path.GetFullPath(capture, host)), "firmware image");
         Assert.Equal(before, Directory.GetFiles(workspace.Root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToArray());
         Assert.False(Directory.Exists(workspace.PathFor("local-state")));
     }

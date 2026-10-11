@@ -133,7 +133,7 @@ public sealed class CanonicalInputReadFailureRegressionTests
                 expectedOutputPath,
                 reportJson,
                 TestContext.Current.CancellationToken);
-            Assert.True(StringComparer.Ordinal.Equals(reportJson, await File.ReadAllTextAsync(
+            Assert.True(StringComparer.Ordinal.Equals(reportJson, await GoldenFileIo.ReadAllTextAsync(
                 expectedOutputPath,
                 TestContext.Current.CancellationToken)), "Captured text differs from the expected text.");
         }

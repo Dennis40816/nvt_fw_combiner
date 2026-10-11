@@ -36,7 +36,7 @@ public sealed class ExternalCombinerProcessorTests
         Assert.Equal("external-tool.staging.exists", Assert.Single(result.Issues).Code);
         Assert.Equal(0, runner.RunCount);
         Assert.True(File.Exists(sentinel));
-        GoldenAssert.AssertEqualsGolden(expected, await File.ReadAllBytesAsync(sentinel, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(expected, await GoldenFileIo.ReadAllBytesAsync(sentinel, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([sentinel], Directory.GetFiles(directory));
     }
 
@@ -310,8 +310,8 @@ public sealed class ExternalCombinerProcessorTests
             string bBankPath = Path.Combine(startInfo.WorkingDirectory, "artifact-b-bank.bin");
             Assert.Contains(aBankPath, startInfo.Arguments);
             Assert.Contains(bBankPath, startInfo.Arguments);
-            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA2], File.ReadAllBytes(aBankPath), "firmware image");
-            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xB1, 0xB2], File.ReadAllBytes(bBankPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA2], GoldenFileIo.ReadAllBytes(aBankPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xB1, 0xB2], GoldenFileIo.ReadAllBytes(bBankPath), "firmware image");
             File.WriteAllBytes(Path.Combine(startInfo.WorkingDirectory, "output.bin"), [0, 7, 0, 0]);
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
         });
@@ -622,7 +622,7 @@ public sealed class ExternalCombinerProcessorTests
         {
             privateDirectory = Path.GetDirectoryName(startInfo.ExecutablePath);
             Assert.NotEqual(Path.Combine(workspace.ToolRoot, "legacy-combiner", "1.10", "combiner.exe"), startInfo.ExecutablePath);
-            GoldenAssert.AssertEqualsGolden(runtimeBytes, File.ReadAllBytes(Path.Combine(privateDirectory!, "vcruntime140.dll")), "firmware image");
+            GoldenAssert.AssertEqualsGolden(runtimeBytes, GoldenFileIo.ReadAllBytes(Path.Combine(privateDirectory!, "vcruntime140.dll")), "firmware image");
             File.WriteAllBytes(Path.Combine(startInfo.WorkingDirectory, "output.bin"), [0, 7, 0, 0]);
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
         });

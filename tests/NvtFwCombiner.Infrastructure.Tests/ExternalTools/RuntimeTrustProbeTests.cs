@@ -60,7 +60,7 @@ public sealed class RuntimeTrustProbeTests
         string hash = Convert.ToHexStringLower(SHA256.HashData(bytes));
         Assert.Equal("runtime.trust.signature-invalid", WindowsRuntimeTrustProbe.Verify(path, hash));
         Assert.Equal("runtime.trust.hash-mismatch", WindowsRuntimeTrustProbe.Verify(path, new('a', 64)));
-        GoldenAssert.AssertEqualsGolden(bytes, File.ReadAllBytes(path), "firmware image");
+        GoldenAssert.AssertEqualsGolden(bytes, GoldenFileIo.ReadAllBytes(path), "firmware image");
     }
 
     /// <summary>A pre-existing write handle prevents verification from acquiring stable custody.</summary>

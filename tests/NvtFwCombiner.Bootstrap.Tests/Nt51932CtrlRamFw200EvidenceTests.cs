@@ -205,7 +205,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[reference[0x100]], [File.ReadAllBytes(outputPath)[0x100]], GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[reference[0x100]], [GoldenFileIo.ReadAllBytes(outputPath)[0x100]], GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade");
     }
@@ -237,7 +237,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         OwnerArtifact nf = evidence.Require("NF_Ctrlram.bin");
-        GoldenAssert.AssertEqualsGolden(nf.Bytes, File.ReadAllBytes(outputPath).AsSpan(NfStart, nf.Bytes.Length).ToArray(), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(nf.Bytes, GoldenFileIo.ReadAllBytes(outputPath).AsSpan(NfStart, nf.Bytes.Length).ToArray(), GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw1x-single");
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));

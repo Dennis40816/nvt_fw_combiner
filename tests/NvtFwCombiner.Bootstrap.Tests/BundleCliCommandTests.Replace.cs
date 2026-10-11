@@ -121,8 +121,8 @@ public sealed partial class BundleCliCommandTests
                 Assert.Equal(expected.LongLength, output.GetProperty("Size").GetInt64());
                 Assert.Equal(expectedSha256, output.GetProperty("Sha256").GetString());
             }
-            GoldenAssert.AssertEqualsGolden(expected, await File.ReadAllBytesAsync(explicitOutputPath, TestContext.Current.CancellationToken), "firmware image");
-            GoldenAssert.AssertEqualsGolden(expected, await File.ReadAllBytesAsync(automaticOutputPath, TestContext.Current.CancellationToken), "firmware image");
+            GoldenAssert.AssertEqualsGolden(expected, await GoldenFileIo.ReadAllBytesAsync(explicitOutputPath, TestContext.Current.CancellationToken), "firmware image");
+            GoldenAssert.AssertEqualsGolden(expected, await GoldenFileIo.ReadAllBytesAsync(automaticOutputPath, TestContext.Current.CancellationToken), "firmware image");
         }
         finally
         {
@@ -180,6 +180,6 @@ public sealed partial class BundleCliCommandTests
         expected[0x3E021] = 0x5A;
         GoldenAssert.AssertEqualsGolden(expected, outputBytes, "firmware image");
         GoldenAssert.AssertEqualsGolden(baseBytes,
-            await File.ReadAllBytesAsync(referencePath, TestContext.Current.CancellationToken), "firmware image");
+            await GoldenFileIo.ReadAllBytesAsync(referencePath, TestContext.Current.CancellationToken), "firmware image");
     }
 }

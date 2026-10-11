@@ -27,7 +27,7 @@ public sealed class AtomicFileCompositionOutputWriterTests
 
         Assert.Equal(destination, receipt.OutputId);
         Assert.Equal(fileName, receipt.OutputFileName);
-        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await File.ReadAllBytesAsync(destination, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await GoldenFileIo.ReadAllBytesAsync(destination, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([destination], Directory.EnumerateFileSystemEntries(workspace.Root));
     }
 
@@ -56,7 +56,7 @@ public sealed class AtomicFileCompositionOutputWriterTests
                 await writer.CommitAsync(fileName, new byte[] { 1 }, cancellation.Token));
         }
 
-        GoldenAssert.AssertEqualsGolden((byte[])[9], await File.ReadAllBytesAsync(destination, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[9], await GoldenFileIo.ReadAllBytesAsync(destination, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([destination], Directory.EnumerateFileSystemEntries(workspace.Root));
     }
 
@@ -73,7 +73,7 @@ public sealed class AtomicFileCompositionOutputWriterTests
             CancellationToken.None);
 
         Assert.Equal(Path.Combine(workspace.Root, "output.bin"), receipt.OutputId);
-        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await File.ReadAllBytesAsync(receipt.OutputId, CancellationToken.None), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[1, 2, 3], await GoldenFileIo.ReadAllBytesAsync(receipt.OutputId, CancellationToken.None), "firmware image");
         Assert.Empty(Directory.EnumerateFiles(workspace.Root, "*.tmp"));
     }
 
@@ -100,7 +100,7 @@ public sealed class AtomicFileCompositionOutputWriterTests
         _ = await Assert.ThrowsAsync<IOException>(async () =>
             await writer.CommitAsync("output.bin", new byte[] { 1 }, CancellationToken.None));
 
-        GoldenAssert.AssertEqualsGolden((byte[])[9], await File.ReadAllBytesAsync(existingPath, CancellationToken.None), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[9], await GoldenFileIo.ReadAllBytesAsync(existingPath, CancellationToken.None), "firmware image");
         Assert.Empty(Directory.EnumerateFiles(workspace.Root, "*.tmp"));
     }
 
@@ -119,6 +119,6 @@ public sealed class AtomicFileCompositionOutputWriterTests
             CancellationToken.None);
 
         Assert.Equal(existingPath, receipt.OutputId);
-        GoldenAssert.AssertEqualsGolden((byte[])[1], await File.ReadAllBytesAsync(existingPath, CancellationToken.None), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[1], await GoldenFileIo.ReadAllBytesAsync(existingPath, CancellationToken.None), "firmware image");
     }
 }

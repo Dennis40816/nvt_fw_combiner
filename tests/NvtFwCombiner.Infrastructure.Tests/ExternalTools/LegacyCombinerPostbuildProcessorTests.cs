@@ -38,7 +38,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             executablePaths.Add(startInfo.ExecutablePath);
             string privateDirectory = Path.GetDirectoryName(startInfo.ExecutablePath)!;
             Assert.True(Directory.Exists(privateDirectory));
-            GoldenAssert.AssertEqualsGolden(runtimeBytes, File.ReadAllBytes(Path.Combine(privateDirectory, "vcruntime140.dll")), "firmware image");
+            GoldenAssert.AssertEqualsGolden(runtimeBytes, GoldenFileIo.ReadAllBytes(Path.Combine(privateDirectory, "vcruntime140.dll")), "firmware image");
             if (!mutated)
             {
                 byte[] output = File.ReadAllBytes(startInfo.Arguments[1]);
@@ -86,7 +86,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             Assert.EndsWith("nt51926_fw.bin", startInfo.Arguments[1], StringComparison.Ordinal);
             string mapPath = Path.Combine(startInfo.WorkingDirectory, "output", "map.txt");
             Assert.True(File.Exists(mapPath));
-            GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), File.ReadAllBytes(mapPath), "empty firmware output");
+            GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), GoldenFileIo.ReadAllBytes(mapPath), "empty firmware output");
 
             if (startInfo.Arguments.Any(argument =>
                 argument.EndsWith(Path.Combine("BIN", "Normal_Ctrlram.bin"), StringComparison.Ordinal)))
@@ -141,10 +141,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         FakeProcessRunner runner = new(startInfo =>
         {
             string firmwarePath = startInfo.Arguments[1];
-            GoldenAssert.AssertEqualsGolden(firmware, File.ReadAllBytes(firmwarePath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(firmware, GoldenFileIo.ReadAllBytes(firmwarePath), "firmware image");
 
             string replacementPath = Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin");
-            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xAA, 0xBB], File.ReadAllBytes(replacementPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xAA, 0xBB], GoldenFileIo.ReadAllBytes(replacementPath), "firmware image");
 
             byte[] output = File.ReadAllBytes(firmwarePath);
             output[1] = 0xAA;
@@ -185,7 +185,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         FakeProcessRunner runner = new(startInfo =>
         {
             GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA2],
-            File.ReadAllBytes(Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin")), "firmware image");
+            GoldenFileIo.ReadAllBytes(Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin")), "firmware image");
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
         });
         LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
@@ -244,12 +244,12 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         FakeProcessRunner runner = new(startInfo =>
         {
             string firmwarePath = startInfo.Arguments[2];
-            GoldenAssert.AssertEqualsGolden(firmware, File.ReadAllBytes(firmwarePath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(firmware, GoldenFileIo.ReadAllBytes(firmwarePath), "firmware image");
             GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA2, 0xA3, 0xA4],
-            File.ReadAllBytes(
+            GoldenFileIo.ReadAllBytes(
                 Path.Combine(startInfo.WorkingDirectory, "BIN", "ABank.bin")), "firmware image");
             GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xB1, 0xB2, 0xB3, 0xB4],
-            File.ReadAllBytes(
+            GoldenFileIo.ReadAllBytes(
                 Path.Combine(startInfo.WorkingDirectory, "BIN", "BBank.bin")), "firmware image");
 
             byte[] output = File.ReadAllBytes(firmwarePath);

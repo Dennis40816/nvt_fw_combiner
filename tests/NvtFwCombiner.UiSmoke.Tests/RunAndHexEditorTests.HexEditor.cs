@@ -110,8 +110,8 @@ public sealed partial class RunAndHexEditorTests
         await editor.SaveAsAsync(outputPath, TestContext.Current.CancellationToken);
 
         Assert.False(editor.IsSaveConfirmationOpen);
-        GoldenAssert.AssertEqualsGolden(source, File.ReadAllBytes(sourcePath), "firmware image");
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xFF], [File.ReadAllBytes(outputPath)[0]], "firmware image");
+        GoldenAssert.AssertEqualsGolden(source, GoldenFileIo.ReadAllBytes(sourcePath), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xFF], [GoldenFileIo.ReadAllBytes(outputPath)[0]], "firmware image");
         Assert.Equal(source.Length + 1, new FileInfo(outputPath).Length);
     }
 

@@ -64,7 +64,7 @@ public sealed class HexEditorLoadOrderingTests
         Assert.True(editor.IsSaveConfirmationOpen);
 
         await modal.ConfirmSaveWithPickerAsync(() => Task.FromResult<string?>(destination));
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xFF], File.ReadAllBytes(destination), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xFF], GoldenFileIo.ReadAllBytes(destination), "firmware image");
         Assert.False(editor.IsSaveConfirmationOpen);
     }
 
@@ -87,7 +87,7 @@ public sealed class HexEditorLoadOrderingTests
         files.ReleaseSave.SetResult();
         await saving;
 
-        GoldenAssert.AssertEqualsGolden((byte[])[0xFF, 0x20], await File.ReadAllBytesAsync(destination, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[0xFF, 0x20], await GoldenFileIo.ReadAllBytesAsync(destination, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(currentStatus, editor.EditorStatus);
         Assert.True(editor.HasUnsavedChanges);
     }
@@ -283,7 +283,7 @@ public sealed class HexEditorLoadOrderingTests
         view.SetByteToZeroCommand.Execute(0L);
         Assert.True(view.CanSave);
         await view.SaveAsAsync(saved, TestContext.Current.CancellationToken);
-        GoldenAssert.AssertEqualsGolden(expected, await File.ReadAllBytesAsync(saved, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(expected, await GoldenFileIo.ReadAllBytesAsync(saved, TestContext.Current.CancellationToken), "firmware image");
     }
 
     private sealed class CommitDelayedFiles : IRawBinaryEditorFileSessionFactory, IRawBinaryEditorFileSession

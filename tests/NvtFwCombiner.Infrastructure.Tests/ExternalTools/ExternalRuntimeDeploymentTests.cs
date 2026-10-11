@@ -27,13 +27,13 @@ public sealed class ExternalRuntimeDeploymentTests
         {
             Assert.Null(result.Issue);
             deployedPath = Assert.IsType<string>(result.ExecutablePath);
-            GoldenAssert.AssertEqualsGolden(executable, File.ReadAllBytes(deployedPath), "firmware image");
-            GoldenAssert.AssertEqualsGolden(runtime, File.ReadAllBytes(Path.Combine(Path.GetDirectoryName(deployedPath)!, "vcruntime140.dll")), "firmware image");
+            GoldenAssert.AssertEqualsGolden(executable, GoldenFileIo.ReadAllBytes(deployedPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden(runtime, GoldenFileIo.ReadAllBytes(Path.Combine(Path.GetDirectoryName(deployedPath)!, "vcruntime140.dll")), "firmware image");
             Assert.NotEqual(Path.GetDirectoryName(executablePath), Path.GetDirectoryName(deployedPath));
         }
         Assert.False(Directory.Exists(Path.GetDirectoryName(deployedPath)));
-        GoldenAssert.AssertEqualsGolden(executable, File.ReadAllBytes(executablePath), "firmware image");
-        GoldenAssert.AssertEqualsGolden(runtime, File.ReadAllBytes(runtimePath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(executable, GoldenFileIo.ReadAllBytes(executablePath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(runtime, GoldenFileIo.ReadAllBytes(runtimePath), "firmware image");
     }
 
     /// <summary>A changed selected runtime is rejected before any deployment directory is created.</summary>

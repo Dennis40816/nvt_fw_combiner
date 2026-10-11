@@ -81,7 +81,7 @@ public sealed class AbMergeDpOuterLengthWarningTests
         CompositionRunResult result = await BuildAsync(host, workspace, ic, topology, exact,
             "exact", format, expectedWarning: false);
         Assert.Equal(capacity, result.OutputBytes.Length);
-        GoldenAssert.AssertEqualsGolden(exact, File.ReadAllBytes(workspace.PathFor("exact-dp.bin")), "firmware image");
+        GoldenAssert.AssertEqualsGolden(exact, GoldenFileIo.ReadAllBytes(workspace.PathFor("exact-dp.bin")), "firmware image");
         InputArtifactSummary input = Assert.Single(result.Report.Inputs, input => input.AddressSpaceId == "dp-ab-input");
         Assert.Equal(capacity, input.Size);
         Assert.Null(input.ExecutionSnapshot!.IgnoredTrailingRange);

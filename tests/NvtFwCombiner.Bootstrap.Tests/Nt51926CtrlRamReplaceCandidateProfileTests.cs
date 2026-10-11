@@ -559,11 +559,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(16, differences.DifferenceCount);
         Assert.All(differences.DifferenceCountByAllowedRange, static count => Assert.Equal(4, count));
         GoldenAssert.AssertEqualsGolden(originalReference, baseFile.Bytes, "firmware image");
-        GoldenAssert.AssertEqualsGolden(originalReference, File.ReadAllBytes(baseFile.Path), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalReference, GoldenFileIo.ReadAllBytes(baseFile.Path), "firmware image");
         GoldenAssert.AssertAllGolden(originalInputs, pair =>
         {
             GoldenAssert.AssertEqualsGolden(pair.Value, intakeFiles[pair.Key].Bytes, "input immutability");
-            GoldenAssert.AssertEqualsGolden(pair.Value, File.ReadAllBytes(intakeFiles[pair.Key].Path), "input immutability");
+            GoldenAssert.AssertEqualsGolden(pair.Value, GoldenFileIo.ReadAllBytes(intakeFiles[pair.Key].Path), "input immutability");
         });
     }
 

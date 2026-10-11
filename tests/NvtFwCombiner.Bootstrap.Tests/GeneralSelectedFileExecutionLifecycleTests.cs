@@ -110,7 +110,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
 
         Assert.True(build.Succeeded, $"Composition result: status={build.Status}, succeeded={build.Succeeded}.");
         GoldenAssert.AssertEqualsGolden((byte[])[0x10, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
                 outputPath,
                 TestContext.Current.CancellationToken), "firmware image");
         AssertReportInputHash(

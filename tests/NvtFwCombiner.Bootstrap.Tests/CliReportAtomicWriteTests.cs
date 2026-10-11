@@ -42,7 +42,7 @@ public sealed class CliReportAtomicWriteTests
             TestContext.Current.CancellationToken);
 
         GoldenAssert.AssertEqualsGolden(Utf8WithoutBom.GetBytes(ReportJson),
-            await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken), "firmware image");
+            await GoldenFileIo.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken), "firmware image");
         Assert.True(string.Equals($"Report: {reportPath}{Environment.NewLine}", output.ToString(), StringComparison.Ordinal), "Captured CLI output did not match the expected report marker.");
         Assert.Equal([reportPath], Directory.GetFiles(reportDirectory));
     }
@@ -250,8 +250,8 @@ public sealed class CliReportAtomicWriteTests
                 TestContext.Current.CancellationToken));
 
         Assert.False(contentWritten, GoldenDiagnostics.TextSummary(failure.ToString()));
-        GoldenAssert.AssertEqualsGolden(foreignBytes, await File.ReadAllBytesAsync(foreignPath, TestContext.Current.CancellationToken), "firmware image");
-        GoldenAssert.AssertEqualsGolden(EarlierReport, await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(foreignBytes, await GoldenFileIo.ReadAllBytesAsync(foreignPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(EarlierReport, await GoldenFileIo.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(
             [foreignPath, reportPath],
             Directory.GetFiles(Path.GetDirectoryName(reportPath)!).Order(StringComparer.Ordinal));
@@ -371,7 +371,7 @@ public sealed class CliReportAtomicWriteTests
         StringWriter? output = null,
         string? writtenPath = null)
     {
-        GoldenAssert.AssertEqualsGolden(EarlierReport, File.ReadAllBytes(reportPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(EarlierReport, GoldenFileIo.ReadAllBytes(reportPath), "firmware image");
         string reportDirectory = Path.GetDirectoryName(reportPath)!;
         Assert.Equal([reportPath], Directory.GetFiles(reportDirectory));
         if (output is not null)

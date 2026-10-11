@@ -154,7 +154,7 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         CompositionRunResult result = await RunWithPassThroughAsync(evidence, "single", referencePath, outputPath);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[reference[0x100]], [File.ReadAllBytes(outputPath)[0x100]], GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[reference[0x100]], [GoldenFileIo.ReadAllBytes(outputPath)[0x100]], GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw200-single");
     }

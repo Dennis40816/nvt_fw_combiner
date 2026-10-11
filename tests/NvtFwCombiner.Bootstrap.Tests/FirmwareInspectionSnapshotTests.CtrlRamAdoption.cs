@@ -145,7 +145,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
         Assert.Equal("D86-00", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).DisplayValue);
         Assert.Equal("8600", Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode).VersionToken);
         Assert.Null(inspection.DpMetadataPrerequisite);
-        FileStamp expectedFileStamp = FileStamp.FromBytes(File.ReadAllBytes(basePath));
+        FileStamp expectedFileStamp = FileStamp.FromBytes(GoldenFileIo.ReadAllBytes(basePath));
         Assert.Equal(expectedFileStamp, inspection.FileStamp);
         Assert.Null(batch.InspectionsById["nf"].DpVersion);
         Assert.Null(batch.InspectionsById["nf"].CmiDpCode);

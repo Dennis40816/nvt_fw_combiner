@@ -126,8 +126,8 @@ public sealed partial class ReplaceCliCommandTests
         Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         if (existingArtifacts)
         {
-            GoldenAssert.AssertEqualsGolden(originalOutput, File.ReadAllBytes(workspace.PathFor("output.bin")), "firmware image");
-            GoldenAssert.AssertEqualsGolden(originalReport, File.ReadAllBytes(workspace.PathFor("report.json")), "firmware image");
+            GoldenAssert.AssertEqualsGolden(originalOutput, GoldenFileIo.ReadAllBytes(workspace.PathFor("output.bin")), "firmware image");
+            GoldenAssert.AssertEqualsGolden(originalReport, GoldenFileIo.ReadAllBytes(workspace.PathFor("report.json")), "firmware image");
         }
         else
         {
@@ -244,7 +244,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.True(GoldenDiagnostics.Contains("firmware-version options are available only for ctrlram-replace build", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(!GoldenDiagnostics.Contains("input.artifact.read-failed", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
-        GoldenAssert.AssertEqualsGolden(original, File.ReadAllBytes(outputPath), "firmware image");
-        GoldenAssert.AssertEqualsGolden(original, File.ReadAllBytes(reportPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(original, GoldenFileIo.ReadAllBytes(outputPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(original, GoldenFileIo.ReadAllBytes(reportPath), "firmware image");
     }
 }

@@ -157,8 +157,18 @@ public static class GoldenDiagnostics
     /// <summary>Returns the case id only when NFC_GOLDEN_VERBOSE equals exactly 1.</summary>
     public static string Label(string caseId)
     {
+        // An unset variable stays as the literal %NFC_GOLDEN_VERBOSE%, which is not "1".
+        return Label(caseId, IsVerbose(Environment.ExpandEnvironmentVariables("%NFC_GOLDEN_VERBOSE%")));
+    }
+
+    /// <summary>Returns true only for the exact setting 1.</summary>
+    public static bool IsVerbose(string? setting) => setting == "1";
+
+    /// <summary>Returns the case id when verbose, otherwise a case label that hides the id behind a hash.</summary>
+    public static string Label(string caseId, bool verbose)
+    {
         ArgumentNullException.ThrowIfNull(caseId);
-        return Environment.ExpandEnvironmentVariables("%NFC_GOLDEN_VERBOSE%") == "1"
+        return verbose
             ? caseId
             : "case-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(caseId)))[..12];
     }

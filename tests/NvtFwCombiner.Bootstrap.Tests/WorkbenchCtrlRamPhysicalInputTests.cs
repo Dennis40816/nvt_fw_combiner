@@ -207,7 +207,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement issue = Assert.Single(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -247,7 +247,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
 
         Assert.Null(snapshot);
         Assert.Equal(0, processor.CallCount);
-        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
         CompositionIssue issue = Assert.Single(issues);
         Assert.Equal(CompositionPlanningIssueCodes.ReplaceCtrlRamIcNumberMismatch, issue.Code);
         Assert.Contains("Selected Number is 1 IC", issue.Message, StringComparison.Ordinal);

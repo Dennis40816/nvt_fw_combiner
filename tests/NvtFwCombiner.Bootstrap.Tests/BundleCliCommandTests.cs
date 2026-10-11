@@ -155,10 +155,10 @@ public sealed partial class BundleCliCommandTests
         Assert.Matches("^NT51923_FlashCode_DB60DTA7C9_[0-9]{8}\\.bin$", canonicalBin);
         Assert.True(File.Exists(Path.Combine(firstDirectory, canonicalBin)));
         GoldenAssert.AssertEqualsGolden(dp,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(firstDirectory, "dp.bin"), TestContext.Current.CancellationToken), "firmware image");
         GoldenAssert.AssertEqualsGolden(tp,
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(firstDirectory, "tp.bin"), TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(
             canonicalBin,
@@ -566,7 +566,7 @@ public sealed partial class BundleCliCommandTests
         ];
         string outputName = artifacts[0].GetProperty("DeliveredFileName").GetString()!;
         GoldenAssert.AssertEqualsGolden((byte[])[0, 0x10, 0x11, 0],
-            await File.ReadAllBytesAsync(
+            await GoldenFileIo.ReadAllBytesAsync(
                 Path.Combine(bundleDirectory, outputName),
                 TestContext.Current.CancellationToken), "firmware image");
         Assert.False(File.Exists(Path.Combine(workspace.Root, outputName)));
@@ -616,7 +616,7 @@ public sealed partial class BundleCliCommandTests
         ];
         Assert.Equal(3, artifacts.Length);
         string outputName = artifacts[0].GetProperty("DeliveredFileName").GetString()!;
-        GoldenAssert.AssertEqualsGolden(await File.ReadAllBytesAsync(expectedPath, TestContext.Current.CancellationToken),
+        GoldenAssert.AssertEqualsGolden(await GoldenFileIo.ReadAllBytesAsync(expectedPath, TestContext.Current.CancellationToken),
             await File.ReadAllBytesAsync(
                 Path.Combine(workspace.Root, "ctrlram_bundle", outputName),
                 TestContext.Current.CancellationToken), "firmware image");

@@ -71,8 +71,8 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
         Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardError), "Captured text differs from the expected text.");
         Assert.True(File.Exists(capture));
         Assert.True(new FileInfo(capture).Length > PngSignature.Length);
-        GoldenAssert.AssertEqualsGolden(PngSignature, File.ReadAllBytes(capture).AsSpan(0, PngSignature.Length).ToArray(), "firmware image");
-        GoldenAssert.AssertEqualsGolden(Encoding.UTF8.GetBytes(SavedReport), File.ReadAllBytes(report), "firmware image");
+        GoldenAssert.AssertEqualsGolden(PngSignature, GoldenFileIo.ReadAllBytes(capture).AsSpan(0, PngSignature.Length).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(Encoding.UTF8.GetBytes(SavedReport), GoldenFileIo.ReadAllBytes(report), "firmware image");
         Assert.Empty(Directory.EnumerateFiles(workspace.Root, "*.tmp", SearchOption.AllDirectories));
     }
 
@@ -100,7 +100,7 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
         Assert.Equal(0, result.ExitCode);
         Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardError), "Captured text differs from the expected text.");
         Assert.True(File.Exists(capture));
-        GoldenAssert.AssertEqualsGolden(before, File.ReadAllBytes(statePath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(before, GoldenFileIo.ReadAllBytes(statePath), "firmware image");
         VersionManagementSnapshot loaded = await CompositionHostServices.CreateVersionManagementExperience(
             "1.2.3", host, statePath).InitializeAsync(TestContext.Current.CancellationToken, isReadOnly: true);
         Assert.Equal(VersionManagerStateLoadIssue.None, loaded.StateIssue);
