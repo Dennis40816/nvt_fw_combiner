@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "shard-summary",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "shard",
+    "commit",
+    "outcome",
+    "total",
+    "passed",
+    "failed",
+    "skipped",
+    "notExecuted",
+    "failedTests",
+    "exampleData",
+    "checks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "shard": {
+      "type": "string",
+      "enum": [
+        "bootstrap",
+        "ui",
+        "core"
+      ]
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "outcome": {
+      "enum": [
+        "passed",
+        "failed",
+        "unverified"
+      ]
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "skipped": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "notExecuted": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failedTests": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_.]+$"
+      }
+    },
+    "exampleData": {
+      "type": "object",
+      "required": [
+        "present",
+        "executed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "present": {
+          "type": "boolean"
+        },
+        "executed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "required": [
+        "belowFloor",
+        "skippedNotZero",
+        "requiredClassMissing",
+        "updateModeVariableSet"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "belowFloor": {
+          "type": "boolean"
+        },
+        "skippedNotZero": {
+          "type": "boolean"
+        },
+        "requiredClassMissing": {
+          "type": "boolean"
+        },
+        "updateModeVariableSet": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
