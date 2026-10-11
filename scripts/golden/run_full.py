@@ -159,7 +159,7 @@ def run_full(*, shard: str, source: Path | None, keep: bool) -> int:
                 shutil.copyfile(capture, retained / (selected + "-output.log"))
             upload = checkout / "artifacts/ci-dotnet-upload"
             if upload.is_dir():
-                shutil.copytree(upload, evidence)
+                shutil.copytree(upload, evidence, symlinks=True)
             else:
                 evidence.mkdir()
             results = evidence / "shards" / selected / "results"
@@ -177,21 +177,24 @@ def run_full(*, shard: str, source: Path | None, keep: bool) -> int:
             if timed_out:
                 break
     finally:
-        capture.unlink(missing_ok=True)
-        metadata = dict(mode="FromDirectory" if source else "InTree", commit=commit, shards=rows,
-                        snapshot=work.name if keep else None,
-                        evidence=retained.relative_to(area).as_posix())
-        (retained / "run.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-        pointer = area / "outputs/golden-full/last-run.json"
-        pointer.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-        if not keep:
-            # Only this freshly allocated workspace, checked against its exact parent, is disposable.
-            reject_links(work)
-            resolved_work = work.resolve(strict=True)
-            if (resolved_work.parent != work_root.resolve(strict=True)
-                    or resolved_work.name != "golden-full-" + run_id):
-                raise ValueError(FAILURE)
-            shutil.rmtree(filesystem_path(resolved_work))
+        try:
+            capture.unlink(missing_ok=True)
+            if not keep:
+                # Only this freshly allocated workspace, checked against its exact parent, is disposable.
+                # It holds the golden files, so it goes before any bookkeeping write can fail.
+                reject_links(work)
+                resolved_work = work.resolve(strict=True)
+                if (resolved_work.parent != work_root.resolve(strict=True)
+                        or resolved_work.name != "golden-full-" + run_id):
+                    raise ValueError(FAILURE)
+                shutil.rmtree(filesystem_path(resolved_work))
+        finally:
+            metadata = dict(mode="FromDirectory" if source else "InTree", commit=commit, shards=rows,
+                            snapshot=work.name if keep else None,
+                            evidence=retained.relative_to(area).as_posix())
+            (retained / "run.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+            pointer = area / "outputs/golden-full/last-run.json"
+            pointer.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return 0 if success else 1
 
 
@@ -203,7 +206,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         return run_full(**vars(args))
-    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+    except Exception as error:  # any failure prints one fixed sentence, never a traceback
         fixed = str(error) if str(error) in (UNBOUND_PIN, "NFC_TEST_AREA_ROOT is not set.",
                                             "Golden run requires tracked helper files.") else FAILURE
         print(fixed, file=sys.stderr)

@@ -37,30 +37,35 @@ assets repository and then bind the public pin.
 `run-full.ps1` snapshots `git ls-files -z` from the working tree, including
 uncommitted edits of tracked files. Newly added helpers must be tracked
 (intent-to-add is sufficient); untracked files are not silently included.
-Only manifest-hashed Core package prerequisites may be copied separately as
-a build feed. Existing SDK/package caches are reused through the child process
-environment. The pinned Coverlet adapter is copied into the snapshot's
-`.packages` location, with its complete regular-tree hashes checked, because
-the canonical resolver requires that boundary. No working-tree file is modified.
+Submodule pointers are skipped. Only manifest-hashed Core package prerequisites
+may be copied separately as a build feed. Existing SDK/package caches are reused
+through the child process environment, so a restore can write to the shared
+package cache; no other working-tree file is modified. The pinned Coverlet
+adapter is copied into the snapshot's `.packages` location, with its complete
+regular-tree hashes checked, because the canonical resolver requires that
+boundary. When the working tree has no `.dotnet` folder, `NFC_DOTNET_ROOT` names
+a folder that holds the exact SDK of `global.json`.
 
-It creates the checkout below the existing `NFC_TEST_AREA_ROOT/temp`, sets
-`TEMP`, `TMP`, and `TMPDIR` to that child, assembles, and runs exactly
-`python scripts/verify.py --ci-dotnet-test-shard <shard>` followed by the shard
-checker. Each shard has the requested 45-minute operational limit. This limit
-is not a timing-test assertion. Raw child output is captured privately and
-deleted. The snapshot is deleted unless `-Keep` is supplied.
+The verifier forbids a repository that overlaps the test area. So the snapshot
+lives in the sibling folder `NvtFwCombiner-GoldenRun`, next to the folder that
+`NFC_TEST_AREA_ROOT` names, in a run folder `golden-full-<8 hex>`. The run sets
+`TEMP`, `TMP`, and `TMPDIR` to the `temp` child of the test area, assembles, and
+runs exactly `python scripts/verify.py --ci-dotnet-test-shard <shard>` followed
+by the shard checker. Each shard has the requested 45-minute operational limit.
+This limit is not a timing-test assertion. The raw child output is captured in
+the run folder and deleted, unless `-Keep` is supplied and a shard failed. The
+whole run folder, which holds the golden files, is deleted unless `-Keep` is
+supplied. A run that ends by an unexpected process kill can leave the folder
+behind; delete it by hand.
 
 Local evidence and summaries remain beneath
-`NFC_TEST_AREA_ROOT/outputs/golden-full`. `last-run.json` points to the latest
-run using paths relative to the test area, and records each shard's elapsed
-time. Raw evidence remains private local evidence; it is not an upload list.
-
-The existing verifier forbids overlap between the test area and repository.
-Until the owner approves a narrowly validated snapshot exception, this rule
-blocks test execution from these snapshots. Do not bypass it or declare a
-second test-area root. A real `FromDirectory` comparison is also blocked while
-the public pin is unbound; synthetic policy tests use a bound fixture pin.
-
+`NFC_TEST_AREA_ROOT/outputs/golden-full/<run id>`. The evidence copy holds the
+raw upload folder of each shard (TRX, discovery list, coverage), so it can
+contain test names, theory arguments and `ErrorInfo`. It is private local
+evidence and is never an upload list. `last-run.json` points to the latest run
+using paths relative to the test area and records each shard's elapsed time.
+A real `FromDirectory` run needs a bound `assetsCommit`; synthetic policy tests
+use a bound fixture pin.
 ## Order and exact commands
 
 ```powershell

@@ -1,7 +1,6 @@
 """Fail closed on missing, incomplete, skipped or below-floor .NET evidence."""
 from __future__ import annotations
 
-import argparse
 import os
 from pathlib import Path
 import re
@@ -31,6 +30,9 @@ def check_test_shard(*, shard: str, results_directory: Path, baseline_path: Path
         floor = load_baseline(baseline_path)["shards"][shard]
         checks["belowFloor"] = counts["Total"] < floor["minTotal"]
         checks["skippedNotZero"] = counts["Skipped"] != 0
+        if not example_data_present and not unverified and (floor["exampleMinTests"] or floor["requiredClasses"]):
+            checks["requiredClassMissing"] = bool(floor["requiredClasses"])
+            checks["belowFloor"] = True
         if example_data_present and (floor["exampleMinTests"] or floor["requiredClasses"]):
             for cls in floor["requiredClasses"]:
                 rows = [r for r in counts["Results"] if r["ClassName"] == cls]

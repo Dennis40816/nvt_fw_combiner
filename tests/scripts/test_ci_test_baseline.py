@@ -165,6 +165,16 @@ class CiTestBaselineTests(unittest.TestCase):
         write_trx(self.results)
         self.assertTrue(self.check("--example-data-present")[1]["checks"]["belowFloor"])
 
+    def test_example_floors_cannot_be_skipped_by_leaving_out_the_flag(self):
+        self.document["shards"]["core"].update(requiredClasses=["Tests.Required"], exampleMinTests=1)
+        self.save_baseline()
+        write_trx(self.results, cls="Tests.Required")
+        result, summary = self.check()
+        self.assertEqual(1, result.returncode)
+        self.assertTrue(summary["checks"]["requiredClassMissing"])
+        self.assertTrue(summary["checks"]["belowFloor"])
+        self.assertEqual("unverified", self.check("--unverified")[1]["outcome"])
+
     def test_updater_raises_only_and_rejected_run_preserves_bytes(self):
         write_trx(self.results, ("Passed",) * 4)
         before = deepcopy(self.document)

@@ -7,10 +7,13 @@ NFC adds the top-level `pin` and admits only `bootstrap`, `ui`, and `core`.
 JSON output is UTF-8 without a BOM, two-space indented, with CRLF and a final
 newline, matching the upstream writers.
 
-The checked-in floors of 1 are provisional scaffolding, not measured totals.
-The canonical .NET build is currently blocked before any shard produces TRX.
-Do not enable these floor gates until all three actual totals have been
-measured, written by the updater, and checked again against retained TRX.
+The checked-in floors are the discovered test counts of one local full run at
+`measuredAtCommit`: bootstrap 2295, ui 2306, core 4688. The ui run executed all
+of its tests. The local bootstrap and core runs did not complete cleanly because
+of environment limits in some Infrastructure and catalog tests, so their floors
+come from the discovery list, not from a passing total. Do not enable these floor
+gates in a workflow until the updater has raised each floor from a complete
+passing CI run and the checker passes against that retained TRX.
 
 `read_trx.py` recursively reads every `*.trx`. It rejects DTDs and external
 entities. Only `TestMethod.className`, `TestMethod.name`, result outcomes and

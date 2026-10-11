@@ -249,6 +249,37 @@ if ($text.Trim() -cne $Expected) { throw 'Unexpected refusal message.' }
         environment = dict(self.environment, GITHUB_ACTOR="dependabot[bot]")
         self.assert_powershell_refusal(mode="Clone", expected="unverified, cannot merge", environment=environment)
 
+    def test_events_outside_the_allow_list_refuse_and_the_key_file_is_removed(self):
+        for event in ("workflow_run", "issue_comment", "pull_request_review", "pull_request_target"):
+            with self.subTest(event=event):
+                key = self.work / "assets-key"
+                key.write_text("synthetic key", encoding="utf-8")
+                environment = dict(self.environment, GITHUB_EVENT_NAME=event, NFC_ASSETS_KEY_FILE=str(key))
+                self.assert_powershell_refusal(mode="Clone", expected="unverified, cannot merge",
+                                               environment=environment)
+                self.assertFalse(key.exists())
+        # An allowed event passes the trust check and stops at the next fixed refusal; the key is still removed.
+        key = self.work / "assets-key"
+        key.write_text("synthetic key", encoding="utf-8")
+        environment = dict(self.environment, GITHUB_EVENT_NAME="push", NFC_ASSETS_KEY_FILE=str(key))
+        self.assert_powershell_refusal(mode="Clone", expected="Runner temporary directory is invalid.",
+                                       environment=environment)
+        self.assertFalse(key.exists())
+
+    def test_pin_loader_rejects_other_repository_path_paths_and_digest(self):
+        self.assertEqual(self.pin, golden_pin.load_pin(self.baseline))
+        changes = (("assetsRepo", "someone/else"), ("assetsPath", "other/path"),
+                   ("paths", ["testdata/golden"]), ("assetsCommit", "A" * 40),
+                   ("treeSha256", "f" * 63), ("fileCount", -1))
+        for field, value in changes:
+            with self.subTest(field=field):
+                document = deepcopy(self.document)
+                document["pin"][field] = value
+                broken = self.work / "broken-baseline.json"
+                broken.write_text(json.dumps(document), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    golden_pin.load_pin(broken)
+
     def test_argument_errors_do_not_echo_the_offending_argument(self):
         private_name = "SYNTHETIC_PRIVATE_CASE_74D9.bin"
         for script in ("scripts/golden/golden_pin.py", "scripts/golden/golden_layout.py",

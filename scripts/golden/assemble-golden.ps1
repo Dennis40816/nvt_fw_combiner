@@ -28,7 +28,9 @@ function Assert-RegularPath([string]$Path) {
 }
 
 function Assert-TrustedEvent {
-    if ($env:GITHUB_EVENT_NAME -eq 'pull_request_target' -or $env:GITHUB_ACTOR -eq 'dependabot[bot]') {
+    # Allow-list: a local run has no event name. Every other event refuses before a key or network use.
+    $trustedEvents = @('', 'push', 'workflow_dispatch', 'schedule', 'merge_group', 'pull_request')
+    if (([string]$env:GITHUB_EVENT_NAME) -cnotin $trustedEvents -or $env:GITHUB_ACTOR -eq 'dependabot[bot]') {
         $script:failure = 'unverified, cannot merge'
         throw $script:failure
     }
@@ -58,6 +60,10 @@ try {
     if ($pin.assetsRepo -cne 'Dennis40816/nvt-private-assets' -or
         $pin.assetsPath -cne 'nfc/golden-assembly' -or
         $pin.assetsCommit -cnotmatch '^[0-9a-f]{40}$') { throw $failure }
+    if ($Mode -eq 'Clone' -and $env:NFC_ASSETS_KEY_FILE) {
+        # Named before any refusal, so the cleanup below also removes the key after an early failure.
+        $keyFile = [System.IO.Path]::GetFullPath($env:NFC_ASSETS_KEY_FILE)
+    }
     if ($Mode -ne 'InTree') {
         Assert-TrustedEvent
         if ($pin.assetsCommit -ceq ('0' * 40)) {
