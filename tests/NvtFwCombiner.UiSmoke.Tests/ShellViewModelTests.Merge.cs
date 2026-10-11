@@ -591,7 +591,7 @@ public sealed partial class MergeWorkflowTests
             Assert.True(viewModel.Merge.CanBuildMerge);
             Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
             string outputPath = workspace.PathFor("general-merge.bin");
-            await File.WriteAllBytesAsync(
+            await GoldenFileIo.WriteAllBytesAsync(
                 source,
                 [0x10, 0x11, 0x99, 0x13, 0x14],
                 TestContext.Current.CancellationToken);
