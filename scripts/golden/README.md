@@ -13,8 +13,8 @@ describe the assets; they do not authorize firmware support or byte parity.
 `write-pin` replaces only the numeric `fileCount` and the `treeSha256` token,
 preserving every other byte and the baseline layout. It never changes
 `assetsCommit`. A pull request sets that field by hand to the commit of
-`Dennis40816/nvt-testdata` that holds the same tree under `nfc/`. It is bound
-to `5c1e0eb68`, which holds 359 files with tree identity `f754e838a220`.
+`Dennis40816/nvt-testdata` that holds the same tree under `nfc/`. The bound
+value is `assetsCommit` in `../ci/test-baseline.json`.
 
 `assemble-golden.ps1` defaults to `InTree`, which verifies the old public-tree
 layout. `FromDirectory` verifies the source under `nfc`, copies
@@ -34,9 +34,9 @@ always-cleanup step for failures before the clone is created.
 
 `export-assets-layout.ps1` verifies the working tree, copies it to
 `<Destination>/nfc/...`, and verifies the export. It does not
-delete or move source files. The owner can commit this layout to the private
-test-data repository (`Dennis40816/nvt-testdata`, folder `nfc`) and then bind the
-public pin.
+delete or move source files. To rebind after an asset change, commit this layout to the
+private test-data repository (`Dennis40816/nvt-testdata`, folder `nfc`), then set
+`assetsCommit` by hand.
 
 `run-full.ps1` snapshots `git ls-files -z` from the working tree, including
 uncommitted edits of tracked files. Newly added helpers must be tracked
@@ -88,7 +88,7 @@ pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode InTree
 $export = Join-Path $env:NFC_TEST_AREA_ROOT 'outputs/golden-assets-export'
 pwsh -NoProfile -File scripts/golden/export-assets-layout.ps1 -Destination $export
 
-# FromDirectory needs the bound assetsCommit (it is bound):
+# FromDirectory requires a bound assetsCommit:
 pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode FromDirectory -Source $export
 
 # CI only, with the key supplied in this step's environment:
