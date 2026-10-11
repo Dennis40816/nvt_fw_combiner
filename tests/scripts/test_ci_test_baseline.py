@@ -219,6 +219,17 @@ class CiTestBaselineTests(unittest.TestCase):
         self.assertEqual(2, counts["Total"])
         self.assertEqual(["Tests.Outer.Inner.Method1"], counts["FailedTests"])
 
+    def test_names_outside_the_public_set_are_omitted_but_still_counted(self):
+        for cls in ("Tests.Generic`1", "Tests.Unicode測試"):
+            with self.subTest(cls=cls):
+                directory = self.results / str(abs(hash(cls)))
+                write_trx(directory, ("Passed", "Failed"), cls=cls)
+                counts = read_trx.read_trx_results(directory)
+                self.assertEqual(2, counts["Total"])
+                self.assertEqual(1, counts["Failed"])
+                self.assertEqual([], counts["FailedTests"])
+                self.assertEqual([], counts["ExecutedClasses"])
+
     def test_closed_baseline_rejects_upstream_harness_schema_cases(self):
         mutations = (
             lambda b: b.update(privatePayload="fixture"),

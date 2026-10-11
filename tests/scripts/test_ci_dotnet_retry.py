@@ -1,6 +1,6 @@
 """Decision 191 behavior through the real shard and aggregate, with a fake runner."""
 
-from contextlib import ExitStack, contextmanager, nullcontext, redirect_stdout
+from contextlib import ExitStack, contextmanager, redirect_stdout
 import io
 import json
 import os
@@ -14,6 +14,14 @@ from unittest.mock import patch
 from tests.scripts import test_verify_orchestration as fixtures
 
 MODULE = fixtures.MODULE
+
+
+def flaky_declarations(manifest):
+    return [
+        {"project": row["relativePath"], "fullyQualifiedName": name}
+        for row in manifest["projects"]
+        for name in row["flakyTests"]
+    ]
 
 
 class CiFailureDetailsTests(unittest.TestCase):
@@ -39,105 +47,68 @@ class CiFailureDetailsTests(unittest.TestCase):
         # Preserve CR in XML text, instead of XML's literal-CR normalization.
         path.write_bytes(MODULE.ET.tostring(tree.getroot()).replace(b"\r", b"&#13;"))
 
-    def test_existing_outcome_parser_carries_only_failed_result_text(self):
+    def test_existing_outcome_parser_ignores_error_text_and_keeps_case_outcomes(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "test-results.trx"
             self.write_trx(path, {"Probe.Tests.Case(value: 1)": ("failure", "frame")})
-            before = MODULE.parse_trx_test_outcomes(path, preserve_case_identity=True)
-            details = []
             after = MODULE.parse_trx_test_outcomes(
-                path, preserve_case_identity=True, failed_results=details
+                path, preserve_case_identity=True
             )
-            self.assertEqual(before, after)
             self.assertEqual({"Probe.Tests.Case(value: 1)": 1}, after["Failed"])
             self.assertEqual({"Probe.Tests.Passed": 1}, after["Passed"])
-            self.assertEqual(
-                [("Probe.Tests.Case(value: 1)", "failure", "frame")],
-                [(item.identity, item.message, item.stack_trace) for item in details],
-            )
+            self.assertNotIn("failure", repr(after))
+            self.assertNotIn("frame", repr(after))
 
-    def test_message_and_stack_are_bounded_escaped_and_summary_sanitized(self):
-        message = "failure 100%\r\n::error::injected\n```message " + "x" * 1600
-        stack = "frame 100%\r\n::warning::stack\n```frame\n" + "\n".join(
-            f"frame-{index:02d}" for index in range(20)
-        )
+    def test_report_excludes_messages_stacks_and_theory_arguments(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            trx = root / "test-results.trx"
-            summary_path = root / "summary.md"
-            self.write_trx(trx, {"Probe.Tests.Failed": (message, stack)})
+            trx, summary = root / "test-results.trx", root / "summary.md"
+            self.write_trx(
+                trx, {"Probe.Tests.Failed(value: 1)": ("private message", "private stack")}
+            )
             console = io.StringIO()
             with (
                 redirect_stdout(console),
-                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}),
+                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary)}),
             ):
                 MODULE.report_ci_test_failure_details(
-                    "shard core", [("Project", "attempt-1", trx)]
+                    "core", [("Project", "attempt-1", trx)]
                 )
-            log = console.getvalue()
-            summary = summary_path.read_text(encoding="utf-8")
-            self.assertIn(
-                "::notice title=Failed test::Project Probe.Tests.Failed", log
-            )
-            self.assertIn("failure 100%25%0D%0A::error::injected%0A```message", log)
-            self.assertIn("frame 100%25%0D%0A::warning::stack%0A```frame", log)
-            self.assertNotIn("\r", log)
-            self.assertNotIn("\n::error::", log)
-            self.assertEqual(1, len(log.splitlines()))
-            decoded = log.replace("%0D", "\r").replace("%0A", "\n").replace("%25", "%")
-            logged_message = decoded.split("Message:\n", 1)[1].split(
-                "\nStack trace:", 1
-            )[0]
-            self.assertEqual(1500, len(logged_message))
-            for output in (log, summary):
-                self.assertIn("[truncated]", output)
-                self.assertIn("frame-11", output)
-                self.assertNotIn("frame-12", output)
-                self.assertNotIn("DO NOT REPORT", output)
-                self.assertNotIn("passed stack", output)
-            summary_message = summary.split("Message:\n", 1)[1].split(
-                "\nStack trace:", 1
-            )[0]
-            self.assertLessEqual(len(summary_message), 1500)
-            self.assertEqual(2, summary.count("```"))
-            self.assertIn("'''message", summary)
-            self.assertIn("'''frame", summary)
+            for report in (console.getvalue(), summary.read_text()):
+                self.assertIn("total 2 passed 1 failed 1 skipped 0", report)
+                self.assertIn("Probe.Tests.Failed", report)
+                for private in (
+                    "value: 1",
+                    "private message",
+                    "private stack",
+                    "DO NOT REPORT",
+                ):
+                    self.assertNotIn(private, report)
 
-    def test_twenty_identity_cap_keeps_both_attempts_of_each_failure(self):
+    def test_method_report_cap_preserves_each_attempt_counter(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             first, retry = root / "first.trx", root / "retry.trx"
-            failures = {
-                f"Probe.Tests.Case{index:02d}": (f"original-{index:02d}", "frame")
-                for index in range(21)
-            }
-            self.write_trx(first, failures)
             self.write_trx(
-                retry, {"Probe.Tests.Case00": ("retry failure", "retry frame")}
+                first,
+                {f"Probe.Tests.Case{i:02d}": ("private", "private") for i in range(21)},
             )
+            self.write_trx(retry, {"Probe.Tests.Case00": ("private retry", "private")})
             console = io.StringIO()
             with (
                 redirect_stdout(console),
-                patch.dict(
-                    os.environ, {"GITHUB_STEP_SUMMARY": str(root / "summary.md")}
-                ),
+                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(root / "summary.md")}),
             ):
                 MODULE.report_ci_test_failure_details(
-                    "shard core",
+                    "core",
                     [("Project", "attempt-1", first), ("Project", "attempt-2", retry)],
                 )
-            for output in (console.getvalue(), (root / "summary.md").read_text()):
-                self.assertIn("Probe.Tests.Case19", output)
-                self.assertNotIn("Probe.Tests.Case20", output)
-                self.assertIn("original-00", output)
-                self.assertIn("retry failure", output)
-                self.assertIn("retry frame", output)
-                self.assertIn(
-                    "... 1 more failed identities in the TRX [truncated]", output
-                )
-            self.assertEqual(
-                21, console.getvalue().count("::notice title=Failed test::")
-            )
+            for report in (console.getvalue(), (root / "summary.md").read_text()):
+                self.assertIn("Probe.Tests.Case19", report)
+                self.assertNotIn("Probe.Tests.Case20", report)
+                self.assertIn("total 22 passed 1 failed 21 skipped 0", report)
+                self.assertIn("total 2 passed 1 failed 1 skipped 0", report)
+                self.assertNotIn("private", report)
 
     def test_missing_invalid_or_passing_trx_adds_no_diagnostics(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -168,125 +139,87 @@ class CiFailureDetailsTests(unittest.TestCase):
             self.assertEqual("", console.getvalue())
             self.assertFalse(summary.exists())
 
-    def test_resolved_placeholder_identity_and_missing_errorinfo_remain_reportable(
-        self,
-    ):
+    def test_resolved_placeholder_identity_and_missing_errorinfo_remain_reportable(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "test-results.trx"
-            self.write_trx(path, {"Probe.Tests.Case(value: 1)": ("failure", "frame")})
+            self.write_trx(path, {"Probe.Tests.Case(value: 1)": ("private", "private")})
             tree = MODULE.ET.parse(path)
-            failed = tree.find(".//{*}UnitTestResult")
-            failed.set("testName", "<unknown test ID " + "a" * 64 + ">")
-            failed.set("testId", "case-1")
-            failed.remove(failed.find("{*}Output"))
-            definitions = MODULE.ET.SubElement(tree.getroot(), "TestDefinitions")
-            MODULE.ET.SubElement(
-                definitions, "UnitTest", id="case-1", name="Probe.Tests.Case(value: 1)"
-            )
+            result = tree.find(".//{*}UnitTestResult")
+            result.set("testName", "<unknown test ID " + "a" * 64 + ">")
+            result.remove(result.find("{*}Output"))
             tree.write(path, encoding="utf-8")
-            before = MODULE.parse_trx_test_outcomes(path)
-            details = []
-            self.assertEqual(
-                before, MODULE.parse_trx_test_outcomes(path, failed_results=details)
-            )
-            self.assertEqual(
-                ("Probe.Tests.Case", "", ""),
-                (details[0].identity, details[0].message, details[0].stack_trace),
-            )
             console = io.StringIO()
             with (
                 redirect_stdout(console),
                 patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}),
             ):
                 MODULE.report_ci_test_failure_details(
-                    "shard core", [("Project", "attempt-1", path)]
+                    "core", [("Project", "attempt-1", path)]
                 )
-            self.assertIn("Probe.Tests.Case(value: 1)", console.getvalue())
-            self.assertIn("(no message in TRX)", console.getvalue())
-            self.assertIn("(no stack trace in TRX)", console.getvalue())
+            self.assertIn("Probe.Tests.Case\n", console.getvalue())
+            self.assertNotIn("value: 1", console.getvalue())
+            self.assertNotIn("private", console.getvalue())
 
-    def test_exact_message_and_stack_limits_do_not_truncate(self):
+    def test_report_contains_only_counters_and_parameter_free_methods(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "test-results.trx"
-            self.write_trx(
-                path,
-                {
-                    "Probe.Tests.Case": (
-                        "x" * 1500,
-                        "\r\n".join(f"frame-{index}" for index in range(15)),
-                    )
-                },
-            )
+            self.write_trx(path, {"Probe.Tests.Case": ("x" * 1500, "frame\n" * 15)})
             console = io.StringIO()
             with (
                 redirect_stdout(console),
                 patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}),
             ):
                 MODULE.report_ci_test_failure_details(
-                    "shard core", [("Project", "attempt-1", path)]
+                    "core", [("Project", "attempt-1", path)]
                 )
-            self.assertNotIn("[truncated]", console.getvalue())
-            self.assertIn("x" * 1500, console.getvalue())
-            self.assertIn("frame-13%0D%0Aframe-14", console.getvalue())
+            self.assertEqual(
+                "total 2 passed 1 failed 1 skipped 0\nProbe.Tests.Case\n",
+                console.getvalue(),
+            )
 
-    def test_duplicate_results_do_not_multiply_details_and_projects_have_distinct_identities(
+    def test_inconsistent_duplicate_results_produce_no_public_report(
         self,
     ):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             path = root / "test-results.trx"
-            self.write_trx(path, {"Probe.Tests.Case": ("original", "frame")})
+            self.write_trx(path, {"Probe.Tests.Case": ("private", "private")})
             tree = MODULE.ET.parse(path)
             results = tree.find("{*}Results")
-            duplicate = MODULE.ET.fromstring(MODULE.ET.tostring(results[0]))
-            duplicate.find("{*}Output/{*}ErrorInfo/{*}Message").text = "duplicate"
-            results.append(duplicate)
+            results.append(MODULE.ET.fromstring(MODULE.ET.tostring(results[0])))
             tree.write(path, encoding="utf-8")
-            details = []
-            outcomes = MODULE.parse_trx_test_outcomes(path, failed_results=details)
-            self.assertEqual(2, outcomes["Failed"]["Probe.Tests.Case"])
-            self.assertEqual(2, len(details))
             console = io.StringIO()
             with (
                 redirect_stdout(console),
                 patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}),
             ):
                 MODULE.report_ci_test_failure_details(
-                    "aggregate",
-                    [("First", "attempt-1", path), ("Second", "attempt-1", path)],
+                    "core", [("First", "attempt-1", path), ("Second", "attempt-1", path)]
                 )
-            self.assertEqual(
-                2, console.getvalue().count("::notice title=Failed test::")
-            )
-            self.assertIn("First Probe.Tests.Case", console.getvalue())
-            self.assertIn("Second Probe.Tests.Case", console.getvalue())
-            self.assertNotIn("duplicate", console.getvalue())
+            self.assertEqual("", console.getvalue())
 
-    def test_flaky_warning_keeps_existing_workflow_escaping(self):
+    def test_flaky_warning_contains_only_parameter_free_methods(self):
         console = io.StringIO()
-        with (
-            redirect_stdout(console),
-            patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}),
-        ):
+        with redirect_stdout(console), patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": ""}):
             MODULE.report_ci_flaky_tests(
-                "shard core",
+                "core",
                 [
                     {
-                        "project": "Project%\r\n::error::data",
-                        "fullyQualifiedName": "Probe.Tests.Case",
+                        "project": "private%\r\n::error::data",
+                        "fullyQualifiedName": "Probe.Tests.Case(value: private)",
                     }
                 ],
             )
         self.assertTrue(
-            console.getvalue().startswith(
-                "::warning title=Flaky test::Project%25%0D%0A::error::data Probe.Tests.Case\n"
-            )
+            console.getvalue().startswith("::warning title=Flaky test::Probe.Tests.Case\n")
         )
+        self.assertNotIn("private", console.getvalue())
+        self.assertNotIn("::error::", console.getvalue())
 
 
 class CiDotnetRetryTests(unittest.TestCase):
     @contextmanager
-    def shard(self, scenario, *, bug_text="Probe.Tests.Case1"):
+    def shard(self, scenario, *, bug_text="Probe.Tests.Case1", terminal_phase=None, terminal=None):
         fixture = fixtures.VerifyOrchestrationTests()
         project = MODULE.CiDotnetProject(
             "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj"
@@ -294,7 +227,7 @@ class CiDotnetRetryTests(unittest.TestCase):
         golden = MODULE.CiDotnetProject(
             "tests/NvtFwCombiner.GoldenRegression.Tests/NvtFwCombiner.GoldenRegression.Tests.csproj"
         )
-        if scenario in {"golden", "golden-forged"}:
+        if scenario == "golden":
             project = golden
         projects = (project,) if project == golden else (project, golden)
         with tempfile.TemporaryDirectory() as temporary, ExitStack() as stack:
@@ -331,7 +264,8 @@ class CiDotnetRetryTests(unittest.TestCase):
                             "Probe.Tests.Case1(value: 1)",
                             "Probe.Tests.Case1(value: 2)",
                         )
-                        if active_scenario in {"theory", "missing-theory"}
+                        if active_scenario
+                        in {"theory", "missing-theory", "mixed-theory"}
                         else (21 if active_scenario == "too-many" else 20)
                         if active_scenario in {"too-many", "twenty"} and not companion
                         else 3,
@@ -360,7 +294,7 @@ class CiDotnetRetryTests(unittest.TestCase):
                             "Probe.Tests.Case2",
                         )
                     )
-                    if active_scenario in {"theory", "missing-theory"}:
+                    if active_scenario in {"theory", "missing-theory", "mixed-theory"}:
                         identities = (
                             (
                                 "Probe.Tests.Case1(value: 1)",
@@ -379,12 +313,16 @@ class CiDotnetRetryTests(unittest.TestCase):
                     if active_scenario != "green" and (
                         not retry or active_scenario == "twice"
                     ):
-                        outcomes = (
-                            ("Failed",) if retry else ("Passed", "Failed", "Passed")
-                        )
+                        outcomes = ("Failed",) if retry else ("Passed", "Failed", "Passed")
                     if retry and active_scenario == "extra":
                         identities = ("Probe.Tests.Case1", "Probe.Tests.Case0")
                         outcomes = ("Passed", "Passed")
+                    if active_scenario == "mixed-theory":
+                        outcomes = (
+                            ("Passed", "Failed")
+                            if retry
+                            else ("Passed", "Failed", "Failed")
+                        )
                     if active_scenario == "partial-recovery":
                         identities = (
                             ("Probe.Tests.Case1", "Probe.Tests.Case2")
@@ -428,9 +366,7 @@ class CiDotnetRetryTests(unittest.TestCase):
                                 )
                                 MODULE.ET.SubElement(
                                     info, namespace + "Text"
-                                ).text = (
-                                    f"[xUnit.net 00:00:01.45]     {identity} [FAIL]"
-                                )
+                                ).text = f"[xUnit.net 00:00:01.45]     {identity} [FAIL]"
                         if active_scenario in {"unknown-error", "unmatched-error"}:
                             info = MODULE.ET.SubElement(
                                 infos, namespace + "RunInfo", outcome="Error"
@@ -455,12 +391,12 @@ class CiDotnetRetryTests(unittest.TestCase):
                     if active_scenario == "aborted" and not retry:
                         tree.find(".//{*}ResultSummary").set("outcome", "Aborted")
                     ns = "{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}"
+                    for old_definitions in tree.findall("{*}TestDefinitions"):
+                        tree.getroot().remove(old_definitions)
                     definitions = MODULE.ET.SubElement(
                         tree.getroot(), ns + "TestDefinitions"
                     )
-                    for index, result in enumerate(
-                        tree.findall(".//{*}UnitTestResult")
-                    ):
+                    for index, result in enumerate(tree.findall(".//{*}UnitTestResult")):
                         identity = identities[index]
                         output = MODULE.ET.SubElement(result, ns + "Output")
                         info = MODULE.ET.SubElement(output, ns + "ErrorInfo")
@@ -521,15 +457,18 @@ class CiDotnetRetryTests(unittest.TestCase):
                 "CI_DOTNET_EVIDENCE_ROOT": root / "work",
                 "CI_DOTNET_UPLOAD_ROOT": root / "upload",
                 "COVERAGE_ROOT": root / "coverage",
-                "CI_DOTNET_SHARDS": {"core": projects},
+                "CI_DOTNET_SHARDS": {**MODULE.CI_DOTNET_SHARDS, "core": projects},
             }.items():
                 stack.enter_context(patch.object(MODULE, name, value))
+            fixture.write_ci_summary_baseline(root)
             for name, value in {
                 "resolve_dotnet": "dotnet",
                 "repository_sdk_version": "10.0.301",
                 "resolve_coverlet_adapter_path": root / "adapter",
                 "find_project_release_output": (output, Path("bin/Release/net10.0")),
-                "flatten_ci_dotnet_projects": projects,
+                "flatten_ci_dotnet_projects": tuple(
+                    p for group in MODULE.CI_DOTNET_SHARDS.values() for p in group
+                ),
             }.items():
                 stack.enter_context(patch.object(MODULE, name, return_value=value))
             for name in (
@@ -537,7 +476,13 @@ class CiDotnetRetryTests(unittest.TestCase):
                 "run_locked_solution_restore",
                 "cleanup_dotnet_batch",
             ):
-                stack.enter_context(patch.object(MODULE, name))
+                stack.enter_context(patch.object(
+                    MODULE, name,
+                    side_effect=terminal if name == {
+                        "execution": "require_logged_sdk_version",
+                        "cleanup": "cleanup_dotnet_batch",
+                    }.get(terminal_phase) else None,
+                ))
             stack.enter_context(patch.object(MODULE, "run", side_effect=fake_run))
             console = io.StringIO()
             stack.enter_context(redirect_stdout(console))
@@ -552,21 +497,19 @@ class CiDotnetRetryTests(unittest.TestCase):
                 stack.enter_context(patch.object(MODULE, "monotonic", return_value=0))
             error = None
             try:
-                with (
-                    patch.object(MODULE, "require_ci_retry_project")
-                    if scenario == "golden-forged"
-                    else nullcontext()
-                ):
-                    MODULE.verify_ci_dotnet_test_shard("core")
+                MODULE.verify_ci_dotnet_test_shard("core")
             except (
+                KeyboardInterrupt,
+                SystemExit,
                 RuntimeError,
                 subprocess.CalledProcessError,
                 subprocess.TimeoutExpired,
             ) as caught:
                 error = caught
-            manifest = json.loads(
-                (root / "upload/shards/core/manifest.json").read_text(encoding="utf-8")
-            )
+            manifest_path = root / "upload/shards/core/manifest.json"
+            if not manifest_path.exists():
+                manifest_path = root / "work/shards/core/manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             (root / "job.log").write_text(console.getvalue(), encoding="utf-8")
             yield root, project, commands, attempts, manifest, error
 
@@ -575,28 +518,21 @@ class CiDotnetRetryTests(unittest.TestCase):
             self.assertIsNone(error)
             self.assertEqual(1, len(attempts))
             self.assertTrue(manifest["success"])
-            self.assertEqual([], manifest["flakyTests"])
+            self.assertEqual([], flaky_declarations(manifest))
             self.assertNotIn("Failed test", (root / "job.log").read_text())
 
     def test_failed_tests_only_retry_once_and_preserve_both_attempts(self):
-        with self.shard("recover") as (
-            root,
-            project,
-            commands,
-            attempts,
-            manifest,
-            error,
-        ):
+        with self.shard("recover") as (root, project, commands, attempts, manifest, error):
             self.assertIsNone(error)
             self.assertEqual(2, len(attempts))
-            filtered = [
-                arg
-                for command in commands
-                for arg in command
-                if arg.startswith("--TestCaseFilter:")
-            ]
             self.assertEqual(
-                ["--TestCaseFilter:FullyQualifiedName=Probe.Tests.Case1"], filtered
+                ["--TestCaseFilter:FullyQualifiedName=Probe.Tests.Case1"],
+                [
+                    arg
+                    for command in commands
+                    for arg in command
+                    if arg.startswith("--TestCaseFilter:")
+                ],
             )
             self.assertEqual(
                 [
@@ -605,37 +541,42 @@ class CiDotnetRetryTests(unittest.TestCase):
                         "fullyQualifiedName": "Probe.Tests.Case1",
                     }
                 ],
-                manifest["flakyTests"],
+                flaky_declarations(manifest),
             )
-            for attempt in (1, 2):
-                paths = [p for p in manifest["files"] if f"attempt-{attempt}/" in p]
-                self.assertTrue(any(p.endswith(".trx") for p in paths))
-                self.assertTrue(any(p.endswith(".log") for p in paths))
-                for path in paths:
-                    self.assertEqual(
-                        (root / "work" / path).read_bytes(),
-                        (root / "upload" / path).read_bytes(),
-                    )
-            summary = (root / "summary.md").read_text(encoding="utf-8")
-            self.assertIn("Probe.Tests.Case1", summary)
-            self.assertIn("bug record", summary)
-            for output in (summary, (root / "job.log").read_text()):
-                self.assertIn("attempt-1 failure for Probe.Tests.Case1", output)
-                self.assertIn("at Probe.Tests.Run()", output)
-                self.assertNotIn("DO NOT REPORT PASSED", output)
+            row = manifest["projects"][0]
+            self.assertEqual({"retried": True, "recoveredTests": 1}, row["retry"])
+            self.assertEqual(
+                (3, 3, 0, 0),
+                tuple(row[k] for k in ("total", "passed", "failed", "skipped")),
+            )
+            for attempt in attempts:
+                self.assertTrue((attempt / "test-results.trx").is_file())
+                self.assertTrue((attempt / "attempt.log").is_file())
+            self.assertFalse(list((root / "upload").rglob("*.trx")))
+            self.assertFalse(list((root / "upload").rglob("*.log")))
+            for report in (
+                (root / "summary.md").read_text(),
+                (root / "job.log").read_text(),
+            ):
+                self.assertIn("Probe.Tests.Case1", report)
+                self.assertIn("bug record", report)
+                self.assertNotIn("attempt-1 failure", report)
+                self.assertNotIn("at Probe.Tests.Run()", report)
 
     def test_second_failure_fails_without_a_third_attempt(self):
         with self.shard("twice") as (root, _, _, attempts, manifest, error):
             self.assertIsNotNone(error)
             self.assertEqual(2, len(attempts))
             self.assertFalse(manifest["success"])
-            self.assertEqual([], manifest["flakyTests"])
-            for output in (
-                (root / "summary.md").read_text(), (root / "job.log").read_text()
+            self.assertEqual([], flaky_declarations(manifest))
+            self.assertEqual(["Probe.Tests.Case1"], manifest["projects"][0]["failedTests"])
+            for report in (
+                (root / "summary.md").read_text(),
+                (root / "job.log").read_text(),
             ):
-                self.assertIn("attempt-1 failure for Probe.Tests.Case1", output)
-                self.assertIn("attempt-2 failure for Probe.Tests.Case1", output)
-                self.assertIn("at Runner.Main()", output.replace("%0A", "\n"))
+                self.assertIn("Probe.Tests.Case1", report)
+                self.assertNotIn("failure for", report)
+                self.assertNotIn("at Runner.Main()", report)
 
     def test_recovered_method_is_recorded_even_when_another_method_fails_twice(self):
         with self.shard("partial-recovery") as (
@@ -656,7 +597,7 @@ class CiDotnetRetryTests(unittest.TestCase):
                         "fullyQualifiedName": "Probe.Tests.Case1",
                     }
                 ],
-                manifest["flakyTests"],
+                flaky_declarations(manifest),
             )
             self.assertIn(
                 "Probe.Tests.Case1", (root / "summary.md").read_text(encoding="utf-8")
@@ -668,20 +609,14 @@ class CiDotnetRetryTests(unittest.TestCase):
             self.assertEqual(1, len(attempts))
             self.assertTrue(
                 any(
-                    "--Blame:CollectHangDump;TestTimeout=5m;HangDumpType=None"
-                    in command
+                    "--Blame:CollectHangDump;TestTimeout=5m;HangDumpType=None" in command
                     for command in commands
                 )
             )
-            dumps = [p for p in manifest["files"] if p.endswith(".dmp")]
-            self.assertEqual([], dumps)
+            self.assertTrue(list(attempts[0].rglob("Sequence_*.xml")))
             self.assertFalse(list((root / "upload").rglob("*.dmp")))
-            self.assertTrue(
-                any(
-                    p.endswith("Sequence_af6bc426faab481fa504c42e3d52afd2.xml")
-                    for p in manifest["files"]
-                )
-            )
+            self.assertFalse(list((root / "upload").rglob("Sequence_*.xml")))
+            self.assertFalse(any("Sequence_" in path for path in manifest["files"]))
 
     def test_build_discovery_and_incomplete_inventory_do_not_retry(self):
         for scenario, expected in (
@@ -731,23 +666,14 @@ class CiDotnetRetryTests(unittest.TestCase):
                 )
 
     def test_hang_in_retry_fails_and_keeps_both_attempts_and_sequence(self):
-        with self.shard("retry-hang") as (_, _, _, attempts, manifest, error):
+        with self.shard("retry-hang") as (root, _, _, attempts, manifest, error):
             self.assertIsNotNone(error)
             self.assertEqual(2, len(attempts))
             self.assertFalse(manifest["success"])
-            self.assertEqual(
-                2,
-                len(
-                    [
-                        p
-                        for p in manifest["files"]
-                        if "Domain.Tests/" in p and p.endswith(".trx")
-                    ]
-                ),
-            )
-            self.assertTrue(
-                any("attempt-2/" in p and "Sequence_" in p for p in manifest["files"])
-            )
+            self.assertTrue(all((path / "test-results.trx").is_file() for path in attempts))
+            self.assertTrue(list(attempts[1].rglob("Sequence_*.xml")))
+            self.assertFalse(list((root / "upload").rglob("*.trx")))
+            self.assertFalse(list((root / "upload").rglob("Sequence_*.xml")))
 
     def test_hang_attachment_allowlist_rejects_empty_oversized_and_excess_files(self):
         for scenario in ("empty", "oversized", "excess"):
@@ -793,21 +719,13 @@ class CiDotnetRetryTests(unittest.TestCase):
                 self.assertIsNotNone(error)
                 self.assertEqual(2, len(attempts))
                 self.assertFalse(manifest["success"])
-                first_trx = [
-                    p
-                    for p in manifest["files"]
-                    if "Domain.Tests/attempt-1/" in p and p.endswith(".trx")
-                ]
-                self.assertEqual(1, len(first_trx))
-                self.assertTrue((root / "upload" / first_trx[0]).is_file())
-                if scenario == "retry-invalid-attachment":
-                    second = [p for p in manifest["files"] if "attempt-2/" in p]
-                    self.assertTrue(any(p.endswith(".trx") for p in second))
-                    self.assertTrue(any(p.endswith(".log") for p in second))
-                    self.assertFalse(any(p.endswith(".dmp") for p in second))
+                self.assertTrue((attempts[0] / "test-results.trx").is_file())
+                self.assertTrue((attempts[0] / "attempt.log").is_file())
+                self.assertFalse(list((root / "upload").rglob("*.trx")))
+                self.assertFalse(list((root / "upload").rglob("*.log")))
 
     def test_aggregate_rejects_retry_filter_log_hash_and_attachment_drift(self):
-        for mutation in ("filter", "missing-log", "hash", "hang", "third-attempt"):
+        for mutation in ("filter", "missing-summary", "hash", "hang", "third-attempt"):
             with (
                 self.subTest(mutation=mutation),
                 self.shard("recover") as (root, _, _, _, manifest, _),
@@ -815,41 +733,35 @@ class CiDotnetRetryTests(unittest.TestCase):
                 fixture = fixtures.VerifyOrchestrationTests()
                 downloads = root / "downloads"
                 fixture.stage_complete_ci_dotnet_evidence(
-                    downloads, "a" * 40, owners=("build",)
+                    downloads, "a" * 40, owners=("build", "bootstrap", "ui")
                 )
                 artifact = fixture.ci_artifact_root(downloads, "core")
                 shutil.copytree(root / "upload", artifact)
-                retry = manifest["projects"][0]["retry"]
                 if mutation == "filter":
-                    retry["filter"] = "FullyQualifiedName~Probe.Tests"
-                elif mutation == "missing-log":
-                    (artifact / retry["log"]).unlink()
+                    manifest["projects"][0]["retry"]["filter"] = "private"
+                elif mutation == "missing-summary":
+                    (artifact / "shards/core/shard-summary.json").unlink()
                 elif mutation == "hash":
-                    (artifact / retry["trx"]).write_text("changed", encoding="utf-8")
+                    manifest["files"]["shards/core/shard-summary.json"] = "0" * 64
                 else:
-                    extra = Path(retry["trx"]).parent / (
-                        "host.dmp"
-                        if mutation == "hang"
-                        else "attempt-3/test-results.trx"
+                    extra = artifact / (
+                        "host.dmp" if mutation == "hang" else "attempt-3/test-results.trx"
                     )
-                    (artifact / extra).parent.mkdir(parents=True, exist_ok=True)
-                    (artifact / extra).write_bytes(b"unexpected evidence")
-                    manifest["files"][extra.as_posix()] = MODULE.sha256_file(
-                        artifact / extra
-                    )
-                fixture.write_ci_manifest(
-                    artifact / "shards/core/manifest.json", manifest
-                )
+                    extra.parent.mkdir(parents=True, exist_ok=True)
+                    extra.write_text("private")
+                fixture.write_ci_manifest(artifact / "shards/core/manifest.json", manifest)
                 with (
                     self.assertRaisesRegex(
                         RuntimeError,
-                        {
-                            "filter": "retry filter or evidence paths changed",
-                            "missing-log": "missing",
-                            "hash": "invalid|syntax error",
-                            "hang": "file inventory changed",
-                            "third-attempt": "file inventory changed",
-                        }[mutation],
+                        "^"
+                        + {
+                            "filter": r"Public evidence summary is invalid\.",
+                            "missing-summary": r"Public evidence file inventory is invalid\.",
+                            "hash": r"Public evidence hash does not match\.",
+                            "hang": r"Public evidence contains unexpected files \(count: 1\)\.",
+                            "third-attempt": r"Public evidence contains unexpected files \(count: 1\)\.",
+                        }[mutation]
+                        + "$",
                     ),
                     patch.object(MODULE, "verify_coverage") as coverage,
                 ):
@@ -862,8 +774,13 @@ class CiDotnetRetryTests(unittest.TestCase):
                 self.subTest(mutation=mutation),
                 self.shard("recover") as (root, _, _, _, manifest, _),
             ):
-                first = root / "upload" / manifest["projects"][0]["trx"]
-                second = root / "upload" / manifest["projects"][0]["retry"]["trx"]
+                first = (
+                    root
+                    / "work/shards/core/results"
+                    / Path(manifest["projects"][0]["relativePath"]).stem
+                    / "attempt-1/test-results.trx"
+                )
+                second = first.parent.parent / "attempt-2/test-results.trx"
                 target = second if mutation == "different-method" else first
                 tree = MODULE.ET.parse(target)
                 definitions = tree.find(".//{*}TestDefinitions")
@@ -893,7 +810,7 @@ class CiDotnetRetryTests(unittest.TestCase):
                 ):
                     MODULE.require_ci_retry_results(first, second)
 
-    def test_retry_limits_keep_original_failure(self):
+    def test_retry_limits_keep_private_diagnosis_and_fixed_public_failure(self):
         for scenario, reason in (
             ("golden", "GoldenRegression tests are never retried"),
             ("budget", "insufficient shard time for a flaky retry"),
@@ -901,11 +818,12 @@ class CiDotnetRetryTests(unittest.TestCase):
         ):
             with (
                 self.subTest(scenario=scenario),
-                self.shard(scenario) as (_, _, _, attempts, manifest, error),
+                self.shard(scenario) as (root, project, _, attempts, manifest, error),
             ):
                 self.assertEqual(1, len(attempts))
                 self.assertFalse(manifest["success"])
-                self.assertIn(reason, str(error))
+                self.assertIn(reason, (root / "work/shards/core/shard.log").read_text())
+                self.assertEqual(f"{project.name}: project failed.", str(error))
 
     def test_retry_bounds_admit_twenty_fqns_and_exact_time_margin(self):
         for scenario in ("twenty", "budget-at-limit"):
@@ -917,24 +835,27 @@ class CiDotnetRetryTests(unittest.TestCase):
                 self.assertEqual(2, len(attempts))
                 self.assertTrue(manifest["success"])
                 self.assertEqual(
-                    20 if scenario == "twenty" else 1, len(manifest["flakyTests"])
+                    20 if scenario == "twenty" else 1, len(flaky_declarations(manifest))
                 )
 
     def test_finalizer_rejects_forged_successful_golden_retry(self):
-        with self.shard("golden-forged") as (root, _, _, _, manifest, error):
+        with self.shard("green") as (root, _, _, _, manifest, error):
             self.assertIsNone(error)
             self.assertTrue(manifest["success"])
             fixture = fixtures.VerifyOrchestrationTests()
             downloads = root / "downloads"
             fixture.stage_complete_ci_dotnet_evidence(
-                downloads, "a" * 40, owners=("build",)
+                downloads, "a" * 40, owners=("build", "bootstrap", "ui")
             )
-            shutil.copytree(
-                root / "upload", fixture.ci_artifact_root(downloads, "core")
-            )
+            shutil.copytree(root / "upload", fixture.ci_artifact_root(downloads, "core"))
+            manifest_path = fixture.ci_artifact_root(downloads, "core") / "shards/core/manifest.json"
+            golden = next(row for row in manifest["projects"] if Path(row["relativePath"]).stem == "NvtFwCombiner.GoldenRegression.Tests")
+            golden["retry"] = {"retried": True, "recoveredTests": 1}
+            golden["flakyTests"] = ["Probe.Tests.Case1"]
+            fixture.write_ci_manifest(manifest_path, manifest)
             with (
                 self.assertRaisesRegex(
-                    RuntimeError, "GoldenRegression tests are never retried"
+                    RuntimeError, r"^Public evidence summary is invalid\.$"
                 ),
                 patch.object(MODULE, "verify_coverage") as coverage,
             ):
@@ -977,7 +898,10 @@ class CiDotnetRetryTests(unittest.TestCase):
             ("Status: closed, superseded\n`Probe.Tests.Case1`", False),
             ("Status: duplicate of BUG-x\n`Probe.Tests.Case1`", False),
             ("Status: open\n`Probe.Tests.Case1`", True),
-            ("Status: Application part fixed; host follow-up reopened\n`Probe.Tests.Case1`", True),
+            (
+                "Status: Application part fixed; host follow-up reopened\n`Probe.Tests.Case1`",
+                True,
+            ),
         ):
             with (
                 self.subTest(bug_text=bug_text),
@@ -986,7 +910,7 @@ class CiDotnetRetryTests(unittest.TestCase):
                 fixture = fixtures.VerifyOrchestrationTests()
                 downloads = root / "downloads"
                 fixture.stage_complete_ci_dotnet_evidence(
-                    downloads, "a" * 40, owners=("build",)
+                    downloads, "a" * 40, owners=("build", "bootstrap", "ui")
                 )
                 shutil.copytree(
                     root / "upload", fixture.ci_artifact_root(downloads, "core")
@@ -1002,12 +926,12 @@ class CiDotnetRetryTests(unittest.TestCase):
                     else:
                         with self.assertRaisesRegex(
                             RuntimeError,
-                            "flaky test has no bug record.*Probe.Tests.Case1",
+                            r"^Flaky test has no open bug record\.$",
                         ):
                             MODULE.finalize_ci_dotnet_evidence(downloads)
                         coverage.assert_not_called()
                 self.assertIn(
-                    "::warning title=Flaky test::tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj Probe.Tests.Case1",
+                    "::warning title=Flaky test::Probe.Tests.Case1",
                     console.getvalue(),
                 )
 
@@ -1020,7 +944,7 @@ class CiDotnetRetryTests(unittest.TestCase):
                 fixture = fixtures.VerifyOrchestrationTests()
                 downloads = root / "downloads"
                 fixture.stage_complete_ci_dotnet_evidence(
-                    downloads, "a" * 40, owners=("build",)
+                    downloads, "a" * 40, owners=("build", "bootstrap", "ui")
                 )
                 artifact = fixture.ci_artifact_root(downloads, "core")
                 if mutation != "missing":
@@ -1033,16 +957,19 @@ class CiDotnetRetryTests(unittest.TestCase):
                     env["NFC_CI_DOTNET_DOWNLOAD_OUTCOME"] = "failure"
                 with (
                     patch.dict(os.environ, env),
-                    self.assertRaisesRegex(
-                        RuntimeError, "test producer failed: failure"
-                    ),
+                    self.assertRaisesRegex(RuntimeError, "test producer failed: failure"),
                 ):
                     MODULE.finalize_ci_dotnet_evidence(downloads)
 
     def test_unrelated_passing_definition_cannot_block_retry(self):
         with self.shard("recover") as (root, _, _, _, manifest, _):
-            first = root / "upload" / manifest["projects"][0]["trx"]
-            second = root / "upload" / manifest["projects"][0]["retry"]["trx"]
+            first = (
+                root
+                / "work/shards/core/results"
+                / Path(manifest["projects"][0]["relativePath"]).stem
+                / "attempt-1/test-results.trx"
+            )
+            second = first.parent.parent / "attempt-2/test-results.trx"
             tree = MODULE.ET.parse(first)
             definitions = tree.find(".//{*}TestDefinitions")
             definitions[0].find("{*}TestMethod").set("name", "Unsafe|Name")
@@ -1066,52 +993,28 @@ class CiDotnetRetryTests(unittest.TestCase):
             fixture = fixtures.VerifyOrchestrationTests()
             downloads = root / "downloads"
             fixture.stage_complete_ci_dotnet_evidence(
-                downloads, "a" * 40, owners=("build",)
+                downloads, "a" * 40, owners=("build", "bootstrap", "ui")
             )
             artifact = fixture.ci_artifact_root(downloads, "core")
             shutil.copytree(root / "upload", artifact)
             console = io.StringIO()
-            summary_path = root / "aggregate-summary.md"
             with (
                 redirect_stdout(console),
-                patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}),
-                patch.object(
-                    MODULE, "report_ci_flaky_tests", wraps=MODULE.report_ci_flaky_tests
-                ) as report,
                 patch.object(MODULE, "verify_coverage") as coverage,
             ):
                 MODULE.finalize_ci_dotnet_evidence(downloads)
             coverage.assert_called_once()
-            self.assertIn("Probe.Tests.Case1", console.getvalue())
-            self.assertIn("bug record", console.getvalue())
+            self.assertIn(
+                "::warning title=Flaky test::Probe.Tests.Case1", console.getvalue()
+            )
             self.assertIn("GoldenRegression 3/3", console.getvalue())
-            self.assertIn("attempt-1 failure for Probe.Tests.Case1", console.getvalue())
-            self.assertIn("at Probe.Tests.Run()", console.getvalue())
-            expected_flaky = [
-                {
-                    "project": project.relative_path,
-                    "fullyQualifiedName": "Probe.Tests.Case1",
-                }
-            ]
-            report.assert_called_once()
-            self.assertEqual(expected_flaky, report.call_args[0][1])
-            summary = summary_path.read_text(encoding="utf-8")
-            for item in expected_flaky:
-                identity = item["fullyQualifiedName"]
-                self.assertIn(f"{item['project']}: {identity}", summary)
-                self.assertIn(f"{item['project']} {identity} (attempt-1)", summary)
-                self.assertIn(f"attempt-1 failure for {identity}", summary)
-            self.assertIn("at Probe.Tests.Run()", summary)
-            # Details use the separate notice quota; original Flaky test warning
-            # annotations remain visible to the release zero-flaky evidence gate.
-            self.assertIn("::notice title=Failed test::", console.getvalue())
-            self.assertEqual(1, console.getvalue().count("::warning"))
-            self.assertIn("::warning title=Flaky test::", console.getvalue())
-            # Editing only the manifest must not erase evidence of a recovered failure.
-            manifest["flakyTests"] = []
+            self.assertNotIn("failure for", console.getvalue())
+            manifest["projects"][0]["flakyTests"] = []
             fixture.write_ci_manifest(artifact / "shards/core/manifest.json", manifest)
             with (
-                self.assertRaisesRegex(RuntimeError, "flaky"),
+                self.assertRaisesRegex(
+                    RuntimeError, r"^Public evidence summary is invalid\.$"
+                ),
                 patch.object(MODULE, "verify_coverage") as coverage,
             ):
                 MODULE.finalize_ci_dotnet_evidence(downloads)
@@ -1122,93 +1025,44 @@ class CiDotnetRetryTests(unittest.TestCase):
             fixture = fixtures.VerifyOrchestrationTests()
             downloads = root / "downloads"
             fixture.stage_complete_ci_dotnet_evidence(
-                downloads, "a" * 40, owners=("build",)
+                downloads, "a" * 40, owners=("build", "bootstrap", "ui")
             )
-            shutil.copytree(
-                root / "upload", fixture.ci_artifact_root(downloads, "core")
-            )
+            shutil.copytree(root / "upload", fixture.ci_artifact_root(downloads, "core"))
             console = io.StringIO()
             with (
                 patch.dict(os.environ, {"NFC_CI_DOTNET_TEST_RESULT": "failure"}),
-                redirect_stdout(console),
-                self.assertRaisesRegex(RuntimeError, "test producer failed"),
-                patch.object(MODULE, "verify_coverage") as coverage,
-            ):
-                MODULE.finalize_ci_dotnet_evidence(downloads)
-            coverage.assert_not_called()
-            self.assertIn("Probe.Tests.Case1", console.getvalue())
-            self.assertIn("unverified", console.getvalue())
-            self.assertIn("attempt-1 failure for Probe.Tests.Case1", console.getvalue())
-
-    def test_failed_aggregate_prints_both_attempts_without_changing_producer_failure(
-        self,
-    ):
-        with self.shard("twice") as (root, _, _, _, _, error):
-            self.assertIsNotNone(error)
-            fixture = fixtures.VerifyOrchestrationTests()
-            downloads = root / "downloads"
-            fixture.stage_complete_ci_dotnet_evidence(
-                downloads, "a" * 40, owners=("build",)
-            )
-            shutil.copytree(
-                root / "upload", fixture.ci_artifact_root(downloads, "core")
-            )
-            console = io.StringIO()
-            summary = root / "aggregate-summary.md"
-            with (
-                patch.dict(
-                    os.environ,
-                    {
-                        "NFC_CI_DOTNET_TEST_RESULT": "failure",
-                        "GITHUB_STEP_SUMMARY": str(summary),
-                    },
-                ),
                 redirect_stdout(console),
                 self.assertRaisesRegex(RuntimeError, "test producer failed: failure"),
                 patch.object(MODULE, "verify_coverage") as coverage,
             ):
                 MODULE.finalize_ci_dotnet_evidence(downloads)
             coverage.assert_not_called()
-            for output in (console.getvalue(), summary.read_text()):
-                self.assertIn("attempt-1 failure for Probe.Tests.Case1", output)
-                self.assertIn("attempt-2 failure for Probe.Tests.Case1", output)
-                self.assertIn("at Probe.Tests.Run()", output)
+            self.assertIn("Probe.Tests.Case1", console.getvalue())
+            self.assertIn("aggregate unverified flaky tests.", console.getvalue())
+            self.assertNotIn("failure for", console.getvalue())
 
-    def test_failed_aggregate_without_readable_trx_keeps_identity_only_report(self):
-        for case in ("missing", "invalid", "unknown-encoding"):
+    def test_failed_aggregate_reports_public_counters_and_keeps_producer_failure(self):
+        for github_actions in ("", "true"):
             with (
-                self.subTest(case=case),
-                self.shard("recover") as (root, project, _, _, _, _),
+                self.subTest(github_actions=github_actions),
+                self.shard("twice") as (root, _, _, _, _, error),
             ):
+                self.assertIsNotNone(error)
                 fixture = fixtures.VerifyOrchestrationTests()
                 downloads = root / "downloads"
                 fixture.stage_complete_ci_dotnet_evidence(
-                    downloads, "a" * 40, owners=("build",)
+                    downloads, "a" * 40, owners=("build", "bootstrap", "ui")
                 )
-                artifact = fixture.ci_artifact_root(downloads, "core")
-                shutil.copytree(root / "upload", artifact)
-                first = (
-                    artifact
-                    / f"shards/core/results/{project.name}/attempt-1/test-results.trx"
+                shutil.copytree(
+                    root / "upload", fixture.ci_artifact_root(downloads, "core")
                 )
-                if case == "missing":
-                    first.unlink()
-                elif case == "unknown-encoding":
-                    first.write_text(
-                        '<?xml version="1.0" encoding="not-a-real-encoding"?>'
-                        "<TestRun/>",
-                        encoding="utf-8",
-                    )
-                else:
-                    first.write_text("<broken", encoding="utf-8")
                 console = io.StringIO()
-                summary = root / "aggregate-summary.md"
                 with (
                     patch.dict(
                         os.environ,
                         {
                             "NFC_CI_DOTNET_TEST_RESULT": "failure",
-                            "GITHUB_STEP_SUMMARY": str(summary),
+                            "GITHUB_ACTIONS": github_actions,
                         },
                     ),
                     redirect_stdout(console),
@@ -1219,12 +1073,69 @@ class CiDotnetRetryTests(unittest.TestCase):
                 ):
                     MODULE.finalize_ci_dotnet_evidence(downloads)
                 coverage.assert_not_called()
-                for output in (console.getvalue(), summary.read_text()):
-                    self.assertIn("Probe.Tests.Case1", output)
-                    self.assertIn("bug record", output)
-                    self.assertNotIn("failed test details", output)
-                    self.assertNotIn("attempt-1 failure", output)
-                    self.assertNotIn("DO NOT REPORT PASSED", output)
+                self.assertIn(
+                    "total 6 passed 5 failed 1 skipped 0", console.getvalue()
+                )
+                self.assertIn("Probe.Tests.Case1", console.getvalue())
+                self.assertNotIn("(", console.getvalue().split("total 6", 1)[1])
+                self.assertNotIn("failure for", console.getvalue())
+
+    def test_failed_aggregate_with_missing_or_invalid_public_summary_keeps_producer_failure(
+        self,
+    ):
+        for case in ("missing", "invalid", "invalid-encoding"):
+            with (
+                self.subTest(case=case),
+                self.shard("recover") as (root, _, _, attempts, _, _),
+            ):
+                fixture = fixtures.VerifyOrchestrationTests()
+                downloads = root / "downloads"
+                fixture.stage_complete_ci_dotnet_evidence(
+                    downloads, "a" * 40, owners=("build", "bootstrap", "ui")
+                )
+                shutil.copytree(
+                    root / "upload", fixture.ci_artifact_root(downloads, "core")
+                )
+                first = (
+                    fixture.ci_artifact_root(downloads, "core")
+                    / "shards/core/shard-summary.json"
+                )
+                if case == "missing":
+                    first.unlink()
+                else:
+                    first.write_bytes(b"{broken" if case == "invalid" else b"\xff")
+                console = io.StringIO()
+                with (
+                    patch.dict(os.environ, {"NFC_CI_DOTNET_TEST_RESULT": "failure"}),
+                    redirect_stdout(console),
+                    self.assertRaisesRegex(RuntimeError, "test producer failed: failure"),
+                    patch.object(MODULE, "verify_coverage") as coverage,
+                ):
+                    MODULE.finalize_ci_dotnet_evidence(downloads)
+                coverage.assert_not_called()
+                self.assertNotIn("Probe.Tests.Case1", console.getvalue())
+                self.assertNotIn("failure for", console.getvalue())
+
+    def test_mixed_theory_recovery_does_not_declare_a_still_failed_method_flaky(self):
+        with self.shard("mixed-theory") as (_, project, _, attempts, manifest, error):
+            self.assertIsNotNone(error)
+            self.assertEqual(2, len(attempts))
+            self.assertEqual(
+                (),
+                MODULE.require_ci_retry_results(
+                    attempts[0] / "test-results.trx",
+                    attempts[1] / "test-results.trx",
+                    allow_failed=True,
+                ),
+            )
+            row = next(
+                row
+                for row in manifest["projects"]
+                if row["relativePath"] == project.relative_path
+            )
+            self.assertEqual(["Probe.Tests.Case1"], row["failedTests"])
+            self.assertEqual([], row["flakyTests"])
+            self.assertEqual({"retried": True, "recoveredTests": 1}, row["retry"])
 
 
 if __name__ == "__main__":

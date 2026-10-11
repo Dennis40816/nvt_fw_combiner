@@ -35,14 +35,18 @@ from unittest.loader import VALID_MODULE_NAME
 
 if __package__:
     from .canonical_golden_validation import validate_canonical_golden
+    from .ci import baseline_contract, check_test_shard, summary_evidence
     from .coverage_policy import (
+        PRODUCTION_MODULES,
         load_baseline,
         repository_relative_coverage_source,
         verify_coverage,
     )
 else:
     from canonical_golden_validation import validate_canonical_golden
+    from ci import baseline_contract, check_test_shard, summary_evidence
     from coverage_policy import (
+        PRODUCTION_MODULES,
         load_baseline,
         repository_relative_coverage_source,
         verify_coverage,
@@ -107,13 +111,12 @@ PYTHON_COVERAGE_OVERRIDE_ENVIRONMENT_VARIABLES = (
     "COVERAGE_RCFILE",
     "COVERAGE_PROCESS_START",
 )
+CI_DOTNET_BUILD_EVIDENCE_SCHEMA_VERSION = 4
 CI_DOTNET_EVIDENCE_SCHEMA_VERSION = 4
 # Reserve five minutes of the 30-minute job for setup, cleanup and upload.
 CI_SHARD_RETRY_BUDGET_SECONDS = 25 * 60
 CI_RETRY_REQUIRED_SECONDS = 5 * 60 + 2 * 60
 CI_RETRY_MAX_FQNS = 20
-CI_FAILURE_MESSAGE_MAX_CHARS = 1500
-CI_FAILURE_STACK_MAX_LINES = 15
 CI_HANG_SEQUENCE_MAX_BYTES = 1024 * 1024
 CI_DOTNET_ARTIFACT_ATTEMPT_SEPARATOR = "-attempt-"
 CI_FAILED_TEST_REPORT_LIMIT = 50
@@ -407,17 +410,8 @@ class CiDotnetProject:
 
 
 @dataclass(frozen=True)
-class TrxTestFailure:
-    """One resolved failed TRX result's error text, without captured test output."""
-
-    identity: str
-    message: str
-    stack_trace: str
-
-
-@dataclass(frozen=True)
 class CiFailedProjectEvidence:
-    """A failed CI project's uploadable diagnostics and what its report names.
+    """A failed CI project's runner-local diagnostics and what its report names.
 
     ``omissions`` are fixed public reasons; ``diagnostics`` hold the raw
     exception text and go only to the shard's own ``shard.log``.
@@ -1000,7 +994,11 @@ def command_timing_line(started_at: float) -> str:
 
 
 def ci_scrub_test_output_enabled() -> bool:
-    return os.environ.get("NFC_CI_SCRUB_TEST_OUTPUT") == "1"
+    """Scrub on GitHub Actions, where the log is public; a local run opts in."""
+    return (
+        os.environ.get("NFC_CI_SCRUB_TEST_OUTPUT") == "1"
+        or os.environ.get("GITHUB_ACTIONS") == "true"
+    )
 
 
 def _load_trx_reader():
@@ -3163,9 +3161,8 @@ def parse_trx_test_outcomes(
     path: Path,
     *,
     preserve_case_identity: bool = False,
-    failed_results: list[TrxTestFailure] | None = None,
 ) -> dict[str, Counter[str]]:
-    """Read outcomes and optionally carry failed ErrorInfo through the same identities."""
+    """Read outcomes through the existing case/method identities."""
 
     try:
         document = ET.parse(path)
@@ -3197,14 +3194,6 @@ def parse_trx_test_outcomes(
         method = canonical_vstest_identity(identity)
         resolved_identity = identity if preserve_case_identity else method
         outcomes[outcome][resolved_identity] += 1
-        if outcome == "Failed" and failed_results is not None:
-            failed_results.append(
-                TrxTestFailure(
-                    resolved_identity,
-                    result.findtext("{*}Output/{*}ErrorInfo/{*}Message", default=""),
-                    result.findtext("{*}Output/{*}ErrorInfo/{*}StackTrace", default=""),
-                )
-            )
     return outcomes
 
 
@@ -5005,7 +4994,201 @@ def ci_file_hashes(paths: Sequence[Path], evidence_root: Path) -> dict[str, str]
     return hashes
 
 
+def require_ci_public_tree(root: Path, shard: str) -> set[str]:
+    try:
+        actual = {
+            ci_relative_path(path, root) for path in enumerate_ci_regular_files(root)
+        }
+    except (RuntimeError, OSError, ValueError):
+        raise RuntimeError(summary_evidence.INVALID_FILES) from None
+    allowed = summary_evidence.allowed_paths(
+        shard, [p.name for p in CI_DOTNET_SHARDS[shard]]
+    )
+    extras = actual - allowed
+    if extras:
+        raise RuntimeError(summary_evidence.unexpected_files(len(extras)))
+    return actual
+
+
+def require_ci_public_file(root: Path, relative: str) -> Path:
+    try:
+        return resolve_ci_evidence_file(root, relative)
+    except (RuntimeError, OSError, ValueError):
+        raise RuntimeError(summary_evidence.INVALID_FILES) from None
+
+
+def validate_ci_public_files(
+    manifest: dict, root: Path, shard: str, *, require_coverage: bool
+) -> list[tuple[CiDotnetProject, Path, Path]]:
+    files = manifest["files"]
+    allowed = summary_evidence.allowed_paths(
+        shard, [p.name for p in CI_DOTNET_SHARDS[shard]]
+    )
+    manifest_path = f"shards/{shard}/manifest.json"
+    summary_path = f"shards/{shard}/shard-summary.json"
+    if (
+        not isinstance(files, dict)
+        or summary_path not in files
+        or manifest_path in files
+    ):
+        raise RuntimeError(summary_evidence.INVALID_FILES)
+    extras = set(files) - allowed
+    if extras:
+        raise RuntimeError(summary_evidence.unexpected_files(len(extras)))
+    pairs = []
+    for project in CI_DOTNET_SHARDS[shard]:
+        pair = summary_evidence.coverage_paths(shard, project.name)
+        present = [path in files for path in pair]
+        if any(present) != all(present) or (require_coverage and not all(present)):
+            raise RuntimeError(summary_evidence.INVALID_FILES)
+        if all(present):
+            pairs.append(
+                (project, *(require_ci_public_file(root, path) for path in pair))
+            )
+    for relative, expected_hash in files.items():
+        if (
+            not isinstance(expected_hash, str)
+            or re.fullmatch(r"[0-9a-f]{64}", expected_hash) is None
+        ):
+            raise RuntimeError(summary_evidence.BAD_HASH)
+        try:
+            digest = sha256_file(require_ci_public_file(root, relative))
+        except OSError:
+            raise RuntimeError(summary_evidence.INVALID_FILES) from None
+        if digest != expected_hash:
+            raise RuntimeError(summary_evidence.BAD_HASH)
+    directories = {
+        path.as_posix() for roots in PRODUCTION_MODULES.values() for path in roots
+    }
+    for _project, json_report, cobertura in pairs:
+        summary_evidence.validate_coverage(json_report, cobertura, directories)
+    return pairs
+
+
+def validate_ci_public_documents(
+    manifest: dict, summary: dict, shard: str, *, require_success: bool = False
+) -> None:
+    try:
+        floor = baseline_contract.load_baseline(ROOT / "scripts/ci/test-baseline.json")[
+            "shards"
+        ][shard]
+        run_id, run_attempt = require_ci_run_provenance()
+        summary_evidence.validate_documents(
+            manifest,
+            summary,
+            shard=shard,
+            project_paths=[p.relative_path for p in CI_DOTNET_SHARDS[shard]],
+            source_sha=require_ci_source_sha(),
+            run_id=run_id,
+            run_attempt=run_attempt,
+            sdk_version=repository_sdk_version(),
+            platform=CI_DOTNET_PRODUCER_PLATFORM,
+            floor=floor,
+            require_success=require_success,
+        )
+    except (OSError, ValueError, TypeError, KeyError):
+        raise RuntimeError(summary_evidence.INVALID_SUMMARY) from None
+
+
 def publish_ci_dotnet_artifact(
+    source_root: Path,
+    upload_root: Path,
+    manifest_relative_path: str,
+    file_hashes: dict[str, str],
+    *,
+    upload_boundary: Path | None = None,
+) -> None:
+    """Stage summaries and validated product coverage; empty staging on refusal."""
+
+    if manifest_relative_path == "build/manifest.json":
+        publish_ci_dotnet_build_artifact(
+            source_root,
+            upload_root,
+            manifest_relative_path,
+            file_hashes,
+            upload_boundary=upload_boundary,
+        )
+        return
+    target = None
+    try:
+        parts = PurePosixPath(manifest_relative_path).parts
+        if (
+            len(parts) != 3
+            or parts[0] != "shards"
+            or parts[2] != "manifest.json"
+            or parts[1] not in CI_DOTNET_SHARDS
+        ):
+            raise RuntimeError(summary_evidence.INVALID_FILES)
+        shard = parts[1]
+        target = reset_ci_dotnet_evidence_directory(
+            upload_root, boundary=ROOT if upload_boundary is None else upload_boundary
+        )
+        manifest = summary_evidence.read_document(
+            require_ci_public_file(source_root, manifest_relative_path)
+        )
+        if manifest.get("files") != file_hashes:
+            raise RuntimeError(summary_evidence.INVALID_FILES)
+        validate_ci_public_files(
+            manifest,
+            source_root,
+            shard,
+            require_coverage=manifest.get("success") is True,
+        )
+        summary = summary_evidence.read_document(
+            require_ci_public_file(source_root, f"shards/{shard}/shard-summary.json")
+        )
+        validate_ci_public_documents(manifest, summary, shard)
+        expected = {manifest_relative_path, *file_hashes}
+        for relative in sorted(expected):
+            source = require_ci_public_file(source_root, relative)
+            destination = target.joinpath(*PurePosixPath(relative).parts)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, destination, follow_symlinks=False)
+        actual = require_ci_public_tree(target, shard)
+        if actual != expected:
+            raise RuntimeError(summary_evidence.INVALID_FILES)
+        validate_ci_public_files(
+            manifest, target, shard, require_coverage=manifest["success"]
+        )
+        staged_manifest = summary_evidence.read_document(
+            require_ci_public_file(target, manifest_relative_path)
+        )
+        if staged_manifest != manifest:
+            raise RuntimeError(summary_evidence.BAD_HASH)
+        staged_summary = summary_evidence.read_document(
+            require_ci_public_file(target, f"shards/{shard}/shard-summary.json")
+        )
+        validate_ci_public_documents(staged_manifest, staged_summary, shard)
+    except (RuntimeError, OSError, ValueError) as error:
+        # The workflow always uploads this root: a refused tree must not remain uploadable.
+        try:
+            reset_ci_dotnet_evidence_directory(
+                upload_root,
+                boundary=ROOT if upload_boundary is None else upload_boundary,
+            )
+        except (RuntimeError, OSError, ValueError):
+            raise RuntimeError(summary_evidence.INVALID_FILES) from None
+        if isinstance(error, RuntimeError) and str(error) in {
+            summary_evidence.INVALID_SUMMARY,
+            summary_evidence.OLD_SCHEMA,
+            summary_evidence.WRONG_IDENTITY,
+            summary_evidence.STALE_PROVENANCE,
+            summary_evidence.INVALID_COUNTERS,
+            summary_evidence.BELOW_FLOOR,
+            summary_evidence.FAILED_SHARD,
+            summary_evidence.INVALID_FILES,
+            summary_evidence.BAD_HASH,
+            summary_evidence.INVALID_COVERAGE,
+        }:
+            raise RuntimeError(str(error)) from None
+        if isinstance(error, RuntimeError) and re.fullmatch(
+            r"Public evidence contains unexpected files \(count: [0-9]+\)\.", str(error)
+        ):
+            raise RuntimeError(str(error)) from None
+        raise RuntimeError(summary_evidence.INVALID_FILES) from None
+
+
+def publish_ci_dotnet_build_artifact(
     source_root: Path,
     upload_root: Path,
     manifest_relative_path: str,
@@ -5321,7 +5504,8 @@ def collect_ci_failed_project_evidence(
         if attempt_log in regular_files:
             paths.append(attempt_log)
     if any(
-        path.name in {"coverage.json", "coverage.cobertura.xml"} for path in regular_files
+        path.name in {"coverage.json", "coverage.cobertura.xml"}
+        for path in regular_files
     ):
         reason = CI_COVERAGE_NOT_PAIRED
         try:
@@ -5340,11 +5524,11 @@ def collect_ci_failed_project_evidence(
     failed_tests: tuple[str, ...] | None = None
     if trx_report in regular_files:
         try:
-            outcomes = parse_trx_test_outcomes(trx_report, preserve_case_identity=True)
-        except (RuntimeError, OSError):
+            counts = _load_trx_reader().read_trx_results(trx_report)
+        except (RuntimeError, OSError, ValueError):
             pass
         else:
-            failed_tests = tuple(sorted(outcomes["Failed"].elements()))
+            failed_tests = tuple(counts["FailedTests"])
     return CiFailedProjectEvidence(
         tuple(paths), failed_tests, tuple(omissions), tuple(diagnostics)
     )
@@ -5379,8 +5563,8 @@ def append_ci_step_summary(markdown: str) -> None:
     try:
         with open(summary_path, "a", encoding="utf-8", newline="\n") as summary:
             summary.write(markdown)
-    except OSError as error:
-        print(f"GitHub step summary could not be written: {error}", file=sys.stderr, flush=True)
+    except OSError:
+        print("CI step summary could not be written.", file=sys.stderr, flush=True)
 
 
 def ci_report_line(text: str) -> str:
@@ -5389,127 +5573,73 @@ def ci_report_line(text: str) -> str:
     return re.sub(r"[\x00-\x1f\x7f]", " ", text).replace("`", "'")
 
 
-def ci_workflow_command_data(text: str) -> str:
-    """Escape workflow-command data, including unverified producer diagnostics."""
-
-    return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-
-
 def report_ci_test_failure_details(
     label: str,
     reports: Sequence[tuple[str, str, Path]],
 ) -> None:
-    """Project bounded failed ErrorInfo from retained TRX; never decide a verdict.
-
-    Callers supply canonical regular files under existing evidence custody. A
-    missing/unreadable TRX adds no details and does not change its caller's gate.
-    Both attempts share the identity cap; duplicate results cannot multiply output.
-    """
+    """Report only counters and public methods from runner-local final results."""
 
     if ci_scrub_test_output_enabled():
         return
-    failures: dict[tuple[str, str], dict[str, TrxTestFailure]] = {}
-    for project, attempt, trx in reports:
-        details: list[TrxTestFailure] = []
+    for _project, _attempt, trx in reports:
         try:
-            parse_trx_test_outcomes(
-                trx, preserve_case_identity=True, failed_results=details
-            )
-        # LookupError: a TRX that declares an unknown XML encoding.
-        except (RuntimeError, OSError, ValueError, LookupError):
+            counts = _load_trx_reader().read_trx_results(trx)
+        except (ValueError, OSError):
             continue
-        for failure in details:
-            failures.setdefault((project, failure.identity), {}).setdefault(
-                attempt, failure
-            )
-    if not failures:
-        return
-    summary = [
-        f"### .NET CI {ci_report_line(label)}: failed test details",
-        "",
-        "```text",
-    ]
-    marker = "... [truncated]"
-    for (project, identity), attempts in list(failures.items())[:CI_RETRY_MAX_FQNS]:
-        for attempt, failure in attempts.items():
-            message = failure.message
-            if len(message) > CI_FAILURE_MESSAGE_MAX_CHARS:
-                message = message[: CI_FAILURE_MESSAGE_MAX_CHARS - len(marker)] + marker
-            stack_lines = failure.stack_trace.splitlines(keepends=True)
-            stack = "".join(stack_lines[:CI_FAILURE_STACK_MAX_LINES])
-            if len(stack_lines) > CI_FAILURE_STACK_MAX_LINES:
-                stack += marker
-            lines = [
-                f"{project} {identity} ({attempt})",
-                "Message:",
-                message or "(no message in TRX)",
-                "Stack trace:",
-                stack or "(no stack trace in TRX)",
-            ]
-            # Only this command carries raw TRX text into the log. In particular,
-            # a line beginning with :: stays data inside the escaped command.
-            # Notices do not consume the warning quota used by the release's
-            # existing Flaky test annotations, even in the early aggregate report.
-            data = ci_workflow_command_data("\n".join(lines))
-            write_console_text(f"::notice title=Failed test::{data}\n")
-            summary.extend(
-                ci_report_line(line) for line in "\n".join(lines).splitlines()
-            )
-            summary.append("")
-    omitted = len(failures) - CI_RETRY_MAX_FQNS
-    if omitted > 0:
-        note = f"... {omitted} more failed identities in the TRX [truncated]"
-        write_console_text(note + "\n")
-        summary.append(note)
-    summary.extend(["```", ""])
-    append_ci_step_summary("\n".join(summary))
+        if counts["Failed"]:
+            report_ci_public_counts(counts, capitalized=True, limit=CI_RETRY_MAX_FQNS)
+
+
+def report_ci_public_counts(
+    counts: dict, *, capitalized: bool = False, limit: int = CI_FAILED_TEST_REPORT_LIMIT
+) -> None:
+    names = ("total", "passed", "failed", "skipped")
+    values = {
+        name: counts[name.capitalize() if capitalized else name] for name in names
+    }
+    methods = counts["FailedTests" if capitalized else "failedTests"]
+    report = " ".join(f"{name} {values[name]}" for name in names) + "\n"
+    report += "".join(name + "\n" for name in methods[:limit])
+    write_console_text(report)
+    append_ci_step_summary("```text\n" + report + "```\n")
 
 
 def report_ci_failed_tests(
     shard: str,
-    artifact_name: str,
+    _artifact_name: str,
     failed_projects: Sequence[tuple[str, CiFailedProjectEvidence]],
 ) -> None:
-    """Name failed tests and omitted evidence in the job log and step summary.
+    """Print parameter-free methods only; reproduce diagnostics locally."""
 
-    This inventory prints only TRX names and fixed omission reasons. Failed
-    ErrorInfo is projected separately by report_ci_test_failure_details; captured
-    test output and raw collection exception text are never printed here.
-    """
-
-    if ci_scrub_test_output_enabled() or not failed_projects:
+    if not failed_projects:
         return
-    console = [f"\n.NET CI shard {shard} failed projects:"]
-    summary = [f"### .NET CI shard `{shard}` failures", ""]
-    for project_name, evidence in failed_projects:
-        identities = evidence.failed_tests or ()
-        if evidence.failed_tests is None:
-            detail = f"no readable TRX; see shard.log in {artifact_name}"
-        elif not identities:
-            detail = f"no failed test in TRX; see shard.log in {artifact_name}"
-        else:
-            detail = f"{len(identities)} failed test(s) in TRX"
-        console.append(f"  {project_name}: {detail}")
-        summary.append(f"**{project_name}**: {detail}")
-        summary.append("")
-        shown = [
-            ci_report_line(identity)
-            for identity in identities[:CI_FAILED_TEST_REPORT_LIMIT]
-        ]
-        if len(identities) > len(shown):
-            shown.append(f"... {len(identities) - len(shown)} more in the TRX")
-        notes = [
-            f"note: {ci_report_line(note)} (details in shard.log)"
-            for note in evidence.omissions
-        ]
-        if not shown and not notes:
-            continue
-        console.extend(f"    - {identity}" for identity in shown)
-        console.extend(f"    {note}" for note in notes)
-        summary.extend(("```text", *shown, *notes, "```", ""))
-    write_console_text("\n".join(console) + "\n")
-    sys.stdout.flush()
-    append_ci_step_summary("\n".join(summary) + "\n")
+    methods = set()
+    notices = []
+    for project, evidence in failed_projects:
+        if (
+            evidence.failed_tests is None
+            or any(path.name.startswith("Sequence_") for path in evidence.paths)
+            or CI_HANG_ATTACHMENTS_REJECTED in evidence.omissions
+        ):
+            notices.append(f"{project}: no readable results.\n")
+        if any(
+            reason in evidence.omissions
+            for reason in (CI_COVERAGE_NOT_PAIRED, CI_COVERAGE_NOT_NORMALIZED)
+        ):
+            notices.append(f"{project}: coverage refused.\n")
+        for identity in (
+            () if ci_scrub_test_output_enabled() else evidence.failed_tests or ()
+        ):
+            try:
+                methods.add(summary_evidence.public_method_name(identity))
+            except RuntimeError:
+                continue
+    report = "".join(notices) + "".join(
+        name + "\n" for name in sorted(methods)[:CI_FAILED_TEST_REPORT_LIMIT]
+    )
+    if report:
+        write_console_text(report)
+        append_ci_step_summary("```text\n" + report + "```\n")
 
 
 def require_ci_evidence_provenance(
@@ -5586,7 +5716,7 @@ def verify_ci_dotnet_build() -> None:
     file_hashes = ci_file_hashes((log_path,), evidence_root)
     run_id, run_attempt = require_ci_run_provenance()
     document = {
-        "schemaVersion": CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
+        "schemaVersion": CI_DOTNET_BUILD_EVIDENCE_SCHEMA_VERSION,
         "kind": "dotnet-build",
         "sourceSha": require_ci_source_sha(),
         "runId": run_id,
@@ -5800,25 +5930,21 @@ def require_ci_retry_results(
 def report_ci_flaky_tests(label: str, flaky: Sequence[dict[str, str]]) -> None:
     if not flaky:
         return
-    for item in flaky:
-        message = f"{item['project']} {item['fullyQualifiedName']}"
-        message = ci_workflow_command_data(message)
-        write_console_text(f"::warning title=Flaky test::{message}\n")
-    lines = [
-        f"### .NET CI {label}: flaky tests",
-        "",
-        "WARNING: every flaky test requires a bug record before merge. The PR commander",
-        "must link each identity to docs/handoff/bugs/; a passing retry is not a fix.",
-        "",
-        "```text",
-    ]
-    lines.extend(
-        ci_report_line(f"{item['project']}: {item['fullyQualifiedName']}")
-        for item in flaky
+    methods = summary_evidence.project_method_names(
+        item["fullyQualifiedName"] for item in flaky
     )
-    lines.extend(["```", ""])
-    report = "\n".join(lines)
-    write_console_text(report + "\n")
+    for name in methods:
+        write_console_text(f"::warning title=Flaky test::{name}\n")
+    report = (
+        (
+            "aggregate unverified flaky tests.\n"
+            if label == "aggregate unverified"
+            else "Flaky tests.\n"
+        )
+        + "WARNING: every flaky test requires a bug record before merge.\n"
+        "```text\n" + "".join(name + "\n" for name in methods) + "```\n"
+    )
+    write_console_text(report)
     append_ci_step_summary(report)
 
 
@@ -5851,15 +5977,199 @@ def require_ci_flaky_bug_records(flaky: Sequence[dict[str, str]]) -> None:
         # Markdown backticks delimit code and are not part of the surrounding token.
         pattern = rf"(?<![A-Za-z0-9_.+]){re.escape(fqn)}(?![A-Za-z0-9_.+])"
         if not any(re.search(pattern, bug) for bug in bugs):
-            raise RuntimeError(
-                "flaky test has no bug record in docs/handoff/bugs/BUG-*.md "
-                f"(add one or reopen a closed one): {item['project']} {fqn}"
-            )
+            raise RuntimeError("Flaky test has no open bug record.")
 
 
 def require_ci_retry_project(project: CiDotnetProject) -> None:
     if project.name == "NvtFwCombiner.GoldenRegression.Tests":
         raise RuntimeError("GoldenRegression tests are never retried")
+
+
+def ci_public_shard_failure(
+    primary: BaseException | None,
+    error: BaseException,
+    message: str,
+    *,
+    secondary_label: str = "cleanup",
+) -> BaseException:
+    """Keep runner termination types while exposing only fixed diagnostics."""
+    if isinstance(error, subprocess.TimeoutExpired):
+        error.cmd = message
+        error.output = error.stderr = None
+        error.args = (message, error.timeout)
+    elif not isinstance(error, Exception):
+        error.args = (message,)
+        if isinstance(error, SystemExit) and not (
+            error.code is None or isinstance(error.code, int)
+        ):
+            error.code = message
+    else:
+        error = RuntimeError(message)
+    if primary is not None and (
+        not isinstance(primary, Exception)
+        or isinstance(primary, subprocess.TimeoutExpired)
+    ):
+        return primary
+    if not isinstance(error, Exception) or isinstance(error, subprocess.TimeoutExpired):
+        return error
+    return combine_failures(primary, error, secondary_label=secondary_label)
+
+
+def collect_ci_public_shard_evidence(
+    shard: str,
+    output: Path,
+    evidence_paths: Sequence[Path],
+    assembly_hashes: dict[str, str],
+    retry_receipts: dict[str, tuple[Path, tuple[str, ...]]],
+    retried: set[str],
+    *,
+    public_root: Path,
+    source_sha: str,
+    test_run_failed: bool,
+) -> tuple[list[dict[str, object]], dict, tuple[Path, ...]]:
+    """Reuse the public reader/checker on final outcomes; leave raw attempts intact."""
+
+    try:
+        rows: list[dict[str, object]] = []
+        public_paths: list[Path] = []
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-ci-summary-", dir=output
+        ) as temporary:
+            final_results = Path(temporary)
+            for project in CI_DOTNET_SHARDS[shard]:
+                first = (
+                    output / "results" / project.name / "attempt-1" / "test-results.trx"
+                )
+                if first not in evidence_paths or project.name not in assembly_hashes:
+                    continue
+                destination = None
+                try:
+                    counts = _load_trx_reader().read_trx_results(first)
+                    if counts["NotExecuted"]:
+                        continue
+                    tree = ET.parse(first)
+                    recovered_tests = 0
+                    receipt = retry_receipts.get(project.name)
+                    if receipt is not None:
+                        retry_trx, recovered_methods = receipt
+                        retry = parse_trx_test_outcomes(
+                            retry_trx, preserve_case_identity=True
+                        )
+                        definitions = {
+                            node.get("id"): node.get("name")
+                            for node in tree.findall(".//{*}UnitTest")
+                        }
+                        for result in tree.findall(".//{*}UnitTestResult"):
+                            identity = result.get("testName", "")
+                            if re.fullmatch(
+                                r"<unknown test ID [0-9a-f]{64}>", identity
+                            ):
+                                identity = definitions[result.get("testId")]
+                            for outcome, identities in retry.items():
+                                if identity in identities:
+                                    recovered_tests += (
+                                        result.get("outcome") == "Failed"
+                                        and outcome == "Passed"
+                                    )
+                                    result.set("outcome", outcome)
+                        results = tree.findall(".//{*}UnitTestResult")
+                        summary = tree.find(".//{*}ResultSummary")
+                        counters = summary.find("{*}Counters")
+                        passed = sum(
+                            node.get("outcome") == "Passed" for node in results
+                        )
+                        failed = sum(
+                            node.get("outcome") == "Failed" for node in results
+                        )
+                        counters.set("passed", str(passed))
+                        counters.set("failed", str(failed))
+                        summary.set("outcome", "Completed" if not failed else "Failed")
+                    else:
+                        recovered_methods = ()
+                    destination = final_results / project.name / "test-results.trx"
+                    destination.parent.mkdir()
+                    tree.write(destination, encoding="utf-8", xml_declaration=True)
+                    counts = _load_trx_reader().read_trx_results(destination)
+                    flaky_methods = summary_evidence.project_method_names(
+                        recovered_methods
+                    )
+                except (OSError, ValueError, RuntimeError, KeyError, ET.ParseError):
+                    if destination is not None and destination.exists():
+                        destination.unlink()
+                    continue
+                rows.append(
+                    {
+                        "relativePath": project.relative_path,
+                        "testAssemblySha256": assembly_hashes[project.name],
+                        **{
+                            name: counts[name.capitalize()]
+                            for name in summary_evidence.COUNTERS
+                        },
+                        "retry": {
+                            "retried": project.name in retried,
+                            "recoveredTests": recovered_tests,
+                        },
+                        "failedTests": counts["FailedTests"],
+                        "flakyTests": flaky_methods,
+                    }
+                )
+                pair = tuple(
+                    path
+                    for path in evidence_paths
+                    if path.parent.is_relative_to(first.parent)
+                    and path.name in {"coverage.json", "coverage.cobertura.xml"}
+                )
+                if len(pair) == 2:
+                    json_report = next(
+                        path for path in pair if path.name == "coverage.json"
+                    )
+                    cobertura = next(
+                        path for path in pair if path.name == "coverage.cobertura.xml"
+                    )
+                    try:
+                        targets = []
+                        for source, relative in zip(
+                            (json_report, cobertura),
+                            summary_evidence.coverage_paths(shard, project.name),
+                            strict=True,
+                        ):
+                            target = public_root / relative
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copyfile(source, target, follow_symlinks=False)
+                            targets.append(target)
+                        summary_evidence.project_coverage(
+                            *targets,
+                            {
+                                path.as_posix()
+                                for roots in PRODUCTION_MODULES.values()
+                                for path in roots
+                            },
+                        )
+                    except RuntimeError:
+                        for target in targets:
+                            target.unlink(missing_ok=True)
+                        test_run_failed = True
+                        notice = f"{project.name}: coverage refused.\n"
+                        write_console_text(notice)
+                        append_ci_step_summary("```text\n" + notice + "```\n")
+                    else:
+                        public_paths.extend(targets)
+            summary_path = public_root / "shards" / shard / "shard-summary.json"
+            summary_path.parent.mkdir(parents=True, exist_ok=True)
+            summary = check_test_shard.check_test_shard(
+                shard=shard,
+                results_directory=final_results,
+                baseline_path=ROOT / "scripts/ci/test-baseline.json",
+                summary_path=summary_path,
+                example_data_present=False,
+                commit=source_sha,
+                test_run_failed=test_run_failed
+                or len(rows) != len(CI_DOTNET_SHARDS[shard]),
+            )
+        return rows, summary, (*public_paths, summary_path)
+    except (OSError, ValueError, RuntimeError) as error:
+        append_ci_shard_diagnostics(output / "shard.log", shard, (str(error),))
+        raise RuntimeError(summary_evidence.PROJECTION_FAILED) from None
 
 
 def verify_ci_dotnet_test_shard(shard: str) -> None:
@@ -5885,6 +6195,9 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
     dotnet = resolve_dotnet()
     environment = dotnet_batch_environment()
     project_rows: list[dict[str, object]] = []
+    assembly_hashes: dict[str, str] = {}
+    retry_receipts: dict[str, tuple[Path, tuple[str, ...]]] = {}
+    retried: set[str] = set()
     evidence_paths: list[Path] = [log_path]
     failures: list[str] = []
     failed_projects: list[tuple[str, CiFailedProjectEvidence]] = []
@@ -5924,6 +6237,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                 )
                 test_assembly = source_output / f"{project.name}.dll"
                 test_assembly_sha256 = sha256_file(test_assembly)
+                assembly_hashes[project.name] = test_assembly_sha256
                 run(
                     dotnet_vstest_discovery_command(dotnet, test_assembly),
                     environment=environment,
@@ -5986,6 +6300,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                     retry_directory = results_directory.parent / "attempt-2"
                     retry_directory.mkdir()
                     attempt_directories.append(retry_directory)
+                    retried.add(project.name)
                     retry_log = retry_directory / "attempt.log"
                     retry_log.touch()
                     retry_error: subprocess.CalledProcessError | None = None
@@ -6020,6 +6335,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                                 retry_trx,
                                 allow_failed=True,
                             )
+                            retry_receipts[project.name] = (retry_trx, recovered)
                             if parse_trx_counters(retry_trx)["failed"]:
                                 flaky_tests.extend(
                                     {
@@ -6030,6 +6346,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                                 )
                         raise retry_error
                     recovered = require_ci_retry_results(first_trx, retry_trx)
+                    retry_receipts[project.name] = (retry_trx, recovered)
                     row["retry"] = {
                         "filter": test_filter,
                         "trx": ci_relative_path(retry_trx, evidence_root),
@@ -6050,7 +6367,8 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                 OSError,
                 subprocess.TimeoutExpired,
             ) as error:
-                failures.append(f"{project.name}: {error}")
+                append_ci_shard_diagnostics(log_path, project.name, (str(error),))
+                failures.append(f"{project.name}: project failed.")
                 # Keep the failed project's diagnostics under the passing-evidence rules.
                 attempts = []
                 for directory in attempt_directories:
@@ -6060,7 +6378,7 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
                         )
                     except (RuntimeError, OSError) as evidence_error:
                         failures.append(
-                            f"{project.name} {CI_FAILURE_EVIDENCE_REJECTED} (see shard.log)"
+                            f"{project.name} {CI_FAILURE_EVIDENCE_REJECTED}"
                         )
                         attempt = CiFailedProjectEvidence(
                             (),
@@ -6101,20 +6419,48 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
             )
         require_logged_sdk_version(log_path, repository_sdk_version())
     except BaseException as error:
-        fatal_failure = error
+        append_ci_shard_diagnostics(log_path, shard, (str(error),))
+        fatal_failure = ci_public_shard_failure(
+            None,
+            error,
+            "; ".join(failures) if failures else "Shard execution failed.",
+        )
     if fatal_failure is None and failures:
         fatal_failure = RuntimeError("; ".join(failures))
     try:
         cleanup_dotnet_batch(dotnet, environment, log_path)
     except BaseException as error:
-        fatal_failure = combine_failures(fatal_failure, error)
+        append_ci_shard_diagnostics(log_path, shard, (str(error),))
+        fatal_failure = ci_public_shard_failure(
+            fatal_failure, error, "Shard cleanup failed."
+        )
+    try:
+        # A name that the public summary omits never reaches the finalizer's gate.
+        require_ci_flaky_bug_records(
+            [
+                item
+                for item in flaky_tests
+                if not summary_evidence.project_method_names(
+                    [item["fullyQualifiedName"]]
+                )
+            ]
+        )
+    except (OSError, RuntimeError, ValueError) as error:
+        append_ci_shard_diagnostics(log_path, shard, (str(error),))
+        fatal_failure = ci_public_shard_failure(
+            fatal_failure,
+            error,
+            "Flaky test has no open bug record.",
+            secondary_label="flaky bug record",
+        )
 
+    source_sha = require_ci_source_sha()
     file_hashes = ci_file_hashes(evidence_paths, evidence_root)
     run_id, run_attempt = require_ci_run_provenance()
     document = {
         "schemaVersion": CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
         "kind": "dotnet-test-shard",
-        "sourceSha": require_ci_source_sha(),
+        "sourceSha": source_sha,
         "runId": run_id,
         "runAttempt": run_attempt,
         "sdkVersion": repository_sdk_version(),
@@ -6127,24 +6473,87 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
     }
     write_ci_manifest(output / "manifest.json", document)
     try:
-        publish_ci_dotnet_artifact(
-            evidence_root,
-            CI_DOTNET_UPLOAD_ROOT,
-            f"shards/{shard}/manifest.json",
-            file_hashes,
-        )
-    except BaseException as error:
-        fatal_failure = combine_failures(
+        with tempfile.TemporaryDirectory(
+            prefix="nfc-ci-public-", dir=evidence_root
+        ) as temporary:
+            public_root = Path(temporary)
+            public_rows, public_summary, public_paths = (
+                collect_ci_public_shard_evidence(
+                    shard,
+                    output,
+                    evidence_paths,
+                    assembly_hashes,
+                    retry_receipts,
+                    retried,
+                    public_root=public_root,
+                    source_sha=source_sha,
+                    test_run_failed=fatal_failure is not None,
+                )
+            )
+            if public_summary["outcome"] != "passed" and fatal_failure is None:
+                fatal_failure = RuntimeError(summary_evidence.FAILED_SHARD)
+            public_hashes = ci_file_hashes(public_paths, public_root)
+            public_document = {
+                **document,
+                "schemaVersion": summary_evidence.SCHEMA_VERSION,
+                "success": fatal_failure is None,
+                "projects": public_rows,
+                "files": public_hashes,
+            }
+            del public_document["flakyTests"]
+            write_ci_manifest(
+                public_root / "shards" / shard / "manifest.json", public_document
+            )
+            publish_ci_dotnet_artifact(
+                public_root,
+                CI_DOTNET_UPLOAD_ROOT,
+                f"shards/{shard}/manifest.json",
+                public_hashes,
+            )
+    except (OSError, ValueError, RuntimeError) as error:
+        append_ci_shard_diagnostics(log_path, shard, (str(error),))
+        fatal_failure = ci_public_shard_failure(
             fatal_failure,
             error,
+            summary_evidence.PROJECTION_FAILED,
             secondary_label="evidence staging",
         )
+        try:
+            reset_ci_dotnet_evidence_directory(CI_DOTNET_UPLOAD_ROOT)
+        except (OSError, ValueError, RuntimeError) as reset_error:
+            append_ci_shard_diagnostics(log_path, shard, (str(reset_error),))
+            fatal_failure = ci_public_shard_failure(
+                fatal_failure,
+                reset_error,
+                summary_evidence.STAGING_RESET_FAILED,
+                secondary_label="staging cleanup",
+            )
     report_ci_failed_tests(
         shard,
         ci_dotnet_evidence_artifact_name(shard, run_attempt),
         failed_projects,
     )
-    report_ci_flaky_tests(f"shard {shard}", flaky_tests)
+    try:
+        report_ci_flaky_tests(f"shard {shard}", flaky_tests)
+    except (RuntimeError, ValueError) as error:
+        append_ci_shard_diagnostics(log_path, shard, (str(error),))
+        fatal_failure = ci_public_shard_failure(
+            fatal_failure,
+            error,
+            summary_evidence.INVALID_SUMMARY,
+            secondary_label="flaky reporting",
+        )
+        try:
+            # The staged manifest already says success; a failed receipt must not stay.
+            reset_ci_dotnet_evidence_directory(CI_DOTNET_UPLOAD_ROOT)
+        except (OSError, ValueError, RuntimeError) as reset_error:
+            append_ci_shard_diagnostics(log_path, shard, (str(reset_error),))
+            fatal_failure = ci_public_shard_failure(
+                fatal_failure,
+                reset_error,
+                summary_evidence.STAGING_RESET_FAILED,
+                secondary_label="staging cleanup",
+            )
     report_ci_test_failure_details(
         f"shard {shard}",
         [
@@ -6155,8 +6564,34 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
             in evidence_paths
         ],
     )
+    # Projection/reporting can append local diagnostics after the first raw receipt.
+    try:
+        document["files"] = ci_file_hashes(evidence_paths, evidence_root)
+        write_ci_manifest(output / "manifest.json", document)
+    except (OSError, ValueError, RuntimeError) as error:
+        fatal_failure = ci_public_shard_failure(
+            fatal_failure,
+            error,
+            summary_evidence.RAW_RECEIPT_FAILED,
+            secondary_label="raw receipt",
+        )
+        print(summary_evidence.RAW_RECEIPT_FAILED, file=sys.stderr)
+        try:
+            append_ci_shard_diagnostics(log_path, shard, (str(error),))
+        except (OSError, ValueError, RuntimeError):
+            pass  # A second local I/O failure must not hide the primary failure.
+        try:
+            reset_ci_dotnet_evidence_directory(CI_DOTNET_UPLOAD_ROOT)
+        except (OSError, ValueError, RuntimeError) as reset_error:
+            fatal_failure = ci_public_shard_failure(
+                fatal_failure,
+                reset_error,
+                summary_evidence.STAGING_RESET_FAILED,
+                secondary_label="staging cleanup",
+            )
+            print(summary_evidence.STAGING_RESET_FAILED, file=sys.stderr)
     if fatal_failure is not None:
-        raise fatal_failure
+        raise fatal_failure from None
 
 
 def load_ci_manifest(path: Path) -> dict[str, object]:
@@ -6204,30 +6639,35 @@ def require_ci_dotnet_artifact_roots(
     }
     root = download_root.absolute()
     if not root.is_dir() or is_reparse_point(root):
-        raise RuntimeError(f"missing or invalid .NET CI evidence root: {download_root}")
+        raise RuntimeError("Public producer artifact inventory is invalid.")
     selected: dict[str, tuple[Path, int]] = {}
+    top_level_files = sum(entry.is_file() and not is_reparse_point(entry)
+                          for entry in root.iterdir())
+    if top_level_files:
+        raise RuntimeError(summary_evidence.unexpected_files(top_level_files))
     for entry in sorted(root.iterdir()):
         base, separator, attempt_text = entry.name.rpartition(
             CI_DOTNET_ARTIFACT_ATTEMPT_SEPARATOR
         )
         owner = owners.get(base) if separator else None
         if owner is None or CI_RUN_NUMBER_PATTERN.fullmatch(attempt_text) is None:
-            raise RuntimeError(f"unknown .NET CI evidence artifact: {entry.name}")
+            try:
+                count = len(enumerate_ci_regular_files(entry))
+            except (RuntimeError, OSError, ValueError):
+                raise RuntimeError(summary_evidence.INVALID_FILES) from None
+            if count:
+                raise RuntimeError(summary_evidence.unexpected_files(count))
+            raise RuntimeError("Public producer artifact inventory is invalid.")
         attempt = int(attempt_text)
         if attempt > run_attempt:
-            raise RuntimeError(
-                f".NET CI evidence artifact is newer than run attempt {run_attempt}: "
-                f"{entry.name}"
-            )
+            raise RuntimeError("Public evidence provenance is not current.")
         if is_reparse_point(entry) or not entry.is_dir():
-            raise RuntimeError(f"invalid .NET CI producer artifact root: {entry.name}")
+            raise RuntimeError("Public producer artifact inventory is invalid.")
         if owner not in selected or attempt > selected[owner][1]:
             selected[owner] = (entry, attempt)
     missing = sorted(base for base, owner in owners.items() if owner not in selected)
     if missing:
-        raise RuntimeError(
-            f"missing .NET CI evidence producer artifacts: {', '.join(missing)}"
-        )
+        raise RuntimeError("Required producer evidence is missing.")
     return selected
 
 
@@ -6260,132 +6700,83 @@ def validate_manifest_files(
     return set(files)
 
 
-def require_ci_project_evidence_paths(
-    row: dict[str, object],
-    shard: str,
-    project: CiDotnetProject,
-    artifact_root: Path,
-    seen_paths: set[str],
-) -> tuple[Path, Path, Path, Path]:
-    raw_discovery = row["discovery"]
-    raw_trx = row["trx"]
-    raw_json = row["coverageJson"]
-    raw_cobertura = row["coverageCobertura"]
-    if (
-        not isinstance(raw_discovery, str)
-        or not isinstance(raw_trx, str)
-        or not isinstance(raw_json, str)
-        or not isinstance(raw_cobertura, str)
-    ):
-        raise RuntimeError(f"{project.name} .NET CI evidence paths are invalid")
-    discovery_path = PurePosixPath(raw_discovery)
-    trx_path = PurePosixPath(raw_trx)
-    json_path = PurePosixPath(raw_json)
-    cobertura_path = PurePosixPath(raw_cobertura)
-    project_root = PurePosixPath("shards", shard, "results", project.name, "attempt-1")
-    if discovery_path != project_root / "discovered-tests.txt":
-        raise RuntimeError(f"{project.name} discovery path changed")
-    if trx_path != project_root / "test-results.trx":
-        raise RuntimeError(f"{project.name} TRX path changed")
-    if any(
-        (
-            json_path.name != "coverage.json",
-            cobertura_path.name != "coverage.cobertura.xml",
-            json_path.parent != cobertura_path.parent,
-            not json_path.parent.is_relative_to(project_root),
-        )
-    ):
-        raise RuntimeError(f"{project.name} coverage report pairing changed")
-    row_paths = {raw_discovery, raw_trx, raw_json, raw_cobertura}
-    if len(row_paths) != 4 or seen_paths.intersection(row_paths):
-        raise RuntimeError(f"{project.name} reuses .NET CI evidence")
-    seen_paths.update(row_paths)
-    return (
-        resolve_ci_evidence_file(artifact_root, raw_discovery),
-        resolve_ci_evidence_file(artifact_root, raw_trx),
-        resolve_ci_evidence_file(artifact_root, raw_json),
-        resolve_ci_evidence_file(artifact_root, raw_cobertura),
-    )
-
-
 def finalize_ci_dotnet_evidence(download_root: Path) -> None:
-    """Validate the complete build/test evidence set and publish canonical coverage."""
+    """Validate public summaries and preserve build/job/coverage precedence."""
 
     job_results = {
         "build": os.environ.get("NFC_CI_DOTNET_BUILD_RESULT"),
         "test": os.environ.get("NFC_CI_DOTNET_TEST_RESULT"),
     }
     producer_failure = next(
-        (RuntimeError(f".NET CI {owner} producer failed: {result}")
-         for owner, result in job_results.items() if result not in {None, "success"}),
+        (
+            RuntimeError(f".NET CI {owner} producer failed: {result}")
+            for owner, result in job_results.items()
+            if result not in {None, "success"}
+        ),
         None,
     )
     try:
         download_outcome = os.environ.get("NFC_CI_DOTNET_DOWNLOAD_OUTCOME")
         if download_outcome != "success":
-            # A partial download could hide a producer's newest attempt artifact.
             raise RuntimeError(
                 f".NET CI evidence download did not succeed: {download_outcome}"
             )
         run_id, run_attempt = require_ci_run_provenance()
-        selected_artifacts = require_ci_dotnet_artifact_roots(download_root, run_attempt)
-        artifact_roots = {
-            owner: artifact_root for owner, (artifact_root, _) in selected_artifacts.items()
-        }
+        try:
+            baseline = baseline_contract.load_baseline(ROOT / "scripts/ci/test-baseline.json")
+        except (OSError, ValueError, KeyError):
+            raise RuntimeError(summary_evidence.INVALID_SUMMARY) from None
+        if set(baseline["shards"]) != set(baseline_contract.SHARDS) or set(
+            CI_DOTNET_SHARDS
+        ) != set(baseline_contract.SHARDS):
+            raise RuntimeError(summary_evidence.INVALID_SUMMARY)
+        selected = require_ci_dotnet_artifact_roots(download_root, run_attempt)
+        artifact_roots = {owner: root for owner, (root, _attempt) in selected.items()}
         artifact_attempts = {
-            owner: attempt for owner, (_, attempt) in selected_artifacts.items()
+            owner: attempt for owner, (_root, attempt) in selected.items()
         }
+        # Even superseded downloads must contain only public allowlisted files.
+        for root in download_root.iterdir():
+            base = root.name.rpartition(CI_DOTNET_ARTIFACT_ATTEMPT_SEPARATOR)[0]
+            for shard in CI_DOTNET_SHARDS:
+                if base == ci_dotnet_evidence_artifact_base(shard):
+                    require_ci_public_tree(root, shard)
         manifests = {
             "build": resolve_ci_evidence_file(
-                artifact_roots["build"],
-                "build/manifest.json",
-            ),
-            **{
-                shard: resolve_ci_evidence_file(
-                    artifact_roots[shard],
-                    f"shards/{shard}/manifest.json",
-                )
-                for shard in CI_DOTNET_SHARDS
-            },
+                artifact_roots["build"], "build/manifest.json"
+            )
         }
-
-        # Failed producers can omit project rows, but retain canonical attempt
-        # TRX in the downloaded artifact. Diagnostics never validate that evidence.
-        failure_reports: list[tuple[str, str, Path]] = []
-        for shard, projects in CI_DOTNET_SHARDS.items():
-            for project in projects:
-                for attempt in ("attempt-1", "attempt-2"):
-                    relative = (
-                        f"shards/{shard}/results/{project.name}/{attempt}/test-results.trx"
-                    )
-                    try:
-                        trx = resolve_ci_evidence_file(artifact_roots[shard], relative)
-                    except (RuntimeError, OSError, ValueError):
-                        continue
-                    failure_reports.append((project.relative_path, attempt, trx))
-        report_ci_test_failure_details(
-            "aggregate (producer evidence; unverified)", failure_reports
-        )
-
-        if producer_failure is not None:
-            # Diagnostics only: never treat producer declarations as a validated
-            # aggregate verdict. Even another failed project must not hide flakes.
-            for shard in CI_DOTNET_SHARDS:
-                declaration = load_ci_manifest(manifests[shard])
-                require_ci_evidence_provenance(
-                    declaration, shard, run_id, artifact_attempts[shard]
+        summaries = {}
+        for shard in CI_DOTNET_SHARDS:
+            if artifact_attempts[shard] != run_attempt:
+                raise RuntimeError(summary_evidence.STALE_PROVENANCE)
+            root = artifact_roots[shard]
+            manifest = summary_evidence.read_document(
+                require_ci_public_file(root, f"shards/{shard}/manifest.json")
+            )
+            summary = summary_evidence.read_document(
+                require_ci_public_file(root, f"shards/{shard}/shard-summary.json")
+            )
+            validate_ci_public_documents(manifest, summary, shard)
+            validate_ci_public_files(
+                manifest, root, shard, require_coverage=manifest["success"]
+            )
+            if require_ci_public_tree(root, shard) != {
+                f"shards/{shard}/manifest.json",
+                *manifest["files"],
+            }:
+                raise RuntimeError(summary_evidence.INVALID_FILES)
+            summaries[shard] = (manifest, summary)
+            if producer_failure is not None:
+                report_ci_public_counts(summary)
+                report_ci_flaky_tests(
+                    "aggregate unverified",
+                    [
+                        {"project": row["relativePath"], "fullyQualifiedName": name}
+                        for row in manifest["projects"]
+                        for name in row["flakyTests"]
+                    ],
                 )
-                flaky = declaration.get("flakyTests")
-                if isinstance(flaky, list) and all(
-                    isinstance(item, dict)
-                    and set(item) == {"project", "fullyQualifiedName"}
-                    and all(isinstance(value, str) for value in item.values())
-                    for item in flaky
-                ):
-                    report_ci_flaky_tests(
-                        f"aggregate FAILED ({shard} producer declarations; unverified)",
-                        flaky,
-                    )
     except (RuntimeError, OSError, ValueError) as diagnostic_error:
         if producer_failure is not None:
             raise producer_failure from diagnostic_error
@@ -6416,7 +6807,7 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
     )
     if build != {
         **build,
-        "schemaVersion": CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
+        "schemaVersion": CI_DOTNET_BUILD_EVIDENCE_SCHEMA_VERSION,
         "kind": "dotnet-build",
         "sourceSha": source_sha,
         "sdkVersion": sdk_version,
@@ -6438,183 +6829,24 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
     coverage_sources: list[tuple[CiDotnetProject, Path, Path]] = []
     project_counters: list[dict[str, int]] = []
     all_flaky: list[dict[str, str]] = []
-
     for shard, projects in CI_DOTNET_SHARDS.items():
-        artifact_root = artifact_roots[shard]
-        manifest = load_ci_manifest(manifests[shard])
-        require_manifest_keys(
-            manifest,
-            {
-                "schemaVersion",
-                "kind",
-                "sourceSha",
-                "runId",
-                "runAttempt",
-                "sdkVersion",
-                "success",
-                "shard",
-                "producerPlatform",
-                "projects",
-                "flakyTests",
-                "files",
-            },
-            shard,
+        manifest, summary = summaries[shard]
+        validate_ci_public_documents(manifest, summary, shard, require_success=True)
+        coverage_sources.extend(
+            validate_ci_public_files(
+                manifest, artifact_roots[shard], shard, require_coverage=True
+            )
         )
-        require_ci_evidence_provenance(
-            manifest, shard, run_id, artifact_attempts[shard]
-        )
-        require_current_ci_producer_evidence(
-            manifest, shard, job_results["test"], artifact_attempts[shard]
-        )
-        if any(
-            (
-                manifest.get("schemaVersion") != CI_DOTNET_EVIDENCE_SCHEMA_VERSION,
-                manifest.get("kind") != "dotnet-test-shard",
-                manifest.get("sourceSha") != source_sha,
-                manifest.get("sdkVersion") != sdk_version,
-                manifest.get("success") is not True,
-                manifest.get("shard") != shard,
-                manifest.get("producerPlatform") != CI_DOTNET_PRODUCER_PLATFORM,
-            )
-        ):
-            raise RuntimeError(f"{shard} .NET CI evidence identity or result changed")
-        rows = manifest.get("projects")
-        if not isinstance(rows, list) or len(rows) != len(projects):
-            raise RuntimeError(f"{shard} .NET CI project inventory changed")
-        expected_paths = {f"shards/{shard}/shard.log"}
-        seen_row_paths: set[str] = set()
-        shard_flaky: list[dict[str, str]] = []
-        for project, row in zip(projects, rows, strict=True):
-            if not isinstance(row, dict):
-                raise RuntimeError(f"{shard} .NET CI project row is invalid")
-            require_manifest_keys(
-                row,
-                {
-                    "relativePath",
-                    "total",
-                    "passed",
-                    "failed",
-                    "skipped",
-                    "testAssemblySha256",
-                    "discovery",
-                    "trx",
-                    "coverageJson",
-                    "coverageCobertura",
-                    "attemptLog",
-                    "retry",
-                },
-                project.name,
-            )
-            if row.get("relativePath") != project.relative_path:
-                raise RuntimeError(f"{project.name} .NET CI project identity changed")
-            test_assembly_sha256 = row.get("testAssemblySha256")
-            if (
-                not isinstance(test_assembly_sha256, str)
-                or re.fullmatch(r"[0-9a-f]{64}", test_assembly_sha256) is None
-            ):
-                raise RuntimeError(
-                    f"{project.name} captured test assembly hash changed"
-                )
-            discovery, trx, json_report, cobertura_report = (
-                require_ci_project_evidence_paths(
-                    row,
-                    shard,
-                    project,
-                    artifact_root,
-                    seen_row_paths,
-                )
-            )
-            evidence_paths = {
-                row["discovery"],
-                row["trx"],
-                row["coverageJson"],
-                row["coverageCobertura"],
-            }
-            expected_paths.update(evidence_paths)
-            attempt_log = f"shards/{shard}/results/{project.name}/attempt-1/attempt.log"
-            if row["attemptLog"] != attempt_log:
-                raise RuntimeError(f"{project.name} attempt log path changed")
-            resolve_ci_evidence_file(artifact_root, attempt_log)
-            expected_paths.add(attempt_log)
-            counters = parse_trx_counters(trx)
-            manifest_counters = {
-                name: row.get(name) for name in ("total", "passed", "failed", "skipped")
-            }
-            if manifest_counters != counters:
-                raise RuntimeError(f"{project.name} manifest/TRX counters changed")
-            require_discovered_test_results(
-                project,
-                discovery,
-                trx,
-                counters,
-                CI_DOTNET_PRODUCER_PLATFORM,
-                allow_failed=True,
-            )
-            retry = row["retry"]
-            if counters["failed"]:
+        for project, row in zip(projects, manifest["projects"], strict=True):
+            if row["retry"]["retried"]:
                 require_ci_retry_project(project)
-                if not isinstance(retry, dict):
-                    raise RuntimeError(
-                        f"{project.name} failed tests have no retry evidence"
-                    )
-                require_manifest_keys(retry, {"filter", "trx", "log"}, project.name)
-                test_filter, _, _ = ci_retry_selection(trx)
-                retry_root = f"shards/{shard}/results/{project.name}/attempt-2"
-                if retry != {
-                    "filter": test_filter,
-                    "trx": f"{retry_root}/test-results.trx",
-                    "log": f"{retry_root}/attempt.log",
-                }:
-                    raise RuntimeError(
-                        f"{project.name} retry filter or evidence paths changed"
-                    )
-                retry_trx = resolve_ci_evidence_file(artifact_root, retry["trx"])
-                resolve_ci_evidence_file(artifact_root, retry["log"])
-                recovered = require_ci_retry_results(trx, retry_trx)
-                expected_paths.update((retry["trx"], retry["log"]))
-                shard_flaky.extend(
-                    {"project": project.relative_path, "fullyQualifiedName": name}
-                    for name in recovered
-                )
-                counters = {
-                    **counters,
-                    "passed": counters["passed"] + counters["failed"],
-                    "failed": 0,
-                }
-            elif retry is not None:
-                raise RuntimeError(f"{project.name} retried without failed tests")
-            project_counters.append(counters)
-            coverage_sources.append(
-                (
-                    project,
-                    json_report,
-                    cobertura_report,
-                )
+            project_counters.append(
+                {name: row[name] for name in summary_evidence.COUNTERS}
             )
-        shard_files = validate_manifest_files(
-            manifest,
-            artifact_root,
-            expected_paths,
-        )
-        if declared_files.intersection(shard_files):
-            raise RuntimeError("duplicate .NET CI evidence ownership")
-        declared_files.update(shard_files)
-        expected_artifact_files = {
-            f"shards/{shard}/manifest.json",
-            *shard_files,
-        }
-        actual_artifact_files = {
-            ci_relative_path(path, artifact_root)
-            for path in enumerate_ci_regular_files(artifact_root)
-        }
-        if actual_artifact_files != expected_artifact_files:
-            raise RuntimeError(
-                f"{shard} .NET CI artifact contains missing or extra files"
+            all_flaky.extend(
+                {"project": project.relative_path, "fullyQualifiedName": name}
+                for name in row["flakyTests"]
             )
-        if manifest["flakyTests"] != shard_flaky:
-            raise RuntimeError(f"{shard} flaky list disagrees with attempt evidence")
-        all_flaky.extend(shard_flaky)
-
     if any(result != "success" for result in job_results.values()):
         raise RuntimeError(f".NET CI producer jobs did not all succeed: {job_results}")
 
