@@ -1,7 +1,6 @@
 """Read only public method identities and counters from VSTest TRX results."""
 from __future__ import annotations
 
-import argparse
 import json
 from pathlib import Path
 import re
@@ -48,7 +47,8 @@ def _read_file(path: Path) -> dict:
         method = definition.find(NS + "TestMethod")
         if method is None:
             raise ValueError(INVALID_TRX)
-        class_name = method.get("className", "").split(",", 1)[0].strip()
+        # A nested class is written as Outer+Inner; the public identity uses a dot.
+        class_name = method.get("className", "").split(",", 1)[0].strip().replace("+", ".")
         method_name = method.get("name", "").split("(", 1)[0].strip()
         if not SAFE_NAME.fullmatch(class_name) or not SAFE_NAME.fullmatch(method_name):
             raise ValueError(INVALID_TRX)

@@ -203,6 +203,12 @@ class CiTestBaselineTests(unittest.TestCase):
         self.assertEqual(["Tests.A.Method0", "Tests.A.Method1", "Tests.Z.Method0"], counts["FailedTests"])
         self.assertNotIn(MARKER, json.dumps(counts))
 
+    def test_nested_class_names_use_a_dot_and_do_not_invalidate_the_run(self):
+        write_trx(self.results, ("Passed", "Failed"), cls="Tests.Outer+Inner")
+        counts = read_trx.read_trx_results(self.results)
+        self.assertEqual(2, counts["Total"])
+        self.assertEqual(["Tests.Outer.Inner.Method1"], counts["FailedTests"])
+
     def test_closed_baseline_rejects_upstream_harness_schema_cases(self):
         mutations = (
             lambda b: b.update(privatePayload="fixture"),
