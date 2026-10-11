@@ -44,9 +44,9 @@ public sealed partial class TrustedProfileBundleCatalogRuntimeReferenceReplaceTe
             }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
-        Assert.Equal([0, 1, 2, 3, 4, 5, 6, 7, 0xCC, 0xDD, 10, 11, 12, 13, 14, 15], execution.OutputBytes.ToArray());
-        Assert.Equal(originalReference, reference);
-        Assert.Equal(originalSource, source);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 1, 2, 3, 4, 5, 6, 7, 0xCC, 0xDD, 10, 11, 12, 13, 14, 15], execution.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalReference, reference, "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalSource, source, "firmware image");
     }
 
     /// <summary>Only a structurally safe supported runtime-reference profile mints runtime eligibility.</summary>

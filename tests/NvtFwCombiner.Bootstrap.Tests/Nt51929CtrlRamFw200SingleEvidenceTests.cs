@@ -51,20 +51,20 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
-        Assert.Equal(expectedProfileId, ReadProfileId(CompositionRunReportJson.Serialize(result)));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
+        Assert.True(StringComparer.Ordinal.Equals(expectedProfileId, ReadProfileId(CompositionRunReportJson.Serialize(result))), "Captured text differs from the expected text.");
         Assert.Equal(OwnerExpectedSha256, Hash(File.ReadAllBytes(outputPath)));
         Assert.Equal(OwnerExpectedSha256, Hash(evidence.Expected.Bytes));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(evidence.Expected.Bytes, out FirmwareConfigMetadata metadata));
         Assert.Equal("2.0.0", metadata.CommonFwVersion);
-        Assert.Equal(1, metadata.ChipNumber);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1], [metadata.ChipNumber], GoldenDiagnostics.Label(CaseId));
         Assert.Equal(0x4703, metadata.ProjectId);
 
         FirmwareContextSuggestion suggestion = Assert.IsType<FirmwareContextSuggestion>(
             FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(icId, outputPath));
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
-        Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[metadata.ChipNumber], [suggestion.ChipNumber], GoldenDiagnostics.Label(CaseId));
         Assert.Equal(metadata.ProjectId, suggestion.ProjectId);
         Assert.Equal(
             "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
@@ -104,7 +104,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             icId, "single", ExperienceIds.CtrlRamReplace, slots, true,
             TestContext.Current.CancellationToken, v2Path);
 
-        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
+        Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
         byte[] v2Bytes = File.ReadAllBytes(v2Path);
         Assert.Equal(CurrentOutputSha256, Hash(v2Bytes));
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
@@ -161,11 +161,11 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             externalProcessor: processor,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.False(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Null(result.CommittedOutputId);
         Assert.False(File.Exists(outputPath));
         Assert.Equal(1, processor.CallCount);
-        Assert.Equal(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), GoldenDiagnostics.Label(CaseId));
 
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement issue = Assert.Single(
@@ -202,9 +202,9 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             outputPath,
             ctrlRamFirmwareVersionEdit: new CtrlRamFirmwareVersionDraftState(firmwareVersion, firmwareSubVersion));
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(outputPath, result.CommittedOutputId);
-        Assert.Equal(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), GoldenDiagnostics.Label(CaseId));
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(Capacity, output.Length);
         Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51929", out TpFlashMapProfile? flashMap));
@@ -213,12 +213,12 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             flashMap!.FirmwareConfigPrimaryStart,
             out FirmwareConfigMetadata primary));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(output, out FirmwareConfigMetadata backup));
-        Assert.Equal(firmwareVersion, primary.FirmwareVersion);
-        Assert.Equal(unchecked((byte)~firmwareVersion), primary.FirmwareVersionBar);
-        Assert.Equal(firmwareSubVersion, primary.FirmwareSubVersion);
-        Assert.Equal(firmwareVersion, backup.FirmwareVersion);
-        Assert.Equal(unchecked((byte)~firmwareVersion), backup.FirmwareVersionBar);
-        Assert.Equal(firmwareSubVersion, backup.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareVersion], [primary.FirmwareVersion], GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[unchecked((byte)~firmwareVersion)], [primary.FirmwareVersionBar], GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareSubVersion], [primary.FirmwareSubVersion], GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareVersion], [backup.FirmwareVersion], GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[unchecked((byte)~firmwareVersion)], [backup.FirmwareVersionBar], GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareSubVersion], [backup.FirmwareSubVersion], GoldenDiagnostics.Label(CaseId));
     }
 
     /// <summary>NT51919/NT51929 aliases retain the requested single route across non-authoritative metadata.</summary>
@@ -261,7 +261,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             icId, "single", CreateSlotPaths(evidence, referencePath), true,
             outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(File.Exists(outputPath));
         using (var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result)))
         {
@@ -315,15 +315,13 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(diff.AsSpan(0, 0x0B90).ToArray(), output.AsSpan(0x2D100, 0x0B90).ToArray());
-        Assert.Equal(
-            reference.AsSpan(0x2DC90, 0x0870).ToArray(),
-            output.AsSpan(0x2DC90, 0x0870).ToArray());
-        Assert.Equal(
-            reference.AsSpan(0x2E500, 0x7800).ToArray(),
-            output.AsSpan(0x2E500, 0x7800).ToArray());
+        GoldenAssert.AssertEqualsGolden(diff.AsSpan(0, 0x0B90).ToArray(), output.AsSpan(0x2D100, 0x0B90).ToArray(), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x2DC90, 0x0870).ToArray(),
+            output.AsSpan(0x2DC90, 0x0870).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x2E500, 0x7800).ToArray(),
+            output.AsSpan(0x2E500, 0x7800).ToArray(), "firmware image");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, expectedProfileId, icId);
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
@@ -348,7 +346,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             icId, "single", CreateSlotPaths(evidence, evidence.Expected.Path), true,
             workspace.PathFor("alias.bin"), null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, expectedProfileId, canonicalIcId);
     }
@@ -372,9 +370,9 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         OwnerArtifact nf = evidence.Require("NF_Ctrlram.bin");
         OwnerArtifact normal = evidence.Require("Normal_Ctrlram.bin");
         OwnerArtifact vn = evidence.Require("VN_Ctrlram.bin");
-        Assert.Equal(nf.Bytes, output.AsSpan(NfStart, nf.Bytes.Length).ToArray());
-        Assert.Equal(normal.Bytes.AsSpan(0, NormalLength).ToArray(), output.AsSpan(NormalStart, NormalLength).ToArray());
-        Assert.Equal(vn.Bytes, output.AsSpan(VnStart, vn.Bytes.Length).ToArray());
+        GoldenAssert.AssertEqualsGolden(nf.Bytes, output.AsSpan(NfStart, nf.Bytes.Length).ToArray(), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(normal.Bytes.AsSpan(0, NormalLength).ToArray(), output.AsSpan(NormalStart, NormalLength).ToArray(), GoldenDiagnostics.Label(CaseId));
+        GoldenAssert.AssertEqualsGolden(vn.Bytes, output.AsSpan(VnStart, vn.Bytes.Length).ToArray(), GoldenDiagnostics.Label(CaseId));
     }
 
     private static void AssertProcessEvidence(

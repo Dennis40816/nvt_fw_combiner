@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 using NvtFwCombiner.Infrastructure.Files;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.Files;
 
 /// <summary>Tests immutable in-memory artifact overlays.</summary>
@@ -19,10 +21,10 @@ public sealed class OverlayArtifactReaderTests
         ReadOnlyMemory<byte> first = await reader.ReadAsync("virtual-artifact", CancellationToken.None);
         ReadOnlyMemory<byte> second = await reader.ReadAsync("virtual-artifact", CancellationToken.None);
 
-        Assert.Equal([0x10, 0x20, 0x30], first.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30], first.ToArray(), "firmware image");
         Assert.True(MemoryMarshal.TryGetArray(first, out ArraySegment<byte> firstBacking));
         Assert.True(MemoryMarshal.TryGetArray(second, out ArraySegment<byte> secondBacking));
-        Assert.NotSame(callerBytes, firstBacking.Array);
-        Assert.Same(firstBacking.Array, secondBacking.Array);
+        Assert.True(!ReferenceEquals(callerBytes, firstBacking.Array), "Expected firmware buffer ownership.");
+        Assert.True(ReferenceEquals(firstBacking.Array, secondBacking.Array), "Expected firmware buffer ownership.");
     }
 }

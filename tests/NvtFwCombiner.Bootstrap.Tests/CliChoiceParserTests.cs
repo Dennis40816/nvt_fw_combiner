@@ -27,9 +27,9 @@ public sealed class CliChoiceParserTests
                 TestContext.Current.CancellationToken);
 
             Assert.Equal(64, result.ExitCode);
-            Assert.Contains(arguments.Length == 1 ? $"option '{option}' requires a value" : $"duplicate option '{option}'",
-                result.Error, StringComparison.Ordinal);
-            Assert.Empty(result.Output);
+            Assert.True(GoldenDiagnostics.Contains(arguments.Length == 1 ? $"option '{option}' requires a value" : $"duplicate option '{option}'",
+                result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+            Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
             Assert.False(File.Exists(bin));
             Assert.False(File.Exists(report));
         }
@@ -59,8 +59,8 @@ public sealed class CliChoiceParserTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal);
-        Assert.Empty(result.Output);
+        Assert.True(GoldenDiagnostics.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         Assert.False(File.Exists(bin));
         Assert.False(File.Exists(report));
     }

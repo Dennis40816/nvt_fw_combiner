@@ -70,12 +70,12 @@ public sealed class PrebuiltProfileCatalogGenerationTests
             PrebuiltProfileCatalogGenerator.Generate(workspace.Root, workspace.PathFor("package-trust-index.json"), second, identity);
         }
         finally { CultureInfo.CurrentCulture = previous; }
-        Assert.Equal(File.ReadAllBytes(first), File.ReadAllBytes(second));
+        GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(first), File.ReadAllBytes(second), "firmware image");
         PrebuiltProfileCatalogSnapshot snapshot = PrebuiltProfileCatalogCodec.Decode(File.ReadAllBytes(first));
         byte[] expected = [.. File.ReadAllBytes(workspace.PathFor("bundle/families/family.json")),
             .. File.ReadAllBytes(workspace.PathFor("bundle/profiles/profile.json")),
             .. File.ReadAllBytes(workspace.PathFor("bundle/profile-bundle.json"))];
-        Assert.Equal(expected, snapshot.Body.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, snapshot.Body.ToArray(), "firmware image");
         Assert.Equal(2, snapshot.Header.GetProperty("bundles")[0].GetProperty("documents").GetArrayLength());
     }
 

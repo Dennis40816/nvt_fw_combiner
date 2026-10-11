@@ -118,7 +118,7 @@ public sealed class FirmwareInspectionExtensionAdmissionTests
         Assert.Equal(selectedPath, status.SelectedPathHint);
         Assert.True(status.BlocksBuild);
         Assert.Null(status.FileStamp);
-        Assert.Null(status.AcceptedBytes);
+        Assert.True(status.AcceptedBytes is null, "Expected no accepted firmware content.");
     }
 
     private static byte[] CreateSingleIcTp()

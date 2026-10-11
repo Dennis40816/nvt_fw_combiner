@@ -130,7 +130,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
                 sourceRoot,
                 package,
                 TestContext.Current.CancellationToken);
-        Assert.True(installed.IsSuccess, installed.Issue.ToString());
+        Assert.True(installed.IsSuccess, "Golden assertion condition was not satisfied.");
         ManagedVersionAdmission admission = Assert.IsType<ManagedVersionAdmission>(installed.Admission);
         string launcherPath = Path.Combine(
             managedRoot,

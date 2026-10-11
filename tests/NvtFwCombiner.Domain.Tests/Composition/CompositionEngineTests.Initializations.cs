@@ -1,5 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 public sealed partial class CompositionEngineTests
@@ -40,8 +42,8 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, input);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x12, 0x34], result.OutputBytes.ToArray());
-        Assert.Equal([0xFF, 0xFF], source);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x12, 0x34], result.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xFF], source, "firmware image");
     }
 
     /// <summary>Verifies a work-buffer clone consumes only the normalized declared prefix and reports the outer tail.</summary>
@@ -83,11 +85,11 @@ public sealed partial class CompositionEngineTests
             new CompositionExecutionInput(new Dictionary<string, byte[]> { ["source"] = source }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x12, 0x34], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x12, 0x34], result.OutputBytes.ToArray(), "firmware image");
         CompositionIssue warning = Assert.Single(result.Issues);
         Assert.Equal("INPUT_OUTER_LENGTH", warning.Code);
         Assert.Equal(CompositionIssueSeverity.Warning, warning.Severity);
-        Assert.Equal([0x12, 0x34, 0x99], source);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x12, 0x34, 0x99], source, "firmware image");
     }
 
     /// <summary>Verifies a work-buffer clone can consume a checked source view while ignoring a non-authoritative tail.</summary>
@@ -127,9 +129,9 @@ public sealed partial class CompositionEngineTests
             new CompositionExecutionInput(new Dictionary<string, byte[]> { ["source"] = source }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x12, 0x34], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x12, 0x34], result.OutputBytes.ToArray(), "firmware image");
         Assert.Empty(result.Issues);
-        Assert.Equal([0x12, 0x34, 0x99], source);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x12, 0x34, 0x99], source, "firmware image");
     }
 
     /// <summary>Verifies caller bytes cannot seed any engine-owned work buffer.</summary>
@@ -177,7 +179,7 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x22], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x22], result.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies every mutable buffer capacity is checked before allocation.</summary>

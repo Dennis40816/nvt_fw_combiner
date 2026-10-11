@@ -32,8 +32,8 @@ public sealed class FirmwareMetadataInspectorTests
         Assert.Equal(MetadataInspectionState.Value, value.State);
         Assert.Equal(new ByteRange(0x36, 3), value.Resolution!.Resolved!.LocatorOutcome.ResolvedRange.Range);
         Assert.True(DpcmiMetadataProjector.TryProject(inspected, out DpcmiMetadataFacts facts));
-        Assert.Equal((byte)0x03, facts.MajorVersion);
-        Assert.Equal((byte)0x0A, facts.MinorVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x03], [facts.MajorVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x0A], [facts.MinorVersion], "firmware image");
         Assert.Equal((ushort)0x42E, facts.JiraNumber);
         Assert.Equal("030A", facts.VersionToken);
         Assert.Equal("AUTO_PRJ-1070", facts.JiraBadge);
@@ -139,7 +139,7 @@ public sealed class FirmwareMetadataInspectorTests
         FirmwareBinInspectionStructure structure = Assert.Single(snapshot.Structures);
         Assert.Equal(plan.ResolutionToken, snapshot.ResolutionToken);
         Assert.Equal(7, snapshot.AuthoringRevision);
-        Assert.Equal(new byte[] { 0x2E, 0x03, 0xA4 }, structure.Bytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(new byte[] { 0x2E, 0x03, 0xA4 }, structure.Bytes.ToArray(), "firmware image");
         Assert.Equal(DpcmiMetadataContract.StructureId, structure.Metadata.StructureId);
 
         byte[] changed = (byte[])dp.Clone();

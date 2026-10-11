@@ -289,7 +289,7 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-        Assert.True(File.Exists(outputPath), outputPath);
+        Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.CanOpenReport);
         Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);

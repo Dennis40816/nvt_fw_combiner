@@ -38,8 +38,9 @@ public sealed class BootstrapProgramSeedExitTests
         Assert.Equal(10, exitCode);
         if (malformedState)
         {
-            Assert.Equal(invalidBytes, await File.ReadAllBytesAsync(
-                statePath, TestContext.Current.CancellationToken));
+            GoldenAssert.AssertEqualsGolden(invalidBytes,
+            await File.ReadAllBytesAsync(
+                statePath, TestContext.Current.CancellationToken), "firmware image");
         }
         else
         {
@@ -47,8 +48,9 @@ public sealed class BootstrapProgramSeedExitTests
         }
         if (malformedSeed)
         {
-            Assert.Equal(invalidBytes, await File.ReadAllBytesAsync(
-                seedPath, TestContext.Current.CancellationToken));
+            GoldenAssert.AssertEqualsGolden(invalidBytes,
+            await File.ReadAllBytesAsync(
+                seedPath, TestContext.Current.CancellationToken), "firmware image");
         }
         else
         {
@@ -84,10 +86,12 @@ public sealed class BootstrapProgramSeedExitTests
         int exitCode = await RunBootstrapAsync(workspace.Root, managedRoot, statePath);
 
         Assert.Equal(11, exitCode);
-        Assert.Equal(stateBefore, await File.ReadAllBytesAsync(
-            statePath, TestContext.Current.CancellationToken));
-        Assert.Equal(seedBefore, await File.ReadAllBytesAsync(
-            seedPath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(stateBefore,
+            await File.ReadAllBytesAsync(
+            statePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(seedBefore,
+            await File.ReadAllBytesAsync(
+            seedPath, TestContext.Current.CancellationToken), "firmware image");
         Assert.False(File.Exists(JsonLauncherBootstrapStateStore.DerivePath(statePath)));
     }
 

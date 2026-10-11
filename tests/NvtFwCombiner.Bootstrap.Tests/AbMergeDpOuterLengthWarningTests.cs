@@ -37,12 +37,12 @@ public sealed class AbMergeDpOuterLengthWarningTests
         CompositionRunResult result = await BuildAsync(host, workspace, ic, topology, dp,
             "nonstandard", format, expectedWarning: true, tpCount: count);
         Assert.Equal(length, result.OutputBytes.Length);
-        Assert.Equal(dp.AsSpan(0, 0xA000).ToArray(), result.OutputBytes.Span[..0xA000].ToArray());
-        Assert.Equal(dp.AsSpan(0x37000, bankLength - 0x37000 + 0xA000).ToArray(),
-            result.OutputBytes.Span.Slice(0x37000, bankLength - 0x37000 + 0xA000).ToArray());
-        Assert.Equal(dp.AsSpan(bankLength + 0x37000).ToArray(),
-            result.OutputBytes.Span[(bankLength + 0x37000)..].ToArray());
-        Assert.Equal((byte)0xA7, result.OutputBytes.Span[^1]);
+        GoldenAssert.AssertEqualsGolden(dp.AsSpan(0, 0xA000).ToArray(), result.OutputBytes.Span[..0xA000].ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(dp.AsSpan(0x37000, bankLength - 0x37000 + 0xA000).ToArray(),
+            result.OutputBytes.Span.Slice(0x37000, bankLength - 0x37000 + 0xA000).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(dp.AsSpan(bankLength + 0x37000).ToArray(),
+            result.OutputBytes.Span[(bankLength + 0x37000)..].ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xA7], [result.OutputBytes.Span[^1]], "firmware image");
     }
 
     /// <summary>Equal lengths cannot cause one accepted DP payload to be reused for another.</summary>
@@ -59,10 +59,10 @@ public sealed class AbMergeDpOuterLengthWarningTests
             first, "first", 0x84, expectedWarning: true);
         CompositionRunResult secondResult = await BuildAsync(host, workspace, "NT51950", "single",
             second, "second", 0x84, expectedWarning: true);
-        Assert.Equal((byte)0xA7, firstResult.OutputBytes.Span[^1]);
-        Assert.Equal((byte)0x5C, secondResult.OutputBytes.Span[^1]);
-        Assert.Equal(firstResult.OutputBytes.Span[..^1].ToArray(),
-            secondResult.OutputBytes.Span[..^1].ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xA7], [firstResult.OutputBytes.Span[^1]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x5C], [secondResult.OutputBytes.Span[^1]], "firmware image");
+        GoldenAssert.AssertEqualsGolden(firstResult.OutputBytes.Span[..^1].ToArray(),
+            secondResult.OutputBytes.Span[..^1].ToArray(), "firmware image");
     }
 
     /// <summary>Both recognized formats use exact Common DP capacity and produce a complete output.</summary>
@@ -81,7 +81,7 @@ public sealed class AbMergeDpOuterLengthWarningTests
         CompositionRunResult result = await BuildAsync(host, workspace, ic, topology, exact,
             "exact", format, expectedWarning: false);
         Assert.Equal(capacity, result.OutputBytes.Length);
-        Assert.Equal(exact, File.ReadAllBytes(workspace.PathFor("exact-dp.bin")));
+        GoldenAssert.AssertEqualsGolden(exact, File.ReadAllBytes(workspace.PathFor("exact-dp.bin")), "firmware image");
         InputArtifactSummary input = Assert.Single(result.Report.Inputs, input => input.AddressSpaceId == "dp-ab-input");
         Assert.Equal(capacity, input.Size);
         Assert.Null(input.ExecutionSnapshot!.IgnoredTrailingRange);
@@ -193,7 +193,7 @@ public sealed class AbMergeDpOuterLengthWarningTests
             outputPath: workspace.PathFor($"{prefix}-output.bin"), actionReadiness: readiness);
         CompositionRunResult result = await host.CompositionExecution.ExecuteAsync(request,
             new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(result.Report.Output.Committed);
         Assert.Equal(expectedWarning ? 1 : 0, result.Report.Issues.Count(issue => issue.Code == WarningCode));
         if (expectedWarning)

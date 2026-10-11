@@ -46,9 +46,10 @@ public sealed partial class SavedRuleDocumentStorageTests
         Assert.True(result.Succeeded);
         Assert.True(result.Decision.SemanticContentChanged);
         Assert.True(result.Decision.RequiresNewRuleVersionForPublication);
-        Assert.Equal(editedBytes, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(editedBytes,
+            await File.ReadAllBytesAsync(
             rulePath,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(SavedRuleLifecycleState.Draft, result.Decision.Snapshot!.State);
         Assert.False(result.Decision.Snapshot.HasApproval);
         Assert.False(result.Decision.Snapshot.HasEvidence);
@@ -90,12 +91,14 @@ public sealed partial class SavedRuleDocumentStorageTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(catalogBytes, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(catalogBytes,
+            await File.ReadAllBytesAsync(
             catalogPath,
-            TestContext.Current.CancellationToken));
-        Assert.Equal(catalogBytes, await File.ReadAllBytesAsync(
+            TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(catalogBytes,
+            await File.ReadAllBytesAsync(
             workingCopyPath,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(SavedRuleStorageKind.UserOwned, result.Decision.Snapshot!.StorageKind);
         Assert.Equal(SavedRuleLifecycleState.Draft, result.Decision.Snapshot.State);
         Assert.False(result.Decision.Snapshot.IsTrusted);
@@ -136,9 +139,10 @@ public sealed partial class SavedRuleDocumentStorageTests
         Assert.Equal(
             "saved-rule.lifecycle.catalog-read-only",
             Assert.Single(result.Decision.Issues).Code);
-        Assert.Equal(originalBytes, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(originalBytes,
+            await File.ReadAllBytesAsync(
             catalogPath,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Caller lifecycle claims cannot reclassify a Catalog path as editable local storage.</summary>
@@ -176,9 +180,10 @@ public sealed partial class SavedRuleDocumentStorageTests
         Assert.Equal(
             "saved-rule.lifecycle.storage-authority-mismatch",
             Assert.Single(result.Decision.Issues).Code);
-        Assert.Equal(originalBytes, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(originalBytes,
+            await File.ReadAllBytesAsync(
             catalogPath,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Malformed or incomplete bytes cannot enter the Saved Rule lifecycle.</summary>
@@ -220,9 +225,10 @@ public sealed partial class SavedRuleDocumentStorageTests
         Assert.Equal(
             "saved-rule.lifecycle.document-invalid",
             Assert.Single(result.Decision.Issues).Code);
-        Assert.Equal(originalBytes, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(originalBytes,
+            await File.ReadAllBytesAsync(
             rulePath,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>A canceled atomic save preserves the original and removes staging bytes.</summary>
@@ -259,9 +265,10 @@ public sealed partial class SavedRuleDocumentStorageTests
                     editedBytes),
                 cancellation.Token));
 
-        Assert.Equal(originalBytes, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(originalBytes,
+            await File.ReadAllBytesAsync(
             rulePath,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
         Assert.DoesNotContain(
             Directory.EnumerateFiles(authoringRoot),
             path => Path.GetFileName(path).EndsWith(
@@ -366,7 +373,7 @@ public sealed partial class SavedRuleDocumentStorageTests
         SavedRuleDocumentSaveResult result = await save;
 
         Assert.True(result.Succeeded);
-        Assert.Equal(expectedBytes, storage.WrittenBytes);
+        GoldenAssert.AssertEqualsGolden(expectedBytes, storage.WrittenBytes, "firmware image");
     }
 
     private static SavedRuleDocumentLifecycleUseCase CreateUseCase(

@@ -522,8 +522,8 @@ public sealed partial class MergeWorkflowTests
             viewModel.Reports.LoadedReport.OutputSha256[..Math.Min(12, viewModel.Reports.LoadedReport.OutputSha256.Length)],
             viewModel.RunSession.LastRunResult.Detail,
             StringComparison.Ordinal);
-        Assert.True(File.Exists(outputPath), outputPath);
-        Assert.Equal(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath));
+        Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
+        GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath), "firmware image");
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.LoadedReport.HasOutputArtifactPath);
         Assert.Equal(outputPath, viewModel.Reports.LoadedReport.OutputArtifactPath);
@@ -597,9 +597,8 @@ public sealed partial class MergeWorkflowTests
                 TestContext.Current.CancellationToken);
             await viewModel.Merge.BuildMergeAsync(outputPath);
             Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-            Assert.Equal(
-                [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x12, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
-                File.ReadAllBytes(outputPath));
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x12, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
+            File.ReadAllBytes(outputPath), "firmware image");
 
             await viewModel.WorkflowSession.SetSlotFileAsync(
                 mapping.MappingId,
@@ -611,9 +610,8 @@ public sealed partial class MergeWorkflowTests
             await viewModel.Merge.BuildMergeAsync(outputPath);
             Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
             Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
-            Assert.Equal(
-                [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x99, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
-                File.ReadAllBytes(outputPath));
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x99, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
+            File.ReadAllBytes(outputPath), "firmware image");
             using var document = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
             JsonElement root = document.RootElement;
             Assert.Equal("nt51950-general-merge-logical-candidate", root.GetProperty("ProfileId").GetString());
@@ -682,7 +680,7 @@ public sealed partial class MergeWorkflowTests
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal("Build succeeded", viewModel.RunSession.LastRunResult.Title);
-        Assert.True(File.Exists(outputPath), outputPath);
+        Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
     }

@@ -114,7 +114,7 @@ public sealed class FullImageMetadataSourceTests
                 .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/')).Order(StringComparer.Ordinal));
             foreach (string path in expected.Where(path => path.StartsWith("families/", StringComparison.Ordinal)))
             {
-                Assert.Equal(File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot("profiles", "built-in", bundle, path)), File.ReadAllBytes(Path.Combine(root, path)));
+                GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot("profiles", "built-in", bundle, path)), File.ReadAllBytes(Path.Combine(root, path)), "firmware image");
             }
         }
     }

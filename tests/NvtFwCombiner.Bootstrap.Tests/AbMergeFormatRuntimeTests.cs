@@ -45,7 +45,7 @@ public sealed class AbMergeFormatRuntimeTests
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
             [new("tp-a-input", a, File.ReadAllBytes(a)), new("tp-b-input", b, File.ReadAllBytes(b))],
             AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
-        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         NvtFwCombiner.Application.Composition.CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
         Assert.Equal(expected, proposal.Confirmation!.Format!.FormatId);
         CapabilityActionReadinessSnapshot? readiness = await host.AbMergeAuthoring.GetActionReadinessAsync(prepared.Snapshot!, TestContext.Current.CancellationToken);
@@ -55,7 +55,7 @@ public sealed class AbMergeFormatRuntimeTests
                 new Dictionary<string, string> { ["tp-a-input"] = a, ["tp-b-input"] = b },
                 build: true, outputPath: output, actionReadiness: readiness),
             new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-        Assert.True(run.Succeeded, CompositionRunReportJson.Serialize(run));
+        Assert.True(run.Succeeded, $"Composition result: status={run.Status}, succeeded={run.Succeeded}.");
         Assert.True(File.Exists(output));
         Assert.Equal(expected, run.Report.AbMergeFormat!.FormatId);
         Assert.True(configuration.Current.UsesBuiltInDefaults);
@@ -118,7 +118,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.Equal(sameFile ? 1 : 2, proposal.Sources.Count);
         Assert.Equal(2, summary.Inputs.Count);
         Assert.Equal<string>(["tp-a-input", "tp-b-input"], summary.Inputs.Select(static input => input.BindingId));
-        Assert.Equal<byte>([0x97, sameFile ? (byte)0x97 : (byte)0xA6], summary.Inputs.Select(static input => input.EventBufferFormat!.RawByte));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x97, sameFile ? (byte)0x97 : (byte)0xA6], (summary.Inputs.Select(static input => input.EventBufferFormat!.RawByte)).ToArray(), "firmware image");
         Assert.All(summary.Inputs, input =>
         {
             AuthoringInputSlotStatus acceptedStatus = prepared.Snapshot!.InputSlotStatuses.Single(status => status.AddressSpaceId == input.BindingId);
@@ -264,7 +264,7 @@ public sealed class AbMergeFormatRuntimeTests
         })
         {
             EventBufferFormatObservation format = Assert.IsType<EventBufferFormatObservation>(result.Facts[id].EventBufferFormat);
-            Assert.Equal(raw, format.RawByte);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[raw], [format.RawByte], "firmware image");
             Assert.Equal("desay", format.FormatId);
             Assert.Equal("Desay", format.DisplayName);
             Assert.Equal(space, format.ArtifactIdentity.ArtifactId);
@@ -312,7 +312,7 @@ public sealed class AbMergeFormatRuntimeTests
             static pair => pair.Key, static pair => pair.Value.InputSlotStatus!, StringComparer.Ordinal);
         Assert.All(statuses.Values, static status =>
         {
-            Assert.Null(status.AcceptedBytes);
+            Assert.True(status.AcceptedBytes is null, "Expected no accepted firmware content.");
             Assert.Null(status.CompilationFingerprint);
         });
         Assert.NotNull(statuses["tp-a-input"].CapturedSource);
@@ -368,9 +368,9 @@ public sealed class AbMergeFormatRuntimeTests
             _ => source, TestContext.Current.CancellationToken);
         Array.Fill(source, (byte)0xFF);
         AuthoringInputSlotStatus status = inspected.Statuses["tp-a-input"];
-        Assert.Equal(expected, status.CapturedSource!.AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, status.CapturedSource!.AcceptedBytes!.Value.ToArray(), "firmware image");
         Assert.Equal(FileStamp.FromBytes(expected), status.CapturedSource.FileStamp);
-        Assert.Null(status.AcceptedBytes);
+        Assert.True(status.AcceptedBytes is null, "Expected no accepted firmware content.");
         Assert.Null(status.CompilationFingerprint);
         Assert.Null(Assert.Single(inspected.Catalog!.Routes).ExactCapability);
     }
@@ -402,7 +402,7 @@ public sealed class AbMergeFormatRuntimeTests
             previewOutputFileName: "captured.bin", actionReadiness: readiness);
         CompositionRunResult baseline = await host.CompositionExecution.ExecuteAsync(request,
             new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-        Assert.True(baseline.Succeeded, CompositionRunReportJson.Serialize(baseline));
+        Assert.True(baseline.Succeeded, $"Composition result: status={baseline.Status}, succeeded={baseline.Succeeded}.");
         using (JsonDocument json = JsonDocument.Parse(CompositionRunReportJson.Serialize(baseline)))
         {
             Assert.True(json.RootElement.TryGetProperty("AbMergeFormat", out _),
@@ -411,8 +411,8 @@ public sealed class AbMergeFormatRuntimeTests
         AbMergeFormatRunSummary before = Assert.IsType<AbMergeFormatRunSummary>(baseline.Report.AbMergeFormat);
         Assert.Equal("desay", before.FormatId);
         Assert.Equal("Before Save", before.DisplayName);
-        Assert.Equal(0x97, before.TpA.FormatByte);
-        Assert.Equal(0xA6, before.TpB.FormatByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x97], [before.TpA.FormatByte], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA6], [before.TpB.FormatByte], "firmware image");
         using var destination = new HeldFormatDestination(TestContext.Current.CancellationToken);
         var executor = new CompositionExecutionExperience(host.Catalog, destination, () =>
         {
@@ -434,8 +434,8 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.Equal("nt51950-ab-cascade-maps", updated.Snapshot!.ExactCapability!.Identity.MapVariant);
             destination.Release.Set();
             CompositionRunResult completed = await running;
-            Assert.True(completed.Succeeded, CompositionRunReportJson.Serialize(completed));
-            Assert.Equal(baseline.OutputBytes.ToArray(), completed.OutputBytes.ToArray());
+            Assert.True(completed.Succeeded, $"Composition result: status={completed.Status}, succeeded={completed.Succeeded}.");
+            GoldenAssert.AssertEqualsGolden(baseline.OutputBytes.ToArray(), completed.OutputBytes.ToArray(), "firmware image");
             Assert.Same(prepared.Snapshot!.ExactCapability, completed.ResolvedCapability);
             Assert.Same(updated.Snapshot.ExactCapability, completed.ResolvedCapability);
             AbMergeFormatRunSummary summary = Assert.IsType<AbMergeFormatRunSummary>(completed.Report.AbMergeFormat);
@@ -443,20 +443,20 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.Equal(captured.SourceSha256, summary.ConfigurationSourceSha256);
             Assert.Equal("Before Save", summary.DisplayName);
             Assert.Equal("desay", summary.FormatId);
-            Assert.Equal(0x97, summary.TpA.FormatByte);
-            Assert.Equal(0xA6, summary.TpB.FormatByte);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x97], [summary.TpA.FormatByte], "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA6], [summary.TpB.FormatByte], "firmware image");
             Assert.NotEqual(configuration.Current.SourceSha256, summary.ConfigurationSourceSha256);
             using JsonDocument completedJson = JsonDocument.Parse(CompositionRunReportJson.Serialize(completed));
             JsonElement formatJson = completedJson.RootElement.GetProperty("AbMergeFormat");
-            Assert.Equal(JsonSerializer.Serialize(summary), JsonSerializer.Serialize(formatJson));
-            Assert.DoesNotContain(workspace.PathFor(""), formatJson.ToString(), StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("ArtifactId", formatJson.ToString(), StringComparison.Ordinal);
-            Assert.DoesNotContain("Bytes", formatJson.ToString(), StringComparison.Ordinal);
+            Assert.True(StringComparer.Ordinal.Equals(JsonSerializer.Serialize(summary), JsonSerializer.Serialize(formatJson)), "Captured text differs from the expected text.");
+            Assert.True(!GoldenDiagnostics.Contains(workspace.PathFor(""), formatJson.ToString(), StringComparison.OrdinalIgnoreCase), "Serialized format did not match the expected marker check.");
+            Assert.True(!GoldenDiagnostics.Contains("ArtifactId", formatJson.ToString(), StringComparison.Ordinal), "Serialized format did not match the expected marker check.");
+            Assert.True(!GoldenDiagnostics.Contains("Bytes", formatJson.ToString(), StringComparison.Ordinal), "Serialized format did not match the expected marker check.");
             CompositionRunResult next = await host.CompositionExecution.ExecuteAsync(request,
                 new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-            Assert.True(next.Succeeded, CompositionRunReportJson.Serialize(next));
+            Assert.True(next.Succeeded, $"Composition result: status={next.Status}, succeeded={next.Succeeded}.");
             Assert.Same(prepared.Snapshot.ExactCapability, next.ResolvedCapability);
-            Assert.Equal(baseline.OutputBytes.ToArray(), next.OutputBytes.ToArray());
+            GoldenAssert.AssertEqualsGolden(baseline.OutputBytes.ToArray(), next.OutputBytes.ToArray(), "firmware image");
             Assert.Equal("common", next.Report.AbMergeFormat!.FormatId);
             CapabilityActionReadinessSnapshot? nextReadiness = await host.AbMergeAuthoring.GetActionReadinessAsync(
                 updated.Snapshot, TestContext.Current.CancellationToken);
@@ -465,7 +465,7 @@ public sealed class AbMergeFormatRuntimeTests
                 previewOutputFileName: "next.bin", actionReadiness: nextReadiness);
             CompositionRunResult nextRun = await host.CompositionExecution.ExecuteAsync(nextRequest,
                 new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-            Assert.True(nextRun.Succeeded, CompositionRunReportJson.Serialize(nextRun));
+            Assert.True(nextRun.Succeeded, $"Composition result: status={nextRun.Status}, succeeded={nextRun.Succeeded}.");
             AbMergeFormatRunSummary nextSummary = Assert.IsType<AbMergeFormatRunSummary>(nextRun.Report.AbMergeFormat);
             Assert.Equal("common", nextSummary.FormatId);
             Assert.True(nextSummary.ConfigurationGeneration > summary.ConfigurationGeneration);
@@ -475,8 +475,8 @@ public sealed class AbMergeFormatRuntimeTests
                 TestContext.Current.CancellationToken)).Succeeded);
             CompositionRunResult aliasRun = await host.CompositionExecution.ExecuteAsync(nextRequest,
                 new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-            Assert.True(aliasRun.Succeeded, CompositionRunReportJson.Serialize(aliasRun));
-            Assert.Equal(nextRun.OutputBytes.ToArray(), aliasRun.OutputBytes.ToArray());
+            Assert.True(aliasRun.Succeeded, $"Composition result: status={aliasRun.Status}, succeeded={aliasRun.Succeeded}.");
+            GoldenAssert.AssertEqualsGolden(nextRun.OutputBytes.ToArray(), aliasRun.OutputBytes.ToArray(), "firmware image");
             Assert.Equal(nextRun.OutputSha256, aliasRun.OutputSha256);
             Assert.NotEqual(nextSummary.ConfigurationSourceSha256, aliasRun.Report.AbMergeFormat!.ConfigurationSourceSha256);
 
@@ -584,7 +584,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.Equal(captured.FamilyContentHash, summary.FamilyContentHash);
         Assert.Equal(captured.ConfigurationGeneration, summary.ConfigurationGeneration);
         Assert.Equal(captured.ConfigurationSourceSha256, summary.ConfigurationSourceSha256);
-        Assert.DoesNotContain(path, JsonSerializer.Serialize(summary), StringComparison.OrdinalIgnoreCase);
+        Assert.True(!GoldenDiagnostics.Contains(path, JsonSerializer.Serialize(summary), StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
         var runRequest = new CompositionRunRequest("capture-copy", composition, bindings,
             composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             abMergeTopologySelection: CapabilityPublicationCoherence.GetAcceptedAbMergeTopologySelection(prepared.Snapshot.ExactCapability),
@@ -653,7 +653,7 @@ public sealed class AbMergeFormatRuntimeTests
                     AbMergeDpMode: AbMergeDpMode.Dummy))], TestContext.Current.CancellationToken);
             Assert.True(host.AbMergeAuthoring.AdoptInspectedBatch(session, inspected.InspectionsById["tp-a-input"].InputSlotCatalog!, started.Leases,
                 inspected.InspectionsById.ToDictionary(static pair => pair.Key, static pair => pair.Value.InputSlotStatus!, StringComparer.Ordinal)).Succeeded);
-            Assert.All(session.CurrentSnapshot!.InputSlotStatuses, static status => Assert.Null(status.AcceptedBytes));
+            Assert.All(session.CurrentSnapshot!.InputSlotStatuses, static status => Assert.True(status.AcceptedBytes is null, "Expected no accepted firmware content."));
         }
         Assert.True((await configuration.SaveAsync(configuration.CreateDefaultsDraft(), TestContext.Current.CancellationToken)).Succeeded);
         if (!preCompilation)
@@ -735,7 +735,7 @@ public sealed class AbMergeFormatRuntimeTests
             TestContext.Current.CancellationToken)).Succeeded);
         CompiledAuthoringSessionPreparation recovered = Assert.IsType<CompiledAuthoringSessionPreparation>(
             await host.AbMergeAuthoring.ReapplyAcceptedInputsAsync(session, TestContext.Current.CancellationToken));
-        Assert.True(recovered.Succeeded, string.Join(" | ", recovered.Issues.Select(static issue => issue.Message)));
+        Assert.True(recovered.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal("nt51950-ab-cascade-maps", recovered.Snapshot!.ExactCapability!.Identity.MapVariant);
         Assert.All(recovered.Inspection!.Statuses.Values, status =>
             Assert.Equal(recovered.Snapshot.AuthoringRevision, status.AuthoringRevision));
@@ -743,7 +743,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.Same(recovered.Snapshot.MetadataInspection, recovered.Inspection.MetadataInspection);
         Assert.Same(recovered.Inspection.Catalog, recovered.Selection.Catalog);
         Assert.All(recovered.Snapshot.InputSlotStatuses, status =>
-            Assert.Equal(original.InputSlotStatuses.Single(source => source.SlotId == status.SlotId).AcceptedBytes!.Value.ToArray(), status.AcceptedBytes!.Value.ToArray()));
+            GoldenAssert.AssertEqualsGolden(original.InputSlotStatuses.Single(source => source.SlotId == status.SlotId).AcceptedBytes!.Value.ToArray(), status.AcceptedBytes!.Value.ToArray(), "firmware image"));
     }
 
     /// <summary>Reload generations and display-only aliases do not alter accepted bytes or firmware authority.</summary>
@@ -789,7 +789,7 @@ public sealed class AbMergeFormatRuntimeTests
         {
             AbMergeInputFacts facts = reapplied.AbMergeFacts[slotId];
             EventBufferFormatObservation format = Assert.IsType<EventBufferFormatObservation>(facts.EventBufferFormat);
-            Assert.Equal(raw, format.RawByte);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[raw], [format.RawByte], "firmware image");
             Assert.Equal("desay", format.FormatId);
             Assert.Equal(aliasChange ? "My vendor" : first.DisplayName, format.DisplayName);
             Assert.True(format.ConfigurationGeneration > first.ConfigurationGeneration);
@@ -847,7 +847,7 @@ public sealed class AbMergeFormatRuntimeTests
             previewOutputFileName: "equivalent.bin", actionReadiness: readiness);
         CompositionRunResult baseline = await host.CompositionExecution.ExecuteAsync(request,
             new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-        Assert.True(baseline.Succeeded, CompositionRunReportJson.Serialize(baseline));
+        Assert.True(baseline.Succeeded, $"Composition result: status={baseline.Status}, succeeded={baseline.Succeeded}.");
         if (removeCustom) { File.Delete(workspace.PathFor("format.json")); }
         else
         {
@@ -857,9 +857,9 @@ public sealed class AbMergeFormatRuntimeTests
         }
         CompositionRunResult result = await host.CompositionExecution.ExecuteAsync(request,
             new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Same(prepared.Snapshot!.ExactCapability, result.ResolvedCapability);
-        Assert.Equal(baseline.OutputBytes.ToArray(), result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(baseline.OutputBytes.ToArray(), result.OutputBytes.ToArray(), "firmware image");
         AbMergeFormatRunSummary before = Assert.IsType<AbMergeFormatRunSummary>(baseline.Report.AbMergeFormat);
         AbMergeFormatRunSummary after = Assert.IsType<AbMergeFormatRunSummary>(result.Report.AbMergeFormat);
         Assert.Equal(removeCustom ? "desay" : "common", after.FormatId);
@@ -869,8 +869,8 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.NotEqual(before.ConfigurationSourceSha256, after.ConfigurationSourceSha256);
         Assert.Equal(configuration.Current.Generation, after.ConfigurationGeneration);
         Assert.Equal(configuration.Current.SourceSha256, after.ConfigurationSourceSha256);
-        Assert.Equal(JsonSerializer.Serialize(before.TpA), JsonSerializer.Serialize(after.TpA));
-        Assert.Equal(JsonSerializer.Serialize(before.TpB), JsonSerializer.Serialize(after.TpB));
+        Assert.True(StringComparer.Ordinal.Equals(JsonSerializer.Serialize(before.TpA), JsonSerializer.Serialize(after.TpA)), "Captured text differs from the expected text.");
+        Assert.True(StringComparer.Ordinal.Equals(JsonSerializer.Serialize(before.TpB), JsonSerializer.Serialize(after.TpB)), "Captured text differs from the expected text.");
     }
 
     /// <summary>Invalid configuration and newly mismatched formats reject before execution side effects.</summary>
@@ -996,7 +996,7 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.Null(session.CurrentSnapshot?.ExactCapability);
             if (inspection)
             {
-                Assert.All(inspected!.Statuses.Values, static status => Assert.Null(status.AcceptedBytes));
+                Assert.All(inspected!.Statuses.Values, static status => Assert.True(status.AcceptedBytes is null, "Expected no accepted firmware content."));
                 Assert.All(inspected.Facts.Values, static facts => Assert.Null(facts.EventBufferFormat));
             }
         }
@@ -1052,7 +1052,7 @@ public sealed class AbMergeFormatRuntimeTests
         TestContext.Current.TestOutputHelper!.WriteLine($"source={started.Snapshot.CompilationFingerprint}; target={Assert.Single(target.Routes).CompilationFingerprint}");
         AuthoringSessionTransitionResult adopted = host.AbMergeAuthoring.AdoptInspectedBatch(session, target, started.Leases,
             result.InspectionsById.ToDictionary(static pair => pair.Key, static pair => pair.Value.InputSlotStatus!, StringComparer.Ordinal));
-        Assert.True(adopted.Succeeded, adopted.Issue?.Message);
+        Assert.True(adopted.Succeeded, "Golden assertion condition was not satisfied.");
     }
 
     /// <summary>Format discovery may adopt a complete exact batch only for the original current source leases.</summary>
@@ -1158,12 +1158,12 @@ public sealed class AbMergeFormatRuntimeTests
         if (invalidPrimary)
         {
             Assert.Equal("AB_FORMAT_PRIMARY_INVALID", status.SelectionReadiness.IssueCode);
-            Assert.Null(status.AcceptedBytes);
+            Assert.True(status.AcceptedBytes is null, "Expected no accepted firmware content.");
             Assert.Null(status.CompilationFingerprint);
         }
         else
         {
-            Assert.Equal(tpA, status.AcceptedBytes!.Value.ToArray());
+            GoldenAssert.AssertEqualsGolden(tpA, status.AcceptedBytes!.Value.ToArray(), "firmware image");
             Assert.Equal("nt51950-ab-merge-maps", Assert.Single(result.InspectionsById["a"].InputSlotCatalog!.Routes).ExactCapability!.Identity.MapVariant);
         }
     }
@@ -1192,7 +1192,7 @@ public sealed class AbMergeFormatRuntimeTests
             [new("tp-a-input", "tp-a.bin", tpA), new("tp-b-input", "tp-b.bin", tpB)], AbMergeDpMode.Dummy,
             TestContext.Current.CancellationToken);
 
-        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(issue => issue.Code)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.NotNull(prepared.Snapshot?.ExactCapability);
         CompiledComposition composition = prepared.Snapshot.ExactCapability.CompiledComposition;
         Assert.Equal(expectedProfile, composition.V2Details.ProfileId);
@@ -1205,8 +1205,8 @@ public sealed class AbMergeFormatRuntimeTests
         AbMergeFormatRunSummary summary = AbMergeFormatRunSummary.Create(
             Assert.IsType<AbMergeFormatSelection>(selection), composition, bindings);
         Assert.Equal(format == 0x84 ? "common" : "desay", summary.FormatId);
-        Assert.Equal(format, summary.TpA.FormatByte);
-        Assert.Equal(tpB[0x2220C], summary.TpB.FormatByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[format], [summary.TpA.FormatByte], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[tpB[0x2220C]], [summary.TpB.FormatByte], "firmware image");
     }
 
     /// <summary>The host must not preserve a legacy executable session when current format admission fails.</summary>

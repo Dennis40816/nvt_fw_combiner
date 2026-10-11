@@ -4,6 +4,8 @@ using NvtFwCombiner.Contracts.Profiles;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests DTO normalization for v2 closed composition operations.</summary>
@@ -41,7 +43,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
 
         Assert.Equal(CompositionOperationKind.CopyRange, copy.Kind);
         Assert.Equal(CompositionOperationKind.ReplaceRange, replace.Kind);
-        Assert.Equal(0xFF, fill.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF], [fill.FillByte], "firmware image");
         Assert.Equal("aa01", patch.PatchBytes.Hex);
         Assert.Equal(
             BigInteger.Parse("18446744073709551616", System.Globalization.CultureInfo.InvariantCulture),

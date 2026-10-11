@@ -33,7 +33,7 @@ public sealed class PrebuiltProfileCatalogCodecTests
             // Hand-transcribed UTF-8 hex, independent of the encoder: [1][2][3] {} CR LF
             // then the literal JSON escape "\u0061", then space { space } LF. No separator is inserted.
             byte[] expected = Convert.FromHexString("5B315D5B325D5B335D207B7D0D0A225C753030363122207B207D0A");
-            Assert.Equal(expected, body.Content.ToArray());
+            GoldenAssert.AssertEqualsGolden(expected, body.Content.ToArray(), "firmware image");
             Assert.Equal(
                 [("I-bundle", "A", 0, 3), ("I-bundle", "a", 3, 3), ("I-bundle", "z", 6, 3),
                  ("I-bundle", null, 9, 5), ("i-bundle", "b", 14, 8), ("i-bundle", null, 22, 5)],
@@ -41,7 +41,7 @@ public sealed class PrebuiltProfileCatalogCodecTests
             Assert.True(((IList<PrebuiltProfileCatalogBodyRange>)body.Ranges).IsReadOnly);
             byte[] copy = body.Content.ToArray();
             Array.Fill(copy, (byte)0);
-            Assert.Equal(expected, body.Content.ToArray());
+            GoldenAssert.AssertEqualsGolden(expected, body.Content.ToArray(), "firmware image");
         }
         finally
         {
@@ -111,7 +111,7 @@ public sealed class PrebuiltProfileCatalogCodecTests
             [new("bundle", "1.0.0", new string('a', 64),
                 Snapshot(workspace, "manifest.json", "{}"u8.ToArray()),
                 [Document(workspace, "a", ProfileBundleEntryKind.FirmwareFamily, "[]"u8.ToArray())])]);
-        Assert.Equal("NFCPBCAT"u8.ToArray(), pack[..8]);
+        GoldenAssert.AssertEqualsGolden("NFCPBCAT"u8.ToArray(), pack[..8], "firmware image");
         int length = checked((int)System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(pack.AsSpan(8, 4)));
         string header = System.Text.Encoding.UTF8.GetString(pack[12..(12 + length)]);
         // Independently transcribed closed header; no production serializer supplies expected bytes.
@@ -121,8 +121,8 @@ public sealed class PrebuiltProfileCatalogCodecTests
             """;
         Assert.Equal(expectedHeader, header);
         Assert.Contains("\"manifest\":{\"length\":2,\"offset\":2,\"sha256\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\"}", header, StringComparison.Ordinal);
-        Assert.Equal("[]{}"u8.ToArray(), pack[(12 + length)..]);
-        Assert.Equal("[]{}"u8.ToArray(), PrebuiltProfileCatalogCodec.Decode(pack).Body.ToArray());
+        GoldenAssert.AssertEqualsGolden("[]{}"u8.ToArray(), pack[(12 + length)..], "firmware image");
+        GoldenAssert.AssertEqualsGolden("[]{}"u8.ToArray(), PrebuiltProfileCatalogCodec.Decode(pack).Body.ToArray(), "firmware image");
     }
 
     /// <summary>Independent RFC 8785 string escaping and ordinal property-order vector.</summary>

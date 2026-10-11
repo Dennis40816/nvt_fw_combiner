@@ -16,7 +16,7 @@ public sealed class ProfileBundleFileSnapshotTests
         byte[] input = " { }\n"u8.ToArray();
         var snapshot = ProfileBundleFileSnapshot.Copy("profile-bundle.json", input, input.Length);
         Array.Fill(input, (byte)0);
-        Assert.Equal(" { }\n"u8.ToArray(), snapshot.Content.ToArray());
+        GoldenAssert.AssertEqualsGolden(" { }\n"u8.ToArray(), snapshot.Content.ToArray(), "firmware image");
         _ = Assert.Throws<InvalidDataException>(() => ProfileBundleFileSnapshot.Copy("x.json", input, input.Length - 1));
     }
 
@@ -46,9 +46,9 @@ public sealed class ProfileBundleFileSnapshotTests
         File.Delete(path);
 
         byte[] copy = snapshot.Content.ToArray();
-        Assert.Equal(expected, copy);
+        GoldenAssert.AssertEqualsGolden(expected, copy, "firmware image");
         Array.Fill(copy, (byte)0);
-        Assert.Equal(expected, snapshot.Content.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, snapshot.Content.ToArray(), "firmware image");
         Assert.Equal(Hash(expected), snapshot.ActualSha256);
         Assert.Equal("a", snapshot.GetStrictJsonRoot(16).GetProperty("value").GetString());
     }

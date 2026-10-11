@@ -2,6 +2,8 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using System.Security.Cryptography;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests;
 
 /// <summary>Immutable persisted bytes used to replay one report difference viewport.</summary>
@@ -22,8 +24,8 @@ public sealed class OutputDifferenceReplaySegmentTests
         before[1] = 0xFF;
         after[1] = 0xFF;
 
-        Assert.Equal([0x10, 0x20], replay.BeforeBytes.ToArray());
-        Assert.Equal([0x10, 0x30], replay.AfterBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20], replay.BeforeBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x30], replay.AfterBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Both planes must exactly cover the declared replay range.</summary>
@@ -54,8 +56,8 @@ public sealed class OutputDifferenceReplaySegmentTests
             new ByteRange(0x31, 0x20));
 
         Assert.Equal(new ByteRange(0x10, 0x70), replay.Range);
-        Assert.Equal(before.AsSpan(0x10, 0x70).ToArray(), replay.BeforeBytes.ToArray());
-        Assert.Equal(after.AsSpan(0x10, 0x70).ToArray(), replay.AfterBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(before.AsSpan(0x10, 0x70).ToArray(), replay.BeforeBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(after.AsSpan(0x10, 0x70).ToArray(), replay.AfterBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Full context planes and the changed slice retain separate evidence identities.</summary>

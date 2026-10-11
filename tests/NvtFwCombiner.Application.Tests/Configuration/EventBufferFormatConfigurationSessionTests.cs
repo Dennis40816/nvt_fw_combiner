@@ -2,6 +2,8 @@ using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Contracts.Configuration;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Configuration;
 
 /// <summary>Configuration lifetime, recovery and concurrency without firmware execution.</summary>
@@ -27,7 +29,7 @@ public sealed class EventBufferFormatConfigurationSessionTests
         EventBufferFormatConfigurationOperationResult result = await session.SaveAsync([edited], TestContext.Current.CancellationToken);
         Assert.True(result.Succeeded);
         Assert.Same(result.State, session.Current);
-        Assert.Equal([0xA6], Assert.Single(session.Current.Configuration!.Entries).RecognitionValues);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA6], (Assert.Single(session.Current.Configuration!.Entries).RecognitionValues).ToArray(), "firmware image");
         values[0] = 0;
         Assert.Equal(0xA6, session.CreateSavedDraft()![0]!.RecognitionValues![0]);
     }

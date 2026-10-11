@@ -410,7 +410,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         Assert.True(readiness.RuntimeDependencyGeneration > 0);
         Assert.True(readiness.Preview.IsAvailable);
         Assert.True(readiness.Build.IsAvailable);
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
     }
 
     /// <summary>Processor-free AB Merge neither acquires nor requires a runtime generation.</summary>
@@ -452,7 +452,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             new CompositionRunProgressFeed(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(0, readiness.RuntimeDependencyGeneration);
         Assert.True(readiness.Preview.IsAvailable);
         Assert.True(readiness.Build.IsAvailable);

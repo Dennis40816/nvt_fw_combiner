@@ -77,7 +77,7 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
             ownerCase.Base.Bytes,
             out FirmwareConfigMetadata metadata));
         Assert.Equal("1.4.0", metadata.CommonFwVersion);
-        Assert.Equal(3, metadata.ChipNumber);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[3], [metadata.ChipNumber], "firmware image");
         Assert.Equal(0x570A, metadata.ProjectId);
 
         var immutableHashes = ownerCase.Artifacts.ToDictionary(
@@ -96,7 +96,7 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
+        Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "dc1ee8928977845fad334b75c60b3e7fa3989f0a7e177206f83104217bf3fe16";
         Assert.Equal(outputSha256, Hash(v2Bytes));
@@ -169,7 +169,7 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(File.Exists(outputPath));
         using (var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result)))
         {

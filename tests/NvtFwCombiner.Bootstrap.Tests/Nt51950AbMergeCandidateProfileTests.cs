@@ -228,7 +228,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
 
         Assert.True(invoked);
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal(originalTpB, tpB);
+        GoldenAssert.AssertEqualsGolden(originalTpB, tpB, "firmware image");
         AssertRangeEquals(tpA, TpCodeStart, result.OutputBytes.Span, TpCodeStart, TpCodeLength);
         AssertRangeEquals(tpB, TpCodeStart, result.OutputBytes.Span, BankLength + TpCodeStart, 0x120);
         Assert.Equal(
@@ -349,7 +349,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(0x100000, result.OutputBytes.Length);
-        Assert.Equal(originalTpB, tpB);
+        GoldenAssert.AssertEqualsGolden(originalTpB, tpB, "firmware image");
         AssertRangeEquals(dp, 0, result.OutputBytes.Span, 0, TpCodeStart);
         AssertRangeEquals(dp, 0x37000, result.OutputBytes.Span, 0x37000, 0x53000);
         AssertRangeEquals(dp, 0xB7000, result.OutputBytes.Span, 0xB7000, 0x49000);
@@ -508,9 +508,8 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         int actualStart,
         int length)
     {
-        Assert.Equal(
-            expected.Slice(expectedStart, length).ToArray(),
-            actual.Slice(actualStart, length).ToArray());
+        GoldenAssert.AssertEqualsGolden(expected.Slice(expectedStart, length).ToArray(),
+            actual.Slice(actualStart, length).ToArray(), "firmware image");
     }
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)

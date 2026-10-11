@@ -162,7 +162,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
         }
         else
         {
-            Assert.Equal(sourceFamily, candidateFamily);
+            GoldenAssert.AssertEqualsGolden(sourceFamily, candidateFamily, "firmware image");
         }
     }
 }

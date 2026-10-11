@@ -1,5 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>Tests atomic compiled-composition identity and fingerprint invariants.</summary>
@@ -96,8 +98,8 @@ public sealed partial class CompiledCompositionTests
             CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(baseline.V2Details.Provenance.ValidationRequirements));
         Assert.Equal(CompiledValidationStage.FinalOutput, requirement.Stage);
         Assert.Equal(CompiledValidationSeverity.Error, requirement.Severity);
-        Assert.Equal(0x27, requirement.FirmwareVersion);
-        Assert.Equal(0x04, requirement.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x27], [requirement.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x04], [requirement.FirmwareSubVersion], "firmware image");
         Assert.NotEqual(baseline.CompilationFingerprint, changed.CompilationFingerprint);
     }
 

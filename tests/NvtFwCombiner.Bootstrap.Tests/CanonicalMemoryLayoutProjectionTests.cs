@@ -114,9 +114,7 @@ public sealed class CanonicalMemoryLayoutProjectionTests
             catalog.Reload(TestContext.Current.CancellationToken);
         Assert.True(
             reload.Succeeded,
-            string.Join(
-                Environment.NewLine,
-                reload.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         CanonicalCapabilityCatalogSnapshot snapshot = reload.Snapshot!;
         ResolvedCapability capability = snapshot.Capabilities.Single(candidate =>
             candidate.Identity.IcId == "NT51929" &&

@@ -91,7 +91,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
                 ["ldc-input"] = @"C:\firmware\ldc.bin",
             });
 
-        Assert.True(started.Succeeded, started.Issue?.Message);
+        Assert.True(started.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(3, started.Leases.Count);
         Assert.All(started.Leases, lease =>
             Assert.Equal(started.Snapshot!.AuthoringRevision, lease.AuthoringRevision));
@@ -123,7 +123,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
                     3),
             });
 
-        Assert.True(completed.Succeeded, completed.Issue?.Message);
+        Assert.True(completed.Succeeded, "Golden assertion condition was not satisfied.");
         var lifecycles = completed.Snapshot!.Slots.ToDictionary(
             static slot => slot.DefinitionId,
             static slot => slot.Lifecycle,
@@ -364,7 +364,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
                 new ResolutionToken("catalog-token"),
                 [secondRoute]));
 
-        Assert.True(changed.Succeeded, changed.Issue?.Message);
+        Assert.True(changed.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(acceptedRevision.Next(), changed.Snapshot!.AuthoringRevision);
         Assert.Equal(secondRoute.CompilationFingerprint, changed.Snapshot.CompilationFingerprint);
         Assert.Equal(AuthoringSlotLifecycle.Selected, changed.Snapshot.Slots.Single(
@@ -573,7 +573,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
                 static status => status.Key,
                 static status => status.Value,
                 StringComparer.Ordinal));
-        Assert.True(result.Succeeded, result.Issue?.Message);
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         return result.Snapshot!;
     }
 
@@ -632,7 +632,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
             new string('a', 64),
             new string('1', 64));
         AuthoringSessionTransitionResult activated = session.Activate(catalog);
-        Assert.True(activated.Succeeded, activated.Issue?.Message);
+        Assert.True(activated.Succeeded, "Golden assertion condition was not satisfied.");
         return catalog;
     }
 
@@ -684,7 +684,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
                 session.WorkflowId,
                 new ResolutionToken("general-token"),
                 [route]));
-        Assert.True(result.Succeeded, result.Issue?.Message);
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
     }
 
     private static GeneralMergeDraftState Draft(

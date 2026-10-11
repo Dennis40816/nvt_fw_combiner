@@ -110,7 +110,7 @@ public sealed class AbDummyDpCompilationTests
             icId, ExperienceIds.AbMerge, capacity, topology, [],
             selectedInputSlotIds: dummy ? [] : ["dp-ab-input"]);
 
-        Assert.True(result.IsCompiled, string.Join(" | ", result.Issues.Select(static issue => issue.Message)));
+        Assert.True(result.IsCompiled, "Golden assertion condition was not satisfied.");
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.Equal(capacity, composition.Plan.OutputInitialization.Capacity);
         string[] expectedSlots = dummy ? ["tp-a-input", "tp-b-input"] : ["dp-ab-input", "tp-a-input", "tp-b-input"];

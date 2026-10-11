@@ -4,6 +4,8 @@ using System.Text.Json;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Verifies the non-mutating managed installation health query.</summary>
@@ -264,7 +266,7 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
         Assert.Equal(expected.Keys, actual.Keys);
         foreach ((string path, byte[] bytes) in expected)
         {
-            Assert.Equal(bytes, actual[path]);
+            GoldenAssert.AssertEqualsGolden(bytes, actual[path], "firmware image");
         }
     }
 

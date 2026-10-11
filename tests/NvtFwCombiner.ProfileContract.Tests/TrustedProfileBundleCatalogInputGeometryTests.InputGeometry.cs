@@ -220,7 +220,7 @@ public sealed partial class TrustedProfileBundleCatalogInputGeometryTests
 
         Assert.True(
             result.IsCompiled,
-            string.Join(Environment.NewLine, result.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
         CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);

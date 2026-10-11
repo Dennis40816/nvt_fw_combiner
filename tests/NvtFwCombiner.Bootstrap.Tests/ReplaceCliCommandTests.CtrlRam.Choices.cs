@@ -25,7 +25,7 @@ public sealed partial class ReplaceCliCommandTests
         using var workspace = TempWorkspace.Create("ctrlram-cli-bank");
         CtrlRamChoiceRun result = await RunCtrlRamChoiceAsync(workspace, ab: true, ["--bank", token], action);
 
-        Assert.True(result.ExitCode == 0, result.Error);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         AbCtrlRamDraftState forwarded = Assert.IsType<AbCtrlRamDraftState>(Assert.Single(result.Authoring.Drafts));
         Assert.Equal(new AbCtrlRamDraftState(expected), forwarded);
         Assert.Equal(forwarded, Assert.Single(result.Execution.Requests).AcceptedSession.DraftState);
@@ -40,7 +40,7 @@ public sealed partial class ReplaceCliCommandTests
         CtrlRamChoiceRun result = await RunCtrlRamChoiceAsync(workspace, ab: false,
             ["--firmware-version", "a9", "--firmware-sub-version", "F2"], action: "build");
 
-        Assert.True(result.ExitCode == 0, result.Error);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         CtrlRamFirmwareVersionDraftState draft = Assert.IsType<CtrlRamFirmwareVersionDraftState>(Assert.Single(result.Authoring.Drafts));
         Assert.Equal(new CtrlRamFirmwareVersionDraftState(0xA9, 0xF2), draft);
         Assert.Equal(draft, Assert.Single(result.Execution.Requests).AcceptedSession.DraftState);
@@ -64,7 +64,7 @@ public sealed partial class ReplaceCliCommandTests
         ];
         CtrlRamChoiceRun result = await RunCtrlRamChoiceAsync(workspace, ab: true, options, action: "build");
 
-        Assert.True(result.ExitCode == 0, result.Error);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         AbCtrlRamDraftState draft = Assert.IsType<AbCtrlRamDraftState>(result.Authoring.Drafts[^1]);
         Assert.Equal(new AbCtrlRamDraftState(expected, editA ? new(0x21, 0x32) : null,
             editB ? new(0x29, 0x41) : null), draft);
@@ -113,7 +113,7 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.Empty(result.Execution.Requests);
-        Assert.Contains($"{issueCode}: {message}", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains($"{issueCode}: {message}", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         if (issueCode.StartsWith("cli.", StringComparison.Ordinal))
         {
             Assert.Empty(result.Authoring.Drafts);
@@ -123,11 +123,11 @@ public sealed partial class ReplaceCliCommandTests
             Assert.NotEmpty(result.Authoring.Drafts);
         }
 
-        Assert.Empty(result.Output);
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         if (existingArtifacts)
         {
-            Assert.Equal(originalOutput, File.ReadAllBytes(workspace.PathFor("output.bin")));
-            Assert.Equal(originalReport, File.ReadAllBytes(workspace.PathFor("report.json")));
+            GoldenAssert.AssertEqualsGolden(originalOutput, File.ReadAllBytes(workspace.PathFor("output.bin")), "firmware image");
+            GoldenAssert.AssertEqualsGolden(originalReport, File.ReadAllBytes(workspace.PathFor("report.json")), "firmware image");
         }
         else
         {
@@ -161,9 +161,9 @@ public sealed partial class ReplaceCliCommandTests
                 "--output", workspace.PathFor("output.bin"), "--report", workspace.PathFor("report.json")]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.StartsWith("error:", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("input.artifact.read-failed", result.Error, StringComparison.Ordinal);
-        Assert.Empty(result.Output);
+        Assert.True(GoldenDiagnostics.StartsWith("error:", result.Error, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
+        Assert.True(!GoldenDiagnostics.Contains("input.artifact.read-failed", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         Assert.False(File.Exists(workspace.PathFor("output.bin")));
         Assert.False(File.Exists(workspace.PathFor("report.json")));
     }
@@ -189,10 +189,10 @@ public sealed partial class ReplaceCliCommandTests
             expectedAvailabilityQueries: 0);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(message, result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Replace is Not available", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("input.artifact.read-failed", result.Error, StringComparison.Ordinal);
-        Assert.Empty(result.Output);
+        Assert.True(GoldenDiagnostics.Contains(message, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("Replace is Not available", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("input.artifact.read-failed", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         Assert.False(File.Exists(workspace.PathFor("output.bin")));
         Assert.False(File.Exists(workspace.PathFor("report.json")));
     }
@@ -210,9 +210,9 @@ public sealed partial class ReplaceCliCommandTests
             expectedAvailabilityQueries: 1);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains($"{UnavailableCtrlRamTestIc} ctrlram-replace Replace is Not available", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("input.artifact.read-failed", result.Error, StringComparison.Ordinal);
-        Assert.Empty(result.Output);
+        Assert.True(GoldenDiagnostics.Contains($"{UnavailableCtrlRamTestIc} ctrlram-replace Replace is Not available", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("input.artifact.read-failed", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         Assert.False(File.Exists(workspace.PathFor("output.bin")));
         Assert.False(File.Exists(workspace.PathFor("report.json")));
     }
@@ -241,10 +241,10 @@ public sealed partial class ReplaceCliCommandTests
                 "--ctrlram", $"nf={workspace.PathFor("unread-nf.bin")}", "--output", outputPath, "--report", reportPath]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("firmware-version options are available only for ctrlram-replace build", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("input.artifact.read-failed", result.Error, StringComparison.Ordinal);
-        Assert.Empty(result.Output);
-        Assert.Equal(original, File.ReadAllBytes(outputPath));
-        Assert.Equal(original, File.ReadAllBytes(reportPath));
+        Assert.True(GoldenDiagnostics.Contains("firmware-version options are available only for ctrlram-replace build", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("input.artifact.read-failed", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
+        GoldenAssert.AssertEqualsGolden(original, File.ReadAllBytes(outputPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(original, File.ReadAllBytes(reportPath), "firmware image");
     }
 }

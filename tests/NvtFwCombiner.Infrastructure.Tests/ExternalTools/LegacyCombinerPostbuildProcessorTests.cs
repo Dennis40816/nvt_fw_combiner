@@ -6,6 +6,8 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 /// <summary>Tests staged CtrlRAM postbuild execution through approved legacy Combiner.exe profiles.</summary>
@@ -36,7 +38,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             executablePaths.Add(startInfo.ExecutablePath);
             string privateDirectory = Path.GetDirectoryName(startInfo.ExecutablePath)!;
             Assert.True(Directory.Exists(privateDirectory));
-            Assert.Equal(runtimeBytes, File.ReadAllBytes(Path.Combine(privateDirectory, "vcruntime140.dll")));
+            GoldenAssert.AssertEqualsGolden(runtimeBytes, File.ReadAllBytes(Path.Combine(privateDirectory, "vcruntime140.dll")), "firmware image");
             if (!mutated)
             {
                 byte[] output = File.ReadAllBytes(startInfo.Arguments[1]);
@@ -63,7 +65,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         ExternalProcessorResult result = await processor.TransformAsync(request, TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(2, executablePaths.Count);
         _ = Assert.Single(executablePaths.Distinct(StringComparer.Ordinal));
         Assert.False(Directory.Exists(Path.GetDirectoryName(executablePaths[0])));
@@ -84,7 +86,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             Assert.EndsWith("nt51926_fw.bin", startInfo.Arguments[1], StringComparison.Ordinal);
             string mapPath = Path.Combine(startInfo.WorkingDirectory, "output", "map.txt");
             Assert.True(File.Exists(mapPath));
-            Assert.Empty(File.ReadAllBytes(mapPath));
+            GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), File.ReadAllBytes(mapPath), "empty firmware output");
 
             if (startInfo.Arguments.Any(argument =>
                 argument.EndsWith(Path.Combine("BIN", "Normal_Ctrlram.bin"), StringComparison.Ordinal)))
@@ -92,8 +94,8 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
                 string normalCtrlRam = Path.Combine(startInfo.WorkingDirectory, "BIN", "Normal_Ctrlram.bin");
                 Assert.True(File.Exists(normalCtrlRam));
                 byte[] stagedNormal = File.ReadAllBytes(normalCtrlRam);
-                Assert.Equal(firmware[0x22800], stagedNormal[0]);
-                Assert.Equal(firmware[0x22800 + 127], stagedNormal[127]);
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmware[0x22800]], [stagedNormal[0]], "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmware[0x22800 + 127]], [stagedNormal[127]], "firmware image");
                 inspectedNormalCtrlRam = true;
             }
 
@@ -124,7 +126,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         Assert.True(result.Succeeded);
         Assert.True(inspectedNormalCtrlRam);
         Assert.Equal(2, runner.RunCount);
-        Assert.Equal((byte)(firmware[0x32A70] ^ 0x5A), result.OutputBytes.Span[0x32A70]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)(firmware[0x32A70] ^ 0x5A)], [result.OutputBytes.Span[0x32A70]], "firmware image");
         Assert.Equal(new ByteRange(0x32A70, 1), Assert.Single(result.ChangedRanges));
     }
 
@@ -139,10 +141,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         FakeProcessRunner runner = new(startInfo =>
         {
             string firmwarePath = startInfo.Arguments[1];
-            Assert.Equal(firmware, File.ReadAllBytes(firmwarePath));
+            GoldenAssert.AssertEqualsGolden(firmware, File.ReadAllBytes(firmwarePath), "firmware image");
 
             string replacementPath = Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin");
-            Assert.Equal([0xAA, 0xBB], File.ReadAllBytes(replacementPath));
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xAA, 0xBB], File.ReadAllBytes(replacementPath), "firmware image");
 
             byte[] output = File.ReadAllBytes(firmwarePath);
             output[1] = 0xAA;
@@ -167,9 +169,9 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.True(inspected);
-        Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(new ByteRange(1, 2), Assert.Single(result.ChangedRanges));
     }
 
@@ -182,9 +184,8 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         LegacyCombinerPostbuildProfile profile = CreateExactStagedFileProfile(sourceOffset: 0);
         FakeProcessRunner runner = new(startInfo =>
         {
-            Assert.Equal(
-                [0xA1, 0xA2],
-                File.ReadAllBytes(Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin")));
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA2],
+            File.ReadAllBytes(Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin")), "firmware image");
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
         });
         LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
@@ -201,7 +202,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(1, runner.RunCount);
     }
 
@@ -243,11 +244,13 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         FakeProcessRunner runner = new(startInfo =>
         {
             string firmwarePath = startInfo.Arguments[2];
-            Assert.Equal(firmware, File.ReadAllBytes(firmwarePath));
-            Assert.Equal([0xA1, 0xA2, 0xA3, 0xA4], File.ReadAllBytes(
-                Path.Combine(startInfo.WorkingDirectory, "BIN", "ABank.bin")));
-            Assert.Equal([0xB1, 0xB2, 0xB3, 0xB4], File.ReadAllBytes(
-                Path.Combine(startInfo.WorkingDirectory, "BIN", "BBank.bin")));
+            GoldenAssert.AssertEqualsGolden(firmware, File.ReadAllBytes(firmwarePath), "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA2, 0xA3, 0xA4],
+            File.ReadAllBytes(
+                Path.Combine(startInfo.WorkingDirectory, "BIN", "ABank.bin")), "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xB1, 0xB2, 0xB3, 0xB4],
+            File.ReadAllBytes(
+                Path.Combine(startInfo.WorkingDirectory, "BIN", "BBank.bin")), "firmware image");
 
             byte[] output = File.ReadAllBytes(firmwarePath);
             output[6] = 0xEE;
@@ -273,8 +276,8 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
-        Assert.Equal((byte)0xEE, result.OutputBytes.Span[6]);
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xEE], [result.OutputBytes.Span[6]], "firmware image");
         Assert.Equal(new ByteRange(6, 1), Assert.Single(result.ChangedRanges));
     }
 
@@ -432,7 +435,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(2, runner.RunCount);
     }
 
@@ -452,10 +455,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
                 byte[] stagedDiff = File.ReadAllBytes(diffDlm);
 
                 Assert.Equal(0x2000, stagedDiff.Length);
-                Assert.Equal(firmware[0x28800], stagedDiff[0]);
-                Assert.Equal(firmware[0x28800 + 0x0BFF], stagedDiff[0x0BFF]);
-                Assert.Equal(firmware[0x29400], stagedDiff[0x1400]);
-                Assert.Equal(firmware[0x29400 + 0x0BFF], stagedDiff[0x1FFF]);
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmware[0x28800]], [stagedDiff[0]], "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmware[0x28800 + 0x0BFF]], [stagedDiff[0x0BFF]], "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmware[0x29400]], [stagedDiff[0x1400]], "firmware image");
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmware[0x29400 + 0x0BFF]], [stagedDiff[0x1FFF]], "firmware image");
                 inspected = true;
             }
 
@@ -553,7 +556,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
             string stagedReplacement = Path.Combine(startInfo.WorkingDirectory, "BIN", "Replacement.bin");
             byte[] staged = File.ReadAllBytes(stagedReplacement);
-            Assert.Equal(0x99, Assert.Single(staged));
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x99], staged, "staged replacement marker");
             output[4] = staged[0];
             File.WriteAllBytes(firmwarePath, output);
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
@@ -573,8 +576,8 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
-        Assert.Equal(firmware, result.OutputBytes.ToArray());
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
+        GoldenAssert.AssertEqualsGolden(firmware, result.OutputBytes.ToArray(), "firmware image");
         Assert.Empty(result.ChangedRanges);
         Assert.Equal(2, runner.RunCount);
     }
@@ -610,10 +613,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(firmware.Length, result.OutputBytes.Length);
-        Assert.Equal((byte)(firmware[0x12] ^ 0x33), result.OutputBytes.Span[0x12]);
-        Assert.Equal(firmware[0x20], result.OutputBytes.Span[0x20]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)(firmware[0x12] ^ 0x33)], [result.OutputBytes.Span[0x12]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmware[0x20]], [result.OutputBytes.Span[0x20]], "firmware image");
         Assert.Equal(new ByteRange(0x12, 1), Assert.Single(result.ChangedRanges));
     }
 
@@ -657,10 +660,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(commandCount, runner.RunCount);
         Assert.Equal(commandCount, result.ExecutedCommands.Count);
-        Assert.Equal(firmware, result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(firmware, result.OutputBytes.ToArray(), "firmware image");
         Assert.Empty(result.ChangedRanges);
     }
 
@@ -733,11 +736,11 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
-        Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => issue.Message)));
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(2, runner.RunCount);
         Assert.Equal(firmware.Length, result.OutputBytes.Length);
-        Assert.Equal((byte)(firmware[0x12] ^ 0x33), result.OutputBytes.Span[0x12]);
-        Assert.Equal((byte)(firmware[0x30] ^ 0x55), result.OutputBytes.Span[0x30]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)(firmware[0x12] ^ 0x33)], [result.OutputBytes.Span[0x12]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)(firmware[0x30] ^ 0x55)], [result.OutputBytes.Span[0x30]], "firmware image");
         Assert.Equal([new ByteRange(0x12, 1), new ByteRange(0x30, 1)], result.ChangedRanges);
     }
 

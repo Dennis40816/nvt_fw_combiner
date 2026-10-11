@@ -97,9 +97,9 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
         byte[] expected = [.. originalBase];
         replacement.CopyTo(expected, targetStart);
-        Assert.Equal(expected, execution.OutputBytes.ToArray());
-        Assert.Equal(originalBase, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
-        Assert.Equal(originalBase, baseBytes);
+        GoldenAssert.AssertEqualsGolden(expected, execution.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalBase, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalBase, baseBytes, "firmware image");
 
         string routedOutputPath = workspace.PathFor("routed.bin");
         var mappingDraft = new GeneralMappingDraftState(
@@ -126,10 +126,11 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
             routedOutputPath,
             TestContext.Current.CancellationToken);
 
-        Assert.True(routed.Succeeded, CompositionRunReportJson.Serialize(routed));
-        Assert.Equal(execution.OutputBytes.ToArray(), await File.ReadAllBytesAsync(
+        Assert.True(routed.Succeeded, $"Composition result: status={routed.Status}, succeeded={routed.Succeeded}.");
+        GoldenAssert.AssertEqualsGolden(execution.OutputBytes.ToArray(),
+            await File.ReadAllBytesAsync(
             routedOutputPath,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
         using var routedReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(routed));
         Assert.Equal(
             "nt51926-general-replace-dp-single-candidate",

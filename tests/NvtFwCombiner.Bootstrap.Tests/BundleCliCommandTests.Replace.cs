@@ -35,7 +35,7 @@ public sealed partial class BundleCliCommandTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         using JsonDocument report = JsonDocument.Parse(
             await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         Assert.Equal(
@@ -87,8 +87,8 @@ public sealed partial class BundleCliCommandTests
             CliRunResult explicitResult = await CliTestHarness.RunAsync(
                 [workflow, "build", "--profile", "NT51926", .. inputs, "--output", explicitOutputPath,
                     "--report", explicitReportPath], TestContext.Current.CancellationToken);
-            Assert.True(automatic.ExitCode == 0, automatic.Error + Environment.NewLine + automatic.Output);
-            Assert.True(explicitResult.ExitCode == 0, explicitResult.Error + Environment.NewLine + explicitResult.Output);
+            Assert.True(automatic.ExitCode == 0, "Golden assertion condition was not satisfied.");
+            Assert.True(explicitResult.ExitCode == 0, "Golden assertion condition was not satisfied.");
             using JsonDocument automaticReport = JsonDocument.Parse(await File.ReadAllTextAsync(
                 automaticReportPath, TestContext.Current.CancellationToken));
             using JsonDocument explicitReport = JsonDocument.Parse(await File.ReadAllTextAsync(
@@ -121,8 +121,8 @@ public sealed partial class BundleCliCommandTests
                 Assert.Equal(expected.LongLength, output.GetProperty("Size").GetInt64());
                 Assert.Equal(expectedSha256, output.GetProperty("Sha256").GetString());
             }
-            Assert.Equal(expected, await File.ReadAllBytesAsync(explicitOutputPath, TestContext.Current.CancellationToken));
-            Assert.Equal(expected, await File.ReadAllBytesAsync(automaticOutputPath, TestContext.Current.CancellationToken));
+            GoldenAssert.AssertEqualsGolden(expected, await File.ReadAllBytesAsync(explicitOutputPath, TestContext.Current.CancellationToken), "firmware image");
+            GoldenAssert.AssertEqualsGolden(expected, await File.ReadAllBytesAsync(automaticOutputPath, TestContext.Current.CancellationToken), "firmware image");
         }
         finally
         {
@@ -166,7 +166,7 @@ public sealed partial class BundleCliCommandTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         using JsonDocument report = JsonDocument.Parse(
             await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         JsonElement outputArtifact = report.RootElement.GetProperty("BundleDelivery")
@@ -178,9 +178,8 @@ public sealed partial class BundleCliCommandTests
         byte[] expected = [.. baseBytes];
         expected[0x3E020] = 0xA5;
         expected[0x3E021] = 0x5A;
-        Assert.Equal(expected, outputBytes);
-        Assert.Equal(
-            baseBytes,
-            await File.ReadAllBytesAsync(referencePath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(expected, outputBytes, "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes,
+            await File.ReadAllBytesAsync(referencePath, TestContext.Current.CancellationToken), "firmware image");
     }
 }

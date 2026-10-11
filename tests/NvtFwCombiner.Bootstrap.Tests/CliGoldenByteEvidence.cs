@@ -22,7 +22,7 @@ internal static class CliGoldenByteEvidence
             : ["--output", outputPath];
         CliRunResult result = await CliTestHarness.RunAsync(
             [.. arguments, .. destination, "--report", reportPath], TestContext.Current.CancellationToken);
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, $"CLI exit code {result.ExitCode}; stderr {GoldenDiagnostics.TextSummary(result.Error)}; stdout {GoldenDiagnostics.TextSummary(result.Output)}.");
         using var document = JsonDocument.Parse(File.ReadAllText(reportPath));
         JsonElement report = document.RootElement.Clone();
         if (automaticName)
@@ -54,14 +54,14 @@ internal static class CliGoldenByteEvidence
     {
         Assert.InRange(range.EndExclusive, 1, expected.LongLength);
         Assert.InRange(range.EndExclusive, 1, actual.LongLength);
-        Assert.Equal(expected.AsSpan(checked((int)range.Start), checked((int)range.Length)).ToArray(),
-            actual.AsSpan(checked((int)range.Start), checked((int)range.Length)).ToArray());
+        GoldenAssert.AssertEqualsGolden(expected.AsSpan(checked((int)range.Start), checked((int)range.Length)).ToArray(),
+            actual.AsSpan(checked((int)range.Start), checked((int)range.Length)).ToArray(), "firmware image");
     }
 
     internal static void EqualGolden(JsonElement goldenCase, byte[] actual)
     {
         JsonElement artifact = CanonicalGoldenTestData.Artifact(goldenCase, "expected-output");
-        Assert.Equal(File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact)), actual);
+        GoldenAssert.AssertFileEqualsGolden(CanonicalGoldenTestData.ArtifactPath(artifact), actual, GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString()!));
         Assert.Equal(artifact.GetProperty("sha256").GetString(), Hash(actual));
     }
 

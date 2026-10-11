@@ -3,6 +3,8 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 public sealed partial class AuthoringInputSlotInspectionTests
@@ -28,7 +30,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.False(result.BlocksBuild);
         Assert.Equal(InputArtifactInspectionIssueCodes.Ready, result.InspectionIssueCode);
         Assert.Equal(FileStamp.FromBytes(source), result.FileStamp);
-        Assert.Equal(source, result.AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden(source, result.AcceptedBytes!.Value.ToArray(), "firmware image");
     }
 
     /// <summary>An unaccepted extension is terminal typed Error before content gains authority.</summary>
@@ -58,7 +60,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Equal(selectedPath, result.SelectedPathHint);
         Assert.Null(result.FileStamp);
         Assert.Null(result.Inspection);
-        Assert.Null(result.AcceptedBytes);
+        Assert.True(result.AcceptedBytes is null, "Expected no accepted firmware content.");
         Assert.Empty(result.Observation.Versions);
         Assert.Empty(result.InspectionAdvisories);
     }
@@ -83,7 +85,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         AuthoringSlotInspectionStartResult started = session.BeginSlotFileInspection(
             SourceSlot,
             "selected.txt");
-        Assert.True(started.Succeeded, started.Issue?.Message);
+        Assert.True(started.Succeeded, "Golden assertion condition was not satisfied.");
         AuthoringInputSlotStatus status = AuthoringInputSlotInspectionService.Inspect(
             capability,
             started.Snapshot!.AuthoringRevision,
@@ -100,7 +102,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 [SourceSlot] = status,
             });
 
-        Assert.True(completed.Succeeded, completed.Issue?.Message);
+        Assert.True(completed.Succeeded, "Golden assertion condition was not satisfied.");
         AuthoringSlotState slot = Assert.Single(completed.Snapshot!.Slots);
         Assert.Equal("selected.txt", slot.SelectedPath);
         Assert.Equal(AuthoringSlotLifecycle.Error, slot.Lifecycle);

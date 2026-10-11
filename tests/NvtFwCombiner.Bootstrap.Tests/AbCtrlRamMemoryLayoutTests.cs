@@ -25,7 +25,7 @@ public sealed class AbCtrlRamMemoryLayoutTests
         bytes[CompositionSlotIds.ReplaceBase] = File.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), "NT51950", "single", paths, bytes, new AbCtrlRamDraftState(selection));
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot session = prepared.AcceptedSession!;
         MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(
             session.ExactCapability!, session, session.ExactCapability!.CompiledComposition);
@@ -109,7 +109,7 @@ public sealed class AbCtrlRamMemoryLayoutTests
         {
             CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
                 new(ExperienceIds.CtrlRamReplace), member, number, paths, bytes, new AbCtrlRamDraftState(selection));
-            Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+            Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
             ActiveSessionSnapshot session = prepared.AcceptedSession!;
             MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(
                 session.ExactCapability!, session, session.ExactCapability!.CompiledComposition);

@@ -1,5 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 public sealed partial class CompositionPlanTests
@@ -53,7 +55,7 @@ public sealed partial class CompositionPlanTests
             plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>()));
 
-        Assert.Equal([0x11, 0x11, 0x22, 0x22], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11, 0x11, 0x22, 0x22], result.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies overlapping writes with the same sequence are rejected even with declared overlap policy.</summary>

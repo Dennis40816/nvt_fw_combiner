@@ -48,7 +48,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
 
         AssertWorkflowNotSupported(fileIssues, fileMappingOutput);
         AssertWorkflowNotSupported(patchIssues, patchOutput);
-        Assert.Equal(originalBaseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(originalBaseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Validated fill patches fail closed when no exact V2 General Replace route exists.</summary>
@@ -109,7 +109,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
         Assert.False(File.Exists(malformedOutput));
         AssertHasIssue(malformedIssues, "replace.workflow.not-supported");
         AssertHasIssue(protectedIssues, "replace.workflow.not-supported");
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>An unavailable workflow rejects before allocating an out-of-base virtual fill artifact.</summary>
@@ -133,7 +133,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
             TestContext.Current.CancellationToken);
 
         AssertHasIssue(issues, "replace.workflow.not-supported");
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>File, overwrite, and fill rows share one pre-compilation occupancy ledger.</summary>

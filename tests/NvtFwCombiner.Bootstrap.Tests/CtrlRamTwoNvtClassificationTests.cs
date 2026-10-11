@@ -97,7 +97,7 @@ public sealed class CtrlRamTwoNvtClassificationTests
             Assert.True(config.IsFirmwareVersionBarValid);
             Assert.True(config.ChipNumber > 0);
             Assert.Equal((long)marker + 3 - 0xFFF, config.FirmwareConfigBackupStart);
-            Assert.Equal(bytes[checked((int)config.FirmwareConfigBackupStart)], config.FirmwareVersion);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[bytes[checked((int)config.FirmwareConfigBackupStart)]], [config.FirmwareVersion], "firmware image");
             Assert.True(bank.TpVersion!.IsKnown);
         }
     }

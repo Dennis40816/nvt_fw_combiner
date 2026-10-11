@@ -5,6 +5,8 @@ using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Source-specific projection into the shared read-only Hex viewport.</summary>
@@ -45,7 +47,7 @@ public sealed class ReportHexDiffViewportAdapterTests
         Assert.False(contextChange.IsDataChanged);
         Assert.True(selectedChange.IsDataChanged);
         Assert.Equal((byte?)0, selectedChange.ComparisonValue);
-        Assert.Equal((byte)0xB1, selectedChange.PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xB1], [selectedChange.PrimaryValue], "firmware image");
     }
 
     /// <summary>A long range materializes only the requested bounded range-local window.</summary>

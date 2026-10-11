@@ -166,9 +166,10 @@ public sealed class CompositionOutputBundleDestinationValidationTests
         byte[][] expected = [[0xA9], [0xA8], [1], [2]];
         for (int index = 0; index < expected.Length; index++)
         {
-            Assert.Equal(expected[index], await File.ReadAllBytesAsync(
+            GoldenAssert.AssertEqualsGolden(expected[index],
+            await File.ReadAllBytesAsync(
                 Path.Combine(receipt.Bundle.ResolvedDirectory, receipt.Bundle.Artifacts[index].DeliveredFileName),
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken), "firmware image");
         }
     }
 

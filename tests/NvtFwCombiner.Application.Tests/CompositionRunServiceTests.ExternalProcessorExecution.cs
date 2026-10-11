@@ -53,7 +53,7 @@ public sealed partial class CompositionRunServiceTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0, 0x7E, 0, 0], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 0x7E, 0, 0], result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(1, processor.CallCount);
         MutationRunSummary mutation = Assert.Single(result.Report.Mutations);
         Assert.Equal(CompositionOperationKind.RunExternalProcessor, mutation.Kind);
@@ -115,7 +115,7 @@ public sealed partial class CompositionRunServiceTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
         Assert.Equal(CompositionExecutionStatus.Failed, build.Status);
-        Assert.Empty(build.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), build.OutputBytes.ToArray(), "empty firmware output");
         Assert.Null(build.CommittedOutputId);
         Assert.False(writer.WasCalled);
         Assert.Equal(0x1100L, build.Report.Output.Size);
@@ -144,7 +144,7 @@ public sealed partial class CompositionRunServiceTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        Assert.Empty(result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), result.OutputBytes.ToArray(), "empty firmware output");
         Assert.Equal("replace.ctrlram.fw-version-output-invalid", Assert.Single(result.Report.Issues).Code);
         ValidationRunSummary validation = Assert.Single(result.Report.Validations);
         Assert.Equal(ValidationRunStatus.Failed, validation.Status);
@@ -206,10 +206,10 @@ public sealed partial class CompositionRunServiceTests
     {
         var processor = new FakeExternalProcessor(request =>
         {
-            Assert.Equal([0x10, 0x20, 0x30, 0x40], request.InputBytes.ToArray());
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30, 0x40], request.InputBytes.ToArray(), "firmware image");
             ExternalProcessorStagedSource stagedSource = Assert.Single(request.StagedSources);
             Assert.Equal(new ByteRange(1, 2), stagedSource.FirmwareRange);
-            Assert.Equal([0xAA, 0xBB], stagedSource.Bytes.ToArray());
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xAA, 0xBB], stagedSource.Bytes.ToArray(), "firmware image");
             byte[] output = request.InputBytes.ToArray();
             stagedSource.Bytes.CopyTo(output.AsMemory((int)stagedSource.FirmwareRange.Start));
             return ExternalProcessorResult.Success(output, [stagedSource.FirmwareRange], []);
@@ -229,7 +229,7 @@ public sealed partial class CompositionRunServiceTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0xAA, 0xBB, 0x40], result.OutputBytes.ToArray(), "firmware image");
         Assert.Contains(result.Report.Issues, issue => issue.Code == CompositionIssueCodes.InputAddressSpaceTruncated);
     }
 
@@ -273,8 +273,8 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(OutputDifferenceClassifications.DeclaredReplacement, replacement.Classification);
         Assert.Equal("NF CtrlRAM (Master)", replacement.SectionLabel);
         Assert.Contains("staged replacement source", replacement.Explanation, StringComparison.Ordinal);
-        Assert.Equal("2030", replacement.BeforeHexPreview);
-        Assert.Equal("aabb", replacement.AfterHexPreview);
+        Assert.True(StringComparer.Ordinal.Equals("2030", replacement.BeforeHexPreview), "Captured text differs from the expected text.");
+        Assert.True(StringComparer.Ordinal.Equals("aabb", replacement.AfterHexPreview), "Captured text differs from the expected text.");
         Assert.Equal(2, replacement.HexPreviewByteCount);
         Assert.True(replacement.IsHexPreviewComplete);
         Assert.Null(replacement.Replay);
@@ -288,8 +288,8 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(OutputDifferenceClassifications.PostbuildCrcHeader, crcHeader.Classification);
         Assert.Equal("TP flash header / CRC fields", crcHeader.SectionLabel);
         Assert.Contains("approved TP flash header / CRC fields postbuild", crcHeader.Explanation, StringComparison.Ordinal);
-        Assert.Equal("40", crcHeader.BeforeHexPreview);
-        Assert.Equal("7e", crcHeader.AfterHexPreview);
+        Assert.True(StringComparer.Ordinal.Equals("40", crcHeader.BeforeHexPreview), "Captured text differs from the expected text.");
+        Assert.True(StringComparer.Ordinal.Equals("7e", crcHeader.AfterHexPreview), "Captured text differs from the expected text.");
         Assert.Equal(1, crcHeader.HexPreviewByteCount);
         Assert.True(crcHeader.IsHexPreviewComplete);
         Assert.Null(crcHeader.Replay);
@@ -321,7 +321,7 @@ public sealed partial class CompositionRunServiceTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x10, 0xAA, 0xBB, 0x7E], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0xAA, 0xBB, 0x7E], result.OutputBytes.ToArray(), "firmware image");
         Assert.Collection(
             result.Report.OutputDifferences,
             replacement =>
@@ -355,12 +355,12 @@ public sealed partial class CompositionRunServiceTests
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x10, 0x99, 0x30, 0x40], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x99, 0x30, 0x40], result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(["output-image", "scratch"], result.Report.Mutations.Select(item => item.TargetSpaceId));
         OutputDifferenceSummary difference = Assert.Single(result.Report.OutputDifferences);
         Assert.Equal(new ByteRange(1, 1), difference.Range);
-        Assert.Equal("20", difference.BeforeHexPreview);
-        Assert.Equal("99", difference.AfterHexPreview);
+        Assert.True(StringComparer.Ordinal.Equals("20", difference.BeforeHexPreview), "Captured text differs from the expected text.");
+        Assert.True(StringComparer.Ordinal.Equals("99", difference.AfterHexPreview), "Captured text differs from the expected text.");
         Assert.Equal(OutputDifferenceClassifications.DeclaredReplacement, difference.Classification);
         Assert.Equal("fill-output", difference.Evidence);
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
@@ -389,7 +389,7 @@ public sealed partial class CompositionRunServiceTests
             CreateStagedSourceExternalProcessorRequest(new ByteRange(2, 2)),
             CancellationToken.None);
 
-        Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(first.OutputBytes.ToArray(), second.OutputBytes.ToArray(), "firmware image");
         Assert.NotEqual(first.Report.CompilationFingerprint, second.Report.CompilationFingerprint);
     }
 
@@ -420,7 +420,7 @@ public sealed partial class CompositionRunServiceTests
                 [new ExternalProcessorWriteRangeSection("header-b", new ByteRange(0, 2), new ByteRange(2, 2))]),
             CancellationToken.None);
 
-        Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(first.OutputBytes.ToArray(), second.OutputBytes.ToArray(), "firmware image");
         Assert.NotEqual(first.Report.CompilationFingerprint, second.Report.CompilationFingerprint);
     }
 
@@ -454,7 +454,7 @@ public sealed partial class CompositionRunServiceTests
         OperationRunSummary operation = Assert.Single(result.Report.Operations);
         Assert.Equal(OperationRunStatus.Failed, operation.Status);
         _ = Assert.Single(operation.ExecutedCommands);
-        Assert.Empty(result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), result.OutputBytes.ToArray(), "empty firmware output");
     }
 
 }

@@ -41,9 +41,8 @@ public sealed partial class GeneralMergeCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Equal(
-            [checked((byte)expectedFill), 0x10, 0x11, checked((byte)expectedFill)],
-            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)expectedFill), 0x10, 0x11, checked((byte)expectedFill)],
+            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
 
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
@@ -78,7 +77,7 @@ public sealed partial class GeneralMergeCliCommandTests
         ]);
 
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("ui.general-merge.fill-byte-invalid", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("ui.general-merge.fill-byte-invalid", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Capacity and fill both bind Preview and report identity.</summary>
@@ -141,12 +140,11 @@ public sealed partial class GeneralMergeCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Experience: general-merge", result.Output, StringComparison.Ordinal);
-        Assert.DoesNotContain("Issues:", result.Error, StringComparison.Ordinal);
-        Assert.Equal(
-            [0, 0, 0, 0, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+        Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Experience: general-merge", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("Issues:", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        GoldenAssert.AssertEqualsGolden((byte[])[0, 0, 0, 0, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
 
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
@@ -182,7 +180,7 @@ public sealed partial class GeneralMergeCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("at least one --mapping", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("at least one --mapping", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Rejects output paths on preview because preview must not commit firmware bytes.</summary>
@@ -206,7 +204,7 @@ public sealed partial class GeneralMergeCliCommandTests
         ]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("unknown option '--output'", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("unknown option '--output'", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Reports source bounds violations before running the composition executor.</summary>
@@ -251,12 +249,9 @@ public sealed partial class GeneralMergeCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("General Merge failed; no JSON report was written. Issues:", result.Error, StringComparison.Ordinal);
-        Assert.Contains(
-            "general.admission.source-out-of-bounds",
-            result.Error,
-            StringComparison.Ordinal);
-        Assert.Contains("source [0x1, 0x4) exceeds", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("General Merge failed; no JSON report was written. Issues:", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("general.admission.source-out-of-bounds", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
+        Assert.True(GoldenDiagnostics.Contains("source [0x1, 0x4) exceeds", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Rejects a blank output length at the canonical Application authoring boundary.</summary>
@@ -290,7 +285,7 @@ public sealed partial class GeneralMergeCliCommandTests
             output);
 
         Assert.True(result.Succeeded);
-        Assert.Equal([0x10, 0x11, 0x00, 0x00], await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden((byte[])[0x10, 0x11, 0x00, 0x00], await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Rejects overlapping General Merge targets through Application admission.</summary>
@@ -455,9 +450,8 @@ public sealed partial class GeneralMergeCliCommandTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(candidateProfileId, result.ProfileId);
-        Assert.Equal(
-            [0x11, 0x12, 0x13, 0, 0, 0, 0x20, 0x21, 0x10, 0, 0, 0, 0, 0, 0, 0],
-            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden((byte[])[0x11, 0x12, 0x13, 0, 0, 0, 0x20, 0x21, 0x10, 0, 0, 0, 0, 0, 0, 0],
+            await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken), "firmware image");
 
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement root = report.RootElement;

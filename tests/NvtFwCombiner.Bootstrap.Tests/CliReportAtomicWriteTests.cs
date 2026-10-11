@@ -41,10 +41,9 @@ public sealed class CliReportAtomicWriteTests
             output,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(
-            Utf8WithoutBom.GetBytes(ReportJson),
-            await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken));
-        Assert.Equal($"Report: {reportPath}{Environment.NewLine}", output.ToString());
+        GoldenAssert.AssertEqualsGolden(Utf8WithoutBom.GetBytes(ReportJson),
+            await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken), "firmware image");
+        Assert.True(string.Equals($"Report: {reportPath}{Environment.NewLine}", output.ToString(), StringComparison.Ordinal), "Captured CLI output did not match the expected report marker.");
         Assert.Equal([reportPath], Directory.GetFiles(reportDirectory));
     }
 
@@ -162,7 +161,7 @@ public sealed class CliReportAtomicWriteTests
                     TestContext.Current.CancellationToken));
         }
 
-        Assert.True(failure is IOException or UnauthorizedAccessException, failure.ToString());
+        Assert.True(failure is IOException or UnauthorizedAccessException, GoldenDiagnostics.TextSummary(failure.ToString()));
         Assert.Equal(Utf8WithoutBom.GetByteCount(ReportJson), writtenLength);
         AssertEarlierReportKept(reportPath, output, writtenPath);
     }
@@ -220,7 +219,7 @@ public sealed class CliReportAtomicWriteTests
 
         Assert.False(contentWritten);
         Assert.Empty(Directory.GetFileSystemEntries(reportDirectory));
-        Assert.Empty(output.ToString());
+        Assert.True(string.IsNullOrEmpty(output.ToString()), "Expected empty captured CLI output.");
     }
 
     /// <summary>
@@ -250,13 +249,13 @@ public sealed class CliReportAtomicWriteTests
                 },
                 TestContext.Current.CancellationToken));
 
-        Assert.False(contentWritten, failure.ToString());
-        Assert.Equal(foreignBytes, await File.ReadAllBytesAsync(foreignPath, TestContext.Current.CancellationToken));
-        Assert.Equal(EarlierReport, await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken));
+        Assert.False(contentWritten, GoldenDiagnostics.TextSummary(failure.ToString()));
+        GoldenAssert.AssertEqualsGolden(foreignBytes, await File.ReadAllBytesAsync(foreignPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(EarlierReport, await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(
             [foreignPath, reportPath],
             Directory.GetFiles(Path.GetDirectoryName(reportPath)!).Order(StringComparer.Ordinal));
-        Assert.Empty(output.ToString());
+        Assert.True(string.IsNullOrEmpty(output.ToString()), "Expected empty captured CLI output.");
     }
 
     /// <summary>A committed Build replaces an earlier report with its complete run report and leaves no staging file.</summary>
@@ -270,21 +269,18 @@ public sealed class CliReportAtomicWriteTests
             CreateGeneralMergeBuildArguments(workspace, reportPath),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, GoldenDiagnostics.TextSummary(result.Error + Environment.NewLine + result.Output));
         byte[] committed = await File.ReadAllBytesAsync(
             workspace.PathFor("committed.bin"),
             TestContext.Current.CancellationToken);
         byte[] reportBytes = await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken);
-        Assert.Equal((byte)'{', reportBytes[0]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)'{'], [reportBytes[0]], "firmware image");
         using JsonDocument report = JsonDocument.Parse(reportBytes);
         Assert.Equal(
             Convert.ToHexStringLower(SHA256.HashData(committed)),
             report.RootElement.GetProperty("Output").GetProperty("Sha256").GetString());
-        Assert.Contains($"Report: {reportPath}", result.Output, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            CliCompositionRunSupport.CommittedReportFailedIssueCode,
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains($"Report: {reportPath}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.False(GoldenDiagnostics.Contains(CliCompositionRunSupport.CommittedReportFailedIssueCode, result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
         Assert.Equal([reportPath], Directory.GetFiles(Path.GetDirectoryName(reportPath)!));
     }
 
@@ -337,7 +333,7 @@ public sealed class CliReportAtomicWriteTests
             File.SetAttributes(reportPath, FileAttributes.Normal);
         }
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, GoldenDiagnostics.TextSummary(result.Error + Environment.NewLine + result.Output));
         AssertCommittedReportFailed(result.Output, result.Error, reportPath);
         AssertEarlierReportKept(reportPath);
     }
@@ -375,12 +371,12 @@ public sealed class CliReportAtomicWriteTests
         StringWriter? output = null,
         string? writtenPath = null)
     {
-        Assert.Equal(EarlierReport, File.ReadAllBytes(reportPath));
+        GoldenAssert.AssertEqualsGolden(EarlierReport, File.ReadAllBytes(reportPath), "firmware image");
         string reportDirectory = Path.GetDirectoryName(reportPath)!;
         Assert.Equal([reportPath], Directory.GetFiles(reportDirectory));
         if (output is not null)
         {
-            Assert.Empty(output.ToString());
+            Assert.True(string.IsNullOrEmpty(output.ToString()), "Expected empty captured CLI output.");
         }
 
         if (writtenPath is not null)

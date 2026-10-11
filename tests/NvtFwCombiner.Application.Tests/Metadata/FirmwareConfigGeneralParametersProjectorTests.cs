@@ -54,23 +54,23 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
             snapshot,
             out FirmwareConfigGeneralParametersFacts facts));
         Assert.Equal((byte)0xA3, facts.EventBufferFormatVersion);
-        Assert.Equal((byte)0x5A, facts.TpFirmwareVersion);
-        Assert.Equal((byte)0xA5, facts.TpFirmwareVersionComplement);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x5A], [facts.TpFirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xA5], [facts.TpFirmwareVersionComplement], "firmware image");
         Assert.True(facts.IsTpFirmwareVersionComplementValid);
-        Assert.Equal((byte)18, facts.SensorCountX);
-        Assert.Equal((byte)32, facts.SensorCountY);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)18], [facts.SensorCountX], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)32], [facts.SensorCountY], "firmware image");
         Assert.Equal((ushort)1920, facts.DisplayResolutionX);
         Assert.Equal((ushort)1080, facts.DisplayResolutionY);
-        Assert.Equal((byte)10, facts.MaximumOperableFingers);
-        Assert.Equal((byte)0x10, facts.ReportIrqType);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)10], [facts.MaximumOperableFingers], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x10], [facts.ReportIrqType], "firmware image");
         Assert.Equal(FirmwareConfigReportIrqMode.LevelLow, facts.ReportIrqMode);
-        Assert.Equal((byte)3, facts.TpFirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)3], [facts.TpFirmwareSubVersion], "firmware image");
         Assert.Equal((ushort)2880, facts.TpResolutionX);
         Assert.Equal((ushort)1800, facts.TpResolutionY);
         Assert.Equal((byte)3, facts.ObservedIcCount);
         Assert.True(facts.IsOutermostIcMasterEnableValid);
         Assert.True(facts.UseOutermostIcAsMaster);
-        Assert.Equal((byte)1, facts.CascadeEnable);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)1], [facts.CascadeEnable], "firmware image");
         Assert.Equal("4.5.6", facts.CommonFirmwareVersion);
         Assert.Equal((ushort)0x1234, facts.Pid);
     }
@@ -106,7 +106,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         Assert.True(FirmwareConfigGeneralParametersProjector.TryProject(
             snapshot,
             out FirmwareConfigGeneralParametersFacts facts));
-        Assert.Equal(rawValue, facts.ReportIrqType);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[rawValue], [facts.ReportIrqType], "firmware image");
         Assert.Equal(expectedMode, facts.ReportIrqMode);
     }
 
@@ -121,9 +121,9 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         Assert.True(FirmwareConfigGeneralParametersProjector.TryProject(
             snapshot,
             out FirmwareConfigGeneralParametersFacts facts));
-        Assert.Equal((byte)0xFF, facts.ReportIrqType);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xFF], [facts.ReportIrqType], "firmware image");
         Assert.Null(facts.ReportIrqMode);
-        Assert.Equal((byte)2, facts.OutermostIcMasterEnable);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)2], [facts.OutermostIcMasterEnable], "firmware image");
         Assert.False(facts.IsOutermostIcMasterEnableValid);
         Assert.False(facts.UseOutermostIcAsMaster);
     }
@@ -182,7 +182,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         Assert.True(FirmwareConfigGeneralParametersProjector.TryProject(
             CreateSnapshot(FirmwareConfigGeneralParametersContract.EventBufferFormatVersion), out FirmwareConfigGeneralParametersFacts facts));
         Assert.Null(facts.EventBufferFormatVersion);
-        Assert.Equal((byte)0x5A, facts.TpFirmwareVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x5A], [facts.TpFirmwareVersion], "firmware image");
     }
 
     /// <summary>A widened field cannot become a display byte merely because its numeric value fits.</summary>
@@ -192,7 +192,7 @@ public sealed class FirmwareConfigGeneralParametersProjectorTests
         Assert.True(FirmwareConfigGeneralParametersProjector.TryProject(
             CreateSnapshot(eventFieldWidth: 2), out FirmwareConfigGeneralParametersFacts facts));
         Assert.Null(facts.EventBufferFormatVersion);
-        Assert.Equal((byte)0x5A, facts.TpFirmwareVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x5A], [facts.TpFirmwareVersion], "firmware image");
     }
 
     private static MetadataInspectionSnapshot CreateSnapshot(

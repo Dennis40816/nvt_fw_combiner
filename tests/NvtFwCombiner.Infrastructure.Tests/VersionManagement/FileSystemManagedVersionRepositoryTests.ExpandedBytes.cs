@@ -33,7 +33,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
         ManagedPackageVerificationResult result = await new FileSystemManagedVersionRepository()
             .VerifyPackageAsync(sourceRoot, package, TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsVerified, result.Issue.ToString());
+        Assert.True(result.IsVerified, "Golden assertion condition was not satisfied.");
     }
 
     /// <summary>The real plan, extraction, promotion, and inventory accept exact expanded bytes only.</summary>
@@ -76,8 +76,8 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             package,
             TestContext.Current.CancellationToken);
 
-        Assert.True(exactVerification.IsVerified, exactVerification.Issue.ToString());
-        Assert.True(exactInstall.IsSuccess, exactInstall.Issue.ToString());
+        Assert.True(exactVerification.IsVerified, "Golden assertion condition was not satisfied.");
+        Assert.True(exactInstall.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, rejectedVerification.Issue);
         Assert.Equal(ManagedVersionInstallIssue.UnsafeArchive, rejectedInstall.Issue);
         Assert.False(Directory.Exists(Path.Combine(rejectedRoot, "versions", "0.10.6")));

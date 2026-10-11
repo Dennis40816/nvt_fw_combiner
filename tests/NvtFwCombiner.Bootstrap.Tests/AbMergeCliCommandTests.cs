@@ -21,11 +21,11 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains(
+        Assert.True(GoldenDiagnostics.Contains(
             "ab-merge preview --profile <id|ic> (--dp-ab <path> [--dp-mode normal] | --dp-mode dummy --acknowledge-non-tp-ff) --tp-a <path> --tp-b <path> [--ab-topology <single|cascade>]",
             result.Output,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("--overwrite", result.Output, StringComparison.Ordinal);
+            StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("--overwrite", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>AB preview routes all three named sources through the supported V2 profile and exports evidence.</summary>
@@ -62,8 +62,8 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath,
             TestContext.Current.CancellationToken));
@@ -112,7 +112,7 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
         using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath,
             TestContext.Current.CancellationToken));
@@ -182,11 +182,11 @@ public sealed partial class AbMergeCliCommandTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
-        Assert.DoesNotContain(
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
+        Assert.True(!GoldenDiagnostics.Contains(
             CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
             result.Error,
-            StringComparison.Ordinal);
+            StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
             reportPath,
             TestContext.Current.CancellationToken));
@@ -223,7 +223,7 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--tp-b is required", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--tp-b is required", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>AB build sends the requested path only to the committed-output policy.</summary>
@@ -254,9 +254,9 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.Equal(0x80000, new FileInfo(outputPath).Length);
     }
 
@@ -354,8 +354,8 @@ public sealed partial class AbMergeCliCommandTests
 
         Assert.Equal(1, result.ExitCode);
         Assert.False(File.Exists(reportPath));
-        Assert.Contains("Issues:", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Status:", result.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Issues:", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("Status:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>An oversized sparse AB source is rejected by the compiled slot ceiling before any output is created.</summary>
@@ -398,10 +398,10 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Contains("input.artifact.read-failed [dp-ab-input]", result.Error, StringComparison.Ordinal);
-        Assert.Contains("100000001", result.Error, StringComparison.Ordinal);
-        Assert.Contains("524288-byte limit", result.Error, StringComparison.Ordinal);
-        Assert.Empty(result.Output);
+        Assert.True(GoldenDiagnostics.Contains("input.artifact.read-failed [dp-ab-input]", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("100000001", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("524288-byte limit", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
         Assert.False(File.Exists(outputPath));
         Assert.False(File.Exists(reportPath));
     }

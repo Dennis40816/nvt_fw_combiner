@@ -84,7 +84,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 new CompositionRunProgressFeed(),
                 TestContext.Current.CancellationToken);
 
-        Assert.True(preview.Succeeded, CompositionRunReportJson.Serialize(preview));
+        Assert.True(preview.Succeeded, $"Composition result: status={preview.Status}, succeeded={preview.Succeeded}.");
         Assert.Same(capability, preview.ResolvedCapability);
         GeneralMappingDraftState acceptedDraft =
             Assert.IsType<GeneralMappingDraftState>(
@@ -108,12 +108,11 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 new CompositionRunProgressFeed(),
                 TestContext.Current.CancellationToken);
 
-        Assert.True(build.Succeeded, CompositionRunReportJson.Serialize(build));
-        Assert.Equal(
-            [0x10, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        Assert.True(build.Succeeded, $"Composition result: status={build.Status}, succeeded={build.Succeeded}.");
+        GoldenAssert.AssertEqualsGolden((byte[])[0x10, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             await File.ReadAllBytesAsync(
                 outputPath,
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken), "firmware image");
         AssertReportInputHash(
             build,
             Path.GetFileName(sourcePath),
@@ -128,7 +127,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                     TestContext.Current.CancellationToken);
         Assert.True(
             rebound.Succeeded,
-            string.Join(" | ", rebound.Issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         Assert.Same(
             capability,
             rebound.AcceptedSession!.GetAcceptedCapability(
@@ -170,7 +169,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
 
         Assert.True(
             prepared.Succeeded,
-            string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         Assert.Equal(
             [
                 new AuthoringInspectionProgress(0, 2),
@@ -203,7 +202,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 TestContext.Current.CancellationToken);
         Assert.True(
             rebound.Succeeded,
-            string.Join(" | ", rebound.Issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         Assert.Same(
             initialCapability,
             rebound.AcceptedSession!.GetAcceptedCapability(
@@ -256,7 +255,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 new CompositionRunProgressFeed(),
                 TestContext.Current.CancellationToken);
 
-        Assert.True(preview.Succeeded, CompositionRunReportJson.Serialize(preview));
+        Assert.True(preview.Succeeded, $"Composition result: status={preview.Status}, succeeded={preview.Succeeded}.");
         Assert.Same(capability, preview.ResolvedCapability);
         GeneralMappingDraftState acceptedDraft =
             Assert.IsType<GeneralMappingDraftState>(
@@ -287,13 +286,13 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                     new CompositionRunProgressFeed(),
                     TestContext.Current.CancellationToken);
 
-        Assert.True(build.Succeeded, CompositionRunReportJson.Serialize(build));
+        Assert.True(build.Succeeded, $"Composition result: status={build.Status}, succeeded={build.Succeeded}.");
         byte[] output = await File.ReadAllBytesAsync(
             outputPath,
             TestContext.Current.CancellationToken);
-        Assert.Equal(0xA5, output[0x3E020]);
-        Assert.Equal(0x5A, output[0x3E021]);
-        Assert.Equal(0x00, output[0]);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5], [output[0x3E020]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x5A], [output[0x3E021]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x00], [output[0]], "firmware image");
         AssertReportInputHash(
             build,
             Path.GetFileName(sourcePath),
@@ -326,9 +325,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 pending,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(prepared.Succeeded, string.Join(
-            " | ",
-            prepared.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.All(prepared.AcceptedSession!.Slots, static slot => Assert.True(
             slot.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning));
         Assert.True(prepared.Readiness!.Build.IsAvailable);
@@ -366,9 +363,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 pending,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(prepared.Succeeded, string.Join(
-            " | ",
-            prepared.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.All(prepared.AcceptedSession!.Slots, static slot => Assert.True(
             slot.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning));
         Assert.True(prepared.Readiness!.Build.IsAvailable);

@@ -2,6 +2,8 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Verifies content-authoritative General selected-file acceptance.</summary>
@@ -33,7 +35,7 @@ public sealed class GeneralSelectedFileContentTests
 
         bytes[0] = 0xFF;
 
-        Assert.Equal([0x10, 0x20], inspection.AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20], inspection.AcceptedBytes!.Value.ToArray(), "firmware image");
         _ = Assert.Throws<ArgumentException>(() => new SelectedFileContentInspection(
             FileStamp.FromBytes([0x10, 0x20]),
             acceptedBytes: new byte[] { 0x10, 0x21 }));
@@ -47,7 +49,7 @@ public sealed class GeneralSelectedFileContentTests
         var inspection = new SelectedFileContentInspection(stamp, "large.bin");
 
         Assert.Equal(stamp, inspection.FileStamp);
-        Assert.Null(inspection.AcceptedBytes);
+        Assert.True(inspection.AcceptedBytes is null, "Expected no accepted firmware content.");
         Assert.Equal("large.bin", inspection.DisplayNameHint);
     }
 
@@ -68,7 +70,7 @@ public sealed class GeneralSelectedFileContentTests
         Assert.True(result.Succeeded);
         Assert.Equal(SelectedFileContentInspectionMode.CaptureBytes, inspector.LastMode);
         Assert.Equal(stamp, result.Inspection!.FileStamp);
-        Assert.Equal(bytes, result.Inspection.AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden(bytes, result.Inspection.AcceptedBytes!.Value.ToArray(), "firmware image");
     }
 
     /// <summary>Typed content instability is translated by the existing Application failure owner.</summary>

@@ -73,7 +73,7 @@ public sealed class SharedDpcmiMetadataProviderTests
             var testOutput = new DirectoryInfo(AppContext.BaseDirectory);
             string materializedRoot = RepositoryPaths.FromRepositoryRoot("src", "NvtFwCombiner.Bootstrap", "obj",
                 testOutput.Parent!.Name, testOutput.Name, "mp", bundle);
-            Assert.Equal(family, File.ReadAllBytes(Path.Combine(deployedRoot, FamilyPath)));
+            GoldenAssert.AssertEqualsGolden(family, File.ReadAllBytes(Path.Combine(deployedRoot, FamilyPath)), "firmware image");
             AssertClosedInventory(deployedRoot);
             AssertClosedInventory(materializedRoot);
             Assert.Equal(bundle != Provider, File.Exists(Path.Combine(deployedRoot, "schemas", "composition-profile-v2.schema.json")));

@@ -24,8 +24,8 @@ public sealed class StandardMergeSourceEnvelopeInspectionTests
             CanonicalGoldenTestData.Root, inputs.GetProperty("tp-input")));
         Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             "NT51950", dp, ["dp-input", "tp-input"],
-            out CompiledComposition? composition, out _, out IReadOnlyList<CompositionIssue> issues),
-            string.Join(" | ", issues.Select(static issue => issue.Message)));
+            out CompiledComposition? composition, out _, out _),
+            "Golden assertion condition was not satisfied.");
 
         CompiledInputArtifactInspectionResult inspection =
             CompiledInputArtifactInspectionService.Inspect(
@@ -48,9 +48,9 @@ public sealed class StandardMergeSourceEnvelopeInspectionTests
             icId, dp, ["dp-input", "tp-input"],
             out CompiledComposition? composition,
             out ResolvedCapability? capability,
-            out IReadOnlyList<CompositionIssue> issues);
+            out _);
 
-        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.True(compiled, "Golden assertion condition was not satisfied.");
         Assert.NotNull(capability);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(length, artifact.Plan.OutputInitialization.Capacity);
@@ -78,9 +78,9 @@ public sealed class StandardMergeSourceEnvelopeInspectionTests
         bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             icId, dp, ["dp-input", "tp-input"],
             out CompiledComposition? composition,
-            out _, out IReadOnlyList<CompositionIssue> issues);
+            out _, out _);
 
-        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.True(compiled, "Golden assertion condition was not satisfied.");
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal($"{icId.ToLowerInvariant()}-standard-merge-256k",
             artifact.V2Details.Provenance.ResolvedMap.ImageMap.MapId);

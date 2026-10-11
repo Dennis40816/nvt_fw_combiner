@@ -40,7 +40,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(2, result.Report.Inputs.Count);
         Assert.Equal(2, result.Report.Inputs.Select(static input => input.AddressSpaceId)
             .Distinct(StringComparer.Ordinal).Count());
@@ -129,19 +129,18 @@ public sealed partial class AcceptedSessionFileIdentityTests
                     workspace.Root,
                     deleteSource ? "ctrlram_deleted_source" : "ctrlram_changed_source"));
 
-        Assert.True(baseline.Succeeded, CompositionRunReportJson.Serialize(baseline));
-        Assert.True(built.Succeeded, CompositionRunReportJson.Serialize(built));
+        Assert.True(baseline.Succeeded, $"Composition result: status={baseline.Status}, succeeded={baseline.Succeeded}.");
+        Assert.True(built.Succeeded, $"Composition result: status={built.Status}, succeeded={built.Succeeded}.");
         Assert.Equal(baseline.OutputSha256, built.OutputSha256);
-        Assert.Equal(baseline.OutputBytes.ToArray(), built.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(baseline.OutputBytes.ToArray(), built.OutputBytes.ToArray(), "firmware image");
         CompositionOutputBundleDeliverySummary delivery = Assert.IsType<CompositionOutputBundleDeliverySummary>(
             built.Report.BundleDelivery);
         Assert.Equal(1 + proposal.Sources.Count, delivery.Artifacts.Count);
         CompositionOutputBundleDeliveredArtifactSummary output = Assert.Single(
             delivery.Artifacts,
             static artifact => artifact.Role == "output");
-        Assert.Equal(
-            built.OutputBytes.ToArray(),
-            File.ReadAllBytes(Path.Combine(delivery.ResolvedDirectory, output.DeliveredFileName)));
+        GoldenAssert.AssertEqualsGolden(built.OutputBytes.ToArray(),
+            File.ReadAllBytes(Path.Combine(delivery.ResolvedDirectory, output.DeliveredFileName)), "firmware image");
         foreach (CompositionOutputBundleSourceSummary source in proposal.Sources)
         {
             CompositionOutputBundleDeliveredArtifactSummary delivered = Assert.Single(
@@ -154,7 +153,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             Assert.Equal(source.OriginalFileName, delivered.DeliveredFileName);
             Assert.Equal(source.Size, delivered.Size);
             Assert.Equal(source.Sha256, delivered.Sha256);
-            Assert.Equal(status.AcceptedBytes!.Value.ToArray(), deliveredBytes);
+            GoldenAssert.AssertEqualsGolden(status.AcceptedBytes!.Value.ToArray(), deliveredBytes, "firmware image");
             Assert.Equal(status.FileStamp!.Value, FileStamp.FromBytes(deliveredBytes));
         }
         AssertOperationProjection(accepted, built);

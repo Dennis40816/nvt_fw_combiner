@@ -226,7 +226,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
                 firmwareVersionEdit: null);
         Assert.True(
             snapshot is not null,
-            string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         ResolvedCapability capability = Assert.IsType<ResolvedCapability>(
             snapshot.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection));
         Assert.Equal(
@@ -254,7 +254,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] actual = File.ReadAllBytes(outputPath);
         Assert.Equal(tpLength, actual.Length);
         string actualSha256 = Hash(actual);

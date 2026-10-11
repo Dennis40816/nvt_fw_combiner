@@ -1,3 +1,5 @@
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class PresentationBoundaryTests
@@ -328,10 +330,10 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("materializationErrorsAsReport: false", lifecycle, StringComparison.Ordinal);
         Assert.Contains("inspectionSnapshot: result.InspectionSnapshot", lifecycle, StringComparison.Ordinal);
         Assert.Contains("result.Report,", lifecycle, StringComparison.Ordinal);
-        Assert.DoesNotContain(
+        Assert.True(!GoldenDiagnostics.Contains(
             "reports.ProjectReportAsync(\n            reportJson,",
             lifecycle,
-            StringComparison.Ordinal);
+            StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.Contains("publishReport: reports.IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("ProjectRunReport(", ReadViewModelPartials(), StringComparison.Ordinal);
         string reportPresentation = ReadText(
@@ -403,7 +405,7 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("SkipJsonValue", differenceJson, StringComparison.Ordinal);
         Assert.DoesNotContain("reader.Skip()", differenceJson, StringComparison.Ordinal);
         Assert.DoesNotContain("differences.Clone()", parser, StringComparison.Ordinal);
-        Assert.Contains("reportJson.AsMemory(slice.CharStart, slice.CharLength)", parser, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("reportJson.AsMemory(slice.CharStart, slice.CharLength)", parser, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.DoesNotContain("JsonDocument.Parse(reportUtf8.Slice", parser, StringComparison.Ordinal);
         Assert.Contains("loadInitialPage: false", differenceGroups, StringComparison.Ordinal);
         Assert.Contains("ReportHexDiffRangeRowTemplate", changes, StringComparison.Ordinal);

@@ -112,7 +112,7 @@ public sealed class WorkbenchCatalogProjectionTests
                     dpLength,
                     out CompiledComposition? composition,
                     out IReadOnlyList<CompositionIssue> issues),
-                string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+                "Golden assertion condition was not satisfied.");
 
             Assert.True(summary.DeclarationReady);
             Assert.Equal(summary.IcId is not ("NT51950" or "NT51951"),

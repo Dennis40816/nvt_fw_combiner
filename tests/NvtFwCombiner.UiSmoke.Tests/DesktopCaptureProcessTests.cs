@@ -27,9 +27,9 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
         string host = CopyBuiltDesktop(workspace);
         ProcessResult result = await RunAsync(host, workspace, ["--help"]);
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Usage:", result.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("--capture", result.StandardOutput, StringComparison.Ordinal);
-        Assert.Equal(string.Empty, result.StandardError);
+        Assert.True(GoldenDiagnostics.Contains("Usage:", result.StandardOutput, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("--capture", result.StandardOutput, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardError), "Captured text differs from the expected text.");
         Assert.False(Directory.Exists(workspace.PathFor("local-state")));
     }
 
@@ -46,10 +46,10 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
             localApplicationData: " ");
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Equal(string.Empty, result.StandardOutput);
-        Assert.Contains("startup", result.StandardError, StringComparison.Ordinal);
-        Assert.Contains("--capture", result.StandardError, StringComparison.Ordinal);
-        Assert.Contains(capture, result.StandardError, StringComparison.Ordinal);
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardOutput), "Captured text differs from the expected text.");
+        Assert.True(GoldenDiagnostics.Contains("startup", result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("--capture", result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains(capture, result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(capture));
         Assert.False(Directory.Exists(workspace.PathFor("local-state")));
     }
@@ -67,12 +67,12 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
             ["--report", report, "--open-report", "--capture", capture]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Equal(string.Empty, result.StandardOutput);
-        Assert.Equal(string.Empty, result.StandardError);
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardOutput), "Captured text differs from the expected text.");
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardError), "Captured text differs from the expected text.");
         Assert.True(File.Exists(capture));
         Assert.True(new FileInfo(capture).Length > PngSignature.Length);
-        Assert.Equal(PngSignature, File.ReadAllBytes(capture).AsSpan(0, PngSignature.Length).ToArray());
-        Assert.Equal(Encoding.UTF8.GetBytes(SavedReport), File.ReadAllBytes(report));
+        GoldenAssert.AssertEqualsGolden(PngSignature, File.ReadAllBytes(capture).AsSpan(0, PngSignature.Length).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(Encoding.UTF8.GetBytes(SavedReport), File.ReadAllBytes(report), "firmware image");
         Assert.Empty(Directory.EnumerateFiles(workspace.Root, "*.tmp", SearchOption.AllDirectories));
     }
 
@@ -98,9 +98,9 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
             ["--report", report, "--open-report", "--capture", capture]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Equal(string.Empty, result.StandardError);
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardError), "Captured text differs from the expected text.");
         Assert.True(File.Exists(capture));
-        Assert.Equal(before, File.ReadAllBytes(statePath));
+        GoldenAssert.AssertEqualsGolden(before, File.ReadAllBytes(statePath), "firmware image");
         VersionManagementSnapshot loaded = await CompositionHostServices.CreateVersionManagementExperience(
             "1.2.3", host, statePath).InitializeAsync(TestContext.Current.CancellationToken, isReadOnly: true);
         Assert.Equal(VersionManagerStateLoadIssue.None, loaded.StateIssue);
@@ -122,10 +122,10 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
             ["--report", report, "--open-report", "--capture", capture]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Equal(string.Empty, result.StandardOutput);
-        Assert.Contains("report", result.StandardError, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(report, result.StandardError, StringComparison.Ordinal);
-        Assert.Contains(capture, result.StandardError, StringComparison.Ordinal);
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardOutput), "Captured text differs from the expected text.");
+        Assert.True(GoldenDiagnostics.Contains("report", result.StandardError, StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains(report, result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains(capture, result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(capture));
     }
 
@@ -141,9 +141,9 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
             ["--report", workspace.PathFor("missing.json"), "--open-report", "--capture", capture, "--unknown"]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Equal(string.Empty, result.StandardOutput);
-        Assert.Contains("validation:", result.StandardError, StringComparison.Ordinal);
-        Assert.Contains("--unknown", result.StandardError, StringComparison.Ordinal);
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardOutput), "Captured text differs from the expected text.");
+        Assert.True(GoldenDiagnostics.Contains("validation:", result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("--unknown", result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(capture));
     }
 
@@ -178,9 +178,9 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
             });
 
         Assert.Equal(70, result.ExitCode);
-        Assert.Equal(string.Empty, result.StandardOutput);
-        Assert.Contains("cancel --capture", result.StandardError, StringComparison.Ordinal);
-        Assert.Contains(capture, result.StandardError, StringComparison.Ordinal);
+        Assert.True(StringComparer.Ordinal.Equals(string.Empty, result.StandardOutput), "Captured text differs from the expected text.");
+        Assert.True(GoldenDiagnostics.Contains("cancel --capture", result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains(capture, result.StandardError, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(capture));
     }
 

@@ -156,9 +156,9 @@ public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixtur
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         FirmwareConfigMetadataSnapshot output = Assert.IsType<FirmwareConfigMetadataSnapshot>(
             BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, "NT51926", outputPath));
-        Assert.Equal(edit ? 0x33 : source.FirmwareVersion, output.FirmwareVersion);
-        Assert.Equal(edit ? 0x44 : source.FirmwareSubVersion, output.FirmwareSubVersion);
-        Assert.Equal(edit ? 0xCC : source.FirmwareVersionBar, output.FirmwareVersionBar);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edit ? 0x33 : source.FirmwareVersion))], [output.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edit ? 0x44 : source.FirmwareSubVersion))], [output.FirmwareSubVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edit ? 0xCC : source.FirmwareVersionBar))], [output.FirmwareVersionBar], "firmware image");
         Assert.False(viewModel.OutputDelivery.IsOpen);
     }
 
@@ -241,9 +241,9 @@ public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixtur
         Assert.Equal(reference.Length, actual.Length);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference.AsSpan(0x40000, 0x40000), out FirmwareConfigMetadata before));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(actual.AsSpan(0x40000, 0x40000), out FirmwareConfigMetadata after));
-        Assert.Equal(edit ? 0x33 : before.FirmwareVersion, after.FirmwareVersion);
-        Assert.Equal(edit ? 0x44 : before.FirmwareSubVersion, after.FirmwareSubVersion);
-        Assert.Equal(edit ? 0xCC : before.FirmwareVersionBar, after.FirmwareVersionBar);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edit ? 0x33 : before.FirmwareVersion))], [after.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edit ? 0x44 : before.FirmwareSubVersion))], [after.FirmwareSubVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edit ? 0xCC : before.FirmwareVersionBar))], [after.FirmwareVersionBar], "firmware image");
         Assert.False(viewModel.OutputDelivery.IsOpen);
     }
 
@@ -312,9 +312,9 @@ public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixtur
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         FirmwareConfigMetadataSnapshot output = Assert.IsType<FirmwareConfigMetadataSnapshot>(
             BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(TestProjection, "NT51926", outputPath));
-        Assert.Equal(visibleChange == "keep" ? source.FirmwareVersion : 0x33, output.FirmwareVersion);
-        Assert.Equal(visibleChange == "keep" ? source.FirmwareSubVersion : 0x44, output.FirmwareSubVersion);
-        Assert.Equal(visibleChange == "keep" ? source.FirmwareVersionBar : 0xCC, output.FirmwareVersionBar);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(visibleChange == "keep" ? source.FirmwareVersion : 0x33))], [output.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(visibleChange == "keep" ? source.FirmwareSubVersion : 0x44))], [output.FirmwareSubVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(visibleChange == "keep" ? source.FirmwareVersionBar : 0xCC))], [output.FirmwareVersionBar], "firmware image");
         TestContext.Current.TestOutputHelper?.WriteLine(FormattableString.Invariant(
             $"R56 Standard {visibleChange}, bundle={bundle}: source {source.FirmwareVersion:X2}/{source.FirmwareSubVersion:X2}; output {output.FirmwareVersion:X2}/{output.FirmwareSubVersion:X2}"));
         Assert.False(viewModel.OutputDelivery.IsOpen);
@@ -397,9 +397,9 @@ public sealed class R12H2CtrlRamCancelTests(ShellViewModelTestHostFixture fixtur
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference.AsSpan(0, 0x40000), out FirmwareConfigMetadata beforeA));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(actual.AsSpan(0, 0x40000), out FirmwareConfigMetadata afterA));
         Assert.Equal(beforeA, afterA);
-        Assert.Equal(visibleChange == "keep" ? before.FirmwareVersion : 0x33, after.FirmwareVersion);
-        Assert.Equal(visibleChange == "keep" ? before.FirmwareSubVersion : 0x44, after.FirmwareSubVersion);
-        Assert.Equal(visibleChange == "keep" ? before.FirmwareVersionBar : 0xCC, after.FirmwareVersionBar);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(visibleChange == "keep" ? before.FirmwareVersion : 0x33))], [after.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(visibleChange == "keep" ? before.FirmwareSubVersion : 0x44))], [after.FirmwareSubVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(visibleChange == "keep" ? before.FirmwareVersionBar : 0xCC))], [after.FirmwareVersionBar], "firmware image");
         TestContext.Current.TestOutputHelper?.WriteLine(FormattableString.Invariant(
             $"R56 AB B-bank {visibleChange}, bundle={bundle}: source {before.FirmwareVersion:X2}/{before.FirmwareSubVersion:X2}; output {after.FirmwareVersion:X2}/{after.FirmwareSubVersion:X2}"));
         Assert.False(viewModel.OutputDelivery.IsOpen);

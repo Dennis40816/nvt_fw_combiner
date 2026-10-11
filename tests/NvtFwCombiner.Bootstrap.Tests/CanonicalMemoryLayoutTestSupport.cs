@@ -17,7 +17,7 @@ internal static class CanonicalMemoryLayoutTestSupport
         Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => File.ReadAllBytes(pair.Value));
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51927", "3", paths, bytes);
-        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot accepted = prepared.AcceptedSession!;
         return (MemoryLayoutProjector.Project(accepted.ExactCapability!, accepted, accepted.ExactCapability!.CompiledComposition),
             accepted.ExactCapability.CompiledComposition.Plan.OrderedOperations.Where(operation =>

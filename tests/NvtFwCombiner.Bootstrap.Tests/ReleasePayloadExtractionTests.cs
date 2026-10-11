@@ -27,12 +27,10 @@ public sealed class ReleasePayloadExtractionTests
                 : null);
 
         Assert.Equal(0, exitCode);
-        Assert.Equal(
-            descriptor,
-            File.ReadAllBytes(Path.Combine(output, ReleasePayloadExtraction.DescriptorFileName)));
-        Assert.Equal(
-            bootstrap,
-            File.ReadAllBytes(Path.Combine(output, ReleasePayloadExtraction.BootstrapFileName)));
+        GoldenAssert.AssertEqualsGolden(descriptor,
+            File.ReadAllBytes(Path.Combine(output, ReleasePayloadExtraction.DescriptorFileName)), "firmware image");
+        GoldenAssert.AssertEqualsGolden(bootstrap,
+            File.ReadAllBytes(Path.Combine(output, ReleasePayloadExtraction.BootstrapFileName)), "firmware image");
         Assert.Equal(
             [ReleasePayloadExtraction.BootstrapFileName, ReleasePayloadExtraction.DescriptorFileName],
             Directory.EnumerateFiles(output).Select(Path.GetFileName).Order(StringComparer.Ordinal));

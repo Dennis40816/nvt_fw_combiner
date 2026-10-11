@@ -131,7 +131,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         CapabilityCatalogReloadResult second = catalog.Reload(
             TestContext.Current.CancellationToken);
 
-        Assert.True(first.Succeeded, string.Join(" | ", first.Issues.Select(static issue => issue.Message)));
+        Assert.True(first.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.True(second.Succeeded);
         Assert.Empty(first.Snapshot!.Capabilities);
         Assert.Equal(identity.RouteId, Assert.Single(first.Snapshot.DynamicRoutes).Identity.RouteId);
@@ -152,8 +152,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         registration.TryCompile(dp.Length, requestedTopology: null, selected, captured,
             out CompiledComposition? direct, out IReadOnlyList<CompositionIssue> directIssues);
         Assert.True(directIssues.Count == 0,
-            string.Join(" | ", directIssues.Select(static issue =>
-                $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         Assert.NotNull(direct);
         Assert.NotNull(registration.CreateMetadataPlan(direct));
 
@@ -194,7 +193,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
         byte[] expected = [.. dp];
         Array.Copy(tp, 0xA000, expected, 0xA000, 0x2D000);
-        Assert.Equal(expected, execution.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected, execution.OutputBytes.ToArray(), "firmware image");
     }
 
     private sealed class CapturedBundleRegistrationAdapter(

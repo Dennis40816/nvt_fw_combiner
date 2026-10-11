@@ -161,18 +161,18 @@ public sealed partial class CtrlRamWorkflowTests
                 (start == 0 ? selection == AbCtrlRamBankSelection.A : selection == AbCtrlRamBankSelection.B);
             if (!selected)
             {
-                Assert.Equal(reference.AsSpan(start, 0x40000).ToArray(), actual.AsSpan(start, 0x40000).ToArray());
+                GoldenAssert.AssertEqualsGolden(reference.AsSpan(start, 0x40000).ToArray(), actual.AsSpan(start, 0x40000).ToArray(), "firmware image");
             }
             else
             {
-                Assert.Equal(nf, actual.AsSpan(start + 0x1FC00, nf.Length).ToArray());
+                GoldenAssert.AssertEqualsGolden(nf, actual.AsSpan(start + 0x1FC00, nf.Length).ToArray(), "firmware image");
             }
-            Assert.Equal(reference.AsSpan(start + 0x7164, 12).ToArray(), actual.AsSpan(start + 0x7164, 12).ToArray());
+            GoldenAssert.AssertEqualsGolden(reference.AsSpan(start + 0x7164, 12).ToArray(), actual.AsSpan(start + 0x7164, 12).ToArray(), "firmware image");
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference.AsSpan(start, 0x40000), out FirmwareConfigMetadata before));
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(actual.AsSpan(start, 0x40000), out FirmwareConfigMetadata after));
             bool edited = editedBank == (start == 0 ? "a-bank" : "b-bank");
-            Assert.Equal(edited ? 0x2A : before.FirmwareVersion, after.FirmwareVersion);
-            Assert.Equal(edited ? 0x0C : before.FirmwareSubVersion, after.FirmwareSubVersion);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edited ? 0x2A : before.FirmwareVersion))], [after.FirmwareVersion], "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(edited ? 0x0C : before.FirmwareSubVersion))], [after.FirmwareSubVersion], "firmware image");
         }
         Assert.False(viewModel.OutputDelivery.IsOpen);
     }

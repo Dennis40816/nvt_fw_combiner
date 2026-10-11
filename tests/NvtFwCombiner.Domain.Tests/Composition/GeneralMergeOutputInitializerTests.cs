@@ -1,5 +1,7 @@
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>Verifies the canonical typed General Merge blank-output initializer.</summary>
@@ -12,7 +14,7 @@ public sealed class GeneralMergeOutputInitializerTests
         var initializer = new GeneralMergeOutputInitializer(0x100);
 
         Assert.Equal(0x100, initializer.Capacity);
-        Assert.Equal(0x00, initializer.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x00], [initializer.FillByte], "firmware image");
     }
 
     /// <summary>Every byte through FF remains a valid deterministic blank fill.</summary>
@@ -24,7 +26,7 @@ public sealed class GeneralMergeOutputInitializerTests
     {
         var initializer = new GeneralMergeOutputInitializer(1, checked((byte)fillByte));
 
-        Assert.Equal(checked((byte)fillByte), initializer.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)fillByte)], [initializer.FillByte], "firmware image");
     }
 
     /// <summary>The typed contract rejects non-positive or unsupported in-memory capacities.</summary>

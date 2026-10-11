@@ -325,7 +325,7 @@ public sealed partial class TrustedProfileBundleCatalogPreparationTests
         Assert.Equal("standard", actual.V2Details!.ExperienceId);
         Assert.Equal(expected.Plan.OutputInitialization.Kind, actual.Plan.OutputInitialization.Kind);
         Assert.Equal(expected.Plan.OutputInitialization.Capacity, actual.Plan.OutputInitialization.Capacity);
-        Assert.Equal(expected.Plan.OutputInitialization.FillByte, actual.Plan.OutputInitialization.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[expected.Plan.OutputInitialization.FillByte], [actual.Plan.OutputInitialization.FillByte], "firmware image");
         Assert.Equal(
             expected.Plan.OrderedOperations.Select(static operation =>
                 (operation.Kind, operation.SourceSpaceId, operation.SourceRange, operation.TargetSpaceId, operation.TargetRange)),

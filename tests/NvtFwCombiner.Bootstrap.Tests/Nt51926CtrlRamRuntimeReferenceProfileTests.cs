@@ -4,6 +4,8 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>V2 runtime-reference evidence for supported NT51926 Common FW 1.4.1 CtrlRAM Replace.</summary>
@@ -168,20 +170,20 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
             {
                 Assert.Equal(CompositionOperationKind.PatchScalar, operation.Kind);
                 Assert.Equal(new ByteRange(0x22000, 2), operation.TargetRange);
-                Assert.Equal([0x27, 0xD8], operation.PatchBytes.ToArray());
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x27, 0xD8], operation.PatchBytes.ToArray(), "firmware image");
             },
             operation =>
             {
                 Assert.Equal(CompositionOperationKind.PatchScalar, operation.Kind);
                 Assert.Equal(new ByteRange(0x22011, 1), operation.TargetRange);
-                Assert.Equal([0x04], operation.PatchBytes.ToArray());
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x04], operation.PatchBytes.ToArray(), "firmware image");
             },
             operation => Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind),
             operation => Assert.Equal(CompositionOperationKind.RunExternalProcessor, operation.Kind));
         CompiledFirmwareConfigBackupVersionValidation validation = Assert.IsType<
             CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(composition.V2Details.Provenance.ValidationRequirements));
-        Assert.Equal(0x27, validation.FirmwareVersion);
-        Assert.Equal(0x04, validation.FirmwareSubVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x27], [validation.FirmwareVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x04], [validation.FirmwareSubVersion], "firmware image");
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
             composition.Plan.OrderedOperations.Single(static operation =>
                 operation.Kind == CompositionOperationKind.RunExternalProcessor).ExternalProcessorInvocation);

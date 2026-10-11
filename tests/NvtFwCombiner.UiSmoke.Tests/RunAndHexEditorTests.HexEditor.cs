@@ -97,8 +97,8 @@ public sealed partial class RunAndHexEditorTests
         Assert.Equal(41, editor.TotalRowCount);
         Assert.Equal(29, editor.DocumentScrollMaximum);
         Assert.Equal(source[0], firstRow.Cells[0].ComparisonValue);
-        Assert.Equal((byte)0xFF, firstRow.Cells[0].PrimaryValue);
-        Assert.Equal((byte)0x00, firstRow.Cells[2].PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xFF], [firstRow.Cells[0].PrimaryValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x00], [firstRow.Cells[2].PrimaryValue], "firmware image");
         Assert.False(firstRow.Cells[3].IsDataChanged);
         Assert.True(firstRow.Cells[3].IsStructuralChanged);
         Assert.True(firstRow.Cells[3].IsChanged);
@@ -110,8 +110,8 @@ public sealed partial class RunAndHexEditorTests
         await editor.SaveAsAsync(outputPath, TestContext.Current.CancellationToken);
 
         Assert.False(editor.IsSaveConfirmationOpen);
-        Assert.Equal(source, File.ReadAllBytes(sourcePath));
-        Assert.Equal((byte)0xFF, File.ReadAllBytes(outputPath)[0]);
+        GoldenAssert.AssertEqualsGolden(source, File.ReadAllBytes(sourcePath), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xFF], [File.ReadAllBytes(outputPath)[0]], "firmware image");
         Assert.Equal(source.Length + 1, new FileInfo(outputPath).Length);
     }
 
@@ -196,7 +196,7 @@ public sealed partial class RunAndHexEditorTests
         Assert.False(changedRow.Cells[2].IsDataChanged);
         Assert.True(changedRow.Cells[2].IsStructuralChanged);
         Assert.True(changedRow.Cells[2].IsChanged);
-        Assert.Equal((byte)0x54, changedRow.Cells[4].PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x54], [changedRow.Cells[4].PrimaryValue], "firmware image");
         Assert.Null(changedRow.Cells[4].ComparisonValue);
         Assert.Equal("ABCT ", CreateComparisonAscii(changedRow));
     }
@@ -236,8 +236,8 @@ public sealed partial class RunAndHexEditorTests
         Assert.True(editor.IsFillModeSelected);
         Assert.Equal(editor.Text.HexEditorFillModeLabel, editor.CurrentWriteModeLabel);
         Assert.Equal(editor.Text.HexEditorFillModeTooltip, editor.CurrentWriteModeTooltip);
-        Assert.Equal((byte)0xEE, editor.ViewportSnapshot.Rows[0].Cells[6].PrimaryValue);
-        Assert.Equal((byte)0xEE, editor.ViewportSnapshot.Rows[0].Cells[7].PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xEE], [editor.ViewportSnapshot.Rows[0].Cells[6].PrimaryValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xEE], [editor.ViewportSnapshot.Rows[0].Cells[7].PrimaryValue], "firmware image");
     }
 
     /// <summary>Keeps a fragmented edit navigator bounded instead of projecting every changed block onto the dispatcher.</summary>
@@ -324,9 +324,9 @@ public sealed partial class RunAndHexEditorTests
         Assert.Equal(editor.Text.HexEditorOverwriteGuidance, editor.EditGuidance);
         Assert.Equal(editor.Text.HexEditorOverwriteGuidance, editor.EditNotice);
         Assert.False(editor.HasEditFeedback);
-        Assert.Equal((byte)0xA5, editor.ViewportSnapshot.Rows[0].Cells[0].PrimaryValue);
-        Assert.Equal((byte)0x20, editor.ViewportSnapshot.Rows[0].Cells[1].PrimaryValue);
-        Assert.Equal((byte)0x30, editor.ViewportSnapshot.Rows[0].Cells[2].PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xA5], [editor.ViewportSnapshot.Rows[0].Cells[0].PrimaryValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x20], [editor.ViewportSnapshot.Rows[0].Cells[1].PrimaryValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x30], [editor.ViewportSnapshot.Rows[0].Cells[2].PrimaryValue], "firmware image");
         Assert.Contains("In memory", editor.EditorStatus, StringComparison.Ordinal);
 
         editor.RangeValue = "AA BB CC DD";
@@ -335,9 +335,9 @@ public sealed partial class RunAndHexEditorTests
         Assert.True(editor.HasEditFeedback);
         Assert.Equal(editor.Text.HexEditorInputExceedsRangeDetail, editor.EditFeedback);
         Assert.Equal(editor.Text.HexEditorInputExceedsRangeDetail, editor.EditNotice);
-        Assert.Equal((byte)0xA5, editor.ViewportSnapshot.Rows[0].Cells[0].PrimaryValue);
-        Assert.Equal((byte)0x20, editor.ViewportSnapshot.Rows[0].Cells[1].PrimaryValue);
-        Assert.Equal((byte)0x30, editor.ViewportSnapshot.Rows[0].Cells[2].PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0xA5], [editor.ViewportSnapshot.Rows[0].Cells[0].PrimaryValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x20], [editor.ViewportSnapshot.Rows[0].Cells[1].PrimaryValue], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x30], [editor.ViewportSnapshot.Rows[0].Cells[2].PrimaryValue], "firmware image");
 
         editor.IsFillModeSelected = true;
         Assert.Equal(editor.Text.HexEditorFillGuidance, editor.EditGuidance);

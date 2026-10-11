@@ -162,7 +162,7 @@ internal static class V2StandardMergeGoldenTestSupport
         Assert.Equal(
             expectedIssueCodes ?? [],
             result.Report.Issues.Select(static issue => issue.Code));
-        Assert.Equal(expectedOutput, result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expectedOutput, result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(Hash(expectedOutput), result.Report.Output.Sha256);
         Assert.Equal(compiledComposition.V2Details.ProfileId, result.Report.ProfileId);
         Assert.Equal(compiledComposition.V2Details.ProfileVersion, result.Report.ProfileVersion);
@@ -182,9 +182,8 @@ internal static class V2StandardMergeGoldenTestSupport
         {
             string schemaFileName = Path.GetFileName(entry.GetProperty("path").GetString()!);
             string contentHash = entry.GetProperty("contentHash").GetString()!;
-            Assert.Equal(
-                File.ReadAllBytes(ResolveContractSchemaPath(schemaFileName, contentHash)),
-                File.ReadAllBytes(Path.Combine(bundleRoot, "schemas", schemaFileName)));
+            GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(ResolveContractSchemaPath(schemaFileName, contentHash)),
+            File.ReadAllBytes(Path.Combine(bundleRoot, "schemas", schemaFileName)), "firmware image");
         }
     }
 

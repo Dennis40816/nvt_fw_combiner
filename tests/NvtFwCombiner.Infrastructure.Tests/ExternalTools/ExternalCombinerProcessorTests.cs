@@ -9,6 +9,8 @@ using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Infrastructure.Files;
 using SharedTempWorkspace = NvtFwCombiner.TestSupport.TempWorkspace;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 /// <summary>Tests staged external combiner execution and host-side diff policy.</summary>
@@ -34,7 +36,7 @@ public sealed class ExternalCombinerProcessorTests
         Assert.Equal("external-tool.staging.exists", Assert.Single(result.Issues).Code);
         Assert.Equal(0, runner.RunCount);
         Assert.True(File.Exists(sentinel));
-        Assert.Equal(expected, await File.ReadAllBytesAsync(sentinel, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(expected, await File.ReadAllBytesAsync(sentinel, TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal([sentinel], Directory.GetFiles(directory));
     }
 
@@ -58,7 +60,7 @@ public sealed class ExternalCombinerProcessorTests
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
         Assert.True(result.Succeeded);
-        Assert.Equal([0, 7, 0, 0], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 7, 0, 0], result.OutputBytes.ToArray(), "firmware image");
         ByteRange range = Assert.Single(result.ChangedRanges);
         Assert.Equal(new ByteRange(1, 1), range);
         ExternalProcessInvocation executedCommand = Assert.Single(result.ExecutedCommands);
@@ -308,8 +310,8 @@ public sealed class ExternalCombinerProcessorTests
             string bBankPath = Path.Combine(startInfo.WorkingDirectory, "artifact-b-bank.bin");
             Assert.Contains(aBankPath, startInfo.Arguments);
             Assert.Contains(bBankPath, startInfo.Arguments);
-            Assert.Equal([0xA1, 0xA2], File.ReadAllBytes(aBankPath));
-            Assert.Equal([0xB1, 0xB2], File.ReadAllBytes(bBankPath));
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA1, 0xA2], File.ReadAllBytes(aBankPath), "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xB1, 0xB2], File.ReadAllBytes(bBankPath), "firmware image");
             File.WriteAllBytes(Path.Combine(startInfo.WorkingDirectory, "output.bin"), [0, 7, 0, 0]);
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
         });
@@ -336,7 +338,7 @@ public sealed class ExternalCombinerProcessorTests
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
         Assert.True(result.Succeeded);
-        Assert.Equal([0, 7, 0, 0], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 7, 0, 0], result.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies a profile-selected Combiner invocation overrides only the tool package default argv and output mode.</summary>
@@ -392,7 +394,7 @@ public sealed class ExternalCombinerProcessorTests
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
         Assert.True(result.Succeeded);
-        Assert.Equal([0, 7, 0, 0], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 7, 0, 0], result.OutputBytes.ToArray(), "firmware image");
         _ = Assert.Single(result.ExecutedCommands);
     }
 
@@ -620,7 +622,7 @@ public sealed class ExternalCombinerProcessorTests
         {
             privateDirectory = Path.GetDirectoryName(startInfo.ExecutablePath);
             Assert.NotEqual(Path.Combine(workspace.ToolRoot, "legacy-combiner", "1.10", "combiner.exe"), startInfo.ExecutablePath);
-            Assert.Equal(runtimeBytes, File.ReadAllBytes(Path.Combine(privateDirectory!, "vcruntime140.dll")));
+            GoldenAssert.AssertEqualsGolden(runtimeBytes, File.ReadAllBytes(Path.Combine(privateDirectory!, "vcruntime140.dll")), "firmware image");
             File.WriteAllBytes(Path.Combine(startInfo.WorkingDirectory, "output.bin"), [0, 7, 0, 0]);
             return new ExternalProcessResult(0, false, string.Empty, string.Empty);
         });

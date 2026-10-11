@@ -4,6 +4,8 @@ using System.Text.Json.Nodes;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests trusted profile bundle catalog operation lowering.</summary>
@@ -20,7 +22,7 @@ public sealed partial class TrustedProfileBundleCatalogOperationLoweringTests
             familyHash => ProfileWithOptionalSeed(SupportedProfileJson(familyHash), "valid")),
             selectedInputSlotIds: selected ? ["optional-input"] : []);
 
-        Assert.True(result.IsCompiled, string.Join(" | ", result.Issues.Select(static issue => issue.Message)));
+        Assert.True(result.IsCompiled, "Golden assertion condition was not satisfied.");
         CompositionOperation overlay = Assert.Single(result.CompiledComposition!.Plan.OrderedOperations,
             static operation => operation.OperationId != "copy-optional");
         Assert.Equal(selected ? OverlapPolicy.ReplaceExisting : OverlapPolicy.Reject, overlay.OverlapPolicy);
@@ -132,7 +134,7 @@ public sealed partial class TrustedProfileBundleCatalogOperationLoweringTests
         Assert.Equal(new ByteRange(0, 16), fill.TargetRange);
         CompositionOperation patch = Assert.Single(patchResult.CompiledComposition!.Plan.OrderedOperations);
         Assert.Equal(CompositionOperationKind.PatchScalar, patch.Kind);
-        Assert.Equal("00112233445566778899aabbccddeeff", Convert.ToHexString(patch.PatchBytes.Span).ToLowerInvariant());
+        GoldenAssert.AssertEqualsGolden(Convert.FromHexString("00112233445566778899aabbccddeeff"), Convert.FromHexString(Convert.ToHexString(patch.PatchBytes.Span).ToLowerInvariant()), "header field");
         Assert.Equal(new ByteRange(0, 16), patch.TargetRange);
     }
 
@@ -399,7 +401,7 @@ public sealed partial class TrustedProfileBundleCatalogOperationLoweringTests
             blank.CompiledComposition.Plan.Initializations,
             static initialization => initialization.TargetSpaceId == "scratch");
         Assert.Equal(ImageInitializationKind.Blank, blankScratch.Kind);
-        Assert.Equal((byte)0, blankScratch.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0], [blankScratch.FillByte], "firmware image");
         Assert.Equal(
             8,
             Assert.Single(
@@ -429,7 +431,7 @@ public sealed partial class TrustedProfileBundleCatalogOperationLoweringTests
 
         Assert.True(
             result.IsCompiled,
-            string.Join(Environment.NewLine, result.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         ImageInitialization clone = Assert.Single(
             result.CompiledComposition!.Plan.Initializations,
             static initialization => initialization.TargetSpaceId == "scratch");

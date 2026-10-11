@@ -112,8 +112,8 @@ public sealed partial class AbMergeFormatAdmissionTests
         AbMergeFormatSelection selected = Assert.IsType<AbMergeFormatSelection>(result.Selection);
         Assert.Equal(map, selected.MapId);
         Assert.Equal(format, selected.FormatId);
-        Assert.Equal(rawA, selected.TpAFormatByte);
-        Assert.Equal(rawB, selected.TpBFormatByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[rawA], [selected.TpAFormatByte], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[rawB], [selected.TpBFormatByte], "firmware image");
         Assert.Equal(ConfigHash, selected.ConfigurationSourceSha256);
         Assert.Equal(family.FamilyContentHash, selected.FamilyContentHash);
         Assert.Same(primary, selected.PrimaryInspection);

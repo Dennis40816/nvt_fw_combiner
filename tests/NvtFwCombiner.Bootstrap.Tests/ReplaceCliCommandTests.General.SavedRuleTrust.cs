@@ -46,9 +46,7 @@ public sealed partial class ReplaceCliCommandTests
                     .SavedRuleAdmissionContext);
         Assert.True(
             load.IsValid,
-            string.Join(
-                Environment.NewLine,
-                load.Issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         var lifecycle = new SavedRuleLifecycleSnapshot(
             load.ExecutionIdentity!,
             SavedRuleStorageKind.TrustedCatalog,

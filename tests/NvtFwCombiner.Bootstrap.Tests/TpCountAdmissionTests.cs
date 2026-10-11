@@ -67,7 +67,7 @@ public sealed class TpCountAdmissionTests
             Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
             Assert.Contains(result.Report.Issues, issue => issue.Code == code && issue.OperationId == CompositionAddressSpaceIds.TpInput);
             Assert.DoesNotContain(result.Report.Issues, static issue => issue.Code == "AB_TP_TOPOLOGY_MISMATCH");
-            Assert.Empty(result.OutputBytes.ToArray());
+            GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), result.OutputBytes.ToArray(), "empty firmware output");
             Assert.Empty(result.Report.Mutations);
             Assert.Null(result.CommittedOutputId);
         }

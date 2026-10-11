@@ -27,11 +27,11 @@ public sealed class TrustedProfileBundleDocumentProjectionTests
 
         TrustedProfileBundleDocumentProjection projection = bundle.CreateDocumentProjection();
 
-        Assert.Equal(manifest, projection.ManifestSnapshot.Content.ToArray());
+        GoldenAssert.AssertEqualsGolden(manifest, projection.ManifestSnapshot.Content.ToArray(), "firmware image");
         Assert.Equal(Hash(manifest), projection.ManifestSha256);
         Assert.Equal(["family-entry", "profile-entry"], projection.Documents.Select(x => x.Entry.EntryId));
-        Assert.Equal(family, projection.Documents[0].FileSnapshot.Content.ToArray());
-        Assert.Equal(profile, projection.Documents[1].FileSnapshot.Content.ToArray());
+        GoldenAssert.AssertEqualsGolden(family, projection.Documents[0].FileSnapshot.Content.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(profile, projection.Documents[1].FileSnapshot.Content.ToArray(), "firmware image");
         Assert.All(projection.Documents, entry =>
             Assert.Equal(entry.Entry.ContentHash, Hash(entry.FileSnapshot.Content.ToArray())));
         Assert.True(((IList<ProfileBundleEntrySnapshot>)projection.Documents).IsReadOnly);

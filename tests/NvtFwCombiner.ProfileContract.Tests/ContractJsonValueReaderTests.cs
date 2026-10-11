@@ -2,6 +2,8 @@ using System.Numerics;
 using System.Text.Json;
 using NvtFwCombiner.Profiles.Normalization;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests shared lossless contract scalar parsing independent of JSON number spelling.</summary>
@@ -55,7 +57,7 @@ public sealed class ContractJsonValueReaderTests
     {
         using var text = JsonDocument.Parse("\"A \"");
         Assert.Equal("A ", ContractJsonValueReader.ReadString(text.RootElement));
-        Assert.Equal([0xAA, 0x01], ContractJsonValueReader.ParseCanonicalHex("aa01"));
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xAA, 0x01], ContractJsonValueReader.ParseCanonicalHex("aa01"), "firmware image");
         _ = Assert.Throws<ArgumentException>(() => ContractJsonValueReader.ParseCanonicalHex("AA01"));
         _ = Assert.Throws<ArgumentException>(() => ContractJsonValueReader.ParseCanonicalHex("a"));
     }

@@ -8,6 +8,9 @@
     <ProjectReference Include="..\..\src\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="xunit.v3.assert" VersionOverride="3.2.2" IncludeAssets="compile" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Remove="LegacyCombinerPostbuildCatalogAlias.cs" />
     <Compile Remove="CompiledInputSlotTestFactory.cs" />
   </ItemGroup>

@@ -124,7 +124,7 @@ public sealed partial class GeneralWorkflowTests
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-        Assert.Equal([0xA5, 0x5A], File.ReadAllBytes(outputPath)[0x3E020..0x3E022]);
+        GoldenAssert.AssertEqualsGolden((byte[])[0xA5, 0x5A], File.ReadAllBytes(outputPath)[0x3E020..0x3E022], "firmware image");
 
         viewModel.SetSlotFile(mapping.MappingId, replacementPath);
         Assert.True(
@@ -133,8 +133,8 @@ public sealed partial class GeneralWorkflowTests
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-        Assert.Equal([0xA5, 0xC3], File.ReadAllBytes(outputPath)[0x3E020..0x3E022]);
-        Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
+        GoldenAssert.AssertEqualsGolden((byte[])[0xA5, 0xC3], File.ReadAllBytes(outputPath)[0x3E020..0x3E022], "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, File.ReadAllBytes(basePath), "firmware image");
     }
 
     /// <summary>General Replace reuses the immutable Base accepted by readiness.</summary>
@@ -170,8 +170,8 @@ public sealed partial class GeneralWorkflowTests
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         acceptedBaseBytes[0x3E020] = 0xA5;
         acceptedBaseBytes[0x3E021] = 0x5A;
-        Assert.Equal(acceptedBaseBytes, File.ReadAllBytes(outputPath));
-        Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
+        GoldenAssert.AssertEqualsGolden(acceptedBaseBytes, File.ReadAllBytes(outputPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(baseBytes, File.ReadAllBytes(basePath), "firmware image");
     }
 
     /// <summary>A queued General Replace run cannot swap or overwrite its immutable draft.</summary>

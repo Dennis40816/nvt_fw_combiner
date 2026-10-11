@@ -27,7 +27,7 @@ public sealed class WorkbenchRawBinaryEditorLoadTests
         Assert.False(obsolete.Succeeded);
         Assert.Equal(secondPath, files.SourcePath);
         Assert.True(editor.TryCopyWorkingBytes(out byte[]? bytes));
-        Assert.Equal(new byte[] { 2, 3 }, bytes);
+        GoldenAssert.AssertEqualsGolden(new byte[] { 2, 3 }, bytes, "firmware image");
         Assert.Equal(second.State, editor.State);
     }
 
@@ -52,7 +52,7 @@ public sealed class WorkbenchRawBinaryEditorLoadTests
         Assert.Equal(original, files.SourcePath);
         Assert.Equal(accepted.State, editor.State);
         Assert.True(editor.TryCopyWorkingBytes(out byte[]? bytes));
-        Assert.Equal(new byte[] { 7 }, bytes);
+        GoldenAssert.AssertEqualsGolden(new byte[] { 7 }, bytes, "firmware image");
     }
 
     /// <summary>A failed latest selection also retires previous pending reads without losing accepted bytes.</summary>
@@ -78,6 +78,6 @@ public sealed class WorkbenchRawBinaryEditorLoadTests
         Assert.Equal(original, files.SourcePath);
         Assert.Equal(accepted.State, editor.State);
         Assert.True(editor.TryCopyWorkingBytes(out byte[]? bytes));
-        Assert.Equal(new byte[] { 7 }, bytes);
+        GoldenAssert.AssertEqualsGolden(new byte[] { 7 }, bytes, "firmware image");
     }
 }

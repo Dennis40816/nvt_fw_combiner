@@ -27,7 +27,7 @@ public sealed partial class ManagedSetupRecoveryExecutionTests
                 fixture.ManagedRoot,
                 fixture.Transaction.StatePathIdentity,
                 TestContext.Current.CancellationToken);
-        Assert.True(directState.IsSuccess, directState.Issue.ToString());
+        Assert.True(directState.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal(ManagedInstallationRootStatus.Residue, directRoot.Status);
         Assert.Equal(ManagedSetupRecoveryFactKind.Exact, directMarker.Kind);
         ManagedSetupRecoveryEvidenceObservation directEvidence = await fixture.Executor.ObserveAsync(

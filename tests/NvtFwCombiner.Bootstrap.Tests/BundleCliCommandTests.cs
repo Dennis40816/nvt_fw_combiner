@@ -32,8 +32,8 @@ public sealed partial class BundleCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Empty(result.Output);
-        Assert.Contains("--bundle-parent is available only for build", result.Error, StringComparison.Ordinal);
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(GoldenDiagnostics.Contains("--bundle-parent is available only for build", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
     }
 
@@ -47,8 +47,8 @@ public sealed partial class BundleCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Empty(result.Output);
-        Assert.Contains("--bundle-name requires --bundle-parent", result.Error, StringComparison.Ordinal);
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(GoldenDiagnostics.Contains("--bundle-name requires --bundle-parent", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>Atomic bundle delivery and loose output delivery are mutually exclusive.</summary>
@@ -70,8 +70,8 @@ public sealed partial class BundleCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Empty(result.Output);
-        Assert.Contains("--bundle-parent cannot be combined with --output", result.Error, StringComparison.Ordinal);
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(GoldenDiagnostics.Contains("--bundle-parent cannot be combined with --output", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
     }
 
@@ -122,9 +122,9 @@ public sealed partial class BundleCliCommandTests
             [.. commonArgs, "--bundle-name", "edited_bundle", "--report", reportEdited],
             TestContext.Current.CancellationToken);
 
-        Assert.True(first.ExitCode == 0, first.Error + Environment.NewLine + first.Output);
-        Assert.True(second.ExitCode == 0, second.Error + Environment.NewLine + second.Output);
-        Assert.True(edited.ExitCode == 0, edited.Error + Environment.NewLine + edited.Output);
+        Assert.True(first.ExitCode == 0, "Golden assertion condition was not satisfied.");
+        Assert.True(second.ExitCode == 0, "Golden assertion condition was not satisfied.");
+        Assert.True(edited.ExitCode == 0, "Golden assertion condition was not satisfied.");
         using JsonDocument firstReport = JsonDocument.Parse(
             await File.ReadAllTextAsync(reportOne, TestContext.Current.CancellationToken));
         using JsonDocument secondReport = JsonDocument.Parse(
@@ -154,10 +154,12 @@ public sealed partial class BundleCliCommandTests
         string canonicalBin = artifacts[0].GetProperty("DeliveredFileName").GetString()!;
         Assert.Matches("^NT51923_FlashCode_DB60DTA7C9_[0-9]{8}\\.bin$", canonicalBin);
         Assert.True(File.Exists(Path.Combine(firstDirectory, canonicalBin)));
-        Assert.Equal(dp, await File.ReadAllBytesAsync(
-            Path.Combine(firstDirectory, "dp.bin"), TestContext.Current.CancellationToken));
-        Assert.Equal(tp, await File.ReadAllBytesAsync(
-            Path.Combine(firstDirectory, "tp.bin"), TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(dp,
+            await File.ReadAllBytesAsync(
+            Path.Combine(firstDirectory, "dp.bin"), TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(tp,
+            await File.ReadAllBytesAsync(
+            Path.Combine(firstDirectory, "tp.bin"), TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(
             canonicalBin,
             firstReport.RootElement.GetProperty("OutputNaming").GetProperty("ActualFileName").GetString());
@@ -189,8 +191,8 @@ public sealed partial class BundleCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Empty(result.Output);
-        Assert.Contains("bundle-destination.name.invalid", result.Error, StringComparison.Ordinal);
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(GoldenDiagnostics.Contains("bundle-destination.name.invalid", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.Equal(2, Directory.EnumerateFiles(workspace.Root).Count());
         Assert.Empty(Directory.EnumerateDirectories(workspace.Root));
     }
@@ -227,9 +229,9 @@ public sealed partial class BundleCliCommandTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         string bundleDirectory = Path.Combine(workspace.Root, "ab_bundle");
-        Assert.Contains($"Bundle: {bundleDirectory}", result.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains($"Bundle: {bundleDirectory}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         using JsonDocument report = JsonDocument.Parse(
             await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         JsonElement bundle = report.RootElement.GetProperty("BundleDelivery");
@@ -262,7 +264,7 @@ public sealed partial class BundleCliCommandTests
         Assert.Equal(CompiledAdditionalDelivery.AbAFlashCodeKind, delivery.GetProperty("DeliveryKind").GetString());
         Assert.Equal(0, delivery.GetProperty("SourceRange").GetProperty("Start").GetInt64());
         Assert.Equal(additionalBytes.LongLength, delivery.GetProperty("SourceRange").GetProperty("Length").GetInt64());
-        Assert.True(primaryBytes.AsSpan(0, additionalBytes.Length).SequenceEqual(additionalBytes));
+        GoldenAssert.AssertEqualsGolden(primaryBytes.AsSpan(0, additionalBytes.Length), additionalBytes, "firmware image");
         Assert.Equal(
             Convert.ToHexStringLower(SHA256.HashData(additionalBytes)),
             delivery.GetProperty("Sha256").GetString());
@@ -360,8 +362,8 @@ public sealed partial class BundleCliCommandTests
                 Convert.ToHexStringLower(SHA256.HashData(delivered)),
                 artifact.GetProperty("Sha256").GetString());
         }
-        Assert.Equal(dp, await ReadDeliveredAsync(sharedBundle, sources[0]));
-        Assert.Equal(tp, await ReadDeliveredAsync(sharedBundle, sources[1]));
+        GoldenAssert.AssertEqualsGolden(dp, await ReadDeliveredAsync(sharedBundle, sources[0]), "firmware image");
+        GoldenAssert.AssertEqualsGolden(tp, await ReadDeliveredAsync(sharedBundle, sources[1]), "firmware image");
 
         JsonElement additional = Assert.Single(
             artifacts,
@@ -385,11 +387,11 @@ public sealed partial class BundleCliCommandTests
         Assert.Equal(sharedAdditional.LongLength, additional.GetProperty("Size").GetInt64());
         Assert.Equal(additionalSha256, additional.GetProperty("Sha256").GetString());
         Assert.Equal(additionalSha256, delivery.GetProperty("Sha256").GetString());
-        Assert.True(sharedOutput.AsSpan(0, sharedAdditional.Length).SequenceEqual(sharedAdditional));
+        GoldenAssert.AssertEqualsGolden(sharedOutput.AsSpan(0, sharedAdditional.Length), sharedAdditional, "firmware image");
         byte[] distinctOutput = await ReadDeliveredAsync(
             distinctBundle,
             Assert.Single(distinctArtifacts, artifact => artifact.GetProperty("Role").GetString() == "output"));
-        Assert.Equal(distinctOutput, sharedOutput);
+        GoldenAssert.AssertEqualsGolden(distinctOutput, sharedOutput, "firmware image");
 
         static async Task<(string ReportJson, string BundleDirectory)> BuildBundleAsync(
             TempWorkspace workspace,
@@ -425,7 +427,7 @@ public sealed partial class BundleCliCommandTests
                     reportPath,
                 ],
                 TestContext.Current.CancellationToken);
-            Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+            Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
             string reportJson = await File.ReadAllTextAsync(
                 reportPath,
                 TestContext.Current.CancellationToken);
@@ -457,10 +459,7 @@ public sealed partial class BundleCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(
-            "--include-a-flashcode requires --bundle-parent",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--include-a-flashcode requires --bundle-parent", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
         Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Root));
     }
 
@@ -473,10 +472,7 @@ public sealed partial class BundleCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Contains(
-            "--include-a-flashcode is available only for build",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--include-a-flashcode is available only for build", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
     }
 
     /// <summary>The CLI retains exact compiled authority when an AB profile has no A-only delivery.</summary>
@@ -526,11 +522,8 @@ public sealed partial class BundleCliCommandTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 64, $"Expected usage rejection, got {result.ExitCode}: {result.Error}");
-        Assert.Contains(
-            "bundle.additional-delivery-unavailable",
-            result.Error,
-            StringComparison.Ordinal);
+        Assert.True(result.ExitCode == 64, "Golden assertion condition was not satisfied.");
+        Assert.True(GoldenDiagnostics.Contains("bundle.additional-delivery-unavailable", result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
         Assert.Empty(Directory.EnumerateDirectories(workspace.Root));
     }
 
@@ -561,7 +554,7 @@ public sealed partial class BundleCliCommandTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         string bundleDirectory = Path.Combine(workspace.Root, "general_bundle");
         using JsonDocument report = JsonDocument.Parse(
             await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
@@ -572,11 +565,10 @@ public sealed partial class BundleCliCommandTests
                 .EnumerateArray(),
         ];
         string outputName = artifacts[0].GetProperty("DeliveredFileName").GetString()!;
-        Assert.Equal(
-            [0, 0x10, 0x11, 0],
+        GoldenAssert.AssertEqualsGolden((byte[])[0, 0x10, 0x11, 0],
             await File.ReadAllBytesAsync(
                 Path.Combine(bundleDirectory, outputName),
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken), "firmware image");
         Assert.False(File.Exists(Path.Combine(workspace.Root, outputName)));
     }
 
@@ -613,7 +605,7 @@ public sealed partial class BundleCliCommandTests
             ],
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.ExitCode == 0, result.Error + Environment.NewLine + result.Output);
+        Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         using JsonDocument report = JsonDocument.Parse(
             await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         JsonElement[] artifacts =
@@ -624,11 +616,10 @@ public sealed partial class BundleCliCommandTests
         ];
         Assert.Equal(3, artifacts.Length);
         string outputName = artifacts[0].GetProperty("DeliveredFileName").GetString()!;
-        Assert.Equal(
-            await File.ReadAllBytesAsync(expectedPath, TestContext.Current.CancellationToken),
+        GoldenAssert.AssertEqualsGolden(await File.ReadAllBytesAsync(expectedPath, TestContext.Current.CancellationToken),
             await File.ReadAllBytesAsync(
                 Path.Combine(workspace.Root, "ctrlram_bundle", outputName),
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken), "firmware image");
     }
 
     private static byte[] CreateTpWithSingleBackup(int length, byte fill)

@@ -33,7 +33,7 @@ public sealed partial class TrustedProfileBundleCatalogLoweringTests
         ImageInitialization initialization = Assert.Single(composition.Plan.Initializations);
         Assert.Equal(ImageInitializationKind.Blank, initialization.Kind);
         Assert.Equal("output", initialization.TargetSpaceId);
-        Assert.Equal(0xFF, initialization.FillByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF], [initialization.FillByte], "firmware image");
         CompositionOperation operation = Assert.Single(composition.Plan.OrderedOperations);
         Assert.Equal(CompositionOperationKind.CopyRange, operation.Kind);
         Assert.Equal("tp-source", operation.SourceSpaceId);

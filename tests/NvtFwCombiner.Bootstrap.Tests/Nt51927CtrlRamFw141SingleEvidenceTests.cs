@@ -50,7 +50,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             ownerCase.Expected.Bytes,
             out FirmwareConfigMetadata metadata));
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
-        Assert.Equal(1, metadata.ChipNumber);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1], [metadata.ChipNumber], "firmware image");
         Assert.Equal(0x5709, metadata.ProjectId);
 
         var immutableHashes = ownerCase.Artifacts.ToDictionary(
@@ -69,13 +69,13 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             build: true,
             TestContext.Current.CancellationToken,
             referencePath);
-        Assert.True(standardMerge.Succeeded, CompositionRunReportJson.Serialize(standardMerge));
+        Assert.True(standardMerge.Succeeded, $"Composition result: status={standardMerge.Status}, succeeded={standardMerge.Succeeded}.");
         using (var standardMergeReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(standardMerge)))
         {
             Assert.Equal("nt51927-standard-merge-gen-flash", ReadProfileId(standardMergeReport.RootElement));
         }
 
-        Assert.Equal(ownerCase.Expected.Bytes, File.ReadAllBytes(referencePath));
+        GoldenAssert.AssertEqualsGolden(ownerCase.Expected.Bytes, File.ReadAllBytes(referencePath), "firmware image");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
@@ -87,7 +87,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
+        Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9";
         Assert.Equal(outputSha256, Hash(v2Bytes));
@@ -167,7 +167,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(File.Exists(outputPath));
         using (var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result)))
         {

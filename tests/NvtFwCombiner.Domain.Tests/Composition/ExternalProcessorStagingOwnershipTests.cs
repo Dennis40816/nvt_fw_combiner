@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 /// <summary>External-processor staged-range ownership and allocation tests.</summary>
@@ -28,8 +30,8 @@ public sealed class ExternalProcessorStagingOwnershipTests
         Assert.Equal(1, baseline.StagedArtifactCount);
         Assert.Equal(1, largeArtifact.StagedArtifactCount);
         Assert.Equal(ArtifactByteCount, largeArtifact.ArtifactLength);
-        Assert.Equal(0x5A, largeArtifact.FirstByte);
-        Assert.Equal(0x6B, largeArtifact.LastByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x5A], [largeArtifact.FirstByte], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x6B], [largeArtifact.LastByte], "firmware image");
 
         // Compare equal execution paths after warm-up. The upper bound rejects a
         // second artifact-sized copy without treating lower runtime allocation as a
@@ -56,8 +58,8 @@ public sealed class ExternalProcessorStagingOwnershipTests
         artifactCaller.AsSpan().Fill(0xFF);
         sourceCaller.AsSpan().Fill(0xEE);
 
-        Assert.Equal([0x10, 0x20], artifact.Bytes.ToArray());
-        Assert.Equal([0x30, 0x40], source.Bytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20], artifact.Bytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x30, 0x40], source.Bytes.ToArray(), "firmware image");
     }
 
     /// <summary>Public validation retains the original parameter ownership and ordering.</summary>
@@ -84,8 +86,8 @@ public sealed class ExternalProcessorStagingOwnershipTests
 
         Assert.True(MemoryMarshal.TryGetArray(artifact.Bytes, out ArraySegment<byte> artifactBacking));
         Assert.True(MemoryMarshal.TryGetArray(source.Bytes, out ArraySegment<byte> sourceBacking));
-        Assert.Same(artifactBytes, artifactBacking.Array);
-        Assert.Same(sourceBytes, sourceBacking.Array);
+        Assert.True(ReferenceEquals(artifactBytes, artifactBacking.Array), "Expected firmware buffer ownership.");
+        Assert.True(ReferenceEquals(sourceBytes, sourceBacking.Array), "Expected firmware buffer ownership.");
     }
 
     private static StagingObservation MeasureStagingAllocation(int artifactByteCount)

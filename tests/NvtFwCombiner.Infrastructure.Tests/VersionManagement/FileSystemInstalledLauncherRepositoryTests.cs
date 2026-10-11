@@ -98,7 +98,7 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
                 fixture.ManagedRoot,
                 fixture.Admission,
                 TestContext.Current.CancellationToken);
-        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        Assert.True(acquired.IsAcquired, "Golden assertion condition was not satisfied.");
         acquired.Lease!.Dispose();
 
         ManagedExecutableLaunchLeaseResult applicationLease =
@@ -159,7 +159,7 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
                 fixture.Admission,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        Assert.True(acquired.IsAcquired, "Golden assertion condition was not satisfied.");
         string displaced = fixture.LauncherPath + ".displaced";
         _ = Assert.Throws<IOException>(() => File.Move(fixture.LauncherPath, displaced));
 
@@ -180,7 +180,7 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
                 fixture.Admission,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        Assert.True(acquired.IsAcquired, "Golden assertion condition was not satisfied.");
         _ = Assert.Throws<IOException>(() => File.AppendAllText(fixture.ManifestPath, "changed"));
         _ = Assert.Throws<IOException>(() => File.AppendAllText(fixture.LibraryPath, "changed"));
         _ = Assert.Throws<IOException>(() => Directory.Move(
@@ -222,7 +222,7 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
                 fixture.ManagedRoot,
                 fixture.Admission,
                 TestContext.Current.CancellationToken);
-        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        Assert.True(acquired.IsAcquired, "Golden assertion condition was not satisfied.");
         string unexpected = fixture.VersionPath("late-child.dll");
         using BootstrapAdmissionSignal admission = BootstrapAdmissionSignal.Capture();
         var process = new AnonymousPipeManagedLauncherProcess(
@@ -319,7 +319,7 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
             fixture.Admission,
             TestContext.Current.CancellationToken);
 
-        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        Assert.True(acquired.IsAcquired, "Golden assertion condition was not satisfied.");
         Assert.Equal(0, executableReads);
         acquired.Lease!.Dispose();
 

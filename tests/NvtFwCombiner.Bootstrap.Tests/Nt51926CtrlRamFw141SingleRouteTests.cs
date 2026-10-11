@@ -49,7 +49,7 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
             build: true,
             TestContext.Current.CancellationToken,
             referencePath);
-        Assert.True(reference.Succeeded, CompositionRunReportJson.Serialize(reference));
+        Assert.True(reference.Succeeded, $"Composition result: status={reference.Status}, succeeded={reference.Succeeded}.");
 
         string outputPath = workspace.PathFor("single-output.bin");
         CompositionRunResult result = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
@@ -68,7 +68,7 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] expected = File.ReadAllBytes(PathFor("expected-output"));
         byte[] actual = File.ReadAllBytes(outputPath);
         int[] differences = [

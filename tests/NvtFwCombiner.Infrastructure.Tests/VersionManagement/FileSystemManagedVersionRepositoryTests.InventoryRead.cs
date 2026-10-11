@@ -122,7 +122,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
     private static ManagedVersionInventory RequireInventory(
         ManagedVersionInventoryReadResult result)
     {
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal(ManagedVersionInventoryReadIssue.None, result.Issue);
         return Assert.IsType<ManagedVersionInventory>(result.Inventory);
     }

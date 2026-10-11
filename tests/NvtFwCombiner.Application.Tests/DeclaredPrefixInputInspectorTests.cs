@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests;
 
 /// <summary>Behavior evidence for compiler-owned declared-prefix input inspection.</summary>
@@ -142,7 +144,7 @@ public sealed class DeclaredPrefixInputInspectorTests
         CompiledInputArtifactInspectionResult first = Inspect(requirement, source);
         CompiledInputArtifactInspectionResult second = Inspect(requirement, source);
 
-        Assert.Equal(before, source);
+        GoldenAssert.AssertEqualsGolden(before, source, "firmware image");
         Assert.Equal(first.ActualSha256, second.ActualSha256);
         Assert.Equal(first.AcceptedSnapshotSha256, second.AcceptedSnapshotSha256);
         Assert.Equal(first.IssueCode, second.IssueCode);

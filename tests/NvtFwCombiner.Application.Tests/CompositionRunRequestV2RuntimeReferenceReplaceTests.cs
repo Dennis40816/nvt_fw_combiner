@@ -323,7 +323,7 @@ public sealed partial class CompositionRunRequestV2RuntimeReferenceReplaceTests
         CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
-        Assert.Equal([0, 0xAA, 0xBB, 3], preview.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0, 0xAA, 0xBB, 3], preview.OutputBytes.ToArray(), "firmware image");
         Assert.False(writer.WasCalled);
         _ = Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
             composition.V2Details.Provenance.Context);

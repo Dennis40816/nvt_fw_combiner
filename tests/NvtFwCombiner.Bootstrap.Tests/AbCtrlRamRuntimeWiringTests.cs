@@ -210,11 +210,11 @@ public sealed class AbCtrlRamRuntimeWiringTests
             .Single(static choice => choice.Selection.ChipCount == 1).Selection;
         Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileAbMergeCapability("NT51950", chosen,
             ["dp-ab-input"], out _, out ResolvedCapability? published, out IReadOnlyList<CompositionIssue> compileIssues),
-            string.Join("; ", compileIssues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompilePublishedDynamicCapability(
             published!.Identity, reference.LongLength, [new FirmwareArtifactPayload("dp-ab-input", reference)],
             ["dp-ab-input"], out CompiledComposition? capturedLayout, out _, out compileIssues, chosen),
-            string.Join("; ", compileIssues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         Assert.NotNull(capturedLayout);
         FirmwareInspectionStatusBatch inspected =
             ((CtrlRamAuthoringExperience)BootstrapTestHost.Canonical.CtrlRamAuthoring).InspectInputSlots(
@@ -226,7 +226,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), "NT51950", "single", paths, bytes,
             new AbCtrlRamDraftState(selection));
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot session = prepared.AcceptedSession!;
         CompiledComposition composition = session.ExactCapability!.CompiledComposition;
         RuntimeReferenceBankReplaceV2CompilationContext context =
@@ -259,16 +259,15 @@ public sealed class AbCtrlRamRuntimeWiringTests
             BootstrapTestHost.Canonical, session, paths, true, workspace.PathFor("result.bin"),
             ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, built.Status);
-        Assert.Equal(reference.AsSpan(0x80000).ToArray(), built.OutputBytes[0x80000..].ToArray());
-        Assert.Equal(selection == AbCtrlRamBankSelection.B ? reference[0x25610] : bytes["replace-ctrlram-normal"][0],
-            built.OutputBytes.Span[0x25610]);
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x80000).ToArray(), built.OutputBytes[0x80000..].ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[selection == AbCtrlRamBankSelection.B ? reference[0x25610] : bytes["replace-ctrlram-normal"][0]], [built.OutputBytes.Span[0x25610]], "firmware image");
         if (selection != AbCtrlRamBankSelection.A)
         {
-            Assert.Equal(bytes["replace-ctrlram-normal"][0], built.OutputBytes.Span[0x65610]);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[bytes["replace-ctrlram-normal"][0]], [built.OutputBytes.Span[0x65610]], "firmware image");
         }
         else
         {
-            Assert.Equal(reference[0x65610], built.OutputBytes.Span[0x65610]);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[reference[0x65610]], [built.OutputBytes.Span[0x65610]], "firmware image");
         }
         Assert.Equal(0x100000, built.Report.SourceEnvelope?.ActualOutputLength);
         Assert.Equal(0x80000, built.Report.SourceEnvelope?.LayoutTemplateCapacity);
@@ -305,29 +304,29 @@ public sealed class AbCtrlRamRuntimeWiringTests
         AssertSucceeded(build);
         Assert.Equal(1, writer.Count);
         Assert.Equal(banks * 2, processor.Calls);
-        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
-        Assert.Equal(build.OutputBytes.ToArray(), writer.Bytes);
-        Assert.Equal(a ? 0xA5 : original[0x1FC00], build.OutputBytes.Span[0x1FC00]);
-        Assert.Equal(b ? 0xA5 : original[0x5FC00], build.OutputBytes.Span[0x5FC00]);
+        GoldenAssert.AssertEqualsGolden(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(build.OutputBytes.ToArray(), writer.Bytes, "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(a ? 0xA5 : original[0x1FC00]))], [build.OutputBytes.Span[0x1FC00]], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(b ? 0xA5 : original[0x5FC00]))], [build.OutputBytes.Span[0x5FC00]], "firmware image");
         if (!a)
         {
-            Assert.Equal(original[..0x40000], build.OutputBytes[..0x40000].ToArray());
+            GoldenAssert.AssertEqualsGolden(original[..0x40000], build.OutputBytes[..0x40000].ToArray(), "firmware image");
         }
 
         if (!b)
         {
-            Assert.Equal(original[0x40000..], build.OutputBytes[0x40000..].ToArray());
+            GoldenAssert.AssertEqualsGolden(original[0x40000..], build.OutputBytes[0x40000..].ToArray(), "firmware image");
         }
 
         // The existing core parity test compares entire outputs to independent local tool controls.
         // This boundary additionally proves that the real runner uses the captured plan and one publisher.
-        Assert.Equal(original.AsSpan(0x7164, 12).ToArray(), build.OutputBytes.Slice(0x7164, 12).ToArray());
-        Assert.Equal(original.AsSpan(0x47164, 12).ToArray(), build.OutputBytes.Slice(0x47164, 12).ToArray());
+        GoldenAssert.AssertEqualsGolden(original.AsSpan(0x7164, 12).ToArray(), build.OutputBytes.Slice(0x7164, 12).ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(original.AsSpan(0x47164, 12).ToArray(), build.OutputBytes.Slice(0x47164, 12).ToArray(), "firmware image");
         foreach (int start in new[] { a ? 0 : -1, b ? 0x40000 : -1 }.Where(static start => start >= 0))
         {
             Assert.True(FirmwareConfigMetadataReader.TryReadBackup(build.OutputBytes.Span.Slice(start, 0x40000), out FirmwareConfigMetadata metadata));
-            Assert.Equal(start == 0 ? 0x21 : 0x29, metadata.FirmwareVersion);
-            Assert.Equal(start == 0 ? 0x32 : 0x41, metadata.FirmwareSubVersion);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(start == 0 ? 0x21 : 0x29))], [metadata.FirmwareVersion], "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(start == 0 ? 0x32 : 0x41))], [metadata.FirmwareSubVersion], "firmware image");
         }
         Assert.Equal(CapabilityPublicationStatus.Candidate, capability.Publication.Value);
         Assert.Equal(CapabilityEvidenceStatus.ContractOnly, capability.Evidence.Value);
@@ -387,7 +386,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         Assert.Contains(build.Report.Issues, issue => issue.Code == (corruptBackup ? "test.version-invalid" : "test.tool.failure"));
         Assert.Equal(4, processor.Calls);
         Assert.Equal(0, writer.Count);
-        Assert.Empty(writer.Bytes);
+        GoldenAssert.AssertEqualsGolden(Array.Empty<byte>(), writer.Bytes, "empty firmware output");
     }
 
     /// <summary>Selections change run identity but never redefine the admitted composite capability.</summary>
@@ -551,7 +550,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
             Decision(CapabilityAuthoringAvailability.Available), Decision(publication), Decision(CapabilityEvidenceStatus.ContractOnly));
         var catalog = new CanonicalCapabilityCatalog(new Source(definition));
         CapabilityCatalogReloadResult load = catalog.Reload(TestContext.Current.CancellationToken);
-        Assert.True(load.Succeeded, string.Join("; ", load.Issues.Select(static issue => issue.Message)));
+        Assert.True(load.Succeeded, "Golden assertion condition was not satisfied.");
         return catalog.ResolveDynamicRoute(identity.RouteId).Route!.BindCompilation(composition, runtimeReferenceProof: proof);
 
         PinnedCapabilityDecision<T> Decision<T>(T value) where T : struct, Enum
@@ -619,7 +618,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
 
     private static void AssertSucceeded(CompositionRunResult result)
     {
-        Assert.True(result.Status == CompositionExecutionStatus.Succeeded, string.Join("; ", result.Report.Issues.Select(static issue => issue.Code + ": " + issue.Message)));
+        Assert.True(result.Status == CompositionExecutionStatus.Succeeded, "Golden assertion condition was not satisfied.");
     }
 
     private sealed class Source(CanonicalDynamicCapabilityDefinition definition) : ICanonicalCapabilityCatalogSource

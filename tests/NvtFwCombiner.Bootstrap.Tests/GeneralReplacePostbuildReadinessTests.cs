@@ -34,12 +34,14 @@ public sealed class GeneralReplacePostbuildReadinessTests
 
         Assert.False(prepared.Succeeded);
         Assert.Null(prepared.AcceptedSession);
-        Assert.Equal(referenceBytes, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(referenceBytes,
+            await File.ReadAllBytesAsync(
             referencePath,
-            TestContext.Current.CancellationToken));
-        Assert.Equal(sourceBytes, await File.ReadAllBytesAsync(
+            TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(sourceBytes,
+            await File.ReadAllBytesAsync(
             sourcePath,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(
             CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported,
             Assert.Single(prepared.Issues).Code);

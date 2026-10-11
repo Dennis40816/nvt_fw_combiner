@@ -47,11 +47,10 @@ public sealed partial class SavedRuleDocumentStorageTests
                 target,
                 Document("after"),
                 TestContext.Current.CancellationToken));
-        Assert.Equal(
-            Document("outside"),
+        GoldenAssert.AssertEqualsGolden(Document("outside"),
             await File.ReadAllBytesAsync(
                 outsidePath,
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>The Windows scope anchors nested target directories until promotion completes.</summary>
@@ -132,11 +131,10 @@ public sealed partial class SavedRuleDocumentStorageTests
                 Document("after"),
                 TestContext.Current.CancellationToken);
 
-            Assert.Equal(
-                Document("after"),
-                await File.ReadAllBytesAsync(
+            GoldenAssert.AssertEqualsGolden(Document("after"),
+            await File.ReadAllBytesAsync(
                     targetPath,
-                    TestContext.Current.CancellationToken));
+                    TestContext.Current.CancellationToken), "firmware image");
         }
         finally
         {
@@ -184,9 +182,10 @@ public sealed partial class SavedRuleDocumentStorageTests
                     TestContext.Current.CancellationToken));
         }
 
-        Assert.Equal(original, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(original,
+            await File.ReadAllBytesAsync(
             targetPath,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
         Assert.DoesNotContain(
             Directory.EnumerateFiles(authoringRoot),
             path => Path.GetFileName(path).EndsWith(

@@ -119,7 +119,7 @@ public sealed partial class AbMergeCliCommandTests
         CompiledAuthoringSessionPreparation prepared = await BootstrapTestHost.ProductServices.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), profile, topology, inputs, dpMode,
             TestContext.Current.CancellationToken);
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(static issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         CompiledComposition composition = prepared.Snapshot!.ExactCapability!.CompiledComposition;
         Assert.Equal(report.GetProperty("CompilationFingerprint").GetString(), composition.CompilationFingerprint);
         return composition;

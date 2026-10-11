@@ -2,6 +2,8 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Capabilities;
 
 /// <summary>Canonical General execution-publication ownership tests.</summary>
@@ -30,6 +32,6 @@ public sealed class AcceptedGeneralExecutionPlanTests
 
         supplied[0] = 0;
 
-        Assert.Equal([0xA5, 0x5A], plan.VirtualArtifacts["virtual:patch"].ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5, 0x5A], plan.VirtualArtifacts["virtual:patch"].ToArray(), "firmware image");
     }
 }

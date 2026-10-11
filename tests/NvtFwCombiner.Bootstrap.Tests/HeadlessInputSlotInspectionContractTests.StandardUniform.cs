@@ -1,6 +1,8 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class HeadlessInputSlotInspectionContractTests
@@ -95,7 +97,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         Assert.Equal(code, status.InspectionIssueCode);
         Assert.False(status.BlocksBuild);
         Assert.Equal(FileStamp.FromBytes(source), status.FileStamp);
-        Assert.Equal(source, status.AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden(source, status.AcceptedBytes!.Value.ToArray(), "firmware image");
         InputDiagnosticEvidence evidence = Assert.IsType<InputDiagnosticEvidence>(status.Inspection!.DiagnosticEvidence);
         Assert.Equal(status.Inspection.AddressSpaceId, evidence.AddressSpaceId);
         ByteRange sourceRange = Assert.IsType<ByteRange>(evidence.SourceRange);

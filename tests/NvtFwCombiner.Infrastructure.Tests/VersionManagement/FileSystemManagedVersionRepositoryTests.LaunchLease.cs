@@ -25,7 +25,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
                 managedRoot,
                 installed.Admission!,
                 TestContext.Current.CancellationToken);
-        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        Assert.True(acquired.IsAcquired, "Golden assertion condition was not satisfied.");
         string unexpected = Path.Combine(managedRoot, "versions", "0.10.6", "late.dll");
         var process = new AnonymousPipeManagedApplicationProcess(
             workspace.PathFor("state/version-manager.v1.json"),
@@ -58,7 +58,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             sourceRoot,
             package,
             TestContext.Current.CancellationToken);
-        Assert.True(installed.IsSuccess, installed.Issue.ToString());
+        Assert.True(installed.IsSuccess, "Golden assertion condition was not satisfied.");
         using var cancellation = new CancellationTokenSource();
         var repository = new FileSystemManagedVersionRepository(
             FileSystemManagedVersionRepository.MaximumExpandedBytes,
@@ -100,7 +100,7 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             sourceRoot,
             package,
             TestContext.Current.CancellationToken);
-        Assert.True(installed.IsSuccess, installed.Issue.ToString());
+        Assert.True(installed.IsSuccess, "Golden assertion condition was not satisfied.");
         string unexpected = Path.Combine(managedRoot, "versions", "0.10.6", "unexpected.dll");
         var repository = new FileSystemManagedVersionRepository(
             FileSystemManagedVersionRepository.MaximumExpandedBytes,
@@ -141,12 +141,12 @@ public sealed partial class FileSystemManagedVersionRepositoryTests
             sourceRoot,
             package,
             TestContext.Current.CancellationToken);
-        Assert.True(installed.IsSuccess, installed.Issue.ToString());
+        Assert.True(installed.IsSuccess, "Golden assertion condition was not satisfied.");
         ManagedExecutableLaunchLeaseResult acquired = await repository.AcquireApplicationLaunchLeaseAsync(
             managedRoot,
             installed.Admission!,
             TestContext.Current.CancellationToken);
-        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        Assert.True(acquired.IsAcquired, "Golden assertion condition was not satisfied.");
         string? previousBehavior = Environment.GetEnvironmentVariable("NVT_READY_PROBE_BEHAVIOR");
         string executable = acquired.Lease!.ExecutablePath;
         string displaced = executable + ".displaced";

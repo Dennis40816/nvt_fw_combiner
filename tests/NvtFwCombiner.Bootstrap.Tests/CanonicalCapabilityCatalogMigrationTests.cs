@@ -75,9 +75,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             source.Load(TestContext.Current.CancellationToken);
         Assert.True(
             loaded.Succeeded,
-            string.Join(
-                Environment.NewLine,
-                loaded.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         CanonicalCapabilityDefinition definition =
             loaded.Candidate!.Definitions.Single(candidate =>
                 candidate.Identity.IcId == "NT51929" &&
@@ -292,7 +290,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                 acceptedCapability);
 
         Assert.True(first.Succeeded);
-        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.True(compiled, "Golden assertion condition was not satisfied.");
         Assert.Empty(issues);
         Assert.NotNull(acceptedCapability);
         Assert.True(second.Succeeded);
@@ -452,8 +450,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         CapabilityCatalogReloadResult reload = host.Catalog.Reload(TestContext.Current.CancellationToken);
         Assert.True(
             reload.Succeeded,
-            string.Join(Environment.NewLine, reload.Issues.Select(static issue =>
-                $"{issue.Code}: {issue.Message} [{issue.Subject}]")));
+            "Golden assertion condition was not satisfied.");
 
         byte[] dp = new byte[0x6000];
         dp[0x66] = 0xFF;
@@ -477,8 +474,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
 
         Assert.Equal("030A", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).VersionToken);
         CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode);
-        Assert.Equal((byte)0x03, cmi.MajorVersionByte);
-        Assert.Equal((byte)0x0A, cmi.MinorVersionNibble);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x03], [cmi.MajorVersionByte], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x0A], [cmi.MinorVersionNibble], "firmware image");
         Assert.Equal((ushort)0x42E, cmi.JiraNumber);
         Assert.Equal(0x401A, cmi.Register16Offset);
     }
@@ -491,8 +488,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         CapabilityCatalogReloadResult reload = host.Catalog.Reload(TestContext.Current.CancellationToken);
         Assert.True(
             reload.Succeeded,
-            string.Join(Environment.NewLine, reload.Issues.Select(static issue =>
-                $"{issue.Code}: {issue.Message} [{issue.Subject}]")));
+            "Golden assertion condition was not satisfied.");
 
         byte[] dp = new byte[0x401C];
         dp[0x66] = 0xFF;

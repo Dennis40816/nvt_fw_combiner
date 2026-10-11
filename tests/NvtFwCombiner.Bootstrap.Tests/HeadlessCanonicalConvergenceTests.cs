@@ -16,7 +16,7 @@ public sealed class HeadlessCanonicalConvergenceTests
             TestContext.Current.CancellationToken);
         Assert.True(
             reload.Succeeded,
-            string.Join("; ", reload.Issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
 
         string[] expected = ReadFrozenRouteAxes();
         string[] actual =

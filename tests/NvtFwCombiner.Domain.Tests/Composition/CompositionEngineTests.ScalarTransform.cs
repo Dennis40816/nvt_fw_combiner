@@ -1,6 +1,8 @@
 using System.Numerics;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
 public sealed partial class CompositionEngineTests
@@ -25,7 +27,7 @@ public sealed partial class CompositionEngineTests
             }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x34, 0x13], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x34, 0x13], result.OutputBytes.ToArray(), "firmware image");
         MutationRecord mutation = Assert.Single(result.Mutations);
         Assert.Equal(CompositionOperationKind.TransformScalar, mutation.OperationKind);
         Assert.Equal([new ByteRange(0, 2)], mutation.ChangedRanges);
@@ -51,7 +53,7 @@ public sealed partial class CompositionEngineTests
             }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x11, 0x34], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11, 0x34], result.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies four-byte carry and eight-byte boundary values use the declared byte order.</summary>
@@ -83,9 +85,9 @@ public sealed partial class CompositionEngineTests
                 ScalarTransformOverflowPolicy.Reject),
             [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE]);
 
-        Assert.Equal([0x00, 0x00, 0x00, 0x01], fourByte.OutputBytes.ToArray());
-        Assert.Equal([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], eightByteLittleEndian.OutputBytes.ToArray());
-        Assert.Equal([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], eightByteBigEndian.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x00, 0x00, 0x00, 0x01], fourByte.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], eightByteLittleEndian.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], eightByteBigEndian.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies a transform can read the current mutable buffer and rewrite the same scalar range.</summary>
@@ -122,7 +124,7 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Equal([0x80], result.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x80], result.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(["seed-scalar", "relocate-scalar"], result.Mutations.Select(static mutation => mutation.OperationId));
     }
 
@@ -227,9 +229,9 @@ public sealed partial class CompositionEngineTests
             new ByteRange(0, 2));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, forward.Status);
-        Assert.Equal([0x01, 0x02, 0x00], forward.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x01, 0x02, 0x00], forward.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(CompositionExecutionStatus.Succeeded, reverse.Status);
-        Assert.Equal([0x02, 0x00, 0x00], reverse.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x02, 0x00, 0x00], reverse.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies a failed transform discards output and mutation trace even after an earlier mutation.</summary>

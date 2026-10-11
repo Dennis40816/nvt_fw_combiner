@@ -56,7 +56,7 @@ public sealed class AtomicBundleCompositionOutputWriterTests
             "output.bin", new byte[] { 1, 2 }, TestContext.Current.CancellationToken);
 
         Assert.Equal(outputPath, receipt.OutputId);
-        Assert.Equal([1, 2], await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden((byte[])[1, 2], await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken), "firmware image");
         _ = Assert.Single(Directory.EnumerateFileSystemEntries(workspace.Root));
     }
 
@@ -84,15 +84,17 @@ public sealed class AtomicBundleCompositionOutputWriterTests
 
         string destination = collision ? originalFolder + " (2)" : originalFolder;
         Assert.Equal(Path.Combine(destination, "output.bin"), receipt.OutputId);
-        Assert.Equal([1, 2], await File.ReadAllBytesAsync(receipt.OutputId, TestContext.Current.CancellationToken));
-        Assert.Equal([3, 4], await File.ReadAllBytesAsync(Path.Combine(destination, "output (2).bin"),
-            TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden((byte[])[1, 2], await File.ReadAllBytesAsync(receipt.OutputId, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[3, 4],
+            await File.ReadAllBytesAsync(Path.Combine(destination, "output (2).bin"),
+            TestContext.Current.CancellationToken), "firmware image");
         Assert.Equal(collision ? 2 : 1, Directory.EnumerateFileSystemEntries(workspace.Root).Count());
         Assert.Equal(2, Directory.EnumerateFileSystemEntries(destination).Count());
         if (collision)
         {
-            Assert.Equal([7], await File.ReadAllBytesAsync(Path.Combine(originalFolder, "keep.bin"),
-                TestContext.Current.CancellationToken));
+            GoldenAssert.AssertEqualsGolden((byte[])[7],
+            await File.ReadAllBytesAsync(Path.Combine(originalFolder, "keep.bin"),
+                TestContext.Current.CancellationToken), "firmware image");
         }
     }
 
@@ -136,12 +138,14 @@ public sealed class AtomicBundleCompositionOutputWriterTests
         Assert.Equal(
             [null, "ab-a-flashcode", "source"],
             bundle.Artifacts.Select(static artifact => artifact.BindingId));
-        Assert.Equal([9], await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden((byte[])[9],
+            await File.ReadAllBytesAsync(
             Path.Combine(bundle.ResolvedDirectory, "output.bin"),
-            TestContext.Current.CancellationToken));
-        Assert.Equal([8, 7], await File.ReadAllBytesAsync(
+            TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[8, 7],
+            await File.ReadAllBytesAsync(
             Path.Combine(bundle.ResolvedDirectory, "output (2).bin"),
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
     }
 
     /// <summary>Output reserves its name and same-basename sources receive deterministic suffixes.</summary>
@@ -165,11 +169,13 @@ public sealed class AtomicBundleCompositionOutputWriterTests
         string outputPath = receipt.OutputId;
         string folder = Path.Combine(workspace.Root, "bundle");
         Assert.Equal(Path.Combine(folder, "output.bin"), outputPath);
-        Assert.Equal([9], await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken));
-        Assert.Equal([1], await File.ReadAllBytesAsync(
-            Path.Combine(folder, "output (2).bin"), TestContext.Current.CancellationToken));
-        Assert.Equal([2], await File.ReadAllBytesAsync(
-            Path.Combine(folder, "output (3).bin"), TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden((byte[])[9], await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[1],
+            await File.ReadAllBytesAsync(
+            Path.Combine(folder, "output (2).bin"), TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden((byte[])[2],
+            await File.ReadAllBytesAsync(
+            Path.Combine(folder, "output (3).bin"), TestContext.Current.CancellationToken), "firmware image");
         CompositionOutputBundleCommitReceipt bundle = receipt.Bundle ??
             throw new Xunit.Sdk.XunitException("Bundle commit did not return promotion evidence.");
         Assert.Equal(folder, bundle.ResolvedDirectory);
@@ -360,7 +366,7 @@ public sealed class AtomicBundleCompositionOutputWriterTests
         inputLock.Position = 0;
         byte[] unchanged = new byte[3];
         await inputLock.ReadExactlyAsync(unchanged, TestContext.Current.CancellationToken);
-        Assert.Equal([5, 6, 7], unchanged);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[5, 6, 7], unchanged, "firmware image");
     }
 
     private sealed class ThrowingBundleFileWriter(int writeNumber) : IAtomicBundleFileWriter

@@ -1,5 +1,7 @@
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
@@ -27,7 +29,7 @@ public sealed partial class XamlControlStyleContractTests
         callerCells[0] = new HexViewportCell(0, 0xFF, null, HexViewportCellDecoration.None);
         callerRows[0] = new HexViewportRow(0, [new HexViewportCell(0, 0xEE, null, HexViewportCellDecoration.None)]);
 
-        Assert.Equal((byte)0x10, snapshot.Rows[0].Cells[0].PrimaryValue);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)0x10], [snapshot.Rows[0].Cells[0].PrimaryValue], "firmware image");
         Assert.Equal((byte?)0x00, snapshot.Rows[0].Cells[0].ComparisonValue);
         Assert.Equal(1, snapshot.SelectedAddress);
         Assert.True(snapshot.Rows[0].HasDataChanges);

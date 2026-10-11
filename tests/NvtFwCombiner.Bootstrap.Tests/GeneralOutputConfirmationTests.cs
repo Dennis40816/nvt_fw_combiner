@@ -64,7 +64,7 @@ public sealed class GeneralOutputConfirmationTests
             Assert.Contains(prepared.Issues, issue => issue.Code == "replace.workflow.not-supported");
             return;
         }
-        Assert.True(prepared.Succeeded, string.Join("; ", prepared.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Empty(prepared.AcceptedSession!.InputSlotStatuses);
         // Preparation must project accepted identities, never reread changed disk content.
         await File.WriteAllBytesAsync(source, [0xFF], TestContext.Current.CancellationToken);

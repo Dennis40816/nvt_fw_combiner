@@ -153,7 +153,7 @@ public static class CanonicalGoldenTestData
                 !StringComparer.Ordinal.Equals(goldenCase.GetProperty("workflow").GetString(), workflow))
             {
                 throw new InvalidDataException(
-                    $"Canonical case '{caseId}' is not direct {workflow} " +
+                    $"Canonical case '{GoldenDiagnostics.Label(caseId)}' is not direct {workflow} " +
                     (directEvidence ? "input evidence." : "golden evidence."));
             }
 
@@ -169,7 +169,7 @@ public static class CanonicalGoldenTestData
             return goldenCase.Clone();
         }
 
-        throw new InvalidDataException($"Canonical {workflow} case '{caseId}' was not found.");
+        throw new InvalidDataException($"Canonical {workflow} case '{GoldenDiagnostics.Label(caseId)}' was not found.");
     }
 
     /// <summary>Loads fact-scoped aliases for one workflow and resolves each direct source IC.</summary>
@@ -213,10 +213,10 @@ public static class CanonicalGoldenTestData
                 if (disposition.Kind != CanonicalGoldenTestDispositionKind.FactScopedAlias)
                 {
                     throw new InvalidDataException(
-                        $"Canonical alias '{caseId}' must use the fact-scoped-alias disposition.");
+                        $"Canonical alias '{GoldenDiagnostics.Label(caseId)}' must use the fact-scoped-alias disposition.");
                 }
 
-                aliases.Add((caseId, ic, goldenCase.GetProperty("alias").GetProperty("sourceCaseId").GetString()!));
+                aliases.Add((caseId, ic, goldenCase.GetProperty("alias").GetProperty("sourceCaseId").GetString() ?? string.Empty));
             }
         }
 
@@ -229,7 +229,7 @@ public static class CanonicalGoldenTestData
                 directCases.TryGetValue(alias.SourceCaseId, out string? sourceIc)
                     ? sourceIc
                     : throw new InvalidDataException(
-                        $"Canonical alias '{alias.CaseId}' has no direct source '{alias.SourceCaseId}'."))),
+                        $"Canonical alias '{GoldenDiagnostics.Label(alias.CaseId)}' has no direct source '{GoldenDiagnostics.Label(alias.SourceCaseId)}'."))),
         ];
     }
 
@@ -283,7 +283,7 @@ public static class CanonicalGoldenTestData
         string[] routeBlockingEvidenceRefs = disposition.TryGetProperty(
             "routeBlockingEvidenceRefs",
             out JsonElement routeRefs)
-            ? [.. routeRefs.EnumerateArray().Select(reference => reference.GetString()!)]
+            ? [.. routeRefs.EnumerateArray().Select(reference => reference.GetString() ?? string.Empty)]
             : [];
         return new CanonicalGoldenTestDisposition(
             kind,
@@ -301,7 +301,7 @@ public static class CanonicalGoldenTestData
         return disposition.Kind == expectedKind
             ? disposition
             : throw new InvalidDataException(
-                $"Canonical case '{goldenCase.GetProperty("caseId").GetString()}' uses " +
+                $"Canonical case '{GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString() ?? string.Empty)}' uses " +
                 $"'{disposition.Kind}' but '{expectedKind}' is required by this runner.");
     }
 
@@ -326,7 +326,7 @@ public static class CanonicalGoldenTestData
         if (expected.Length != declaredSize || actual.Length != declaredSize)
         {
             throw new InvalidDataException(
-                $"Canonical case '{goldenCase.GetProperty("caseId").GetString()}' output length " +
+                $"Canonical case '{GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString() ?? string.Empty)}' output length " +
                 $"must match the declared expected artifact size {declaredSize}.");
         }
 
@@ -352,7 +352,7 @@ public static class CanonicalGoldenTestData
             if (containingRange < 0)
             {
                 throw new InvalidDataException(
-                    $"Canonical case '{goldenCase.GetProperty("caseId").GetString()}' has an " +
+                    $"Canonical case '{GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString() ?? string.Empty)}' has an " +
                     $"unapproved output difference at 0x{index:X}.");
             }
 
@@ -465,13 +465,13 @@ public static class CanonicalGoldenTestData
         var file = new FileInfo(path);
         if (file.Length != artifact.GetProperty("size").GetInt64())
         {
-            throw new InvalidDataException($"Canonical artifact size drift: {artifact.GetProperty("path").GetString()}.");
+            throw new InvalidDataException($"Canonical artifact size drift: {GoldenDiagnostics.Label(artifact.GetProperty("path").GetString() ?? string.Empty)}.");
         }
 
         using FileStream stream = File.OpenRead(path);
         string actualHash = Convert.ToHexStringLower(SHA256.HashData(stream));
         return !StringComparer.Ordinal.Equals(actualHash, artifact.GetProperty("sha256").GetString())
-            ? throw new InvalidDataException($"Canonical artifact SHA-256 drift: {artifact.GetProperty("path").GetString()}.")
+            ? throw new InvalidDataException($"Canonical artifact SHA-256 drift: {GoldenDiagnostics.Label(artifact.GetProperty("path").GetString() ?? string.Empty)}.")
             : path;
     }
 
@@ -491,7 +491,7 @@ public static class CanonicalGoldenTestData
             {
                 if (expected is not null)
                 {
-                    throw new InvalidDataException($"Canonical case '{goldenCase.GetProperty("caseId").GetString()}' has multiple expected artifacts.");
+                    throw new InvalidDataException($"Canonical case '{GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString() ?? string.Empty)}' has multiple expected artifacts.");
                 }
 
                 expected = projection;
@@ -506,7 +506,7 @@ public static class CanonicalGoldenTestData
             ["variant"] = goldenCase.GetProperty("variantOrVersion").GetString(),
             ["inputs"] = inputs,
             ["expectedOutput"] = expected ?? throw new InvalidDataException(
-                $"Canonical case '{goldenCase.GetProperty("caseId").GetString()}' has no expected artifact."),
+                $"Canonical case '{GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString() ?? string.Empty)}' has no expected artifact."),
         };
     }
 

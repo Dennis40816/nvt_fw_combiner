@@ -5,6 +5,8 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Localized feedback explains typed findings without changing their authority.</summary>
@@ -59,7 +61,7 @@ public sealed class StandardMergeFeedbackTests
         Assert.Equal(slot.IssueCard!.AutomationText, slot.SemanticStateAutomationText);
         Assert.DoesNotContain(code, slot.IssueCard.Summary, StringComparison.Ordinal);
         Assert.Equal(code, status.InspectionIssueCode);
-        Assert.Equal(new byte[] { 0xA5, 0xA5 }, status.AcceptedBytes!.Value.ToArray());
+        GoldenAssert.AssertEqualsGolden(new byte[] { 0xA5, 0xA5 }, status.AcceptedBytes!.Value.ToArray(), "firmware image");
     }
 
     /// <summary>Unrelated warnings retain the existing diagnostic fallback.</summary>

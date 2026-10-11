@@ -32,7 +32,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             candidate,
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
             TestContext.Current.CancellationToken);
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         IManagedPromotedFirstInstallation installation = result.Installation!;
         try
         {
@@ -43,7 +43,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             WindowsStableCustodyResult tree = WindowsStablePathCustody.TryAcquireImmutableTree(
                 versionRoot,
                 cancellationToken: TestContext.Current.CancellationToken);
-            Assert.True(tree.IsAcquired, tree.Issue.ToString());
+            Assert.True(tree.IsAcquired, "Golden assertion condition was not satisfied.");
             tree.Custody!.Dispose();
 
             InstalledLauncherLaunchResult acquired = await new FileSystemInstalledLauncherRepository()
@@ -51,7 +51,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
                     root,
                     admission,
                     TestContext.Current.CancellationToken);
-            Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+            Assert.True(acquired.IsAcquired, "Golden assertion condition was not satisfied.");
             acquired.Lease!.Dispose();
 
             _ = Assert.Throws<IOException>(() => Directory.Move(root, root + ".replacement"));
@@ -83,7 +83,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             candidate.Identity.SourceRoot,
             candidate.Package,
             TestContext.Current.CancellationToken);
-        Assert.True(verified.IsVerified, verified.Issue.ToString());
+        Assert.True(verified.IsVerified, "Golden assertion condition was not satisfied.");
         Assert.True(verified.HasSupportedManagedLauncher);
         string ordinaryRoot = Path.Combine(temporary.Path, "ordinary-managed");
         _ = Directory.CreateDirectory(ordinaryRoot);
@@ -92,7 +92,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             candidate.Identity.SourceRoot,
             candidate.Package,
             TestContext.Current.CancellationToken);
-        Assert.True(ordinary.IsSuccess, ordinary.Issue.ToString());
+        Assert.True(ordinary.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal(expectedAdmission, ordinary.Admission);
         int cleanupAttempts = 0;
         var materializer = new FileSystemManagedFirstInstallationRootMaterializer(
@@ -108,7 +108,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(expectedAdmission),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal(1, cleanupAttempts);
         IManagedPromotedFirstInstallation installation = result.Installation!;
         Assert.Equal(expectedAdmission, installation.Admission);
@@ -203,7 +203,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             TestContext.Current.CancellationToken);
         contentionHandle?.Dispose();
 
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.NotNull(contentionHandle);
         Assert.Equal(1, successfulDeleteOpenCount);
         Assert.Equal(
@@ -262,7 +262,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal(
             [ManagedSetupStagingCleanupState.RetryableContention, ManagedSetupStagingCleanupState.Deleted],
             attemptStates);
@@ -424,7 +424,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.Equal([ManagedSetupStagingCleanupState.Deleted], attemptStates);
         using IManagedPromotedFirstInstallation installation = result.Installation!;
         Assert.Equal(
@@ -864,7 +864,7 @@ public sealed partial class ManagedDistributionLauncherRuntimeTests
             ManagedVersionSeedPolicy.CreateCanonicalFirstRunSeed(admission),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsSuccess, result.Issue.ToString());
+        Assert.True(result.IsSuccess, "Golden assertion condition was not satisfied.");
         Assert.True(replacementBlocked);
         using IManagedPromotedFirstInstallation installation = result.Installation!;
         Assert.Equal(

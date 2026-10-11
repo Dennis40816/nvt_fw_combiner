@@ -3,6 +3,8 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class AbMergeFormatAdmissionTests
@@ -88,8 +90,8 @@ public sealed partial class AbMergeFormatAdmissionTests
         Assert.True(result.Succeeded, string.Join(" | ", result.Issues.Select(issue => issue.Code)));
         AbMergeFormatSelection selection = Assert.IsType<AbMergeFormatSelection>(result.Selection);
         Assert.Equal(expectedMap, selection.MapId);
-        Assert.Equal(rawA, selection.TpAFormatByte);
-        Assert.Equal(rawB, selection.TpBFormatByte);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[rawA], [selection.TpAFormatByte], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[rawB], [selection.TpBFormatByte], "firmware image");
         Assert.Null(selection.PrimaryInspection);
         Assert.Equal(artifacts[0].Sha256, selection.TpAPrimary.Resolved!.ArtifactIdentity.Sha256);
         Assert.Equal(artifacts[1].Sha256, selection.TpBPrimary.Resolved!.ArtifactIdentity.Sha256);

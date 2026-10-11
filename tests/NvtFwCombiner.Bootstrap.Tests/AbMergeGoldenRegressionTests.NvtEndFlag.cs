@@ -44,8 +44,8 @@ public sealed partial class AbMergeGoldenRegressionTests
             tpWithMarker, tpWithMarker, "markers", single);
 
         byte[] expected = ReadExpected(goldenCase);
-        Assert.Equal(expected, baseline.Output);
-        Assert.Equal(expected, markers.Output);
+        GoldenAssert.AssertEqualsGolden(expected, baseline.Output, "firmware image");
+        GoldenAssert.AssertEqualsGolden(expected, markers.Output, "firmware image");
         Assert.Equal(ExpectedArtifact(goldenCase).GetProperty("sha256").GetString(), Hash(markers.Output));
         Assert.Equal(AbNamingTokens(baseline.Result), AbNamingTokens(markers.Result));
         AssertOnlyTheEndFlagCounts(markers.Composition, tpWithMarker, inputs[CompositionAddressSpaceIds.TpAInput]);
@@ -74,8 +74,8 @@ public sealed partial class AbMergeGoldenRegressionTests
         EndFlagBuild markers = await BuildAbAsync(host, workspace, "NT51951", dp, tpWithMarker, tpWithMarker, "markers",
             topology: null);
 
-        Assert.Equal(expected, baseline.Output);
-        Assert.Equal(expected, markers.Output);
+        GoldenAssert.AssertEqualsGolden(expected, baseline.Output, "firmware image");
+        GoldenAssert.AssertEqualsGolden(expected, markers.Output, "firmware image");
         Assert.Equal(AbNamingTokens(baseline.Result), AbNamingTokens(markers.Result));
         AssertOnlyTheEndFlagCounts(markers.Composition, tpWithMarker, tp);
     }
@@ -175,7 +175,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         string outputPath = workspace.PathFor($"{name}-output.bin");
         CompositionRunResult result = await AbMergeTestSupport.RunAsync(
             host, icId, paths, build: true, TestContext.Current.CancellationToken, outputPath, topology);
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         return new EndFlagBuild(result, File.ReadAllBytes(outputPath),
             prepared.Snapshot!.ExactCapability!.CompiledComposition);
     }

@@ -480,7 +480,7 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
             referenceCapacity,
             profileVersion);
 
-        Assert.True(compile.IsCompiled, string.Join(Environment.NewLine, compile.Issues.Select(static issue => issue.Message)));
+        Assert.True(compile.IsCompiled, "Golden assertion condition was not satisfied.");
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compile.CompiledComposition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
         Assert.Equal(profileId, composition.V2Details.ProfileId);

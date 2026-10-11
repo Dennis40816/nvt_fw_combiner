@@ -77,8 +77,8 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
                 [new ExternalProcessorStagedSource(selectedRegion.Range, replacementBytes)],
                 assertChangedRanges: false);
 
-            Assert.Equal(prePastedOutput, purePastebackOutput);
-            Assert.Equal(replacementBytes[0], purePastebackOutput[(int)selectedRegion.Range.Start]);
+            GoldenAssert.AssertEqualsGolden(prePastedOutput, purePastebackOutput, "firmware image");
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[replacementBytes[0]], [purePastebackOutput[(int)selectedRegion.Range.Start]], "firmware image");
         }
         finally
         {

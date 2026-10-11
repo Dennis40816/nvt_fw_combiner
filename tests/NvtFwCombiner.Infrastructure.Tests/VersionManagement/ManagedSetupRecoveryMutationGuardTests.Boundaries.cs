@@ -111,7 +111,7 @@ public sealed partial class ManagedSetupRecoveryMutationGuardTests
             root,
             new WindowsStableTreeLimits(1, 1, 16),
             TestContext.Current.CancellationToken);
-        Assert.True(acquired.IsAcquired, acquired.Issue.ToString());
+        Assert.True(acquired.IsAcquired, "Golden assertion condition was not satisfied.");
         bool renameBlocked = false;
         using (WindowsStablePathCustody custody = acquired.Custody!)
         {

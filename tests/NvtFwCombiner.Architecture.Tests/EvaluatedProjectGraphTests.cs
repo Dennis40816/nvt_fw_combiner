@@ -3,6 +3,8 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Xml.Linq;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Checks the evaluated graph, including imported, conditional and build-only edges.</summary>

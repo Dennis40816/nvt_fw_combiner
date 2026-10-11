@@ -4,6 +4,8 @@ using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>
@@ -338,8 +340,8 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
             dpcmi.Resolution?.Resolved?.LocatorOutcome.ResolvedRange.Range,
             DpcmiRange(reverse));
         Assert.True(DpcmiMetadataProjector.TryProject(snapshot, out DpcmiMetadataFacts facts));
-        Assert.Equal(expectedMajor, facts.MajorVersion);
-        Assert.Equal(expectedMinor, facts.MinorVersion);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[expectedMajor], [facts.MajorVersion], "firmware image");
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[expectedMinor], [facts.MinorVersion], "firmware image");
     }
 
     private static ByteRange DpcmiRange(MetadataInspectionSnapshot snapshot)

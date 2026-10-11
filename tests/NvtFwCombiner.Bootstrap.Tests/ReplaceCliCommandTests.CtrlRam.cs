@@ -36,8 +36,8 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("--ctrlram replace-ctrlram-vn=C:\\path\\vn.bin", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("vn-master", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("--ctrlram replace-ctrlram-vn=C:\\path\\vn.bin", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("vn-master", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
 
         foreach (string whitespaceArgument in new[] { " =value.bin", "vn= " })
         {
@@ -91,11 +91,11 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.True(
             preview.ExitCode == 0,
-            $"stdout:{Environment.NewLine}{preview.Output}{Environment.NewLine}stderr:{Environment.NewLine}{preview.Error}");
-        Assert.Contains("Status: Succeeded", preview.Output, StringComparison.Ordinal);
-        Assert.Contains("Size: 245760 bytes", preview.Output, StringComparison.Ordinal);
-        Assert.Contains("postbuild-cascade", preview.Output, StringComparison.Ordinal);
-        Assert.Contains("changed=16", preview.Output, StringComparison.Ordinal);
+            "Golden assertion condition was not satisfied.");
+        Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", preview.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Size: 245760 bytes", preview.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("postbuild-cascade", preview.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("changed=16", preview.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         AssertProcessorTrace(
             previewReport,
             fixture.Regression,
@@ -129,7 +129,7 @@ public sealed partial class ReplaceCliCommandTests
         byte[] outputBytes = File.ReadAllBytes(outputPath);
         byte[] expectedBytes = File.ReadAllBytes(expectedPath);
         Assert.Equal(0x3C000, outputBytes.Length);
-        Assert.Equal(expectedBytes, outputBytes);
+        GoldenAssert.AssertEqualsGolden(expectedBytes, outputBytes, "firmware image");
         Assert.Equal(
             fixture.ExpectedArtifact.GetProperty("sha256").GetString(),
             Convert.ToHexString(SHA256.HashData(outputBytes)).ToLowerInvariant());
@@ -194,15 +194,15 @@ public sealed partial class ReplaceCliCommandTests
             TestContext.Current.CancellationToken,
             fullFlashOutputPath);
 
-        Assert.True(tpRun.Succeeded, CompositionRunReportJson.Serialize(tpRun));
-        Assert.True(fullFlashRun.Succeeded, CompositionRunReportJson.Serialize(fullFlashRun));
+        Assert.True(tpRun.Succeeded, $"Composition result: status={tpRun.Status}, succeeded={tpRun.Succeeded}.");
+        Assert.True(fullFlashRun.Succeeded, $"Composition result: status={fullFlashRun.Status}, succeeded={fullFlashRun.Succeeded}.");
         byte[] tpOutput = File.ReadAllBytes(tpOutputPath);
         byte[] fullFlashOutput = File.ReadAllBytes(fullFlashOutputPath);
         Assert.Equal(0x3C000, tpOutput.Length);
         Assert.Equal(0x40000, fullFlashOutput.Length);
-        Assert.Equal(tpOutput, fullFlashOutput[..0x3C000]);
-        Assert.Equal(fullFlashBase[0x3C000..], fullFlashOutput[0x3C000..]);
-        Assert.Equal(fullFlashBase, File.ReadAllBytes(fullFlashPath));
+        GoldenAssert.AssertEqualsGolden(tpOutput, fullFlashOutput[..0x3C000], "firmware image");
+        GoldenAssert.AssertEqualsGolden(fullFlashBase[0x3C000..], fullFlashOutput[0x3C000..], "firmware image");
+        GoldenAssert.AssertEqualsGolden(fullFlashBase, File.ReadAllBytes(fullFlashPath), "firmware image");
     }
 
     /// <summary>Verifies CtrlRAM base validation does not describe the input as Flash Code only.</summary>
@@ -235,8 +235,8 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("Base firmware BIN path does not exist.", result.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Base flash", result.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Base firmware BIN path does not exist.", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains("Base flash", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(File.Exists(reportPath));
 
         CliRunResult unreadableBase = await RunCliAsync([
@@ -394,9 +394,9 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
-        Assert.Contains("Profile: nt51927-ctrlram-replace-fw132-twochip (NT51927)", result.Output, StringComparison.Ordinal);
-        Assert.Contains("postbuild-twochip", result.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("Profile: nt51927-ctrlram-replace-fw132-twochip (NT51927)", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(GoldenDiagnostics.Contains("postbuild-twochip", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(File.Exists(report), report);
         using var reportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
             report,
@@ -487,8 +487,7 @@ public sealed partial class ReplaceCliCommandTests
 
             Assert.True(
                 canonicalPreview.ExitCode == 0,
-                $"stdout:{Environment.NewLine}{canonicalPreview.Output}{Environment.NewLine}" +
-                $"stderr:{Environment.NewLine}{canonicalPreview.Error}");
+                "Golden assertion condition was not satisfied.");
             Assert.Contains(
                 $"Profile: {fw200Case.ExpectedProfileId} (NT51926)",
                 canonicalPreview.Output,

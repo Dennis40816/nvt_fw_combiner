@@ -327,7 +327,7 @@ public sealed class ReplaceAuthoringSessionIsolationTests
         AuthoringPublicationResult result = session.TryPublish(
             lease,
             new AuthoringDerivedPublication(kind, resultReference));
-        Assert.True(result.Succeeded, result.Issue?.Message);
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
     }
 
     private static ActiveSessionSnapshot SetDraft(
@@ -335,7 +335,7 @@ public sealed class ReplaceAuthoringSessionIsolationTests
         AuthoringDraftState draft)
     {
         AuthoringSessionTransitionResult result = session.SetDraft(draft);
-        Assert.True(result.Succeeded, result.Issue?.Message);
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         return result.Snapshot!;
     }
 
@@ -380,7 +380,7 @@ public sealed class ReplaceAuthoringSessionIsolationTests
         AuthoringCapabilityCatalogSnapshot catalog)
     {
         AuthoringSessionTransitionResult result = session.Activate(catalog);
-        Assert.True(result.Succeeded, result.Issue?.Message);
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         return result.Snapshot!;
     }
 
@@ -392,7 +392,7 @@ public sealed class ReplaceAuthoringSessionIsolationTests
         AuthoringSessionTransitionResult result = session.Select(
             icId,
             icCount);
-        Assert.True(result.Succeeded, result.Issue?.Message);
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         return result.Snapshot!;
     }
 
@@ -406,7 +406,7 @@ public sealed class ReplaceAuthoringSessionIsolationTests
             slotDefinitionId,
             path,
             stamp);
-        Assert.True(result.Succeeded, result.Issue?.Message);
+        Assert.True(result.Succeeded, "Golden assertion condition was not satisfied.");
         return result.Snapshot!;
     }
 

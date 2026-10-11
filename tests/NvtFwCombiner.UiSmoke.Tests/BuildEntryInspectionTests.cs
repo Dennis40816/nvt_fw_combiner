@@ -216,7 +216,7 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
             byte[] persistedBytes = await File.ReadAllBytesAsync(
                 acceptedReplacementPath,
                 cancellationToken);
-            Assert.Equal(changedBytes, persistedBytes);
+            GoldenAssert.AssertEqualsGolden(changedBytes, persistedBytes, "firmware image");
             Assert.NotEqual(acceptedFirstByte, persistedBytes[0]);
         }
         else

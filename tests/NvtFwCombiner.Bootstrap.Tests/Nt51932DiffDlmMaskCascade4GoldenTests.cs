@@ -41,7 +41,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(ExpectedSha256, Hash(evidence.Expected.Bytes));
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
@@ -72,16 +72,15 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(40, AssertOnlyPostbuildCrcDiffers(evidence.Expected.Bytes, output));
         AssertDlmMapsAndNfMatchesBase(evidence, evidence.Base.Bytes, output);
         for (int record = 0; record < 3; record++)
         {
             int targetStart = DiffStart + (record * RecordStride);
-            Assert.Equal(
-                evidence.Base.Bytes.AsSpan(targetStart + DlmLength, RecordStride - DlmLength).ToArray(),
-                evidence.Expected.Bytes.AsSpan(targetStart + DlmLength, RecordStride - DlmLength).ToArray());
+            GoldenAssert.AssertEqualsGolden(evidence.Base.Bytes.AsSpan(targetStart + DlmLength, RecordStride - DlmLength).ToArray(),
+            evidence.Expected.Bytes.AsSpan(targetStart + DlmLength, RecordStride - DlmLength).ToArray(), "firmware image");
         }
 
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
@@ -117,9 +116,9 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(evidence.Expected.Bytes, output);
+        GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, output, GoldenDiagnostics.Label(CaseId));
         AssertDlmMapsAndNfMatchesBase(evidence, evidence.Expected.Bytes, output);
     }
 
@@ -197,7 +196,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             processor,
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
     }
 
@@ -281,7 +280,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             replacementBackupStart: 0x32000,
             preserveExistingMarker: false);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement issue = Assert.Single(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -298,7 +297,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             replacementBackupStart: 0x30000,
             preserveExistingMarker: false);
 
-        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.False(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Contains(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -314,7 +313,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             replacementBackupStart: 0x32000,
             preserveExistingMarker: true);
 
-        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.False(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Contains(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -330,7 +329,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             replacementBackupStart: null,
             preserveExistingMarker: false);
 
-        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.False(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Contains(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -359,7 +358,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             new UnauthorizedMutationProcessor(mutationOffset),
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.False(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement issue = Assert.Single(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -394,7 +393,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(historical.Succeeded, CompositionRunReportJson.Serialize(historical));
+        Assert.True(historical.Succeeded, $"Composition result: status={historical.Status}, succeeded={historical.Succeeded}.");
         byte[] rejected = File.ReadAllBytes(outputPath);
 
         Assert.Equal(evidence.KnownBadSize, rejected.LongLength);
@@ -474,12 +473,10 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         {
             int sourceOffset = record * RecordStride;
             int targetStart = DiffStart + sourceOffset;
-            Assert.Equal(
-                evidence.DiffDlm.Bytes.AsSpan(sourceOffset, DlmLength).ToArray(),
-                output.Slice(targetStart, DlmLength).ToArray());
-            Assert.Equal(
-                expectedNfBase.Slice(targetStart + DlmLength, RecordStride - DlmLength).ToArray(),
-                output.Slice(targetStart + DlmLength, RecordStride - DlmLength).ToArray());
+            GoldenAssert.AssertEqualsGolden(evidence.DiffDlm.Bytes.AsSpan(sourceOffset, DlmLength).ToArray(),
+            output.Slice(targetStart, DlmLength).ToArray(), "firmware image");
+            GoldenAssert.AssertEqualsGolden(expectedNfBase.Slice(targetStart + DlmLength, RecordStride - DlmLength).ToArray(),
+            output.Slice(targetStart + DlmLength, RecordStride - DlmLength).ToArray(), "firmware image");
         }
     }
 

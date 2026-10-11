@@ -73,13 +73,12 @@ public sealed partial class MergeWorkflowTests
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
-        Assert.Equal(
-            File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(expectedArtifact)),
-            File.ReadAllBytes(outputPath));
-        Assert.Equal(originalDp, File.ReadAllBytes(selectedDpPath));
-        Assert.Equal(originalTp, File.ReadAllBytes(selectedTpPath));
-        Assert.Equal(originalDp, File.ReadAllBytes(canonicalDpPath));
-        Assert.Equal(originalTp, File.ReadAllBytes(canonicalTpAPath));
+        GoldenAssert.AssertEqualsGolden(File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(expectedArtifact)),
+            File.ReadAllBytes(outputPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalDp, File.ReadAllBytes(selectedDpPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalTp, File.ReadAllBytes(selectedTpPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalDp, File.ReadAllBytes(canonicalDpPath), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalTp, File.ReadAllBytes(canonicalTpAPath), "firmware image");
         using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         Assert.Equal("NT51929", report.RootElement.GetProperty("IcId").GetString());
         Assert.Equal("nt51929-ab-merge", report.RootElement.GetProperty("ProfileId").GetString());

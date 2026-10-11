@@ -29,14 +29,14 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         Assert.False(discovery.Slots.Single(static slot =>
             slot.SlotId == CompositionAddressSpaceIds.TpInput).CanSelect);
         AuthoringSessionTransitionResult activated = session.Activate(discovery.Catalog);
-        Assert.True(activated.Succeeded, activated.Issue?.Message);
+        Assert.True(activated.Succeeded, "Golden assertion condition was not satisfied.");
         ReviewedDiscoveryTransition proof = Assert.IsType<ReviewedDiscoveryTransition>(
             Assert.Single(discovery.Catalog.Routes).DiscoveryTransition);
         Assert.Equal(3, proof.AllowedExactMembers.Count);
         AuthoringSlotInspectionStartResult started = session.BeginSlotFileInspection(
             CompositionAddressSpaceIds.DpInput,
             path);
-        Assert.True(started.Succeeded, started.Issue?.Message);
+        Assert.True(started.Succeeded, "Golden assertion condition was not satisfied.");
 
         FirmwareInspectionSnapshot inspection = Assert.Single(
             BuiltInFirmwareInspection.InspectFirmwareBatch(_host.Canonical,
@@ -61,7 +61,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
                 [status.SlotId] = status,
             });
 
-        Assert.True(completed.Succeeded, completed.Issue?.Message);
+        Assert.True(completed.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(completionRevision, completed.Snapshot!.AuthoringRevision);
         Assert.Equal(expectedMapVariant, completed.Snapshot.SelectedMapVariant);
         Assert.NotNull(completed.Snapshot.CompilationFingerprint);
@@ -200,7 +200,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
             {
                 [first.InputSlotStatus!.SlotId] = first.InputSlotStatus,
             });
-        Assert.True(firstCompletion.Succeeded, firstCompletion.Issue?.Message);
+        Assert.True(firstCompletion.Succeeded, "Golden assertion condition was not satisfied.");
 
         const string secondPath = "dp-512.bin";
         AuthoringSlotInspectionStartResult exactStart = session.BeginSlotFileInspection(

@@ -2,6 +2,8 @@ using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 public sealed partial class FirmwareFamilyResolutionNormalizerTests
@@ -32,13 +34,13 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal("format-scope", policy.ScopeId);
         Assert.Equal("common", policy.CommonFormatId);
         Assert.Equal("format-a", format.UniqueId);
-        Assert.Equal<byte>([0x41], format.DefaultRecognitionValues);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x41], (format.DefaultRecognitionValues).ToArray(), "firmware image");
         Assert.Equal(("NT00001", "format-a", "map"), (variant.MemberId, variant.FormatId, variant.MapId));
         Assert.Equal(("NT00001", "common", "map"), (common.MemberId, common.FormatId, common.MapId));
 
         IList<byte> recognitionValues = (IList<byte>)format.DefaultRecognitionValues;
         _ = Assert.Throws<NotSupportedException>(recognitionValues.Clear);
-        Assert.Equal<byte>([0x41], format.DefaultRecognitionValues);
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x41], (format.DefaultRecognitionValues).ToArray(), "firmware image");
     }
 
     /// <summary>Direct normalization must enforce the schema's nonempty variant requirement.</summary>

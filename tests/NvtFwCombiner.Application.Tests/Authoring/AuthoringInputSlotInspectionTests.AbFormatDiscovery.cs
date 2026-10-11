@@ -41,7 +41,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
             return;
         }
         AuthoringInputSlotStatus status = Create();
-        Assert.Null(status.AcceptedBytes);
+        Assert.True(status.AcceptedBytes is null, "Expected no accepted firmware content.");
         Assert.Null(status.CompilationFingerprint);
         Assert.Null(status.InspectionLifecycle);
         Assert.Equal(ResolvedChildReadiness.Blocked, status.Readiness);

@@ -106,7 +106,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.True(run.Succeeded, CompositionRunReportJson.Serialize(run));
+        Assert.True(run.Succeeded, $"Composition result: status={run.Status}, succeeded={run.Succeeded}.");
         var tokens = run.OutputNaming!.Tokens.ToDictionary(static token => token.TokenId);
         var acceptedHashes = new Dictionary<string, string>(StringComparer.Ordinal)
         {

@@ -34,7 +34,7 @@ internal static class GoldenTestHost
                 inputs);
         Assert.True(
             prepared.Succeeded,
-            string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         return await Services.CompositionExecution
             .ExecuteAsync(
                 new AcceptedCompositionExecutionRequest(

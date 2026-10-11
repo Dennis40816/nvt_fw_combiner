@@ -151,7 +151,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         Assert.True(build.Succeeded, Failure(runtimeCase, build));
         Assert.Same(capability, preview.ResolvedCapability);
         Assert.Same(capability, build.ResolvedCapability);
-        Assert.Equal(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray(), GoldenDiagnostics.Label(runtimeCase.CaseId));
         string computedOutputSha256 = Convert.ToHexStringLower(
             SHA256.HashData(preview.OutputBytes.Span));
         Assert.Equal(computedOutputSha256, preview.OutputSha256);
@@ -160,7 +160,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         Assert.Equal(build.OutputBytes.Length, build.OutputSize);
         Assert.Equal(preview.OutputSha256, build.OutputSha256);
         Assert.Equal(preview.OutputSize, build.OutputSize);
-        Assert.Equal(preview.OutputBytes.ToArray(), ReadInputBytes(outputPath));
+        GoldenAssert.AssertEqualsGolden(preview.OutputBytes.ToArray(), ReadInputBytes(outputPath), GoldenDiagnostics.Label(runtimeCase.CaseId));
         Assert.Equal(capability.CompiledComposition.CompilationFingerprint,
             preview.Report.CompilationFingerprint);
         Assert.Equal(preview.Report.CompilationFingerprint, build.Report.CompilationFingerprint);
@@ -247,7 +247,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
                 out FirmwareConfigMetadata metadata));
             if (runtimeCase.ExpectedFirmwareConfigChipCounts is { } expectedBySlot)
             {
-                Assert.Equal(expectedBySlot[slotId], metadata.ChipNumber);
+                GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[checked((byte)(expectedBySlot[slotId]))], [metadata.ChipNumber], "firmware image");
                 return;
             }
 
@@ -345,7 +345,7 @@ internal static class CanonicalFormalRouteRuntimeExecutor
             TestContext.Current.CancellationToken)).Succeeded);
         CapabilityCatalogReloadResult reload = host.Catalog.Reload(
             TestContext.Current.CancellationToken);
-        Assert.True(reload.Succeeded, string.Join("; ", reload.Issues.Select(static issue => issue.Message)));
+        Assert.True(reload.Succeeded, "Golden assertion condition was not satisfied.");
         IEventBufferFormatConfigurationSession configuration =
             await host.GetEventBufferFormatConfigurationAsync(TestContext.Current.CancellationToken);
         Assert.True((await configuration.SaveAsync(
@@ -468,17 +468,17 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         CanonicalFormalRouteRuntimeCase runtimeCase,
         IEnumerable<CompositionIssue> issues)
     {
-        return $"{runtimeCase.CaseId}{Environment.NewLine}" +
+        return $"{GoldenDiagnostics.Label(runtimeCase.CaseId)}{Environment.NewLine}" +
             string.Join(Environment.NewLine, issues.Select(static issue =>
-                $"{issue.Code}: {issue.Message}"));
+                issue.Code.ToString()));
     }
 
     private static string Failure(
         CanonicalFormalRouteRuntimeCase runtimeCase,
         CompositionRunResult result)
     {
-        return $"{runtimeCase.CaseId}{Environment.NewLine}" +
-            CompositionRunReportJson.Serialize(result);
+        return $"{GoldenDiagnostics.Label(runtimeCase.CaseId)}{Environment.NewLine}" +
+            $"status={result.Status}, succeeded={result.Succeeded}, issues={result.Report.Issues.Count}.";
     }
 
     private static byte[] ReadInputBytes(string path)

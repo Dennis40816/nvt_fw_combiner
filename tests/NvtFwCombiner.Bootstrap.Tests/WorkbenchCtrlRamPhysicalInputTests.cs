@@ -173,7 +173,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             externalProcessor: processor,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
     }
 
     /// <summary>A zero chip count is warning-only when the selected route does not consume IC Count.</summary>
@@ -205,9 +205,9 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             externalProcessor: processor,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement issue = Assert.Single(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
@@ -247,7 +247,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
 
         Assert.Null(snapshot);
         Assert.Equal(0, processor.CallCount);
-        Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertEqualsGolden(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
         CompositionIssue issue = Assert.Single(issues);
         Assert.Equal(CompositionPlanningIssueCodes.ReplaceCtrlRamIcNumberMismatch, issue.Code);
         Assert.Contains("Selected Number is 1 IC", issue.Message, StringComparison.Ordinal);
@@ -290,9 +290,8 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         int firmwareStart,
         int length)
     {
-        Assert.Equal(
-            sourceBytes[sourceOffset..(sourceOffset + length)],
-            request.InputBytes.Slice(firmwareStart, length).ToArray());
+        GoldenAssert.AssertEqualsGolden(sourceBytes[sourceOffset..(sourceOffset + length)],
+            request.InputBytes.Slice(firmwareStart, length).ToArray(), "firmware image");
     }
 
     private static string Nt51927ThreeChipBasePath()

@@ -294,7 +294,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(invalidConfig, slot.BlocksBuild);
         if (invalidConfig)
         {
-            Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes);
+            Assert.True(slot.CurrentInspectionProjection!.InputSlotStatus?.AcceptedBytes is null, "Expected no accepted firmware content.");
             Assert.Null(slot.InputInspectionSeverity);
             Assert.Equal("AB_FORMAT_CONFIGURATION_INVALID", Assert.Single(viewModel.Merge.BuildAvailability.Blockers).Code);
         }
@@ -340,7 +340,7 @@ public sealed partial class ShellNavigationSystemTests
         {
             Assert.True(slot.BlocksBuild);
             Assert.Null(slot.InputInspectionSeverity);
-            Assert.Null(slot.CurrentInspectionProjection!.InputSlotStatus!.AcceptedBytes);
+            Assert.True(slot.CurrentInspectionProjection!.InputSlotStatus!.AcceptedBytes is null, "Expected no accepted firmware content.");
             Assert.NotNull(slot.CurrentInspectionProjection.InputSlotStatus.CapturedSource);
         }
         viewModel.SelectedLanguage = "Traditional Chinese";

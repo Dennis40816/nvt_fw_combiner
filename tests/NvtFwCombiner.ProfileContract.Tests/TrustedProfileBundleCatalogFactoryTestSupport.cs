@@ -102,12 +102,10 @@ internal static class TrustedProfileBundleCatalogFactoryTestSupport
             inputs,
             out V2CompositionPreparationService.PreparedCompilation? preparation,
             out _,
-            out IReadOnlyList<CompositionIssue> issues);
+            out _);
         Assert.True(
             admitted,
-            string.Join(
-                Environment.NewLine,
-                issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            "Golden assertion condition was not satisfied.");
         return new PreparedProfile(
             Assert.IsType<V2CompositionPreparationService.PreparedCompilation>(preparation));
     }
@@ -790,7 +788,7 @@ internal static class TrustedProfileBundleCatalogFactoryTestSupport
         Assert.Equal(expected.TargetRange, actual.TargetRange);
         Assert.Equal(expected.OverlapPolicy, actual.OverlapPolicy);
         Assert.Equal(expected.FillByte, actual.FillByte);
-        Assert.Equal(expected.PatchBytes.ToArray(), actual.PatchBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden(expected.PatchBytes.ToArray(), actual.PatchBytes.ToArray(), "firmware image");
         Assert.Equal(expected.Reason, actual.Reason);
         Assert.Equal(expected.Provenance, actual.Provenance);
         Assert.Equal(expected.ScalarTransform is null, actual.ScalarTransform is null);

@@ -28,7 +28,7 @@ public sealed class MemoryContentSourceProjectionTests
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
             [.. paths.Select(pair => new CompiledAuthoringSelectedInput(pair.Key, pair.Value, File.ReadAllBytes(pair.Value)))],
             AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
-        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(issue => issue.Message)));
+        Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot session = prepared.Snapshot!;
         ResolvedCapability capability = session.ExactCapability!;
         MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(capability, session, capability.CompiledComposition);

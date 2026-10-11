@@ -73,9 +73,9 @@ public sealed partial class AbMergeGoldenRegressionTests
             }, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Issues);
-        Assert.Equal(expected, result.OutputBytes.ToArray());
-        Assert.Equal(originalA, tpA);
-        Assert.Equal(originalB, tpB);
+        GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalA, tpA, "firmware image");
+        GoldenAssert.AssertEqualsGolden(originalB, tpB, "firmware image");
         Assert.NotNull(postbuild);
         Assert.True(postbuild.Succeeded);
         Assert.Equal([new ByteRange(bankOffset + 0xA102, 1), new ByteRange(bankOffset + 0xA112, 1), new ByteRange(bankOffset + 0xA130, 4)],

@@ -1,6 +1,8 @@
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Locks exact writer custody and fail-closed recovery execution.</summary>
@@ -52,12 +54,14 @@ public sealed partial class ManagedSetupRecoveryMutationGuardTests
             outcome == ManagedSetupRecoveryExecutionPortOutcome.Completed,
             $"Outcome {outcome}; deletes {deletes}; marker {File.Exists(FileSystemManagedInstallationRootProbe.GetTransactionMarkerPath(fixture.ManagedRoot))}");
         Assert.Equal(rootProof, DirectoryProof(fixture.ManagedRoot));
-        Assert.Equal(appBytes, await File.ReadAllBytesAsync(
+        GoldenAssert.AssertEqualsGolden(appBytes,
+            await File.ReadAllBytesAsync(
             fixture.Transaction.StatePathIdentity,
-            TestContext.Current.CancellationToken));
-        Assert.Equal(launcherBytes, await File.ReadAllBytesAsync(
+            TestContext.Current.CancellationToken), "firmware image");
+        GoldenAssert.AssertEqualsGolden(launcherBytes,
+            await File.ReadAllBytesAsync(
             launcherState,
-            TestContext.Current.CancellationToken));
+            TestContext.Current.CancellationToken), "firmware image");
         Assert.False(File.Exists(FileSystemManagedInstallationRootProbe
             .GetTransactionMarkerPath(fixture.ManagedRoot)));
     }

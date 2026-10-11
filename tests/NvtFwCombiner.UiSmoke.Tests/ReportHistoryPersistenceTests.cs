@@ -201,7 +201,7 @@ public sealed class ReportHistoryPersistenceTests
         ReportHistorySnapshot loaded = Assert.Single(ReportHistoryTestStore.Load(historyPath));
         long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
 
-        Assert.Equal(reportJson, loaded.ReportJson);
+        Assert.True(StringComparer.Ordinal.Equals(reportJson, loaded.ReportJson), "Captured text differs from the expected text.");
         Assert.InRange(allocatedBytes, 0, reportCharacterCount * 3L);
     }
 
@@ -282,7 +282,7 @@ public sealed class ReportHistoryPersistenceTests
             _ => Task.FromResult(persisted),
             TestContext.Current.CancellationToken)).Outcome);
         ReportHistoryEntryViewModel restored = Assert.Single(restoredViewModel.Reports.ReportHistoryEntries);
-        Assert.Equal(reportJson, restored.ReportJson);
+        Assert.True(StringComparer.Ordinal.Equals(reportJson, restored.ReportJson), "Captured text differs from the expected text.");
         Assert.Equal(
             Assert.Single(expectedViewModel.Reports.ExportReportHistory()).Metadata,
             Assert.Single(restoredViewModel.Reports.ExportReportHistory()).Metadata);

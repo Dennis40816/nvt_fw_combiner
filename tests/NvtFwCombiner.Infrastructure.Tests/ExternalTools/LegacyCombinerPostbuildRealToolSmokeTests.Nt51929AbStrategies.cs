@@ -35,7 +35,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             Convert.ToHexString(SHA256.HashData(aInput)).ToLowerInvariant());
         byte[] bInput = ShiftNt51929StoredAddresses(aInput, 0x40000);
         byte[] normalizedInput = ShiftNt51929StoredAddresses(bInput, -0x40000);
-        Assert.Equal(aInput, normalizedInput);
+        GoldenAssert.AssertEqualsGolden(aInput, normalizedInput, "firmware image");
 
         Assert.True(LegacyCombinerPostbuildCatalog.TryGetDefaultProfile("NT51929", out LegacyCombinerPostbuildProfile? profile));
         var selection = new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]);
@@ -76,7 +76,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
                 name, profile.ProcessorId, profile.ToolBindingId, input, allowedWrites, selection,
                 [new ExternalProcessorStagedSource(region.Range, replacement)],
                 protocolPlan: plan.ProtocolPlan), CancellationToken.None);
-            Assert.Equal(before, input);
+            GoldenAssert.AssertEqualsGolden(before, input, "firmware image");
             if (result.Succeeded)
             {
                 File.WriteAllBytes(Path.Combine(evidenceRoot, name + "-output.bin"), result.OutputBytes.ToArray());
@@ -138,18 +138,18 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         }, Nt51929EvidenceJsonOptions));
 
         // These establish the experiment's valid control, not the correctness of a B strategy.
-        Assert.True(a.Succeeded, string.Join("; ", a.Issues.Select(issue => issue.Message)));
-        Assert.True(normalized.Succeeded, string.Join("; ", normalized.Issues.Select(issue => issue.Message)));
+        Assert.True(a.Succeeded, "Golden assertion condition was not satisfied.");
+        Assert.True(normalized.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(aInput.Length, a.OutputBytes.Length);
-        Assert.Equal(replacement[0], a.OutputBytes.Span[(int)region.Range.Start]);
-        Assert.Equal(a.OutputBytes.ToArray(), normalized.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[replacement[0]], [a.OutputBytes.Span[(int)region.Range.Start]], "firmware image");
+        GoldenAssert.AssertEqualsGolden(a.OutputBytes.ToArray(), normalized.OutputBytes.ToArray(), "firmware image");
         if (direct.Succeeded)
         {
             Assert.Equal(bInput.Length, direct.OutputBytes.Length);
-            Assert.Equal(replacement[0], direct.OutputBytes.Span[(int)region.Range.Start]);
+            GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[replacement[0]], [direct.OutputBytes.Span[(int)region.Range.Start]], "firmware image");
         }
 
-        Assert.Equal(reference[..0x40000], aInput);
+        GoldenAssert.AssertEqualsGolden(reference[..0x40000], aInput, "firmware image");
     }
 
     private static byte[] ShiftNt51929StoredAddresses(byte[] input, int delta)

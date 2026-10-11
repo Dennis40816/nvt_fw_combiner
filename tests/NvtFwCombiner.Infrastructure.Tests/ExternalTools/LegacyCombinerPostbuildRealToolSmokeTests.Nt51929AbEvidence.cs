@@ -88,6 +88,6 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
     private static void AssertSameBytes(byte[] left, byte[] right, int start, int length)
     {
-        Assert.True(left.AsSpan(start, length).SequenceEqual(right.AsSpan(start, length)));
+        GoldenAssert.AssertEqualsGolden(left.AsSpan(start, length), right.AsSpan(start, length), "firmware image");
     }
 }

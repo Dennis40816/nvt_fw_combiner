@@ -54,7 +54,7 @@ public sealed class CanonicalInputReadFailureRegressionTests
             ]);
         Assert.True(
             prepared.Succeeded,
-            string.Join(Environment.NewLine, prepared.Issues.Select(static issue => issue.Message)));
+            "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot acceptedSession = Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot);
         ResolvedCapability acceptedCapability = Assert.IsType<ResolvedCapability>(acceptedSession.ExactCapability);
         Assert.Same(compiled, acceptedCapability.CompiledComposition);
@@ -114,8 +114,8 @@ public sealed class CanonicalInputReadFailureRegressionTests
         Assert.Equal([dpArtifactId, tpArtifactId], reader.ReadArtifactIds);
 
         string reportJson = CompositionRunReportJson.Serialize(result);
-        Assert.Contains("ui-issue-card-injected-io", reportJson, StringComparison.Ordinal);
-        Assert.DoesNotContain(@"D:\\", reportJson, StringComparison.OrdinalIgnoreCase);
+        Assert.True(GoldenDiagnostics.Contains("ui-issue-card-injected-io", reportJson, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
+        Assert.True(!GoldenDiagnostics.Contains(@"D:\\", reportJson, StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
         string? outputPath = Environment.GetEnvironmentVariable(ExportPathEnvironmentVariable);
         if (!string.IsNullOrWhiteSpace(outputPath))
         {
@@ -133,9 +133,9 @@ public sealed class CanonicalInputReadFailureRegressionTests
                 expectedOutputPath,
                 reportJson,
                 TestContext.Current.CancellationToken);
-            Assert.Equal(reportJson, await File.ReadAllTextAsync(
+            Assert.True(StringComparer.Ordinal.Equals(reportJson, await File.ReadAllTextAsync(
                 expectedOutputPath,
-                TestContext.Current.CancellationToken));
+                TestContext.Current.CancellationToken)), "Captured text differs from the expected text.");
         }
     }
 

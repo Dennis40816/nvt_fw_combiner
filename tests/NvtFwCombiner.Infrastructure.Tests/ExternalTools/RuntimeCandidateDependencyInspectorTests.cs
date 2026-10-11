@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using System.Buffers.Binary;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 /// <summary>Dependency observations reject malformed images without loading native code.</summary>
@@ -32,7 +34,7 @@ public sealed class RuntimeCandidateDependencyInspectorTests
         }
         byte[] before = (byte[])runtime.Clone();
         Assert.Null(RuntimeCandidateDependencyInspector.Check([.. executable], [.. runtime]));
-        Assert.Equal(before, runtime);
+        GoldenAssert.AssertEqualsGolden(before, runtime, "firmware image");
     }
 
     /// <summary>Absent, forwarded or unmapped required functions are never compatible.</summary>

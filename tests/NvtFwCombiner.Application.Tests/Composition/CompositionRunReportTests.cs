@@ -3,6 +3,8 @@ using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using System.Text.Json;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Composition;
 
 /// <summary>Locks the typed run report as an immutable client projection.</summary>
@@ -184,11 +186,11 @@ public sealed class CompositionRunReportTests
         JsonElement hydratedDiagnostic = document.RootElement.GetProperty("InputDiagnostics")[0];
         Assert.Equal(1, hydratedDiagnostic.GetProperty("IssueIndex").GetInt32());
         JsonElement hydratedEvidence = hydratedDiagnostic.GetProperty("Evidence");
-        Assert.Equal(0xA5, hydratedEvidence.GetProperty("RepeatedByte").GetByte());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA5], [hydratedEvidence.GetProperty("RepeatedByte").GetByte()], "firmware image");
         JsonElement hydratedRange = hydratedEvidence.GetProperty("SourceRange");
         Assert.Equal(4, hydratedRange.GetProperty("Start").GetInt64());
         Assert.Equal(2, hydratedRange.GetProperty("Length").GetInt64());
-        Assert.DoesNotContain("\"InputDiagnostics\"", JsonSerializer.Serialize(CreateReport(null)), StringComparison.Ordinal);
+        Assert.True(!GoldenDiagnostics.Contains("\"InputDiagnostics\"", JsonSerializer.Serialize(CreateReport(null)), StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new InputDiagnosticEvidence(
             "dp-input", null, null, default(ByteRange), null));
         _ = Assert.Throws<ArgumentException>(() => new CompositionRunReport(

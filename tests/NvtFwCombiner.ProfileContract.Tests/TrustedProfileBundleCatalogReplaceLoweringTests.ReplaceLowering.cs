@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests trusted profile bundle catalog reference replace lowering.</summary>
@@ -108,9 +110,8 @@ public sealed partial class TrustedProfileBundleCatalogReplaceLoweringTests
             }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, success.Status);
-        Assert.Equal(
-            [0xA0, 0xB0, 0x00, 0x00, .. Enumerable.Repeat((byte)0xCC, 12)],
-            success.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xA0, 0xB0, 0x00, 0x00, .. Enumerable.Repeat((byte)0xCC, 12)],
+            success.OutputBytes.ToArray(), "firmware image");
         CompositionExecutionResult oversized = CompositionEngine.Execute(
             composition.Plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>
@@ -265,9 +266,8 @@ public sealed partial class TrustedProfileBundleCatalogReplaceLoweringTests
             }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
-        Assert.Equal(
-            [0x10, 0x11, 0x12, 0x13, 0xA4, 0xA5, 0xA6, 0xA7, .. Enumerable.Repeat((byte)0xCC, 8)],
-            execution.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x11, 0x12, 0x13, 0xA4, 0xA5, 0xA6, 0xA7, .. Enumerable.Repeat((byte)0xCC, 8)],
+            execution.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies the closed DP operation shape lowers independently of its trusted workflow identity.</summary>
@@ -369,7 +369,7 @@ public sealed partial class TrustedProfileBundleCatalogReplaceLoweringTests
             }));
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
-        Assert.Equal([.. Enumerable.Repeat((byte)0xCC, 16)], execution.OutputBytes.ToArray());
+        GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[.. Enumerable.Repeat((byte)0xCC, 16)], execution.OutputBytes.ToArray(), "firmware image");
     }
 
     /// <summary>Verifies reference restore cannot relocate bytes from one reference offset into another output offset.</summary>

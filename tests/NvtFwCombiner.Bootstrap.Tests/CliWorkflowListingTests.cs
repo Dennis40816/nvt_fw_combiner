@@ -1,5 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>CLI discovery projects only current public workflow choices without input files.</summary>
@@ -12,7 +14,7 @@ public sealed class CliWorkflowListingTests
         CliRunResult result = await RunAsync(["list"]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
         Assert.Equal(["ab-merge", "ctrlram-replace", "standard-merge"], Lines(result.Output));
     }
 
@@ -23,7 +25,7 @@ public sealed class CliWorkflowListingTests
         CliRunResult result = await RunAsync(["list", "--workflow", "standard-merge"]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
         Assert.Equal(
             ["profile=NT51917", "profile=NT51919", "profile=NT51923", "profile=NT51926", "profile=NT51927",
                 "profile=NT51928", "profile=NT51929", "profile=NT51932", "profile=NT51950", "profile=NT51951"],
@@ -37,7 +39,7 @@ public sealed class CliWorkflowListingTests
         CliRunResult result = await RunAsync(["list", "--workflow", "ab-merge", "--profile", "51950"]);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
         Assert.Equal(["profile=NT51950 ab-topology=cascade", "profile=NT51950 ab-topology=single"], Lines(result.Output));
     }
 
@@ -50,7 +52,7 @@ public sealed class CliWorkflowListingTests
         string[] lines = Lines(result.Output);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
         Assert.NotEmpty(lines);
         var expected = new List<string>();
         CapabilitySelectorPublication selector = host.CompositionCapabilityExperience.GetSelectorPublication();
@@ -84,7 +86,7 @@ public sealed class CliWorkflowListingTests
         string[] lines = Lines(result.Output);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
         Assert.Equal("profile=NT51927 ic-num=2", lines[0]);
         Assert.True(lines.Length > 1);
         Assert.All(lines[1..], static line => Assert.StartsWith("profile=NT51927 ic-num=2 slot=", line, StringComparison.Ordinal));
@@ -107,8 +109,8 @@ public sealed class CliWorkflowListingTests
         CliRunResult result = await RunAsync(["list", .. options]);
 
         Assert.Equal(64, result.ExitCode);
-        Assert.Empty(result.Output);
-        Assert.StartsWith("error:", result.Error, StringComparison.Ordinal);
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(GoldenDiagnostics.StartsWith("error:", result.Error, StringComparison.Ordinal), "Captured text did not match the expected boundary check.");
     }
 
     /// <summary>The public command dispatches discovery without firmware arguments or execution.</summary>
@@ -119,7 +121,7 @@ public sealed class CliWorkflowListingTests
             ["workflows", "list"], TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
-        Assert.Empty(result.Error);
+        Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
         Assert.Equal(["ab-merge", "ctrlram-replace", "standard-merge"], Lines(result.Output));
     }
 
@@ -132,8 +134,8 @@ public sealed class CliWorkflowListingTests
         CliRunResult result = await RunAsync(["list", "--workflow", "ab-merge", "--profile", profile]);
 
         Assert.Equal(expectedExit, result.ExitCode);
-        Assert.Empty(result.Output);
-        Assert.Contains(message, result.Error, StringComparison.Ordinal);
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(GoldenDiagnostics.Contains(message, result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
     }
 
     /// <summary>A well-formed count absent from the declared catalog is a composition refusal, without partial output.</summary>
@@ -148,8 +150,8 @@ public sealed class CliWorkflowListingTests
         CliRunResult result = await RunAsync(["list", "--workflow", workflow, .. selection, "--ic-num", number]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Empty(result.Output);
-        Assert.Equal($"error: unknown {workflow} IC count '{number}'" + Environment.NewLine, result.Error);
+        Assert.True((result.Output).Length == 0, "Captured text has an unexpected length.");
+        Assert.True(StringComparer.Ordinal.Equals($"error: unknown {workflow} IC count '{number}'" + Environment.NewLine, result.Error), "Captured text differs from the expected text.");
     }
 
     private static async Task<CliRunResult> RunAsync(string[] args)

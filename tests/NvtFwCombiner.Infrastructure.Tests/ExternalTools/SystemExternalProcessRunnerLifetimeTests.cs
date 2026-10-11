@@ -577,7 +577,7 @@ public sealed class SystemExternalProcessRunnerLifetimeTests
             Assert.Equal(0, result.ExitCode);
             Assert.Equal(ExternalProcessCleanup.OutputStreamHeldOpen, result.Cleanup);
             Assert.True(phases.HasReached(ExternalProcessRunnerPhase.ReaderStopRequested));
-            Assert.Contains("before-reader-stop\r\n", result.StandardOutput, StringComparison.Ordinal);
+            Assert.True(GoldenDiagnostics.Contains("before-reader-stop\r\n", result.StandardOutput, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
             Assert.False(phases.HasReached(ExternalProcessRunnerPhase.Detached));
             Assert.True(phases.HasReached(ExternalProcessRunnerPhase.ResourcesReleased));
             Assert.Equal(0, capacity.InUse);
