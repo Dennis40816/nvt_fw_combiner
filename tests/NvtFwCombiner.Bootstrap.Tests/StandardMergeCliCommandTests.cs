@@ -76,8 +76,8 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.Equal(70, exitCode);
         Assert.Equal(1, capturedCalls);
-        Assert.Contains("test.captured-dp-dispatched", error.ToString(), StringComparison.Ordinal);
-        Assert.DoesNotContain("not-read-yet-tp.bin", error.ToString(), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("test.captured-dp-dispatched", error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
+        Assert.False(GoldenDiagnostics.Contains("not-read-yet-tp.bin", error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
     }
 
     /// <summary>Test-only interface decorator that intercepts one declared host method.</summary>
@@ -144,7 +144,7 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0, result.ExitCode);
         Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(GoldenDiagnostics.Contains("Report:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+        using var document = JsonDocument.Parse(await GoldenFileIo.ReadAllTextAsync(
             report,
             TestContext.Current.CancellationToken));
         JsonElement root = document.RootElement;
@@ -188,12 +188,12 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.True(File.Exists(outputPath));
-        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] output = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, output.Length);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x22], [output[0]], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [output[0x3E000]], "firmware image");
         using JsonDocument report = JsonDocument.Parse(
-            await File.ReadAllTextAsync(
+            await GoldenFileIo.ReadAllTextAsync(
                 reportPath,
                 TestContext.Current.CancellationToken));
         JsonElement naming = report.RootElement.GetProperty("OutputNaming");
@@ -250,7 +250,7 @@ public sealed class StandardMergeCliCommandTests
             Assert.True(GoldenDiagnostics.Contains($"Output: {expectedFileName}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
             Assert.True(File.Exists(expectedPath));
             using JsonDocument report = JsonDocument.Parse(
-                await File.ReadAllTextAsync(
+                await GoldenFileIo.ReadAllTextAsync(
                     reportPath,
                     TestContext.Current.CancellationToken));
             JsonElement root = report.RootElement;
@@ -299,7 +299,7 @@ public sealed class StandardMergeCliCommandTests
         Assert.True(BootstrapTestHost.Services.StandardMergeAuthoring.IsSupported("NT51929"));
         Assert.Equal(0, result.ExitCode);
         Assert.True(File.Exists(outputPath));
-        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] output = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, output.Length);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [output[0]], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x22], [output[0x7000]], "firmware image");
@@ -338,7 +338,7 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal(0, result.ExitCode);
         Assert.True(!GoldenDiagnostics.Contains("Issues:", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(File.Exists(outputPath));
-        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] output = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, output.Length);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x22], [output[0]], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [output[0x3C000]], "firmware image");
@@ -379,7 +379,7 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.True(File.Exists(outputPath));
-        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] output = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x80000, output.Length);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x22], [output[0]], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x11], [output[0x3C000]], "firmware image");
@@ -486,8 +486,8 @@ public sealed class StandardMergeCliCommandTests
         ]);
 
         Assert.Equal(70, unreadable.ExitCode);
-        Assert.Contains("input.artifact.read-failed [dp-input]", unreadable.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Selected DP BIN path does not exist", unreadable.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("input.artifact.read-failed [dp-input]", unreadable.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(unreadable.Error));
+        Assert.False(GoldenDiagnostics.Contains("Selected DP BIN path does not exist", unreadable.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(unreadable.Error));
     }
 
     /// <summary>Workbench DP Perspective runs surface the same stable missing-input issue as the CLI.</summary>
@@ -685,8 +685,8 @@ public sealed class StandardMergeCliCommandTests
         Assert.True(GoldenDiagnostics.Contains("Profile: nt51950-standard-merge-dp-perspective (NT51950)", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(GoldenDiagnostics.Contains("Size: 262144 bytes", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(!GoldenDiagnostics.Contains("Issues:", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        byte[] actual = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
-        byte[] expected = await File.ReadAllBytesAsync(golden.ExpectedPath, TestContext.Current.CancellationToken);
+        byte[] actual = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] expected = await GoldenFileIo.ReadAllBytesAsync(golden.ExpectedPath, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, actual.Length);
         GoldenAssert.AssertEqualsGolden(expected, actual, "firmware image");
     }
@@ -718,11 +718,11 @@ public sealed class StandardMergeCliCommandTests
 
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         Assert.True(GoldenDiagnostics.Contains("DP_NONSTANDARD_SIZE_WARNING", result.Error, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        byte[] actual = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] actual = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         byte[] expected = (byte[])dp.Clone();
         tp.AsSpan(0xA000, 0x2D000).CopyTo(expected.AsSpan(0xA000));
         GoldenAssert.AssertEqualsGolden(expected, actual, "firmware image");
-        using JsonDocument report = JsonDocument.Parse(await File.ReadAllTextAsync(
+        using JsonDocument report = JsonDocument.Parse(await GoldenFileIo.ReadAllTextAsync(
             reportPath, TestContext.Current.CancellationToken));
         JsonElement envelope = report.RootElement.GetProperty("SourceEnvelope");
         Assert.Equal(dpLength, envelope.GetProperty("ActualOutputLength").GetInt64());

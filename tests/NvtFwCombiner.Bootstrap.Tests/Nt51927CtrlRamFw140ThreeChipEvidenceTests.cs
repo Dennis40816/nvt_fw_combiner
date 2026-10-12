@@ -70,15 +70,15 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         }
 
         OwnerCase ownerCase = ReadOwnerCase();
-        Assert.Equal(
-            "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c",
-            Hash(ownerCase.Base.Bytes));
+        GoldenAssert.AssertHashEqualsGolden("bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c", Hash(ownerCase.Base.Bytes), "SHA-256"
+
+);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
             ownerCase.Base.Bytes,
             out FirmwareConfigMetadata metadata));
         Assert.Equal("1.4.0", metadata.CommonFwVersion);
         Assert.Equal(3, metadata.ChipNumber);
-        Assert.Equal(0x570A, metadata.ProjectId);
+        GoldenAssert.AssertValueEqualsGolden(0x570A, metadata.ProjectId, "firmware field");
 
         var immutableHashes = ownerCase.Artifacts.ToDictionary(
             static artifact => artifact.Path,
@@ -97,9 +97,9 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
             v2OutputPath);
 
         Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
-        byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
+        byte[] v2Bytes = GoldenFileIo.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "dc1ee8928977845fad334b75c60b3e7fa3989f0a7e177206f83104217bf3fe16";
-        Assert.Equal(outputSha256, Hash(v2Bytes));
+        GoldenAssert.AssertHashEqualsGolden(outputSha256, Hash(v2Bytes), "SHA-256");
         AssertExactBaseDelta(ownerCase.Base.Bytes, v2Bytes);
 
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
@@ -119,7 +119,7 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         Assert.All(differences, difference => Assert.True(difference.GetProperty("IsAccepted").GetBoolean()));
         Assert.All(
             ownerCase.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     /// <summary>NT51917/NT51927 aliases retain the requested three-chip route across non-authoritative metadata.</summary>
@@ -178,10 +178,10 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
                 $"{icId.ToLowerInvariant()}-ctrlram-replace-fw140-threechip",
                 icId);
         }
-        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(Hash(reference), Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
         Assert.All(
             ownerCase.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     private static bool IsPostbuildCrc(JsonElement difference)
@@ -357,9 +357,9 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
     private static OwnerArtifact ReadArtifact(JsonElement document, string? slotId)
     {
         string path = RepositoryPaths.ManifestPath(GoldenRoot, document);
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(path);
         Assert.Equal(document.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(document.GetProperty("sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(document.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
         return new OwnerArtifact(slotId, path, bytes);
     }
 

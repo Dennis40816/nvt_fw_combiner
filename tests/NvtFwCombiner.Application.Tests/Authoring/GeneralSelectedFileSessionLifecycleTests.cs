@@ -4,6 +4,8 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Verifies explicit selected-file inspection/rebind session transitions.</summary>
@@ -366,7 +368,7 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
 
         Assert.True(changed.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(acceptedRevision.Next(), changed.Snapshot!.AuthoringRevision);
-        Assert.Equal(secondRoute.CompilationFingerprint, changed.Snapshot.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(secondRoute.CompilationFingerprint, changed.Snapshot.CompilationFingerprint, "SHA-256");
         Assert.Equal(AuthoringSlotLifecycle.Selected, changed.Snapshot.Slots.Single(
             static slot => slot.DefinitionId == "dp-input").Lifecycle);
         Assert.Equal(AuthoringSlotLifecycle.Empty, changed.Snapshot.Slots.Single(

@@ -136,26 +136,26 @@ public sealed class StandardMergeWorkbenchGoldenTests
         Assert.Equal(
             $"NT51929_FlashCode_D2004T0100_{resolvedAtUtc:yyyyMMdd}.bin",
             result.OutputFileName);
-        Assert.Equal(
-            "3d7670f4641f1a63bb4a2dbac0444ecf6dd09e4a32501cb5cb77464752fda734",
-            root.GetProperty("CompilationFingerprint").GetString());
+        GoldenAssert.AssertHashEqualsGolden("3d7670f4641f1a63bb4a2dbac0444ecf6dd09e4a32501cb5cb77464752fda734", root.GetProperty("CompilationFingerprint").GetString(), "SHA-256"
+
+);
         Assert.Equal(
             ["dp-input", "tp-input"],
             inputs.Select(input => input.GetProperty("AddressSpaceId").GetString()));
-        Assert.Equal(
-            [
+        GoldenAssert.AssertHashSequenceEqualsGolden([
                 "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095",
                 "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458",
-            ],
-            inputs.Select(input => input.GetProperty("Sha256").GetString()));
+            ], inputs.Select(input => input.GetProperty("Sha256").GetString()), "SHA-256"
+
+);
         Assert.Equal(
             ["copy-tp", "copy-dp"],
             operations.Select(operation => operation.GetProperty("OperationId").GetString()));
         AssertOperation(operations[0], start: 0x7000, length: 0x39000);
         AssertOperation(operations[1], start: 0, length: 0x6000);
-        Assert.Equal(
-            "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e",
-            root.GetProperty("Output").GetProperty("Sha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden("fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e", root.GetProperty("Output").GetProperty("Sha256").GetString(), "SHA-256"
+
+);
     }
 
     private static void AssertOperation(

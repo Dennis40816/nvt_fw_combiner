@@ -62,7 +62,7 @@ internal sealed class StandardMergeGoldenManifest : IDisposable
 
     public byte[] ReadExpectedOutput(JsonElement goldenCase)
     {
-        return File.ReadAllBytes(ExpectedOutputPath(goldenCase));
+        return GoldenFileIo.ReadAllBytes(ExpectedOutputPath(goldenCase));
     }
 
     public void CopyInputFilesToMergeSlots(

@@ -99,7 +99,7 @@ public sealed partial class CtrlRamWorkflowTests
             artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
         JsonElement nfArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
-        byte[] validBase = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
+        byte[] validBase = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-invalid-capacity");
         string invalidBasePath = workspace.Write("tp-with-trailing-byte.bin", [.. validBase, 0x00]);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
@@ -137,13 +137,13 @@ public sealed partial class CtrlRamWorkflowTests
 
     /// <summary>A valid target-family base alone reports discovery without fabricating terminal verification.</summary>
     [Theory]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950")]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951")]
+    [MemberData(nameof(ValidBaseOnlyIsInspectedBeforeReplacementSelectionCases))]
+
     public async Task ValidBaseOnlyIsInspectedBeforeReplacementSelection(
-        string caseId,
+        GoldenCaseId caseId,
         string icId)
     {
-        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
         JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
         MainWindowViewModel viewModel = PresentationTestHost.CreateProductViewModel();
@@ -237,4 +237,11 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.True(replacement.BlocksBuild);
         Assert.False(viewModel.Replace.CanBuildReplace);
     }
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string> ValidBaseOnlyIsInspectedBeforeReplacementSelectionCases() => new()
+    {
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950" },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951" },
+    };
 }

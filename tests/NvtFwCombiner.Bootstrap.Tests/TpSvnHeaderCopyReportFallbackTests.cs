@@ -31,7 +31,7 @@ public sealed class TpSvnHeaderCopyReportFallbackTests
             return CanonicalGoldenTestData.ArtifactPath(CanonicalGoldenTestData.Artifact(goldenCase, artifactId));
         }
 
-        byte[] reference = File.ReadAllBytes(Path("tp-input"));
+        byte[] reference = GoldenFileIo.ReadAllBytes(Path("tp-input"));
         GoldenAssert.AssertEqualsGolden(Convert.FromHexString(Convert.ToHexString(reference, 0x24, 4)), Convert.FromHexString(Convert.ToHexString(reference, HeaderCopyStamp, 4)), GoldenDiagnostics.Label(CaseId));
         reference.AsSpan(HeaderCopyStamp, 4).Clear();
         using TempWorkspace workspace = TempWorkspace.Create("nfc-tp-svn-header-copy-report");

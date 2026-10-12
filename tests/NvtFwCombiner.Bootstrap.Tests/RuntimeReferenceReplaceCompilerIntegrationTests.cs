@@ -101,7 +101,7 @@ public sealed class RuntimeReferenceReplaceCompilerIntegrationTests
         GoldenAssert.AssertEqualsGolden(expected, preview.OutputBytes.ToArray(), "firmware image");
         GoldenAssert.AssertEqualsGolden(originalReference, reference, "firmware image");
         GoldenAssert.AssertEqualsGolden(originalSource, source, "firmware image");
-        Assert.Equal(composition.CompilationFingerprint, preview.Report.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(composition.CompilationFingerprint, preview.Report.CompilationFingerprint, "SHA-256");
         Assert.Equal(
             ["reference-base", "source-a"],
             preview.Report.Inputs.Select(static input => input.ArtifactId).Order(StringComparer.Ordinal));

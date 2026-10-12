@@ -46,9 +46,9 @@ public sealed class PrebuiltProfileCatalogBuildIdentityTests
             .Select(d => "{\"bundleDirectory\":\"" + d + "\",\"manifestSha256\":\"" +
                 Hash(File.ReadAllBytes(Path.Combine(root, d, "profile-bundle.json"))) + "\"}")) + "]";
         AssemblyMetadataAttribute[] attributes = [.. typeof(ProfileBundleLoader).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()];
-        Assert.Equal(Hash(index), Assert.Single(attributes, a => a.Key == "NfcBuiltInTrustIndexSha256").Value);
-        Assert.Equal(Hash(Encoding.UTF8.GetBytes(manifests)),
-            Assert.Single(attributes, a => a.Key == "NfcBuiltInManifestSetSha256").Value);
+        GoldenAssert.AssertHashEqualsGolden(Hash(index), Assert.Single(attributes, a => a.Key == "NfcBuiltInTrustIndexSha256").Value, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(Hash(Encoding.UTF8.GetBytes(manifests)), Assert.Single(attributes, a => a.Key == "NfcBuiltInManifestSetSha256").Value, "SHA-256"
+);
     }
 
     /// <summary>Metadata must contain exactly one lowercase SHA-256 for each designated key.</summary>

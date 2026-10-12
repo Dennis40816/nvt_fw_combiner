@@ -23,17 +23,17 @@ internal static class CliGoldenByteEvidence
         CliRunResult result = await CliTestHarness.RunAsync(
             [.. arguments, .. destination, "--report", reportPath], TestContext.Current.CancellationToken);
         Assert.True(result.ExitCode == 0, $"CLI exit code {result.ExitCode}; stderr {GoldenDiagnostics.TextSummary(result.Error)}; stdout {GoldenDiagnostics.TextSummary(result.Output)}.");
-        using var document = JsonDocument.Parse(File.ReadAllText(reportPath));
+        using var document = JsonDocument.Parse(GoldenFileIo.ReadAllText(reportPath));
         JsonElement report = document.RootElement.Clone();
         if (automaticName)
         {
             outputPath = workspace.PathFor(Path.Combine(name, report.GetProperty("Output").GetProperty("FileName").GetString()!));
         }
 
-        byte[] bytes = File.ReadAllBytes(outputPath);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(outputPath);
         Assert.True(report.GetProperty("Output").GetProperty("Committed").GetBoolean());
         Assert.Equal(bytes.LongLength, report.GetProperty("Output").GetProperty("Size").GetInt64());
-        Assert.Equal(report.GetProperty("Output").GetProperty("Sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(report.GetProperty("Output").GetProperty("Sha256").GetString(), Hash(bytes), "SHA-256");
         return new(bytes, report);
     }
 
@@ -62,7 +62,7 @@ internal static class CliGoldenByteEvidence
     {
         JsonElement artifact = CanonicalGoldenTestData.Artifact(goldenCase, "expected-output");
         GoldenAssert.AssertFileEqualsGolden(CanonicalGoldenTestData.ArtifactPath(artifact), actual, GoldenDiagnostics.Label(goldenCase.GetProperty("caseId").GetString()!));
-        Assert.Equal(artifact.GetProperty("sha256").GetString(), Hash(actual));
+        GoldenAssert.AssertHashEqualsGolden(artifact.GetProperty("sha256").GetString(), Hash(actual), "SHA-256");
     }
 
     internal static string Hash(byte[] bytes)

@@ -296,7 +296,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             CompiledFirmwareArtifactClassification>(resolver.Resolve(
                 "NT51950",
                 ctrlRamTpWork,
-                File.ReadAllBytes(tpPath)));
+                GoldenFileIo.ReadAllBytes(tpPath)));
         Assert.Equal(CompiledFirmwareArtifactKind.TpFirmware, acceptedTp.Kind);
         Assert.False(acceptedTp.IsDpMetadataApplicable);
         Assert.Null(resolver.Resolve(
@@ -728,7 +728,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             });
         var resolver = new FirmwareArtifactClassificationResolver(
             query, new CanonicalCapabilityCompilerAdapter(query, new BuiltInV2DynamicCompilationAdapter()));
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
             "ab-merge", "NT51929", "expected-output", "t05-d06"));
 
         CtrlRamBaseInspection inspection = resolver.ResolveCtrlRamBase(

@@ -108,7 +108,7 @@ public sealed class CompositionExecutionBundleDeliveryTests
             CompiledAdditionalDelivery.AbAFlashCodeKind,
             actual.Artifacts[1].BindingId);
         Assert.Equal(2, actual.Artifacts[1].Size);
-        Assert.Equal(Sha256(output.AsSpan(0, 2)), actual.Artifacts[1].Sha256);
+        GoldenAssert.AssertHashEqualsGolden(Sha256(output.AsSpan(0, 2)), actual.Artifacts[1].Sha256, "SHA-256");
     }
 
     /// <summary>A receipt that relabels A-only bytes as a source fails closed.</summary>
@@ -176,7 +176,7 @@ public sealed class CompositionExecutionBundleDeliveryTests
         Assert.Equal("dp-slot", source.Summary.SlotId);
         Assert.Equal("dp.bin", source.Summary.OriginalFileName);
         Assert.Equal(stamp.AcceptedLength, source.Summary.Size);
-        Assert.Equal(stamp.Sha256, source.Summary.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(stamp.Sha256, source.Summary.Sha256, "SHA-256");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3], source.Bytes.ToArray(), "firmware image");
         Assert.Equal("opaque-canonical-identity", source.AcceptedIdentity);
     }

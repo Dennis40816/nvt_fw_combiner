@@ -97,7 +97,7 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
 
     private static byte[] ReadCatalog()
     {
-        return File.ReadAllBytes(Path.Combine(
+        return GoldenFileIo.ReadAllBytes(Path.Combine(
             AppContext.BaseDirectory,
             RelativePath.Replace('/', Path.DirectorySeparatorChar)));
     }

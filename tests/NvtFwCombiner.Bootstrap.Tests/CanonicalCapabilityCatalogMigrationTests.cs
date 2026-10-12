@@ -21,7 +21,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal([mapId], resolved.CompilationContract.AllowedMapVariantIds);
         CanonicalCapabilityPolicyRoute policy = Assert.Single(BuiltInCanonicalCapabilityPolicy.Load().Routes,
             candidate => candidate.Identity == identity);
-        Assert.Equal(resolved.CapabilityFingerprint, policy.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(resolved.CapabilityFingerprint, policy.CapabilityFingerprint, "SHA-256");
         Assert.Equal(CapabilityAuthoringAvailability.Available, policy.Authoring.Value);
         Assert.Equal(CapabilityPublicationStatus.Candidate, policy.Publication.Value);
         Assert.Equal(CapabilityEvidenceStatus.ContractOnly, policy.Evidence.Value);
@@ -84,9 +84,9 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
 
         Assert.Equal("NT51929", definition.Identity.IcId);
         Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
-        Assert.Equal(
-            "6b52a0d6eb109e8b5b56843372a341bff7551da13609c1997d8ac4ad05ab0e65",
-            definition.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("6b52a0d6eb109e8b5b56843372a341bff7551da13609c1997d8ac4ad05ab0e65", definition.CapabilityFingerprint, "SHA-256"
+
+);
         Assert.NotEqual(
             definition.CapabilityFingerprint,
             composition.CompilationFingerprint);
@@ -192,12 +192,12 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             ["nt51928-standard-merge-256k", "nt51928-standard-merge-512k"],
             route.CompilationContract.AllowedMapVariantIds);
         Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
-        Assert.Equal(
-            route.CapabilityFingerprint,
-            compactCapability.CompiledComposition.CapabilityFingerprint);
-        Assert.Equal(
-            route.CapabilityFingerprint,
-            extendedCapability.CompiledComposition.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(route.CapabilityFingerprint, compactCapability.CompiledComposition.CapabilityFingerprint, "SHA-256"
+
+);
+        GoldenAssert.AssertHashEqualsGolden(route.CapabilityFingerprint, extendedCapability.CompiledComposition.CapabilityFingerprint, "SHA-256"
+
+);
         Assert.NotEqual(
             compactCapability.CompiledComposition.CompilationFingerprint,
             extendedCapability.CompiledComposition.CompilationFingerprint);

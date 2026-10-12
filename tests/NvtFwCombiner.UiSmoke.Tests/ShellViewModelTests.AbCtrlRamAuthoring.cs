@@ -104,8 +104,8 @@ public sealed partial class CtrlRamWorkflowTests
     {
         using TempWorkspace workspace = TempWorkspace.Create("ui-ab-ctrlram-build");
         MainWindowViewModel viewModel = await CreateAbCtrlRamReadyAsync(selection);
-        byte[] reference = File.ReadAllBytes(AbCtrlRamReferencePath);
-        byte[] nf = File.ReadAllBytes(AbCtrlRamNfPath);
+        byte[] reference = GoldenFileIo.ReadAllBytes(AbCtrlRamReferencePath);
+        byte[] nf = GoldenFileIo.ReadAllBytes(AbCtrlRamNfPath);
         Assert.False(viewModel.Replace.HasMemoryLayoutDisplayError);
         Assert.NotEmpty(viewModel.Replace.ReplaceCoverageSegments);
         Assert.Equal(0x80000, viewModel.Replace.ReplaceCoverageSegments.Max(static segment => segment.RangeEndExclusive));
@@ -153,7 +153,7 @@ public sealed partial class CtrlRamWorkflowTests
         await viewModel.OutputDelivery.ConfirmLooseAsync(output, null, false, false);
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(output));
-        byte[] actual = File.ReadAllBytes(output);
+        byte[] actual = GoldenFileIo.ReadAllBytes(output);
         Assert.Equal(reference.Length, actual.Length);
         foreach (int start in new[] { 0, 0x40000 })
         {

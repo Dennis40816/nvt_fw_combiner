@@ -443,8 +443,8 @@ public sealed partial class CompositionEngineTests
         CompositionExecutionResult result = CompositionEngine.Execute(plan, EmptyInput());
 
         MutationRecord mutation = Assert.Single(result.Mutations);
-        Assert.Equal(mutation.BeforeSha256, mutation.BeforeSha256.ToLowerInvariant());
-        Assert.Equal(mutation.AfterSha256, mutation.AfterSha256.ToLowerInvariant());
+        GoldenAssert.AssertHashEqualsGolden(mutation.BeforeSha256, mutation.BeforeSha256.ToLowerInvariant(), "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(mutation.AfterSha256, mutation.AfterSha256.ToLowerInvariant(), "SHA-256");
     }
 
     /// <summary>Verifies missing immutable source bytes return a structured issue instead of a partial output.</summary>

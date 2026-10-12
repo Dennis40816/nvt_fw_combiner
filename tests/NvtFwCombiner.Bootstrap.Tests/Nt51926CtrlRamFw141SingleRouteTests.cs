@@ -34,7 +34,7 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
             .Where(static artifact => artifact.GetProperty("role").GetString() == "input")
             .ToDictionary(
                 static artifact => artifact.GetProperty("artifactId").GetString()!,
-                artifact => Hash(File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact))),
+                artifact => Hash(GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact))),
                 StringComparer.Ordinal);
 
         using var workspace = TempWorkspace.Create("nfc-nt51926-fw141-single-route");
@@ -69,12 +69,12 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
             outputPath);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] expected = File.ReadAllBytes(PathFor("expected-output"));
-        byte[] actual = File.ReadAllBytes(outputPath);
+        byte[] expected = GoldenFileIo.ReadAllBytes(PathFor("expected-output"));
+        byte[] actual = GoldenFileIo.ReadAllBytes(outputPath);
         int[] differences = [
             .. Enumerable.Range(0, expected.Length).Where(index => expected[index] != actual[index]),
         ];
-        Assert.Equal("30de4735472950e3e7b22e941cc0ae080f393b2b6e601e82b7b1b767b7c56e7a", Hash(actual));
+        GoldenAssert.AssertHashEqualsGolden("30de4735472950e3e7b22e941cc0ae080f393b2b6e601e82b7b1b767b7c56e7a", Hash(actual), "SHA-256");
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(evidence, expected, actual);
         Assert.Equal(16, manifestDifferences.DifferenceCount);
@@ -92,7 +92,7 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
             report.RootElement.GetProperty("ProfileId").GetString());
         Assert.All(
             immutableHashes,
-            pair => Assert.Equal(pair.Value, Hash(File.ReadAllBytes(PathFor(pair.Key)))));
+            pair => GoldenAssert.AssertHashEqualsGolden(pair.Value, Hash(GoldenFileIo.ReadAllBytes(PathFor(pair.Key))), "SHA-256"));
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

@@ -30,6 +30,6 @@ public sealed class AbBundleSourceHashTests
         string hash = ProfileBundleEntryArrayHasher.CalculateContentHash(actual);
         TestContext.Current.TestOutputHelper!.WriteLine($"BUNDLE {directory} {hash}");
         Assert.Equal(manifest.Entries, actual);
-        Assert.Equal(manifest.ContentHash, hash);
+        GoldenAssert.AssertHashEqualsGolden(manifest.ContentHash, hash, "SHA-256");
     }
 }

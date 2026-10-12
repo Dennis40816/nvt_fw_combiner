@@ -52,10 +52,8 @@ public static class GoldenAssert
     {
         string expectedHash = HashPrefix(expected);
         string actualHash = HashPrefix(actual);
-        var failure = new XunitException(FormattableString.Invariant(
+        return PrivateFailure(FormattableString.Invariant(
             $"Golden mismatch [{label}]: expected {expected.Length} bytes, actual {actual.Length} bytes, first difference at offset 0x{offset:X}, expected sha256 {expectedHash}, actual sha256 {actualHash}."));
-        failure.Data[_safeMismatchMarker] = true;
-        return failure;
     }
 
     private static string HashPrefix(ReadOnlySpan<byte> value)
@@ -119,6 +117,45 @@ public static class GoldenAssert
         }
 
         AssertEqualsGolden(expected.AsSpan(), actual, label);
+    }
+
+    /// <summary>Compares a decoded firmware field without rendering either value.</summary>
+    public static void AssertValueEqualsGolden<T>(T expected, T actual, string label)
+    {
+        if (!EqualityComparer<T>.Default.Equals(expected, actual))
+        {
+            throw PrivateFailure($"Golden value mismatch [{label}]: values differ.");
+        }
+    }
+
+    /// <summary>Compares full SHA-256 strings while rendering at most twelve hexadecimal characters per side.</summary>
+    public static void AssertHashEqualsGolden(string? expected, string? actual, string label, bool ignoreCase = false)
+    {
+        if (!string.Equals(expected, actual, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        {
+            throw PrivateFailure($"Golden hash mismatch [{label}]: expected sha256 {HashPrefix(expected)}, actual sha256 {HashPrefix(actual)}.");
+        }
+    }
+
+    /// <summary>Compares ordered SHA-256 sequences without rendering their full hash values.</summary>
+    public static void AssertHashSequenceEqualsGolden(IEnumerable<string?> expected, IEnumerable<string?> actual, string label)
+    {
+        if (!expected.SequenceEqual(actual, StringComparer.Ordinal))
+        {
+            throw PrivateFailure($"Golden hash sequence mismatch [{label}]: values differ.");
+        }
+    }
+
+    private static string HashPrefix(string? value)
+    {
+        return value is { Length: 64 } && value.All(char.IsAsciiHexDigit) ? value[..12] : "omitted";
+    }
+
+    private static XunitException PrivateFailure(string message)
+    {
+        var failure = new XunitException(message);
+        failure.Data[_safeMismatchMarker] = true;
+        return failure;
     }
 }
 

@@ -284,7 +284,7 @@ public sealed partial class CompositionOutputNameResolverTests
         Assert.All(
             resolved.Summary!.Tokens.Where(static token =>
                 token.TokenId is "dp-version" or "tp-version"),
-            token => Assert.Equal(acceptedSha256, token.AcceptedSnapshotSha256));
+            token => GoldenAssert.AssertHashEqualsGolden(acceptedSha256, token.AcceptedSnapshotSha256, "SHA-256"));
     }
 
     /// <summary>A publication token mismatch cannot be wrapped as an accepted naming snapshot.</summary>
@@ -345,9 +345,9 @@ public sealed partial class CompositionOutputNameResolverTests
 
         Assert.NotEqual(capabilityFingerprint, compilationFingerprint);
         Assert.Equal(route.RouteId, accepted.RouteId);
-        Assert.Equal(compilationFingerprint, accepted.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(compilationFingerprint, accepted.CompilationFingerprint, "SHA-256");
         Assert.Equal(route.RouteId, admission.RouteId);
-        Assert.Equal(compilationFingerprint, admission.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(compilationFingerprint, admission.CompilationFingerprint, "SHA-256");
         Assert.Equal(fixture.Plan.ResolutionToken, admission.ResolutionToken);
         Assert.Equal(7, admission.AuthoringRevision);
         _ = Assert.Throws<ArgumentException>(() =>
@@ -680,7 +680,7 @@ public sealed partial class CompositionOutputNameResolverTests
         Assert.Equal(expectedId, token.TokenId);
         Assert.Equal(expectedValue, token.Value);
         Assert.Equal(known, token.IsKnown);
-        Assert.Equal(expectedSha256, token.AcceptedSnapshotSha256);
+        GoldenAssert.AssertHashEqualsGolden(expectedSha256, token.AcceptedSnapshotSha256, "SHA-256");
     }
 
     private sealed record InspectionFixture(

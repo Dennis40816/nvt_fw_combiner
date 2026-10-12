@@ -49,7 +49,7 @@ public sealed class ProfileBundleFileSnapshotTests
         GoldenAssert.AssertEqualsGolden(expected, copy, "firmware image");
         Array.Fill(copy, (byte)0);
         GoldenAssert.AssertEqualsGolden(expected, snapshot.Content.ToArray(), "firmware image");
-        Assert.Equal(Hash(expected), snapshot.ActualSha256);
+        GoldenAssert.AssertHashEqualsGolden(Hash(expected), snapshot.ActualSha256, "SHA-256");
         Assert.Equal("a", snapshot.GetStrictJsonRoot(16).GetProperty("value").GetString());
     }
 
@@ -69,7 +69,7 @@ public sealed class ProfileBundleFileSnapshotTests
 
         Assert.Equal("profiles/profile.json", snapshot.ManifestPath);
         Assert.Equal(content.Length, snapshot.Length);
-        Assert.Equal(Hash(content), snapshot.ActualSha256);
+        GoldenAssert.AssertHashEqualsGolden(Hash(content), snapshot.ActualSha256, "SHA-256");
         Assert.Equal(1, document.RootElement.GetProperty("value").GetInt32());
     }
 
@@ -169,7 +169,7 @@ public sealed class ProfileBundleFileSnapshotTests
         using JsonDocument document = snapshot.ParseStrictJson(16);
 
         Assert.Equal("profile-bundle.json", snapshot.ManifestPath);
-        Assert.Equal(Hash(content), snapshot.ActualSha256);
+        GoldenAssert.AssertHashEqualsGolden(Hash(content), snapshot.ActualSha256, "SHA-256");
         Assert.Equal("1.0", document.RootElement.GetProperty("schemaVersion").GetString());
     }
 

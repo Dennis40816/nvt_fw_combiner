@@ -125,11 +125,11 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.Equal(0x37000, input.SizeBytes);
             Assert.Equal(acceptedStatus.Inspection!.ExpectedOuterLengths, input.ExpectedLengths);
             Assert.Same(acceptedStatus.Inspection, input.Inspection);
-            Assert.Equal(acceptedStatus.FileStamp!.Value.Sha256, input.Sha256);
+            GoldenAssert.AssertHashEqualsGolden(acceptedStatus.FileStamp!.Value.Sha256, input.Sha256, "SHA-256");
             Assert.Equal(acceptedStatus.InspectionAdvisories, input.InspectionAdvisories);
             Assert.Equal(input.BindingId, input.EventBufferFormat!.ArtifactIdentity.ArtifactId);
             Assert.Equal(0x22200, input.EventBufferFormat.PrimaryRange.Range.Start);
-            Assert.Equal(summary.Format.ConfigurationSourceSha256, input.EventBufferFormat.ConfigurationSourceSha256);
+            GoldenAssert.AssertHashEqualsGolden(summary.Format.ConfigurationSourceSha256, input.EventBufferFormat.ConfigurationSourceSha256, "SHA-256");
         });
         Assert.Equal(host.CompositionOutputNaming.ResolveAcceptedOutput(prepared.Snapshot!).OutputName.FileName,
             proposal.OutputPreparation.OutputName.FileName);
@@ -268,10 +268,10 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.Equal("desay", format.FormatId);
             Assert.Equal("Desay", format.DisplayName);
             Assert.Equal(space, format.ArtifactIdentity.ArtifactId);
-            Assert.Equal(FileStamp.FromBytes(bytes).Sha256, format.ArtifactIdentity.Sha256);
+            GoldenAssert.AssertHashEqualsGolden(FileStamp.FromBytes(bytes).Sha256, format.ArtifactIdentity.Sha256, "SHA-256");
             Assert.Equal(0x22200, format.PrimaryRange.Range.Start);
             Assert.Contains("primary", format.PrimaryStructureId, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(configuration.Current.SourceSha256, format.ConfigurationSourceSha256);
+            GoldenAssert.AssertHashEqualsGolden(configuration.Current.SourceSha256, format.ConfigurationSourceSha256, "SHA-256");
         }
     }
 
@@ -440,7 +440,7 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.Same(updated.Snapshot.ExactCapability, completed.ResolvedCapability);
             AbMergeFormatRunSummary summary = Assert.IsType<AbMergeFormatRunSummary>(completed.Report.AbMergeFormat);
             Assert.Equal(captured.Generation, summary.ConfigurationGeneration);
-            Assert.Equal(captured.SourceSha256, summary.ConfigurationSourceSha256);
+            GoldenAssert.AssertHashEqualsGolden(captured.SourceSha256, summary.ConfigurationSourceSha256, "SHA-256");
             Assert.Equal("Before Save", summary.DisplayName);
             Assert.Equal("desay", summary.FormatId);
             GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x97], [summary.TpA.FormatByte], "firmware image");
@@ -477,7 +477,7 @@ public sealed class AbMergeFormatRuntimeTests
                 new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
             Assert.True(aliasRun.Succeeded, $"Composition result: status={aliasRun.Status}, succeeded={aliasRun.Succeeded}.");
             GoldenAssert.AssertEqualsGolden(nextRun.OutputBytes.ToArray(), aliasRun.OutputBytes.ToArray(), "firmware image");
-            Assert.Equal(nextRun.OutputSha256, aliasRun.OutputSha256);
+            GoldenAssert.AssertHashEqualsGolden(nextRun.OutputSha256, aliasRun.OutputSha256, "SHA-256");
             Assert.NotEqual(nextSummary.ConfigurationSourceSha256, aliasRun.Report.AbMergeFormat!.ConfigurationSourceSha256);
 
             // Fail the external processor after the shared execution admission, not the preflight gate.
@@ -489,7 +489,7 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.False(failed.Succeeded);
             Assert.Contains(failed.Report.Issues, issue => issue.Code == "TEST_FORMAT_PROCESSOR_FAILED");
             Assert.Equal("common", failed.Report.AbMergeFormat!.FormatId);
-            Assert.Equal(aliasRun.Report.AbMergeFormat.ConfigurationSourceSha256, failed.Report.AbMergeFormat.ConfigurationSourceSha256);
+            GoldenAssert.AssertHashEqualsGolden(aliasRun.Report.AbMergeFormat.ConfigurationSourceSha256, failed.Report.AbMergeFormat.ConfigurationSourceSha256, "SHA-256");
             using JsonDocument failedJson = JsonDocument.Parse(CompositionRunReportJson.Serialize(failed));
             Assert.Equal("common", failedJson.RootElement.GetProperty("AbMergeFormat").GetProperty("FormatId").GetString());
         }
@@ -581,9 +581,9 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.Equal(summary.TpA.EndExclusive, summary.TpB.EndExclusive);
         Assert.Equal(captured.FamilyId, summary.FamilyId);
         Assert.Equal(captured.FamilyVersion, summary.FamilyVersion);
-        Assert.Equal(captured.FamilyContentHash, summary.FamilyContentHash);
+        GoldenAssert.AssertHashEqualsGolden(captured.FamilyContentHash, summary.FamilyContentHash, "SHA-256");
         Assert.Equal(captured.ConfigurationGeneration, summary.ConfigurationGeneration);
-        Assert.Equal(captured.ConfigurationSourceSha256, summary.ConfigurationSourceSha256);
+        GoldenAssert.AssertHashEqualsGolden(captured.ConfigurationSourceSha256, summary.ConfigurationSourceSha256, "SHA-256");
         Assert.True(!GoldenDiagnostics.Contains(path, JsonSerializer.Serialize(summary), StringComparison.OrdinalIgnoreCase), "Captured text did not match the expected marker check.");
         var runRequest = new CompositionRunRequest("capture-copy", composition, bindings,
             composition.V2Details.OutputNamingRequirement.FileNameTemplate,
@@ -793,9 +793,9 @@ public sealed class AbMergeFormatRuntimeTests
             Assert.Equal("desay", format.FormatId);
             Assert.Equal(aliasChange ? "My vendor" : first.DisplayName, format.DisplayName);
             Assert.True(format.ConfigurationGeneration > first.ConfigurationGeneration);
-            Assert.Equal(configuration.Current.SourceSha256, format.ConfigurationSourceSha256);
+            GoldenAssert.AssertHashEqualsGolden(configuration.Current.SourceSha256, format.ConfigurationSourceSha256, "SHA-256");
             Assert.Equal(slotId, format.ArtifactIdentity.ArtifactId);
-            Assert.Equal(FileStamp.FromBytes(CreateTp(raw, 1)).Sha256, format.ArtifactIdentity.Sha256);
+            GoldenAssert.AssertHashEqualsGolden(FileStamp.FromBytes(CreateTp(raw, 1)).Sha256, format.ArtifactIdentity.Sha256, "SHA-256");
             Assert.Equal(0x22200, format.PrimaryRange.Range.Start);
             Assert.Equal(prepared.Inspection!.Statuses[slotId].Observation.Versions, facts.Versions);
         }
@@ -868,7 +868,7 @@ public sealed class AbMergeFormatRuntimeTests
         Assert.True(after.ConfigurationGeneration > before.ConfigurationGeneration);
         Assert.NotEqual(before.ConfigurationSourceSha256, after.ConfigurationSourceSha256);
         Assert.Equal(configuration.Current.Generation, after.ConfigurationGeneration);
-        Assert.Equal(configuration.Current.SourceSha256, after.ConfigurationSourceSha256);
+        GoldenAssert.AssertHashEqualsGolden(configuration.Current.SourceSha256, after.ConfigurationSourceSha256, "SHA-256");
         Assert.True(StringComparer.Ordinal.Equals(JsonSerializer.Serialize(before.TpA), JsonSerializer.Serialize(after.TpA)), "Captured text differs from the expected text.");
         Assert.True(StringComparer.Ordinal.Equals(JsonSerializer.Serialize(before.TpB), JsonSerializer.Serialize(after.TpB)), "Captured text differs from the expected text.");
     }

@@ -63,7 +63,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         byte chipNumber,
         ushort projectId)
     {
-        byte[] image = File.ReadAllBytes(
+        byte[] image = GoldenFileIo.ReadAllBytes(
             CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
 
         Assert.True(
@@ -75,7 +75,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareVersionBar], [metadata.FirmwareVersionBar], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[firmwareSubVersion], [metadata.FirmwareSubVersion], "firmware image");
         Assert.Equal(chipNumber, metadata.ChipNumber);
-        Assert.Equal(projectId, metadata.ProjectId);
+        GoldenAssert.AssertValueEqualsGolden(projectId, metadata.ProjectId, "firmware field");
         Assert.True(metadata.IsFirmwareVersionBarValid);
     }
 
@@ -136,7 +136,7 @@ public sealed class FirmwareConfigMetadataReaderTests
     [MemberData(nameof(GoldenFirmwareConfigCopyCases))]
     public void GoldenFlashHardwareInfoMatchesNvtBackup(string ic, string _)
     {
-        byte[] image = File.ReadAllBytes(
+        byte[] image = GoldenFileIo.ReadAllBytes(
             CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
 
         Assert.True(BuiltInTpFlashMapCatalog.TryFind($"NT{ic}", out TpFlashMapProfile? flashMap));
@@ -152,7 +152,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[primary.FirmwareSubVersion], [backup.FirmwareSubVersion], "firmware image");
         Assert.Equal(primary.ChipNumber, backup.ChipNumber);
         Assert.Equal(primary.CommonFwVersion, backup.CommonFwVersion);
-        Assert.Equal(primary.ProjectId, backup.ProjectId);
+        GoldenAssert.AssertValueEqualsGolden(primary.ProjectId, backup.ProjectId, "firmware field");
         Assert.Equal(primary.Hardware, backup.Hardware);
     }
 
@@ -207,7 +207,7 @@ public sealed class FirmwareConfigMetadataReaderTests
     [InlineData("51951", "nt51951-standard-merge-512k")]
     public void DeclaredEndFlagReadCountsOnlyTheEndFlagMarker(string ic, string mapId)
     {
-        byte[] image = File.ReadAllBytes(
+        byte[] image = GoldenFileIo.ReadAllBytes(
             CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
         FirmwareNvtEndFlagResolution endFlag = DpPerspectiveEndFlag(ic, mapId);
 
@@ -235,7 +235,7 @@ public sealed class FirmwareConfigMetadataReaderTests
     [Fact]
     public void UnresolvedOrOutOfImageEndFlagIsUnreadable()
     {
-        byte[] image = File.ReadAllBytes(
+        byte[] image = GoldenFileIo.ReadAllBytes(
             CanonicalGoldenTestData.ArtifactPath("standard-merge", "51950", "expected-output"));
 
         Assert.False(FirmwareConfigMetadataReader.TryReadBackup(image, FirmwareNvtEndFlagResolution.Unresolved, out _,
@@ -253,7 +253,7 @@ public sealed class FirmwareConfigMetadataReaderTests
     [InlineData("51929")]
     public void MigrationInventoryLayoutKeepsTheCompatibilityRead(string ic)
     {
-        byte[] image = File.ReadAllBytes(
+        byte[] image = GoldenFileIo.ReadAllBytes(
             CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
         FirmwareNvtEndFlagResolution legacy = BuiltInFirmwareInspection.ResolveCtrlRamBaseNvtEndFlag($"NT{ic}");
         Assert.True(legacy.UsesLegacyCompatibilityRead);
@@ -314,7 +314,7 @@ public sealed class FirmwareConfigMetadataReaderTests
 
     private static FirmwareConfigMetadata ReadGoldenMetadata(string ic)
     {
-        byte[] image = File.ReadAllBytes(
+        byte[] image = GoldenFileIo.ReadAllBytes(
             CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
 
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata metadata));

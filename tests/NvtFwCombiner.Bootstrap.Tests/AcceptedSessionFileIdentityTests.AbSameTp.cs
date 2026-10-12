@@ -29,7 +29,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
 
         Assert.True(shared.Succeeded, $"Composition result: status={shared.Status}, succeeded={shared.Succeeded}.");
         Assert.True(distinct.Succeeded, $"Composition result: status={distinct.Status}, succeeded={distinct.Succeeded}.");
-        Assert.Equal(distinct.OutputSha256, shared.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(distinct.OutputSha256, shared.OutputSha256, "SHA-256");
         GoldenAssert.AssertEqualsGolden(distinct.OutputBytes.ToArray(), shared.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(
             distinct.Report.Operations.Select(static operation => (

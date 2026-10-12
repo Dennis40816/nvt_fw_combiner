@@ -48,10 +48,10 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(StringComparer.Ordinal.Equals("nt51950-standard-merge-dp-perspective", ReadProfileId(CompositionRunReportJson.Serialize(result))), "Captured text differs from the expected text.");
-        byte[] expected = File.ReadAllBytes(PathForRole("expected-final-output"));
-        byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(expectedSha256, result.OutputSha256);
-        Assert.Equal(expectedSha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant());
+        byte[] expected = GoldenFileIo.ReadAllBytes(PathForRole("expected-final-output"));
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
+        GoldenAssert.AssertHashEqualsGolden(expectedSha256, result.OutputSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(expectedSha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant(), "SHA-256");
         GoldenAssert.AssertEqualsGolden(expected, output, GoldenDiagnostics.Label(caseId));
     }
 
@@ -119,9 +119,9 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, v2Result.Status);
         byte[] expected = ConstructDpPerspectiveOutput(inputs["dp-input"], inputs["tp-input"]);
-        Assert.Equal(expectedSha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant());
+        GoldenAssert.AssertHashEqualsGolden(expectedSha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant(), "SHA-256");
         GoldenAssert.AssertEqualsGolden(expected, v2Result.OutputBytes.ToArray(), "firmware image");
-        Assert.Equal(expectedSha256, v2Result.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(expectedSha256, v2Result.OutputSha256, "SHA-256");
     }
 
     /// <summary>

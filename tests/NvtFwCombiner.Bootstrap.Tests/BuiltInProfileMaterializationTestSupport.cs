@@ -19,14 +19,14 @@ internal static class BuiltInProfileMaterializationTestSupport
 
         string sourceRoot = RepositoryPaths.FromRepositoryRoot("profiles", "built-in", bundleDirectory);
         string manifestPath = Path.Combine(sourceRoot, "profile-bundle.json");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
-        _ = workspace.Write("profile-bundle.json", File.ReadAllBytes(manifestPath));
+        using var manifest = JsonDocument.Parse(GoldenFileIo.ReadAllText(manifestPath));
+        _ = workspace.Write("profile-bundle.json", GoldenFileIo.ReadAllBytes(manifestPath));
 
         foreach (JsonElement entry in manifest.RootElement.GetProperty("entries").EnumerateArray())
         {
             string relativePath = entry.GetProperty("path").GetString()!;
             string sourcePath = ResolveManifestEntrySource(bundleDirectory, entry);
-            _ = workspace.Write(relativePath, File.ReadAllBytes(sourcePath));
+            _ = workspace.Write(relativePath, GoldenFileIo.ReadAllBytes(sourcePath));
         }
 
         TrustedProfileBundle bundle = ProfileBundleLoader.Load(

@@ -21,12 +21,12 @@ public sealed partial class CompositionRunRequestV2Tests
                     profileEvidenceReference: "other-evidence")
                 .BindCapabilityFingerprint(capabilityFingerprint);
 
-        Assert.Equal(
-            "eecd905e3d35caee8b93fc268c6a8853b686811186b771b7e98f2ae33553e879",
-            baseline.CompilationFingerprint);
-        Assert.Equal(
-            baseline.CompilationFingerprint,
-            changedDefinitionProvenance.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("eecd905e3d35caee8b93fc268c6a8853b686811186b771b7e98f2ae33553e879", baseline.CompilationFingerprint, "SHA-256"
+
+);
+        GoldenAssert.AssertHashEqualsGolden(baseline.CompilationFingerprint, changedDefinitionProvenance.CompilationFingerprint, "SHA-256"
+
+);
     }
 
     /// <summary>Verifies the narrow logical-output candidate is admitted without admitting map-bound V2 plan candidates.</summary>

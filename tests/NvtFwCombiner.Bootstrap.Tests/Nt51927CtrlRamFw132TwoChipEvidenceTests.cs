@@ -58,15 +58,15 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
         }
 
         OwnerCase ownerCase = ReadOwnerCase();
-        Assert.Equal(
-            "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae",
-            Hash(ownerCase.Base.Bytes));
+        GoldenAssert.AssertHashEqualsGolden("11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae", Hash(ownerCase.Base.Bytes), "SHA-256"
+
+);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
             ownerCase.Base.Bytes,
             out FirmwareConfigMetadata metadata));
         Assert.Equal("1.3.2", metadata.CommonFwVersion);
         Assert.Equal(2, metadata.ChipNumber);
-        Assert.Equal(0x1615, metadata.ProjectId);
+        GoldenAssert.AssertValueEqualsGolden(0x1615, metadata.ProjectId, "firmware field");
 
         var immutableHashes = ownerCase.Artifacts.ToDictionary(
             static artifact => artifact.Path,
@@ -85,9 +85,9 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
             v2OutputPath);
 
         Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
-        byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
+        byte[] v2Bytes = GoldenFileIo.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "6f0bbde7662dc6701cfe0a242d4cc363cd24c7056a52611fbba965c7d7fb5f58";
-        Assert.Equal(outputSha256, Hash(v2Bytes));
+        GoldenAssert.AssertHashEqualsGolden(outputSha256, Hash(v2Bytes), "SHA-256");
         AssertExpectedDerivedCrcOnlyDifference(ownerCase.Base.Bytes, v2Bytes);
 
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
@@ -108,7 +108,7 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
         });
         Assert.All(
             ownerCase.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     /// <summary>NT51917/NT51927 aliases retain the requested two-chip route across non-authoritative metadata.</summary>
@@ -167,10 +167,10 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
                 $"{icId.ToLowerInvariant()}-ctrlram-replace-fw132-twochip",
                 icId);
         }
-        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(Hash(reference), Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
         Assert.All(
             ownerCase.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     private static void AssertExpectedDerivedCrcOnlyDifference(ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual)
@@ -310,9 +310,9 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
     private static OwnerArtifact ReadArtifact(JsonElement document, string? slotId)
     {
         string path = RepositoryPaths.ManifestPath(GoldenRoot, document);
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(path);
         Assert.Equal(document.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(document.GetProperty("sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(document.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
         return new OwnerArtifact(slotId, path, bytes);
     }
 

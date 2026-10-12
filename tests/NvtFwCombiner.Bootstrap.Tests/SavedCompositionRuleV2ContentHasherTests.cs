@@ -1,6 +1,8 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Locks Saved Rule v2 canonical semantic hashing.</summary>
@@ -25,7 +27,7 @@ public sealed class SavedCompositionRuleV2ContentHasherTests
         string firstHash = SavedCompositionRuleV2ContentHasher.Calculate(first.RootElement);
         string secondHash = SavedCompositionRuleV2ContentHasher.Calculate(second.RootElement);
 
-        Assert.Equal(firstHash, secondHash);
+        GoldenAssert.AssertHashEqualsGolden(firstHash, secondHash, "SHA-256");
         Assert.Matches("^[0-9a-f]{64}$", firstHash);
     }
 

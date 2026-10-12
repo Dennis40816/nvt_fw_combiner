@@ -146,7 +146,7 @@ public sealed partial class MergeWorkflowTests
         foreach (JsonElement source in artifacts.Where(a => a.GetProperty("Role").GetString() == "source"))
         {
             byte[] bytes = File.ReadAllBytes(Path.Combine(bundle, source.GetProperty("DeliveredFileName").GetString()!));
-            Assert.Equal(source.GetProperty("Sha256").GetString(), Convert.ToHexStringLower(SHA256.HashData(bytes)));
+            GoldenAssert.AssertHashEqualsGolden(source.GetProperty("Sha256").GetString(), Convert.ToHexStringLower(SHA256.HashData(bytes)), "SHA-256");
         }
     }
 

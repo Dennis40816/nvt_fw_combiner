@@ -72,13 +72,13 @@ public static class CanonicalGoldenTestData
         ArgumentException.ThrowIfNullOrWhiteSpace(workflow);
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
 
-        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.json")));
+        using var inventory = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(root, "manifest.json")));
         var cases = new JsonArray();
         foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
         {
             string manifestPath = entry.GetProperty("manifestPath").GetString()!;
             using var document = JsonDocument.Parse(
-                File.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
+                GoldenFileIo.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
             JsonElement goldenCase = document.RootElement;
             if (!goldenCase.GetProperty("directGolden").GetBoolean() ||
                 !StringComparer.Ordinal.Equals(goldenCase.GetProperty("workflow").GetString(), workflow))
@@ -134,7 +134,7 @@ public static class CanonicalGoldenTestData
         ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
 
-        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.json")));
+        using var inventory = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(root, "manifest.json")));
         foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
         {
             if (!StringComparer.Ordinal.Equals(entry.GetProperty("caseId").GetString(), caseId))
@@ -144,7 +144,7 @@ public static class CanonicalGoldenTestData
 
             string manifestPath = entry.GetProperty("manifestPath").GetString()!;
             using var document = JsonDocument.Parse(
-                File.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
+                GoldenFileIo.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
             JsonElement goldenCase = document.RootElement;
             bool isDirectEvidence =
                 goldenCase.TryGetProperty("directEvidence", out JsonElement evidence) &&
@@ -184,14 +184,14 @@ public static class CanonicalGoldenTestData
         ArgumentException.ThrowIfNullOrWhiteSpace(workflow);
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
 
-        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "manifest.json")));
+        using var inventory = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(root, "manifest.json")));
         var directCases = new Dictionary<string, string>(StringComparer.Ordinal);
         var aliases = new List<(string CaseId, string Ic, string SourceCaseId)>();
         foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
         {
             string manifestPath = entry.GetProperty("manifestPath").GetString()!;
             using var document = JsonDocument.Parse(
-                File.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
+                GoldenFileIo.ReadAllText(RepositoryPaths.PathFromRelative(root, manifestPath)));
             JsonElement goldenCase = document.RootElement;
             if (!StringComparer.Ordinal.Equals(goldenCase.GetProperty("workflow").GetString(), workflow))
             {
@@ -462,13 +462,12 @@ public static class CanonicalGoldenTestData
     private static string ValidatedArtifactPath(JsonElement artifact, string root)
     {
         string path = RepositoryPaths.ManifestPath(root, artifact);
-        var file = new FileInfo(path);
-        if (file.Length != artifact.GetProperty("size").GetInt64())
+        using FileStream stream = GoldenFileIo.OpenRead(path);
+        if (stream.Length != artifact.GetProperty("size").GetInt64())
         {
             throw new InvalidDataException($"Canonical artifact size drift: {GoldenDiagnostics.Label(artifact.GetProperty("path").GetString() ?? string.Empty)}.");
         }
 
-        using FileStream stream = File.OpenRead(path);
         string actualHash = Convert.ToHexStringLower(SHA256.HashData(stream));
         return !StringComparer.Ordinal.Equals(actualHash, artifact.GetProperty("sha256").GetString())
             ? throw new InvalidDataException($"Canonical artifact SHA-256 drift: {GoldenDiagnostics.Label(artifact.GetProperty("path").GetString() ?? string.Empty)}.")

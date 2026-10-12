@@ -74,15 +74,12 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
     /// processor, and produces the complete declared owner TP view modulo only reviewed ranges.
     /// </summary>
     [Theory]
-    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "NT51923", "single", "tp-input", "nt51923-ctrlram-replace-fw141-single", "nt51923-ctrlram-fw141-single-tp-work-240k", 0x3C000, "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78", "6d14818a4b11ed9cebfcad810a3261f75e896e3378986736089541fe0fcc3e28", 16)]
-    [InlineData("nt51923-fw141-cascade3-auto-prj-734-20260717", "NT51923", "cascade", "tp-input", "nt51923-ctrlram-replace-fw141-cascade3", "nt51923-ctrlram-fw141-cascade3-tp-work-240k", 0x3C000, "1eb5f8647cf58dacfeea21010abb17c23c62d4adb6b790501236bf4ad1badbc7", "7b7cb25f6c267d2a330b924c2ffc82db0d3afff06e2da35e8614f66225fa418d", 16)]
-    [InlineData("nt51926-fw141-single-auto-prj-747-20260717", "NT51926", "single", "tp-input", "nt51926-ctrlram-replace-fw141-runtime-single", "nt51926-ctrlram-fw141-tp-work-240k", 0x3C000, "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3", "22888325a4c15a149251427c258efff9854421ce3b94481eba2b356a0b2db893", 16)]
-    [InlineData("nt51926-fw141-cascade2-auto-prj-597-20260717", "NT51926", "cascade", "tp-input", "nt51926-ctrlram-replace-fw141-runtime-cascade", "nt51926-ctrlram-fw141-tp-work-240k", 0x3C000, "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab", "ad6b5cd0b8a3babe7e0363d4a77f257b3170b3a5ca3ba58b96b43fa746064500", 16)]
-    [InlineData("nt51926-fw200-single-auto-prj-597-20260718", "NT51926", "single", "tp-input", "nt51926-ctrlram-replace-fw200-runtime-single", "nt51926-ctrlram-fw200-tp-work-240k", 0x3C000, "258c1a51305edf966b8a8fb8fd64f50338385af1178076ea1c0b873db7d6999c", "f1c4a61299741af4837ac656300ebe24da97742e9f0bac5d11617a6cfc277209", 16)]
-    [InlineData("nt51926-fw200-cascade3-auto-prj-597-20260718", "NT51926", "cascade", "tp-input", "nt51926-ctrlram-replace-fw200-runtime-cascade", "nt51926-ctrlram-fw200-tp-work-240k", 0x3C000, "5e12cf6484d1d681826192b0c2b8aabead4098285f6a2facdfde732f4d1bc7e2", "2e79b7634219c9e67b8f4311d2dc0252d49e7dbe81ec6a56d610298a19cda50d", 16)]
-    [InlineData("nt51927-fw141-single-auto-prj-529-20260717", "NT51927", "single", "tp-input", "nt51927-ctrlram-replace-fw141-single", "nt51927-ctrlram-fw141-single-tp-work-212k", 0x35000, "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee", "6a1bbb51faaad6fe543f960104e0cd21436df2cbdbbbdb466fedacfaba84db2c", 24)]
+    [MemberData(nameof(OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsyncCases))]
+
+
+
     public async Task OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsync(
-        string caseId,
+        GoldenCaseId caseId,
         string icId,
         string number,
         string tpArtifactId,
@@ -94,7 +91,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         int expectedDifferenceCount)
     {
         RouteExecution execution = await ExecuteRouteAsync(
-            caseId,
+            caseId.Value,
             icId,
             number,
             tpArtifactId,
@@ -112,7 +109,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         Assert.True(expected.Bytes.Length >= tpLength);
 
         byte[] expectedOwnerView = expected.Bytes.AsSpan(0, tpLength).ToArray();
-        Assert.Equal(expectedOwnerViewSha256, Hash(expectedOwnerView));
+        GoldenAssert.AssertHashEqualsGolden(expectedOwnerViewSha256, Hash(expectedOwnerView), "SHA-256");
         AssertDifferencesMatchOwnerContract(
             execution.GoldenCase,
             expectedOwnerView,
@@ -124,11 +121,10 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
     /// Pins the three supported TP routes whose owner full-FlashCode prefix is not a TP-only golden.
     /// </summary>
     [Theory]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "single", "tp-input", "nt51950-ctrlram-replace-fw200-single", "nt51950-ctrlram-fw200-single-tp-work", 0x37000, "8001bdeadfda988a4da181f2f66991abd238a4d83de29eb24f23e16ac491c885")]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "single", "tp-input", "nt51951-ctrlram-replace-fw200-single", "nt51951-ctrlram-fw200-single-tp-work", 0x37000, "b27e519242e29a2e2f2ad2d50376853375999e38d1d899a7b97122119a74d0b8")]
-    [InlineData("nt51951-fw200-cascade2-auto-prj-599-20260731", "NT51951", "cascade", "tp-firmware-input", "nt51951-ctrlram-replace-fw1x-cascade", "nt51951-ctrlram-fw1x-cascade-tp-work", 0x37000, "a239645dd6e2527af34934e20ef7399ecb9d748aca32ce9ed4b829b94b8fc643")]
+    [MemberData(nameof(ContractOnlyTpBaseRunsDeterministicallyWithinExactAuthorityAsyncCases))]
+
     public async Task ContractOnlyTpBaseRunsDeterministicallyWithinExactAuthorityAsync(
-        string caseId,
+        GoldenCaseId caseId,
         string icId,
         string number,
         string tpArtifactId,
@@ -138,7 +134,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         string expectedOutputSha256)
     {
         RouteExecution execution = await ExecuteRouteAsync(
-            caseId,
+            caseId.Value,
             icId,
             number,
             tpArtifactId,
@@ -157,11 +153,10 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
     /// map does not mean that only a FlashCode container is accepted.
     /// </summary>
     [Theory]
-    [InlineData("nt51929-fw200-single-auto-prj-594-20260717", "NT51919", "single", "tp-input", "nt51919-ctrlram-replace-fw200-single", "nt51929-ctrlram-fw200-single-full-flash", "532598233a484f54791b0c252aacdd42a7f20198c4b86b6252901ecbb6afaae4")]
-    [InlineData("nt51929-fw200-single-auto-prj-594-20260717", "NT51929", "single", "tp-input", "nt51929-ctrlram-replace-fw200-single", "nt51929-ctrlram-fw200-single-full-flash", "532598233a484f54791b0c252aacdd42a7f20198c4b86b6252901ecbb6afaae4")]
-    [InlineData("nt51932-fw200-cascade3-auto-prj-525-20260718", "NT51932", IcNumberSelectionTokens.CascadeTwoToEight, "tp-input", "nt51932-ctrlram-replace-fw200-cascade", "nt51932-ctrlram-fw200-cascade-full-flash", "635216fa12a527fd53db41956431398bea6291a43b6a45f91505e25d5fa4c71c")]
+    [MemberData(nameof(FullLengthTpBaseUsesCapacityMatchedFullMapAsyncCases))]
+
     public async Task FullLengthTpBaseUsesCapacityMatchedFullMapAsync(
-        string caseId,
+        GoldenCaseId caseId,
         string icId,
         string number,
         string tpArtifactId,
@@ -170,7 +165,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         string expectedOutputSha256)
     {
         RouteExecution execution = await ExecuteRouteAsync(
-            caseId,
+            caseId.Value,
             icId,
             number,
             tpArtifactId,
@@ -188,7 +183,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             static candidate => StringComparer.Ordinal.Equals(
                 candidate.CaseId,
                 "nt51919-fw200-single-nt51929-alias"));
-        Assert.Equal(caseId, alias.SourceCaseId);
+        Assert.True(string.Equals(caseId.Value, alias.SourceCaseId, StringComparison.Ordinal), "Alias source case differs.");
         Assert.Equal("NT51929", alias.SourceIc);
     }
 
@@ -234,10 +229,10 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             capability.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         ExpectedCapability expectedCapability = ExpectedCapabilities[(icId, number, expectedMapId)];
         Assert.Equal(expectedCapability.RouteId, capability.Identity.RouteId);
-        Assert.Equal(expectedCapability.CapabilityFingerprint, capability.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(expectedCapability.CapabilityFingerprint, capability.CapabilityFingerprint, "SHA-256");
         Assert.Equal(expectedCapability.Evidence, capability.Evidence.Value);
         Assert.Equal(expectedCapability.RouteId, capability.Evidence.RouteId);
-        Assert.Equal(expectedCapability.CapabilityFingerprint, capability.Evidence.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(expectedCapability.CapabilityFingerprint, capability.Evidence.CapabilityFingerprint, "SHA-256");
 
         var immutableHashes = artifacts
             .Where(static artifact => StringComparer.Ordinal.Equals(artifact.Role, "input"))
@@ -255,13 +250,11 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             outputPath);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] actual = File.ReadAllBytes(outputPath);
+        byte[] actual = GoldenFileIo.ReadAllBytes(outputPath);
         Assert.Equal(tpLength, actual.Length);
         string actualSha256 = Hash(actual);
-        Assert.True(
-            StringComparer.Ordinal.Equals(expectedOutputSha256, actualSha256),
-            $"Actual TP output SHA-256: {actualSha256}");
-        Assert.Equal(expectedOutputSha256, result.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(expectedOutputSha256, actualSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(expectedOutputSha256, result.OutputSha256, "SHA-256");
         AssertExecutionAuthority(
             result,
             expectedProfileId,
@@ -269,9 +262,10 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             tpLength,
             tpBase.Bytes,
             actual);
-        Assert.All(
-            immutableHashes,
-            pair => Assert.Equal(pair.Value, Hash(File.ReadAllBytes(pair.Key))));
+        foreach (var pair in immutableHashes)
+        {
+            GoldenAssert.AssertHashEqualsGolden(pair.Value, Hash(GoldenFileIo.ReadAllBytes(pair.Key)), "SHA-256");
+        }
         return new RouteExecution(goldenCase, artifacts, actual, false);
     }
 
@@ -388,7 +382,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         ReadOnlySpan<byte> actual)
     {
         Assert.Equal(expectedProfileId, result.Report.ProfileId);
-        Assert.Equal(expectedCompilationFingerprint, result.Report.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(expectedCompilationFingerprint, result.Report.CompilationFingerprint, "SHA-256");
         Assert.All(result.Report.Operations, operation =>
         {
             Assert.Equal(OperationRunStatus.Succeeded, operation.Status);
@@ -420,9 +414,9 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
     private static OwnerArtifact ReadArtifact(JsonElement entry)
     {
         string path = RepositoryPaths.ManifestPath(CanonicalGoldenTestData.Root, entry);
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(path);
         Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(entry.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
         return new OwnerArtifact(
             entry.GetProperty("artifactId").GetString()!,
             entry.GetProperty("originalFileName").GetString()!,
@@ -467,4 +461,32 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             [],
             true);
     }
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, string, string, string, string, int, string, string, int> OriginalTpBaseProducesCompleteDeclaredOwnerViewWithinExactAuthorityAsyncCases() => new()
+    {
+        { new GoldenCaseId("nt51923-fw141-single-auto-prj-662-20260717"), "NT51923", "single", "tp-input", "nt51923-ctrlram-replace-fw141-single", "nt51923-ctrlram-fw141-single-tp-work-240k", 0x3C000, "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78", "6d14818a4b11ed9cebfcad810a3261f75e896e3378986736089541fe0fcc3e28", 16 },
+        { new GoldenCaseId("nt51923-fw141-cascade3-auto-prj-734-20260717"), "NT51923", "cascade", "tp-input", "nt51923-ctrlram-replace-fw141-cascade3", "nt51923-ctrlram-fw141-cascade3-tp-work-240k", 0x3C000, "1eb5f8647cf58dacfeea21010abb17c23c62d4adb6b790501236bf4ad1badbc7", "7b7cb25f6c267d2a330b924c2ffc82db0d3afff06e2da35e8614f66225fa418d", 16 },
+        { new GoldenCaseId("nt51926-fw141-single-auto-prj-747-20260717"), "NT51926", "single", "tp-input", "nt51926-ctrlram-replace-fw141-runtime-single", "nt51926-ctrlram-fw141-tp-work-240k", 0x3C000, "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3", "22888325a4c15a149251427c258efff9854421ce3b94481eba2b356a0b2db893", 16 },
+        { new GoldenCaseId("nt51926-fw141-cascade2-auto-prj-597-20260717"), "NT51926", "cascade", "tp-input", "nt51926-ctrlram-replace-fw141-runtime-cascade", "nt51926-ctrlram-fw141-tp-work-240k", 0x3C000, "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab", "ad6b5cd0b8a3babe7e0363d4a77f257b3170b3a5ca3ba58b96b43fa746064500", 16 },
+        { new GoldenCaseId("nt51926-fw200-single-auto-prj-597-20260718"), "NT51926", "single", "tp-input", "nt51926-ctrlram-replace-fw200-runtime-single", "nt51926-ctrlram-fw200-tp-work-240k", 0x3C000, "258c1a51305edf966b8a8fb8fd64f50338385af1178076ea1c0b873db7d6999c", "f1c4a61299741af4837ac656300ebe24da97742e9f0bac5d11617a6cfc277209", 16 },
+        { new GoldenCaseId("nt51926-fw200-cascade3-auto-prj-597-20260718"), "NT51926", "cascade", "tp-input", "nt51926-ctrlram-replace-fw200-runtime-cascade", "nt51926-ctrlram-fw200-tp-work-240k", 0x3C000, "5e12cf6484d1d681826192b0c2b8aabead4098285f6a2facdfde732f4d1bc7e2", "2e79b7634219c9e67b8f4311d2dc0252d49e7dbe81ec6a56d610298a19cda50d", 16 },
+        { new GoldenCaseId("nt51927-fw141-single-auto-prj-529-20260717"), "NT51927", "single", "tp-input", "nt51927-ctrlram-replace-fw141-single", "nt51927-ctrlram-fw141-single-tp-work-212k", 0x35000, "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee", "6a1bbb51faaad6fe543f960104e0cd21436df2cbdbbbdb466fedacfaba84db2c", 24 },
+    };
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, string, string, string, string, int, string> ContractOnlyTpBaseRunsDeterministicallyWithinExactAuthorityAsyncCases() => new()
+    {
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950", "single", "tp-input", "nt51950-ctrlram-replace-fw200-single", "nt51950-ctrlram-fw200-single-tp-work", 0x37000, "8001bdeadfda988a4da181f2f66991abd238a4d83de29eb24f23e16ac491c885" },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951", "single", "tp-input", "nt51951-ctrlram-replace-fw200-single", "nt51951-ctrlram-fw200-single-tp-work", 0x37000, "b27e519242e29a2e2f2ad2d50376853375999e38d1d899a7b97122119a74d0b8" },
+        { new GoldenCaseId("nt51951-fw200-cascade2-auto-prj-599-20260731"), "NT51951", "cascade", "tp-firmware-input", "nt51951-ctrlram-replace-fw1x-cascade", "nt51951-ctrlram-fw1x-cascade-tp-work", 0x37000, "a239645dd6e2527af34934e20ef7399ecb9d748aca32ce9ed4b829b94b8fc643" },
+    };
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, string, string, string, string, string> FullLengthTpBaseUsesCapacityMatchedFullMapAsyncCases() => new()
+    {
+        { new GoldenCaseId("nt51929-fw200-single-auto-prj-594-20260717"), "NT51919", "single", "tp-input", "nt51919-ctrlram-replace-fw200-single", "nt51929-ctrlram-fw200-single-full-flash", "532598233a484f54791b0c252aacdd42a7f20198c4b86b6252901ecbb6afaae4" },
+        { new GoldenCaseId("nt51929-fw200-single-auto-prj-594-20260717"), "NT51929", "single", "tp-input", "nt51929-ctrlram-replace-fw200-single", "nt51929-ctrlram-fw200-single-full-flash", "532598233a484f54791b0c252aacdd42a7f20198c4b86b6252901ecbb6afaae4" },
+        { new GoldenCaseId("nt51932-fw200-cascade3-auto-prj-525-20260718"), "NT51932", IcNumberSelectionTokens.CascadeTwoToEight, "tp-input", "nt51932-ctrlram-replace-fw200-cascade", "nt51932-ctrlram-fw200-cascade-full-flash", "635216fa12a527fd53db41956431398bea6291a43b6a45f91505e25d5fa4c71c" },
+    };
 }
