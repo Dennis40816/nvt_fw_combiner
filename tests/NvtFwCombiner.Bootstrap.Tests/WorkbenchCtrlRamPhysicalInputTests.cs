@@ -181,7 +181,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     public async Task ZeroFirmwareChipCountWarnsWithoutBlockingCountInvariantPlan()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-zero-chip-count");
-        byte[] baseBytes = File.ReadAllBytes(Nt51927ThreeChipBasePath());
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(Nt51927ThreeChipBasePath());
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata metadata));
         baseBytes[checked((int)metadata.StructureStart) + FirmwareConfigLayout.ChipNumberOffset] = 0;
         string basePath = workspace.Write("base.bin", baseBytes);
@@ -226,7 +226,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-short-ctrlram-authority");
         string basePath = Nt51927ThreeChipBasePath();
-        byte[] baseBytes = File.ReadAllBytes(basePath);
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(basePath);
         byte[] nfBytes = [0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87];
         string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
         var processor = new InspectingProcessor(request =>

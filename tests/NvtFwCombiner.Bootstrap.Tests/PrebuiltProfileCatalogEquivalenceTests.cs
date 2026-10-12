@@ -168,7 +168,7 @@ public sealed class PrebuiltProfileCatalogEquivalenceTests
     {
         Assert.True(result["loaded"]!.GetValue<bool>(), result.ToJsonString());
         // The published catalog snapshot pinned by CanonicalCatalogSnapshotDigestTests (decision 192/195 DP declaration identities).
-        Assert.Equal("adf144922d409b48b3ef76a263f57c957337c3c4b4ecefd3b65137e18bbca730", result["publication"]!["sha256"]!.GetValue<string>());
+        GoldenAssert.AssertHashEqualsGolden("adf144922d409b48b3ef76a263f57c957337c3c4b4ecefd3b65137e18bbca730", result["publication"]!["sha256"]!.GetValue<string>(), "SHA-256");
         Assert.Equal(493864, result["publication"]!["text"]!.GetValue<string>().Length);
         Assert.Equal(7, result["publication"]!["sections"]!.AsArray().Count);
     }

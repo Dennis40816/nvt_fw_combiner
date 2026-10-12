@@ -349,10 +349,10 @@ public sealed partial class RunAndHexEditorTests
         Assert.NotNull(result);
         Assert.Same(harness.Owner.LastRunResult, result);
         Assert.Equal("Build output committed; report unavailable", result.Title);
-        Assert.Equal(
-            $"{committed.OutputSize} bytes / SHA-256 {committed.OutputSha256}. " +
-                "Report unavailable: Synthetic report publication failure.",
-            result.Detail);
+        GoldenAssert.AssertHashEqualsGolden($"{committed.OutputSize} bytes / SHA-256 {committed.OutputSha256}. " +
+                "Report unavailable: Synthetic report publication failure.", result.Detail, "SHA-256"
+
+);
         Assert.True(StringComparer.Ordinal.Equals(outputPath, result.Output), "Captured text differs from the expected text.");
         Assert.False(result.Succeeded);
         Assert.False(harness.BuildResult.IsOpen);

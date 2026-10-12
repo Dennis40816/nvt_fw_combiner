@@ -135,7 +135,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal(bundleContentHash, details.Provenance.Bundle.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden(bundleContentHash, details.Provenance.Bundle.ContentHash, "SHA-256");
         Assert.Equal(profileId, artifact.V2Details.ProfileId);
         Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
         Assert.Equal(
@@ -248,7 +248,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("ecffb254e15097f64f321e806bd9c6e8eeef478b5ae7f5d9ffd5e1eac8897e1f", details.Provenance.Bundle.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden("ecffb254e15097f64f321e806bd9c6e8eeef478b5ae7f5d9ffd5e1eac8897e1f", details.Provenance.Bundle.ContentHash, "SHA-256");
         Assert.Equal(profileId, artifact.V2Details.ProfileId);
         Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
@@ -336,7 +336,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(sourceManifestPath), GoldenFileIo.ReadAllBytes(materializedManifestPath), "firmware image");
             GoldenAssert.AssertEqualsGolden(GoldenFileIo.ReadAllBytes(sourceManifestPath), GoldenFileIo.ReadAllBytes(deployedManifestPath), "firmware image");
 
-            using var manifest = JsonDocument.Parse(File.ReadAllText(sourceManifestPath));
+            using var manifest = JsonDocument.Parse(GoldenFileIo.ReadAllText(sourceManifestPath));
             Assert.False(
                 Directory.Exists(Path.Combine(sourceBundleRoot, "schemas")),
                 $"Source bundle must not be used as a runtime root: {sourceBundleRoot}");
@@ -365,8 +365,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 Assert.True(File.Exists(sourcePath), $"Materialization source is missing: {sourcePath}");
                 Assert.True(File.Exists(materializedPath), $"Materialized bundle entry is missing: {materializedPath}");
                 Assert.True(File.Exists(deployedPath), $"Deployed bundle entry is missing: {deployedPath}");
-                byte[] sourceBytes = File.ReadAllBytes(sourcePath);
-                Assert.Equal(contentHash, Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant());
+                byte[] sourceBytes = GoldenFileIo.ReadAllBytes(sourcePath);
+                GoldenAssert.AssertHashEqualsGolden(contentHash, Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant(), "SHA-256");
                 GoldenAssert.AssertEqualsGolden(sourceBytes, GoldenFileIo.ReadAllBytes(materializedPath), "firmware image");
                 GoldenAssert.AssertEqualsGolden(sourceBytes, GoldenFileIo.ReadAllBytes(deployedPath), "firmware image");
             }

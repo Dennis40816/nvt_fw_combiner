@@ -18,9 +18,9 @@ public sealed class StandardMergeSourceEnvelopeInspectionTests
         JsonElement goldenCase = manifest.RootElement.GetProperty("cases")
             .EnumerateArray().Single(static entry => entry.GetProperty("ic").GetString() == "51950");
         JsonElement inputs = goldenCase.GetProperty("inputs");
-        byte[] dp = File.ReadAllBytes(RepositoryPaths.ManifestPath(
+        byte[] dp = GoldenFileIo.ReadAllBytes(RepositoryPaths.ManifestPath(
             CanonicalGoldenTestData.Root, inputs.GetProperty("dp-input")));
-        byte[] tp = File.ReadAllBytes(RepositoryPaths.ManifestPath(
+        byte[] tp = GoldenFileIo.ReadAllBytes(RepositoryPaths.ManifestPath(
             CanonicalGoldenTestData.Root, inputs.GetProperty("tp-input")));
         Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             "NT51950", dp, ["dp-input", "tp-input"],

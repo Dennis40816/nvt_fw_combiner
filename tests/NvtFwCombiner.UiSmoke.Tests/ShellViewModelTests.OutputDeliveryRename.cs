@@ -98,7 +98,7 @@ public sealed partial class FirmwareInspectionSlotTests
         foreach (CompositionOutputBundleSourceSummary source in viewModel.OutputDelivery.Sources)
         {
             byte[] bytes = File.ReadAllBytes(Path.Combine(destination.Root, "custom", source.OriginalFileName));
-            Assert.Equal(source.Sha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)), ignoreCase: true);
+            GoldenAssert.AssertHashEqualsGolden(source.Sha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)), "SHA-256", ignoreCase: true);
         }
         using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement naming = report.RootElement.GetProperty("OutputNaming");

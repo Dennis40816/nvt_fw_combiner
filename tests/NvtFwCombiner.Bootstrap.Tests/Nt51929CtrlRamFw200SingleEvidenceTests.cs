@@ -53,22 +53,22 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.True(StringComparer.Ordinal.Equals(expectedProfileId, ReadProfileId(CompositionRunReportJson.Serialize(result))), "Captured text differs from the expected text.");
-        Assert.Equal(OwnerExpectedSha256, Hash(File.ReadAllBytes(outputPath)));
-        Assert.Equal(OwnerExpectedSha256, Hash(evidence.Expected.Bytes));
+        GoldenAssert.AssertHashEqualsGolden(OwnerExpectedSha256, Hash(GoldenFileIo.ReadAllBytes(outputPath)), "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(OwnerExpectedSha256, Hash(evidence.Expected.Bytes), "SHA-256");
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(evidence.Expected.Bytes, out FirmwareConfigMetadata metadata));
         Assert.Equal("2.0.0", metadata.CommonFwVersion);
         Assert.Equal(1, metadata.ChipNumber);
-        Assert.Equal(0x4703, metadata.ProjectId);
+        GoldenAssert.AssertValueEqualsGolden(0x4703, metadata.ProjectId, "firmware field");
 
         FirmwareContextSuggestion suggestion = Assert.IsType<FirmwareContextSuggestion>(
             FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(icId, outputPath));
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
         Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
-        Assert.Equal(metadata.ProjectId, suggestion.ProjectId);
-        Assert.Equal(
-            "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
-            Hash(evidence.AbExpected.Bytes));
+        GoldenAssert.AssertValueEqualsGolden(metadata.ProjectId, suggestion.ProjectId, "firmware field");
+        GoldenAssert.AssertHashEqualsGolden("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(evidence.AbExpected.Bytes), "SHA-256"
+
+);
         Assert.Equal(0x80000, evidence.AbExpected.Bytes.Length);
     }
 
@@ -105,8 +105,8 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             TestContext.Current.CancellationToken, v2Path);
 
         Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
-        byte[] v2Bytes = File.ReadAllBytes(v2Path);
-        Assert.Equal(CurrentOutputSha256, Hash(v2Bytes));
+        byte[] v2Bytes = GoldenFileIo.ReadAllBytes(v2Path);
+        GoldenAssert.AssertHashEqualsGolden(CurrentOutputSha256, Hash(v2Bytes), "SHA-256");
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(
@@ -130,7 +130,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             });
         Assert.All(
             evidence.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.RelativePath], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     /// <summary>Retains NT51919 fact-scoped alias comparison separately from direct NT51929 evidence.</summary>
@@ -205,7 +205,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(outputPath, result.CommittedOutputId);
         GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), GoldenDiagnostics.Label(CaseId));
-        byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] output = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(Capacity, output.Length);
         Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51929", out TpFlashMapProfile? flashMap));
         Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(
@@ -271,10 +271,10 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
                 $"{canonicalIcId.ToLowerInvariant()}-ctrlram-replace-fw200-single",
                 canonicalIcId);
         }
-        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(Hash(reference), Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
         Assert.All(
             evidence.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.RelativePath], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.RelativePath], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     /// <summary>NT51919 and NT51929 bounded cascade routes consume the owner-declared DiffDLM range.</summary>
@@ -316,7 +316,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         GoldenAssert.AssertEqualsGolden(diff.AsSpan(0, 0x0B90).ToArray(), output.AsSpan(0x2D100, 0x0B90).ToArray(), GoldenDiagnostics.Label(CaseId));
         GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x2DC90, 0x0870).ToArray(),
             output.AsSpan(0x2DC90, 0x0870).ToArray(), GoldenDiagnostics.Label(CaseId));
@@ -324,7 +324,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             output.AsSpan(0x2E500, 0x7800).ToArray(), GoldenDiagnostics.Label(CaseId));
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, expectedProfileId, icId);
-        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(Hash(reference), Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
     }
 
     /// <summary>Proves accepted NT51929 identifiers select the same exact V2 route.</summary>
@@ -392,7 +392,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         ];
         Assert.Equal(expectedWrites, ReadRanges(session, "ProcessorAllowedWriteRanges"));
         string executable = session.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;
-        Assert.Equal(RegisteredCombinerSha256, Hash(File.ReadAllBytes(executable)));
+        GoldenAssert.AssertHashEqualsGolden(RegisteredCombinerSha256, Hash(GoldenFileIo.ReadAllBytes(executable)), "SHA-256");
     }
 
     private static string[][] ExpectedArguments(string icId)
@@ -523,9 +523,9 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         string? sourceRole = null)
     {
         string path = RepositoryPaths.ManifestPath(root, entry);
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(path);
         Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(entry.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
         return new(
             entry.GetProperty("originalFileName").GetString()!,
             entry.GetProperty("path").GetString()!,

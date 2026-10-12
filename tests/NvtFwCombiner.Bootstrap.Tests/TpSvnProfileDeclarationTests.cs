@@ -183,7 +183,7 @@ public sealed class TpSvnProfileDeclarationTests
                      .Where(static path => path.Contains($"{Path.DirectorySeparatorChar}profiles{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
                          !path.Contains($"{Path.DirectorySeparatorChar}schemas{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            using var document = JsonDocument.Parse(GoldenFileIo.ReadAllText(path));
             if (!document.RootElement.TryGetProperty("metadataBindings", out JsonElement bindings))
             {
                 continue;
@@ -211,7 +211,7 @@ public sealed class TpSvnProfileDeclarationTests
         foreach (string path in Directory.EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
                      .Where(static path => path.Contains($"{Path.DirectorySeparatorChar}families{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
         {
-            if (File.ReadAllText(path).Contains($"\"{HeaderCopyStructureId}\"", StringComparison.Ordinal))
+            if (GoldenFileIo.ReadAllText(path).Contains($"\"{HeaderCopyStructureId}\"", StringComparison.Ordinal))
             {
                 Assert.Contains("ctrlram-replace", Path.GetFileName(path), StringComparison.Ordinal);
             }
@@ -412,7 +412,7 @@ public sealed class TpSvnProfileDeclarationTests
 
     private static byte[] ReadGolden(string relativePath)
     {
-        return File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot($"{GoldenRoot}/{relativePath}"));
+        return GoldenFileIo.ReadAllBytes(RepositoryPaths.FromRepositoryRoot($"{GoldenRoot}/{relativePath}"));
     }
 
     private static byte[] CreateSyntheticNt51950CommonCascadeImage()

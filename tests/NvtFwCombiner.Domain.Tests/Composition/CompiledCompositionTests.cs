@@ -17,7 +17,7 @@ public sealed partial class CompiledCompositionTests
         CompiledComposition composition = CreateReplace(inputMode);
 
         Assert.Equal(inputMode, composition.V2Details.IcNumberInputMode);
-        Assert.Equal(expectedFingerprint, composition.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(expectedFingerprint, composition.CompilationFingerprint, "SHA-256");
     }
 
     /// <summary>Verifies compiled default output policy cannot contain path or control syntax.</summary>
@@ -44,7 +44,7 @@ public sealed partial class CompiledCompositionTests
         CompiledComposition first = CreateMerge(reverseDeclarations: false);
         CompiledComposition second = CreateMerge(reverseDeclarations: true);
 
-        Assert.Equal(first.CompilationFingerprint, second.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(first.CompilationFingerprint, second.CompilationFingerprint, "SHA-256");
     }
 
     /// <summary>Verifies profile identity, output policy, and IC policy are part of compilation identity.</summary>

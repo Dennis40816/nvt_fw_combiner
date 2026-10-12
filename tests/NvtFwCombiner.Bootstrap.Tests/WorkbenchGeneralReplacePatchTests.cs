@@ -240,7 +240,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-general-tp-patch");
         string basePath = GoldenArtifactPath("51950", "expected-output", "dp-256k");
-        byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
+        byte[] baseBytes = await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
 
         string outputPath = workspace.PathFor("output.bin");
         IReadOnlyList<CompositionIssue> issues = await PrepareRejectedAsync(
@@ -263,7 +263,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
     public async Task GeneralReplaceManyMappingsFailClosed()
     {
         string basePath = GoldenArtifactPath("51950", "expected-output", "dp-256k");
-        byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
+        byte[] baseBytes = await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
         AuthoringMappingState[] patches =
         [
             .. Enumerable.Range(0, 80).Select(index => GeneralTestDraftFactory.ReplacePatch(

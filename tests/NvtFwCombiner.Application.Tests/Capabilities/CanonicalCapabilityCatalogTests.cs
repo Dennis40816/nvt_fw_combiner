@@ -4,6 +4,8 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Capabilities;
 
 /// <summary>Tests the Application-owned canonical capability snapshot and reload boundary.</summary>
@@ -71,9 +73,9 @@ public sealed partial class CanonicalCapabilityCatalogTests
             candidate.Definitions[0].CompiledComposition,
             resolution.Capability!.CompiledComposition);
         Assert.Equal(reload.Snapshot.ResolutionToken, resolution.Capability.ResolutionToken);
-        Assert.Equal(
-            candidate.Definitions[0].CapabilityFingerprint,
-            resolution.Capability.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(candidate.Definitions[0].CapabilityFingerprint, resolution.Capability.CapabilityFingerprint, "SHA-256"
+
+);
     }
 
     /// <summary>A caller can resolve the sole map variant without restating map facts.</summary>
@@ -291,7 +293,7 @@ public sealed partial class CanonicalCapabilityCatalogTests
             CapabilityAdmissionSnapshot.FromResolvedCapability(capability, revision);
 
         Assert.Equal(Route.RouteId, request.RouteId);
-        Assert.Equal(capability.CapabilityFingerprint, request.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(capability.CapabilityFingerprint, request.CapabilityFingerprint, "SHA-256");
         Assert.Equal(reload.Snapshot!.ResolutionToken, request.ResolutionToken);
         Assert.Equal(revision, request.AuthoringRevision);
         Assert.Equal(revision, admission.AuthoringRevision);

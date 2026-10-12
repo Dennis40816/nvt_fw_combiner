@@ -37,7 +37,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
                 result.InputSlotStatus);
             Assert.Equal(new AuthoringRevision(revision), status.AuthoringRevision);
-            Assert.Equal(compilationFingerprint, status.CompilationFingerprint);
+            GoldenAssert.AssertHashEqualsGolden(compilationFingerprint, status.CompilationFingerprint, "SHA-256");
             Assert.Equal(AuthoringSlotLifecycle.Verified, status.InspectionLifecycle);
             Assert.True(status.IsTerminal);
             Assert.False(status.BlocksBuild);
@@ -153,7 +153,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             Assert.Equal(version.IsKnown, token.IsKnown);
             Assert.Equal(expected, token.Value);
             Assert.Equal(sourceAddressSpaceId, token.SourceAddressSpaceId);
-            Assert.Equal(acceptedHashes[sourceAddressSpaceId], token.AcceptedSnapshotSha256);
+            GoldenAssert.AssertHashEqualsGolden(acceptedHashes[sourceAddressSpaceId], token.AcceptedSnapshotSha256, "SHA-256");
             Assert.Equal(parserId, token.ParserId);
         }
     }

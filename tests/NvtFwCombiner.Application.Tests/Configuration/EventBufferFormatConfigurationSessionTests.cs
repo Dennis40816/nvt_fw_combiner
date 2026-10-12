@@ -61,14 +61,14 @@ public sealed class EventBufferFormatConfigurationSessionTests
         Assert.NotNull(session.Current.Configuration!.Match(Scope, 0x97));
         Assert.Null(session.Current.Configuration.Match(Scope, 0xA6));
         Assert.True(session.Current.UsesBuiltInDefaults);
-        Assert.Equal(defaultHash, session.Current.SourceSha256);
-        Assert.Equal(savedHash, session.Current.LastSavedSha256);
+        GoldenAssert.AssertHashEqualsGolden(defaultHash, session.Current.SourceSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(savedHash, session.Current.LastSavedSha256, "SHA-256");
         Assert.Equal(1, storage.Writes);
         Assert.Same(captured, session.Current.LastSaved);
         Assert.NotNull(session.CreateSavedDraft());
         using EventBufferFormatConfigurationSession restarted = Create(storage);
         Assert.True((await restarted.ReloadAsync(TestContext.Current.CancellationToken)).Succeeded);
-        Assert.Equal(defaultHash, restarted.Current.SourceSha256);
+        GoldenAssert.AssertHashEqualsGolden(defaultHash, restarted.Current.SourceSha256, "SHA-256");
         Assert.NotNull(restarted.Current.Configuration!.Match(Scope, 0x97));
         Assert.Null(restarted.Current.LastSaved);
         Assert.NotNull(captured.Match(Scope, 0xA6));
@@ -237,7 +237,7 @@ public sealed class EventBufferFormatConfigurationSessionTests
         Assert.True((await session.SaveAsync(session.CreateDefaultsDraft(), cancellation.Token)).Succeeded);
         Assert.True(cancellation.IsCancellationRequested);
         Assert.NotNull(session.Current.Configuration);
-        Assert.Equal(storage.Stored!.SourceSha256, session.Current.SourceSha256);
+        GoldenAssert.AssertHashEqualsGolden(storage.Stored!.SourceSha256, session.Current.SourceSha256, "SHA-256");
     }
 
     /// <summary>Same-source reload advances publication while preserving its original byte hash.</summary>
@@ -249,7 +249,7 @@ public sealed class EventBufferFormatConfigurationSessionTests
         EventBufferFormatConfigurationOperationResult first = await session.ReloadAsync(TestContext.Current.CancellationToken);
         EventBufferFormatConfigurationOperationResult second = await session.ReloadAsync(TestContext.Current.CancellationToken);
         Assert.Equal("actual-source-hash", first.State.SourceSha256);
-        Assert.Equal(first.State.SourceSha256, second.State.SourceSha256);
+        GoldenAssert.AssertHashEqualsGolden(first.State.SourceSha256, second.State.SourceSha256, "SHA-256");
         Assert.Equal(first.State.Generation + 1, second.State.Generation);
         Assert.NotNull(second.State.Configuration!.Match(Scope, 0xA6));
     }

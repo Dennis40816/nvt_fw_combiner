@@ -2,6 +2,8 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.ExternalTools;
 
 /// <summary>Executable evidence for owner-provided CtrlRAM postbuild catalog data.</summary>
@@ -293,11 +295,11 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
                 baseline,
                 0x40000);
 
-        Assert.Equal(
-            fingerprint,
-            LegacyCombinerPostbuildPlanCompiler.CalculateIntegrityFingerprint(
+        GoldenAssert.AssertHashEqualsGolden(fingerprint, LegacyCombinerPostbuildPlanCompiler.CalculateIntegrityFingerprint(
                 same,
-                0x40000));
+                0x40000), "SHA-256"
+
+);
         Assert.Matches("^[0-9a-f]{64}$", fingerprint);
         Assert.NotEqual(
             fingerprint,

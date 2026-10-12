@@ -48,7 +48,7 @@ public sealed class AbMergeAuthoringDefinitionTests
         Assert.NotNull(declaration);
         Assert.Equal(route.CompilationContract.ProfileId, declaration.ProfileId);
         Assert.Equal(route.CompilationContract.ProfileVersion, declaration.ProfileVersion);
-        Assert.Equal(route.CompilationContract.TrustedDefinitionSha256, declaration.BundleContentHash);
+        GoldenAssert.AssertHashEqualsGolden(route.CompilationContract.TrustedDefinitionSha256, declaration.BundleContentHash, "SHA-256");
         Assert.All(declaration.InputBindings, binding =>
         {
             Assert.Null(binding.RequiredEndExclusive);

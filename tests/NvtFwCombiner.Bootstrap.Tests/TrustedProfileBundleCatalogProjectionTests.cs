@@ -123,10 +123,10 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
             bundle.CreateDocumentProjection());
 
         Assert.Equal("bundle", catalog.BundleIdentity.BundleId);
-        Assert.Equal(bundleContentHash, catalog.BundleIdentity.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden(bundleContentHash, catalog.BundleIdentity.ContentHash, "SHA-256");
         TrustedFirmwareFamilyCatalogEntry familyEntry = Assert.Single(catalog.Families);
         Assert.Equal("family-entry", familyEntry.Identity.EntryId);
-        Assert.Equal(familyHash, familyEntry.Family.FamilyContentHash);
+        GoldenAssert.AssertHashEqualsGolden(familyHash, familyEntry.Family.FamilyContentHash, "SHA-256");
         TrustedCompositionProfileCatalogEntry profileEntry = Assert.Single(catalog.Profiles);
         Assert.Equal("profile-entry", profileEntry.Identity.EntryId);
         Assert.Same(familyEntry, profileEntry.Family);
@@ -182,7 +182,7 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         GoldenAssert.AssertEqualsGolden(Enumerable.Range(0, 16).Select(static value => (byte)value).ToArray(), result.OutputBytes.ToArray(), "firmware image");
-        Assert.Equal(artifact.CompilationFingerprint, result.Report.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(artifact.CompilationFingerprint, result.Report.CompilationFingerprint, "SHA-256");
     }
 
     private static byte[] ReadSchema(string fileName)

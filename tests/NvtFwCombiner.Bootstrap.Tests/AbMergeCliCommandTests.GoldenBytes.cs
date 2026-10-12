@@ -3,6 +3,8 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
+using InlineDataAttribute = NvtFwCombiner.Bootstrap.Tests.GoldenInlineDataAttribute;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class AbMergeCliCommandTests
@@ -23,47 +25,32 @@ public sealed partial class AbMergeCliCommandTests
     [InlineData("NT51950", "cascade", "ctrlram-replace", "nt51951-fw200-cascade2-auto-prj-599-20260731", "tp-firmware-input", "nt51950-ab-osd-d03t02-20260924")]
     [InlineData("NT51951", null, "ctrlram-replace", "nt51951-fw200-single-auto-prj-695-20260718", "tp-input", "nt51950-ab-osd-d03t02-20260924")]
     [InlineData("NT51951", null, "ctrlram-replace", "nt51951-fw200-cascade2-auto-prj-599-20260731", "tp-firmware-input", "nt51950-ab-osd-d03t02-20260924")]
-    public async Task DummyBuildKeepsTheNormalBuildsTpBytesAndFillsEverythingElseAsync(
-        string profile, string? topology, string tpWorkflow, string tpCaseId, string tpArtifactId, string dpCaseId)
+    public async Task DummyBuildKeepsTheNormalBuildsTpBytesAndFillsEverythingElseAsync(string profile, string? topology, string tpWorkflow, GoldenCaseId tpCaseId, string tpArtifactId, GoldenCaseId dpCaseId)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(tpWorkflow);
-        ArgumentNullException.ThrowIfNull(tpCaseId);
+        ArgumentNullException.ThrowIfNull(tpCaseId.Value);
         ArgumentNullException.ThrowIfNull(tpArtifactId);
-        ArgumentNullException.ThrowIfNull(dpCaseId);
-        if (!OperatingSystem.IsWindows() && profile is "NT51950" or "NT51951")
-        {
-            Assert.Skip("Real NT51950/NT51951 Golden Build requires the packaged Windows processor.");
-        }
-
-        JsonElement tpCase = CanonicalGoldenTestData.LoadDirectCase(tpWorkflow, tpCaseId);
-        JsonElement dpCase = CanonicalGoldenTestData.LoadDirectCase("ab-merge", dpCaseId);
+        ArgumentNullException.ThrowIfNull(dpCaseId.Value);
+        if (!OperatingSystem.IsWindows() && profile is "NT51950" or "NT51951") { Assert.Skip("Real NT51950/NT51951 Golden Build requires the packaged Windows processor."); }
+        JsonElement tpCase = CanonicalGoldenTestData.LoadDirectCase(tpWorkflow, tpCaseId.Value);
+        JsonElement dpCase = CanonicalGoldenTestData.LoadDirectCase("ab-merge", dpCaseId.Value);
         string tpA = CliGoldenByteEvidence.ArtifactPath(tpCase, tpArtifactId);
         string tpB = tpWorkflow == "ab-merge" ? CliGoldenByteEvidence.ArtifactPath(tpCase, "tp-b-input") : tpA;
         string dp = CliGoldenByteEvidence.ArtifactPath(dpCase, "dp-ab-input");
         string[] selection = topology is null ? [] : ["--ab-topology", topology];
         string[] inputs = ["--profile", profile, .. selection, "--tp-a", tpA, "--tp-b", tpB];
         using var workspace = TempWorkspace.Create("ab-cli-golden-dummy");
-        CliGoldenByteEvidence.BuildEvidence normal = await CliGoldenByteEvidence.BuildAsync(workspace, "normal",
-            ["ab-merge", "build", .. inputs, "--dp-ab", dp]);
-        CliGoldenByteEvidence.BuildEvidence dummy = await CliGoldenByteEvidence.BuildAsync(workspace, "dummy",
-            ["ab-merge", "build", .. inputs, "--dp-mode", "dummy", "--acknowledge-non-tp-ff"]);
-
-        CompiledAuthoringSelectedInput[] tpInputs =
-        [
-            new(CompositionAddressSpaceIds.TpAInput, tpA, File.ReadAllBytes(tpA)),
-            new(CompositionAddressSpaceIds.TpBInput, tpB, File.ReadAllBytes(tpB)),
-        ];
-        CompiledComposition normalComposition = await PrepareReportedAbCompositionAsync(profile, topology,
-            [.. tpInputs, new(CompositionAddressSpaceIds.DpAbInput, dp, File.ReadAllBytes(dp))], AbMergeDpMode.Normal, normal.Report);
-        CompiledComposition dummyComposition = await PrepareReportedAbCompositionAsync(profile, topology,
-            tpInputs, AbMergeDpMode.Dummy, dummy.Report);
+        CliGoldenByteEvidence.BuildEvidence normal = await CliGoldenByteEvidence.BuildAsync(workspace, "normal", ["ab-merge", "build", .. inputs, "--dp-ab", dp]);
+        CliGoldenByteEvidence.BuildEvidence dummy = await CliGoldenByteEvidence.BuildAsync(workspace, "dummy", ["ab-merge", "build", .. inputs, "--dp-mode", "dummy", "--acknowledge-non-tp-ff"]);
+        CompiledAuthoringSelectedInput[] tpInputs = [new(CompositionAddressSpaceIds.TpAInput, tpA, GoldenFileIo.ReadAllBytes(tpA)), new(CompositionAddressSpaceIds.TpBInput, tpB, GoldenFileIo.ReadAllBytes(tpB)),];
+        CompiledComposition normalComposition = await PrepareReportedAbCompositionAsync(profile, topology, [.. tpInputs, new(CompositionAddressSpaceIds.DpAbInput, dp, GoldenFileIo.ReadAllBytes(dp))], AbMergeDpMode.Normal, normal.Report);
+        CompiledComposition dummyComposition = await PrepareReportedAbCompositionAsync(profile, topology, tpInputs, AbMergeDpMode.Dummy, dummy.Report);
         Assert.Equal(normalComposition.Plan.OutputInitialization.Capacity, normal.Bytes.LongLength);
         Assert.Equal(dummyComposition.Plan.OutputInitialization.Capacity, dummy.Bytes.LongLength);
         Assert.Equal(normal.Report.GetProperty("Output").GetProperty("Size").GetInt64(), normal.Bytes.LongLength);
         Assert.Equal(dummy.Report.GetProperty("Output").GetProperty("Size").GetInt64(), dummy.Bytes.LongLength);
-        if (normalComposition.V2Details.Provenance.Context is ResolvedMapV2CompilationContext { SourceEnvelope: { } envelope } &&
-            envelope.ActualOutputLength > envelope.LayoutTemplateCapacity)
+        if (normalComposition.V2Details.Provenance.Context is ResolvedMapV2CompilationContext { SourceEnvelope: { } envelope } && envelope.ActualOutputLength > envelope.LayoutTemplateCapacity)
         {
             // Normal preserves the DP tail; Dummy has no DP and uses the declared layout capacity.
             Assert.Equal(envelope.ActualOutputLength, normal.Bytes.LongLength);
@@ -74,10 +61,7 @@ public sealed partial class AbMergeCliCommandTests
         {
             Assert.Equal(normal.Bytes.LongLength, dummy.Bytes.LongLength);
         }
-
-        JsonElement[] copies = [.. dummy.Report.GetProperty("Operations").EnumerateArray().Where(static operation =>
-            operation.GetProperty("OperationId").GetString() is "copy-tpa" or "copy-tpb" or
-                "overlay-tpa-into-output" or "overlay-tpb-into-output")];
+        JsonElement[] copies = [.. dummy.Report.GetProperty("Operations").EnumerateArray().Where(static operation => operation.GetProperty("OperationId").GetString() is "copy-tpa" or "copy-tpb" or "overlay-tpa-into-output" or "overlay-tpb-into-output")];
         Assert.Equal(2, copies.Length);
         ByteRange[] tpRanges = [.. copies.Select(static operation => CliGoldenByteEvidence.Range(operation.GetProperty("TargetRange")))];
         foreach (JsonElement copy in copies)
@@ -90,7 +74,6 @@ public sealed partial class AbMergeCliCommandTests
             Assert.Equal(range, CliGoldenByteEvidence.TargetRange(normal.Report, id));
             CliGoldenByteEvidence.EqualRange(normal.Bytes, dummy.Bytes, range);
         }
-
         Assert.True(tpRanges.Sum(static range => range.Length) < dummy.Bytes.LongLength);
         for (int offset = 0; offset < dummy.Bytes.Length; offset++)
         {
@@ -99,12 +82,11 @@ public sealed partial class AbMergeCliCommandTests
                 Assert.Fail($"Non-TP output-image offset 0x{offset:X} is not FF.");
             }
         }
-
         if (tpWorkflow == "ab-merge")
         {
             // The NT51919/NT51932 rows are fact-scoped alias checks, not direct product Goldens.
             CliGoldenByteEvidence.EqualGolden(dpCase, normal.Bytes);
-            byte[] goldenBytes = File.ReadAllBytes(CliGoldenByteEvidence.ArtifactPath(dpCase, "expected-output"));
+            byte[] goldenBytes = GoldenFileIo.ReadAllBytes(CliGoldenByteEvidence.ArtifactPath(dpCase, "expected-output"));
             foreach (ByteRange range in tpRanges)
             {
                 CliGoldenByteEvidence.EqualRange(goldenBytes, dummy.Bytes, range);
@@ -121,7 +103,8 @@ public sealed partial class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         CompiledComposition composition = prepared.Snapshot!.ExactCapability!.CompiledComposition;
-        Assert.Equal(report.GetProperty("CompilationFingerprint").GetString(), composition.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(report.GetProperty("CompilationFingerprint").GetString(), composition.CompilationFingerprint, "SHA-256");
         return composition;
     }
+
 }

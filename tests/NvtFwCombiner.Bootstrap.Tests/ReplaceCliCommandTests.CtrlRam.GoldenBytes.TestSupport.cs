@@ -156,7 +156,7 @@ public sealed partial class ReplaceCliCommandTests
             [CompositionSlotIds.ReplaceBase] = basePath,
         };
         Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key,
-            static pair => File.ReadAllBytes(pair.Value), StringComparer.Ordinal);
+            static pair => GoldenFileIo.ReadAllBytes(pair.Value), StringComparer.Ordinal);
         var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         CtrlRamAuthoringSessionPreparation prepared = host.CtrlRamAuthoring.PrepareSession(
             session, "NT51929", "single", paths, bytes);
@@ -165,7 +165,7 @@ public sealed partial class ReplaceCliCommandTests
             session, "NT51929", "single", paths, draft);
         Assert.True(transitioned.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot accepted = transitioned.Session!;
-        Assert.Equal(report.GetProperty("CompilationFingerprint").GetString(), accepted.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(report.GetProperty("CompilationFingerprint").GetString(), accepted.CompilationFingerprint, "SHA-256");
         JsonElement naming = report.GetProperty("OutputNaming");
         DateTimeOffset resolvedAtUtc = naming.ValueKind == JsonValueKind.Null
             ? report.GetProperty("StartedAtUtc").GetDateTimeOffset()

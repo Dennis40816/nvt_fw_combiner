@@ -46,7 +46,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         ExternalCombinerToolManifest manifest = LoadManifest(
             Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
         string executableSource = Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName);
-        Assert.Equal(manifest.Sha256, Sha256(executableSource));
+        GoldenAssert.AssertHashEqualsGolden(manifest.Sha256, Sha256(executableSource), "SHA-256");
 
         LegacyCombinerPostbuildProfile profile = Assert.Single(
             LegacyCombinerPostbuildCatalog.All,
@@ -58,7 +58,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMap));
 
         string goldenPath = FindGoldenExpectedOutput(manifestIc);
-        byte[] ownerGolden = File.ReadAllBytes(goldenPath);
+        byte[] ownerGolden = GoldenFileIo.ReadAllBytes(goldenPath);
         byte[] stagedFirmware = [.. ownerGolden];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(stagedFirmware, out FirmwareConfigMetadata backup));
         Assert.True(FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(

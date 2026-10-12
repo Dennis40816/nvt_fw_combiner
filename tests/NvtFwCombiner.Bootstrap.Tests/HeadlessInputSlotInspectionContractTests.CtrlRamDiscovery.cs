@@ -21,7 +21,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
             "ctrlram-replace",
             "nt51950-fw200-single-auto-prj-676-20260717");
         JsonElement baseArtifact = CanonicalGoldenTestData.Artifact(fixtureCase, "tp-input");
-        byte[] baseBytes = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
         if (appendTrailingByte)
         {
             baseBytes = [.. baseBytes, 0x00];

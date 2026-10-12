@@ -475,8 +475,8 @@ public sealed class FirmwareMetadataInspectorTests
         Assert.Null(definition.SourceIdentity!.ProfileId);
         Assert.Null(definition.SourceIdentity.ProfileVersion);
         Assert.Equal(context.Family.FamilyId, definition.SourceIdentity.FamilyId);
-        Assert.Equal(context.Family.FamilyContentHash, definition.SourceIdentity.FamilyContentHash);
-        Assert.Equal(new string('b', 64), definition.SourceIdentity.TrustedDefinitionSha256);
+        GoldenAssert.AssertHashEqualsGolden(context.Family.FamilyContentHash, definition.SourceIdentity.FamilyContentHash, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(new string('b', 64), definition.SourceIdentity.TrustedDefinitionSha256, "SHA-256");
         Assert.Equal(context.View.ViewId, definition.SourceIdentity.ViewId);
         Assert.Equal(plan.ResolutionToken, actual.ResolutionToken);
     }

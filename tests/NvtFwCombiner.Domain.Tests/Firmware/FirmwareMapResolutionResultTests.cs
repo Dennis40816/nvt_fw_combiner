@@ -79,10 +79,10 @@ public sealed class FirmwareMapResolutionResultTests
         ResolvedFirmwareImageMap changed = Assert.IsType<ResolvedFirmwareImageMap>(
             definition.ResolveMap(Inputs(firstA, changedZ)).ResolvedMap);
 
-        Assert.Equal(
-            "6db193dc60ba9d7793605c6a9acab7377131112b8c75c205f76b38fc6ab5f09c",
-            first.ResolutionFingerprint);
-        Assert.Equal(first.ResolutionFingerprint, reordered.ResolutionFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("6db193dc60ba9d7793605c6a9acab7377131112b8c75c205f76b38fc6ab5f09c", first.ResolutionFingerprint, "SHA-256"
+
+);
+        GoldenAssert.AssertHashEqualsGolden(first.ResolutionFingerprint, reordered.ResolutionFingerprint, "SHA-256");
         Assert.NotEqual(first.ResolutionFingerprint, changed.ResolutionFingerprint);
     }
 

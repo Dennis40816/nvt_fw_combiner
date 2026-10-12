@@ -4,6 +4,8 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Infrastructure.Capabilities;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Display-only counterparts remain exact, fingerprint-bound and independent of Report.</summary>
@@ -28,7 +30,7 @@ public sealed class CtrlRamContextAdmissionTests
         Assert.Contains(ic, context.Map.Applicability.MemberIds);
         Assert.Equal(standard.ProfileId, context.ProfileId);
         Assert.Equal(standard.ProfileVersion, context.ProfileVersion);
-        Assert.Equal(standard.BundleContentHash, context.TrustedDefinitionSha256);
+        GoldenAssert.AssertHashEqualsGolden(standard.BundleContentHash, context.TrustedDefinitionSha256, "SHA-256");
         Assert.Null(registration.ReportMetadataMapId);
         Assert.Empty(CtrlRamV2RouteRegistry.ValidateReportMetadataCounterpart(registration, standard).Entries);
     }

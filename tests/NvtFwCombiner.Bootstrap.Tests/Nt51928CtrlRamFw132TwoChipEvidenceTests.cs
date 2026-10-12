@@ -24,12 +24,12 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
             return;
         }
 
-        byte[] reference = File.ReadAllBytes(BasePath);
-        Assert.Equal(BaseSha256, Hash(reference));
+        byte[] reference = GoldenFileIo.ReadAllBytes(BasePath);
+        GoldenAssert.AssertHashEqualsGolden(BaseSha256, Hash(reference), "SHA-256");
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
         Assert.Equal("1.3.2", metadata.CommonFwVersion);
         Assert.Equal(2, metadata.ChipNumber);
-        Assert.Equal(0xF206, metadata.ProjectId);
+        GoldenAssert.AssertValueEqualsGolden(0xF206, metadata.ProjectId, "firmware field");
 
         OwnerArtifact[] replacements = ReadReplacementInputs();
         var immutableHashes = replacements
@@ -43,8 +43,8 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
             TestContext.Current.CancellationToken, v2Path);
 
         Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
-        byte[] v2Bytes = File.ReadAllBytes(v2Path);
-        Assert.Equal(OutputSha256, Hash(v2Bytes));
+        byte[] v2Bytes = GoldenFileIo.ReadAllBytes(v2Path);
+        GoldenAssert.AssertHashEqualsGolden(OutputSha256, Hash(v2Bytes), "SHA-256");
         GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x34800).ToArray(), v2Bytes.AsSpan(0x34800).ToArray(), "firmware image");
 
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
@@ -52,7 +52,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
         AssertProcessEvidence(v2Report.RootElement);
         Assert.All(
             replacements.Append(new OwnerArtifact(null, BasePath, reference)),
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     /// <summary>The partial two-chip route accepts non-authoritative metadata without expanding its plan authority.</summary>
@@ -61,7 +61,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
     [InlineData("version")]
     public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(string mutation)
     {
-        byte[] reference = File.ReadAllBytes(BasePath);
+        byte[] reference = GoldenFileIo.ReadAllBytes(BasePath);
         OwnerArtifact[] replacements = ReadReplacementInputs();
         var immutableHashes = replacements
             .Append(new OwnerArtifact(null, BasePath, reference))
@@ -101,10 +101,10 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
         {
             AssertReportIdentity(report.RootElement);
         }
-        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(Hash(reference), Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
         Assert.All(
             replacements.Append(new OwnerArtifact(null, BasePath, reference)),
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     /// <summary>Single and three-chip reuse their matching NT51927 TP branches inside the 512 KiB image.</summary>
@@ -117,7 +117,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
         string expectedProfileId)
     {
         using var workspace = TempWorkspace.Create("nfc-nt51928-additional-non-nb-plan");
-        byte[] reference = File.ReadAllBytes(BasePath);
+        byte[] reference = GoldenFileIo.ReadAllBytes(BasePath);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
         reference[checked((int)metadata.StructureStart + FirmwareConfigLayout.ChipNumberOffset)] = chipCount;
         string referencePath = workspace.Write("reference.bin", reference);
@@ -146,7 +146,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         GoldenAssert.AssertEqualsGolden(reference.AsSpan(0x34800).ToArray(), output.AsSpan(0x34800).ToArray(), "firmware image");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal(expectedProfileId, ReadProfileId(report.RootElement));
@@ -255,7 +255,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
                 .Select(item =>
             {
                 string path = CanonicalGoldenTestData.ArtifactPath(item);
-                byte[] bytes = File.ReadAllBytes(path);
+                byte[] bytes = GoldenFileIo.ReadAllBytes(path);
                 return new OwnerArtifact(item.GetProperty("slotId").GetString(), path, bytes);
             }),
         ];

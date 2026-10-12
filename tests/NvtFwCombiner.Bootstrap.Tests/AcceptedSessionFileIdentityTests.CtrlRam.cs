@@ -70,11 +70,11 @@ public sealed partial class AcceptedSessionFileIdentityTests
         JsonElement[] artifacts = [.. fixtureCase.GetProperty("artifacts").EnumerateArray()];
         string basePath = workspace.Write(
             "accepted-base.bin",
-            File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
+            GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
                 artifact.GetProperty("artifactId").GetString() == "expected-output"))));
         string replacementPath = workspace.Write(
             "accepted-normal-ctrlram.bin",
-            File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
+            GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
                 artifact.GetProperty("artifactId").GetString() == "normal-ctrlram-input"))));
         var paths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -131,7 +131,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
 
         Assert.True(baseline.Succeeded, $"Composition result: status={baseline.Status}, succeeded={baseline.Succeeded}.");
         Assert.True(built.Succeeded, $"Composition result: status={built.Status}, succeeded={built.Succeeded}.");
-        Assert.Equal(baseline.OutputSha256, built.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(baseline.OutputSha256, built.OutputSha256, "SHA-256");
         GoldenAssert.AssertEqualsGolden(baseline.OutputBytes.ToArray(), built.OutputBytes.ToArray(), "firmware image");
         CompositionOutputBundleDeliverySummary delivery = Assert.IsType<CompositionOutputBundleDeliverySummary>(
             built.Report.BundleDelivery);
@@ -148,11 +148,11 @@ public sealed partial class AcceptedSessionFileIdentityTests
                 artifact => artifact.Role == "source" && artifact.BindingId == source.BindingId);
             AuthoringInputSlotStatus status = accepted.InputSlotStatuses.Single(candidate =>
                 candidate.SlotId == source.SlotId);
-            byte[] deliveredBytes = File.ReadAllBytes(
+            byte[] deliveredBytes = GoldenFileIo.ReadAllBytes(
                 Path.Combine(delivery.ResolvedDirectory, delivered.DeliveredFileName));
             Assert.Equal(source.OriginalFileName, delivered.DeliveredFileName);
             Assert.Equal(source.Size, delivered.Size);
-            Assert.Equal(source.Sha256, delivered.Sha256);
+            GoldenAssert.AssertHashEqualsGolden(source.Sha256, delivered.Sha256, "SHA-256");
             GoldenAssert.AssertEqualsGolden(status.AcceptedBytes!.Value.ToArray(), deliveredBytes, "firmware image");
             Assert.Equal(status.FileStamp!.Value, FileStamp.FromBytes(deliveredBytes));
         }

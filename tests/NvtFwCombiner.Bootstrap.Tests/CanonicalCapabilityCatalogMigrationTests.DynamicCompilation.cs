@@ -137,8 +137,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal(identity.RouteId, Assert.Single(first.Snapshot.DynamicRoutes).Identity.RouteId);
         Assert.Equal([identity.MapVariant],
             Assert.Single(first.Snapshot.DynamicRoutes).CompilationContract.AllowedMapVariantIds);
-        Assert.Equal(declared.CapabilityFingerprint,
-            Assert.Single(second.Snapshot!.DynamicRoutes).CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(declared.CapabilityFingerprint, Assert.Single(second.Snapshot!.DynamicRoutes).CapabilityFingerprint, "SHA-256"
+);
         Assert.NotEqual(first.Snapshot.ResolutionToken, second.Snapshot.ResolutionToken);
 
         byte[] dp = [.. Enumerable.Range(0, 0x40001).Select(index => (byte)(index % 251))];

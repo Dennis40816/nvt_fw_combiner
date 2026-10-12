@@ -56,7 +56,7 @@ public sealed class CanonicalFullImageMetadataTests
         Assert.Same(context.View, context.Family.FullImageMetadataViews!.Single(view => view.ViewId == context.View.ViewId));
         Assert.Same(context.SourceIdentity, plan.Definition.SourceIdentity);
         Assert.Null(context.SourceIdentity.ProfileId);
-        Assert.Equal(context.Family.FamilyContentHash, context.SourceIdentity.FamilyContentHash);
+        GoldenAssert.AssertHashEqualsGolden(context.Family.FamilyContentHash, context.SourceIdentity.FamilyContentHash, "SHA-256");
         Assert.Empty(plan.Definition.ReportProjections);
         Assert.DoesNotContain(catalog.GetCurrentSnapshot().Capabilities,
             static capability => capability.Identity.WorkflowId == ExperienceIds.DpReplace);

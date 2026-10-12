@@ -31,7 +31,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
 
         Assert.Equal("synthetic-family", definition.FamilyId);
         Assert.Equal("1.0.0", definition.FamilyVersion);
-        Assert.Equal(FamilyHash, definition.FamilyContentHash);
+        GoldenAssert.AssertHashEqualsGolden(FamilyHash, definition.FamilyContentHash, "SHA-256");
         Assert.Equal(["map-a", "map-z"], definition.ImageMaps.Select(static map => map.MapId));
         Assert.Equal(
             ["metadata-a", "metadata-z"],

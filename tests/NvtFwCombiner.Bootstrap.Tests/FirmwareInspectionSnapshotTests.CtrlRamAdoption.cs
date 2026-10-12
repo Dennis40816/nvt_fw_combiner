@@ -39,7 +39,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
-                byte[] bytes = File.ReadAllBytes(path);
+                byte[] bytes = GoldenFileIo.ReadAllBytes(path);
                 return ValueTask.FromResult(new SelectedFileContentInspection(
                     FileStamp.FromBytes(bytes),
                     Path.GetFileName(path),
@@ -109,7 +109,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
-                byte[] bytes = File.ReadAllBytes(path);
+                byte[] bytes = GoldenFileIo.ReadAllBytes(path);
                 return ValueTask.FromResult(new SelectedFileContentInspection(
                     FileStamp.FromBytes(bytes),
                     Path.GetFileName(path),
@@ -164,8 +164,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
         string normalPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact =>
             artifact.GetProperty("artifactId").GetString() == "postbuild-normal-ctrlram"));
         using var workspace = TempWorkspace.Create("nfc-ctrlram-adoption-path-change");
-        string secondBasePath = workspace.Write("base-b.bin", File.ReadAllBytes(basePath));
-        string secondNormalPath = workspace.Write("normal-b.bin", File.ReadAllBytes(normalPath));
+        string secondBasePath = workspace.Write("base-b.bin", GoldenFileIo.ReadAllBytes(basePath));
+        string secondNormalPath = workspace.Write("normal-b.bin", GoldenFileIo.ReadAllBytes(normalPath));
         var metadataCalls = new List<(
             string IcId,
             string WorkflowId,
@@ -186,7 +186,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                 }),
             new DelegatingContentInspector(static (path, _, _) =>
             {
-                byte[] bytes = File.ReadAllBytes(path);
+                byte[] bytes = GoldenFileIo.ReadAllBytes(path);
                 return ValueTask.FromResult(new SelectedFileContentInspection(
                     FileStamp.FromBytes(bytes),
                     Path.GetFileName(path),
@@ -335,7 +335,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                     AuthoringRevision: 1,
                     CtrlRamReplaceAddressSpaceId: "replace-ctrlram-normal"),
             ],
-            static path => File.ReadAllBytes(path));
+            static path => GoldenFileIo.ReadAllBytes(path));
         Assert.Equal(1, countingAdapter.ResolveCalls);
         (int Resolve, int IsAccepted) callsAfterInspection = countingAdapter.Counts;
         AuthoringSessionTransitionResult countedAdoption = countedAuthoring.AdoptInspectedBatch(

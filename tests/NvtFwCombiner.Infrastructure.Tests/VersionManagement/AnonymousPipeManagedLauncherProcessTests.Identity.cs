@@ -75,7 +75,7 @@ public sealed partial class AnonymousPipeManagedLauncherProcessTests
         Assert.Equal("<null>", observation[2]);
         Assert.Equal(identity.FileName, observation[3]);
         Assert.Equal(identity.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), observation[4]);
-        Assert.Equal(identity.Sha256, observation[5]);
+        GoldenAssert.AssertHashEqualsGolden(identity.Sha256, observation[5], "SHA-256");
     }
 
     /// <summary>Legacy direct Bootstrap clears forged ambient identity before any managed child starts.</summary>

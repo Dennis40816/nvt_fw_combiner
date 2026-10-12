@@ -98,9 +98,9 @@ public sealed class CompositionReportPerformanceBaselineTests
             result.Report.OutputDifferences[0].AfterSha256,
             result.Report.OutputDifferences[255].AfterSha256);
         Assert.Equal(20_000, result.Report.Output.Size);
-        Assert.Equal(BaselineOutputSha256, result.Report.Output.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(BaselineOutputSha256, result.Report.Output.Sha256, "SHA-256");
         Assert.Equal(BaselineJsonCharacterCount, reportJson.Length);
-        Assert.Equal(BaselineReportJsonSha256, reportJsonSha256);
+        GoldenAssert.AssertHashEqualsGolden(BaselineReportJsonSha256, reportJsonSha256, "SHA-256");
         Assert.True(
             reportJson.AsSpan().SequenceEqual(repeatedReportJson),
             "Repeated report serialization must preserve the exact JSON text.");

@@ -29,7 +29,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         ExternalCombinerToolManifest manifest = LoadManifest(
             Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
         string executableSource = Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName);
-        Assert.Equal(manifest.Sha256, Sha256(executableSource));
+        GoldenAssert.AssertHashEqualsGolden(manifest.Sha256, Sha256(executableSource), "SHA-256");
 
         Assert.True(LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out LegacyCombinerPostbuildProfile? profile));
         IcNumberSelection selection = new(mode, [selectionToken]);
@@ -37,7 +37,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             .OrderBy(region => region.Range.Start)
             .ThenBy(region => region.RegionId, StringComparer.Ordinal)
             .First();
-        byte[] baseBytes = File.ReadAllBytes(FindGoldenExpectedOutput(manifestIc));
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(FindGoldenExpectedOutput(manifestIc));
         byte[] replacementBytes = baseBytes.AsSpan(
                 (int)selectedRegion.Range.Start,
                 (int)selectedRegion.Range.Length)
@@ -45,7 +45,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         replacementBytes[0] ^= 0x5A;
         byte[] prePastedBytes = [.. baseBytes];
         replacementBytes.AsSpan().CopyTo(prePastedBytes.AsSpan((int)selectedRegion.Range.Start));
-        Assert.NotEqual(baseBytes[(int)selectedRegion.Range.Start], prePastedBytes[(int)selectedRegion.Range.Start]);
+        Assert.True(baseBytes[(int)selectedRegion.Range.Start] != prePastedBytes[(int)selectedRegion.Range.Start], "Pasted byte unchanged.");
 
         List<ByteRange> allowWholeImage = [new ByteRange(0, baseBytes.LongLength)];
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-direct-combiner-pasteback-equivalence-{Guid.NewGuid():N}");

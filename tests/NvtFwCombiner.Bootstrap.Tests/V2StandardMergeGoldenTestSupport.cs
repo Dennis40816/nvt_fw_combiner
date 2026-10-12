@@ -96,9 +96,9 @@ internal static class V2StandardMergeGoldenTestSupport
 
     internal static byte[] ReadManifestFile(JsonElement manifestFile)
     {
-        byte[] bytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(GoldenRoot, manifestFile));
+        byte[] bytes = GoldenFileIo.ReadAllBytes(RepositoryPaths.ManifestPath(GoldenRoot, manifestFile));
         Assert.Equal(manifestFile.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(manifestFile.GetProperty("sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(manifestFile.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
         return bytes;
     }
 
@@ -163,7 +163,7 @@ internal static class V2StandardMergeGoldenTestSupport
             expectedIssueCodes ?? [],
             result.Report.Issues.Select(static issue => issue.Code));
         GoldenAssert.AssertEqualsGolden(expectedOutput, result.OutputBytes.ToArray(), "firmware image");
-        Assert.Equal(Hash(expectedOutput), result.Report.Output.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(Hash(expectedOutput), result.Report.Output.Sha256, "SHA-256");
         Assert.Equal(compiledComposition.V2Details.ProfileId, result.Report.ProfileId);
         Assert.Equal(compiledComposition.V2Details.ProfileVersion, result.Report.ProfileVersion);
         Assert.Equal(compiledComposition.V2Details.Provenance.Context.MemberId, result.Report.IcId);
@@ -176,7 +176,7 @@ internal static class V2StandardMergeGoldenTestSupport
 
     private static void AssertSchemaSnapshotsMatchManifest(string bundleRoot)
     {
-        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundleRoot, "profile-bundle.json")));
+        using var manifest = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(bundleRoot, "profile-bundle.json")));
         foreach (JsonElement entry in manifest.RootElement.GetProperty("entries").EnumerateArray().Where(static entry =>
                      StringComparer.Ordinal.Equals(entry.GetProperty("kind").GetString(), "schema")))
         {
@@ -195,7 +195,7 @@ internal static class V2StandardMergeGoldenTestSupport
         string[] matches =
         [
             .. Directory.EnumerateFiles(contractRoot, "*.schema.json", SearchOption.TopDirectoryOnly)
-                .Where(path => StringComparer.Ordinal.Equals(Hash(File.ReadAllBytes(path)), contentHash)),
+                .Where(path => StringComparer.Ordinal.Equals(Hash(GoldenFileIo.ReadAllBytes(path)), contentHash)),
         ];
         return Assert.Single(matches);
     }

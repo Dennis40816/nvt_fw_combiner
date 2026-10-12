@@ -406,7 +406,7 @@ public sealed partial class GeneralMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, replace.ExitCode);
-        Assert.Contains("Status: Succeeded", replace.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", replace.Output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(replace.Output));
     }
 
     /// <summary>

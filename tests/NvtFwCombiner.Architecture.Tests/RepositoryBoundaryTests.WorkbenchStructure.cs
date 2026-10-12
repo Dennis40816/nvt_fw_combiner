@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
@@ -596,7 +598,7 @@ public sealed partial class RepositoryBoundaryTests
         using JsonDocument abManifest = JsonDocument.Parse(ReadText("profiles/built-in/nt51950-ab-merge/profile-bundle.json"));
         Assert.Equal("1.1.15-dp-regions.2", abBundle.GetProperty("bundleVersion").GetString());
         Assert.Equal(abManifest.RootElement.GetProperty("bundleVersion").GetString(), abBundle.GetProperty("bundleVersion").GetString());
-        Assert.Equal(abManifest.RootElement.GetProperty("contentHash").GetString(), abBundle.GetProperty("contentHash").GetString());
+        GoldenAssert.AssertHashEqualsGolden(abManifest.RootElement.GetProperty("contentHash").GetString(), abBundle.GetProperty("contentHash").GetString(), "SHA-256");
         Assert.Equal(
             1,
             CountOccurrences(

@@ -26,12 +26,12 @@ public sealed partial class SavedRuleCliCommandTests
             validation.Output,
             StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.Equal(0, mappings.ExitCode);
-        Assert.Equal(string.Empty, mappings.Error);
-        Assert.Contains("Mappings: 1", mappings.Output, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.True(string.Equals(string.Empty, mappings.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(mappings.Error));
+        Assert.True(GoldenDiagnostics.Contains("Mappings: 1", mappings.Output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(mappings.Output));
+        Assert.True(GoldenDiagnostics.Contains(
             "--mapping 0x3E020+0x2=<source-bin>",
             mappings.Output,
-            StringComparison.Ordinal);
+            StringComparison.Ordinal), GoldenDiagnostics.TextSummary(mappings.Output));
     }
 
     /// <summary>General Replace inspection fails closed before projection when routing or Parent identity is invalid.</summary>

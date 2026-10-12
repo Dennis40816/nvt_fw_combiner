@@ -35,7 +35,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
         JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
             item.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
         int backup = bankStart + 0x36000;
         switch (damage)
         {
@@ -84,7 +84,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
         JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
             item.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
         FirmwareInspectionStatusBatch inspected =
             ((CtrlRamAuthoringExperience)BootstrapTestHost.Canonical.CtrlRamAuthoring).InspectInputSlots(
                 "NT51950", [new FirmwareInspectionSnapshotInput("base", CompositionSlotIds.ReplaceBase + ".bin",
@@ -115,7 +115,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
     [Fact]
     public void Nt51950StandardPrefixWithSyntheticTailIsNotAb()
     {
-        byte[] standard = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+        byte[] standard = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
             "standard-merge", "NT51950", "expected-output"));
         Assert.Equal(0x40000, standard.Length);
         Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge("NT51950", 0x40000,
@@ -143,7 +143,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
         JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
             item.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
         reference[0x36001] ^= 1;
         reference[0x76001] ^= 1;
         FirmwareInspectionStatusBatch inspected =
@@ -165,7 +165,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
         JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
             item.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
         reference[0x4A100] ^= 1;
         foreach (int bankStart in new[] { 0, 0x40000 })
         {
@@ -200,7 +200,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
         JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
             item.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
         (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
         bytes[CompositionSlotIds.ReplaceBase] = reference;
         paths["replace-ctrlram-normal"] = Path.Combine(Path.GetTempPath(), "captured-950-osd-normal.bin");
@@ -596,13 +596,13 @@ public sealed class AbCtrlRamRuntimeWiringTests
     }
     private static byte[] Reference()
     {
-        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("ab-merge", "NT51929", "expected-output", "t05-d06"));
+        return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("ab-merge", "NT51929", "expected-output", "t05-d06"));
     }
 
     private static LegacyCombinerPostbuildProcessor RealProcessor(TempWorkspace workspace)
     {
         string root = Path.Combine(RepositoryPaths.FindRepositoryRoot(), "external-tools");
-        using JsonDocument json = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "legacy-combiner", "1.13.0", "manifest.json")));
+        using JsonDocument json = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(root, "legacy-combiner", "1.13.0", "manifest.json")));
         JsonElement m = json.RootElement;
         string S(string name)
         {

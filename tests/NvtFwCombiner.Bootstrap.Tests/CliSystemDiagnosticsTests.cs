@@ -19,8 +19,8 @@ public sealed class CliSystemDiagnosticsTests
             new AdmissionStatus());
         int exit = await CliApplication.RunDoctorAsync(service, output, TestContext.Current.CancellationToken);
         Assert.Equal(0, exit);
-        Assert.Contains("JSON admission is in use", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("restart the application", output.ToString(), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("JSON admission is in use", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains("restart the application", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
     }
 
     private sealed class AdmissionStatus : IBuiltInProfileAdmissionStatus
@@ -43,10 +43,10 @@ public sealed class CliSystemDiagnosticsTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, exitCode);
-        Assert.Contains("Catalog state: Current", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("CLI assembly version:", output.ToString(), StringComparison.Ordinal);
-        Assert.DoesNotContain("repository bootstrap is healthy", output.ToString(), StringComparison.Ordinal);
-        Assert.Equal(string.Empty, error.ToString());
+        Assert.True(GoldenDiagnostics.Contains("Catalog state: Current", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains("CLI assembly version:", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.False(GoldenDiagnostics.Contains("repository bootstrap is healthy", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(string.Equals(string.Empty, error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
     }
 
     /// <summary>A cold typed catalog diagnostic is printed and returns the composition-failed exit.</summary>
@@ -64,9 +64,9 @@ public sealed class CliSystemDiagnosticsTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(1, exitCode);
-        Assert.Contains("Catalog state: ColdStartBlocked", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("The capability catalog is unavailable", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("Correct the catalog source and reload", output.ToString(), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Catalog state: ColdStartBlocked", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains("The capability catalog is unavailable", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains("Correct the catalog source and reload", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
     }
 
     /// <summary>A retained LKG typed warning is printed without disabling execution.</summary>
@@ -89,9 +89,9 @@ public sealed class CliSystemDiagnosticsTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, exitCode);
-        Assert.Contains("Catalog state: LastKnownGood", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("last-known-good publication remains active", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("Review the catalog source and reload", output.ToString(), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Catalog state: LastKnownGood", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains("last-known-good publication remains active", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains("Review the catalog source and reload", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
     }
 
     /// <summary>Doctor maps cancellation through the same stable CLI failure contract.</summary>
@@ -112,8 +112,8 @@ public sealed class CliSystemDiagnosticsTests
             cancellation.Token);
 
         Assert.Equal(70, exitCode);
-        Assert.Equal(string.Empty, output.ToString());
-        Assert.Contains("operation canceled", error.ToString(), StringComparison.Ordinal);
+        Assert.True(string.Equals(string.Empty, output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains("operation canceled", error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
     }
 
     private static SystemInformationService CreateService(

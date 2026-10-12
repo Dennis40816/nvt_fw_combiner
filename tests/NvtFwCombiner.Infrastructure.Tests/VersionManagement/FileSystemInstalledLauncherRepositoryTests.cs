@@ -4,6 +4,8 @@ using System.Text.Json;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Verifies installed launcher release identity and content admission.</summary>
@@ -25,9 +27,9 @@ public sealed class FileSystemInstalledLauncherRepositoryTests
         Assert.True(result.IsVerified);
         Assert.Equal(fixture.Admission.Version, result.Identity!.OwnerAppVersion);
         Assert.Equal(fixture.Admission.AdmissionIdentity, result.Identity.OwnerAdmissionIdentity);
-        Assert.Equal(fixture.Admission.ReleaseManifestSha256, result.Identity.OwnerReleaseManifestSha256);
+        GoldenAssert.AssertHashEqualsGolden(fixture.Admission.ReleaseManifestSha256, result.Identity.OwnerReleaseManifestSha256, "SHA-256");
         Assert.Equal(ManagedAppVersion.Parse("1.0.0"), result.Identity.LauncherVersion);
-        Assert.Equal(fixture.LauncherSha256, result.Identity.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(fixture.LauncherSha256, result.Identity.Sha256, "SHA-256");
     }
 
     /// <summary>Changed executable bytes cannot retain their admitted identity.</summary>

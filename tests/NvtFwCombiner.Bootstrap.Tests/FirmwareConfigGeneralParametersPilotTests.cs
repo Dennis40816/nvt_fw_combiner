@@ -140,15 +140,15 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
     {
         string folder = Path.Combine(RepositoryPaths.FindRepositoryRoot(),
             "testdata/golden/canonical/NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs");
-        byte[] tp = File.ReadAllBytes(Path.Combine(folder, "nt51926-tp-input.bin"));
-        byte[] dp = File.ReadAllBytes(Path.Combine(folder, "nt51926-dp-input.bin"));
+        byte[] tp = GoldenFileIo.ReadAllBytes(Path.Combine(folder, "nt51926-tp-input.bin"));
+        byte[] dp = GoldenFileIo.ReadAllBytes(Path.Combine(folder, "nt51926-dp-input.bin"));
         IReadOnlyList<FirmwareInspectionSnapshotResult> results = BuiltInFirmwareInspection.InspectFirmwareBatch(
             BootstrapTestHost.Canonical, "NT51926",
             [new("tp", "tp.bin", StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput),
                 new("dp", "dp.bin", StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput)],
             path => path == "tp.bin" ? tp : dp);
-        Assert.Equal((byte)0x82, results.Single(static item => item.InspectionId == "tp")
-            .Inspection.StandardEventBufferFormatVersion);
+        GoldenAssert.AssertValueEqualsGolden((byte)0x82, results.Single(static item => item.InspectionId == "tp")
+            .Inspection.StandardEventBufferFormatVersion, "firmware field");
         Assert.Null(results.Single(static item => item.InspectionId == "dp")
             .Inspection.StandardEventBufferFormatVersion);
     }
@@ -157,7 +157,7 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
     [Fact]
     public void Nt51950AbBaseSuppliesBothEventBufferValues()
     {
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
             "ab-merge", "NT51950", "expected-output", "boe-d82t80"));
         FirmwareInspectionSnapshot inspection = Assert.Single(BuiltInFirmwareInspection.InspectFirmwareBatch(
             BootstrapTestHost.Canonical, "NT51950",
@@ -168,7 +168,7 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         foreach (CtrlRamBaseBankInspection bank in inspection.CtrlRamBaseInspection.Banks)
         {
             int fieldAddress = checked((int)(bank.Range.Start + bank.FirmwareConfig!.FirmwareConfigBackupStart + 0x0C));
-            Assert.Equal(reference[fieldAddress], bank.EventBufferFormatVersion);
+            GoldenAssert.AssertValueEqualsGolden(reference[fieldAddress], bank.EventBufferFormatVersion, "firmware field");
             byte[] bankBytes = reference.AsSpan(checked((int)bank.Range.Start), checked((int)bank.Range.Length)).ToArray();
             ResolvedMetadataPlan plan = Assert.IsType<ResolvedMetadataPlan>(BootstrapTestHost.Canonical.Catalog
                 .ResolveFullImageMetadataPlan("NT51950", bankBytes.Length).MetadataPlan);
@@ -177,8 +177,8 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
             Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, bankBytes.AsMemory(0, bankBytes.Length - 1), start));
             // A marker outside the layout-declared end flag is neither counted nor rejected (ADR 0076) ...
             WriteMarker(bankBytes, 0xB000);
-            Assert.Equal(bank.EventBufferFormatVersion, FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
-                plan, bankBytes, start)?.EventBufferFormatVersion);
+            GoldenAssert.AssertValueEqualsGolden(bank.EventBufferFormatVersion, FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(
+                plan, bankBytes, start)?.EventBufferFormatVersion, "firmware field");
             // ... and it cannot replace a missing end flag.
             bankBytes.AsSpan(checked((int)start + 0xFFC), 4).Clear();
             Assert.Null(FirmwareConfigGeneralParametersProjector.ReadGeneralParameters(plan, bankBytes, start));

@@ -24,7 +24,7 @@ public sealed class ProfileBundleLoaderTests
             trustAnchor,
             Limits());
 
-        Assert.Equal(contentHash, bundle.Manifest.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden(contentHash, bundle.Manifest.ContentHash, "SHA-256");
         Assert.Equal("release-manifest", bundle.Manifest.TrustAnchorBindingId);
         Assert.Equal(2, bundle.Manifest.Entries.Count);
         Assert.Matches("^[0-9a-f]{64}$", bundle.ManifestSha256);

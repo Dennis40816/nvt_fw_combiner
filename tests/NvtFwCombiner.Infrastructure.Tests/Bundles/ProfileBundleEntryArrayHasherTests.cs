@@ -1,6 +1,8 @@
 using NvtFwCombiner.Contracts.Bundles;
 using NvtFwCombiner.Infrastructure.Bundles;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 
 /// <summary>Tests deterministic RFC 8785 hashing of bundle entry arrays.</summary>
@@ -29,7 +31,7 @@ public sealed class ProfileBundleEntryArrayHasherTests
 
         string hash = ProfileBundleEntryArrayHasher.CalculateContentHash(entries);
 
-        Assert.Equal("38f498d85b7db93885a55a813502a330a3eb14b880ac0142e653e254777bb4f2", hash);
+        GoldenAssert.AssertHashEqualsGolden("38f498d85b7db93885a55a813502a330a3eb14b880ac0142e653e254777bb4f2", hash, "SHA-256");
     }
 
     /// <summary>Verifies caller entry order does not affect the canonical hash.</summary>

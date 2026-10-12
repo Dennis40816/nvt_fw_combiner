@@ -2,6 +2,8 @@ using NvtFwCombiner.Contracts.Profiles;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests immutable map-independent v2 profile header values.</summary>
@@ -67,7 +69,7 @@ public sealed class CompositionProfileV2HeaderTests
         Assert.Equal(["region-a", "region-z"], binding.RequiredRegionIds);
         Assert.Equal(["structure-a", "structure-z"], binding.RequiredMetadataStructureIds);
         Assert.Equal(["ab-code", "register-replace"], binding.RequiredCapabilityIds);
-        Assert.Equal(FamilyHash, binding.FamilyContentHash);
+        GoldenAssert.AssertHashEqualsGolden(FamilyHash, binding.FamilyContentHash, "SHA-256");
     }
 
     /// <summary>Verifies map binding rejects malformed trust anchors and ambiguous required ids.</summary>
