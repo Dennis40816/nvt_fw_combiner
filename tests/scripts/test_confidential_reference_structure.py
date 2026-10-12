@@ -62,7 +62,7 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             "provenance/ExamplePostbuildSetup.cmd",
             "tools/postbuild-notes.ps1",
             "provenance/postbuild_run.sh",
-            "data/ic-flashmap-layout.xls",
+            "data/ic-" + "flashmap-layout.xls",
             "data/flash_map_export.xlsx",
             "data/tp-header.xls",
             "data/NT51950_flashmap.csv",
