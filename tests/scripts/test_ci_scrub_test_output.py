@@ -1,4 +1,4 @@
-"""The opt-in `NFC_CI_SCRUB_TEST_OUTPUT` mode keeps test output out of console, logs and summaries."""
+"""Scrub mode (`NFC_CI_SCRUB_TEST_OUTPUT=1`, or `GITHUB_ACTIONS=true`) keeps test output out of console, logs and summaries."""
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 import io
 import os
@@ -26,6 +26,24 @@ def recorded_scrub_directories(module):
 
 
 class ScrubTestOutputTests(unittest.TestCase):
+    def test_scrub_is_on_by_default_on_github_actions_and_opt_in_elsewhere(self):
+        from tests.scripts.test_verify_orchestration import MODULE
+        cases = (
+            ({}, False),
+            ({"NFC_CI_SCRUB_TEST_OUTPUT": "0"}, False),
+            ({"NFC_CI_SCRUB_TEST_OUTPUT": "1"}, True),
+            ({"GITHUB_ACTIONS": "true"}, True),
+            ({"GITHUB_ACTIONS": "true", "NFC_CI_SCRUB_TEST_OUTPUT": "0"}, True),
+            ({"GITHUB_ACTIONS": "false"}, False),
+        )
+        for variables, expected in cases:
+            with self.subTest(variables=variables):
+                with patch.dict(os.environ):
+                    os.environ.pop("NFC_CI_SCRUB_TEST_OUTPUT", None)
+                    os.environ.pop("GITHUB_ACTIONS", None)
+                    os.environ.update(variables)
+                    self.assertIs(expected, MODULE.ci_scrub_test_output_enabled())
+
     def test_real_child_marker_is_captured_deleted_and_not_reported(self):
         from tests.scripts.test_verify_orchestration import MODULE
         with (tempfile.TemporaryDirectory() as temporary,
@@ -63,7 +81,7 @@ class ScrubTestOutputTests(unittest.TestCase):
             self.assertTrue(all(not directory.exists() for directory in directories))
             self.assertTrue(Path(unrelated).is_dir())
 
-    def test_scrub_is_opt_in_and_does_not_change_discovery(self):
+    def test_scrub_is_off_without_the_flag_and_does_not_change_discovery(self):
         from tests.scripts.test_verify_orchestration import MODULE
         with patch.dict(os.environ, {"NFC_CI_SCRUB_TEST_OUTPUT": "0"}), patch.object(MODULE, "run_scrubbed_test") as scrub:
             with patch.object(MODULE, "_run_to_logs"):

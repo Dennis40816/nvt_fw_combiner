@@ -50,9 +50,15 @@ def _read_file(path: Path) -> dict:
         # A nested class is written as Outer+Inner; the public identity uses a dot.
         class_name = method.get("className", "").split(",", 1)[0].strip().replace("+", ".")
         method_name = method.get("name", "").split("(", 1)[0].strip()
-        if not SAFE_NAME.fullmatch(class_name) or not SAFE_NAME.fullmatch(method_name):
+        if not class_name or not method_name:
             raise ValueError(INVALID_TRX)
-        definitions[definition.get("id", "")] = (class_name, f"{class_name}.{method_name}")
+        if not SAFE_NAME.fullmatch(class_name):
+            class_name = ""
+        if not class_name or not SAFE_NAME.fullmatch(method_name):
+            method_name = ""
+        definitions[definition.get("id", "")] = (
+            class_name, f"{class_name}.{method_name}" if method_name else ""
+        )
     results = []
     observed = dict(Passed=0, Failed=0, NotExecuted=0)
     for result in root.findall(f"{NS}Results/{NS}UnitTestResult"):
@@ -74,7 +80,12 @@ def _read_file(path: Path) -> dict:
 def read_trx_results(results_directory: Path | str) -> dict:
     """Port of FreeformHelper Read-TrxResults; no display names or Output access."""
     try:
-        files = sorted(Path(results_directory).rglob("*.trx"))
+        candidate = Path(results_directory)
+        files = (
+            [candidate]
+            if candidate.is_file() and candidate.suffix == ".trx"
+            else sorted(candidate.rglob("*.trx"))
+        )
         if not files:
             raise ValueError(INVALID_TRX)
         counts = empty_results()
@@ -85,12 +96,19 @@ def read_trx_results(results_directory: Path | str) -> dict:
             for name in ("Total", "Passed", "Failed", "Skipped"):
                 counts[name] += row[name]
             counts["Results"].extend(row["Results"])
-        counts["NotExecuted"] = (counts["Total"] - counts["Passed"]
-                                 - counts["Failed"] - counts["Skipped"])
-        counts["FailedTests"] = sorted({r["MethodName"] for r in counts["Results"]
-                                        if r["Outcome"] == "Failed"})
-        counts["ExecutedClasses"] = sorted({r["ClassName"] for r in counts["Results"]
-                                            if r["Outcome"] in ("Passed", "Failed")})
+        counts["NotExecuted"] = (
+            counts["Total"] - counts["Passed"] - counts["Failed"] - counts["Skipped"]
+        )
+        counts["FailedTests"] = sorted(
+            {r["MethodName"] for r in counts["Results"] if r["Outcome"] == "Failed" and r["MethodName"]}
+        )
+        counts["ExecutedClasses"] = sorted(
+            {
+                r["ClassName"]
+                for r in counts["Results"]
+                if r["Outcome"] in ("Passed", "Failed") and r["ClassName"]
+            }
+        )
         return counts
     except (OSError, ValueError, KeyError, ET.ParseError, LookupError):
         raise ValueError(INVALID_TRX) from None
