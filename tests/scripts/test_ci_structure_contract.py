@@ -100,7 +100,10 @@ class CiStructureContractTests(unittest.TestCase):
                 self.assertEqual(".core", core["path"])
                 self.assertIs(False, core["persist-credentials"])
                 self.assertEqual(0, core["fetch-depth"])
+                self.assertRegex(core_checkouts[0]["uses"], r"\Aactions/checkout@[0-9a-f]{40}\Z")
                 self.assertEqual(6, len(checkout_steps))
+                for step in checkout_steps:
+                    self.assertEqual(core_checkouts[0]["uses"], step["uses"])
                 for step in checkout_steps:
                     checkout_with = step["with"]
                     self.assertEqual(expected_ref, checkout_with["ref"])
@@ -174,7 +177,7 @@ class CiStructureContractTests(unittest.TestCase):
                 self.assertEqual(30, job["timeout-minutes"])
                 steps = job["steps"]
                 checks = [step for owner in jobs.values() for step in owner["steps"]
-                          if "tools/repo-checks/repo-health.ps1" in step.get("run", "")]
+                          if "repo-health.ps1" in step.get("run", "")]
                 self.assertEqual(1, len(checks))
                 health = checks[0]
                 build = next(step for step in steps
@@ -184,6 +187,9 @@ class CiStructureContractTests(unittest.TestCase):
                 self.assertEqual("pwsh", pin_step["shell"])
                 self.assertIn("eng/core-health.lock.json", pin_step["run"])
                 self.assertEqual("Dennis40816/nvt_fw_core", core_step["with"]["repository"])
+                for guarded in (pin_step, core_step):
+                    self.assertNotIn("if", guarded)
+                    self.assertNotIn("continue-on-error", guarded)
                 self.assertEqual(health, steps[steps.index(build) + 3])
                 self.assertEqual("pwsh", health["shell"])
                 self.assertNotIn("if", health)
@@ -203,6 +209,9 @@ class CiStructureContractTests(unittest.TestCase):
                 self.assertIn(command + " -CoreRoot ./.core", lines)
                 self.assertNotIn("${{", health["run"])
                 self.assertEqual("exit $LASTEXITCODE", lines[-1])
+                self.assertEqual(
+                    [command + " -BaseRef $env:NFC_PR_BASE_SHA -CoreRoot ./.core", command + " -CoreRoot ./.core"],
+                    [line for line in lines if "repo-health.ps1" in line])
                 uploads = [step for step in steps
                            if step.get("with", {}).get("path") == "artifacts/code-health/"]
                 self.assertEqual(1, len(uploads))
