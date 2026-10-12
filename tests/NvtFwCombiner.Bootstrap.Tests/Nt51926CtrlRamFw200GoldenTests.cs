@@ -19,14 +19,33 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
 
     /// <summary>Proves the exact V2 routes differ from the owner output only at approved CRC words.</summary>
     [Theory]
-    [MemberData(nameof(V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsyncCases))]
-    public async Task V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsync(GoldenCaseId caseId, string topology, byte expectedChipCount, string ownerExpectedSha256, string currentOutputSha256, string v2ProfileId)
+    [InlineData(
+        SingleCaseId,
+        "single",
+        1,
+        "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c",
+        "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450",
+        "nt51926-ctrlram-replace-fw200-runtime-single")]
+    [InlineData(
+        CascadeCaseId,
+        "cascade",
+        3,
+        "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825",
+        "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a",
+        "nt51926-ctrlram-replace-fw200-runtime-cascade")]
+    public async Task V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsync(
+        string caseId,
+        string topology,
+        byte expectedChipCount,
+        string ownerExpectedSha256,
+        string currentOutputSha256,
+        string v2ProfileId)
     {
         if (!OperatingSystem.IsWindows())
         {
             return;
         }
-        OwnerCase evidence = ReadOwnerCase(caseId.Value);
+        OwnerCase evidence = ReadOwnerCase(caseId);
         GoldenAssert.AssertHashEqualsGolden(ownerExpectedSha256, Hash(evidence.Expected.Bytes), "SHA-256");
         var immutableInputHashes = evidence.Artifacts.ToDictionary(
             static pair => pair.Key,
@@ -68,7 +87,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         byte[] v2Bytes = GoldenFileIo.ReadAllBytes(v2OutputPath);
         GoldenAssert.AssertHashEqualsGolden(currentOutputSha256, Hash(v2Bytes), "SHA-256");
         GoldenAssert.AssertHashEqualsGolden(currentOutputSha256, v2.OutputSha256, "SHA-256");
-        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(
                 goldenCase,
@@ -87,7 +106,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
                 new ByteRange(0x32B6C, 4),
             ],
             ownerDifferenceRanges);
-        GoldenAssert.AssertEqualsGolden(reference.AsSpan(TpWorkCapacity), v2Bytes.AsSpan(TpWorkCapacity), GoldenDiagnostics.Label(caseId.Value));
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(TpWorkCapacity), v2Bytes.AsSpan(TpWorkCapacity), GoldenDiagnostics.Label(caseId));
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, v2ProfileId);
         AssertProcessEvidence(v2Report.RootElement, topology);
@@ -431,9 +450,4 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
     }
 
     /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
-    public static TheoryData<GoldenCaseId, string, byte, string, string, string> V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsyncCases() => new()
-    {
-        { new GoldenCaseId(SingleCaseId), "single", 1, "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c", "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450", "nt51926-ctrlram-replace-fw200-runtime-single" },
-        { new GoldenCaseId(CascadeCaseId), "cascade", 3, "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825", "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a", "nt51926-ctrlram-replace-fw200-runtime-cascade" },
-    };
 }

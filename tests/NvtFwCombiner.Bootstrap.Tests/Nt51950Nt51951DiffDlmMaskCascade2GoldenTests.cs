@@ -45,14 +45,14 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
             evidence.Expected.Bytes.AsSpan(DiffStart, DlmLength).ToArray(), GoldenDiagnostics.Label(CaseId));
         GoldenAssert.AssertEqualsGolden(reference.AsSpan(DiffStart + DlmLength, DiffNfLength).ToArray(),
             evidence.Expected.Bytes.AsSpan(DiffStart + DlmLength, DiffNfLength).ToArray(), GoldenDiagnostics.Label(CaseId));
-        Assert.NotEqual(
-            evidence.DiffDlm.Bytes.AsSpan(DlmLength, DiffNfLength).ToArray(),
-            evidence.Expected.Bytes.AsSpan(DiffStart + DlmLength, DiffNfLength).ToArray());
+        Assert.False(
+            evidence.DiffDlm.Bytes.AsSpan(DlmLength, DiffNfLength).SequenceEqual(evidence.Expected.Bytes.AsSpan(DiffStart + DlmLength, DiffNfLength)),
+            GoldenDiagnostics.Label(CaseId));
         GoldenAssert.AssertEqualsGolden(reference.AsSpan(DiffStart + RecordStride, RecordStride).ToArray(),
             evidence.Expected.Bytes.AsSpan(DiffStart + RecordStride, RecordStride).ToArray(), GoldenDiagnostics.Label(CaseId));
-        Assert.NotEqual(
-            evidence.DiffDlm.Bytes.AsSpan(RecordStride, RecordStride).ToArray(),
-            evidence.Expected.Bytes.AsSpan(DiffStart + RecordStride, RecordStride).ToArray());
+        Assert.False(
+            evidence.DiffDlm.Bytes.AsSpan(RecordStride, RecordStride).SequenceEqual(evidence.Expected.Bytes.AsSpan(DiffStart + RecordStride, RecordStride)),
+            GoldenDiagnostics.Label(CaseId));
         GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes.AsSpan(0x22200, FirmwareConfigLength).ToArray(),
             evidence.Expected.Bytes.AsSpan(BackupStart, FirmwareConfigLength).ToArray(), GoldenDiagnostics.Label(CaseId));
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x00, 0x4E, 0x56, 0x54], evidence.Expected.Bytes.AsSpan(0x36FFC, 4).ToArray(), GoldenDiagnostics.Label(CaseId));

@@ -4259,7 +4259,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 101
+        "methodLines": 100
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4455,7 +4455,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 82
+        "methodLines": 81
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4623,6 +4623,20 @@
     {
       "owner": "NFC",
       "ceilings": {
+        "methodLines": 90
+      },
+      "kind": "member",
+      "project": "NvtFwCombiner.Bootstrap.Tests",
+      "symbol": "NvtFwCombiner.Bootstrap.Tests.Nt51923CtrlRamFw141EvidenceTests.ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync(string,string,string,byte,ushort,string,string)",
+      "locations": [
+        "tests/NvtFwCombiner.Bootstrap.Tests/Nt51923CtrlRamFw141EvidenceTests.cs"
+      ],
+      "issue": "health-refactor/2026-10-31",
+      "contentHash": "7185539c1fc176c6ad7167f0feb818f9b32cdc410ceddb151733a4e4c82bb030"
+    },
+    {
+      "owner": "NFC",
+      "ceilings": {
         "methodLines": 85
       },
       "kind": "member",
@@ -4633,6 +4647,20 @@
       ],
       "issue": "health-refactor/2026-10-31",
       "contentHash": "bdb909e1aa3fe2fe0c35039ed0d9b5e5b02f0e5c0133b67612e25f97181d0fe9"
+    },
+    {
+      "owner": "NFC",
+      "ceilings": {
+        "methodLines": 97
+      },
+      "kind": "member",
+      "project": "NvtFwCombiner.Bootstrap.Tests",
+      "symbol": "NvtFwCombiner.Bootstrap.Tests.Nt51926CtrlRamFw200GoldenTests.V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsync(string,string,byte,string,string,string)",
+      "locations": [
+        "tests/NvtFwCombiner.Bootstrap.Tests/Nt51926CtrlRamFw200GoldenTests.cs"
+      ],
+      "issue": "health-refactor/2026-10-31",
+      "contentHash": "5406fceddfc846ef49725e5519a4478efdaaa1731e32c69c85ab43c15dcc6a94"
     },
     {
       "owner": "NFC",
@@ -36110,17 +36138,6 @@
       "symbol": "P:Avalonia.Threading.Dispatcher.UIThread",
       "syntaxHash": "ea127e70dfe6b2cd846ed7c1fb768c33adfa7e11b93301ae7f5695c197c3578c",
       "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.SlotClear.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.UiSmoke.Tests.FirmwareInspectionSlotTests.StandardMergeExtensionErrorIsRetainedUntilAcceptedSelectionRecovers()",
-      "project": "NvtFwCombiner.UiSmoke.Tests",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "RS0030",
-      "symbol": "M:System.IO.File.ReadAllBytes(System.String)",
-      "syntaxHash": "f81023cdf5be1b4c938d4770c73b4973ab7d4e04270f84e656d843e745477e9d",
-      "path": "tests/NvtFwCombiner.UiSmoke.Tests/ShellViewModelTests.StandardMergeReadiness.cs",
       "count": 1
     },
     {

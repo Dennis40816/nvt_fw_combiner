@@ -352,9 +352,10 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
         Assert.Equal(24, differences.DifferenceCount);
         Assert.Equal(0x35000, tpOutput.Length);
         GoldenAssert.AssertEqualsGolden(fullOutput.AsSpan(0, 0x35000).ToArray(), tpOutput, "firmware image");
-        Assert.All(
-            artifacts,
-            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
+        foreach (var artifact in artifacts)
+        {
+            GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256");
+        }
     }
 
 

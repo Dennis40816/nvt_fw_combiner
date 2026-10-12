@@ -404,9 +404,9 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         for (int record = 0; record < 3; record++)
         {
             int nfStart = DiffStart + (record * RecordStride) + DlmLength;
-            Assert.NotEqual(
-                evidence.Base.Bytes.AsSpan(nfStart, RecordStride - DlmLength).ToArray(),
-                rejected.AsSpan(nfStart, RecordStride - DlmLength).ToArray());
+            Assert.False(
+                evidence.Base.Bytes.AsSpan(nfStart, RecordStride - DlmLength).SequenceEqual(rejected.AsSpan(nfStart, RecordStride - DlmLength)),
+                "Rejected NF record equals the base record.");
         }
     }
 

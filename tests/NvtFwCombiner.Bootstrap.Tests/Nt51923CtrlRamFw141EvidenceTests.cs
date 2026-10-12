@@ -20,14 +20,36 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
 
     /// <summary>Proves the exact owner control produces the locked V2 bytes, process authority, and argv.</summary>
     [Theory]
-    [MemberData(nameof(ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsyncCases))]
-    public async Task ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync(GoldenCaseId caseId, string topology, string v2ProfileId, byte chipCount, ushort projectId, string ownerExpectedSha256, string outputSha256)
+    [InlineData(
+        "nt51923-fw141-single-auto-prj-662-20260717",
+        "single",
+        "nt51923-ctrlram-replace-fw141-single",
+        1,
+        0x6005,
+        "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f",
+        "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38")]
+    [InlineData(
+        "nt51923-fw141-cascade3-auto-prj-734-20260717",
+        "cascade",
+        "nt51923-ctrlram-replace-fw141-cascade3",
+        3,
+        0x4C03,
+        "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18",
+        "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c")]
+    public async Task ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync(
+        string caseId,
+        string topology,
+        string v2ProfileId,
+        byte chipCount,
+        ushort projectId,
+        string ownerExpectedSha256,
+        string outputSha256)
     {
         if (!OperatingSystem.IsWindows())
         {
             return;
         }
-        OwnerCase ownerCase = ReadOwnerCase(caseId.Value, topology);
+        OwnerCase ownerCase = ReadOwnerCase(caseId, topology);
         GoldenAssert.AssertHashEqualsGolden(ownerExpectedSha256, Hash(ownerCase.Expected.Bytes), "SHA-256");
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
             ownerCase.Expected.Bytes,
@@ -56,7 +78,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         {
             Assert.Equal("nt51923-standard-merge-gen-flash", ReadProfileId(standardMergeReport.RootElement));
         }
-        GoldenAssert.AssertEqualsGolden(ownerCase.Expected.Bytes, GoldenFileIo.ReadAllBytes(referencePath), GoldenDiagnostics.Label(caseId.Value));
+        GoldenAssert.AssertEqualsGolden(ownerCase.Expected.Bytes, GoldenFileIo.ReadAllBytes(referencePath), GoldenDiagnostics.Label(caseId));
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
@@ -71,7 +93,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         byte[] v2Bytes = GoldenFileIo.ReadAllBytes(v2OutputPath);
         GoldenAssert.AssertHashEqualsGolden(outputSha256, Hash(v2Bytes), "SHA-256");
         GoldenAssert.AssertHashEqualsGolden(outputSha256, v2.OutputSha256, "SHA-256");
-        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(
                 goldenCase,
@@ -347,11 +369,6 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
     private static string GoldenRoot => CanonicalGoldenTestData.Root;
 
     /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
-    public static TheoryData<GoldenCaseId, string, string, byte, ushort, string, string> ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsyncCases() => new()
-    {
-        { new GoldenCaseId("nt51923-fw141-single-auto-prj-662-20260717"), "single", "nt51923-ctrlram-replace-fw141-single", 1, 0x6005, "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f", "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38" },
-        { new GoldenCaseId("nt51923-fw141-cascade3-auto-prj-734-20260717"), "cascade", "nt51923-ctrlram-replace-fw141-cascade3", 3, 0x4C03, "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18", "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c" },
-    };
 
     /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
     public static TheoryData<GoldenCaseId, string, string, string> ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsyncCases() => new()

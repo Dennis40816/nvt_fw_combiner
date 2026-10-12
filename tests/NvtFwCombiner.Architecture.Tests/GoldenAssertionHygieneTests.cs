@@ -10,11 +10,17 @@ public sealed class GoldenAssertionHygieneTests
 
     // Three theories keep their `string sourceCase` parameter. Changing a signature makes the ledger count the
     // member as new debt (its banned-API and method-length findings are keyed by the signature).
+    // Four theories keep `string caseId` because `scripts/verify.py` (require_release_golden_results) matches a theory
+    // that several release Golden cases share through the TRX display name `Method(caseId: "<id>"`.
     private static readonly Dictionary<string, int> _caseTheoryCount = new(StringComparer.Ordinal)
     {
         ["tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamAuthoringTests.cs"] = 1,
         ["tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamMemoryLayoutTests.cs"] = 1,
         ["tests/NvtFwCombiner.Bootstrap.Tests/AbCtrlRamReferencePlanTests.cs"] = 1,
+        ["tests/NvtFwCombiner.Bootstrap.Tests/AbMergeGoldenRegressionTests.cs"] = 1,
+        ["tests/NvtFwCombiner.Bootstrap.Tests/Nt51923CtrlRamFw141EvidenceTests.cs"] = 1,
+        ["tests/NvtFwCombiner.Bootstrap.Tests/Nt51926CtrlRamFw200GoldenTests.cs"] = 1,
+        ["tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs"] = 1,
     };
 
     // One statement keeps its 1.3.x text because the code-health ledger keys it by text. It returns a tuple of

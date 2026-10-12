@@ -45,7 +45,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         replacementBytes[0] ^= 0x5A;
         byte[] prePastedBytes = [.. baseBytes];
         replacementBytes.AsSpan().CopyTo(prePastedBytes.AsSpan((int)selectedRegion.Range.Start));
-        Assert.NotEqual(baseBytes[(int)selectedRegion.Range.Start], prePastedBytes[(int)selectedRegion.Range.Start]);
+        Assert.True(baseBytes[(int)selectedRegion.Range.Start] != prePastedBytes[(int)selectedRegion.Range.Start], "Pasted byte unchanged.");
 
         List<ByteRange> allowWholeImage = [new ByteRange(0, baseBytes.LongLength)];
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-direct-combiner-pasteback-equivalence-{Guid.NewGuid():N}");

@@ -167,7 +167,7 @@ public sealed partial class FirmwareInspectionSlotTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         string sourcePath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-extension-admission");
-        byte[] source = File.ReadAllBytes(sourcePath);
+        byte[] source = GoldenFileIo.ReadAllBytes(sourcePath);
         string rejectedPath = workspace.Write("dp-input.txt", source);
         string recoveredPath = workspace.Write("dp-input.BIN", source);
         string tpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("tp-input"));

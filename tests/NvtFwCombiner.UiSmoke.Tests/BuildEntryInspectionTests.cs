@@ -217,7 +217,7 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
                 acceptedReplacementPath,
                 cancellationToken);
             GoldenAssert.AssertEqualsGolden(changedBytes, persistedBytes, "firmware image");
-            Assert.NotEqual(acceptedFirstByte, persistedBytes[0]);
+            Assert.True(acceptedFirstByte != persistedBytes[0], "Persisted first byte did not change.");
         }
         else
         {

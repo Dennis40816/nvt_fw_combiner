@@ -9,7 +9,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
     /// <summary>Verifies each Standard Merge golden case through its own byte-for-byte execution.</summary>
     [Theory]
     [MemberData(nameof(StandardMergeCases))]
-    public async Task WorkbenchBuildStandardMergeMatchesGoldenBytes(GoldenCaseId caseId)
+    public async Task WorkbenchBuildStandardMergeMatchesGoldenBytes(string caseId)
     {
         string goldenRoot = CanonicalGoldenTestData.Root;
         using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
@@ -17,7 +17,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
 
         JsonElement goldenCase = manifestDocument.RootElement.GetProperty("cases")
             .EnumerateArray()
-            .Single(item => StringComparer.Ordinal.Equals(item.GetProperty("caseId").GetString(), caseId.Value))
+            .Single(item => StringComparer.Ordinal.Equals(item.GetProperty("caseId").GetString(), caseId))
             .Clone();
         var admittedIcIds = GoldenTestHost.Services.CompositionCapabilityExperience.GetIcIds()
             .ToHashSet(StringComparer.Ordinal);
@@ -27,13 +27,13 @@ public sealed class StandardMergeWorkbenchGoldenTests
     }
 
     /// <summary>Exposes each canonical case identity to discovery and execution evidence.</summary>
-    public static TheoryData<GoldenCaseId> StandardMergeCases()
+    public static TheoryData<string> StandardMergeCases()
     {
         using JsonDocument manifest = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
-        TheoryData<GoldenCaseId> cases = [];
+        TheoryData<string> cases = [];
         foreach (JsonElement goldenCase in manifest.RootElement.GetProperty("cases").EnumerateArray())
         {
-            cases.Add(new GoldenCaseId(goldenCase.GetProperty("caseId").GetString()!));
+            cases.Add(goldenCase.GetProperty("caseId").GetString()!);
         }
 
         return cases;

@@ -183,7 +183,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             static candidate => StringComparer.Ordinal.Equals(
                 candidate.CaseId,
                 "nt51919-fw200-single-nt51929-alias"));
-        Assert.Equal(caseId.Value, alias.SourceCaseId);
+        Assert.True(string.Equals(caseId.Value, alias.SourceCaseId, StringComparison.Ordinal), "Alias source case differs.");
         Assert.Equal("NT51929", alias.SourceIc);
     }
 
@@ -253,9 +253,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         byte[] actual = GoldenFileIo.ReadAllBytes(outputPath);
         Assert.Equal(tpLength, actual.Length);
         string actualSha256 = Hash(actual);
-        Assert.True(
-            StringComparer.Ordinal.Equals(expectedOutputSha256, actualSha256),
-            $"Actual TP output SHA-256: {actualSha256}");
+        GoldenAssert.AssertHashEqualsGolden(expectedOutputSha256, actualSha256, "SHA-256");
         GoldenAssert.AssertHashEqualsGolden(expectedOutputSha256, result.OutputSha256, "SHA-256");
         AssertExecutionAuthority(
             result,
@@ -264,9 +262,10 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
             tpLength,
             tpBase.Bytes,
             actual);
-        Assert.All(
-            immutableHashes,
-            pair => GoldenAssert.AssertHashEqualsGolden(pair.Value, Hash(GoldenFileIo.ReadAllBytes(pair.Key)), "SHA-256"));
+        foreach (var pair in immutableHashes)
+        {
+            GoldenAssert.AssertHashEqualsGolden(pair.Value, Hash(GoldenFileIo.ReadAllBytes(pair.Key)), "SHA-256");
+        }
         return new RouteExecution(goldenCase, artifacts, actual, false);
     }
 

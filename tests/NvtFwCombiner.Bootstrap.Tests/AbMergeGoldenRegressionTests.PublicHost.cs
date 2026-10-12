@@ -74,7 +74,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             artifact.GetProperty("artifactId").GetString() == CompositionAddressSpaceIds.TpAInput));
         string tpBPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(static artifact =>
             artifact.GetProperty("artifactId").GetString() == CompositionAddressSpaceIds.TpBInput));
-        Assert.Equal(tpAPath, tpBPath);
+        Assert.True(StringComparer.Ordinal.Equals(tpAPath, tpBPath), "Expected one shared TP artifact path.");
         byte[] originalDp = GoldenFileIo.ReadAllBytes(dpPath);
         byte[] originalTp = GoldenFileIo.ReadAllBytes(tpAPath);
         using var workspace = TempWorkspace.Create(workspacePrefix);
@@ -357,9 +357,8 @@ public sealed partial class AbMergeGoldenRegressionTests
         string error = await standardError;
         Assert.True(
             process.ExitCode == 0,
-            $"Python AB reference failed for NT{icId}. Exit={process.ExitCode}{Environment.NewLine}" +
-            $"stdout:{Environment.NewLine}{output}{Environment.NewLine}" +
-            $"stderr:{Environment.NewLine}{error}");
+            $"Python AB reference failed for NT{icId}. Exit={process.ExitCode}; " +
+            $"stdout {GoldenDiagnostics.TextSummary(output)}; stderr {GoldenDiagnostics.TextSummary(error)}.");
         Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
         return GoldenFileIo.ReadAllBytes(outputPath);
     }

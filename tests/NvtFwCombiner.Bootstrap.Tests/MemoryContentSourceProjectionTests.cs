@@ -50,7 +50,9 @@ public sealed class MemoryContentSourceProjectionTests
             ContentRuns(layout));
         MemoryLayoutContentSource a = layout.AfterSegments.First(segment => segment.SourceSpaceId == CompositionAddressSpaceIds.TpAInput).ContentSource!;
         MemoryLayoutContentSource b = imports[0].ContentSource!;
-        Assert.Equal(paths[CompositionAddressSpaceIds.TpAInput], paths[CompositionAddressSpaceIds.TpBInput]);
+        Assert.True(
+            StringComparer.Ordinal.Equals(paths[CompositionAddressSpaceIds.TpAInput], paths[CompositionAddressSpaceIds.TpBInput]),
+            "Expected one shared TP artifact path.");
         Assert.Equal(a.ArtifactIdentity, b.ArtifactIdentity);
         Assert.NotEqual(a.SourceSlotId, b.SourceSlotId);
     }

@@ -123,7 +123,7 @@ public sealed class CliExecutionRefusalTests
             error,
             TestContext.Current.CancellationToken);
 
-        Assert.True(exitCode == 1, error + Environment.NewLine + output);
+        Assert.True(exitCode == 1, GoldenDiagnostics.TextSummary(error.ToString()) + "; " + GoldenDiagnostics.TextSummary(output.ToString()));
         Assert.Equal(1, execution.Calls);
         Assert.True(GoldenDiagnostics.StartsWith("error: AB_FORMAT_SESSION_STALE: ", error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
         Assert.Empty(output.ToString());
@@ -300,7 +300,7 @@ public sealed class CliExecutionRefusalTests
         string reportPath,
         string workflowId)
     {
-        Assert.True(exitCode == 1, error + Environment.NewLine + output);
+        Assert.True(exitCode == 1, GoldenDiagnostics.TextSummary(error.ToString()) + "; " + GoldenDiagnostics.TextSummary(output.ToString()));
         Assert.Equal(1, execution.Calls);
         Assert.True(GoldenDiagnostics.StartsWith("Issues:", error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
         Assert.True(GoldenDiagnostics.Contains(
