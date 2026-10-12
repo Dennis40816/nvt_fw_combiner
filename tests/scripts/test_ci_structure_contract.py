@@ -79,13 +79,27 @@ class CiStructureContractTests(unittest.TestCase):
             with self.subTest(workflow=relative):
                 workflow = yaml.safe_load((ROOT / relative).read_text(encoding="utf-8"))
                 jobs = workflow["jobs"]
-                checkout_steps = [
+                all_checkouts = [
                     step
                     for job in jobs.values()
                     for step in job["steps"]
                     if str(step.get("uses", "")).startswith("actions/checkout@")
                 ]
+                core_checkouts = [
+                    step for step in all_checkouts if "repository" in step["with"]
+                ]
+                checkout_steps = [
+                    step for step in all_checkouts if "repository" not in step["with"]
+                ]
 
+                # The one other-repository checkout is the pinned Core commit for -CoreRoot.
+                self.assertEqual(1, len(core_checkouts))
+                core = core_checkouts[0]["with"]
+                self.assertEqual("Dennis40816/nvt_fw_core", core["repository"])
+                self.assertEqual("${{ steps.core-pin.outputs.commit }}", core["ref"])
+                self.assertEqual(".core", core["path"])
+                self.assertIs(False, core["persist-credentials"])
+                self.assertEqual(0, core["fetch-depth"])
                 self.assertEqual(6, len(checkout_steps))
                 for step in checkout_steps:
                     checkout_with = step["with"]
@@ -165,7 +179,12 @@ class CiStructureContractTests(unittest.TestCase):
                 health = checks[0]
                 build = next(step for step in steps
                              if step.get("run") == "python scripts/verify.py --ci-dotnet-build")
-                self.assertEqual(health, steps[steps.index(build) + 1])
+                pin_step, core_step = steps[steps.index(build) + 1 : steps.index(build) + 3]
+                self.assertEqual("core-pin", pin_step["id"])
+                self.assertEqual("pwsh", pin_step["shell"])
+                self.assertIn("eng/core-health.lock.json", pin_step["run"])
+                self.assertEqual("Dennis40816/nvt_fw_core", core_step["with"]["repository"])
+                self.assertEqual(health, steps[steps.index(build) + 3])
                 self.assertEqual("pwsh", health["shell"])
                 self.assertNotIn("if", health)
                 self.assertNotIn("continue-on-error", health)
@@ -180,8 +199,8 @@ class CiStructureContractTests(unittest.TestCase):
                     "DOTNET_CLI_USE_MSBUILD_SERVER": "0",
                 }, health["env"])
                 lines = [line.strip() for line in health["run"].splitlines()]
-                self.assertIn(command + " -BaseRef $env:NFC_PR_BASE_SHA", lines)
-                self.assertIn(command, lines)
+                self.assertIn(command + " -BaseRef $env:NFC_PR_BASE_SHA -CoreRoot .core", lines)
+                self.assertIn(command + " -CoreRoot .core", lines)
                 self.assertNotIn("${{", health["run"])
                 self.assertEqual("exit $LASTEXITCODE", lines[-1])
                 uploads = [step for step in steps
