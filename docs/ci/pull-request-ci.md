@@ -30,6 +30,11 @@ Private firmware golden regression remains an approved-runner gate once private 
 - Checkout credentials are not persisted.
 - `pull_request_target` is forbidden.
 - Pull-request jobs receive no release/signing secrets.
+- The three jobs that read firmware golden files run in the `golden-assets` environment.
+  They receive only `TESTDATA_DEPLOY_KEY`, a read-only deploy key for the private
+  test-data repository. The key sits in one step's environment, is written to
+  `RUNNER_TEMP`, and is deleted by that step and by an always-run cleanup step.
+  A fork or Dependabot run has no key and fails with `unverified, cannot merge`.
 - Action references use full 40-character SHAs; mutable tags are rejected by repository validation.
 - The Polytail semantic review remains required in the PR record in addition to deterministic CI checks.
 - Test-shard publication follows the public artifact contract below. Build
